@@ -8,11 +8,11 @@ from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import override_settings
 
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
-from tests.utils import info_register_aware_modify_settings
+from tests.utils import append_installed_apps
+from tests.utils import info_registry_clear_with_appended_apps
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
@@ -94,22 +94,16 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
     the noqa comments are stripped from the generated migration.
     """
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_added": "tests.group_added",
-        },
-        AUTH_USER_MODEL="group_added.GroupAddedUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_added",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_comment_removed(self):
+    def test_comment_removed(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_added": "tests.group_added",
+        }
+        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
+        append_installed_apps(settings, "tests.group_added")
+
         with self.temporary_migration_module(app_label="group_added") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "group_added")
@@ -145,23 +139,17 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
 
 
 class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_added": "tests.group_added",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_added.GroupAddedUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_added",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_added(self):
+    def test_group_added(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_added": "tests.group_added",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
+        append_installed_apps(settings, "tests.group_added")
+
         with self.temporary_migration_module(app_label="group_added") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 0
@@ -183,23 +171,17 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
 
 
 class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_changed": "tests.group_changed",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_changed.GroupChangedUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_changed",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_changed(self):
+    def test_group_changed(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_changed": "tests.group_changed",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_changed.GroupChangedUser"
+        append_installed_apps(settings, "tests.group_changed")
+
         with self.temporary_migration_module(app_label="group_changed") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_changed").count() == 0
 
@@ -268,23 +250,17 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
 
 
 class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_deleted": "tests.group_deleted",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_deleted.GroupDeletedUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_deleted",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_deleted(self):
+    def test_group_deleted(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_deleted": "tests.group_deleted",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_deleted.GroupDeletedUser"
+        append_installed_apps(settings, "tests.group_deleted")
+
         with self.temporary_migration_module(app_label="group_deleted") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_deleted").count() == 0
 
@@ -388,23 +364,17 @@ class TestCreateUserCommand:
 
 
 class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_updating": "tests.group_updating",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_updating.GroupUpdatingUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_updating",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_updating(self):
+    def test_group_updating(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_updating": "tests.group_updating",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
+        append_installed_apps(settings, "tests.group_updating")
+
         with self.temporary_migration_module(app_label="group_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0002_group_permission_migrations_2026_06_29.py")
 
@@ -518,23 +488,17 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "            forwards_migrate_groups_through_imports," in migration_content
             assert "            backwards_migrate_groups_through_imports," in migration_content
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_updating": "tests.group_updating",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_updating.GroupUpdatingUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_updating",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_updating_direct_runpython_import(self):
+    def test_group_updating_direct_runpython_import(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_updating": "tests.group_updating",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
+        append_installed_apps(settings, "tests.group_updating")
+
         with self.temporary_migration_module(app_label="group_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0003_group_permission_migrations_2026_06_30.py")
 
@@ -645,23 +609,17 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
 
             assert f"  Nothing to rename found in {migration_filepath}.\n" in results
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_updating_bad_migrations": "tests.group_updating_bad_migrations",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_updating_bad_migrations.GroupUpdatingBadMigrationsUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_updating_bad_migrations",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_updating_bad_migrations(self):
+    def test_group_updating_bad_migrations(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_updating_bad_migrations": "tests.group_updating_bad_migrations",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_updating_bad_migrations.GroupUpdatingBadMigrationsUser"
+        append_installed_apps(settings, "tests.group_updating_bad_migrations")
+
         err = io.StringIO()
         out = io.StringIO()
 
@@ -686,46 +644,34 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
 
             assert "Failed updating 2 group migration(s).\n" in results
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_updating_no_migrations": None,
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_updating_no_migrations.GroupUpdatingNoMigrationsUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_updating_no_migrations",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_updating_no_migrations(self):
+    def test_group_updating_no_migrations(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_updating_no_migrations": None,
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_updating_no_migrations.GroupUpdatingNoMigrationsUser"
+        append_installed_apps(settings, "tests.group_updating_no_migrations")
+
         succeeded, results = self.call_command("updategroupmigrations")
         if not succeeded:
             pytest.fail("".join(results))
 
         assert "No group migrations found to update.\n" in results
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "group_changes_syncing": "tests.group_changes_syncing",
-            "no_migrations": None,
-        },
-        AUTH_USER_MODEL="group_changes_syncing.GroupChangesSyncingUser",
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.group_changes_syncing",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_group_changes_syncing(self):
+    def test_group_changes_syncing(self, settings):
+        settings.MIGRATION_MODULES = {
+            "group_changes_syncing": "tests.group_changes_syncing",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_changes_syncing.GroupChangesSyncingUser"
+        append_installed_apps(settings, "tests.group_changes_syncing")
+
         with self.temporary_migration_module(app_label="group_changes_syncing"):
             assert GroupChange.objects.count() == 0
 

@@ -55,7 +55,11 @@ export function useModelChoices(fields, isActive) {
     if (!isActive) {
         isActive = es.run(() => useIsActive());
     }
-    let modelChoicesStore = null;
+    // Resolve the store here, while the composable still runs inside its component's setup.
+    // Pinia's active instance is a module global that every `app.use(pinia)` overwrites, so a
+    // store resolved later, from a callback with no current component to inject from, would come
+    // from whichever app booted last. The docs site puts several isolated apps on one page.
+    const modelChoicesStore = storeModelChoices();
     const internalState = reactive({
         /** @type {ChoicesOptions} */
         fields,
@@ -79,9 +83,6 @@ export function useModelChoices(fields, isActive) {
 
     const newFieldWatch = (fieldName) => {
         internalState.loadingErrors[fieldName] = es.run(() => useLoadingError());
-        if (!modelChoicesStore) {
-            modelChoicesStore = storeModelChoices();
-        }
         stopWatches[fieldName] = es.run(() =>
             watch(
                 [

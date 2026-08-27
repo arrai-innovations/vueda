@@ -12,6 +12,9 @@ Package READMEs:
 - [Client](./client/README.md)
 - [Copier Templates](./templates/README.md)
 
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or pull
+request.
+
 <!--prettier-ignore-start-->
 <!--TOC-->
 
@@ -97,7 +100,7 @@ We use tag prefixes to publish packages independently:
 [code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
 [prettier]: https://github.com/prettier/prettier
 [server pytest status]: https://docs.arrai.dev/vueda/artifacts/main/server-pytest.svg
-[server coverage status]: https://docs.arrai.dev/vueda/artifacts/main/server-pytest.coverage.svg
+[server coverage status]: https://docs.arrai.dev/vueda/artifacts/main/server-coverage.svg
 [ruff status]: https://docs.arrai.dev/vueda/artifacts/main/ruff.svg
 [server pysentry status]: https://docs.arrai.dev/vueda/artifacts/main/server-pysentry.svg
 [client tests]: https://docs.arrai.dev/vueda/artifacts/main/tests.svg

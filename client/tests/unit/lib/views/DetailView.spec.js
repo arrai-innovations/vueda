@@ -1,6 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, reactive, ref } from "vue";
 
 const assignReactiveObject = vi.fn();
@@ -122,6 +123,9 @@ describe("lib/views/DetailView.vue", () => {
     let DetailView, vue, instanceState;
 
     beforeEach(async () => {
+        // The composables under test resolve their pinia stores during setup, so one has to exist.
+        setActivePinia(createPinia());
+
         vue = await vi.importActual("vue");
         instanceState = vue.reactive({ loading: false, object: {}, relatedObjects: {}, calculatedObjects: {} });
         mockedUseObject.mockReturnValue({ state: instanceState });

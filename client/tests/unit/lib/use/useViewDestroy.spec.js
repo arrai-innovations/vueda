@@ -4,6 +4,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
+import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useModelConfig.js", async () => {
@@ -32,6 +33,9 @@ describe("lib/use/useViewDestroy.js", () => {
     let mockModelConfig, mockInstanceList, props;
 
     beforeEach(async () => {
+        // The composables under test resolve their pinia stores during setup, so one has to exist.
+        setActivePinia(createPinia());
+
         props = reactive({
             app: "testApp",
             model: "testModel",
@@ -106,13 +110,22 @@ describe("lib/use/useViewDestroy.js", () => {
     scopedIt("handleDelete forwards dryRun flag to bulkDelete", async () => {
         const result = await withSetup(() => useViewDestroy(props));
         await result.handleDelete({ dryRun: true });
-        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: true });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({
+            dryRun: true,
+            acknowledgeWarnings: undefined,
+            // A validation pass must not empty the list the operator is still confirming against.
+            keepObjects: true,
+        });
     });
 
     scopedIt("handleDelete forwards acknowledgeWarnings to bulkDelete", async () => {
         const result = await withSetup(() => useViewDestroy(props));
         await result.handleDelete({ dryRun: false, acknowledgeWarnings: "d1" });
-        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({ dryRun: false, acknowledgeWarnings: "d1" });
+        expect(mockInstanceList.bulkDelete).toHaveBeenCalledWith({
+            dryRun: false,
+            acknowledgeWarnings: "d1",
+            keepObjects: false,
+        });
     });
 
     scopedIt("handleDelete clears the captured list error before rethrowing a ConfirmationRequiredError", async () => {

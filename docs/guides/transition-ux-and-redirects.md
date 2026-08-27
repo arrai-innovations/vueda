@@ -83,6 +83,8 @@ The server's workflow execute-transition endpoint ({@api rest:endpoint:PATCH:/vu
 
 **Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-`list` payloads return `400`.
 
+**Warning confirmation** gates the write behind the same `409`/`Acknowledge-Warnings` contract used by create, update, destroy, activate, and deactivate. When a model overrides `get_transition_warnings`, an unacknowledged warning set responds `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written; resubmitting with the digest in the `Acknowledge-Warnings` header lets the transition proceed, and a changed warning set yields a new digest and re-prompts. `storeWorkflow.executeTransition` maps this `409` to `ConfirmationRequiredError` and takes an `acknowledgeWarnings` argument for the confirmed retry. This gate applies to both detail and bulk execution; a bulk request's `warnings` is the same aggregate `{field: [messages]}` mapping as the detail request, merged across every instance in the batch, and the whole batch gates once with one digest before any instance transitions.
+
 ::: warning
 The bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
 :::
@@ -102,6 +104,7 @@ After implementing transition UX, verify the following:
 - Workflow transition submit sends the correct `transition_code` and redirects on success.
 - Bulk transition submit sends `{ object_ids: [...] }`, not `{ pks: [...] }`.
 - Locked-row transition attempt surfaces a user-friendly error message.
+- A transition with unacknowledged warnings surfaces the confirmation dialog; confirming retries with the digest acknowledged and completes the transition, cancelling leaves it unapplied.
 
 ## Known Limitations
 
@@ -116,6 +119,7 @@ After implementing transition UX, verify the following:
     - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
     - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
+    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.get_transition_warnings}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
@@ -124,5 +128,8 @@ After implementing transition UX, verify the following:
     - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
     - {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
     - {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
+    - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
+    - {@api js:function:@arrai-innovations/vueda/use/useConfirmationController#useConfirmationController}
 - Vue.js Components:
     - {@api vue:component:ViewWorkflowTransition}
+    - {@api vue:component:FormConfirmDialog}

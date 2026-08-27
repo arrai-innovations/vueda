@@ -23,9 +23,13 @@ vi.mock("@vueda/utils/urls.js", () => ({
     getListUrl,
 }));
 
-vi.mock("@vueda/utils/fetchSupport.js", () => ({
-    getJsonOrText,
-}));
+// Only `getJsonOrText` is stubbed: the retrieve/create/update/patch tests feed it hand-rolled response
+// objects, while `actionRequestHeaders` and `readActionResponse` stay real so the delete and action
+// handlers are tested against the classification they actually ship with.
+vi.mock("@vueda/utils/fetchSupport.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/fetchSupport.js");
+    return { ...actual, getJsonOrText };
+});
 
 vi.mock("@vueda/utils/csrf.js", () => ({
     getCSRFValue,
@@ -456,10 +460,22 @@ describe("lib/utils/objectCrud.js", () => {
     });
 
     describe("defaultObjectDelete", () => {
+        /**
+         * @param {Response} response - The response the fetch resolves.
+         * @returns {object[]} The url and options `cancellableFetch` was called with.
+         */
+        function captureDelete(response) {
+            const captured = [];
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured.push({ url, options });
+                return Promise.resolve(transform(response));
+            });
+            return captured;
+        }
+
         it("resolves and builds url with deleteArgs", async () => {
             getDetailUrl.mockReturnValue("detail-url");
-            const response = new Response(null, { status: 204 });
-            global.fetch = vi.fn(() => Promise.resolve(response));
+            const captured = captureDelete(new Response(null, { status: 204 }));
 
             const result = await objectCrud.defaultObjectDelete({
                 target: { app: "blog", model: "article" },
@@ -470,15 +486,12 @@ describe("lib/utils/objectCrud.js", () => {
                 },
             });
 
-            expect(fetch).toHaveBeenCalledWith(
-                "detail-url",
-                expect.objectContaining({
-                    method: "DELETE",
-                    credentials: "include",
-                    headers: { "X-CSRFToken": "csrftoken" },
-                    signal: expect.any(AbortSignal),
-                }),
-            );
+            expect(captured[0].url).toBe("detail-url");
+            expect(captured[0].options).toMatchObject({
+                method: "DELETE",
+                credentials: "include",
+                headers: { "X-CSRFToken": "csrftoken", "Content-Type": "application/json" },
+            });
             expect(getDetailUrl).toHaveBeenCalledWith({
                 app: "blog",
                 model: "article",
@@ -491,8 +504,7 @@ describe("lib/utils/objectCrud.js", () => {
 
         it("resolves without deleteArgs", async () => {
             getDetailUrl.mockReturnValue("detail-url");
-            const response = new Response(null, { status: 204 });
-            global.fetch = vi.fn(() => Promise.resolve(response));
+            captureDelete(new Response(null, { status: 204 }));
 
             const result = await objectCrud.defaultObjectDelete({
                 target: { app: "blog", model: "article" },
@@ -509,36 +521,134 @@ describe("lib/utils/objectCrud.js", () => {
             expect(result).toBeUndefined();
         });
 
+        it("sends extra form fields as the body", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const captured = captureDelete(new Response(null, { status: 204 }));
+
+            await objectCrud.defaultObjectDelete({
+                target: { app: "blog", model: "article" },
+                pk: "4",
+                formData: { reason: "spam" },
+            });
+
+            expect(JSON.parse(captured[0].options.body)).toEqual({ reason: "spam" });
+        });
+
+        it("accepts the server's dry-run 200 and sets the header", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const captured = captureDelete(new Response(JSON.stringify({ warnings: {} }), { status: 200 }));
+
+            const result = await objectCrud.defaultObjectDelete({
+                target: { app: "blog", model: "article" },
+                pk: "4",
+                dryRun: true,
+            });
+
+            expect(captured[0].options.headers["Dry-Run"]).toBe("true");
+            expect(result).toEqual({ warnings: {} });
+        });
+
+        it("treats a 200 on a real delete as a failure", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            captureDelete(new Response(JSON.stringify({}), { status: 200 }));
+
+            // Only a 204 confirms a delete happened; a 200 outside a dry run is the server answering
+            // something else, and must not read as success just because the status is in the 2xx range.
+            await expect(
+                objectCrud.defaultObjectDelete({ target: { app: "blog", model: "article" }, pk: "9" }),
+            ).rejects.toBeInstanceOf(errors.FetchError);
+        });
+
         it("throws FetchError on failure", async () => {
             getDetailUrl.mockReturnValue("detail-url");
-            const response = new Response(JSON.stringify({}), { status: 500 });
-            global.fetch = vi.fn(() => Promise.resolve(response));
-            getJsonOrText.mockResolvedValue({});
+            captureDelete(new Response(JSON.stringify({}), { status: 500 }));
 
             await expect(
                 objectCrud.defaultObjectDelete({ target: { app: "blog", model: "article" }, pk: "9" }),
             ).rejects.toBeInstanceOf(errors.FetchError);
         });
 
-        it(".cancel aborts the request", async () => {
-            const originalAbort = global.AbortController;
-            const abortSpy = vi.fn();
-            const controller = { signal: {}, abort: abortSpy };
-            global.AbortController = vi.fn(() => controller);
-
+        it("throws ConfirmationRequiredError on 409", async () => {
             getDetailUrl.mockReturnValue("detail-url");
-            const response = new Response(null, { status: 204 });
-            global.fetch = vi.fn(() => Promise.resolve(response));
+            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
+            captureDelete(new Response(JSON.stringify(responseData), { status: 409 }));
 
-            const promise = objectCrud.defaultObjectDelete({
-                target: { app: "blog", model: "article" },
-                pk: "5",
+            const error = await objectCrud
+                .defaultObjectDelete({
+                    target: { app: "blog", model: "article" },
+                    pk: "9",
+                    acknowledgeWarnings: undefined,
+                })
+                .catch((e) => e);
+
+            expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+            expect(error.digest).toBe("d1");
+        });
+    });
+
+    describe("defaultObjectExecuteAction", () => {
+        it("sends the action to the detail action url", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            let captured;
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured = { url, options };
+                return Promise.resolve(transform(new Response(JSON.stringify({ archived: true }), { status: 200 })));
             });
 
-            promise.cancel();
-            expect(abortSpy).toHaveBeenCalledTimes(1);
-            await promise;
-            global.AbortController = originalAbort;
+            const result = await objectCrud.defaultObjectExecuteAction({
+                target: { app: "blog", model: "article" },
+                pk: "3",
+                action: "archive",
+                requestMethod: "POST",
+                formData: { reason: "stale" },
+                dryRun: true,
+                acknowledgeWarnings: "d1",
+            });
+
+            expect(getDetailUrl).toHaveBeenCalledWith({
+                app: "blog",
+                model: "article",
+                pk: "3",
+                action: "archive",
+            });
+            expect(captured.url).toBe("detail-action-url");
+            expect(captured.options).toMatchObject({ method: "POST", credentials: "include" });
+            expect(captured.options.headers).toMatchObject({ "Dry-Run": "true", "Acknowledge-Warnings": "d1" });
+            expect(JSON.parse(captured.options.body)).toEqual({ reason: "stale" });
+            expect(result).toEqual({ archived: true });
+        });
+
+        it("defaults to PUT and sends no body without form data", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            let captured;
+            cancellableFetch.mockImplementation((url, options, transform) => {
+                captured = { url, options };
+                return Promise.resolve(transform(new Response(null, { status: 204 })));
+            });
+
+            await objectCrud.defaultObjectExecuteAction({
+                target: { app: "blog", model: "article" },
+                pk: "3",
+                action: "archive",
+            });
+
+            expect(captured.options.method).toBe("PUT");
+            expect(captured.options.body).toBeUndefined();
+        });
+
+        it("throws FormValidationError on 400", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                transform(new Response(JSON.stringify({ name: ["Required."] }), { status: 400 })),
+            );
+
+            await expect(
+                objectCrud.defaultObjectExecuteAction({
+                    target: { app: "blog", model: "article" },
+                    pk: "3",
+                    action: "archive",
+                }),
+            ).rejects.toBeInstanceOf(errors.FormValidationError);
         });
     });
 
@@ -550,6 +660,7 @@ describe("lib/utils/objectCrud.js", () => {
                 defaultObjectUpdate,
                 defaultObjectPatch,
                 defaultObjectDelete,
+                defaultObjectExecuteAction,
                 setupDefaultObjectCrud,
             } = objectCrud;
 
@@ -561,6 +672,7 @@ describe("lib/utils/objectCrud.js", () => {
                 update: defaultObjectUpdate,
                 patch: defaultObjectPatch,
                 delete: defaultObjectDelete,
+                executeAction: defaultObjectExecuteAction,
             });
         });
     });

@@ -723,6 +723,18 @@ class HasWorkflowModelMixin(models.Model):
         """
         return transition in self.available_transitions(user=user)
 
+    def get_transition_warnings(self, transition: Transition, user: User | None = None) -> dict:
+        """
+        Hook returning advisory warnings for a transition, consulted before it is written.
+
+        Override to report warnings that should gate the transition behind confirmation (HTTP 409)
+        without denying it outright the way ``allow_transition`` does. Return the aggregate
+        ``{field: [messages]}`` warnings dict (use ``"non_field_errors"`` for warnings not tied to a
+        field). The default returns ``{}``, meaning no confirmation is required. See
+        ``vueda.core.exceptions.gate_warnings`` for how the caller turns this into a 409.
+        """
+        return {}
+
     def get_transition(self, transition_code: str) -> Transition:
         """Return the ``Transition`` with the given code in this object's workflow. Raises ``Transition.DoesNotExist`` if not found."""
         try:
@@ -745,11 +757,15 @@ class HasWorkflowModelMixin(models.Model):
             ignored=True,
         ).exists()
 
-    def apply_transition(
-        self, transition_code: str, user: User | None = None, dry_run: bool = False
-    ) -> tuple[State, int | None]:
+    def check_transition(self, transition_code: str, user: User | None = None) -> tuple[Transition, User]:
         """
-        Apply a transition to the object.
+        Validate that ``transition_code`` can be applied by ``user``, without writing anything.
+
+        Performs the same permission and ``allow_transition`` checks as ``apply_transition``
+        (raising the same exceptions), and resolves the effective ``user`` (falling back to the
+        request user from history context, then the system user, exactly as ``apply_transition``
+        does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
+        before writing should call this first, then ``apply_checked_transition``.
         """
         self.check_workflow_permission(user)
         transition: Transition = self.get_transition(transition_code)
@@ -771,12 +787,30 @@ class HasWorkflowModelMixin(models.Model):
                 allowed_or_denied_or_denied_with_message
                 or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
             )
+        return transition, user
+
+    def apply_checked_transition(
+        self, transition: Transition, user: User | None = None, dry_run: bool = False
+    ) -> tuple[State, int | None]:
+        """
+        Write an already-authorized transition (as returned by ``check_transition``) without
+        re-checking permissions or availability.
+        """
         self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
         self.on_transition(transition, user, dry_run)
         if hasattr(self.object_state, "history"):
             # return the new latest history record id
             return transition.target, self.object_state.history.latest().history_id
         return transition.target, None
+
+    def apply_transition(
+        self, transition_code: str, user: User | None = None, dry_run: bool = False
+    ) -> tuple[State, int | None]:
+        """
+        Apply a transition to the object.
+        """
+        transition, user = self.check_transition(transition_code, user)
+        return self.apply_checked_transition(transition, user, dry_run)
 
     def fast_transition(self, transition_code: str) -> None:
         """

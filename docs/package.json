@@ -9,7 +9,7 @@
     "preview": "vitepress preview"
   },
   "dependencies": {
-    "@arrai-innovations/reactive-helpers": "^24.0.0",
+    "@arrai-innovations/reactive-helpers": "^24.1.0",
     "@arrai-innovations/vue-sonner": "^2.0.11",
     "@arrai-innovations/vueda": "workspace:*",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",

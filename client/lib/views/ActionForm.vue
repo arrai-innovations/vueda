@@ -99,7 +99,18 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const formContext = inject(FormContextSymbol);
+// Required, not optional: useActionForm calls setAllTouched(), reads state.submittingValues
+// for the request body, and routes a server 400 through handleServerFormValidationError(),
+// while the template gates submit on state.anyError. Degrading to a no-op would swallow
+// server field errors silently, so fail loudly and name the provider instead. ModelActionForm
+// establishes one when its host has not; a bare ActionForm must be wrapped in a useForm scope.
+const formContext = inject(FormContextSymbol, null);
+if (!formContext) {
+    throw new Error(
+        "ActionForm: no form context. Call useForm() in an ancestor and provide it under " +
+            "FormContextSymbol, or render ModelActionForm, which establishes one when none is injected.",
+    );
+}
 const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
     useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);

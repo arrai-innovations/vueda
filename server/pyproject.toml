@@ -22,6 +22,7 @@ classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
 ]
 dynamic = ["version"]
@@ -39,7 +40,7 @@ dependencies = [
     "django-filter>=23.5",
     "django-private-storage>=3.1.1,<4",
     "django-simple-history>=3.11.0,<4",
-    "django>=5.2.14,<6.1",
+    "django>=5.2.14,<6.2",
     "dj-database-url>=2.2.0,<3",
     "dj-email-url>=1.0.6,<2",
     "django-cache-url>=3.4.5,<4",

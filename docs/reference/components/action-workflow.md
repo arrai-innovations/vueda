@@ -8,62 +8,60 @@ type: reference
 <script setup>
 import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
 import Button from "@vueda/controls/button/Button.vue";
-import Input from "@vueda/controls/input/Input.vue";
 import Textarea from "@vueda/controls/textarea/Textarea.vue";
-import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import Alert from "@vueda/feedback/alert/Alert.vue";
-import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
-import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
 import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import Table from "@vueda/grid/table/Table.vue";
-import TableBody from "@vueda/grid/table/TableBody.vue";
-import TableCell from "@vueda/grid/table/TableCell.vue";
-import TableHead from "@vueda/grid/table/TableHead.vue";
-import TableHeader from "@vueda/grid/table/TableHeader.vue";
-import TableRow from "@vueda/grid/table/TableRow.vue";
-import UserAvatar from "@vueda/display/avatar/UserAvatar.vue";
-import Kbd from "@vueda/display/kbd/Kbd.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
-    faBoxArchive,
     faArrowRight,
-    faTriangleExclamation,
-    faCircleCheck,
-    faCircleXmark,
-    faShieldHalved,
-    faArrowRotateRight,
-    faCreditCard,
     faFlagCheckered,
     faRotateLeft,
-    faPen,
-    faPlus,
-    faTable,
-    faFilter,
-    faArrowUpFromBracket,
     faLock,
     faCircleQuestion,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-    faBuilding,
-    faFileLines,
-    faUser,
-    faClock,
-    faIdCard,
-    faClone,
     faBell,
     faEnvelope,
 } from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
+import { demoResponse } from "../../.vitepress/theme/fixtures/demoApi.js";
+import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 const selectedTransition = ref("send-for-review");
-const notifyEmail = ref(true);
-const forcePasswordReset = ref(false);
 const copyDiscounts = ref(true);
+
+// One scenario per live demo. Route registration is global and first-match-wins, so demos
+// that need different responses for the same model take different app labels.
+const archiveScenario = customerScenario({ app: "showcaseaction", actions: [{ name: "archive" }] });
+const duplicateScenario = customerScenario({ app: "showcaseduplicate", actions: [{ name: "duplicate" }] });
+const activateScenario = customerScenario({
+    app: "showcaseactivate",
+    actions: [{ name: "activate", method: "PATCH" }],
+});
+// Rejects the pre-flight the way a server does when some records cannot take the action:
+// a 400 keyed by primary key. The confirmed request would succeed.
+const historyScenario = customerScenario({ app: "showcasehistory" });
+const emptyHistoryScenario = customerScenario({ app: "showcasehistoryempty", history: [] });
+const billScenario = customerScenario({
+    app: "showcasebill",
+    actions: [
+        {
+            name: "bill_now",
+            handler: ({ headers }) =>
+                headers?.get("Dry-Run")?.toLowerCase() === "true"
+                    ? demoResponse(400, {
+                          11: ["No payment method on file."],
+                          23: ["Subscription is paused; resume it before billing."],
+                      })
+                    : demoResponse(200, { detail: "Billed 3 customers." }),
+        },
+    ],
+});
 </script>
 
 # Action & Workflow Views
@@ -74,305 +72,126 @@ Banner tone follows action sentiment: `info` for neutral confirmations, `success
 
 ## ViewAction
 
-Generic action confirmation view. An info-toned banner explains what the action does; the selected objects are listed below it; and a prompt panel restates the question in plain language before the actions strip. Extra action-specific fields sit between the object list and the prompt when present.
+The generic action confirmation view: a tone-tracked banner, the records the action targets, a
+prompt panel restating the question, then the actions strip. It is the one action view that does
+not fetch anything. `ViewDestroy` and `ViewActivate` load their records and hand
+`ModelActionForm` a fetch state; `ViewAction` passes the primary keys straight through, which is
+why the rows below read as bare keys.
 
+`ViewAction` also owns a form context of its own, seeded with one entry per primary key. That is
+what gives per-record server messages somewhere to land, as the third demo shows.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="archive" · 4 records selected · default info tone</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Archive 4 customers">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- info banner -->
-    <div class="flex gap-4 border-b border-info/25 bg-info/8 px-6 py-4">
-      <FontAwesomeIcon :icon="faBoxArchive" class="mt-0.5 shrink-0 text-info" />
-      <div>
-        <p class="font-semibold text-foreground">Archived customers move out of the active list and stop receiving renewal reminders.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Their records, contacts, and historical invoices stay accessible; you can restore at any time from the Archived view. Active subscriptions are <em>not</em> cancelled by this action — handle those separately.</p>
-        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>action <strong class="text-foreground">archive</strong></span>
-          <span>scope <strong class="text-foreground">4 selected</strong></span>
-          <span>side-effects <strong class="text-foreground">none</strong></span>
-        </div>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-4">
-        <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records to archive</h3>
-          <span class="text-xs text-muted-foreground">4 of 4 selected</span>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Pemberton &amp; Vale</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1019</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Cordillera Botanicals</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1023</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Foxglove &amp; Kettle</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1027</span>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faBuilding" class="shrink-0 text-muted-foreground" />
-            <span>Quay &amp; Tide Outfitters</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">#1031</span>
-          </div>
-        </div>
-      </div>
-      <div class="border-l-4 border-border bg-muted/8 px-4 py-3">
-        <p class="text-sm font-semibold">Are you sure you want to archive these 4 customers?</p>
-        <p class="mt-1 text-sm text-muted-foreground">This action is reversible — admins can restore records from <em>Customers → Archived</em>. Renewal reminders will stop within 5 minutes.</p>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faBoxArchive" />
-        Archive 4 customers
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <FontAwesomeIcon :icon="faCircleQuestion" />
-        Reversible — restore any time from <strong class="text-foreground">Archived</strong>
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="archive" · 4 records · default info tone · live ViewAction</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewAction.vue')"
+    :app="archiveScenario.app"
+    :model="archiveScenario.model"
+    :pk="['4', '11', '23', '1']"
+    action="archive"
+    :seed="archiveScenario.seed"
+    :api="archiveScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>banner: <code>bg-info/8 border-info/25</code> strip; grounds the action before the buttons</span>
-    <span>banner meta row: action · scope · side-effects — always populate what you know</span>
-    <span>object list: <code>divide-y divide-border rounded-vueda-control hairline hairline-border</code> with icon + label + pk</span>
-    <span>prompt panel: <code>border-l-4 border-border bg-muted/8</code> left-rule treatment</span>
-    <span>actions strip: <code>border-t-hairline</code>; hint text pushed right with <code>ml-auto</code></span>
+    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code>: a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
+    <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
+    <span>records: each chip shows the primary key twice, as its label and as the trailing mono chip. There is nothing else to show: no fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to render names instead</span>
+    <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice: the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
+    <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+An action with input fills the `extra-fields` slot. The demo below is the real view with that one
+slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
+into Reason and submit, then clear it and submit again to see the validation summary.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="duplicate" · 1 record · single-object variant with extra fields</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Duplicate quote">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- info banner -->
-    <div class="flex gap-4 border-b border-info/25 bg-info/8 px-6 py-4">
-      <FontAwesomeIcon :icon="faClone" class="mt-0.5 shrink-0 text-info" />
-      <div>
-        <p class="font-semibold text-foreground">Create a copy of this quote with status <em>Draft</em> and today's issue date.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Line items, customer, and notes are copied. Signatures, invoices, and audit history are not.</p>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Source</h3>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faFileLines" class="shrink-0 text-muted-foreground" />
-            <span>Q-2026-0418 — Northwind Logistics · annual renewal</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">$14,028.50</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-col gap-4 mb-5">
-        <Field orientation="vertical">
-          <FieldLabel for="dup-name">New quote name</FieldLabel>
-          <FieldContent>
-            <Input id="dup-name" :model-value="'Copy of Q-2026-0418'" />
-          </FieldContent>
-        </Field>
-        <Field orientation="vertical">
-          <FieldLabel for="dup-customer">Assign to customer</FieldLabel>
-          <FieldContent>
-            <Input id="dup-customer" :model-value="'Northwind Logistics'" />
-          </FieldContent>
-        </Field>
-        <div class="flex items-center gap-2">
-          <Checkbox id="dup-discounts" v-model="copyDiscounts" />
-          <label for="dup-discounts" class="cursor-pointer select-none text-sm">Copy line-item discounts</label>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faClone" />
-        Duplicate quote
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Kbd>⌘</Kbd>
-        <Kbd>↵</Kbd>
-        to confirm
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="duplicate" · 1 record · extra fields · live ViewAction</header>
+  <ModelDemo
+    :view="() => import('../../.vitepress/theme/components/DemoActionFields.vue')"
+    :app="duplicateScenario.app"
+    :model="duplicateScenario.model"
+    pk="1"
+    action="duplicate"
+    :seed="duplicateScenario.seed"
+    :api="duplicateScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>single-object variant: "Source" heading instead of "Records to archive N" — same panel chrome, different semantics</span>
-    <span>extra fields: action-specific inputs appear between the object list and the actions strip; reuse Field + Input + Checkbox from the forms family</span>
-    <span>keyboard hint: <code>Kbd</code> rendered inline in the hint area</span>
+    <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
+    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors join the same validation summary a server 400 fills</span>
+    <span>input contract: the wrapper passes <code>has-input</code> and <code>transform-submit-data-fn</code> so slotted fields join validation and request-body construction. Use the same props when an action collects extra fields through <code>extra-fields</code></span>
+    <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+The dry-run pre-flight is a real request, so it can fail. Here the offline endpoint rejects the
+pre-flight with per-record messages, which is what a server returns when some of the selected
+records cannot take the action.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="bill-now" · 3 records · dry-run failed · warning tone</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Bill now (3 subscriptions)">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- warning banner -->
-    <div class="flex gap-4 border-b border-warning/25 bg-warning/10 px-6 py-4">
-      <FontAwesomeIcon :icon="faTriangleExclamation" class="mt-0.5 shrink-0 text-warning" />
-      <div>
-        <p class="font-semibold text-foreground">Dry-run found 2 problems. Fix or exclude affected subscriptions before billing.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Bill-now triggers a real charge against connected payment methods. Only subscriptions in <em>Active</em> state with a current payment method can be billed off-cycle.</p>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 pt-5 pb-3">
-      <Alert variant="destructive" class="mb-5">
-        <FontAwesomeIcon :icon="faCircleXmark" />
-        <AlertTitle>Cannot run action — 2 of 3 records are ineligible</AlertTitle>
-        <AlertDescription>
-          <p>These problems were found during dry-run. Resolve them and try again, or untick the affected rows.</p>
-          <ul class="mt-2 list-none space-y-1 text-sm">
-            <li><span class="font-semibold">subscription #4421</span> — No active payment method on file. Update billing details before charging.</li>
-            <li><span class="font-semibold">subscription #4438</span> — State is <code class="font-mono text-xs">paused</code>. Resume the subscription first.</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
-      <div class="mb-3 flex items-baseline justify-between border-b-hairline pb-2">
-        <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Records</h3>
-        <span class="text-xs text-muted-foreground">3 selected · 1 will run</span>
-      </div>
-      <div class="divide-y rounded-vueda-control hairline hairline-border" style="border-color: var(--border)">
-        <!-- eligible row -->
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--success) 35%, var(--border))">
-          <FontAwesomeIcon :icon="faCircleCheck" class="shrink-0 text-success" />
-          <span>Sub #4402 — Acme Coffee Roasters · monthly</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">$220.00</span>
-        </div>
-        <!-- ineligible rows -->
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); background: color-mix(in oklab, var(--destructive) 4%, var(--card))">
-          <FontAwesomeIcon :icon="faCircleXmark" class="shrink-0 text-destructive" />
-          <span>Sub #4421 — Hightower Mfg. · quarterly</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">no payment method</span>
-        </div>
-        <div class="flex items-center gap-3 px-3 py-2.5 text-sm" style="border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); background: color-mix(in oklab, var(--destructive) 4%, var(--card))">
-          <FontAwesomeIcon :icon="faCircleXmark" class="shrink-0 text-destructive" />
-          <span>Sub #4438 — Stoneridge Architects · annual</span>
-          <span class="ml-auto font-mono text-xs text-muted-foreground">paused</span>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button emphasis="outline">
-        <FontAwesomeIcon :icon="faArrowRotateRight" />
-        Re-run dry-run
-      </Button>
-      <Button tone="primary" disabled aria-disabled="true">
-        <FontAwesomeIcon :icon="faCreditCard" />
-        Bill now
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <FontAwesomeIcon :icon="faShieldHalved" />
-        Disabled until validation passes
-      </span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="bill_now" · 3 records · pre-flight rejected · warning tone</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewAction.vue')"
+    :app="billScenario.app"
+    :model="billScenario.model"
+    :pk="['4', '11', '23']"
+    action="bill_now"
+    :seed="billScenario.seed"
+    :api="billScenario.api"
+    :view-props="{ tone: 'warning' }"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>warning banner: <code>bg-warning/10 border-warning/25</code>; use when the action is real-world-irreversible but not destructive (billing, sending, publishing)</span>
-    <span>dry-run errors: Alert variant="destructive" in the body — distinct from the banner, which describes the action; Alert describes what's broken</span>
-    <span>row-level eligibility: <code>color-mix(in oklab, var(--success/destructive) ..., var(--border/card))</code> for border and bg tint; avoids Tailwind class collisions on dynamic values</span>
-    <span>primary action disabled until validation passes — the submit guard is a form-level concern, not just UX decoration</span>
+    <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
+    <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
+    <span>where the messages land: keyed by primary key, so each one appears twice: in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
+    <span>the banner does not react: its text is generated from the action and model names. A summary of what the pre-flight found belongs in the validation alert, which writes itself</span>
+    <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
 ## ViewActivate
 
-Same recipe as ViewAction with the banner switched to a success tone. Establishes the tone-tracking pattern: **info** for neutral confirmation, **success** for activate and restore, **warning** for irreversible non-destructive moves. The action name and record metadata appear in the banner's footer row.
+The activate view is `ModelActionForm` with `request-method="PATCH"` and `tone="success"`,
+which is what establishes the tone-tracking pattern: **info** for neutral confirmation,
+**success** for activate and restore, **warning** for irreversible non-destructive moves.
 
+The demo below is the live component, mounted through the `ModelDemo` harness against the
+seeded showcase customer model. Confirming it sends a real PATCH to the offline endpoint.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="activate" · 1 record · success-toned banner</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Reactivate user">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- success banner -->
-    <div class="flex gap-4 border-b border-success/30 bg-success/10 px-6 py-4">
-      <FontAwesomeIcon :icon="faCircleCheck" class="mt-0.5 shrink-0 text-success" />
-      <div>
-        <p class="font-semibold text-foreground">This user will regain access to their workspaces, sessions, and API keys.</p>
-        <p class="mt-1 text-sm text-muted-foreground">Pending invitations are unchanged. Sign-in is enabled immediately; the user receives an email if a contact address is on file.</p>
-        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>action <strong class="text-foreground">activate</strong></span>
-          <span>last seen <strong class="text-foreground">2025-12-14</strong></span>
-          <span>workspaces restored <strong class="text-foreground">3</strong></span>
-        </div>
-      </div>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-5">
-        <div class="mb-3 flex items-baseline border-b-hairline pb-2">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground">User</h3>
-        </div>
-        <div class="divide-y divide-border rounded-vueda-control hairline hairline-border">
-          <div class="flex items-center gap-3 px-3 py-2.5 text-sm">
-            <FontAwesomeIcon :icon="faUser" class="shrink-0 text-muted-foreground" />
-            <span>Jordan Reyes — jordan.reyes@example.com</span>
-            <span class="ml-auto font-mono text-xs text-muted-foreground">deactivated 2026-01-08</span>
-          </div>
-        </div>
-      </div>
-      <div class="mb-5 border-l-4 border-border bg-muted/8 px-4 py-3">
-        <p class="text-sm font-semibold">Reactivate this user?</p>
-        <p class="mt-1 text-sm text-muted-foreground">The user will be able to sign in starting now. Their previous role assignments and group memberships are restored as they were on the day of deactivation.</p>
-      </div>
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-          <Checkbox id="act-notify" v-model="notifyEmail" />
-          <label for="act-notify" class="cursor-pointer select-none text-sm">Send notification email to the user</label>
-        </div>
-        <div class="flex items-center gap-2">
-          <Checkbox id="act-pwreset" v-model="forcePasswordReset" />
-          <label for="act-pwreset" class="cursor-pointer select-none text-sm">Force password reset on next sign-in</label>
-        </div>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faCircleCheck" />
-        Reactivate user
-      </Button>
-      <span class="ml-auto text-xs text-muted-foreground">Audited as <strong class="text-foreground">user.activate</strong> on save</span>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="activate" · 1 record · live ViewActivate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewActivate.vue')"
+    :app="activateScenario.app"
+    :model="activateScenario.model"
+    pk="1"
+    action="activate"
+    :seed="activateScenario.seed"
+    :api="activateScenario.api"
+    page-title
+    toasts
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>success banner: <code>bg-success/10 border-success/30</code>; reserve for actions that restore, enable, or create positive state</span>
-    <span>banner meta row carries contextual facts (last seen, workspaces affected) to reduce surprise after commit</span>
-    <span>extra Checkbox fields: inline checkbox rows, not full Field wrappers — appropriate when the options have no validation or description</span>
-    <span>audit hint in action strip: surfaces the event name that will appear in the history log</span>
+    <span>tone: <code>tone="success"</code> puts <code>data-tone="success"</code> on the card, which drives every tone-scoped class in one pass: a <code>border-success/50</code> edge with an 8 % success ring, a 6 % success banner fill, and a success-filled 36 px icon tile</span>
+    <span>banner text: both lines are generated. The title is the action name plus the model's verbose name; the description is the same default sentence every action gets. Override them with the <code>banner-title</code> and <code>banner-description</code> props</span>
+    <span>selected records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each record's <code>formatted_name</code> as a {@api vue:component:LinkModelView} link with the primary key as a trailing mono chip</span>
+    <span>prompt: a generated "Are you sure you want to ..." sentence in the left-bordered panel; the <code>confirm-message</code> prop replaces the wording and the slot of the same name replaces the whole panel</span>
+    <span>requests: the same PATCH goes to the detail action url twice, once on mount carrying <code>Dry-Run: true</code> and once on confirm. The server runs both and rolls the dry run back, so a pre-flight validates against real data without persisting</span>
+    <span>PageTitle: supplied here by the docs harness, as an integrator's layout would; the view contributes the title and teleports its "Go Back" button into the title row</span>
+    <span>theme keys: {@api theme-key:ViewActivate}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewActivate.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
 ## ViewWorkflowTransition
 
@@ -537,317 +356,72 @@ The current state is surfaced in a tinted strip below the title bar so there is 
 
 ## ViewHistoryList
 
-Audit trail for a single object. Each row is one field change; sibling rows share a revision. The first row of each revision carries the metadata (timestamp, user, type) and a left-border stripe visually groups the changes that belong to it. A filter bar sits above the table with a layout toggle (table vs. cards).
+Audit trail for a single object. Each revision groups the fields it changed: the first row
+carries the metadata (revision, timestamp, reason, type, user) and a left stripe ties the
+sibling rows to it. A meta strip above the grid toggles between table and card layouts, and a
+pagination footer follows.
 
+The demo below is the live component. The revisions come from the offline `history_list`
+endpoint, so the grouping, the diff cells, and the type pills are the framework's own output.
+Use the Table and Cards buttons to switch layouts.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1024 · 4 revisions · 9 changes · table layout</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Northwind Logistics">
-      <template #button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faFilter" />
-          Filter
-        </Button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export CSV
-        </Button>
-      </template>
-      <template #subtitle>
-        <strong>9 changes</strong> across 4 revisions · oldest 2026-01-12
-        <span class="ml-auto text-muted-foreground">Retention <strong class="text-foreground">7 years</strong></span>
-      </template>
-    </PageTitle>
-    <!-- filter / layout bar -->
-    <div class="flex items-center gap-0 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
-      <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Range</strong> last 90 days</span>
-      <span class="mr-4 text-muted-foreground"><strong class="text-foreground">Type</strong> all</span>
-      <span class="text-muted-foreground"><strong class="text-foreground">User</strong> any</span>
-      <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs">
-          <FontAwesomeIcon :icon="faTable" /> Table
-        </Button>
-        <Button size="sm" emphasis="ghost" class="rounded-none text-xs text-muted-foreground">
-          <FontAwesomeIcon :icon="faIdCard" /> Cards
-        </Button>
-      </div>
-    </div>
-    <!-- table -->
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead class="w-16">Rev</TableHead>
-          <TableHead class="w-36">When</TableHead>
-          <TableHead class="w-44">Who</TableHead>
-          <TableHead class="w-28">Type</TableHead>
-          <TableHead class="w-40">Field</TableHead>
-          <TableHead>Old</TableHead>
-          <TableHead>New</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <!-- Revision 4 — 3 changes -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#4</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-04-26 14:08</div>
-            <div class="text-xs text-muted-foreground">2 hours ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Mara Tani" :size="22" />
-              Mara Tani
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="align-top font-mono text-xs">mrr_cents</TableCell>
-          <TableCell class="align-top"><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">1382000</span></TableCell>
-          <TableCell class="align-top"><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">1402850</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">renewal_at</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">2026-12-01</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">2027-01-15</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">notes</TableCell>
-          <TableCell><span class="inline-block max-w-48 truncate rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">Annual renewal — review pricing tier in Q4.</span></TableCell>
-          <TableCell><span class="inline-block max-w-48 truncate rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">Annual renewal locked at Tier 3 through 2027.</span></TableCell>
-        </TableRow>
-        <!-- Revision 3 — 1 change -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#3</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-04-12 09:42</div>
-            <div class="text-xs text-muted-foreground">2 weeks ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Jordan Reyes" :size="22" />
-              Jordan Reyes
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="font-mono text-xs">status</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">trial</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">active</span></TableCell>
-        </TableRow>
-        <!-- Revision 2 — 4 changes -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#2</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-02-04 17:15</div>
-            <div class="text-xs text-muted-foreground">3 months ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Priya Subramanian" :size="22" />
-              Priya Subramanian
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-              <FontAwesomeIcon :icon="faPen" /> updated
-            </span>
-          </TableCell>
-          <TableCell class="font-mono text-xs">owner_id</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">user:42 (Linnea Borg)</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">user:7 (Mara Tani)</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">tags</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">["logistics","new"]</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">["logistics","strategic","apac"]</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">billing_address</TableCell>
-          <TableCell><span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">12 Wharf Rd, Auckland</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">Lvl 3, 88 Quay St, Auckland 1010</span></TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell class="border-l-2 border-primary font-mono text-xs text-muted-foreground">·</TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell></TableCell>
-          <TableCell class="font-mono text-xs">phone</TableCell>
-          <TableCell><span class="text-xs italic text-muted-foreground">— empty</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">+64 9 555 0142</span></TableCell>
-        </TableRow>
-        <!-- Revision 1 — created -->
-        <TableRow>
-          <TableCell class="border-l-2 border-primary align-top font-mono text-xs text-muted-foreground">#1</TableCell>
-          <TableCell class="align-top">
-            <div class="text-sm">2026-01-12 11:02</div>
-            <div class="text-xs text-muted-foreground">3.5 months ago</div>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-              <UserAvatar name="Linnea Borg" :size="22" />
-              Linnea Borg
-            </span>
-          </TableCell>
-          <TableCell class="align-top">
-            <span class="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs text-success">
-              <FontAwesomeIcon :icon="faPlus" /> created
-            </span>
-          </TableCell>
-          <TableCell class="text-xs italic text-muted-foreground">— record created —</TableCell>
-          <TableCell><span class="text-xs italic text-muted-foreground">no prior values</span></TableCell>
-          <TableCell><span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">12 fields populated</span></TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1 · 5 revisions · live ViewHistoryList</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewHistoryList.vue')"
+    :app="historyScenario.app"
+    :model="historyScenario.model"
+    pk="1"
+    action="history_list"
+    :seed="historyScenario.seed"
+    :api="historyScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>revision grouping: <code>border-l-2 border-primary</code> on every first-cell of the revision — consistent stripe, no row background needed</span>
-    <span>child rows: first four cells empty; only Field/Old/New columns carry data</span>
-    <span>diff cells: old = <code>bg-destructive/5 text-destructive line-through</code>, new = <code>bg-success/10 text-success</code>; empty values as italic muted text</span>
-    <span>type pills: hand-rolled <code>rounded-full border</code> spans with tone classes; "updated" → info, "created" → success, "restored" → warning</span>
-    <span>user avatar: <code>UserAvatar :size="22"</code> — primary-tinted initials chip</span>
+    <span>columns: not the model's fields. `ViewHistoryList` builds them from the model info's <code>history</code> expand, then adds Field, Old, and New itself. The <code>fields</code> prop picks and orders from that set</span>
+    <span>revision grouping: one row per changed field, with <code>data-rev-start</code> on the first and <code>data-rev-child</code> on its siblings. {@api theme-key:ViewHistoryList} paints the stripe from those attributes, so the grouping survives a re-skin</span>
+    <span>type pills: the raw django-simple-history codes (<code>+</code>, <code>~</code>, <code>-</code>) and their spelled-out forms both map to a tone and an icon; an unknown value falls through and renders as itself</span>
+    <span>dates: an absolute timestamp plus a relative phrase, both from the stored ISO string through luxon</span>
+    <span>layout: the meta strip's Table and Cards buttons pin a layout; left on auto it follows the <code>table-breakpoint</code> prop, so the same view reads as cards on a narrow viewport</span>
+    <span>theme keys: {@api theme-key:ViewHistoryList}, {@api theme-key:ObjectsGrid} · source: <code>ViewHistoryList.vue</code></span>
   </footer>
 </VuedaDemo>
+</ClientOnly>
 
+A record with no revisions yet gets a dedicated empty state rather than an empty grid.
+
+<ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · same data · cards layout · includes "restored" revision type</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Hightower Mfg.">
-      <template #button>
-        <Button size="sm" emphasis="outline">
-          <FontAwesomeIcon :icon="faArrowUpFromBracket" />
-          Export CSV
-        </Button>
-      </template>
-    </PageTitle>
-    <!-- filter / layout bar -->
-    <div class="flex items-center gap-4 border-b-hairline bg-muted/10 px-6 py-2 text-sm">
-      <span class="text-muted-foreground"><strong class="text-foreground">Range</strong> all time</span>
-      <span class="text-muted-foreground"><strong class="text-foreground">3 revisions</strong></span>
-      <div class="ml-auto flex overflow-clip rounded-vueda-control border border-border">
-        <Button size="sm" emphasis="ghost" class="rounded-none border-r border-border text-xs text-muted-foreground">
-          <FontAwesomeIcon :icon="faTable" /> Table
-        </Button>
-        <Button size="sm" emphasis="ghost" class="rounded-none text-xs">
-          <FontAwesomeIcon :icon="faIdCard" /> Cards
-        </Button>
-      </div>
-    </div>
-    <!-- cards -->
-    <div class="divide-y divide-border">
-      <!-- Rev 3 — updated 2 fields -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#3</span>
-          <span class="text-sm"><strong>2026-04-25 17:15</strong> · 3 days ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Priya Subramanian" :size="22" />
-            Priya Subramanian
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-info/25 bg-info/8 px-2 py-0.5 text-xs text-info">
-            <FontAwesomeIcon :icon="faPen" /> updated · 2 fields
-          </span>
-        </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">status</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">active</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">at_risk</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">health_score</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">82</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="inline-block rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-xs text-success">54</span>
-          </div>
-        </div>
-      </div>
-      <!-- Rev 2 — restored -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#2</span>
-          <span class="text-sm"><strong>2026-03-08 09:42</strong> · 7 weeks ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Jordan Reyes" :size="22" />
-            Jordan Reyes
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-xs text-warning">
-            <FontAwesomeIcon :icon="faRotateLeft" /> restored
-          </span>
-        </div>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-3">
-            <span class="w-32 shrink-0 font-mono text-xs text-muted-foreground">deleted_at</span>
-            <span class="inline-block rounded border border-destructive/20 bg-destructive/5 px-1.5 py-0.5 font-mono text-xs text-destructive line-through">2026-02-22 14:10</span>
-            <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-            <span class="text-xs italic text-muted-foreground">— cleared</span>
-          </div>
-        </div>
-      </div>
-      <!-- Rev 1 — created -->
-      <div class="px-6 py-4">
-        <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span class="font-mono text-xs text-muted-foreground">#1</span>
-          <span class="text-sm"><strong>2025-11-04 11:02</strong> · 6 months ago</span>
-          <span class="inline-flex items-center gap-2 text-[length:var(--vueda-text-supporting)] font-medium">
-            <UserAvatar name="Linnea Borg" :size="22" />
-            Linnea Borg
-          </span>
-          <span class="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs text-success">
-            <FontAwesomeIcon :icon="faPlus" /> created
-          </span>
-        </div>
-        <p class="text-sm text-muted-foreground">Record created with 9 fields populated. Initial owner Linnea Borg.</p>
-      </div>
-    </div>
-  </div>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=2 · no history yet</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewHistoryList.vue')"
+    :app="emptyHistoryScenario.app"
+    :model="emptyHistoryScenario.model"
+    pk="2"
+    action="history_list"
+    :seed="emptyHistoryScenario.seed"
+    :api="emptyHistoryScenario.api"
+    page-title
+  />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>cards layout: each revision is a <code>divide-y</code> block — header row + change list; no table chrome needed</span>
-    <span>"restored" type pill: <code>bg-warning/10 border-warning/25 text-warning</code>; third tone in the type vocabulary alongside "updated" (info) and "created" (success)</span>
-    <span>card layout is the default on narrow viewports; table layout is the default on wide viewports</span>
+    <span>empty state: replaces the grid and the meta strip, so no layout toggle or column headers are offered for nothing. The <code>empty</code> slot replaces the whole body</span>
+    <span>it waits for loading to settle: while the request is in flight the grid stays up so its skeleton rows render, and the empty state only appears once zero rows are confirmed</span>
+    <span>the pagination footer stays, reading zero of zero</span>
   </footer>
 </VuedaDemo>
-
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=2099 · no history yet (just created)</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Audit trail · Foxglove &amp; Kettle" />
-    <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <FontAwesomeIcon :icon="faClock" class="text-3xl text-muted-foreground/40" />
-      <p class="font-semibold text-foreground">No history yet</p>
-      <p class="max-w-sm text-sm text-muted-foreground">This record was created less than an hour ago and hasn't been edited since. Once changes are made, they'll appear here grouped by revision with a per-field old → new diff.</p>
-    </div>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>empty state: no filter bar, no layout toggle — surface nothing until there is something to surface</span>
-    <span>clock icon from <code>@fortawesome/free-regular-svg-icons</code>: the regular (outline) variant reads as "waiting" rather than "done"</span>
-  </footer>
-</VuedaDemo>
+</ClientOnly>
 
 ## Customization surface
+
+Every action view is `ModelActionForm` underneath, so the same slots and props reshape all of them:
+
+- `banner-title` and `banner-description` replace the generated banner lines; `tone` switches the whole card, banner, and icon tile together.
+- `confirm-message` replaces the prompt wording, and the slot of the same name replaces the panel.
+- `extra-fields` adds action-specific inputs below the prompt.
+- `actions-hint` fills the right side of the actions strip, for a shortcut or an audit note.
+- `confirm-button` replaces the submit button, including its label.
+- `selected-objects` replaces the whole selected-records panel, for a project that wants richer rows than a name and a primary key.
 
 The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
 

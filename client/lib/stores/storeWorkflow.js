@@ -6,7 +6,7 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -207,6 +207,7 @@ const executeTransitionUrl = (result) => {
  *             router?: import('vue-router').Router,
  *             stateToRoute?: Record<string, any>,
  *             dryRun?: boolean,
+ *             acknowledgeWarnings?: string,
  *         ) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<any>
  *     }
  * >} WorkflowStore
@@ -507,7 +508,16 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectHistories[key][objectPk];
         },
-        executeTransition(app, model, objectPk, transitionCode, router, stateToRoute = undefined, dryRun = false) {
+        executeTransition(
+            app,
+            model,
+            objectPk,
+            transitionCode,
+            router,
+            stateToRoute = undefined,
+            dryRun = false,
+            acknowledgeWarnings = undefined,
+        ) {
             if (!app || !model || !objectPk || !transitionCode) {
                 return Promise.reject(
                     new Error(
@@ -532,6 +542,7 @@ export const storeWorkflow = defineStore("workflow", {
                         "Content-Type": "application/json",
                         "X-CSRFToken": getCSRFValue(),
                         ...(dryRun ? { "Dry-Run": "true" } : {}),
+                        ...(acknowledgeWarnings ? { "Acknowledge-Warnings": acknowledgeWarnings } : {}),
                     },
                     method: "PATCH",
                     body: JSON.stringify(body),
@@ -543,6 +554,9 @@ export const storeWorkflow = defineStore("workflow", {
                 (response, data) => {
                     if (response.status === 400) {
                         return new FormValidationError(data, response);
+                    }
+                    if (response.status === 409) {
+                        return new ConfirmationRequiredError(data, response);
                     }
                     return new WorkflowError("Failed to execute transition", response, data);
                 },

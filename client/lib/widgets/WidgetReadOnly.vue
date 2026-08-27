@@ -52,6 +52,21 @@ const props = defineProps({
         type: String,
         default: "",
     },
+    /** Static choice options used to resolve stored values to display labels. */
+    options: {
+        type: [Array, Boolean],
+        default: false,
+    },
+    /** Key on each option object used as the displayed label. */
+    optionLabel: {
+        type: String,
+        default: "label",
+    },
+    /** Key on each option object used as the stored value. */
+    optionValue: {
+        type: String,
+        default: "value",
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -157,6 +172,44 @@ watch(
 const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state, {
     hidden: toRef(props, "hidden"),
 });
+
+const choiceOptions = computed(() => (Array.isArray(props.options) ? props.options : []));
+
+const valuesMatch = (optionValue, fieldValue) => {
+    if (optionValue === fieldValue) {
+        return true;
+    }
+    if (optionValue === null || optionValue === undefined || fieldValue === null || fieldValue === undefined) {
+        return false;
+    }
+    const optionString = String(optionValue);
+    const fieldString = String(fieldValue);
+    const normalizeBooleanString = (value) => {
+        const lowerValue = value.toLowerCase();
+        return lowerValue === "true" || lowerValue === "false" ? lowerValue : value;
+    };
+    return normalizeBooleanString(optionString) === normalizeBooleanString(fieldString);
+};
+
+const getChoiceLabel = (fieldValue) => {
+    const choice = choiceOptions.value.find((option) => valuesMatch(option?.[props.optionValue], fieldValue));
+    if (!choice) {
+        return fieldValue;
+    }
+    return choice[props.optionLabel] ?? fieldValue;
+};
+
+const choiceValue = computed(() => {
+    if (!choiceOptions.value.length) {
+        return undefined;
+    }
+    const fieldValue = widgetContext.state.combinedValue;
+    if (Array.isArray(fieldValue)) {
+        return fieldValue.map((value) => getChoiceLabel(value)).join(", ");
+    }
+    return getChoiceLabel(fieldValue);
+});
+
 const readonlyValue = computed(() => {
     if (props.loading || resolvedReactive.loading) {
         return "\u00A0";
@@ -164,6 +217,7 @@ const readonlyValue = computed(() => {
     return (
         props.foreignKeyObj?.formatted_name ??
         resolvedReactive.object?.formatted_name ??
+        choiceValue.value ??
         widgetContext.state.combinedValue
     );
 });
@@ -187,7 +241,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                 :class="[theme('value'), $attrs.class]"
                 data-qa="widget-read-only-value"
             >
-                <slot name="default" :value="readonlyValue || widgetContext.state.combinedValue">
+                <slot name="default" :raw-value="widgetContext.state.combinedValue" :value="readonlyValue">
                     <slot
                         v-if="isLookupMode && readonlyValue"
                         :app="app"
@@ -198,6 +252,7 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                         :model="model"
                         :name="linkItemResolvedSlotNames.name"
                         :pk="pkValue"
+                        :raw-value="widgetContext.state.combinedValue"
                         view="read"
                     >
                         <span v-if="prefix" :class="theme('linkItemPrefix')">{{ prefix }}</span>
@@ -217,11 +272,12 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                         :field-name="widgetContext.state.combinedName"
                         :form-model-name="widgetContext.state.formModelName"
                         :name="textItemResolvedSlotNames.name"
-                        :value="widgetContext.state.combinedValue"
+                        :raw-value="widgetContext.state.combinedValue"
+                        :value="readonlyValue"
                     >
                         <span v-if="prefix" :class="theme('textItemPrefix')">{{ prefix }}</span>
                         <span :class="theme('textItem')">
-                            {{ widgetContext.state.combinedValue }}
+                            {{ readonlyValue }}
                         </span>
                         <span v-if="suffix" :class="theme('textItemSuffix')">{{ suffix }}</span>
                     </slot>

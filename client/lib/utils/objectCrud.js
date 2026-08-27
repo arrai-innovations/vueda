@@ -7,7 +7,7 @@ import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
-import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { actionRequestHeaders, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
 
@@ -282,40 +282,74 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {string} args.pk - The primary key of the object to delete.
  * @param {object} args.deleteArgs - The arguments to be passed to the delete function.
+ * @param {object} [args.formData] - Extra fields submitted alongside the delete, sent as the request body.
+ * @param {boolean} [args.dryRun] - Dry-run requests treat a server `200` as success; real deletes still require `204`.
+ * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
  * @returns {Promise<void> & { cancel: () => Promise<void> }} - A cancellable promise.
  */
-export function defaultObjectDelete({ target, pk, deleteArgs }) {
+export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = deleteArgs ? makeSearchParamsString(deleteArgs) : "";
-    const controller = new AbortController();
     const url = getDetailUrl({ app, model, pk, action, query });
 
-    /** @type {Promise<void> & { cancel: () => Promise<void> }} */
-    const returnPromise = fetch(url, {
-        method: "DELETE",
-        headers: {
-            "X-CSRFToken": getCSRFValue(),
+    return cancellableFetch(
+        url,
+        {
+            method: "DELETE",
+            headers: actionRequestHeaders({ dryRun, acknowledgeWarnings }),
+            credentials: "include",
+            body: formData ? JSON.stringify(formData) : undefined,
         },
-        credentials: "include",
-        signal: controller.signal,
-    }).then(async (response) => {
-        if (response.status === 204) {
-            return;
-        }
-        throw new FetchError("Failed to delete object", response, await getJsonOrText(response));
-    });
-
-    returnPromise.cancel = async () => {
-        controller.abort();
-        await returnPromise.catch(() => {});
-    };
-
-    return returnPromise;
+        async (response) =>
+            readActionResponse(response, {
+                messagePrefix: "Failed to delete object",
+                successStatuses: dryRun ? new Set([200, 204]) : new Set([204]),
+            }),
+    );
 }
 
 /**
- * Installs the default object CRUD adaptors for retrieve, create, update, patch, and delete.
+ * The VUEDA specific implementation for reactive-helper's object executeAction crud function. Sends a named action to
+ * the model's detail action url.
+ *
+ * @param {object} args - The arguments object.
+ * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
+ * @param {string} args.pk - The primary key of the object to act on.
+ * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
+ * @param {object} [args.formData] - Form values submitted with the action, sent as the request body.
+ * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
+ * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<object|string|undefined>} - A cancellable promise.
+ */
+export function defaultObjectExecuteAction({
+    target,
+    pk,
+    action,
+    requestMethod = "PUT",
+    formData,
+    dryRun,
+    acknowledgeWarnings,
+}) {
+    // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
+    const { app, model } = target;
+    const url = getDetailUrl({ app, model, pk, action });
+
+    return cancellableFetch(
+        url,
+        {
+            method: requestMethod,
+            headers: actionRequestHeaders({ dryRun, acknowledgeWarnings }),
+            credentials: "include",
+            body: formData ? JSON.stringify(formData) : undefined,
+        },
+        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action" }),
+    );
+}
+
+/**
+ * Installs the default object CRUD adaptors for retrieve, create, update, patch, delete, and executeAction.
  */
 export function setupDefaultObjectCrud() {
     setObjectCrud({
@@ -324,5 +358,6 @@ export function setupDefaultObjectCrud() {
         update: defaultObjectUpdate,
         patch: defaultObjectPatch,
         delete: defaultObjectDelete,
+        executeAction: defaultObjectExecuteAction,
     });
 }

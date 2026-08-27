@@ -11,9 +11,10 @@ let actionBarProps;
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
     props: ["runAction", "formProps", "header", "subTitle", "actionErrorSummary", "onSubmissionSuccessHandler"],
-    emits: ["form-object"],
+    emits: ["form-object", "form-context"],
     setup(props, { slots, emit }) {
-        emit("form-object", {});
+        emit("form-object", { value: {} });
+        emit("form-context", { updateValue: vi.fn() });
         return () =>
             h("div", [
                 slots["action-form-inner"] ? slots["action-form-inner"]({}) : null,
@@ -109,6 +110,22 @@ describe("lib/views/ViewSignIn.vue", () => {
             });
 
             expect(wrapper.findComponent(AuthorizingFormStub).exists()).toBe(true);
+        });
+    });
+
+    describe("Form context", () => {
+        scopedIt("forwards the form observation and mutation events", () => {
+            const onFormObject = vi.fn();
+            const onFormContext = vi.fn();
+            mount(ViewSignIn, {
+                props: {
+                    onFormObject,
+                    onFormContext,
+                },
+            });
+
+            expect(onFormObject).toHaveBeenCalledWith({ value: {} });
+            expect(onFormContext).toHaveBeenCalledWith(expect.objectContaining({ updateValue: expect.any(Function) }));
         });
     });
 

@@ -50,7 +50,7 @@ vi.mock("vue-router", () => ({
 
 const ModelActionFormStub = defineComponent({
     name: "ModelActionFormStub",
-    props: ["app", "model", "action", "runAction", "fetchState"],
+    props: ["app", "model", "action", "runAction", "fetchState", "requestMethod", "tone", "pk"],
     setup(props, { attrs, slots }) {
         return () =>
             h(
@@ -120,7 +120,6 @@ beforeEach(async () => {
     mockedUseIsActive.mockReturnValue(vue.ref(true));
     mockInstanceList = {
         state: vue.reactive({ objects: [], errored: false, error: null }),
-        executeAction: vi.fn().mockResolvedValue(),
     };
     mockedUseList.mockReturnValue(mockInstanceList);
     ViewActivate = (await import("@vueda/views/ViewActivate.vue")).default;
@@ -213,15 +212,25 @@ describe("lib/views/ViewActivate.vue", () => {
     });
 
     describe("Action execution", () => {
-        scopedIt("runAction executes list action and throws on error", async () => {
+        scopedIt("delegates activate submission to ModelActionForm's shared runner", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-            const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
-            await expect(runAction()).resolves.not.toThrow();
-            expect(mockInstanceList.executeAction).toHaveBeenCalled();
-            mockInstanceList.state.errored = true;
-            mockInstanceList.state.error = new Error("boom");
-            await expect(runAction()).rejects.toThrow("boom");
+            const form = wrapper.findComponent(ModelActionFormStub);
+
+            expect(form.props("runAction")).toBeUndefined();
+            expect(form.props("requestMethod")).toBe("PATCH");
+            expect(form.props("tone")).toBe("success");
+            expect(form.props("pk")).toBe("1");
+        });
+
+        scopedIt("passes scalar and array primary keys to the preview list params", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1"]);
+
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, { props: { app: "app", model: "model", pk: ["1", "2"] } });
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1", "2"]);
         });
     });
 });
