@@ -151,6 +151,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     """Filter out rows the user cannot access and expose column aggregates."""
 
     column_totals: list[str] = []
+    applies_workflow_state_list_filter = True
 
     def apply_row_level_filter(self, queryset, perm_type="list"):
         """
@@ -180,46 +181,55 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                 return queryset.none()
             # else, optional_q is None or True, so we don't filter
 
-            # Layer 4: workflow-aware queryset filtering
-            if "vueda.workflow" in settings.INSTALLED_APPS:
-                from vueda.workflow.models import HasWorkflowModelMixin
-                from vueda.workflow.models import StatePermission
-                from vueda.workflow.models import Workflow
+        # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
+        # Apply them even when the model does not define RowLevelPermissions.
+        if "vueda.workflow" in settings.INSTALLED_APPS:
+            from vueda.workflow.models import HasWorkflowModelMixin
+            from vueda.workflow.models import StatePermission
+            from vueda.workflow.models import Workflow
 
-                if issubclass(model, HasWorkflowModelMixin):
-                    workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-                    if workflow:
-                        from django.contrib.contenttypes.models import ContentType
-                        from django.db.models import Exists
-                        from django.db.models import OuterRef
+            if issubclass(model, HasWorkflowModelMixin):
+                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
+                if workflow:
+                    from django.contrib.contenttypes.models import ContentType
+                    from django.db.models import Exists
+                    from django.db.models import OuterRef
 
-                        codename = perm.rsplit(".", maxsplit=1)[-1]
-                        content_type = ContentType.objects.get_for_model(model)
-                        user = self.request.user
+                    codename = perm.rsplit(".", maxsplit=1)[-1]
+                    content_type = ContentType.objects.get_for_model(model)
+                    user = self.request.user
 
-                        state_denied = Exists(
-                            StatePermission.objects.filter(
-                                state=OuterRef("object_states_proxy__state"),
-                                permission__codename=codename,
-                                permission__content_type=content_type,
-                                group__in=user.groups.all(),
-                                grant_or_deny=False,
-                            )
+                    state_denied = Exists(
+                        StatePermission.objects.filter(
+                            state=OuterRef("object_states_proxy__state"),
+                            state__workflow=workflow,
+                            permission__codename=codename,
+                            permission__content_type=content_type,
+                            group__in=user.groups.all(),
+                            grant_or_deny=False,
                         )
-                        state_granted = Exists(
-                            StatePermission.objects.filter(
-                                state=OuterRef("object_states_proxy__state"),
-                                permission__codename=codename,
-                                permission__content_type=content_type,
-                                group__in=user.groups.all(),
-                                grant_or_deny=True,
-                            )
+                    )
+                    state_granted = Exists(
+                        StatePermission.objects.filter(
+                            state=OuterRef("object_states_proxy__state"),
+                            state__workflow=workflow,
+                            permission__codename=codename,
+                            permission__content_type=content_type,
+                            group__in=user.groups.all(),
+                            grant_or_deny=True,
                         )
-                        queryset = queryset.annotate(
-                            _state_denied=state_denied,
-                            _state_granted=state_granted,
-                        )
+                    )
+                    queryset = queryset.annotate(
+                        _state_denied=state_denied,
+                        _state_granted=state_granted,
+                    )
 
+                    if user.has_perm(perm):
+                        queryset = queryset.filter(_state_denied=False)
+                    else:
+                        queryset = queryset.filter(_state_denied=False, _state_granted=True)
+
+                    if row_level_permissions is not None:
                         workflow_q = row_level_permissions.check_queryset_workflow(
                             queryset,
                             perm,

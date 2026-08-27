@@ -13,7 +13,7 @@ This page explains the {@term Row-Level Hook Surface}, the filtering boundaries 
 
 ## Authority and Boundaries
 
-Row-level permission filtering is opt-in per model. A model that defines a `RowLevelPermissions` inner class (inheriting from {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}) participates in row-level filtering; a model without this class has no row-level filtering applied at list or bulk-delete scope, and no row-level instance checks in the permission evaluation chain.
+Application-defined row-level permission filtering is opt-in per model. A model that defines a `RowLevelPermissions` inner class (inheriting from {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}) participates in project-defined row filtering and instance checks. Workflow-state filtering is the framework-level exception: workflow models receive built-in state grant and deny filtering at list and bulk-delete scope even when they do not define `RowLevelPermissions`.
 
 The `RowLevelPermissions` class provides up to four hooks. Two are non-workflow hooks that apply to all models: `check_queryset` controls list-level row visibility, and `check_instance` controls object-level permission decisions. Two are workflow-aware hooks that apply only to models participating in a workflow: `check_queryset_workflow` operates on a queryset annotated with state-permission flags, and `check_instance_workflow` receives the state overlay's grant-or-deny outcome and can override earlier permission layers, including state denial. The non-workflow and workflow hooks are evaluated in sequence during their respective filtering paths.
 
@@ -31,7 +31,9 @@ The return value semantics are fixed:
 - **`False`**: the queryset is replaced with `queryset.none()`. The user sees no rows.
 - **`True` or `None`**: no filtering is applied. All rows pass through.
 
-For workflow models, `apply_row_level_filter` then runs a second pass. The queryset is annotated with state-permission flags (`_state_denied`, `_state_granted`) that reflect the user's group-level state permission outcomes for each row. `check_queryset_workflow` receives this annotated queryset and can apply additional filtering based on workflow state. Either hook can return `False` to deny all rows.
+For workflow models, `apply_row_level_filter` then runs a framework-owned state-permission pass. The queryset is annotated with state-permission flags (`_state_denied`, `_state_granted`) that reflect the user's group-level state permission outcomes for each row. A baseline-authorized user retains rows without a matching deny. A user admitted by a state grant retains only matching granted rows without a matching deny. This pass runs whether or not `RowLevelPermissions` exists.
+
+When `RowLevelPermissions` exists, `check_queryset_workflow` receives the already filtered and annotated queryset and can apply additional restrictions based on workflow state. It cannot reintroduce rows removed by the framework state overlay. Either project hook can return `False` to deny all remaining rows.
 
 The permission codename passed to the hook is constructed from the model's `app_label` and `model_name`, plus the action-appropriate permission name (e.g., `PERMISSION_NAMES_MAPPING["list"]` for `list` operations).
 
