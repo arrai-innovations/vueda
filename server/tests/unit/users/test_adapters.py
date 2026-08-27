@@ -4,16 +4,17 @@ import sys
 
 import pytest
 from django.core import mail
-from django.test import override_settings
 
+from tests.utils import set_email_backend
 from vueda.core.exceptions import VuedaValidationError
 from vueda.user.adapters import DefaultUserAdapter
 from vueda.vdq.models import Receiver
 from vueda.vdq.models import Sender
 
 
-@override_settings(TWILIO_CALLER_ID="")
-def test_send_sms_requires_caller_id(monkeypatch):
+def test_send_sms_requires_caller_id(settings, monkeypatch):
+    settings.TWILIO_CALLER_ID = ""
+
     adapter = DefaultUserAdapter()
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
 
@@ -22,8 +23,11 @@ def test_send_sms_requires_caller_id(monkeypatch):
     assert [str(error) for error in exc_info.value.detail] == ["SMS sending is not configured."]
 
 
-@override_settings(TWILIO_ACCOUNT_SID="TESTSID", TWILIO_AUTH_TOKEN="TESTAUTH", TWILIO_CALLER_ID="+18005550100")
-def test_send_sms_requires_destination(monkeypatch):
+def test_send_sms_requires_destination(settings, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "+18005550100"
+
     adapter = DefaultUserAdapter()
     monkeypatch.setattr("vueda.user.adapters.render_to_string", lambda *args, **kwargs: "body")
 
@@ -32,14 +36,13 @@ def test_send_sms_requires_destination(monkeypatch):
     assert [str(error) for error in exc_info.value.detail] == ["Phone number is required for sms method."]
 
 
-@override_settings(
-    TWILIO_ACCOUNT_SID="TESTSID",
-    TWILIO_AUTH_TOKEN="TESTAUTH",
-    TWILIO_CALLER_ID="+18005550100",
-    SITE_NAME="VUEDA",
-)
 @pytest.mark.django_db
-def test_send_sms_sends_message(monkeypatch):
+def test_send_sms_sends_message(settings, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "+18005550100"
+    settings.SITE_NAME = "VUEDA"
+
     adapter = DefaultUserAdapter()
 
     def fake_render_to_string(template_names, context):
@@ -75,13 +78,12 @@ def test_send_sms_sends_message(monkeypatch):
     assert Receiver.objects.filter(cell="+18005550199").count() == 1
 
 
-@override_settings(
-    SITE_NAME="VUEDA",
-    NO_REPLY_EMAIL="no-reply@domain.invalid",
-    EMAIL_SUBJECT_PREFIX="[VUEDA] ",
-)
 @pytest.mark.django_db
-def test_send_mail_sends_message(monkeypatch):
+def test_send_mail_sends_message(settings, monkeypatch):
+    settings.SITE_NAME = "VUEDA"
+    settings.NO_REPLY_EMAIL = "no-reply@domain.invalid"
+    settings.EMAIL_SUBJECT_PREFIX = "[VUEDA] "
+
     adapter = DefaultUserAdapter()
 
     def fake_render_to_string(template_name, context):
@@ -150,13 +152,12 @@ def test_send_mail_sends_message(monkeypatch):
     assert Receiver.objects.filter(email="user@domain.invalid").count() == 1
 
 
-@override_settings(
-    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
-    SITE_NAME="VUEDA",
-    NO_REPLY_EMAIL="no-reply@domain.invalid",
-    EMAIL_SUBJECT_PREFIX="[VUEDA] ",
-)
-def test_send_mail_without_vdq_sends_synchronously(monkeypatch):
+def test_send_mail_without_vdq_sends_synchronously(settings, monkeypatch):
+    settings.SITE_NAME = "VUEDA"
+    settings.NO_REPLY_EMAIL = "no-reply@domain.invalid"
+    settings.EMAIL_SUBJECT_PREFIX = "[VUEDA] "
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+
     adapter = DefaultUserAdapter()
     monkeypatch.setattr("vueda.user.adapters.apps.is_installed", lambda app_name: False)
 
@@ -170,13 +171,12 @@ def test_send_mail_without_vdq_sends_synchronously(monkeypatch):
     assert email.body == "Your VUEDA authentication code is: 123456"
 
 
-@override_settings(
-    TWILIO_ACCOUNT_SID="TESTSID",
-    TWILIO_AUTH_TOKEN="TESTAUTH",
-    TWILIO_CALLER_ID="+18005550100",
-    SITE_NAME="VUEDA",
-)
-def test_send_sms_without_vdq_sends_synchronously(monkeypatch):
+def test_send_sms_without_vdq_sends_synchronously(settings, monkeypatch):
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "+18005550100"
+    settings.SITE_NAME = "VUEDA"
+
     adapter = DefaultUserAdapter()
     captured = {}
 

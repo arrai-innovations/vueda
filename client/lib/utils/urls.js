@@ -77,10 +77,10 @@ export const resetCustomUrls = () => {
 /**
  * Get a VUEDA list or list action URL.
  *
- * @param app {string} - The app name.
- * @param model {string} - The model name.
- * @param [action] {string} - The action name, if any.
- * @param [query] {string} - The query string, if any. If provided, it should start with a "?".
+ * @param {string} app - The app name.
+ * @param {string} model - The model name.
+ * @param {string} [action] - The action name, if any.
+ * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
 export const getListUrl = ({ app, model, action, query = "" }) => {
@@ -95,11 +95,11 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
 /**
  * Get a VUEDA detail or detail action URL.
  *
- * @param app {string} - The app name.
- * @param model {string} - The model name.
- * @param pk {string} - The primary key.
- * @param [action] {string} - The action name, if any.
- * @param [query] {string} - The query string, if any. If provided, it should start with a "?".
+ * @param {string} app - The app name.
+ * @param {string} model - The model name.
+ * @param {string} pk - The primary key.
+ * @param {string} [action] - The action name, if any.
+ * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
 export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {

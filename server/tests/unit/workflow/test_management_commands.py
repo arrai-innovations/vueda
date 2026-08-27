@@ -7,11 +7,11 @@ import time
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import override_settings
 
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
-from tests.utils import info_register_aware_modify_settings
+from tests.utils import append_installed_apps
+from tests.utils import info_registry_clear_with_appended_apps
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
 
@@ -271,22 +271,16 @@ class BaseAddedWorkflow:
 
 
 class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_added": "tests.workflow_added",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_added",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_no_app_label_specified(self):
+    def test_no_app_label_specified(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
         with self.temporary_migration_module(app_label="workflow_added"):
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
@@ -315,26 +309,20 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
         with pytest.raises(SystemExit):
             self.call_command("makeworkflowmigrations", "app_that_does_not_exist")
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_added": "tests.workflow_added",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_added",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_comment_removed(self):
+    def test_comment_removed(self, settings):
         """
         This test doesn't use --import-instead, so we can verify that
         the noqa comments are stripped from the generated migration.
         """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
         with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_added")
@@ -377,22 +365,16 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
 
 class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_added": "tests.workflow_added",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_added",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_added(self):
+    def test_workflow_added(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
         with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 0
@@ -414,22 +396,16 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
 
 
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_changed": "tests.workflow_changed",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_changed",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_changed(self):
+    def test_workflow_changed(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_changed": "tests.workflow_changed",
+        }
+        append_installed_apps(settings, "tests.workflow_changed")
+
         with self.temporary_migration_module(app_label="workflow_changed") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 0
@@ -824,22 +800,16 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 
 
 class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_deleted": "tests.workflow_deleted",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_deleted",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_deleted(self):
+    def test_workflow_deleted(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_deleted": "tests.workflow_deleted",
+        }
+        append_installed_apps(settings, "tests.workflow_deleted")
+
         with self.temporary_migration_module(app_label="workflow_deleted") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 0
@@ -1121,22 +1091,16 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
 
 
 class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_multi": "tests.workflow_multi",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_multi",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_multi(self):
+    def test_workflow_multi(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_multi": "tests.workflow_multi",
+        }
+        append_installed_apps(settings, "tests.workflow_multi")
+
         with self.temporary_migration_module(app_label="workflow_multi") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_multi")
@@ -1231,27 +1195,21 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
         return ast_data
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_duplicates": "tests.workflow_duplicates",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_duplicates",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_duplicates(self):
+    def test_workflow_duplicates(self, settings):
         """
         This test validates the matching of historical records to existing workflow migration
         changes works correctly when there are multiple add and delete records to work with.
         It uses the debugging to verify that the correct records were matched up.
         """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_duplicates": "tests.workflow_duplicates",
+        }
+        append_installed_apps(settings, "tests.workflow_duplicates")
+
         with self.temporary_migration_module(app_label="workflow_duplicates") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 0
@@ -1423,28 +1381,22 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
 
 class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_initial_state": "tests.workflow_initial_state",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_initial_state",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_object_states_created(self):
+    def test_workflow_object_states_created(self, settings):
         """
         This test validates that workflow object state objects are
         successfully created when they don't exist for objects when:
             1. During the creation of a workflow migration.
             2. When a workflow migration is run.
         """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_initial_state": "tests.workflow_initial_state",
+        }
+        append_installed_apps(settings, "tests.workflow_initial_state")
+
         # Because there are 2 tests that use workflow_initial_state,
         # we need to clear the cache or the second test will fail.
         ContentType.objects.clear_cache()
@@ -1511,27 +1463,21 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 "first"
             }
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_initial_state": "tests.workflow_initial_state",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_initial_state",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_initial_state_changed(self):
+    def test_workflow_initial_state_changed(self, settings):
         """
         This test validates that when an initial state changes, any objects that haven't been
         modified from the previous initial state will be transitioned to the new initial state.
         Some objects have been moved into different states, to verify that
         """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_initial_state": "tests.workflow_initial_state",
+        }
+        append_installed_apps(settings, "tests.workflow_initial_state")
+
         from tests.workflow_initial_state.models import WorkflowInitialState
 
         # Because there are 2 tests that use workflow_initial_state,
@@ -1736,22 +1682,16 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
 
 class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallCommand):
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_updating": "tests.workflow_updating",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_updating",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_updating(self):
+    def test_workflow_updating(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
         with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
 
@@ -1944,22 +1884,16 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_updating": "tests.workflow_updating",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_updating",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_updating_direct_runpython_import(self):
+    def test_workflow_updating_direct_runpython_import(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
         with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0003_workflow_migrations_2026_06_30.py")
 
@@ -2157,22 +2091,16 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "no_migrations": None,
-            "workflow_updating": "tests.workflow_updating",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_updating",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_updating_no_changes(self):
+    def test_workflow_updating_no_changes(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
         with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
 
@@ -2238,21 +2166,15 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
             assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "workflow_updating_bad_migrations": "tests.workflow_updating_bad_migrations",
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_updating_bad_migrations",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_updating_bad_migrations(self):
+    def test_workflow_updating_bad_migrations(self, settings):
+        settings.MIGRATION_MODULES = {
+            "workflow_updating_bad_migrations": "tests.workflow_updating_bad_migrations",
+        }
+        append_installed_apps(settings, "tests.workflow_updating_bad_migrations")
+
         err = io.StringIO()
         out = io.StringIO()
 
@@ -2279,21 +2201,15 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
             assert "Failed updating 2 workflow migration(s).\n" in results
 
-    @override_settings(
-        MIGRATION_MODULES={
-            "workflow_updating_no_migrations": None,
-        },
-    )
-    @info_register_aware_modify_settings(
-        INSTALLED_APPS={
-            "append": [
-                "tests.workflow_updating_no_migrations",
-            ],
-        }
-    )
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_updating_no_migrations(self):
+    def test_workflow_updating_no_migrations(self, settings):
+        settings.MIGRATION_MODULES = {
+            "workflow_updating_no_migrations": None,
+        }
+        append_installed_apps(settings, "tests.workflow_updating_no_migrations")
+
         succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating_no_migrations")
         if not succeeded:
             pytest.fail("".join(results))

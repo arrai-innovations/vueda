@@ -92,6 +92,9 @@ just test-docs-tooling-py -x --lf
 ## Commit Message Style
 
 We use a custom commitlint configuration based on [Conventional Commits](https://www.conventionalcommits.org/).
+Issue titles, pull request titles, and commit messages follow the project rules
+in `CONTRIBUTING.md`.
+
 Valid types:
 
 ```text

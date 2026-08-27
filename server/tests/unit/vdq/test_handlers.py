@@ -6,9 +6,9 @@ import pytest
 from anymail.exceptions import AnymailAPIError
 from django.core import mail
 from django.core.files.base import ContentFile
-from django.test import override_settings
 from django.utils import timezone
 
+from tests.utils import set_email_backend
 from vueda.vdq.exceptions import AnymailTransientError
 from vueda.vdq.handlers import TwilioQueueItemHandler
 from vueda.vdq.handlers import handle_bounce
@@ -49,8 +49,9 @@ def _create_attachment(filename: str, mimetype: str, content: bytes, *, inline: 
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_send_email_with_inline_and_regular_attachments(monkeypatch, queue_item_email):
+def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+
     detail = AnyMailQueueItem.objects.create(
         queue_item=queue_item_email,
         subject="Subject",
@@ -102,8 +103,9 @@ def test_send_email_with_inline_and_regular_attachments(monkeypatch, queue_item_
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_send_email_records_error_status(monkeypatch, queue_item_email):
+def test_send_email_records_error_status(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+
     detail = AnyMailQueueItem.objects.create(
         queue_item=queue_item_email,
         subject="Subject",
@@ -127,8 +129,9 @@ def test_send_email_records_error_status(monkeypatch, queue_item_email):
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_send_email_transient_error(monkeypatch, queue_item_email):
+def test_send_email_transient_error(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+
     AnyMailQueueItem.objects.create(
         queue_item=queue_item_email,
         subject="Subject",
@@ -145,8 +148,9 @@ def test_send_email_transient_error(monkeypatch, queue_item_email):
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_send_email_non_transient_error(monkeypatch, queue_item_email):
+def test_send_email_non_transient_error(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+
     AnyMailQueueItem.objects.create(
         queue_item=queue_item_email,
         subject="Subject",
@@ -163,8 +167,10 @@ def test_send_email_non_transient_error(monkeypatch, queue_item_email):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID=None, TWILIO_AUTH_TOKEN=None)
-def test_twilio_send_sms_success(monkeypatch, queue_item_sms):
+def test_twilio_send_sms_success(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = None
+    settings.TWILIO_AUTH_TOKEN = None
+
     message_calls = {}
 
     class FakeMessages:
@@ -191,8 +197,10 @@ def test_twilio_send_sms_success(monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID=None, TWILIO_AUTH_TOKEN=None)
-def test_twilio_send_sms_handles_error(monkeypatch, queue_item_sms):
+def test_twilio_send_sms_handles_error(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = None
+    settings.TWILIO_AUTH_TOKEN = None
+
     class FakeTwilioRestException(Exception):  # noqa:N818
         def __init__(self, msg):
             self.msg = msg
@@ -214,8 +222,10 @@ def test_twilio_send_sms_handles_error(monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID="sid", TWILIO_AUTH_TOKEN="token")
-def test_twilio_pull_sms_status(monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_status(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = "sid"
+    settings.TWILIO_AUTH_TOKEN = "token"
+
     queue_item_sms.fast_transition("await")
     queue_item_sms.sms.message_sid = "SM001"
     queue_item_sms.sms.save()
@@ -244,8 +254,11 @@ def test_twilio_pull_sms_status(monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID="sid", TWILIO_AUTH_TOKEN="token", VDQ_TWILIO_SMS_TIMEOUT_HOURS=1)
-def test_twilio_pull_sms_timeout_only(monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = "sid"
+    settings.TWILIO_AUTH_TOKEN = "token"
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+
     queue_item_sms.fast_transition("await")
     queue_item_sms.sms.message_sid = "SM002"
     queue_item_sms.sms.save()
@@ -281,12 +294,11 @@ def test_twilio_pull_sms_timeout_only(monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(
-    TWILIO_ACCOUNT_SID="Test_Twilio_Account_SID",
-    TWILIO_AUTH_TOKEN="Test_Twilio_Auth_Token",
-    VDQ_TWILIO_SMS_TIMEOUT_HOURS=1,
-)
-def test_twilio_pull_sms_timeout_only_handles_fetch_error(monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = "Test_Twilio_Account_SID"
+    settings.TWILIO_AUTH_TOKEN = "Test_Twilio_Auth_Token"
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+
     queue_item_sms.fast_transition("await")
     queue_item_sms.sms.message_sid = "SM003"
     queue_item_sms.sms.save()
@@ -332,8 +344,10 @@ def test_update_sms_qi_delivered(queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID="sid", TWILIO_AUTH_TOKEN="token")
-def test_update_sms_qi_failure(monkeypatch, queue_item_sms):
+def test_update_sms_qi_failure(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = "sid"
+    settings.TWILIO_AUTH_TOKEN = "token"
+
     queue_item_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
 
@@ -345,8 +359,11 @@ def test_update_sms_qi_failure(monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-@override_settings(TWILIO_ACCOUNT_SID="sid", TWILIO_AUTH_TOKEN="token", VDQ_TWILIO_SMS_TIMEOUT_HOURS=1)
-def test_update_sms_qi_timeout(monkeypatch, queue_item_sms):
+def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = "sid"
+    settings.TWILIO_AUTH_TOKEN = "token"
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+
     queue_item_sms.fast_transition("await")
     queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
     queue_item_sms.save(update_fields=["done_since"])

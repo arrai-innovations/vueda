@@ -46,9 +46,9 @@ export async function waitForInitialising(pinia) {
 
 /**
  *  Wait for store model config to load
- * @param app {string} The app name.
- * @param model {string} The model name.
- * @param pinia {import('pinia').Pinia} The Pinia instance.
+ * @param {string} app - The app name.
+ * @param {string} model - The model name.
+ * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<[import('@vueda/stores/storeModelInfo.js').ModelInfo, import('@vueda/stores/storeModelConfig.js').ModelConfig,import('@vueda/stores/storeworkflow.js').workflowTransitions]>}
  */
 export async function waitForModelStoreLoad(app, model, pinia) {

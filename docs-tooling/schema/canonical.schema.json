@@ -193,7 +193,11 @@
                 "description": { "type": "string" },
                 "type": { "$ref": "#/$defs/TypeRef" },
                 "optional": { "type": "boolean" },
-                "default": { "type": "string" }
+                "default": { "type": "string" },
+                "members": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/Member" }
+                }
             }
         },
         "Member": {

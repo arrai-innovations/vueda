@@ -1,6 +1,6 @@
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import AlertDialog from "@vueda/shell/alert-dialog/AlertDialog.vue";
-import AlertDialogAction from "@vueda/shell/alert-dialog/AlertDialogAction.vue";
 import AlertDialogCancel from "@vueda/shell/alert-dialog/AlertDialogCancel.vue";
 import AlertDialogContent from "@vueda/shell/alert-dialog/AlertDialogContent.vue";
 import AlertDialogDescription from "@vueda/shell/alert-dialog/AlertDialogDescription.vue";
@@ -38,7 +38,8 @@ const warnings = computed(() => {
 });
 
 const onOpenChange = (open) => {
-    // Dismissing via Escape or the overlay is treated as a cancel.
+    // AlertDialogContent prevents outside interaction, so Escape is the only gesture (besides the
+    // Cancel button) that can report the dialog closed here; treat it as a cancel.
     if (!open) {
         props.controller.cancel();
     }
@@ -67,12 +68,12 @@ onBeforeUnmount(() => props.controller.unregister?.());
                 </ul>
             </slot>
             <AlertDialogFooter>
-                <AlertDialogCancel data-qa="form-confirm-cancel" @click="controller.cancel()">
+                <AlertDialogCancel data-qa="form-confirm-cancel">
                     {{ cancelLabel }}
                 </AlertDialogCancel>
-                <AlertDialogAction data-qa="form-confirm-action" @click="controller.confirm()">
+                <Button data-qa="form-confirm-action" type="button" tone="primary" @click="controller.confirm()">
                     {{ confirmLabel }}
-                </AlertDialogAction>
+                </Button>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
