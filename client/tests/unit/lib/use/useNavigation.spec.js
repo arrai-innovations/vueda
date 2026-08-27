@@ -150,6 +150,44 @@ describe("lib/use/useNavigation.js", () => {
         expect(getConfig).toHaveBeenCalledTimes(2);
     });
 
+    scopedIt("does not let an invalidated navigation build overwrite the current navigation", async () => {
+        let rejectPreviousFetch;
+        fetchModelInfo
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        rejectPreviousFetch = reject;
+                    }),
+            )
+            .mockResolvedValueOnce({});
+        getConfig.mockResolvedValue({});
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        const userConfig = reactive({
+            apps: [
+                {
+                    name: "Blog",
+                    link: "/blog",
+                    models: [{ name: "Post", link: "/blog/post", actions: ["list"] }],
+                },
+            ],
+            customRoutes: [],
+        });
+
+        const state = useNavigation(userConfig);
+
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+
+        expect(state.navigation[0].children).toHaveLength(1);
+
+        rejectPreviousFetch(new Error("Auth scope invalidated"));
+        await flushPromises();
+        consoleSpy.mockRestore();
+
+        expect(state.navigation[0].children).toHaveLength(1);
+    });
+
     scopedIt("updates navigation when customRoutes change", async () => {
         fetchModelInfo.mockResolvedValue({});
         getConfig.mockResolvedValue({});

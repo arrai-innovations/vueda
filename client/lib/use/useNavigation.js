@@ -147,16 +147,26 @@ export function useNavigation(userConfig) {
         // the stores drop their caches when the authenticated user changes, so rebuild the navigation
         // from what the new user is permitted to see
         [() => userStore.identityGeneration, userConfig],
-        async ([, newConfig]) => {
+        async ([, newConfig], _oldValue, onCleanup) => {
+            let invalidated = false;
+            onCleanup(() => {
+                invalidated = true;
+            });
             navigationData.loading = true;
             try {
                 const navItems = await buildNavigation(newConfig);
-                navigationData.navigation = [...navItems, ...customRoutes.value];
-                navigationData.error = null;
+                if (!invalidated) {
+                    navigationData.navigation = [...navItems, ...customRoutes.value];
+                    navigationData.error = null;
+                }
             } catch (e) {
-                navigationData.error = e;
+                if (!invalidated) {
+                    navigationData.error = e;
+                }
             } finally {
-                navigationData.loading = false;
+                if (!invalidated) {
+                    navigationData.loading = false;
+                }
             }
         },
         { immediate: true, deep: true },
