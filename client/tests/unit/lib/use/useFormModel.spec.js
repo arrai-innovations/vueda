@@ -991,6 +991,32 @@ describe("lib/use/useFormModel.js", () => {
                     },
                 },
                 widgetComponents: {
+                    notes: "WidgetTextTextarea",
+                },
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+
+            await flushPromises();
+
+            expect(state.widgetComponents.notes).toStrictEqual(availableWidgets.WidgetTextTextarea);
+        });
+        scopedIt("throws for a widget name that is not registered", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+
+            const props = makeBaseProps({
+                fields: ["notes"],
+                fieldDetails: {
+                    notes: {
+                        name: "notes",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+                widgetComponents: {
                     notes: "WidgetTextarea",
                 },
             });
@@ -1000,7 +1026,10 @@ describe("lib/use/useFormModel.js", () => {
 
             await flushPromises();
 
-            expect(state.widgetComponents.notes).toStrictEqual(availableWidgets.WidgetTextarea);
+            // A misspelled name used to resolve to undefined and render nothing at all.
+            expect(() => state.widgetComponents.notes).toThrow(
+                'No widget component named "WidgetTextarea" for field "notes"',
+            );
         });
         scopedIt("returns null widget for base expanded fields", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");

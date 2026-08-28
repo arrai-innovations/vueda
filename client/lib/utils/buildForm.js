@@ -162,7 +162,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 }
                 if (typeof customField === "string") {
                     // let props and modelConfig not pass actual components
-                    return availableFields[customField];
+                    const namedField = availableFields[customField];
+                    if (!namedField) {
+                        throw new Error(
+                            `No field component named "${customField}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                        );
+                    }
+                    return namedField;
                 }
                 if (!customField) {
                     throw new Error(
@@ -233,7 +239,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 }
                 if (typeof customWidget === "string") {
                     // Allow props and modelConfig to pass component names
-                    return availableWidgets[customWidget];
+                    const namedWidget = availableWidgets[customWidget];
+                    if (!namedWidget) {
+                        throw new Error(
+                            `No widget component named "${customWidget}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                        );
+                    }
+                    return namedWidget;
                 }
                 if (!customWidget) {
                     throw new Error(
