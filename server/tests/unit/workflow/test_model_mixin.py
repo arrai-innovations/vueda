@@ -15,6 +15,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
 from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.workflow.exceptions import InvalidTransitionError
+from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Transition
@@ -291,6 +292,18 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
             customer_order.check_transition("pack_order", user=workflow_user)
 
         assert "Orders on credit hold cannot be packed." in str(excinfo.value)
+
+    def test_check_transition_observes_a_state_written_between_calls(self, customer_order, workflow_user):
+        # execute_transition checks a transition, locks the row, and checks again. The second check has
+        # to see a state written in between, so no cache may survive a single check_transition call.
+        customer_order.check_transition("pack_order", user=workflow_user)
+
+        packed_state = State.objects.get(code="packed", workflow__code="order_fulfillment")
+        # Write straight to the row, the way a concurrent transaction would, leaving this instance untouched.
+        ObjectState.objects.filter(pk=customer_order.object_state.pk).update(state=packed_state)
+
+        with pytest.raises(InvalidTransitionError):
+            customer_order.check_transition("pack_order", user=workflow_user)
 
     def test_allow_transition_query_count_does_not_grow_with_candidate_count(self, customer_order, workflow_user):
         cancel_transition = Transition.objects.get(workflow=customer_order.workflow, code="cancel_order")
