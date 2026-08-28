@@ -1,5 +1,6 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
+import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFieldRenderer } from "@vueda/use/useFieldRenderer.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -77,6 +78,9 @@ const {
     fieldDefaultSlotName,
     widgetDefaultSlotName,
     remainingSlots,
+    error,
+    errored,
+    renderFailureText,
 } = useFieldRenderer(props, attrs, slots, fieldSetContext);
 
 const themeContext = reactive({
@@ -94,7 +98,17 @@ const fieldInnerClass = theme("fieldInner");
 <template>
     <!-- TODO: theme.hideStyle requires a single themed root; this component is a renderless <slot> pass-through with no root element to style. -->
     <!-- @slot [field(fieldName)] Override the entire rendered output for a specific field; receives all field and widget context as bindings. -->
+    <!-- A field that cannot render reports itself and leaves the rest of the form alone. -->
+    <ErrorDisplay
+        v-if="errored"
+        :class="fieldClass"
+        :error="error"
+        :errored="errored"
+        :while-text="renderFailureText"
+        data-qa="field-renderer-error"
+    />
     <slot
+        v-else
         :field-class="fieldClass"
         :field-component="fieldComponent"
         :field-detail="fieldDetail"
