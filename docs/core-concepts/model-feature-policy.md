@@ -23,19 +23,19 @@ class CustomerOrder(VuedaModel):
             enabled = True
 ```
 
-`class Vueda` is the only place a model author declares feature participation. Feature integrations read the resolved policy rather than the classes written above, so one declaration is enough to drive server behaviour, metadata, schema, and migration generation.
+`class Vueda` is the only place a model author declares feature participation. Feature integrations read the resolved policy rather than the classes written above. One declaration can therefore drive server behaviour, metadata, schema, and migration generation.
 
-Django's `class Meta` cannot hold these options. Django rejects unknown `Meta` attributes while it constructs a model, and widening the set of accepted names would change that behaviour for every model in the process, VUEDA's or not. `class Vueda` is a separate namespace, so `Meta` stays limited to Django's own model options.
+Django's `class Meta` cannot hold these options. Django rejects unknown `Meta` attributes while it constructs a model. Widening the accepted names would change that behaviour for every model in the process, whether or not it belongs to VUEDA. `class Vueda` is a separate namespace, so `Meta` stays limited to Django's own model options.
 
 ## Which Models Carry Policy
 
-Every model built on a VUEDA model base carries feature policy: `VuedaModel`, `Lookup`, `SingletonModel`, `EmailTemplateBase`, and anything derived from them. `VuedaModel` and `Lookup` are siblings rather than parent and child, so both are included deliberately. Their current common root is `FormattedNameBaseModel`; integrations use `supports_vueda_feature_policy()` rather than repeating that inheritance check.
+Every model built on a VUEDA model base carries feature policy: `VuedaModel`, `Lookup`, `SingletonModel`, `EmailTemplateBase`, and anything derived from them. `VuedaModel` and `Lookup` are siblings rather than parent and child, so the policy deliberately covers both. Their current common root is `FormattedNameBaseModel`; integrations use `supports_vueda_feature_policy()` rather than repeating that inheritance check.
 
 A model that is not built on a VUEDA base has no policy. Declaring `class Vueda` on one is a system-check error rather than a silent no-op.
 
 ## Sections and Options
 
-A section is a nested class named after a feature, and its attributes are that feature's options. Each installed feature app registers the sections it owns, along with each option's default, accepted types, validation, inheritance behaviour, and whether the option affects migration generation.
+A section is a nested class named after a feature, and its attributes are that feature's options. Each installed feature app registers the sections it owns. The registration defines each option's default, accepted types, validation, inheritance behaviour, and effect on migration generation.
 
 Core does not know any feature's defaults. Whether history defaults on or workflow defaults off is a decision the owning app registers. Core knows only the names of first-party sections, which is what lets it tell an absent feature app from a misspelt section.
 
@@ -58,7 +58,7 @@ options["History"].is_declared("enabled") # True: the author wrote it
 options["History"].migration_values()     # only the migration-relevant options
 ```
 
-`get_vueda_options()` resolves a model's policy the first time it is asked and caches it on the model. `is_declared()` separates an explicit choice from a registered default, which a feature needs when the two mean different things.
+`get_vueda_options()` resolves a model's policy on first access and caches it on the model. `is_declared()` separates an explicit choice from a registered default, which a feature needs when the two mean different things.
 
 ## Inheritance
 
@@ -106,23 +106,23 @@ Multi-table inheritance follows the same policy rules. Each concrete child recei
 
 A proxy model takes the policy of its concrete model, and declaring `class Vueda` on a proxy is a system-check error.
 
-History triggers attach to the shared database table, and workflow resolves a proxy to its concrete model when it records object state. A separate proxy policy could not be applied consistently, so accepting one would mean ignoring it.
+History triggers attach to the shared database table, and workflow resolves a proxy to its concrete model when it records object state. Core cannot apply a separate proxy policy consistently, so accepting one would mean ignoring it.
 
 ## Feature Apps That Are Not Installed
 
-Installing a feature app makes its feature available. The owning section then decides whether a given model participates. With `vueda.history` installed, eligible models are tracked by default unless they opt out. Installing `vueda.workflow` makes workflow available, but a model must explicitly opt in.
+Installing a feature app makes its feature available. The owning section then decides whether a given model participates. With `vueda.history` installed, history tracks eligible models by default unless they opt out. Installing `vueda.workflow` makes workflow available, but a model must explicitly opt in.
 
-Declaring a section whose feature app is absent is a system-check error naming the app to install. A section name no installed app owns is a separate error listing the sections that are available. Neither case is ignored.
+Declaring a section whose feature app is absent is a system-check error naming the app to install. A section name no installed app owns is a separate error listing the sections that are available. System checks report both cases.
 
 ## Validation
 
-Resolution never raises. A faulty declaration becomes a system check error, so `manage.py check`, `runserver`, and `migrate` report it with the model and the option named, instead of failing while Django imports models.
+Resolution never raises. A faulty declaration becomes a system check error. `manage.py check`, `runserver`, and `migrate` report the model and option instead of failing while Django imports models.
 
-The checks cover an unknown section, a section whose feature app is not installed, an unknown option, a value of the wrong type, a value a feature rejects, an option written outside a section, a declaration on a proxy, and a declaration on a model that is not a VUEDA model.
+The checks report unknown or unavailable sections, unknown options, and invalid values. They also report options outside a section, proxy declarations, and declarations on models that do not support VUEDA policy.
 
 ## Extension Contract for Feature Apps
 
-A feature app registers its section while its `apps` module is imported. Django imports every application configuration before it imports any models module, so registration is ready before the first model is constructed, whatever order `INSTALLED_APPS` uses. Registering from `AppConfig.ready()` is too late.
+A feature app registers its section at import time in its `apps` module. Django imports every application configuration before it imports any models module. Registration therefore finishes before Django constructs the first model, whatever order `INSTALLED_APPS` uses. Registering from `AppConfig.ready()` is too late.
 
 ```py
 # myfeature/apps.py
@@ -165,9 +165,9 @@ class MyFeatureConfig(AppConfig):
 - `merge` combines an inherited value with an overriding one. Without it, a declaration replaces the inherited value.
 - `migration_relevant` marks an option whose value the feature's migration generation reads.
 
-`FeatureSection.validate` receives the model and its resolved section, and returns error messages for rules that span options. Resolution runs it before the contributor. A failed section is skipped during contribution and its messages become system-check errors.
+`FeatureSection.validate` receives the model and its resolved section, and returns error messages for rules that span options. Resolution runs it before the contributor. Resolution omits a failed section from contribution and turns its messages into system-check errors.
 
-`FeatureSection.contribute` runs once per concrete model, immediately after Django prepares it. It may call `model.add_to_class()` to add a database field, a `GenericRelation`, or a descriptor. A database field added here reaches `ModelState`, which is what keeps a migration-relevant option visible to migration generation. Contributors run in section-name order, and a section VUEDA could not resolve or validate is skipped, so a feature never acts on a faulty declaration.
+`FeatureSection.contribute` runs once per concrete model, immediately after Django prepares it. It may call `model.add_to_class()` to add a database field, a `GenericRelation`, or a descriptor. A database field added here reaches `ModelState`, which is what keeps a migration-relevant option visible to migration generation. Contributors run in section-name order. VUEDA omits any section it could not resolve or validate, so a feature never acts on a faulty declaration.
 
 A contributor receives every concrete multi-table child separately with that child's resolved policy. The feature must decide whether a database artifact belongs to the parent table, the child table, or both. It must not add a local field that clashes with a field inherited from a concrete parent.
 
@@ -177,4 +177,4 @@ A proxy model gets no contributor pass of its own, because its concrete model al
 
 `class Vueda` is the declaration contract. The history and workflow integrations still follow the existing model, serializer, viewset, and filterset inheritance, and they will derive from this policy instead.
 
-Until then, an explicit `enabled` that disagrees with a model's current base classes is a system-check error rather than a declaration that is accepted and then ignored. Declaring `History.enabled = True` requires `VuedaHistoryModel`, and `Workflow.enabled = True` requires `HasWorkflowModelMixin`, exactly as before this contract existed.
+Until then, an explicit `enabled` that disagrees with a model's current base classes produces a system-check error. VUEDA does not accept and then ignore the declaration. Declaring `History.enabled = True` requires `VuedaHistoryModel`, and `Workflow.enabled = True` requires `HasWorkflowModelMixin`, exactly as before this contract existed.
