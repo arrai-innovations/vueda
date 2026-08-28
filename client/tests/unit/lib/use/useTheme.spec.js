@@ -28,6 +28,85 @@ describe("lib/use/useTheme.js", () => {
         expect(merged.Foo.base.class({ bar: "b" })).toBe("a b");
     });
 
+    scopedIt("mergeTheme applies a trailing customizer instead of merging it as a layer", () => {
+        const calls = [];
+        const merged = mergeTheme(
+            { Foo: { base: { class: "a" } } },
+            { Foo: { base: { class: "b" } } },
+            (objValue, srcValue, key) => {
+                calls.push(key);
+                return undefined;
+            },
+        );
+
+        expect(calls).toContain("class");
+        // Deferring to the built-in callback keeps class combining intact.
+        expect(merged.Foo.base.class).toBe("a b");
+        // The customizer is not a theme layer, so nothing of it lands in the result.
+        expect(Object.keys(merged)).toEqual(["Foo"]);
+    });
+
+    scopedIt("mergeTheme lets a customizer clobber below the property level", () => {
+        // stack.size is 0 at the component, 1 at the slot, and 2 at the property, so 3 and
+        // beyond is below the property level. This is the customizer buildForm supplies.
+        const clobberBelowProperty = (objValue, srcValue, _key, _object, _source, stack) => {
+            if (stack.size < 3) {
+                return undefined;
+            }
+            if (objValue && srcValue && typeof objValue === "object" && typeof srcValue === "object") {
+                return { ...objValue, ...srcValue };
+            }
+            return undefined;
+        };
+
+        const base = { Foo: { base: { class: "a", data: { deep: { nested: { kept: 1, replaced: "old" } } } } } };
+        const over = { Foo: { base: { class: "b", data: { deep: { nested: { replaced: "new" } } } } } };
+
+        const merged = mergeTheme(base, over, clobberBelowProperty);
+
+        // The property level and above still merge, so classes combine.
+        expect(merged.Foo.base.class).toBe("a b");
+        // Below the property level the later layer replaces wholesale instead of recursing.
+        expect(merged.Foo.base.data.deep.nested).toEqual({ replaced: "new" });
+
+        // Without the customizer the same layers deep merge, which is what this fixes.
+        expect(mergeTheme(base, over).Foo.base.data.deep.nested).toEqual({ kept: 1, replaced: "new" });
+    });
+
+    scopedIt("mergeTheme rejects a call with fewer than two layers", () => {
+        const source = { Foo: { base: { class: "a" } } };
+
+        // Nothing merges, so the call reads as a merge while handing back one layer.
+        expect(() => mergeTheme(source)).toThrow(TypeError);
+        expect(() => mergeTheme(source)).toThrow("needs at least two theme layers, received 1");
+        expect(() => mergeTheme()).toThrow("received 0");
+        // A trailing customizer is not a layer.
+        expect(() => mergeTheme(source, () => undefined)).toThrow("received 1");
+        // Seeding with an empty object is the documented way to merge a variable count.
+        expect(mergeTheme({}, source)).toEqual(source);
+    });
+
+    scopedIt("mergeTheme returns an object the caller may mutate", () => {
+        const source = { Foo: { base: { class: "a" } } };
+
+        const merged = mergeTheme(source, {});
+        expect(merged).not.toBe(source);
+        expect(merged.Foo).not.toBe(source.Foo);
+
+        merged.Foo.base.class = "MUTATED";
+        expect(source.Foo.base.class).toBe("a");
+    });
+
+    scopedIt("mergeTheme does not share nested references with a later layer", () => {
+        const nested = { kept: 1 };
+        const later = { Foo: { base: { data: nested } } };
+
+        const merged = mergeTheme({ Foo: { base: { class: "a" } } }, later);
+
+        expect(merged.Foo.base.data).toEqual({ kept: 1 });
+        expect(merged.Foo.base.data).not.toBe(nested);
+    });
+
     scopedIt("setTheme, getTheme and patchTheme work together", () => {
         setTheme({ Foo: { base: { class: "a" } } });
         patchTheme({ Foo: { extra: { class: "b" } } });
