@@ -13,6 +13,7 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 - [Architecture Overview](architecture-overview.md): Layers, boundaries, and main extension points.
 - [Canonical Registration and Model Discovery](canonical-registration-and-discovery.md): Why models are registered and how info endpoints discover them.
 - [Contract-First Dynamic UI](contract-first-dynamic-ui.md): Why UI is driven by server metadata rather than hardcoded forms.
+- [Model Feature Policy](model-feature-policy.md): How `class Vueda` declares which framework features a model participates in.
 
 ## Data and API Contracts
 
