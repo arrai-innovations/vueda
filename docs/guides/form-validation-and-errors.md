@@ -287,7 +287,9 @@ Because `confirm=True` gates before the body runs, any body-level validation err
 
 **Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry.
 
-**Client: rendering warnings is the consuming view's job, not `FormConfirmDialog`'s.** `FormConfirmDialog`'s default `warnings` slot content has no opinion about the mapping's shape: it flattens every value into a plain list of messages, whether the mapping is field-keyed, or object-id-keyed. It never resolves a field name or an object id into anything meaningful — a view that wants shape-aware rendering overrides the `warnings` slot itself.
+**Client: the response reports its own shape, so a consumer never has to guess it.** A `warnings` mapping alone is ambiguous JSON — nothing in `{"9": {"count": [...]}}` marks it as per-object rather than a field literally named `9`. `ConfirmationRequiredError` resolves that ambiguity with a `bulk` property: `true` for the per-object shape, `false` for the aggregate shape. This is not parsed from the response body; it is set by whichever client call constructed the error, since that call is the only place that knows which request path it took — `objectCrud`'s single-object adaptors always report `false`, `listCrud`'s bulk adaptors always report `true`, and `storeWorkflow.executeTransition` reports `Array.isArray(objectPk)` (`true` even for a one-item array, because that request still went through the bulk `object_ids` path). `bulk` flows alongside `messages` through `useConfirmationController`'s `request(messages, { bulk })` into `confirmation.bulk`, and out through `FormConfirmDialog`'s `warnings` slot scope (`{ warnings, flatWarnings, bulk }`).
+
+**Client: rendering warnings is the consuming view's job, not `FormConfirmDialog`'s.** `FormConfirmDialog`'s default `warnings` slot content has no opinion about the mapping's shape: it flattens every value into a plain list of messages, whether the mapping is field-keyed, or object-id-keyed. It never resolves a field name or an object id into anything meaningful — a view that wants shape-aware rendering overrides the `warnings` slot itself, reading `bulk` from that same slot scope to know which shape it received.
 
 {@api vue:component:FieldWarningsList} renders the one shape every warnings source above produces for a single object: `{field: [messages]}`, with `non_field_errors` first as a plain, unlabeled list, then each other field either inline (`field: message`) for a single message or as its own sub-header plus list for more than one. It has no notion of object identity; it only ever renders one object's field-keyed warnings.
 
@@ -301,8 +303,8 @@ Because `confirm=True` gates before the body runs, any body-level validation err
     </form-confirm-dialog>
     ```
 
-- `ActionForm` renders no warnings content of its own — it only exposes a `form-confirm-dialog-warnings` slot that forwards `FormConfirmDialog`'s `warnings` scope, so a bare `ActionForm` consumer must supply that slot to show anything.
-- `ModelActionForm` supplies that slot to handle the bulk case: it normalizes `warnings` into one group per warned object (a bulk action's warnings are keyed by object id; a single-object action's warnings become the one, unkeyed group), resolves each object id to a display label via the model config and fetched objects, and renders each group's own field-keyed warnings through the same `FieldWarningsList`.
+- `ActionForm` renders no warnings content of its own — it only exposes a `form-confirm-dialog-warnings` slot that forwards `FormConfirmDialog`'s `warnings` scope (`warnings` and `bulk`), so a bare `ActionForm` consumer must supply that slot to show anything.
+- `ModelActionForm` supplies that slot to handle the bulk case: it normalizes `warnings` into one group per warned object when the slot's `bulk` flag is `true` (a bulk action's warnings are keyed by object id), or the one, unkeyed group when `bulk` is `false` (a single-object action's warnings). It reads `bulk` from the slot scope — sourced from the `ConfirmationRequiredError` that reported the response. Once grouped, it resolves each object id to a display label via the model config and fetched objects, and renders each group's own field-keyed warnings through the same `FieldWarningsList`.
 
 Each layer only understands the shape it owns: `FormConfirmDialog` doesn't know about fields or objects, `FieldWarningsList` doesn't know about objects, and only `ModelActionForm` resolves object identity, because it is the only layer with the model config and fetched objects needed to do so.
 
@@ -335,6 +337,8 @@ With the validation pipeline wired, verify these behaviors:
 
 **Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 
+**A bulk action's per-object warnings render as one flat, unlabeled group.** This means the `ConfirmationRequiredError` behind the confirmation reported `bulk: false` for a response that was actually the per-object shape. A custom `run-action` that issues its own bulk request must construct its `ConfirmationRequiredError` with `{ bulk: true }` itself — `ModelActionForm` reads `bulk` from that error (via `confirmation.bulk` and `FormConfirmDialog`'s `warnings` slot scope), not from its own selection count, so a one-object bulk request needs this set explicitly rather than left to default to `false`.
+
 ## Relevant Implementation Surface
 
 - Python:
@@ -348,12 +352,16 @@ With the validation pipeline wired, verify these behaviors:
 - JavaScript:
     - {@api js:module:@arrai-innovations/vueda/utils/errors}
     - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+    - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
+    - {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.bulk}
     - {@api js:module:@arrai-innovations/vueda/use/useForm}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
     - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
     - {@api js:module:@arrai-innovations/vueda/use/useActionForm}
+    - {@api js:module:@arrai-innovations/vueda/use/useConfirmationController}
     - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
     - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
     - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - Vue.js Components:
     - {@api vue:component:ActionForm}

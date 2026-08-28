@@ -97,7 +97,9 @@ None of these hooks enforce this shape in code: `gate_warnings` only checks the 
 
 On the client, this 409 is parsed into a `ConfirmationRequiredError`. Its `.messages` map is populated directly from the response's `warnings` mapping (`.errors` is always empty, since a confirmation response carries no blocking errors). `handleServerFormValidationError(error)` ingests both error classes the same way, reading `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`, so form components do not need to branch on which class they received.
 
-`FormConfirmDialog` treats the `warnings` mapping it receives as opaque: its default rendering flattens every value into a plain message list and never resolves a field name or an object id. A view that wants shape-aware rendering — field headers, or grouping a bulk action's per-object shape by the object it belongs to — resolves that itself: `ViewCreate` and `ViewUpdate` render the aggregate shape via `FieldWarningsList`; `ModelActionForm` overrides the same slot to group the per-object shape, resolving each object id to a display label before handing that object's field-keyed warnings to `FieldWarningsList` too.
+The response gives the client no way to infer which of the two shapes `.messages` is in from the payload alone — a per-object mapping and a plain field-keyed mapping are both just JSON objects. So `ConfirmationRequiredError` also carries `.bulk`: `true` for the per-object shape, `false` for the aggregate shape. This is not derived from the response body; it is set by whichever client call constructed the error, because that call is the only place that knows which request path (single-object or bulk) it took.
+
+`.bulk` flows alongside `.messages` through the rest of the rendering chain: `useConfirmationController`'s `request(messages, { bulk })` stores it as `confirmation.bulk`, and `FormConfirmDialog` exposes it on its `warnings` slot scope (`{ warnings, flatWarnings, bulk }`) next to the mapping itself. `FormConfirmDialog` otherwise treats `warnings` as opaque: its default rendering flattens every value into a plain message list and never resolves a field name or an object id. A view that wants shape-aware rendering — field headers, or grouping a bulk action's per-object shape by the object it belongs to — resolves that itself: `ViewCreate` and `ViewUpdate` render the aggregate shape via `FieldWarningsList`; `ModelActionForm` overrides the same slot to group the per-object shape, reading `bulk` from the slot scope to decide whether to group at all, then resolving each object id to a display label before handing that object's field-keyed warnings to `FieldWarningsList` too.
 
 See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-channel) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
 
@@ -159,9 +161,15 @@ This means that a form component fetching choices for a field that references an
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.errors}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.messages}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.serverStack}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.digest}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.messages}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.bulk}
 - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
 - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
 - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
+- {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
+- {@api js:module:@arrai-innovations/vueda/use/useConfirmationController}
 - {@api js:module:@arrai-innovations/vueda/use/useForm}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearServerErrors}
@@ -170,3 +178,4 @@ This means that a form component fetching choices for a field that references an
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:ModelActionForm}
+- {@api vue:component:FormConfirmDialog}

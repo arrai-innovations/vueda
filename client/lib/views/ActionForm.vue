@@ -270,9 +270,9 @@ const validationTitle = computed(() => {
         </div>
         <!-- Resolves submit-time warning confirmations (HTTP 409); without it warned actions would be cancelled. -->
         <form-confirm-dialog :controller="confirmation">
-            <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the controller's raw warnings mapping). Falls through to FormConfirmDialog's own default rendering when not provided. -->
-            <template v-if="$slots['form-confirm-dialog-warnings']" #warnings="{ warnings }">
-                <slot name="form-confirm-dialog-warnings" :warnings="warnings" />
+            <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the controller's raw warnings mapping; `bulk`, whether it uses the per-object shape). Falls through to FormConfirmDialog's own default rendering when not provided. -->
+            <template v-if="$slots['form-confirm-dialog-warnings']" #warnings="{ warnings, bulk }">
+                <slot name="form-confirm-dialog-warnings" :warnings="warnings" :bulk="bulk" />
             </template>
         </form-confirm-dialog>
     </div>

@@ -81,6 +81,36 @@ describe("lib/form/confirm/FormConfirmDialog.vue", () => {
         expect(controller.cancel).not.toHaveBeenCalled();
     });
 
+    scopedIt("exposes the controller's bulk flag on the warnings slot scope", () => {
+        const controller = makeController({ messages: { 9: { count: ["unusual"] } }, bulk: true });
+        const wrapper = mount(FormConfirmDialog, {
+            props: { controller },
+            global: { stubs },
+            slots: {
+                warnings: `<template #warnings="{ warnings, bulk }">
+                    <div data-qa="custom-warnings" :data-bulk="bulk">{{ JSON.stringify(warnings) }}</div>
+                </template>`,
+            },
+        });
+
+        const custom = wrapper.get('[data-qa="custom-warnings"]');
+        expect(custom.attributes("data-bulk")).toBe("true");
+        expect(custom.text()).toContain('"9"');
+    });
+
+    scopedIt("defaults the warnings slot's bulk to false when the controller omits it", () => {
+        const controller = makeController({ messages: { count: ["unusual"] } });
+        const wrapper = mount(FormConfirmDialog, {
+            props: { controller },
+            global: { stubs },
+            slots: {
+                warnings: `<template #warnings="{ bulk }"><div data-qa="custom-warnings" :data-bulk="bulk" /></template>`,
+            },
+        });
+
+        expect(wrapper.get('[data-qa="custom-warnings"]').attributes("data-bulk")).toBe("false");
+    });
+
     scopedIt("registers on mount and unregisters on unmount", () => {
         const controller = makeController({ register: vi.fn(), unregister: vi.fn() });
         const wrapper = mount(FormConfirmDialog, { props: { controller }, global: { stubs } });

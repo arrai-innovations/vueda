@@ -88,7 +88,7 @@ const FeedbackSpinnerStub = defineComponent({
 
 // Mirrors the real dialog's consumer registration so the controller's fail-closed guard stays off
 // and confirm/cancel can be driven through the controller in tests. Also mirrors the real
-// dialog's `warnings` scoped slot (`{ warnings }`), so ActionForm's `form-confirm-dialog-warnings`
+// dialog's `warnings` scoped slot (`{ warnings, bulk }`), so ActionForm's `form-confirm-dialog-warnings`
 // forwarding can be exercised the same way it works against the real FormConfirmDialog. When
 // ActionForm doesn't supply a `#warnings` template at all (no `form-confirm-dialog-warnings` slot
 // given), `slots.warnings` is undefined here too, mirroring how the real FormConfirmDialog's own
@@ -111,7 +111,7 @@ const FormConfirmDialogStub = defineComponent({
                         "div",
                         { "data-qa": "form-confirm-dialog-warnings-slot" },
                         slots.warnings
-                            ? slots.warnings({ warnings: props.controller.messages })
+                            ? slots.warnings({ warnings: props.controller.messages, bulk: props.controller.bulk })
                             : h("div", { "data-qa": "form-confirm-dialog-default-warnings" }),
                     ),
                 ],
@@ -493,27 +493,63 @@ describe("lib/views/ActionForm.vue", () => {
             },
         );
 
-        scopedIt("forwards the controller's warnings mapping to the form-confirm-dialog-warnings slot", async () => {
-            const error = new ConfirmationRequiredError(
-                { confirmation_required: true, digest: "d1", warnings: { count: ["A negative count is unusual."] } },
-                {},
-            );
-            const runAction = vi.fn(() => Promise.reject(error));
-            const { wrapper } = mountActionForm({
-                runAction,
-                slots: {
-                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings }">
-                        <div data-qa="custom-warnings">{{ JSON.stringify(warnings) }}</div>
-                    </template>`,
-                },
-            });
+        scopedIt(
+            "forwards the controller's warnings mapping and bulk flag to the form-confirm-dialog-warnings slot",
+            async () => {
+                const error = new ConfirmationRequiredError(
+                    {
+                        confirmation_required: true,
+                        digest: "d1",
+                        warnings: { count: ["A negative count is unusual."] },
+                    },
+                    {},
+                    { bulk: false },
+                );
+                const runAction = vi.fn(() => Promise.reject(error));
+                const { wrapper } = mountActionForm({
+                    runAction,
+                    slots: {
+                        "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings, bulk }">
+                            <div data-qa="custom-warnings" :data-bulk="bulk">{{ JSON.stringify(warnings) }}</div>
+                        </template>`,
+                    },
+                });
 
-            await wrapper.find("form").trigger("submit.prevent");
-            await flushPromises();
+                await wrapper.find("form").trigger("submit.prevent");
+                await flushPromises();
 
-            const custom = wrapper.get('[data-qa="custom-warnings"]');
-            expect(JSON.parse(custom.text())).toEqual({ count: ["A negative count is unusual."] });
-        });
+                const custom = wrapper.get('[data-qa="custom-warnings"]');
+                expect(JSON.parse(custom.text())).toEqual({ count: ["A negative count is unusual."] });
+                expect(custom.attributes("data-bulk")).toBe("false");
+            },
+        );
+
+        scopedIt(
+            "forwards bulk:true from a custom bulk run-action's response even when it targets one object",
+            async () => {
+                const error = new ConfirmationRequiredError(
+                    { confirmation_required: true, digest: "d1", warnings: { 9: { count: ["unusual"] } } },
+                    {},
+                    { bulk: true },
+                );
+                const runAction = vi.fn(() => Promise.reject(error));
+                const { wrapper } = mountActionForm({
+                    runAction,
+                    slots: {
+                        "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings, bulk }">
+                            <div data-qa="custom-warnings" :data-bulk="bulk">{{ JSON.stringify(warnings) }}</div>
+                        </template>`,
+                    },
+                });
+
+                await wrapper.find("form").trigger("submit.prevent");
+                await flushPromises();
+
+                const custom = wrapper.get('[data-qa="custom-warnings"]');
+                expect(JSON.parse(custom.text())).toEqual({ 9: { count: ["unusual"] } });
+                expect(custom.attributes("data-bulk")).toBe("true");
+            },
+        );
     });
 
     describe("Cancel flow", () => {

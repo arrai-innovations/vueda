@@ -7,7 +7,11 @@ import { defineComponent, h } from "vue";
 
 // Set by a test before mounting to drive ActionFormStub's `form-confirm-dialog-warnings` slot
 // scope, mirroring what the real ActionForm forwards from FormConfirmDialog's `warnings` slot.
+// `actionFormBulk` mirrors the `bulk` flag the real chain sources from the
+// `ConfirmationRequiredError` that reported `actionFormWarnings` -- the request path that produced
+// the response, not the component's own selection count.
 let actionFormWarnings = {};
+let actionFormBulk = false;
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
@@ -42,7 +46,10 @@ const ActionFormStub = defineComponent({
                         "div",
                         { "data-qa": "action-form-stub-confirm-dialog-slot" },
                         slots["form-confirm-dialog-warnings"]
-                            ? slots["form-confirm-dialog-warnings"]({ warnings: actionFormWarnings })
+                            ? slots["form-confirm-dialog-warnings"]({
+                                  warnings: actionFormWarnings,
+                                  bulk: actionFormBulk,
+                              })
                             : null,
                     ),
                     slots.default ? slots.default() : null,
@@ -236,6 +243,7 @@ describe("lib/views/ModelActionForm.vue", () => {
         modelConfig.info = { verboseName: "Person", verboseNamePlural: "People" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
         actionFormWarnings = {};
+        actionFormBulk = false;
     });
 
     describe("Rendering", () => {
@@ -501,6 +509,7 @@ describe("lib/views/ModelActionForm.vue", () => {
                     1: { count: ["Order 1001 ships express."] },
                     2: { count: ["Order 1002 ships express."] },
                 };
+                actionFormBulk = true;
                 const { wrapper } = mountModelActionForm();
 
                 const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
@@ -539,11 +548,51 @@ describe("lib/views/ModelActionForm.vue", () => {
             },
         );
 
+        scopedIt(
+            "renders per-object groups for a one-object custom bulk-runner response, even though only one object is selected",
+            () => {
+                // Mirrors a custom `run-action` (e.g. a workflow-transition runner) that always issues
+                // a bulk request: the response's ConfirmationRequiredError reports bulk:true
+                // regardless of how many objects are targeted, and the renderer must follow that
+                // signal rather than the component's own one-object selection count.
+                actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                const widgetReadOnly = groups[0].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly.props("foreignKeyObj")).toEqual({ id: 9 });
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders a single unkeyed group for a multi-object selection when the response reports the aggregate shape",
+            () => {
+                actionFormWarnings = { count: ["A negative count is unusual."] };
+                actionFormBulk = false;
+                const { wrapper } = mountModelActionForm({
+                    fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
+                });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
         scopedIt("forwards the warning-entry slot to every group's FieldWarningsList, adding pk to the scope", () => {
             actionFormWarnings = {
                 1: { count: ["Order 1001 ships express."] },
                 2: { count: ["Order 1002 ships express."] },
             };
+            actionFormBulk = true;
             const { wrapper } = mountModelActionForm({
                 slots: {
                     "warning-entry": `<template #warning-entry="{ field, messages, pk }">
@@ -558,6 +607,33 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(entries[0].attributes("data-field")).toBe("count");
             expect(entries[0].text()).toBe("Order 1001 ships express.");
             expect(entries[1].attributes("data-pk")).toBe("2");
+        });
+
+        scopedIt("forwards warnings, bulk, and normalized-warnings to a form-confirm-dialog-warnings override", () => {
+            actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 9 }] },
+                slots: {
+                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings, bulk, normalizedWarnings }">
+                            <div
+                                data-qa="custom-dialog-warnings"
+                                :data-bulk="bulk"
+                                :data-warnings="JSON.stringify(warnings)"
+                                :data-normalized-count="normalizedWarnings.length"
+                                :data-normalized-pk="normalizedWarnings[0].pk"
+                            />
+                        </template>`,
+                },
+            });
+
+            const custom = wrapper.get('[data-qa="custom-dialog-warnings"]');
+            expect(custom.attributes("data-bulk")).toBe("true");
+            expect(JSON.parse(custom.attributes("data-warnings"))).toEqual({
+                9: { count: ["A negative count is unusual."] },
+            });
+            expect(custom.attributes("data-normalized-count")).toBe("1");
+            expect(custom.attributes("data-normalized-pk")).toBe("9");
         });
     });
 });

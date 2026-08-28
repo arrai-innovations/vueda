@@ -289,6 +289,29 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(error.name).toBe("ConfirmationRequiredError");
         expect(error.digest).toBe("abc123");
         expect(error.messages).toEqual({ non_field_errors: ["This transition has consequences."] });
+        expect(error.bulk).toBe(false);
+    });
+
+    scopedIt("executeTransition maps a 409 response to bulk:true when objectPk is a one-item array", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", ["9"], "close").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const responseData = {
+            confirmation_required: true,
+            digest: "abc123",
+            warnings: { 9: { non_field_errors: ["This transition has consequences."] } },
+        };
+
+        const error = errorResolver({ status: 409 }, responseData);
+
+        // A one-item bulk-transition request still went through the bulk (object_ids) request
+        // path, so the response is still the per-object shape -- the renderer must key its
+        // shape decision on that request path, not on how many ids the array contained.
+        expect(error.bulk).toBe(true);
+        expect(error.messages).toEqual({ 9: { non_field_errors: ["This transition has consequences."] } });
     });
 
     scopedIt("executeTransition still supports legacy nested state code mapping", async () => {

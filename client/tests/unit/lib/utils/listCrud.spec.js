@@ -289,6 +289,7 @@ describe("lib/utils/listCrud.js", () => {
             expect(error).toBeInstanceOf(ConfirmationRequiredError);
             expect(error.digest).toBe("d1");
             expect(error.messages).toEqual({ count: ["unusual"] });
+            expect(error.bulk).toBe(true);
         });
     });
 
@@ -335,21 +336,29 @@ describe("lib/utils/listCrud.js", () => {
             expect(captured.options.method).toBe("PUT");
         });
 
-        scopedIt("throws ConfirmationRequiredError on 409", async () => {
+        scopedIt("throws ConfirmationRequiredError with bulk:true on 409, even for a one-pk bulk request", async () => {
             const { ConfirmationRequiredError } = await import("@vueda/utils/errors.js");
             getListUrl.mockReturnValue("/list/archive/");
-            const responseData = { confirmation_required: true, digest: "d2", warnings: { count: ["unusual"] } };
+            const responseData = {
+                confirmation_required: true,
+                digest: "d2",
+                warnings: { 1: { count: ["unusual"] } },
+            };
             cancellableFetch.mockImplementation((url, options, transform) =>
                 transform(new Response(JSON.stringify(responseData), { status: 409 })),
             );
 
-            await expect(
-                listCrud.defaultListExecuteAction({
+            const error = await listCrud
+                .defaultListExecuteAction({
                     target: { app: "blog", model: "post" },
                     pks: ["1"],
                     action: "archive",
-                }),
-            ).rejects.toBeInstanceOf(ConfirmationRequiredError);
+                })
+                .catch((e) => e);
+
+            expect(error).toBeInstanceOf(ConfirmationRequiredError);
+            expect(error.bulk).toBe(true);
+            expect(error.messages).toEqual({ 1: { count: ["unusual"] } });
         });
     });
 

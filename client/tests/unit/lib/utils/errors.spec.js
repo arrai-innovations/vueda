@@ -1,7 +1,30 @@
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/errors.js";
 import { describe, expect, it } from "vitest";
 
 describe("lib/utils/errors.js", () => {
+    describe("ConfirmationRequiredError", () => {
+        it("defaults bulk to false when the caller does not specify a request path", () => {
+            const error = new ConfirmationRequiredError(
+                { digest: "d1", warnings: { count: ["A negative count is unusual."] } },
+                new Response(),
+            );
+
+            expect(error.bulk).toBe(false);
+            expect(error.messages).toEqual({ count: ["A negative count is unusual."] });
+        });
+
+        it("carries bulk:true is bulk:true is passed in", () => {
+            const error = new ConfirmationRequiredError(
+                { digest: "d1", warnings: { 9: { count: ["A negative count is unusual."] } } },
+                new Response(),
+                { bulk: true },
+            );
+
+            expect(error.bulk).toBe(true);
+            expect(error.messages).toEqual({ 9: { count: ["A negative count is unusual."] } });
+        });
+    });
+
     describe("FormValidationError", () => {
         it("splits a field-keyed error payload into the errors map", () => {
             const error = new FormValidationError({ name: ["This field may not be blank."] }, new Response());

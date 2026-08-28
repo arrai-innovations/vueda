@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { FetchError } from "@vueda/utils/errors.js";
-import { fetchHelper, getJsonOrText } from "@vueda/utils/fetchSupport.js";
+import { fetchHelper, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
 
 describe("lib/utils/fetchSupport.js", () => {
     const originalFetch = global.fetch;
@@ -92,6 +92,24 @@ describe("lib/utils/fetchSupport.js", () => {
         global.fetch = vi.fn().mockResolvedValue(res);
         const data = await fetchHelper("/empty", {}, "prefix", FetchError, new Set([404]), "EMPTY");
         expect(data).toBe("EMPTY");
+    });
+
+    scopedIt("readActionResponse defaults bulk to false on a 409", async () => {
+        const res = new Response(JSON.stringify({ digest: "d1", warnings: { count: ["unusual"] } }), { status: 409 });
+        await expect(readActionResponse(res, { messagePrefix: "fail" })).rejects.toMatchObject({
+            name: "ConfirmationRequiredError",
+            bulk: false,
+        });
+    });
+
+    scopedIt("readActionResponse forwards bulk:true on a 409 from a bulk request", async () => {
+        const res = new Response(JSON.stringify({ digest: "d1", warnings: { 9: { count: ["unusual"] } } }), {
+            status: 409,
+        });
+        await expect(readActionResponse(res, { messagePrefix: "fail", bulk: true })).rejects.toMatchObject({
+            name: "ConfirmationRequiredError",
+            bulk: true,
+        });
     });
 
     scopedIt("fetchHelper.cancel aborts the request", async () => {

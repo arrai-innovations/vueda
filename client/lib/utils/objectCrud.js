@@ -155,7 +155,7 @@ export function defaultObjectCreate({ target, object, params, acknowledgeWarning
             throw new FormValidationError(responseData, response);
         }
         if (response.status === 409) {
-            throw new ConfirmationRequiredError(responseData, response);
+            throw new ConfirmationRequiredError(responseData, response, { bulk: false });
         }
         throw new FetchError("Failed to create object", response, responseData);
     });
@@ -218,7 +218,7 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
                 throw new FormValidationError(responseData, response);
             }
             if (response.status === 409) {
-                throw new ConfirmationRequiredError(responseData, response);
+                throw new ConfirmationRequiredError(responseData, response, { bulk: false });
             }
             throw new FetchError("Failed to update object", response, responseData);
         },
@@ -305,6 +305,7 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
             readActionResponse(response, {
                 messagePrefix: "Failed to delete object",
                 successStatuses: dryRun ? new Set([200, 204]) : new Set([204]),
+                bulk: false,
             }),
     );
 }
@@ -344,7 +345,7 @@ export function defaultObjectExecuteAction({
             credentials: "include",
             body: formData ? JSON.stringify(formData) : undefined,
         },
-        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action" }),
+        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action", bulk: false }),
     );
 }
 

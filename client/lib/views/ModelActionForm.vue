@@ -171,7 +171,6 @@ if (!injectedFormContext) {
 const modelAction = useModelAction(props);
 const {
     pksAsString,
-    bulk,
     pkCount,
     objectsMap,
     modelVerboseName,
@@ -195,12 +194,16 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
 
 /**
  * Normalizes the confirmation dialog's raw warnings mapping into one display group per warned
- * object. A bulk action's `warnings` is keyed by object id (`{ [pk]: {field: [messages]} }`); a
- * single-object action's `warnings` is already one object's field-messages mapping, so it becomes
- * the sole group, with no pk to resolve a display name for.
+ * object. `bulk` (from the confirmation controller's `ConfirmationRequiredError`, forwarded
+ * through `ActionForm`'s `form-confirm-dialog-warnings` slot) reports which shape `warnings` is
+ * actually in -- the request that produced it, not the current selection count, since a custom
+ * `run-action` can issue a bulk request regardless of how many objects are selected. A bulk
+ * action's `warnings` is keyed by object id (`{ [pk]: {field: [messages]} }`); a single-object
+ * action's `warnings` is already one object's field-messages mapping, so it becomes the sole
+ * group, with no pk to resolve a display name for.
  */
-const resolveWarningGroups = (warnings) => {
-    if (!bulk.value) {
+const resolveWarningGroups = (warnings, bulk) => {
+    if (!bulk) {
         return [{ pk: undefined, fieldMessages: warnings }];
     }
     return Object.entries(warnings ?? {}).map(([pk, fieldMessages]) => ({ pk, fieldMessages }));
@@ -368,16 +371,17 @@ const resolveWarningGroups = (warnings) => {
             `FieldWarningsList`, with `pk` added to its scope (`undefined` for the single, unkeyed
             group) so a consumer can tell which warned object it's rendering for.
         -->
-        <template #form-confirm-dialog-warnings="{ warnings }">
+        <template #form-confirm-dialog-warnings="{ warnings, bulk }">
             <slot
                 name="form-confirm-dialog-warnings"
                 :warnings="warnings"
-                :normalized-warnings="resolveWarningGroups(warnings)"
+                :bulk="bulk"
+                :normalized-warnings="resolveWarningGroups(warnings, bulk)"
                 data-qa="model-action-form-confirm-warning-group"
                 :class="theme('confirmWarningGroup')"
             >
                 <div
-                    v-for="group in resolveWarningGroups(warnings)"
+                    v-for="group in resolveWarningGroups(warnings, bulk)"
                     :key="group.pk ?? 'single'"
                     :class="theme('confirmWarningGroup')"
                     data-qa="model-action-form-confirm-warning-group"

@@ -188,6 +188,7 @@ describe("lib/utils/objectCrud.js", () => {
             expect(error.digest).toBe("abc123");
             expect(error.messages).toEqual({ count: ["unusual"] });
             expect(error.errors).toEqual({});
+            expect(error.bulk).toBe(false);
         });
 
         it("sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
@@ -425,6 +426,7 @@ describe("lib/utils/objectCrud.js", () => {
             expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
             expect(error.digest).toBe("def456");
             expect(error.messages).toEqual({ count: ["unusual"] });
+            expect(error.bulk).toBe(false);
         });
 
         it("sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
@@ -583,6 +585,7 @@ describe("lib/utils/objectCrud.js", () => {
 
             expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
             expect(error.digest).toBe("d1");
+            expect(error.bulk).toBe(false);
         });
     });
 
@@ -649,6 +652,25 @@ describe("lib/utils/objectCrud.js", () => {
                     action: "archive",
                 }),
             ).rejects.toBeInstanceOf(errors.FormValidationError);
+        });
+
+        it("throws ConfirmationRequiredError with bulk:false on 409", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                transform(new Response(JSON.stringify(responseData), { status: 409 })),
+            );
+
+            const error = await objectCrud
+                .defaultObjectExecuteAction({
+                    target: { app: "blog", model: "article" },
+                    pk: "3",
+                    action: "archive",
+                })
+                .catch((e) => e);
+
+            expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+            expect(error.bulk).toBe(false);
         });
     });
 
