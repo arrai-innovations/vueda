@@ -142,7 +142,6 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     THEME_OVERRIDE_PROPS: {},
 }));
 vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
-vi.mock("@vueda/utils/html.js", () => ({ escapeHtml: (v) => v }));
 vi.mock("@vueda/stores/storeUser.js", async () => {
     const actual = await vi.importActual("@vueda/stores/storeUser.js");
     UnauthorizedErrorClass = actual.UnauthorizedError;
