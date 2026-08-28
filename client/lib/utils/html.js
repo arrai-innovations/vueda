@@ -1,39 +1,23 @@
 /**
  * @module utils/html
- * @description Utilities for escaping, sanitizing, and detecting HTML in user-supplied strings.
+ * @description Utilities for sanitizing and detecting HTML in user-supplied strings.
  */
 import DOMPurify from "dompurify";
 import isObject from "lodash-es/isObject.js";
 import isString from "lodash-es/isString.js";
 
 /**
- * Escape HTML characters in a message.
- *
- * @param {string} message - The message to escape.
- * @returns {string} - The escaped message.
- */
-export const escapeHtml = (message) => {
-    const map = {
-        "&amp;": "&",
-        "&lt;": "<",
-        "&gt;": ">",
-        "&quot;": '"',
-        "&#039;": "'",
-        "&nbsp;": " ",
-    };
-    return message?.replace(/&amp;|&lt;|&gt;|&quot;|&#039;|&nbsp;/g, (m) => map[m]);
-};
-
-/**
  * Sanitize a message to prevent XSS attacks.
+ *
+ * Markup a server sends deliberately is supported through a restrictive allowlist: basic emphasis,
+ * paragraphs, lists, and links. Everything else is removed. Text that arrives entity-encoded stays
+ * encoded and therefore displays as the literal characters it stands for.
  *
  * @param {string} message - The message to sanitize.
  * @returns {string} - The sanitized message.
  */
 export const sanitizeMessage = (message) => {
-    const escapedMessage = escapeHtml(message);
-
-    return DOMPurify.sanitize(escapedMessage, {
+    return DOMPurify.sanitize(message, {
         ALLOWED_TAGS: ["b", "strong", "i", "em", "p", "a", "ul", "ol", "li"],
         ALLOWED_ATTR: ["href", "target", "rel"],
     });
