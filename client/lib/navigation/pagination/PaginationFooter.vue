@@ -87,18 +87,30 @@ const currentPageReport = computed(() =>
     props.loading ? `Page ${props.currentPage} of ?` : `Page ${props.currentPage} of ${pageCount.value}`,
 );
 
-// "Showing X to Y of N" (or "All N" when every page is loaded); blank while loading.
-const rangeReport = computed(() => {
+// Range read-out as ordered segments so the default renderer can lift the numeric
+// figures (the row range and the total) to `text-foreground` against the muted
+// label. `emphasis: true` segments flip tone; the rest stay muted. Empty while
+// loading. "All N results" when every page is loaded, else "Showing X to Y of N".
+const rangeSegments = computed(() => {
     if (props.loading) {
-        return "";
+        return [];
     }
     if (showingAll.value) {
-        return `All ${props.totalRecords} results`;
+        return [{ text: "All " }, { text: String(props.totalRecords), emphasis: true }, { text: " results" }];
     }
     const start = props.totalRecords === 0 ? 0 : (props.currentPage - 1) * props.rows + 1;
     const end = Math.min(props.currentPage * props.rows, props.totalRecords);
-    return `Showing ${start} to ${end} of ${props.totalRecords}`;
+    return [
+        { text: "Showing " },
+        { text: `${start} to ${end}`, emphasis: true },
+        { text: " of " },
+        { text: String(props.totalRecords), emphasis: true },
+    ];
 });
+
+// Flat "Showing X to Y of N" (or "All N results") string; blank while loading.
+// Exposed to the `meta` slot for consumers that render their own read-out.
+const rangeReport = computed(() => rangeSegments.value.map((segment) => segment.text).join(""));
 
 const optionLabel = (option) => (option === ALL_PAGES ? "All" : String(option));
 
@@ -127,7 +139,12 @@ const paginatorThemeOverride = { Pagination: { root: { class: { "w-full": false 
                     :loading="loading"
                     :report="rangeReport"
                 >
-                    <PaginationMeta v-if="showTotalRecordNum">{{ rangeReport }}</PaginationMeta>
+                    <PaginationMeta v-if="showTotalRecordNum"
+                        ><template v-for="(segment, index) in rangeSegments" :key="index"
+                            ><span v-if="segment.emphasis" :class="theme('rangeEmphasis')">{{ segment.text }}</span
+                            ><template v-else>{{ segment.text }}</template></template
+                        ></PaginationMeta
+                    >
                 </slot>
                 <!-- Rows-per-page selector; receives the options, the current value, and a change handler. -->
                 <slot

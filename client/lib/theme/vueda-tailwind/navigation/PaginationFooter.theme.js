@@ -32,9 +32,15 @@ patchTheme({
         paginator: {
             class: ["shrink-0"],
         },
-        /** Mono "Page N of M" indicator between the previous and next controls; tabular for stable numeric width. */
+        /** Emphasis span wrapping the numeric figures in the range read-out (the row range and the total record count). Lifts those figures from the read-out's muted tone to `text-foreground` at `font-medium` so the meaningful counts pop against the muted label, matching the weight of the `Page N of M` report. */
+        rangeEmphasis: {
+            class: ["font-medium text-foreground"],
+        },
+        /** Mono "Page N of M" indicator between the previous and next controls; tabular for stable numeric width. `font-medium` so the figures carry the same weight as the emphasized range read-out. */
         pageReport: {
-            class: ["px-2 font-mono text-[length:var(--vueda-text-supporting)] tabular-nums text-foreground"],
+            class: [
+                "px-2 font-mono text-[length:var(--vueda-text-supporting)] font-medium tabular-nums text-foreground",
+            ],
         },
     },
 });

@@ -21,6 +21,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `storeModelConfig`'s `genericConfigs` and `specificConfigs` are integrator input and are left alone. Choice lists seeded through `storeModelChoices.setChoices` or `setFilterChoices` are cleared along with fetched ones, because the store cannot tell them apart. `storeTheme`, `storeDarkMode`, `storeCollapseNav`, `storeListPreference`, and `setUsingVuedaWorkflow` are unaffected.
       _No action required. If your application seeds `storeModelChoices` through `setChoices` or `setFilterChoices`, reseed it after a change of user (watch `storeUser().identityGeneration`). If you catch errors from `fetchModelInfo`, `getConfig`, the `storeWorkflow` fetches, or `fetchChoices`, treat `AuthScopeInvalidatedError` as "retry if you still need this" rather than as a failure to report._
 
+- **Pagination footer read-outs emphasize their figures (PaginationFooter)**:
+    - The "Showing X to Y of N" range read-out now lifts the row range and the total-record count to `text-foreground` while the surrounding label stays muted, and the "Page N of M" report gains `font-medium`, so both read-outs weight their numbers consistently and match the CRUDL list mockup. A new `PaginationFooter.rangeEmphasis` theme key styles the emphasized figures; the `meta` slot's `report` prop still resolves to the flat unstyled string.
+      _No action required; visual only. Restyle or drop the emphasis via the `PaginationFooter.rangeEmphasis` theme key._
+
 - **Auth forms expose their supported programmatic update surface (AuthForm, AuthorizingForm, ViewSignIn)**:
     - `AuthForm`, `AuthorizingForm`, and `ViewSignIn` now emit `form-context` on mount. The existing `form-object` event remains a readonly ref for observing current values, while `form-context.updateValue(name, value)` provides controlled programmatic updates.
     - `ViewTwoFactorAuth` now uses the form context when its recovery-code toggle changes the selected method, avoiding Vue readonly-state warnings.
