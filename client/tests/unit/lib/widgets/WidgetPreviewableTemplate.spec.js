@@ -79,4 +79,52 @@ describe("lib/widgets/WidgetPreviewableTemplate.vue", () => {
         await wrapper.unmount();
         expect(fc.unregisterDependencyValues).toHaveBeenCalledWith("id1");
     });
+
+    scopedIt("previews entity-encoded template text as literal characters", async () => {
+        const fc = {
+            state: reactive({ dependencyValues: {} }),
+            registerDependencyValues: vi.fn().mockReturnValue("id2"),
+            unregisterDependencyValues: vi.fn(),
+            setTouched: vi.fn(),
+            clearTouched: vi.fn(),
+            focus: vi.fn(),
+            blur: vi.fn(),
+        };
+        const template = "Use &lt;b&gt;bold&lt;/b&gt; for Smith &amp; Sons";
+        fc.state.value = template;
+        const wrapper = mount(WidgetPreviewableTemplate, {
+            props: { modelValue: template },
+            global: { provide: { [FieldContextSymbol]: fc } },
+        });
+        await flushPromises();
+
+        // The author wrote the tag names to be read, not applied.
+        const preview = wrapper.get('[data-qa="widget-previewable-template-preview"]');
+        expect(preview.text()).toBe("Use <b>bold</b> for Smith & Sons");
+        expect(preview.find("b").exists()).toBe(false);
+    });
+
+    scopedIt("previews allowlisted markup as markup and drops the rest", async () => {
+        const fc = {
+            state: reactive({ dependencyValues: {} }),
+            registerDependencyValues: vi.fn().mockReturnValue("id3"),
+            unregisterDependencyValues: vi.fn(),
+            setTouched: vi.fn(),
+            clearTouched: vi.fn(),
+            focus: vi.fn(),
+            blur: vi.fn(),
+        };
+        const template = "<b>bold</b><script>alert(1)</scr" + "ipt>";
+        fc.state.value = template;
+        const wrapper = mount(WidgetPreviewableTemplate, {
+            props: { modelValue: template },
+            global: { provide: { [FieldContextSymbol]: fc } },
+        });
+        await flushPromises();
+
+        const preview = wrapper.get('[data-qa="widget-previewable-template-preview"]');
+        expect(preview.find("b").exists()).toBe(true);
+        expect(preview.find("script").exists()).toBe(false);
+        expect(preview.text()).toBe("bold");
+    });
 });
