@@ -57,32 +57,64 @@ const mergeWithCb = (objValue, srcValue, key) => {
 };
 
 /**
- * @private
+ * Build the merge callback for one `mergeTheme` call.
+ *
+ * A caller-supplied customizer runs first and decides the levels it cares about. Returning
+ * `undefined` from it defers to `mergeWithCb`, so class combining and `composes` replacement
+ * still apply at the levels the customizer leaves alone. `mergeWithCb` returning `undefined`
+ * in turn defers to lodash.
+ *
+ * @param {Function} [customizer] - Optional caller-supplied lodash-style merge customizer.
+ * @returns {Function} - The callback to hand to lodash `mergeWith`.
  */
-const mergeThemeReduce = (acc, theme) => {
-    if (!theme) {
-        return acc;
+const resolveMergeCb = (customizer) => {
+    if (!customizer) {
+        return mergeWithCb;
     }
-    return mergeWith(acc, theme, mergeWithCb);
+    return function (objValue, srcValue, key, object, source, stack) {
+        const customized = customizer(objValue, srcValue, key, object, source, stack);
+        if (customized !== undefined) {
+            return customized;
+        }
+        return mergeWithCb(objValue, srcValue, key, object, source, stack);
+    };
 };
 
 /**
  * Custom merge function for merging theme objects, ensuring classes are combined.
  *
- * @param {...import('@vueda/use/useTheme.js').ThemeObject} themes - List of ThemeObjects to merge.
+ * Layers merge left to right, so later arguments win. Pass a lodash-style customizer as the
+ * final argument to control how the layers combine, the way lodash `mergeWith` does. The
+ * returned object shares no reference with any argument, so the caller may mutate it freely.
+ *
+ * Throws when given fewer than two layers. Nothing merges in that case, so the call is a
+ * mistake rather than a degenerate result: it reads as a merge while returning one layer.
+ * To merge a variable number of layers, seed the call with an empty object, as `buildForm`
+ * does: `mergeTheme({}, ...layers)`.
+ *
+ * @param {...(import('@vueda/use/useTheme.js').ThemeObject|Function)} themes - Two or more ThemeObjects to merge, optionally followed by a merge customizer.
  * @returns {import('@vueda/use/useTheme.js').ThemeObject} - The merged ThemeObject.
+ * @throws {TypeError} When fewer than two theme layers are supplied.
  */
 export function mergeTheme(...themes) {
-    if (themes.length === 0) {
-        return {};
-    }
-    if (themes.length === 1) {
-        return themes[0];
+    const customizer = isFunction(themes[themes.length - 1]) ? themes.pop() : undefined;
+    const mergeCb = resolveMergeCb(customizer);
+
+    if (themes.length < 2) {
+        throw new TypeError(
+            `mergeTheme needs at least two theme layers, received ${themes.length}. ` +
+                "Seed the call with an empty object to merge a variable number of layers: mergeTheme({}, ...layers).",
+        );
     }
 
     const [initialTheme, ...restThemes] = themes;
 
-    return restThemes.reduce(mergeThemeReduce, cloneDeep(initialTheme));
+    return restThemes.reduce((acc, theme) => {
+        if (!theme) {
+            return acc;
+        }
+        return mergeWith(acc, theme, mergeCb);
+    }, cloneDeep(initialTheme));
 }
 
 /**
