@@ -5,7 +5,7 @@ import AlertClose from "@vueda/feedback/alert/AlertClose.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import "@vueda/theme/vueda-tailwind/display/ErrorDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { FormValidationError, ListFilterError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ListFilterError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import { formatError } from "@vueda/utils/formatError.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import { ref, toRef, watch } from "vue";
@@ -40,7 +40,7 @@ const props = defineProps({
         default: false,
         description: "Whether to ignore list filter errors",
     },
-    /** When `true`, `FormValidationError` instances are silently ignored and not displayed. */
+    /** When `true`, server feedback errors that can be ingested into form state are silently ignored. */
     ignoreFormValidationErrors: {
         type: Boolean,
         default: false,
@@ -78,7 +78,9 @@ const emit = defineEmits([
 
 const ignoredError = (error) =>
     !!(
-        (props.ignoreFormValidationErrors && error instanceof FormValidationError) ||
+        (props.ignoreFormValidationErrors &&
+            error instanceof ServerFeedbackError &&
+            !(error instanceof ConfirmationRequiredError)) ||
         (props.ignoreListFilterErrors && error instanceof ListFilterError) ||
         (props.ignoreAbortedRequests && error?.message?.includes("aborted"))
     );

@@ -352,12 +352,12 @@ const clearAllTouched = (state) => {
 };
 
 /**
- * Take django form validation errors and, if present, advisory messages, and put them in the form
- * context. `FormValidationError` and `ConfirmationRequiredError` both expose `{errors, messages}`;
- * only one side is ever non-empty on a given instance (blocking errors vs. advisory warnings).
+ * Take server feedback and put it in the form context. `ServerFeedbackError` exposes
+ * `{errors, messages}`; callers decide whether the caught class belongs on the generic
+ * ingestion path or on a more specific flow such as confirmation.
  *
  * @param {FormContextState} state
- * @param {FormValidationError| ConfirmationRequiredError} error
+ * @param {import('@vueda/utils/errors.js').ServerFeedbackError} error
  * @private
  */
 const handleServerFormValidationError = (state, error) => {
@@ -545,7 +545,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's
  *  messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(error: FormValidationError|ConfirmationRequiredError) => void} handleServerFormValidationError - Handle a server validation or confirmation-required error.
+ * @property {(error: import('@vueda/utils/errors.js').ServerFeedbackError) => void} handleServerFormValidationError - Handle server feedback that should be ingested into form state.
  * @property {(name: string, dependants: string[]|undefined) => void} clearServerErrors - clear errors and messages for
  *  the named field and optionally dependants
  *
@@ -604,6 +604,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * ```vue
  * <script setup>
  * import Button from "@vueda/controls/button/Button.vue"
+ * import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
  * const myState = reactive({
  *     submitting: false,
  *     // when initialValues is changed, the form's values are reset to match
@@ -624,7 +625,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *         }
  *         await submitToServer(formContext.state.submittingValues);
  *     } catch (e) {
- *         if (e instanceof FormValidationError) {
+ *         if (e instanceof ServerFeedbackError && !(e instanceof ConfirmationRequiredError)) {
  *             formContext.handleServerFormValidationError(e);
  *             return;
  *         }

@@ -1,6 +1,6 @@
 /**
  * @module utils/errors
- * @description Custom error classes and helpers for classifying fetch, form validation, and list filter failures.
+ * @description Custom error classes and helpers for classifying fetch, server feedback, form validation, and list filter failures.
  */
 import { flattenPaths } from "@arrai-innovations/reactive-helpers";
 import get from "lodash-es/get.js";
@@ -73,20 +73,25 @@ export class FetchError extends Error {
 }
 
 /**
- * Specific error class for responses interpreted as server form validation errors.
+ * Base class for server responses that can be ingested into form feedback.
  *
  * @extends {Error}
  */
-export class FormValidationError extends Error {
+export class ServerFeedbackError extends Error {
     /**
-     * Creates an instance of FormValidationError.
+     * Creates an instance of ServerFeedbackError.
      *
-     * @param {object|string} responseData - The response data.
-     * @param {Response} response - The response
+     * @param {string} [message="Server feedback error"] - The error message.
+     * @param {object} [options] - Server feedback options.
+     * @param {Response} [options.response] - The response object associated with the error.
+     * @param {object|string} [options.responseData] - The data returned in the response.
+     * @param {{[path: string]: string[]}} [options.errors] - Blocking feedback keyed by field path.
+     * @param {{[path: string]: string[]}} [options.messages] - Advisory feedback keyed by field path.
      */
-    constructor(responseData, response) {
-        super("Form validation error");
-        this.name = "FormValidationError";
+    constructor(message = "Server feedback error", options = {}) {
+        const { response, responseData, errors = {}, messages = {} } = options ?? {};
+        super(message);
+        this.name = "ServerFeedbackError";
         /**
          * The response object associated with the error.
          *
@@ -95,9 +100,40 @@ export class FormValidationError extends Error {
         this.response = response;
         /**
          * The data returned in the response. Decoded if JSON, otherwise a string.
+         *
          * @type {object|string}
          */
         this.responseData = responseData;
+        /**
+         * Blocking feedback keyed by field path.
+         *
+         * @type {{[path: string]: string[]}}
+         */
+        this.errors = errors;
+        /**
+         * Advisory feedback keyed by field path.
+         *
+         * @type {{[path: string]: string[]}}
+         */
+        this.messages = messages;
+    }
+}
+
+/**
+ * Specific error class for responses interpreted as server form validation errors.
+ *
+ * @extends {ServerFeedbackError}
+ */
+export class FormValidationError extends ServerFeedbackError {
+    /**
+     * Creates an instance of FormValidationError.
+     *
+     * @param {object|string} responseData - The response data.
+     * @param {Response} response - The response
+     */
+    constructor(responseData, response) {
+        super("Form validation error", { response, responseData });
+        this.name = "FormValidationError";
         const data = { ...responseData };
         if ("serverStack" in data) {
             /**
@@ -114,9 +150,9 @@ export class FormValidationError extends Error {
         const stringErrorPaths = this.extractStringPaths(paths, objectErrorPaths);
 
         /**
-         * The messages for the form validation errors.
+         * Blocking feedback keyed by field path.
          *
-         * @type {{[path: string]: string}}
+         * @type {{[path: string]: string[]}}
          */
         this.errors = objectErrorPaths.concat(stringErrorPaths).reduce((acc, path) => {
             const normalizedPath = path.split("[").slice(0, -1).join("[");
@@ -126,13 +162,6 @@ export class FormValidationError extends Error {
             acc[normalizedPath].push(get(data, path));
             return acc;
         }, {});
-
-        /**
-         * A FormValidationError carries no messages
-         *
-         * @type {{[path: string]: string}}
-         */
-        this.messages = {};
     }
 
     /**
@@ -160,26 +189,16 @@ export class FormValidationError extends Error {
  * carries advisory warnings that have not been acknowledged. The form should surface the warnings,
  * let the user confirm, and resubmit echoing `digest` so the server lets the write proceed.
  *
- * @extends {Error}
+ * @extends {ServerFeedbackError}
  */
-export class ConfirmationRequiredError extends Error {
+export class ConfirmationRequiredError extends ServerFeedbackError {
     /**
      * @param {object} responseData - The decoded 409 body: `{ confirmation_required, digest, warnings }`.
      * @param {Response} response - The response object associated with the error.
      */
     constructor(responseData, response) {
-        super("Confirmation required");
+        super("Confirmation required", { response, responseData });
         this.name = "ConfirmationRequiredError";
-        /**
-         * The response object associated with the error.
-         * @type {Response}
-         */
-        this.response = response;
-        /**
-         * The decoded response body.
-         * @type {object}
-         */
-        this.responseData = responseData;
         /**
          * Digest of the warning set, echoed back to acknowledge it on resubmission.
          * @type {string}
@@ -191,11 +210,6 @@ export class ConfirmationRequiredError extends Error {
          * @type {{[path: string]: string[]}}
          */
         this.messages = responseData?.warnings ?? {};
-        /**
-         * A confirmation request carries no blocking errors.
-         * @type {{[path: string]: string[]}}
-         */
-        this.errors = {};
     }
 }
 /**

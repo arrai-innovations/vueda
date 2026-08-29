@@ -18,7 +18,7 @@ import { computed, useSlots } from "vue";
  * import { useForm } from "@vueda/use/useForm.js";
  * import { useIsActive } from "@vueda/use/useIsActive.js";
  * import { reactive, watch } from "vue";
- * import { FormValidationError } from "@vueda/utils/errors.js";
+ * import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
  *
  * const myState = reactive({
  *     submitting: false,
@@ -42,7 +42,7 @@ import { computed, useSlots } from "vue";
  *     try {
  *         // Send data to the server
  *     } catch (e) {
- *         if (e instanceof FormValidationError) {
+ *         if (e instanceof ServerFeedbackError && !(e instanceof ConfirmationRequiredError)) {
  *             form.handleServerFormValidationError(e);
  *             return;
  *         }

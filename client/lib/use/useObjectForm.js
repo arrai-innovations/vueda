@@ -8,7 +8,7 @@ import { useConfirmationController } from "@vueda/use/useConfirmationController.
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, reactive } from "vue";
@@ -154,7 +154,7 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
-    if (error instanceof FormValidationError) {
+    if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
         formContext.handleServerFormValidationError(error);
         const plural = Object.keys(error.errors).length > 1;
         toast.warning("Save Validation Failed", {

@@ -1,7 +1,7 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useActionForm } from "@vueda/use/useActionForm.js";
-import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive } from "vue";
 
@@ -40,6 +40,35 @@ describe("lib/use/useActionForm.js", () => {
         vi.fn(({ acknowledgeWarnings }) =>
             acknowledgeWarnings === error.digest ? Promise.resolve("ok") : Promise.reject(error),
         );
+
+    scopedIt("ingests custom server feedback errors from action handlers", async () => {
+        class CustomServerFeedbackError extends ServerFeedbackError {
+            constructor() {
+                super("Custom validation failed", { errors: { name: ["Use a different name."] } });
+                this.name = "CustomServerFeedbackError";
+            }
+        }
+
+        const formContext = createFormContext();
+        formContext.handleServerFormValidationError.mockImplementation((error) => {
+            for (const [name, message] of Object.entries(error.errors)) {
+                formContext.state.errors[name] = { server: message };
+            }
+        });
+        const error = new CustomServerFeedbackError();
+        const runAction = vi.fn(() => Promise.reject(error));
+        const props = reactive({ runAction });
+        const actionForm = await withSetup(() => useActionForm(formContext, props));
+
+        await actionForm.handleConfirm();
+        await flushPromises();
+
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
+        expect(formContext.state.errors).toEqual({ name: { server: ["Use a different name."] } });
+        expect(actionForm.combinedError.value).toBe(null);
+        expect(actionForm.combinedErrored.value).toBe(false);
+        expect(toastMock.error).not.toHaveBeenCalled();
+    });
 
     describe("Warning confirmation", () => {
         scopedIt("opens confirmation on 409 and retries with the digest when confirmed", async () => {
@@ -146,6 +175,7 @@ describe("lib/use/useActionForm.js", () => {
             expect(runAction).toHaveBeenCalledTimes(1);
             expect(actionForm.confirmation.open).toBe(false);
             expect(actionForm.combinedError.value).toBe(error);
+            expect(formContext.handleServerFormValidationError).not.toHaveBeenCalled();
             expect(toastMock.error).toHaveBeenCalled();
         });
 

@@ -1,5 +1,6 @@
 import { mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
+import { ServerFeedbackError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -1245,6 +1246,25 @@ describe("lib/use/useForm.js", () => {
                 },
             );
             describe("handleServerFormValidationError", () => {
+                scopedIt("should apply messages and errors from a ServerFeedbackError", async () => {
+                    const { formContext } = getForm({ initialValues: {} });
+                    const error = new ServerFeedbackError("Custom validation failed", {
+                        messages: {
+                            field1: ["Some server message"],
+                        },
+                        errors: {
+                            field2: ["Some server error"],
+                        },
+                    });
+                    formContext.handleServerFormValidationError(error);
+                    await flushPromises();
+                    expect(formContext.state.messages).toEqual({
+                        field1: { server: ["Some server message"] },
+                    });
+                    expect(formContext.state.errors).toEqual({
+                        field2: { server: ["Some server error"] },
+                    });
+                });
                 scopedIt("should apply both messages and errors from a server validation error", async () => {
                     const { formContext } = getForm({ initialValues: {} });
                     const error = {

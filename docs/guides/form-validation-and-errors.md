@@ -10,7 +10,8 @@ status: draft
 This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard {@term CRUDL} forms (via `useObjectForm`) and custom forms that wire their own submission logic.
 
 The guide assumes familiarity with the form state model. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there; it explains the two-channel state model (errors vs messages), the code-key namespacing (`required`, `validate`, `server`), the runtime reservation of the `server` namespace, and the submission pipeline that this guide builds on. For the server-side contract that produces the validation payloads, see [Error and Validation Contract](../core-concepts/error-and-validation-contract).
-Client-side normalization in this flow is centered on {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}. Server feedback for each {@term Action} is mapped into field-level and form-level channels.
+
+The client normalizes this flow around {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}. `FormValidationError` handles HTTP 400 validation responses. `ConfirmationRequiredError` handles the 409 warning-confirmation flow. Custom adapters can subclass `ServerFeedbackError` when their own blocking feedback should enter form state.
 
 ## Goal and Preconditions
 
@@ -28,7 +29,7 @@ The form uses `useForm` to create a form context and `useField` for each field (
 
 ## Request-Boundary Error Normalization
 
-VUEDA's client CRUDL adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. HTTP 400 responses are wrapped in `FormValidationError`; all other failure statuses produce `FetchError` or resolver-specific error types that do not participate in form-context mapping.
+VUEDA's client CRUDL adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. They wrap HTTP 400 responses in `FormValidationError`, which extends `ServerFeedbackError`. All other failure statuses produce `FetchError` or resolver-specific error types. Those types do not participate in form-context mapping unless an adapter deliberately throws a `ServerFeedbackError` subclass.
 
 This classification is automatic for standard CRUDL operations (create, update, partial update, bulk delete) and model action execution. If you write a custom fetch wrapper for a non-standard endpoint, you must preserve this mapping:
 
@@ -44,24 +45,26 @@ if (!response.ok) {
 return responseData;
 ```
 
-The distinction matters because only `FormValidationError` instances are handled by the form-context ingestion path. If a validation-shaped response is wrapped in `FetchError` instead, it will surface through generic error handling, and the form feedback will remain empty.
+The distinction matters because only `ServerFeedbackError` instances are eligible for the form-context ingestion path. If code wraps a validation-shaped response in `FetchError` instead, it will surface through generic error handling. The form feedback will remain empty. `ConfirmationRequiredError` also extends `ServerFeedbackError`, but callers route that class through the confirmation controller instead of the generic blocking-feedback branch.
 
 ## Form-Context Error and Message Mapping
 
-When a `FormValidationError` or `ConfirmationRequiredError` reaches the form context (either through the default submission handlers or through manual handling), it is ingested via `handleServerFormValidationError(error)`. This method reads two maps off the error and writes each entry under the `server` code:
+The form context ingests `ServerFeedbackError` via `handleServerFormValidationError(error)`. This method reads two maps off the error and writes each entry under the `server` code:
 
 - `error.errors` → `state.errors[fieldPath].server`
 - `error.messages` → `state.messages[fieldPath].server`
 
-`FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is always empty. Advisory warnings instead arrive through a different class, `ConfirmationRequiredError` (parsed from a 409 response), whose `.messages` is populated directly from that response's `warnings` mapping.
+`FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is empty. Advisory warnings instead arrive through `ConfirmationRequiredError` (parsed from a 409 response). That class populates `.messages` directly from that response's `warnings` mapping.
 
-For standard CRUDL forms using `useObjectForm`, the ingestion is automatic; `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is a `FormValidationError`. For custom forms, you must call it explicitly in your error handler:
+For standard CRUDL forms using `useObjectForm`, ingestion is automatic. `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is an ingestible `ServerFeedbackError` and not a `ConfirmationRequiredError`. For custom forms, call it explicitly in your error handler. Route `ConfirmationRequiredError` first when the form supports warning confirmation, or exclude it from the generic branch:
 
 ```js
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
+
 try {
   await submitFn(formContext.state.submittingValues);
 } catch (error) {
-  if (error instanceof FormValidationError) {
+  if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
     formContext.handleServerFormValidationError(error);
     return;
   }
@@ -81,7 +84,7 @@ if (formContext.state.anyError) {
 try {
   await submitFn(formContext.state.values);
 } catch (error) {
-  if (error instanceof FormValidationError) {
+  if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
     formContext.handleServerFormValidationError(error);
     return;
   }
@@ -312,7 +315,9 @@ With the validation pipeline wired, verify these behaviors:
     - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
 - JavaScript:
     - {@api js:module:@arrai-innovations/vueda/utils/errors}
+    - {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
     - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+    - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
     - {@api js:module:@arrai-innovations/vueda/use/useForm}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
     - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}

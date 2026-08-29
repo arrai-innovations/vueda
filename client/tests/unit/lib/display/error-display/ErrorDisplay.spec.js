@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, FormValidationError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import { defineComponent, h, nextTick } from "vue";
 
 const FeedbackAlertStub = defineComponent({
@@ -144,6 +144,23 @@ describe("lib/display/error-display/ErrorDisplay.vue", () => {
         expect(captureException).not.toHaveBeenCalled();
         expect(consoleSpy).not.toHaveBeenCalled();
 
+        class CustomServerFeedbackError extends ServerFeedbackError {
+            constructor() {
+                super("Custom validation failed", { errors: { name: ["Use a different name."] } });
+                this.name = "CustomServerFeedbackError";
+            }
+        }
+        const customFeedbackErr = new CustomServerFeedbackError();
+        captureException.mockClear();
+        consoleSpy.mockClear();
+        mount(ErrorDisplay, {
+            props: { errored: true, error: customFeedbackErr, ignoreFormValidationErrors: true },
+            global: { stubs: { RouterLink: RouterLinkStub } },
+        });
+        await nextTick();
+        expect(captureException).not.toHaveBeenCalled();
+        expect(consoleSpy).not.toHaveBeenCalled();
+
         const aborted = new Error("request aborted");
         captureException.mockClear();
         consoleSpy.mockClear();
@@ -154,5 +171,19 @@ describe("lib/display/error-display/ErrorDisplay.vue", () => {
         await nextTick();
         expect(captureException).not.toHaveBeenCalled();
         expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not ignore confirmation fallback failures as form validation errors", async () => {
+        import.meta.env.DEV = true;
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        const error = new ConfirmationRequiredError({ confirmation_required: true, warnings: { count: ["bad"] } }, {});
+        mount(ErrorDisplay, {
+            props: { errored: true, error, ignoreFormValidationErrors: true },
+            global: { stubs: { RouterLink: RouterLinkStub } },
+        });
+        await nextTick();
+
+        expect(captureException).toHaveBeenCalledWith(error);
+        expect(consoleSpy).toHaveBeenCalledWith(error);
     });
 });
