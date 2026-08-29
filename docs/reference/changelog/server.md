@@ -47,6 +47,9 @@ public-facing documentation baseline.
 
 ### Features
 
+- **Optional workflow app boundary**:
+    - Applications may omit `vueda.workflow` and `vueda.vdq` together. Model-info, ordinary CRUDL routes, history URL imports, and schema setup no longer import workflow models when workflow is absent. `vueda.vdq` still requires `vueda.workflow` and now fails early with a clear configuration error if installed without it.
+      _Guard `include("vueda.workflow.urls")` and `include("vueda.vdq.urls")` behind installed-app checks, or rely on the app URL modules returning no routes when the apps are absent._
 - **`expandable_fields` system check**:
     - A new Django system check (`vueda_core.E001`-`E004`) validates each serializer's `Meta.expandable_fields` at `manage.py check` time. It flags list values (flex-fields only supports tuples), malformed `(serializer, options)` tuples, serializer strings that fail to resolve, and values that are not a serializer class, tuple, or serializer string — catching misconfiguration at startup instead of on first request.
 - **Read-only relation metadata (model info)**:

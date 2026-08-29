@@ -6,7 +6,6 @@ __all__ = (
 )
 
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.auth.models import Group
@@ -28,6 +27,7 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 
 from vueda import __version__ as server_version
+from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.info.registration import get_all_registrations
@@ -265,7 +265,7 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
         # Workflow transition data (guarded so the app doesn't need vueda.workflow)
         is_superuser = selected_user.is_superuser if selected_user else False
         workflow_map = {}
-        if "vueda.workflow" in settings.INSTALLED_APPS:
+        if workflow_is_installed():
             workflow_map = _build_workflow_map(registered_ct_ids, user_group_ids, is_superuser)
 
         apps = _build_apps(permissions_qs, workflow_map, selected_user)

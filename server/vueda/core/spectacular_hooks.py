@@ -10,6 +10,8 @@ __all__ = (
 # Do not include the tests folder in the API Documentation.
 from django.conf import settings
 
+from vueda.core.installed_apps import is_installed
+
 
 # Needed, so we don't have to hard code the expand param in a match case.
 class ExpandParam:
@@ -29,6 +31,9 @@ def preprocessing_hooks(endpoints):
 
 # We can't register cart in app.ready, because it hits the db with a content type query.
 def register_cart_with_model_info(endpoints):
+    if not is_installed("tests.store"):
+        return endpoints
+
     from tests.store.serializers import CartSerializer
     from tests.store.viewsets import CartViewSet
     from vueda import info
