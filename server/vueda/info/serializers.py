@@ -35,6 +35,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 from rest_framework.filters import OrderingFilter
 
+from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
@@ -125,7 +126,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @property
     def data(self):
-        # Local imports, because apps may not be set up.
+        if not workflow_is_installed():
+            return super().data
+
+        # Local imports, because the workflow app is optional.
         from vueda.workflow.models import HasWorkflowModelMixin
         from vueda.workflow.models import Workflow
         from vueda.workflow.serializers import HasWorkflowSerializerMixin

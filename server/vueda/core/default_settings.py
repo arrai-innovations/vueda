@@ -413,29 +413,35 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     except ImportError:
         pass
     else:
+        spectacular_tags = [
+            {
+                "name": "vueda.info",
+                "x-displayName": "Info",
+                "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
+            },
+        ]
+        if "vueda.workflow" in return_dict["VUEDA_APPS"]:
+            spectacular_tags.append(
+                {
+                    "name": "vueda.workflow",
+                    "x-displayName": "Workflow",
+                    "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
+                },
+            )
+        spectacular_tags.append(
+            {
+                "name": "vueda.user",
+                "x-displayName": "User",
+                "description": "This model is used to provide a way to login, logout, and retrieve the logged in users details.",
+            }
+        )
         return_dict["THIRD_PARTY_APPS"] += ["drf_spectacular"]
         return_dict["REST_FRAMEWORK"]["DEFAULT_SCHEMA_CLASS"] = "vueda.core.open_api.VuedaAutoSchema"
         return_dict["SPECTACULAR_SETTINGS"] = {
             "TITLE": "VUEDA API",
             "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-simple-history), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
             "VERSION": "1.0.0",
-            "TAGS": [
-                {
-                    "name": "vueda.info",
-                    "x-displayName": "Info",
-                    "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
-                },
-                {
-                    "name": "vueda.workflow",
-                    "x-displayName": "Workflow",
-                    "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
-                },
-                {
-                    "name": "vueda.user",
-                    "x-displayName": "User",
-                    "description": "This model is used to provide a way to login, logout, and retrieve the logged in users details.",
-                },
-            ],
+            "TAGS": spectacular_tags,
             "COMPONENT_SPLIT_PATCH": False,
             "SHOW_REQUEST_BODY": True,
             "SHOW_RESPONSE_BODY": True,

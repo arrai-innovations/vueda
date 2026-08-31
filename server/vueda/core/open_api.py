@@ -408,20 +408,22 @@ try:
     from drf_spectacular.utils import _SchemaType
     from drf_spectacular.utils import _SerializerType
 
-    from vueda.workflow.models import HasWorkflowModelMixin
-
 except ImportError:
     pass
 else:
 
-    class OpenApiDocsGenerationObjectIdModel(HasWorkflowModelMixin):
+    class OpenApiDocsGenerationObjectIdModel(models.Model):
         object_id = models.CharField()
 
         formatted_name = None
 
         class Meta(BaseModelMeta):
+            app_label = "vueda_core"
             managed = False
             verbose_name = "Object"
+
+        def __str__(self):
+            return str(self.object_id)
 
     class VuedaAutoSchema(VuedaBaseAutoSchema, SpectacularAutoSchema):
         def get_operation(

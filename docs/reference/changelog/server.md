@@ -47,6 +47,9 @@ public-facing documentation baseline.
 
 ### Features
 
+- **Optional workflow app boundary**:
+    - Applications may omit `vueda.workflow` and `vueda.vdq` together. Model-info, ordinary CRUDL routes, history URL imports, and schema setup no longer import workflow models when workflow is absent. `vueda.vdq` still requires `vueda.workflow` and now fails early with a clear configuration error if installed without it.
+      _Guard `include("vueda.workflow.urls")` and `include("vueda.vdq.urls")` behind installed-app checks, or rely on the app URL modules returning no routes when the apps are absent._
 - **`class Vueda` model feature policy**:
     - A VUEDA model now declares which framework features it participates in through one nested `class Vueda`, with a section per feature (`class History`, `class Workflow`). `Meta` stays limited to Django's own model options. Read the resolved policy with `vueda.core.options.get_vueda_options(model)`, which returns every registered section with its defaults, inherited values, and overrides applied. Declarations on abstract and concrete bases reach concrete subclasses, each multi-table child resolves its own overrides, and a proxy takes the policy of its concrete model.
     - Feature apps register their own sections through `vueda.core.features.register_feature_section()`, supplying each option's default, accepted types, validation, inheritance behaviour, and whether it affects migration generation. A section may also contribute fields or behaviour to each enabled model as Django prepares it. Invalid sections are reported by system checks before their contributors run. `vueda.history` and `vueda.workflow` register the `History` and `Workflow` sections; history defaults on for eligible models when the app is installed, and workflow is opt-in. An explicit `History.exclude_fields` replaces the inherited value; extend it by including the parent entries explicitly.
