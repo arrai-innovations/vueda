@@ -5,6 +5,14 @@ import { FetchError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h } from "vue";
 
+// Set by a test before mounting to drive ActionFormStub's `form-confirm-dialog-warnings` slot
+// scope, mirroring what the real ActionForm forwards from FormConfirmDialog's `warnings` slot.
+// `actionFormBulk` mirrors the `bulk` flag the real chain sources from the
+// `ConfirmationRequiredError` that reported `actionFormWarnings` -- the request path that produced
+// the response, not the component's own selection count.
+let actionFormWarnings = {};
+let actionFormBulk = false;
+
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
     props: ["fetchState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary", "readyToDryRun"],
@@ -31,6 +39,16 @@ const ActionFormStub = defineComponent({
                                   verb: "confirm",
                                   type: "submit",
                                   disabled: false,
+                              })
+                            : null,
+                    ),
+                    h(
+                        "div",
+                        { "data-qa": "action-form-stub-confirm-dialog-slot" },
+                        slots["form-confirm-dialog-warnings"]
+                            ? slots["form-confirm-dialog-warnings"]({
+                                  warnings: actionFormWarnings,
+                                  bulk: actionFormBulk,
                               })
                             : null,
                     ),
@@ -77,8 +95,32 @@ const FormFieldStub = defineComponent({
 
 const WidgetReadOnlyStub = defineComponent({
     name: "WidgetReadOnlyStub",
+    props: ["app", "model", "foreignKeyObj", "invalid", "hidden", "loading", "warning"],
     setup(_, { slots }) {
         return () => h("div", { "data-qa": "widget-read-only" }, slots.default ? slots.default() : null);
+    },
+});
+
+// Renders one entry per field in `messages`, exposing the `entry` slot with `{ field, messages }`
+// so a test can drive ModelActionForm's `warning-entry` forwarding without the real component's
+// header/list/inline layout logic getting in the way.
+const FieldWarningsListStub = defineComponent({
+    name: "FieldWarningsListStub",
+    props: ["messages"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                { "data-qa": "field-warnings-list-stub" },
+                Object.entries(props.messages ?? {}).map(([field, rawMessages]) => {
+                    const messages = Array.isArray(rawMessages) ? rawMessages : [rawMessages];
+                    return h(
+                        "div",
+                        { "data-qa": "field-warnings-list-entry", "data-field": field, key: field },
+                        slots.entry ? slots.entry({ field, messages }) : messages.join("; "),
+                    );
+                }),
+            );
     },
 });
 
@@ -143,6 +185,7 @@ vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: Loa
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
+vi.mock("@vueda/form/confirm/FieldWarningsList.vue", () => ({ default: FieldWarningsListStub }));
 
 let ModelActionForm, vue;
 
@@ -199,6 +242,8 @@ describe("lib/views/ModelActionForm.vue", () => {
         routeQuery = {};
         modelConfig.info = { verboseName: "Person", verboseNamePlural: "People" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
+        actionFormWarnings = {};
+        actionFormBulk = false;
     });
 
     describe("Rendering", () => {
@@ -453,6 +498,142 @@ describe("lib/views/ModelActionForm.vue", () => {
 
             await wrapper.get('[data-qa="typed-confirm-field-input"]').setValue("yes");
             expect(custom.attributes("disabled")).toBeUndefined();
+        });
+    });
+
+    describe("Warning confirmation dialog", () => {
+        scopedIt(
+            "renders one group per warned object for bulk warnings, each with a WidgetReadOnly label and its own FieldWarningsList",
+            () => {
+                actionFormWarnings = {
+                    1: { count: ["Order 1001 ships express."] },
+                    2: { count: ["Order 1002 ships express."] },
+                };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm();
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(2);
+
+                const widgetReadOnly1 = groups[0].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly1.props("app")).toBe("app");
+                expect(widgetReadOnly1.props("model")).toBe("person");
+                expect(widgetReadOnly1.props("foreignKeyObj")).toEqual({ id: 1 });
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Order 1001 ships express.",
+                );
+
+                const widgetReadOnly2 = groups[1].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly2.props("app")).toBe("app");
+                expect(widgetReadOnly2.props("model")).toBe("person");
+                expect(widgetReadOnly2.props("foreignKeyObj")).toEqual({ id: 2 });
+                expect(groups[1].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Order 1002 ships express.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders a single unkeyed group with no WidgetReadOnly label for a single-object action's flat warnings",
+            () => {
+                actionFormWarnings = { count: ["A negative count is unusual."] };
+                const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders per-object groups for a one-object custom bulk-runner response, even though only one object is selected",
+            () => {
+                // Mirrors a custom `run-action` (e.g. a workflow-transition runner) that always issues
+                // a bulk request: the response's ConfirmationRequiredError reports bulk:true
+                // regardless of how many objects are targeted, and the renderer must follow that
+                // signal rather than the component's own one-object selection count.
+                actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                const widgetReadOnly = groups[0].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly.props("foreignKeyObj")).toEqual({ id: 9 });
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders a single unkeyed group for a multi-object selection when the response reports the aggregate shape",
+            () => {
+                actionFormWarnings = { count: ["A negative count is unusual."] };
+                actionFormBulk = false;
+                const { wrapper } = mountModelActionForm({
+                    fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
+                });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt("forwards the warning-entry slot to every group's FieldWarningsList, adding pk to the scope", () => {
+            actionFormWarnings = {
+                1: { count: ["Order 1001 ships express."] },
+                2: { count: ["Order 1002 ships express."] },
+            };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm({
+                slots: {
+                    "warning-entry": `<template #warning-entry="{ field, messages, pk }">
+                        <div data-qa="custom-warning-entry" :data-pk="pk" :data-field="field">{{ messages.join(", ") }}</div>
+                    </template>`,
+                },
+            });
+
+            const entries = wrapper.findAll('[data-qa="custom-warning-entry"]');
+            expect(entries).toHaveLength(2);
+            expect(entries[0].attributes("data-pk")).toBe("1");
+            expect(entries[0].attributes("data-field")).toBe("count");
+            expect(entries[0].text()).toBe("Order 1001 ships express.");
+            expect(entries[1].attributes("data-pk")).toBe("2");
+        });
+
+        scopedIt("forwards warnings, bulk, and normalized-warnings to a form-confirm-dialog-warnings override", () => {
+            actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 9 }] },
+                slots: {
+                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings, bulk, normalizedWarnings }">
+                            <div
+                                data-qa="custom-dialog-warnings"
+                                :data-bulk="bulk"
+                                :data-warnings="JSON.stringify(warnings)"
+                                :data-normalized-count="normalizedWarnings.length"
+                                :data-normalized-pk="normalizedWarnings[0].pk"
+                            />
+                        </template>`,
+                },
+            });
+
+            const custom = wrapper.get('[data-qa="custom-dialog-warnings"]');
+            expect(custom.attributes("data-bulk")).toBe("true");
+            expect(JSON.parse(custom.attributes("data-warnings"))).toEqual({
+                9: { count: ["A negative count is unusual."] },
+            });
+            expect(custom.attributes("data-normalized-count")).toBe("1");
+            expect(custom.attributes("data-normalized-pk")).toBe("9");
         });
     });
 });

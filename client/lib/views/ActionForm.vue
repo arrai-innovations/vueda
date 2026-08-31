@@ -19,7 +19,11 @@ import { computed, inject } from "vue";
  * the form has unresolved per-field errors, a structured validation alert
  * sourced from `formContext.state.errors`. Also mounts a `FormConfirmDialog`
  * bound to the action's confirmation controller, so actions the server gates
- * behind warning acknowledgement (HTTP 409) can be confirmed and retried.
+ * behind warning acknowledgement (HTTP 409) can be confirmed and retried. `ActionForm` renders no
+ * warnings content of its own; a consumer that needs to render them (e.g. a bulk action grouping
+ * per-object warnings by their display name) supplies the `form-confirm-dialog-warnings` slot,
+ * which forwards FormConfirmDialog's `warnings` slot scope (`warnings`, the controller's raw
+ * warnings mapping). Without that slot, `FormConfirmDialog`'s own default rendering shows through.
  */
 defineOptions({
     inheritAttrs: false,
@@ -265,6 +269,11 @@ const validationTitle = computed(() => {
             </form>
         </div>
         <!-- Resolves submit-time warning confirmations (HTTP 409); without it warned actions would be cancelled. -->
-        <form-confirm-dialog :controller="confirmation" />
+        <form-confirm-dialog :controller="confirmation">
+            <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the controller's raw warnings mapping; `bulk`, whether it uses the per-object shape). Falls through to FormConfirmDialog's own default rendering when not provided. -->
+            <template v-if="$slots['form-confirm-dialog-warnings']" #warnings="{ warnings, bulk }">
+                <slot name="form-confirm-dialog-warnings" :warnings="warnings" :bulk="bulk" />
+            </template>
+        </form-confirm-dialog>
     </div>
 </template>

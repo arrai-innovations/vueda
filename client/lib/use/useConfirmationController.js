@@ -15,14 +15,24 @@ import { reactive } from "vue";
  * consumer it fails closed: it warns on the console and resolves `false` (cancel) instead of
  * waiting on a dialog that will never render, which would leave the submit pending forever.
  *
+ * @typedef {{ [field: string]: string[] }} FieldWarnings - Warnings keyed by field
+ *  (`non_field_errors` for messages not tied to a field).
+ * @typedef {FieldWarnings | { [objectId: string]: FieldWarnings }} WarningsMapping - Either the
+ *  flat `FieldWarnings` shape, or keyed by object id with each value a
+ *  `FieldWarnings` mapping for that object.
+ *
  * @typedef {object} ConfirmationController
  * @property {boolean} open - Whether the confirmation dialog should be shown.
- * @property {{[path: string]: string[]}} messages - Warnings to display, keyed by field path.
+ * @property {WarningsMapping} messages - Warnings to display.
+ * @property {boolean} bulk - Whether `messages` uses the per-object shape (`true`) or the aggregate
+ *  shape (`false`). Set from the `bulk` option passed to `request()`, which in turn comes from the
+ *  `ConfirmationRequiredError` that reported the warnings -- the only place that knows which
+ *  request path (single-object or bulk) produced them.
  * @property {number} consumers - Number of registered consumers able to resolve a request.
  * @property {() => void} register - Announce a consumer that renders the dialog and will call `confirm()`/`cancel()`.
  * @property {() => void} unregister - Remove a previously registered consumer.
- * @property {(messages: {[path: string]: string[]}) => Promise<boolean>} request - Open the dialog and
- *  resolve to the user's choice (true = confirm, false = cancel). Resolves `false` immediately when
+ * @property {(messages: WarningsMapping, options?: { bulk?: boolean }) => Promise<boolean>} request - Open the
+ *  dialog and resolve to the user's choice (true = confirm, false = cancel). Resolves `false` immediately when
  *  no consumer is registered.
  * @property {() => void} confirm - Resolve the pending request with `true`.
  * @property {() => void} cancel - Resolve the pending request with `false`.
@@ -49,6 +59,7 @@ export function useConfirmationController({ noConsumerWarning } = {}) {
     const confirmation = reactive({
         open: false,
         messages: {},
+        bulk: false,
         consumers: 0,
         register() {
             confirmation.consumers += 1;
@@ -56,9 +67,10 @@ export function useConfirmationController({ noConsumerWarning } = {}) {
         unregister() {
             confirmation.consumers = Math.max(0, confirmation.consumers - 1);
         },
-        request(messages) {
+        request(messages, { bulk = false } = {}) {
             // Record the set even when failing closed below, so the next round's hook can clear it.
             confirmation.messages = messages ?? {};
+            confirmation.bulk = bulk;
             if (!confirmation.consumers) {
                 // Fail closed: with nothing bound to resolve the request, waiting would leave the
                 // submit pending forever (loading stuck on, the duplicate-submit guard returning the

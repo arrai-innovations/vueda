@@ -32,9 +32,11 @@ const props = defineProps({
     cancelLabel: { type: String, default: "Cancel" },
 });
 
-const warnings = computed(() => {
-    const messages = props.controller?.messages ?? {};
-    return Object.values(messages).flatMap((value) => (Array.isArray(value) ? value : [value]));
+const warnings = computed(() => props.controller?.messages ?? {});
+const bulk = computed(() => props.controller?.bulk ?? false);
+
+const flatWarnings = computed(() => {
+    return Object.values(warnings.value).flatMap((value) => (Array.isArray(value) ? value : [value]));
 });
 
 const onOpenChange = (open) => {
@@ -59,10 +61,10 @@ onBeforeUnmount(() => props.controller.unregister?.());
                 <AlertDialogTitle>{{ title }}</AlertDialogTitle>
                 <AlertDialogDescription>{{ description }}</AlertDialogDescription>
             </AlertDialogHeader>
-            <!-- @slot warnings Replaces the default rendered list of warning messages. -->
-            <slot name="warnings" :warnings="warnings">
+            <!-- @slot warnings Replaces the default rendered warnings. `warnings` is the controller's raw warnings mapping; `bulk` reports which shape it is in (`true` for per-object keys, `false` for a single object's field-keyed messages), sourced from the `ConfirmationRequiredError` that reported it. The default rendering makes no assumption about that shape: it flattens every value in `warnings` into a plain list of messages, ignoring keys. -->
+            <slot name="warnings" :warnings="warnings" :flat-warnings="flatWarnings" :bulk="bulk">
                 <ul class="list-disc ps-5 text-sm">
-                    <li v-for="(warning, index) in warnings" :key="index" data-qa="form-confirm-warning">
+                    <li v-for="(warning, index) in flatWarnings" :key="index" data-qa="form-confirm-warning">
                         {{ warning }}
                     </li>
                 </ul>

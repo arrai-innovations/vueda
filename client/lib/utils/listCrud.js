@@ -245,6 +245,7 @@ export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledg
             readActionResponse(response, {
                 messagePrefix: "Failed to delete object",
                 successStatuses: dryRun ? new Set([200, 204]) : new Set([204]),
+                bulk: true,
             }),
     );
 }
@@ -287,7 +288,7 @@ export function defaultListExecuteAction({
             headers: actionRequestHeaders({ dryRun, acknowledgeWarnings }),
             body: JSON.stringify({ pks, ...(formData || {}) }),
         },
-        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action" }),
+        async (response) => readActionResponse(response, { messagePrefix: "Failed to execute action", bulk: true }),
     );
 }
 

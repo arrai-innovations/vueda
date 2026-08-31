@@ -1,6 +1,7 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
 import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
@@ -190,6 +191,23 @@ const slots = useSlots();
 const typedConfirmInput = ref("");
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
+
+/**
+ * Normalizes the confirmation dialog's raw warnings mapping into one display group per warned
+ * object. `bulk` (from the confirmation controller's `ConfirmationRequiredError`, forwarded
+ * through `ActionForm`'s `form-confirm-dialog-warnings` slot) reports which shape `warnings` is
+ * actually in -- the request that produced it, not the current selection count, since a custom
+ * `run-action` can issue a bulk request regardless of how many objects are selected. A bulk
+ * action's `warnings` is keyed by object id (`{ [pk]: {field: [messages]} }`); a single-object
+ * action's `warnings` is already one object's field-messages mapping, so it becomes the sole
+ * group, with no pk to resolve a display name for.
+ */
+const resolveWarningGroups = (warnings, bulk) => {
+    if (!bulk) {
+        return [{ pk: undefined, fieldMessages: warnings }];
+    }
+    return Object.entries(warnings ?? {}).map(([pk, fieldMessages]) => ({ pk, fieldMessages }));
+};
 </script>
 
 <template>
@@ -202,7 +220,15 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
         :action-error-summary="actionErrorSummaryComputed"
         :action-success-summary="actionSuccessSummaryComputed"
     >
-        <template v-for="(_, slot) in omit(slots, ['action-form-inner', 'confirm-button'])" #[slot]="slotProps">
+        <template
+            v-for="(_, slot) in omit(slots, [
+                'action-form-inner',
+                'confirm-button',
+                'form-confirm-dialog-warnings',
+                'warning-entry',
+            ])"
+            #[slot]="slotProps"
+        >
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
         <template #confirm-button="slotProps">
@@ -333,6 +359,54 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
                     <typed-confirm-field v-if="confirmText" v-model="typedConfirmInput" :expected-value="confirmText" />
                 </div>
             </component>
+        </template>
+        <!--
+            Overrides ActionForm's `form-confirm-dialog-warnings` slot (in turn FormConfirmDialog's
+            `warnings` slot). `resolveWarningGroups` normalizes a bulk action's per-object-id
+            warnings and a single-object action's plain warnings into the same one-group-per-object
+            shape, so this renders both identically: each group's display name resolves via the same
+            WidgetReadOnly link used by the selected-objects list above (omitted for the single,
+            unkeyed group), and each group's own field-messages mapping renders via
+            `FieldWarningsList. The `warning-entry` slot forwards to every group's
+            `FieldWarningsList`, with `pk` added to its scope (`undefined` for the single, unkeyed
+            group) so a consumer can tell which warned object it's rendering for.
+        -->
+        <template #form-confirm-dialog-warnings="{ warnings, bulk }">
+            <slot
+                name="form-confirm-dialog-warnings"
+                :warnings="warnings"
+                :bulk="bulk"
+                :normalized-warnings="resolveWarningGroups(warnings, bulk)"
+                data-qa="model-action-form-confirm-warning-group"
+                :class="theme('confirmWarningGroup')"
+            >
+                <div
+                    v-for="group in resolveWarningGroups(warnings, bulk)"
+                    :key="group.pk ?? 'single'"
+                    :class="theme('confirmWarningGroup')"
+                    data-qa="model-action-form-confirm-warning-group"
+                >
+                    <div v-if="group.pk" :class="theme('confirmWarningLabel')">
+                        <widget-read-only
+                            :app="app"
+                            :foreign-key-obj="objectsMap.get(group.pk)"
+                            :invalid="false"
+                            :model="model"
+                            :warning="false"
+                        >
+                            <template #link-item="linkItemSlotProps">
+                                <slot name="link-item" v-bind="linkItemSlotProps" />
+                            </template>
+                        </widget-read-only>
+                    </div>
+                    <field-warnings-list :messages="group.fieldMessages">
+                        <!-- @slot [warning-entry] Override one warned object's field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`) plus `pk`. -->
+                        <template v-if="$slots['warning-entry']" #entry="entrySlotProps">
+                            <slot name="warning-entry" v-bind="{ ...entrySlotProps, pk: group.pk }" />
+                        </template>
+                    </field-warnings-list>
+                </div>
+            </slot>
         </template>
     </action-form>
 </template>

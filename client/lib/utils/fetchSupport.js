@@ -57,18 +57,23 @@ export function actionRequestHeaders({ dryRun, acknowledgeWarnings } = {}) {
  * @param {Set<number>} [options.successStatuses] - Statuses that count as success. Defaults to every `response.ok`
  *  status; pass a set to hold a handler to specific codes (delete accepts only 204, plus 200 during a dry run).
  * @param {Set<number>} [options.emptyStatuses=new Set([204])] - Success statuses whose body is not read back to the caller.
+ * @param {boolean} [options.bulk=false] - Whether this request targets the bulk path or detailed path.
+ *  Passed straight through to `ConfirmationRequiredError` so the renderer knows which warnings shape to expect back.
  * @returns {Promise<{[key: string]: any}|string|undefined>} The decoded response data, or undefined for an empty status.
  * @throws {import("@vueda/utils/errors.js").FormValidationError} On a 400.
  * @throws {import("@vueda/utils/errors.js").ConfirmationRequiredError} On a 409.
  * @throws {import("@vueda/utils/errors.js").FetchError} On any other unsuccessful status.
  */
-export async function readActionResponse(response, { messagePrefix, successStatuses, emptyStatuses = new Set([204]) }) {
+export async function readActionResponse(
+    response,
+    { messagePrefix, successStatuses, emptyStatuses = new Set([204]), bulk = false },
+) {
     const responseData = await getJsonOrText(response);
     if (response.status === 400) {
         throw new FormValidationError(responseData, response);
     }
     if (response.status === 409) {
-        throw new ConfirmationRequiredError(responseData, response);
+        throw new ConfirmationRequiredError(responseData, response, { bulk });
     }
     const succeeded = successStatuses ? successStatuses.has(response.status) : response.ok;
     if (!succeeded) {
