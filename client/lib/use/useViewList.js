@@ -788,7 +788,12 @@ export function useViewList(options) {
                 router.replace({ query: canonicalQuery });
             }
         },
-        { immediate: true, deep: true },
+        // No `deep`: this watch only needs to run when `sortables`, `modelConfig.loading`,
+        // or `route.query[ORDERING_PARAM]`'s value actually changes. The post-init logic
+        // above is idempotent (guarded by `isEqual` checks), so a rerun triggered by an
+        // unrelated navigation that leaves all three values unchanged would be a no-op
+        // anyway; skipping it outright just avoids the redundant work.
+        { immediate: true },
     );
     watch(
         columns,
