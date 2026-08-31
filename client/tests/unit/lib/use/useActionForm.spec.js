@@ -90,11 +90,14 @@ describe("lib/use/useActionForm.js", () => {
                 const actionForm = await withSetup(() => useActionForm(formContext, props));
                 actionForm.confirmation.register();
 
-                await actionForm.handleConfirm();
+                const submitPromise = actionForm.handleConfirm();
                 await flushPromises();
 
                 expect(actionForm.confirmation.messages).toEqual({ 9: { count: ["unusual"] } });
                 expect(actionForm.confirmation.bulk).toBe(true);
+
+                actionForm.confirmation.cancel();
+                await submitPromise;
             },
         );
 
