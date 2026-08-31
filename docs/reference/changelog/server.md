@@ -121,6 +121,12 @@ public-facing documentation baseline.
     - Submitting non-mapping data to `UserSerializer` on create — for example, a bare primary key sent through a writable nested or expanded user field — now returns the base serializer's standard "Expected a dictionary" DRF validation error instead of raising an unhandled `AttributeError`.
 - **Sparse field requests and `formatted_name`**:
     - Requests scoped to a subset of fields via `FIELDS_PARAM`/`OMIT_PARAM` no longer reject `formatted_name` as an invalid submitted field. `formatted_name` is a virtual, model-computed field and is now always accepted regardless of the requested field subset.
+- **Workflow transition check cost**:
+    - `HasWorkflowModelMixin.allow_transition` now resolves only the transition it is asked about. It previously built the object's whole permitted set through `available_transitions` and tested membership, so answering about one transition ran an object-level permission evaluation for every transition leaving the current state. Its cost no longer grows with that count. `available_transitions` is unchanged and remains the way to obtain the permitted set itself.
+    - `HasWorkflowModelMixin` gained `cached_workflow_state()`, a context manager that holds the object's workflow and current state for the duration of a block so one authorization pass reads them once instead of once per permission check. `check_transition` opens one per call, which keeps the post-lock re-check in `execute_transition` reading the state the lock protects. The `object_state` lookup also selects the related state in the same query.
+      _Executing a single transition on the reference workflow drops from 114 queries to 57, and a two-object bulk transition from 217 to 103. Transition authorization results are unchanged._
+- **Redundant `QueueItem.allow_transition` override**:
+    - `vueda.vdq.models.QueueItem` no longer overrides `allow_transition`. The override duplicated the inherited implementation verbatim and would otherwise have kept VDQ on the superseded per-candidate path.
 - **`permitted_transitions` for models without a workflow**:
     - `WorkflowViewSet.permitted_transitions` no longer requires `vueda_workflow.read_workflow` when the requested `app_label/model` pair has no configured workflow. A user who can read that model now gets `200` with an empty transition list instead of `403`. `read_workflow` is still required whenever a workflow is configured for the model, and every other workflow endpoint is unchanged.
 

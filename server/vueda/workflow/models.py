@@ -15,6 +15,8 @@ __all__ = (
 )
 
 from collections.abc import Iterable
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 import django
 from django.contrib.auth import get_user_model
@@ -532,6 +534,9 @@ class HasWorkflowModelMixin(models.Model):
         ObjectStateProxy,
     )
 
+    # Populated only inside ``cached_workflow_state``; ``None`` means "read through to the database".
+    _workflow_state_cache: dict | None = None
+
     class Meta:
         abstract = True
 
@@ -572,16 +577,52 @@ class HasWorkflowModelMixin(models.Model):
         # get_for_model() is cached
         return ContentType.objects.get_for_model(cls)
 
+    @contextmanager
+    def cached_workflow_state(self) -> Iterator[None]:
+        """
+        Hold this object's ``workflow`` and ``object_state`` for the duration of the block.
+
+        One authorization pass reads both repeatedly: ``check_state_permission`` resolves the
+        current state for every permission it is asked about, and ``VuedaUserMixin.has_perm``
+        reads the workflow to decide whether state rules apply at all. Without this, each read
+        is a fresh query.
+
+        The cache is scoped to a block rather than to the instance on purpose. ``execute_transition``
+        checks a transition, takes a row lock, and checks again against the locked row, and that
+        second check has to observe any state written in between. Nested blocks reuse the
+        outermost cache and leave it to the outermost block to clear.
+        """
+        if self._workflow_state_cache is not None:
+            yield
+            return
+        self._workflow_state_cache = {}
+        try:
+            yield
+        finally:
+            self._workflow_state_cache = None
+
     @property
     def workflow(self) -> Workflow | None:
         """Return the ``Workflow`` configured for this model, or ``None`` if none exists."""
-        return Workflow.objects.filter(content_type=self.get_content_type()).first()
+        cache = self._workflow_state_cache
+        if cache is not None and "workflow" in cache:
+            return cache["workflow"]
+        workflow = Workflow.objects.filter(content_type=self.get_content_type()).first()
+        if cache is not None:
+            cache["workflow"] = workflow
+        return workflow
 
     @property
     def object_state(self) -> ObjectState | None:
         """Return the ``ObjectState`` record for this instance, or ``None`` if not yet created."""
-        osp = self.object_states_proxy.first()
-        return osp and osp.object_state
+        cache = self._workflow_state_cache
+        if cache is not None and "object_state" in cache:
+            return cache["object_state"]
+        osp = self.object_states_proxy.select_related("object_state__state").first()
+        object_state = osp and osp.object_state
+        if cache is not None:
+            cache["object_state"] = object_state
+        return object_state
 
     @property
     def workflow_state(self) -> State | None:
@@ -720,8 +761,31 @@ class HasWorkflowModelMixin(models.Model):
         """
         Check if transition is allowed for this object.
         return falsy or a string will raise a InvalidTransitionError exception in apply_transition
+
+        Resolves only ``transition``. The cost does not grow with the number of other transitions
+        leaving the current state. Use ``available_transitions`` when the permitted set itself is
+        what is wanted.
         """
-        return transition in self.available_transitions(user=user)
+        with self.cached_workflow_state():
+            if (
+                user is not None
+                and not WorkflowPermission.objects.filter(
+                    workflow__content_type=self.get_content_type(),
+                ).exists()
+            ):
+                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            workflow = self.workflow
+            if workflow is None:
+                return False
+            # The single-transition form of the source-state filter in fast_available_transitions.
+            if not TransitionSource.objects.filter(
+                transition=transition,
+                transition__workflow=workflow,
+                source=self.workflow_state,
+                ignored=False,
+            ).exists():
+                return False
+            return self.check_transition_permission(transition, user)
 
     def get_transition_warnings(self, transition: Transition, user: User | None = None) -> dict:
         """
@@ -767,27 +831,31 @@ class HasWorkflowModelMixin(models.Model):
         does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
         before writing should call this first, then ``apply_checked_transition``.
         """
-        self.check_workflow_permission(user)
-        transition: Transition = self.get_transition(transition_code)
-        if user is None:
-            # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
-            request = getattr(HistoricalRecords.context, "request", None)
-            if request:
-                user = request.user
-            else:
-                user = get_system_user()
-        if not self.check_transition_permission(transition, user):
-            raise PermissionDenied(
-                f"User {user.get_username()!r} does not have permission for transition"
-                f" {transition.name}({transition.code!r})"
-            )
-        allowed_or_denied_or_denied_with_message = self.allow_transition(transition, user)
-        if not allowed_or_denied_or_denied_with_message or isinstance(allowed_or_denied_or_denied_with_message, str):
-            raise InvalidTransitionError(
-                allowed_or_denied_or_denied_with_message
-                or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
-            )
-        return transition, user
+        # One cache per call, so the second check under the row lock re-reads the state the lock protects.
+        with self.cached_workflow_state():
+            self.check_workflow_permission(user)
+            transition: Transition = self.get_transition(transition_code)
+            if user is None:
+                # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
+                request = getattr(HistoricalRecords.context, "request", None)
+                if request:
+                    user = request.user
+                else:
+                    user = get_system_user()
+            if not self.check_transition_permission(transition, user):
+                raise PermissionDenied(
+                    f"User {user.get_username()!r} does not have permission for transition"
+                    f" {transition.name}({transition.code!r})"
+                )
+            allowed_or_denied_or_denied_with_message = self.allow_transition(transition, user)
+            if not allowed_or_denied_or_denied_with_message or isinstance(
+                allowed_or_denied_or_denied_with_message, str
+            ):
+                raise InvalidTransitionError(
+                    allowed_or_denied_or_denied_with_message
+                    or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
+                )
+            return transition, user
 
     def apply_checked_transition(
         self, transition: Transition, user: User | None = None, dry_run: bool = False
