@@ -759,6 +759,52 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            // The store is genuinely consulted and comes back empty (as opposed to the
+            // lookup being skipped); the resulting default sort must still never be
+            // written back as if it were the user's preference.
+            expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("applies the server default sort when the URL ordering param is explicitly empty", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
+            // `?o=` is a present-but-empty ordering param, not a stored-preference lookup.
+            expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps the server default sort when an unrelated query parameter changes", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
+
+            // a filter push replaces route.query without an `o` key
+            route.query = { status: "active" };
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
