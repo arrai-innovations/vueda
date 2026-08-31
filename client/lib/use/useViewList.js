@@ -304,10 +304,12 @@ export function useViewList(options) {
             const sanitized = sanitizeSortFields(sorted, unref(sorting.state.sortables) || []);
             // An empty sort is not a distinct choice: the list already comes back in the
             // server's default order, so clearing sort chips down to nothing means the
-            // same thing as the default. The store call still receives the raw (possibly
-            // empty) `sanitized` value, since `setSorting` already treats an empty array
-            // as "clear the stored preference" (see storeListPreference.js).
-            listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+            // same thing as the default, and there is no explicit preference left to store.
+            if (sanitized.length) {
+                listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+            } else {
+                listPreferenceStore.clearSorting(preferenceArgs());
+            }
             const applied = sanitized.length ? sanitized : defaultSorted.value;
             assignReactiveObject(sorting.state.sorted, applied);
             const routeQuery = queryWithCurrentSort(route.query, applied);
@@ -747,11 +749,15 @@ export function useViewList(options) {
                         router.replace({ query: canonicalQuery });
                     }
                 } else if (storedSorting) {
-                    // Persist the sanitized (pre-default-collapse) value, not `restored`: if
+                    // Re-save the sanitized (pre-default-collapse) value, not `restored`: if
                     // sanitizing dropped every stored field (none are sortable any more), the
                     // stored preference should be cleared, not replaced with the default.
                     if (!isEqual(sanitized, storedSorting)) {
-                        listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+                        if (sanitized.length) {
+                            listPreferenceStore.setSorting(preferenceArgs(), sanitized);
+                        } else {
+                            listPreferenceStore.clearSorting(preferenceArgs());
+                        }
                     }
                     const canonicalQuery = queryWithCurrentSort(
                         {

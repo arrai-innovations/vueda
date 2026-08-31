@@ -55,6 +55,7 @@ vi.mock("@vueda/router/getCrud.js", () => ({
 const createListPreferenceStoreMock = () => ({
     init: vi.fn(),
     setSorting: vi.fn(),
+    clearSorting: vi.fn(),
     getSorting: vi.fn(),
     setFilters: vi.fn(),
     getFilters: vi.fn(),
@@ -314,6 +315,7 @@ const resetListPreferenceStoreMock = () => {
     storeListPreferenceMock.mockImplementation(() => listPreferenceStoreMock);
     listPreferenceStoreMock.init.mockReset();
     listPreferenceStoreMock.setSorting.mockReset();
+    listPreferenceStoreMock.clearSorting.mockReset();
     listPreferenceStoreMock.getSorting.mockReset();
     listPreferenceStoreMock.setFilters.mockReset();
     listPreferenceStoreMock.getFilters.mockReset();
@@ -919,7 +921,8 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
             await vue.nextTick();
 
-            expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, []);
+            expect(listPreferenceStoreMock.clearSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             expect(routerPush).toHaveBeenCalledWith({ query: { status: "active" } });
             wrapper.unmount();
         });
@@ -961,6 +964,27 @@ describe("lib/views/ViewList.vue", () => {
                 wrapper.unmount();
             },
         );
+
+        scopedIt("does not persist a preference when Reset sort is clicked", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            route.query = { [ORDERING_PARAM]: "name" };
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+            await vue.nextTick();
+
+            // Reset clears any stored preference rather than pinning today's default as
+            // an explicit one, so a later server default change is still followed on the
+            // next visit instead of being stuck on whatever the default was at reset time.
+            expect(listPreferenceStoreMock.clearSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
 
         scopedIt("hides a sort chip's remove control once removing it would leave nothing sorted", async () => {
             mockedInject.mockReturnValueOnce({});
