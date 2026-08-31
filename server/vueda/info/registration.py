@@ -133,7 +133,7 @@ def get_registration(content_type):
     except ContentType.DoesNotExist:
         raise ValueError(f"ContentType {content_type} does not exist.")
 
-        # Construct the key as "app_label.model"
+    # Construct the key as "app_label.model"
     key = f"{content_type.app_label}.{content_type.model}"
 
     # this deepcopy is defensive to prevent inadvertent modification of the registry
