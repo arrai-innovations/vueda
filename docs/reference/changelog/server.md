@@ -110,6 +110,10 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **Workflow state permission deferral**:
+    - Model viewsets now defer a baseline permission denial only for a state grant matching the caller's groups, action-specific codename, model content type, and workflow, and only when the request has a guaranteed later state-aware decision. Unrelated rules and state denies no longer admit list or create requests, and workflow state data no longer suppresses authentication, composite permission expressions, or additional DRF permission classes.
+    - Workflow model lists now apply state grants and denies before pagination even when the model does not define `RowLevelPermissions`. A state `list_*` grant can admit the endpoint but returns only rows in matching granted states; matching denies remove rows from users with baseline list permission. Create remains model-authorized because a new object has no current workflow state.
+      _If an application overrides a VUEDA list action, preserve the call to `apply_row_level_filter`. If a custom action relies on state grants to overcome a baseline denial, add the action name to `workflow_object_permission_actions` only when the action always performs an object permission check._
 - **Optional VDQ notifications**:
     - Applications can now install `vueda.user` without installing `vueda.vdq`. The default user adapter sends account email through Django's configured email backend and sends two-factor authentication SMS messages directly through Twilio when VDQ is absent; applications with VDQ installed continue to queue notifications.
 - **Writable nested history serializer responses**:
