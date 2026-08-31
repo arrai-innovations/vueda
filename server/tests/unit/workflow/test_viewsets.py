@@ -247,21 +247,47 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
 
+    @pytest.mark.parametrize("model", ["customerorder", "customer_order"])
     def test_permitted_transitions_returns_403_for_configured_workflow_without_read_workflow(
-        self, api_client, customer_reader, customer_order
+        self, api_client, customer_reader, customer_order, model
     ):
         # customer_reader can read customerorder but lacks vueda_workflow.read_workflow; the
-        # missing-workflow exception must not extend to models with a configured workflow.
+        # missing-workflow exception must not extend to models with a configured workflow. The
+        # underscore-spelled "customer_order" case guards get_workflow(), which resolves this
+        # model's identity by stripping underscores -- the same normalization the object
+        # permission check applies -- so both agree a workflow is configured, and neither lets
+        # the alternate spelling fall into the missing-workflow exception.
         customer_reader.user_permissions.add(
             Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
         )
         api_client.force_authenticate(customer_reader)
         permitted_transitions_url = reverse(
             "workflow.workflow-permitted-transitions",
-            kwargs={"app_label": "store", "model": "customerorder"},
+            kwargs={"app_label": "store", "model": model},
         )
 
         response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_object_state_requires_read_workflow_even_with_object_read_permission(
+        self, api_client, customer_reader, customer_order
+    ):
+        # read_workflow gates every workflow endpoint except permitted_transitions for models
+        # without a configured workflow. customer_reader can read customerorder objects but
+        # lacks read_workflow, so the viewset-level gate must deny before object_state's own
+        # object-read check ever runs.
+        customer_reader.user_permissions.add(
+            Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
+        )
+        api_client.force_authenticate(customer_reader)
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.get(object_state_url, format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert response.data["detail"] == "You do not have permission to perform this action."

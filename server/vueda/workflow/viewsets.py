@@ -68,7 +68,9 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def get_workflow(self):
         return get_object_or_404(
-            Workflow, content_type__app_label=self.kwargs["app_label"], content_type__model=self.kwargs["model"]
+            Workflow,
+            content_type__app_label=self.kwargs["app_label"],
+            content_type__model=self.kwargs["model"].replace("_", ""),
         )
 
     def get_object(self):
@@ -82,17 +84,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return super().dispatch(request, *args, **kwargs)
 
     def check_permissions(self, request):
-        # permitted_transitions reports an empty transition set for a model with no configured
-        # workflow, so a user reading that model doesn't need workflow read permission to reach
-        # that response. Every other action requires a workflow, so it always requires
-        # read_workflow, at minimum.
-        if self.action == "permitted_transitions":
-            try:
-                self.get_workflow()
-            except Http404:
-                return super().check_permissions(request)
-
-        if not request.user.has_perm("vueda_workflow.read_workflow"):
+        # permitted_transitions decides its own read_workflow requirement, once it has resolved
+        # whether a workflow exists for the target model (see permitted_transitions below). Every
+        # other action always requires read_workflow, at minimum, before the model's own
+        # read/create/update/delete permission is checked below.
+        if self.action != "permitted_transitions" and not request.user.has_perm("vueda_workflow.read_workflow"):
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
@@ -177,8 +173,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             workflow = self.get_workflow()
         except Http404:
             return Response([])
-        user = request.user
 
+        if not request.user.has_perm("vueda_workflow.read_workflow"):
+            raise PermissionDenied("You do not have permission to perform this action.")
+
+        user = request.user
         if user is not None:
             workflow_permissions = [
                 ".".join(permission_parts)
