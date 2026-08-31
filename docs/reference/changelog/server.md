@@ -127,6 +127,8 @@ public-facing documentation baseline.
       _Executing a single transition on the reference workflow drops from 114 queries to 57, and a two-object bulk transition from 217 to 103. Transition authorization results are unchanged._
 - **Redundant `QueueItem.allow_transition` override**:
     - `vueda.vdq.models.QueueItem` no longer overrides `allow_transition`. The override duplicated the inherited implementation verbatim and would otherwise have kept VDQ on the superseded per-candidate path.
+- **`permitted_transitions` for models without a workflow**:
+    - `WorkflowViewSet.permitted_transitions` no longer requires `vueda_workflow.read_workflow` when the requested `app_label/model` pair has no configured workflow. A user who can read that model now gets `200` with an empty transition list instead of `403`. `read_workflow` is still required whenever a workflow is configured for the model, and every other workflow endpoint is unchanged.
 
 ## v3.0.0a0 (2026-05-27)
 

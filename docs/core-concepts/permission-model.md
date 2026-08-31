@@ -68,6 +68,8 @@ Transitions without transition-permission rows are not permitted (no default-all
 
 Workflow endpoints impose an additional viewset-level gate: the `vueda_workflow.read_workflow` permission must be present before any workflow endpoint (object state, permitted transitions, execute transition) processes. This check runs at the viewset `check_permissions` phase, before object-specific authorization.
 
+`permitted_transitions` gates on `read_workflow` only when a workflow is configured for the requested `app_label/model` pair. A model with no configured workflow skips that gate and falls through to the target model's own `read` permission check, so the endpoint returns `200` with an empty transition list for any user who can read the model, without requiring `read_workflow`. A denial for a model with a configured workflow is unaffected by this exception.
+
 Queue Item (VDQ resend queue) endpoints impose an additional viewset-level gate: the requesting user must have the `vueda_vdq.can_resend` permission for the `Resend` action to be permitted.
 
 For a complete explanation of the workflow overlay model, including state permission evaluation, how model-scope bypass works, and the details of transition gates, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
@@ -82,7 +84,7 @@ Permission denials surface as different HTTP status codes, depending on the laye
 
 **Bulk delete with mixed eligibility produces `400`.** When a bulk-`delete` request includes PKs that are partially filtered out by row-level or object-level checks, the entire operation fails. No rows are deleted. The response is a `400` with validation errors keyed by PK, using the message `"Object with pk=... does not exist."`; the same message used for genuinely missing PKs, which hides the distinction between "does not exist" and "exists but not permitted."
 
-**Workflow endpoint denial produces `403` before object checks.** If the user lacks `vueda_workflow.read_workflow`, all workflow endpoints return `403` before any object-specific logic runs. This can mask the actual authorization outcome; the user might have object-level permissions, but the viewset-level gate prevents the evaluation from reaching the point where those permissions would be evaluated.
+**Workflow endpoint denial produces `403` before object checks.** If the user lacks `vueda_workflow.read_workflow`, all workflow endpoints return `403` before any object-specific logic runs. This can mask the actual authorization outcome; the user might have object-level permissions, but the viewset-level gate prevents the evaluation from reaching the point where those permissions would be evaluated. `permitted_transitions` for a model with no configured workflow is the exception: it never reaches the `read_workflow` gate, so a `403` from that request reflects the target model's `read` permission instead.
 
 **Transition execution failures produce `400`.** When `apply_transition` raises `PermissionDenied` or `InvalidTransitionError`, the viewset converts it to a `400` validation-style response rather than a `403`. Transition failure is communicated as a validation outcome, not as an HTTP-level authorization rejection. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400` with the message `"This object cannot be updated right now. Please try again."`.
 

@@ -57,6 +57,8 @@ Permission check failures at the transition level surface differently depending 
 
 The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workflow`. This check runs during `check_permissions`, before any object-specific or transition-specific logic. A user who lacks this permission sees `403` on all workflow endpoints, object state, permitted transitions, and execute transition, regardless of their other permissions.
 
+`permitted_transitions` skips this gate for an `app_label/model` pair with no configured workflow: it falls through to the target model's own `read` permission check instead, and returns `200` with an empty transition list once that check passes. The gate applies as described above as soon as a workflow is configured for the model.
+
 ## Client {@term Action Namespace} Overlay
 
 On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
@@ -77,7 +79,7 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 **Transition is absent from `permitted_transitions` despite existing in the workflow.** Symptom: expected transition never appears for any user. Cause: the transition has no `TransitionPermission` rows. Transitions without permission rows are excluded, not default-allowed.
 
-**`permitted_transitions` returns `403`.** Symptom: no transitions are available for the model. Cause: the user lacks `vueda_workflow.read_workflow`, or no `WorkflowPermission` rows exist for the workflow's content type and the user's groups.
+**`permitted_transitions` returns `403`.** Symptom: no transitions are available for the model. Cause: for a model with a configured workflow, the user lacks `vueda_workflow.read_workflow`, or no `WorkflowPermission` rows exist for the workflow's content type and the user's groups. For a model with no configured workflow, the cause is instead the user lacking `read` permission for that model; a readable model with no workflow returns `200` with an empty list, not `403`.
 
 **Transition execution returns `400` validation error.** Multiple possible causes: the transition is not valid from the object's current state (`InvalidTransitionError`), the user lacks transition-level permission (`PermissionDenied`), or the row lock cannot be acquired. Check the error message to distinguish between these cases.
 

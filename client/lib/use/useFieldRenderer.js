@@ -2,10 +2,11 @@
  * @module use/useFieldRenderer
  * @description Computes the resolved components, props, slot names, and theme for rendering a field and widget pair inside a FieldRenderer component.
  */
+import { useError } from "@arrai-innovations/reactive-helpers";
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, markRaw, shallowReadonly, toRaw, unref } from "vue";
+import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw, unref, watch } from "vue";
 
 /**
  * @typedef {object} FieldRendererProps
@@ -31,6 +32,10 @@ import { computed, effectScope, markRaw, shallowReadonly, toRaw, unref } from "v
  * @property {import('vue').ComputedRef<string>} fieldDefaultSlotName - The field default slot name.
  * @property {import('vue').ComputedRef<string>} widgetDefaultSlotName - The widget default slot name.
  * @property {import('vue').ComputedRef<string[]>} remainingSlots - The remaining slots.
+ * @property {import('vue').ComputedRef<Error|null>} error - The error that stopped this field rendering, or `null`.
+ * @property {import('vue').ComputedRef<boolean>} errored - Whether this field failed to render.
+ * @property {import('vue').ComputedRef<string>} renderFailureText - Phrase naming the field and widget that failed, for `ErrorDisplay`'s `whileText`.
+ * @property {() => void} clearError - Clear a captured render error so the field retries.
  * @property {() => void} stop - A function to stop the effect scope.
  */
 
@@ -83,10 +88,43 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
         const remainingSlots = computed(() =>
             Object.keys(slots).filter((slotName) => !unref(knownSlots).includes(slotName)),
         );
-        const fieldComponent = computed(() => markRaw(toRaw(props.formModel.fieldComponents[props.formModelName])));
-        const widgetComponent = computed(() =>
-            markRaw(toRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped)),
-        );
+        // Component resolution happens in the consuming component's own render, where onErrorCaptured
+        // cannot reach it, so the throw has to be caught here rather than by the boundary below.
+        const resolution = computed(() => {
+            try {
+                return {
+                    field: markRaw(toRaw(props.formModel.fieldComponents[props.formModelName])),
+                    widget: markRaw(
+                        toRaw(props.formModel.widgetComponents[props.formModelName] ?? availableWidgets.WidgetUnmapped),
+                    ),
+                    error: null,
+                };
+            } catch (e) {
+                return { field: null, widget: null, error: e };
+            }
+        });
+        // Errors thrown while a resolved field or widget sets up or renders. Those are descendants of
+        // the consuming component, so a boundary does reach them.
+        const captured = useError();
+        onErrorCaptured((e) => {
+            captured.setError(e);
+            // Contain the failure: the surrounding form keeps rendering.
+            return false;
+        });
+        // A configuration change that resolves different components clears a stale capture, so a
+        // field fixed upstream renders again instead of staying broken.
+        watch(resolution, () => captured.clearError());
+
+        const fieldComponent = computed(() => unref(resolution).field);
+        const widgetComponent = computed(() => unref(resolution).widget);
+        const error = computed(() => unref(resolution).error ?? unref(captured.error));
+        const errored = computed(() => Boolean(unref(error)));
+        const renderFailureText = computed(() => {
+            const widget = unref(resolution).widget;
+            const widgetName = widget?.name || widget?.__name;
+            const field = `rendering the "${props.formModelName}" field`;
+            return widgetName ? `${field} with ${widgetName}` : field;
+        });
         const fieldDetail = computed(() =>
             props.isFilter
                 ? props.formModel.filterableDetails[props.formModelName]
@@ -136,6 +174,10 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             fieldDefaultSlotName,
             widgetDefaultSlotName,
             remainingSlots,
+            error,
+            errored,
+            renderFailureText,
+            clearError: captured.clearError,
             stop: () => {
                 es.stop();
             },
