@@ -2,6 +2,7 @@
 import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
 import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
@@ -13,6 +14,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import omit from "lodash-es/omit.js";
 import { computed, onMounted, provide, readonly, toRef, useSlots } from "vue";
 
 /**
@@ -288,7 +290,10 @@ onMounted(() => {
                     :widget-props="instance.computedWidgetProps"
                     v-bind="instance.combinedFormProps"
                 >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                    <template
+                        v-for="(_, slot) in omit(slots, ['form-confirm-dialog-warnings', 'warning-entry'])"
+                        #[slot]="slotProps"
+                    >
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>
                 </form-model>
@@ -299,7 +304,19 @@ onMounted(() => {
             title="Confirm save"
             description="This change has warnings. Review them before saving."
             confirm-label="Save anyway"
-        />
+        >
+            <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the object form's raw warnings mapping). Defaults to `FieldWarningsList`; a consumer that only wants to customize one field's entry can instead use the `warning-entry` slot below. -->
+            <template #warnings="{ warnings }">
+                <slot name="form-confirm-dialog-warnings" :warnings="warnings">
+                    <FieldWarningsList :messages="warnings">
+                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`). -->
+                        <template v-if="slots['warning-entry']" #entry="entrySlotProps">
+                            <slot name="warning-entry" v-bind="entrySlotProps" />
+                        </template>
+                    </FieldWarningsList>
+                </slot>
+            </template>
+        </form-confirm-dialog>
     </div>
 </template>
 

@@ -86,9 +86,20 @@ The `FormValidationError` constructor flattens the response payload into paths u
 
 ## {@term Warning Channel} Semantics
 
-Advisory warnings are not part of the HTTP 400 / `FormValidationError` contract described above; they use a separate status code and error class. A serializer's `get_warnings()` (or the viewset/action-level equivalent for writes without a per-object serializer) returns an aggregate `{field: [messages]}` mapping after validation succeeds. When that mapping is non-empty and the request has not acknowledged it, the write is withheld and the response is `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of a 400.
+Advisory warnings are not part of the HTTP 400 / `FormValidationError` contract described above; they use a separate status code and error class. Every warnings source — a serializer's `get_warnings()`, the viewset-level `get_warnings_for_object`/`get_warnings` hooks, `get_transition_warnings`, or a bare `gate_warnings` call — returns one of exactly two shapes:
+
+- **Aggregate**: `{field: [messages]}`, for a single object. Use `non_field_errors` for a warning not tied to a field. A serializer's `get_warnings()` always uses this shape — create/update has no bulk/list variant, so there is no other object to attribute a warning to. `get_warnings_for_object(action, obj)` and `get_transition_warnings(transition, user)` are likewise single-instance hooks that always return this shape for their one instance.
+- **Per-object**: `{object_id: {field: [messages]}}`, for a bulk request — one entry per warned object, keyed by `str(pk)`, so the response can attribute each warning back to the object that triggered it. Only the framework builds this shape, by calling the single-instance hook above once per instance and nesting each result under its object id: `WarningConfirmationMixin`'s default `get_warnings(action, objs)` does this for `get_warnings_for_object`, and `WorkflowViewSet.execute_transition` does it for `get_transition_warnings`.
+
+Which shape a request gets is decided by which hook handled it, never by counting the objects a request happens to affect — a bulk request can affect exactly one object and still gets the per-object shape, because it went through `get_warnings`/`execute_transition`'s bulk path rather than the single-instance hook.
+
+None of these hooks enforce this shape in code: `gate_warnings` only checks the mapping for truthiness and digests it as opaque JSON, so nothing raises if a caller returns something else. But the client's default rendering (below) only understands these two shapes; a caller that deviates is expected to also supply its own client-side rendering to interpret whatever it returns instead. When the mapping is non-empty and the request has not acknowledged it, the write is withheld and the response is `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of a 400.
 
 On the client, this 409 is parsed into a `ConfirmationRequiredError`. Its `.messages` map is populated directly from the response's `warnings` mapping (`.errors` is always empty, since a confirmation response carries no blocking errors). `handleServerFormValidationError(error)` ingests both error classes the same way, reading `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`, so form components do not need to branch on which class they received.
+
+The response gives the client no way to infer which of the two shapes `.messages` is in from the payload alone — a per-object mapping and a plain field-keyed mapping are both just JSON objects. So `ConfirmationRequiredError` also carries `.bulk`: `true` for the per-object shape, `false` for the aggregate shape. This is not derived from the response body; it is set by whichever client call constructed the error, because that call is the only place that knows which request path (single-object or bulk) it took.
+
+`.bulk` flows alongside `.messages` through the rest of the rendering chain: `useConfirmationController`'s `request(messages, { bulk })` stores it as `confirmation.bulk`, and `FormConfirmDialog` exposes it on its `warnings` slot scope (`{ warnings, flatWarnings, bulk }`) next to the mapping itself. `FormConfirmDialog` otherwise treats `warnings` as opaque: its default rendering flattens every value into a plain message list and never resolves a field name or an object id. A view that wants shape-aware rendering — field headers, or grouping a bulk action's per-object shape by the object it belongs to — resolves that itself: `ViewCreate` and `ViewUpdate` render the aggregate shape via `FieldWarningsList`; `ModelActionForm` overrides the same slot to group the per-object shape, reading `bulk` from the slot scope to decide whether to group at all, then resolving each object id to a display label before handing that object's field-keyed warnings to `FieldWarningsList` too.
 
 See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-channel) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
 
@@ -150,9 +161,15 @@ This means that a form component fetching choices for a field that references an
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.errors}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.messages}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.serverStack}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.digest}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.messages}
+- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.bulk}
 - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
 - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
 - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
+- {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
+- {@api js:module:@arrai-innovations/vueda/use/useConfirmationController}
 - {@api js:module:@arrai-innovations/vueda/use/useForm}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError}
 - {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearServerErrors}
@@ -161,3 +178,4 @@ This means that a form component fetching choices for a field that references an
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:ModelActionForm}
+- {@api vue:component:FormConfirmDialog}

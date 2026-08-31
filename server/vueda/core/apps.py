@@ -15,6 +15,8 @@ class CoreConfig(AppConfig):
 
         from .checks import check_exclude_fields_serializer_usage
         from .checks import check_expandable_fields_configuration
+        from .checks import check_model_feature_policy
 
         register(check_expandable_fields_configuration)
         register(check_exclude_fields_serializer_usage)
+        register(check_model_feature_policy)

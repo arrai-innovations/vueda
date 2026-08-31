@@ -679,7 +679,7 @@ export const storeWorkflow = defineStore("workflow", {
                         return new FormValidationError(data, response);
                     }
                     if (response.status === 409) {
-                        return new ConfirmationRequiredError(data, response);
+                        return new ConfirmationRequiredError(data, response, { bulk: Array.isArray(objectPk) });
                     }
                     return new WorkflowError("Failed to execute transition", response, data);
                 },

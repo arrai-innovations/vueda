@@ -202,19 +202,31 @@ class WidgetSerializer(VuedaSerializer):
 
 **Client: confirm, then resubmit.** The create/update adaptor raises `ConfirmationRequiredError` on the 409. `useObjectForm` renders the warnings into `state.messages`, opens its `confirmation` controller, and (for `ViewCreate` and `ViewUpdate`) shows a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the response `digest`, which the server matches to let the write proceed; cancelling leaves the form unsaved with the warnings visible. A custom shell that calls `useObjectForm` directly should render a dialog bound to `objectForm.confirmation`, or override the `onSubmissionWarningsRequireConfirmation` hook. A custom dialog must call `confirmation.register()` on mount and `confirmation.unregister()` on unmount (`FormConfirmDialog` does this itself); when no dialog is registered, a warned save fails closed: it resolves as cancelled, the warnings stay rendered on the fields, and a console warning identifies the missing dialog.
 
-**Server: gate destroy, activate, and deactivate with the viewset hook.** These writes have no per-object serializer, so warnings come from the viewset instead. Override `get_warnings(action, objs)`, provided by {@api py:class:vueda.core.viewsets.WarningConfirmationMixin} (so any `VuedaViewSet`); `action` is the action name (`"destroy"`, `"activate"`, or `"deactivate"`) and `objs` is the affected instances, a one-element tuple for a single-object request or a queryset for a bulk request:
+**Server: gate destroy, activate, and deactivate with the viewset hooks.** These writes have no per-object serializer, so warnings come from the viewset instead, split across two hooks provided by {@api py:class:vueda.core.viewsets.WarningConfirmationMixin} (so any `VuedaViewSet`); `action` is the action name (`"destroy"`, `"activate"`, or `"deactivate"`) in both. Override `get_warnings_for_object(action, obj)` for a single object:
 
 ```python
 class WidgetViewSet(VuedaViewSet):
     serializer_class = WidgetSerializer
 
-    def get_warnings(self, action, objs):
-        if action == "destroy" and any(obj.is_published for obj in objs):
+    def get_warnings_for_object(self, action, obj):
+        if action == "destroy" and obj.is_published:
             return {"non_field_errors": ["Published widgets disappear from the storefront when deleted."]}
         return {}
 ```
 
-Both the single and bulk variants call the hook after their own validation and before the write. Bulk gating is all-or-nothing: a 409 blocks the whole batch, and confirming runs all of it. The shape is the same aggregate `{field: [messages]}` mapping; there is no per-object attribution.
+Overriding only `get_warnings_for_object` gates both the single-object and bulk forms of `destroy` with the same rule. It's called directly for a single-object request, and its return value is used as the aggregate `{field: [messages]}` shape as-is. For a bulk request, the default `get_warnings(action, objs)` — also provided by `WarningConfirmationMixin`, where `objs` is a queryset — calls `get_warnings_for_object` once per instance and keys each non-empty result by `str(pk)`, building `{object_id: {field: [messages]}}` so `ModelActionForm` can attribute each warning back to its object. Both variants call their hook after the action's own validation and before the write. Bulk gating is all-or-nothing: a 409 blocks the whole batch, and confirming runs all of it.
+
+Override `get_warnings` itself instead when bulk needs different or bulk-optimized logic — for example, one query against the queryset instead of one check per instance:
+
+```python
+    def get_warnings(self, action, objs):
+        if action != "destroy":
+            return {}
+        message = "Published widgets disappear from the storefront when deleted."
+        return {str(pk): {"non_field_errors": [message]} for pk in objs.filter(is_published=True).values_list("pk", flat=True)}
+```
+
+A targetless custom action has no queryset and no single instance for either hook to key by; it calls `gate_warnings` directly from the action body instead (see the custom action example below), rather than overriding either hook here.
 
 **Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model using {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}:
 
@@ -228,7 +240,9 @@ class Order(HasWorkflowModelMixin, models.Model):
 
 `WorkflowViewSet.execute_transition` evaluates the hook (via `check_transition`, which validates permission and availability without writing) before applying the transition, for both the single-object and bulk (`object_ids`) request forms. Bulk gating collects warnings across every instance in the batch and gates once with one digest, the same all-or-nothing contract as bulk destroy: a 409 blocks the whole batch, and confirming applies all of it. Transition authorization and error behavior (permission checks, `InvalidTransitionError`, locking, dry-run) are unchanged; the warning gate only adds a step before the write.
 
-For a bulk transition, `get_transition_warnings` is called once per instance (mirroring `allow_transition`), and `WorkflowViewSet.execute_transition` merges every instance's result into the same aggregate `{field: [messages]}` mapping the single-object case uses, deduplicating identical messages per field.
+The bulk `warnings` shape is `{object_id: {field: [messages]}}` rather than the single-object `{field: [messages]}` mapping — `get_transition_warnings` is called once per instance (mirroring `allow_transition`), and `WorkflowViewSet.execute_transition` keeps each instance's own result nested under its object id instead of flattening it, the `{pk: {field: [errors]}}` shape recommended above for bulk action feedback. A single-object transition's warnings stay the plain aggregate shape, since there's no object to key by.
+
+`get_transition_warnings` follows the same pattern as `get_warnings_for_object` above: both are single-instance hooks that only ever return that one instance's own `{field: [messages]}` mapping, and never decide single-vs-bulk shape themselves. The framework does that instead — `WorkflowViewSet.execute_transition` nests each instance's result under its object id to build the bulk mapping, the same way the default `get_warnings(action, objs)` calls `get_warnings_for_object` once per instance and keys the result.
 
 **Server: gate a custom action body.** Custom `@action` bodies write directly, so they call the gate explicitly. Call `gate_warnings(request, warnings)` (from {@api py:module:vueda.core.exceptions}) after `serializer.is_valid(raise_exception=True)`, so blocking errors return 400 before the 409, and before any write or side effect:
 
@@ -252,6 +266,8 @@ class InvoiceViewSet(VuedaViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 ```
 
+`send` is `detail=True`, so it only ever affects one invoice and the aggregate shape above is correct as written. `gate_warnings` accepts one of two shapes, the same split `get_warnings_for_object`/`get_warnings` above use: the aggregate `{field: [messages]}` shape for a write affecting one object, or `{object_id: {field: [messages]}}` for bulk. A warning with no object to attribute it to at all, for example a targetless custom action, should still use the aggregate shape, typically `{"non_field_errors": [...]}`. `gate_warnings` itself does not enforce this (it only checks `warnings` for truthiness), but a caller that returns anything else must supply its own client-side rendering to interpret it, since the default rendering expects one of these two shapes.
+
 **Server: always confirm an input-less action.** For a consequence action that takes no input, declare `@action(confirm=True)`. The first unacknowledged submit returns 409 without executing the body. The message comes from a `confirm_message` attribute set on the action function, with a framework default ("This action requires confirmation.") when unset:
 
 ```python
@@ -267,9 +283,30 @@ Because `confirm=True` gates before the body runs, any body-level validation err
 
 **Author warnings from pre-write state only.** A warning is a consent question, so it must be computable from the submitted input plus the current database state, before the write; every gate raises before anything is written. A condition you can only discover by performing the write (a protected foreign key, a constraint violation) is an error that aborts the transaction, not a warning. One write path is not gated: bulk/list-serializer create and update saves.
 
-**Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `useModelAction` through `ModelActionForm`, and `defaultObjectsDelete` for direct bulk-delete adapters, raise `ConfirmationRequiredError`; the `confirmation` controller prompts; and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup. Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
+**Client: actions and deletes confirm turnkey.** `useActionForm` handles the 409 the same way `useObjectForm` does: `useModelAction` through `ModelActionForm`, and `defaultObjectsDelete` for direct bulk-delete adapters, raise `ConfirmationRequiredError`; the `confirmation` controller prompts, and a confirmed action reruns once with the `Acknowledge-Warnings` header set. Unlike object forms, `ActionForm` mounts the `FormConfirmDialog` itself, so `ViewAction`, `ViewDestroy`, and custom shells built on `ActionForm` need no extra markup for the confirm/cancel flow to work; rendering the warnings themselves is still the consumer's responsibility (see below). Only callers that use `useActionForm` without the `ActionForm` shell must render a dialog bound to the returned `confirmation` controller (or override its `onSubmissionWarningsRequireConfirmation` hook); without one, warned actions fail closed as cancelled with a console warning.
 
 **Client: workflow transitions confirm the same way.** `storeWorkflow.executeTransition` maps a 409 to `ConfirmationRequiredError` and accepts an `acknowledgeWarnings` argument that it sends as the `Acknowledge-Warnings` header on a confirmed retry.
+
+**Client: the response reports its own shape, so a consumer never has to guess it.** A `warnings` mapping alone is ambiguous JSON — nothing in `{"9": {"count": [...]}}` marks it as per-object rather than a field literally named `9`. `ConfirmationRequiredError` resolves that ambiguity with a `bulk` property: `true` for the per-object shape, `false` for the aggregate shape. This is not parsed from the response body; it is set by whichever client call constructed the error, since that call is the only place that knows which request path it took — `objectCrud`'s single-object adaptors always report `false`, `listCrud`'s bulk adaptors always report `true`, and `storeWorkflow.executeTransition` reports `Array.isArray(objectPk)` (`true` even for a one-item array, because that request still went through the bulk `object_ids` path). `bulk` flows alongside `messages` through `useConfirmationController`'s `request(messages, { bulk })` into `confirmation.bulk`, and out through `FormConfirmDialog`'s `warnings` slot scope (`{ warnings, flatWarnings, bulk }`).
+
+**Client: rendering warnings is the consuming view's job, not `FormConfirmDialog`'s.** `FormConfirmDialog`'s default `warnings` slot content has no opinion about the mapping's shape: it flattens every value into a plain list of messages, whether the mapping is field-keyed, or object-id-keyed. It never resolves a field name or an object id into anything meaningful — a view that wants shape-aware rendering overrides the `warnings` slot itself, reading `bulk` from that same slot scope to know which shape it received.
+
+{@api vue:component:FieldWarningsList} renders the one shape every warnings source above produces for a single object: `{field: [messages]}`, with `non_field_errors` first as a plain, unlabeled list, then each other field either inline (`field: message`) for a single message or as its own sub-header plus list for more than one. It has no notion of object identity; it only ever renders one object's field-keyed warnings.
+
+- `ViewCreate` and `ViewUpdate` are always single-object, so they override `FormConfirmDialog`'s `warnings` slot to render `FieldWarningsList` directly:
+
+    ```vue
+    <form-confirm-dialog :controller="objectForm.confirmation">
+      <template #warnings="{ warnings }">
+        <field-warnings-list :messages="warnings" />
+      </template>
+    </form-confirm-dialog>
+    ```
+
+- `ActionForm` renders no warnings content of its own — it only exposes a `form-confirm-dialog-warnings` slot that forwards `FormConfirmDialog`'s `warnings` scope (`warnings` and `bulk`), so a bare `ActionForm` consumer must supply that slot to show anything.
+- `ModelActionForm` supplies that slot to handle the bulk case: it normalizes `warnings` into one group per warned object when the slot's `bulk` flag is `true` (a bulk action's warnings are keyed by object id), or the one, unkeyed group when `bulk` is `false` (a single-object action's warnings). It reads `bulk` from the slot scope — sourced from the `ConfirmationRequiredError` that reported the response. Once grouped, it resolves each object id to a display label via the model config and fetched objects, and renders each group's own field-keyed warnings through the same `FieldWarningsList`.
+
+Each layer only understands the shape it owns: `FormConfirmDialog` doesn't know about fields or objects, `FieldWarningsList` doesn't know about objects, and only `ModelActionForm` resolves object identity, because it is the only layer with the model config and fetched objects needed to do so.
 
 ## Verification Checklist
 
@@ -281,7 +318,7 @@ With the validation pipeline wired, verify these behaviors:
 - After clearing a server error by blur, resubmitting sends the request (server-only errors do not block).
 - Local validation errors (required fields left empty, custom validate failures) block submission with a "Pre-save Validation Failed" toast.
 - A serializer that returns `get_warnings()` produces a 409 that opens the confirmation dialog; confirming saves, cancelling does not.
-- A viewset `get_warnings(action, objs)` override, a `gate_warnings` call in a custom action body, or `@action(confirm=True)` produces the same 409 confirm flow on delete, activate/deactivate, and action views (the dialog comes from `ActionForm`, no extra markup needed).
+- A viewset `get_warnings_for_object`/`get_warnings` override, a `gate_warnings` call in a custom action body, or `@action(confirm=True)` produces the same 409 confirm flow on delete, activate/deactivate, and action views (the dialog comes from `ActionForm`, no extra markup needed).
 - A `get_transition_warnings` override produces the same 409 confirmation flow, for both a single transition and a bulk transition (one aggregate digest, no partial writes before acknowledgement).
 - Structured non-field error objects render through `FormMessage`'s default slot override (or, without an override, as `name: value` fallback lines).
 - The first-error scroll navigates to `non_field_errors` first, then to the first displayed field with an error.
@@ -296,9 +333,11 @@ With the validation pipeline wired, verify these behaviors:
 
 **Bulk action errors show as a single opaque message.** If the server returns a single aggregate error string for a bulk operation (instead of per-pk field-keyed errors), the client has no way to route the feedback to specific objects. Prefer `{pk: {field: [errors]}}` style maps from bulk action endpoints.
 
-**The confirmation dialog never appears.** Confirm the server release implements the warning gate (responds 409, not 200/400), that the warnings source (serializer `get_warnings()`, viewset `get_warnings(action, objs)`, or a `gate_warnings` call) actually returns a non-empty mapping for the input, and that a `FormConfirmDialog` is bound to the confirmation controller. For object forms, the view shell renders the dialog (`ViewCreate` and `ViewUpdate` do; custom `useObjectForm` shells must add it themselves). For action and destroy views, `ActionForm` mounts the dialog itself; only standalone `useActionForm` callers must add one. When no dialog is registered on the controller, the submission resolves as cancelled and a console warning names the missing dialog; check the browser console.
+**The confirmation dialog never appears.** Confirm the server release implements the warning gate (responds 409, not 200/400), that the warnings source (serializer `get_warnings()`, viewset `get_warnings_for_object`/`get_warnings`, or a `gate_warnings` call) actually returns a non-empty mapping for the input, and that a `FormConfirmDialog` is bound to the confirmation controller. For object forms, the view shell renders the dialog (`ViewCreate` and `ViewUpdate` do; custom `useObjectForm` shells must add it themselves). For action and destroy views, `ActionForm` mounts the dialog itself; only standalone `useActionForm` callers must add one. When no dialog is registered on the controller, the submission resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
 **Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
+
+**A bulk action's per-object warnings render as one flat, unlabeled group.** This means the `ConfirmationRequiredError` behind the confirmation reported `bulk: false` for a response that was actually the per-object shape. A custom `run-action` that issues its own bulk request must construct its `ConfirmationRequiredError` with `{ bulk: true }` itself — `ModelActionForm` reads `bulk` from that error (via `confirmation.bulk` and `FormConfirmDialog`'s `warnings` slot scope), not from its own selection count, so a one-object bulk request needs this set explicitly rather than left to default to `false`.
 
 ## Relevant Implementation Surface
 
@@ -313,12 +352,16 @@ With the validation pipeline wired, verify these behaviors:
 - JavaScript:
     - {@api js:module:@arrai-innovations/vueda/utils/errors}
     - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+    - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
+    - {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.bulk}
     - {@api js:module:@arrai-innovations/vueda/use/useForm}
     - {@api js:module:@arrai-innovations/vueda/use/useField}
     - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
     - {@api js:module:@arrai-innovations/vueda/use/useActionForm}
+    - {@api js:module:@arrai-innovations/vueda/use/useConfirmationController}
     - {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
     - {@api js:module:@arrai-innovations/vueda/utils/listCrud}
+    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
     - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - Vue.js Components:
     - {@api vue:component:ActionForm}

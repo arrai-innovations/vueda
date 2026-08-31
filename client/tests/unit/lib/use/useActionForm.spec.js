@@ -32,8 +32,8 @@ describe("lib/use/useActionForm.js", () => {
         clearServerErrors: vi.fn(),
     });
 
-    const makeConfirmationError = (digest = "d1", warnings = { count: ["unusual"] }) =>
-        new ConfirmationRequiredError({ confirmation_required: true, digest, warnings }, {});
+    const makeConfirmationError = (digest = "d1", warnings = { count: ["unusual"] }, bulk = false) =>
+        new ConfirmationRequiredError({ confirmation_required: true, digest, warnings }, {}, { bulk });
 
     // runAction that 409s until the digest is acknowledged, then succeeds.
     const makeGatedRunAction = (error) =>
@@ -58,6 +58,7 @@ describe("lib/use/useActionForm.js", () => {
             expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
             expect(actionForm.confirmation.open).toBe(true);
             expect(actionForm.confirmation.messages).toEqual({ count: ["unusual"] });
+            expect(actionForm.confirmation.bulk).toBe(false);
             expect(runAction).toHaveBeenCalledTimes(1);
 
             actionForm.confirmation.confirm();
@@ -76,6 +77,29 @@ describe("lib/use/useActionForm.js", () => {
             expect(actionForm.combinedErrored.value).toBe(false);
             expect(actionForm.combinedLoading.value).toBe(false);
         });
+
+        scopedIt(
+            "carries bulk:true from a custom bulk run-action's response even when it targets one object",
+            async () => {
+                const formContext = createFormContext();
+                // Mirrors a custom bulk runner (e.g. a workflow-transition action) that always issues
+                // a bulk request and gets back the per-object warnings shape, even for one target.
+                const error = makeConfirmationError("d1", { 9: { count: ["unusual"] } }, true);
+                const runAction = makeGatedRunAction(error);
+                const props = reactive({ runAction });
+                const actionForm = await withSetup(() => useActionForm(formContext, props));
+                actionForm.confirmation.register();
+
+                const submitPromise = actionForm.handleConfirm();
+                await flushPromises();
+
+                expect(actionForm.confirmation.messages).toEqual({ 9: { count: ["unusual"] } });
+                expect(actionForm.confirmation.bulk).toBe(true);
+
+                actionForm.confirmation.cancel();
+                await submitPromise;
+            },
+        );
 
         scopedIt("settles without toast or redirect when confirmation is cancelled", async () => {
             const formContext = createFormContext();

@@ -156,9 +156,10 @@ export class FormValidationError extends Error {
     }
 }
 /**
- * Error thrown when the server responds 409 to a create/update because the change is valid but
- * carries advisory warnings that have not been acknowledged. The form should surface the warnings,
- * let the user confirm, and resubmit echoing `digest` so the server lets the write proceed.
+ * Error thrown when a request is valid but carries advisory warnings that have not been
+ * acknowledged (HTTP 409). Create/update, destroy, activate/deactivate, custom actions, and
+ * workflow transitions all raise it. The form should surface the warnings, let the user confirm,
+ * and resubmit echoing `digest` so the server lets the write proceed.
  *
  * @extends {Error}
  */
@@ -166,8 +167,14 @@ export class ConfirmationRequiredError extends Error {
     /**
      * @param {object} responseData - The decoded 409 body: `{ confirmation_required, digest, warnings }`.
      * @param {Response} response - The response object associated with the error.
+     * @param {object} [options]
+     * @param {boolean} [options.bulk=false] - Whether `messages` uses the per-object
+     *  `{object_id: {field: [messages]}}` shape (`true`) or the aggregate `{field: [messages]}` shape
+     *  (`false`). The server chooses this shape by request path, not by how many objects the request
+     *  affects, so the caller that issued the request — the only place that knows which path it took —
+     *  must supply it; it cannot be recovered from `responseData` alone.
      */
-    constructor(responseData, response) {
+    constructor(responseData, response, { bulk = false } = {}) {
         super("Confirmation required");
         this.name = "ConfirmationRequiredError";
         /**
@@ -196,6 +203,11 @@ export class ConfirmationRequiredError extends Error {
          * @type {{[path: string]: string[]}}
          */
         this.errors = {};
+        /**
+         * Whether `messages` uses the per-object shape. See the `options.bulk` param above.
+         * @type {boolean}
+         */
+        this.bulk = bulk;
     }
 }
 /**

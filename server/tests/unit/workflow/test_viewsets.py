@@ -39,6 +39,11 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             "password": "password",
             "groups": ["Workflow Read Only"],
         },
+        "customer-reader@domain.invalid": {
+            "name": "Customer Reader",
+            "password": "password",
+            "groups": ["Customer Readers"],
+        },
     }
 
     @pytest.fixture
@@ -52,6 +57,10 @@ class TestWorkflowViewSet(BaseTestUserMixin):
     @pytest.fixture
     def workflow_read_only_user(self):
         return self.users["workflow-read-only@domain.invalid"]
+
+    @pytest.fixture
+    def customer_reader(self):
+        return self.users["customer-reader@domain.invalid"]
 
     @property
     def groups(self):
@@ -75,6 +84,13 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         read_only_permissions = Permission.objects.filter(codename__in=["read_workflow"])
         read_only_group.permissions.set(read_only_permissions)
         self._groups.append(read_only_group)
+
+        customer_reader_group, _ = Group.objects.get_or_create(name="Customer Readers")
+        customer_reader_permissions = Permission.objects.filter(
+            codename="read_customer", content_type__app_label="store"
+        )
+        customer_reader_group.permissions.set(customer_reader_permissions)
+        self._groups.append(customer_reader_group)
         return self._groups
 
     @pytest.fixture
@@ -204,6 +220,78 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert "does not have workflow permissions" in response.data["detail"]
 
+    def test_permitted_transitions_returns_empty_list_for_readable_model_without_workflow(
+        self, api_client, customer_reader
+    ):
+        api_client.force_authenticate(customer_reader)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": "customer"},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data == []
+
+    def test_permitted_transitions_returns_403_for_unreadable_model_without_workflow(
+        self, api_client, workflow_read_only_user
+    ):
+        api_client.force_authenticate(workflow_read_only_user)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": "customer"},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+
+    @pytest.mark.parametrize("model", ["customerorder", "customer_order"])
+    def test_permitted_transitions_returns_403_for_configured_workflow_without_read_workflow(
+        self, api_client, customer_reader, customer_order, model
+    ):
+        # customer_reader can read customerorder but lacks vueda_workflow.read_workflow; the
+        # missing-workflow exception must not extend to models with a configured workflow. The
+        # underscore-spelled "customer_order" case guards get_workflow(), which resolves this
+        # model's identity by stripping underscores -- the same normalization the object
+        # permission check applies -- so both agree a workflow is configured, and neither lets
+        # the alternate spelling fall into the missing-workflow exception.
+        customer_reader.user_permissions.add(
+            Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
+        )
+        api_client.force_authenticate(customer_reader)
+        permitted_transitions_url = reverse(
+            "workflow.workflow-permitted-transitions",
+            kwargs={"app_label": "store", "model": model},
+        )
+
+        response = api_client.get(permitted_transitions_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_object_state_requires_read_workflow_even_with_object_read_permission(
+        self, api_client, customer_reader, customer_order
+    ):
+        # read_workflow gates every workflow endpoint except permitted_transitions for models
+        # without a configured workflow. customer_reader can read customerorder objects but
+        # lacks read_workflow, so the viewset-level gate must deny before object_state's own
+        # object-read check ever runs.
+        customer_reader.user_permissions.add(
+            Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
+        )
+        api_client.force_authenticate(customer_reader)
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.get(object_state_url, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+        assert response.data["detail"] == "You do not have permission to perform this action."
+
     def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
         api_client.force_authenticate(workflow_user)
         object_transitions_url = reverse(
@@ -278,8 +366,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 HTTP_DRY_RUN="true",
             )
         assert response.status_code == status.HTTP_200_OK, response_body(response)
-        assert response.data[customer_order.pk]["new_state"]["code"] == "packed"
-        assert response.data[another_order.pk]["new_state"]["code"] == "packed"
+        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
@@ -357,8 +445,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert another_order.workflow_state.code == "packed"
         called_times = 2
         assert lock_spy.call_count == called_times
-        assert response.data[customer_order.pk]["new_state"]["code"] == "packed"
-        assert response.data[another_order.pk]["new_state"]["code"] == "packed"
+        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
 
     def test_execute_transition_bulk_returns_validation_error_when_locked(
         self, api_client, workflow_user, customer_order, another_order
@@ -479,10 +567,16 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {
-            "non_field_errors": [
-                f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check.",
-                f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check.",
-            ]
+            str(express_order.pk): {
+                "non_field_errors": [
+                    f"Order {express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
+            str(another_express_order.pk): {
+                "non_field_errors": [
+                    f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                ]
+            },
         }
         express_order.refresh_from_db()
         another_express_order.refresh_from_db()
@@ -523,10 +617,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         self, api_client, workflow_user, express_order, another_express_order
     ):
         # object_ids is client-supplied JSON and may mix numeric and string types for the same
-        # request (e.g. [5, "12"]). Warnings are merged into one aggregate {field: [messages]}
-        # mapping keyed by field name, never by object_ids, so a mixed-type batch gates (409) the
-        # same as any other and never reaches compute_warnings_digest's sort_keys comparison with
-        # a request-supplied value in key position.
+        # request (e.g. [5, "12"]). Warnings are keyed by the resolved instance's own pk (always
+        # str), not the raw request value.
         api_client.force_authenticate(workflow_user)
         bulk_url = reverse(
             "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
@@ -553,6 +645,36 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert express_order.workflow_state.code == "packed"
         assert another_express_order.workflow_state.code == "packed"
 
+    def test_execute_transition_bulk_digest_is_stable_across_object_id_types(
+        self, api_client, workflow_user, express_order, another_express_order
+    ):
+        # The same logical batch, submitted once with int object_ids and once with string
+        # object_ids, must gate with the same digest. Keying warnings by the raw request value
+        # would sort int keys numerically and string keys lexicographically, changing the digest
+        # for identical warning content depending on which JSON type the client happened to send.
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        int_ids_response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [express_order.pk, another_express_order.pk]},
+            format="json",
+        )
+        str_ids_response = api_client.patch(
+            bulk_url,
+            {
+                "transition_code": "pack_order",
+                "object_ids": [str(another_express_order.pk), str(express_order.pk)],
+            },
+            format="json",
+        )
+
+        assert int_ids_response.status_code == HTTPStatus.CONFLICT, response_body(int_ids_response)
+        assert str_ids_response.status_code == HTTPStatus.CONFLICT, response_body(str_ids_response)
+        assert int_ids_response.data["digest"] == str_ids_response.data["digest"]
+
     def test_execute_transition_bulk_aggregates_pre_check_errors_for_every_failing_instance(
         self, api_client, workflow_user, customer_order, another_order
     ):
@@ -578,8 +700,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         message = "Transition 'pack_order' not available from state 'shipped'"
-        assert response.data[customer_order.pk] == [message]
-        assert response.data[another_order.pk] == [message]
+        assert response.data[str(customer_order.pk)] == [message]
+        assert response.data[str(another_order.pk)] == [message]
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "shipped"
