@@ -7,6 +7,7 @@ import "./FieldSetRange.theme.js";
 import "./FieldSetStackedInline.theme.js";
 import "./FieldSetStackedInlineRow.theme.js";
 import "./FieldSetTabularInline.theme.js";
+import "./FieldWarningsList.theme.js";
 import "./FilterChip.theme.js";
 import "./FilterFieldForm.theme.js";
 import "./FilterForm.theme.js";
@@ -44,5 +45,6 @@ export default {
     FormActions: {},
     FormHiddenFeedback: {},
     // ---------- Confirmation ----------
+    FieldWarningsList: {},
     TypedConfirmField: {},
 };

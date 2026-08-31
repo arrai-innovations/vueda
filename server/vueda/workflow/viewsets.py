@@ -33,26 +33,6 @@ from vueda.workflow.serializers import WorkflowSerializer
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
-def _merge_transition_warnings(warnings_by_instance):
-    """
-    Merge each instance's ``get_transition_warnings`` mapping into one aggregate
-    ``{field: [messages]}`` warning set, so a bulk transition gates once with a single digest
-    instead of once per instance. Duplicate messages (the common case: every instance in the batch
-    trips the same rule) collapse to a single entry per field, keeping the aggregate -- and its
-    digest -- stable regardless of batch size. Aggregating this way also means a bulk request's
-    `object_ids` never become digest keys, so mixed int/string ids in one request can't crash
-    ``compute_warnings_digest``'s ``sort_keys`` comparison the way a per-object mapping would.
-    """
-    merged = {}
-    for warnings in warnings_by_instance:
-        for field, messages in warnings.items():
-            existing = merged.setdefault(field, [])
-            for message in messages:
-                if message not in existing:
-                    existing.append(message)
-    return merged
-
-
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = WorkflowSerializer
     filterset_class = WorkflowFilterSet
@@ -68,7 +48,9 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def get_workflow(self):
         return get_object_or_404(
-            Workflow, content_type__app_label=self.kwargs["app_label"], content_type__model=self.kwargs["model"]
+            Workflow,
+            content_type__app_label=self.kwargs["app_label"],
+            content_type__model=self.kwargs["model"].replace("_", ""),
         )
 
     def get_object(self):
@@ -82,8 +64,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return super().dispatch(request, *args, **kwargs)
 
     def check_permissions(self, request):
-        # you need Workflow read permission to get / list / action the workflow, at minimum
-        if not request.user.has_perm("vueda_workflow.read_workflow"):
+        # permitted_transitions decides its own read_workflow requirement, once it has resolved
+        # whether a workflow exists for the target model (see permitted_transitions below). Every
+        # other action always requires read_workflow, at minimum, before the model's own
+        # read/create/update/delete permission is checked below.
+        if self.action != "permitted_transitions" and not request.user.has_perm("vueda_workflow.read_workflow"):
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
@@ -168,8 +153,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             workflow = self.get_workflow()
         except Http404:
             return Response([])
-        user = request.user
 
+        if not request.user.has_perm("vueda_workflow.read_workflow"):
+            raise PermissionDenied("You do not have permission to perform this action.")
+
+        user = request.user
         if user is not None:
             workflow_permissions = [
                 ".".join(permission_parts)
@@ -242,24 +230,37 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
 
             model_class = self.get_workflow().content_type.model_class()
-            id_instances = [(object_id, get_object_or_404(model_class, pk=object_id)) for object_id in object_ids]
+            # Key every dict below off the resolved instance's own pk (cast to str), not the raw
+            # request value. object_ids is client-supplied JSON, which may mix numeric and string
+            # types (or the same ids typed differently across a gate/retry round trip); either of
+            # those would corrupt gate_warnings' digest -- mixed key types make
+            # json.dumps(sort_keys=True) raise TypeError, and same-value-different-type keys sort
+            # differently (numeric vs lexicographic), changing the digest for identical warnings.
+            # The resolved pk is authoritative and always the same type, so this is stable regardless
+            # of what the request sent.
+            id_instances = [
+                (str(instance.pk), instance)
+                for instance in (get_object_or_404(model_class, pk=object_id) for object_id in object_ids)
+            ]
 
             # Warnings are collected across every instance before any write, so a bulk transition
             # gates once with one aggregate digest instead of once per instance. Authorization
             # errors are aggregated the same way the write loop below aggregates them, so a bad
             # object_id in the batch is reported the same way whether it fails here or later.
             errors = {}
-            warnings_by_instance = []
+            warnings_by_object_id = {}
             for oid, instance in id_instances:
                 try:
                     transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
                 except VuedaValidationError as e:
                     errors[oid] = e.detail
                 else:
-                    warnings_by_instance.append(instance.get_transition_warnings(transition, resolved_user))
+                    warnings = instance.get_transition_warnings(transition, resolved_user)
+                    if warnings:
+                        warnings_by_object_id[oid] = warnings
             if errors:
                 raise VuedaValidationError(errors)
-            gate_warnings(request, _merge_transition_warnings(warnings_by_instance))
+            gate_warnings(request, warnings_by_object_id)
 
             response_data = {}
             with transaction.atomic():

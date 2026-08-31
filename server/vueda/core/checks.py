@@ -1,4 +1,4 @@
-"""System checks validating VUEDA serializer configuration."""
+"""System checks validating VUEDA serializer configuration and model feature policy."""
 
 import inspect
 
@@ -285,4 +285,46 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                 )
             )
 
+    return errors
+
+
+def check_model_feature_declaration(model):
+    """Validate one model's ``class Vueda`` declaration and its resolved values."""
+    from vueda.core.models import supports_vueda_feature_policy
+    from vueda.core.options import DECLARATION_ATTRIBUTE
+    from vueda.core.options import get_vueda_options
+
+    if not supports_vueda_feature_policy(model):
+        if DECLARATION_ATTRIBUTE in model.__dict__:
+            return [
+                Error(
+                    f"{model.__name__} declares class Vueda but is not a VUEDA model.",
+                    hint=(
+                        "VUEDA reads feature policy from models built on a VUEDA base such as VuedaModel or "
+                        "Lookup. Subclass one of those, or remove the declaration."
+                    ),
+                    obj=model,
+                    id="vueda_core.E016",
+                )
+            ]
+        return []
+
+    options = get_vueda_options(model)
+    return [Error(problem.message, hint=problem.hint, obj=model, id=problem.check_id) for problem in options.problems]
+
+
+def check_model_feature_policy(app_configs, **kwargs):
+    """Report every fault in the ``class Vueda`` feature policy of the installed models.
+
+    Resolution itself never raises, so an unknown section, an unknown option, an invalid value, a
+    section whose feature app is absent, or a declaration on a proxy surfaces here rather than as an
+    import error while Django loads models.
+    """
+    from django.apps import apps
+
+    models = apps.get_models() if app_configs is None else [m for c in app_configs for m in c.get_models()]
+
+    errors = []
+    for model in models:
+        errors.extend(check_model_feature_declaration(model))
     return errors

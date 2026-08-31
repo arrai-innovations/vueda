@@ -270,6 +270,7 @@ describe("lib/use/useObjectForm.js", () => {
         expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
         expect(objectForm.confirmation.open).toBe(true);
         expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        expect(objectForm.confirmation.bulk).toBe(false);
         expect(instanceObject.create).toHaveBeenCalledTimes(1);
 
         objectForm.confirmation.confirm();

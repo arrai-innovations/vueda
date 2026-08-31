@@ -91,3 +91,20 @@ def test_sqlite_connection_params_are_accepted_by_the_driver(tmp_path):
 
     connection = DatabaseWrapper({**defaults["DATABASES"]["default"], "TIME_ZONE": None})
     sqlite3.connect(**connection.get_connection_params()).close()
+
+
+def test_spectacular_tags_omit_workflow_when_workflow_app_is_omitted():
+    defaults = get_defaults(
+        _env(
+            VUEDA_APPS="vueda.core,vueda.history,vueda.info,vueda.user,vueda.release",
+        )
+    )
+
+    if "SPECTACULAR_SETTINGS" not in defaults:
+        pytest.skip("drf-spectacular is not installed")
+
+    tag_names = {tag["name"] for tag in defaults["SPECTACULAR_SETTINGS"]["TAGS"]}
+
+    assert "vueda.info" in tag_names
+    assert "vueda.user" in tag_names
+    assert "vueda.workflow" not in tag_names

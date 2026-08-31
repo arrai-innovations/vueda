@@ -29,14 +29,34 @@ class ObjectPermissions(DjangoObjectPermissions):
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
     view_action = None
+    object_permission_actions = frozenset(("destroy", "partial_update", "retrieve", "update"))
+
+    def _has_later_permission_decision(self, view) -> bool:
+        """Return whether this action has a guaranteed state-aware decision after model scope."""
+        action = self.view_action
+        if action in self.object_permission_actions:
+            return True
+        if action == "list":
+            return getattr(view, "applies_workflow_state_list_filter", False)
+        return action in getattr(view, "workflow_object_permission_actions", ())
 
     def has_permission(self, request, view) -> bool:
         """
-        Bypasses model-level permissions check for models with workflow state permissions,
-        delegating the decision to object-level permissions if applicable.
+        Defer a model-level denial only when a matching state grant can be decided later.
+
+        Object-scoped actions defer to ``has_object_permission``. Framework list actions defer
+        to their workflow-aware queryset filter. Collection writes, including create, retain the
+        model-level result because no existing object supplies a workflow state.
         """
+        self.view_action = getattr(view, "action", None)
+        model_permission = super().has_permission(request, view)
+        if model_permission or not request.user.is_authenticated or not self._has_later_permission_decision(view):
+            return model_permission
+
         # this is only going to work if workflow is installed
         if "vueda.workflow" in settings.INSTALLED_APPS:
+            from django.contrib.contenttypes.models import ContentType
+
             from vueda.workflow.models import HasWorkflowModelMixin
             from vueda.workflow.models import StatePermission
             from vueda.workflow.models import Workflow
@@ -45,19 +65,21 @@ class ObjectPermissions(DjangoObjectPermissions):
             model = queryset.model
             if issubclass(model, HasWorkflowModelMixin):
                 workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
+                codenames = [
+                    perm.rsplit(".", maxsplit=1)[-1] for perm in self.get_required_permissions(request.method, model)
+                ]
                 if (
                     workflow
                     and StatePermission.objects.filter(
                         state__workflow=workflow,
                         group__in=request.user.groups.all(),
-                        permission__codename__in=self.get_required_permissions(request.method, model),
+                        permission__codename__in=codenames,
+                        permission__content_type=ContentType.objects.get_for_model(model),
                         grant_or_deny=True,
                     ).exists()
                 ):
                     return True
-        # set the view action for use in get_required_permissions
-        self.view_action = view.action
-        return super().has_permission(request, view)
+        return model_permission
 
     def has_object_permission(self, request, view, obj) -> bool:
         """Records the current view action then delegates to DjangoObjectPermissions."""

@@ -75,6 +75,27 @@ describe("lib/utils/errors.js", () => {
     });
 
     describe("ConfirmationRequiredError", () => {
+        it("defaults bulk to false when the caller does not specify a request path", () => {
+            const error = new ConfirmationRequiredError(
+                { digest: "d1", warnings: { count: ["A negative count is unusual."] } },
+                new Response(),
+            );
+
+            expect(error.bulk).toBe(false);
+            expect(error.messages).toEqual({ count: ["A negative count is unusual."] });
+        });
+
+        it("carries bulk: true when bulk: true is passed in", () => {
+            const error = new ConfirmationRequiredError(
+                { digest: "d1", warnings: { 9: { count: ["A negative count is unusual."] } } },
+                new Response(),
+                { bulk: true },
+            );
+
+            expect(error.bulk).toBe(true);
+            expect(error.messages).toEqual({ 9: { count: ["A negative count is unusual."] } });
+        });
+
         it("extends ServerFeedbackError without changing the existing class identity", () => {
             const response = new Response();
             const responseData = {

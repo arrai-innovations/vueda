@@ -203,7 +203,7 @@ export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, fo
     // validation messages intact.
     Object.keys(confirmation.messages ?? {}).forEach((name) => formContext.clearServerErrors(name));
     formContext.handleServerFormValidationError(error);
-    return await confirmation.request(error.messages);
+    return await confirmation.request(error.messages, { bulk: error.bulk });
 };
 
 /**

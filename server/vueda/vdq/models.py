@@ -135,9 +135,6 @@ class QueueItem(VuedaModel, HasWorkflowModelMixin):
                 else:
                     attachment.attachment.delete(save=True)
 
-    def allow_transition(self, transition, user=None):
-        return transition in self.available_transitions(user=user)
-
     def on_transition(self, transition, user=None, dry_run=False):
         if transition.code in ("retry", "cancel") and self.task_id:
             cancel_task(self.task_id)

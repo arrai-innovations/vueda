@@ -245,7 +245,8 @@ class TestDestroyWarnings:
         gated = client.delete(LIST_URL, data=payload, format="json")
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
         assert gated.data["warnings"] == {
-            "non_field_errors": ["alpha still has a positive count.", "beta still has a positive count."]
+            str(alpha.pk): {"non_field_errors": ["alpha still has a positive count."]},
+            str(beta.pk): {"non_field_errors": ["beta still has a positive count."]},
         }
         assert Thing.objects.count() == len(payload["pks"])  # unchanged
 
@@ -293,7 +294,8 @@ class TestDeactivateActivateWarnings:
         gated = client.patch(BULK_DEACTIVATE_URL, data=payload, format="json")
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
         assert gated.data["warnings"] == {
-            "non_field_errors": ["critical-alpha is critical.", "critical-beta is critical."]
+            str(alpha.pk): {"non_field_errors": ["critical-alpha is critical."]},
+            str(beta.pk): {"non_field_errors": ["critical-beta is critical."]},
         }
         assert Gadget.objects.filter(is_active=True).count() == len(payload["pks"])  # unchanged
 
@@ -338,13 +340,29 @@ class TestDeactivateActivateWarnings:
         active.refresh_from_db()
         assert active.is_active is True
 
+    def test_bulk_deactivate_of_one_object_still_uses_per_object_warnings_shape(self, client):
+        # A bulk request affecting exactly one object still goes through get_warnings (bulk), not
+        # get_warnings_for_object (single-object), so it gates with the per-object shape.
+        gadget = Gadget.objects.create(name="critical-solo")
+
+        gated = client.patch(BULK_DEACTIVATE_URL, data={"pks": [gadget.pk]}, format="json")
+
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.data["warnings"] == {str(gadget.pk): {"non_field_errors": ["critical-solo is critical."]}}
+        gadget.refresh_from_db()
+        assert gadget.is_active is True
+
     def test_bulk_activate_is_gated_then_proceeds_on_acknowledgement(self, client):
+        # This bulk request affects exactly one object: it still goes through the bulk endpoint,
+        # so it gates with the per-object shape, not the single-object aggregate shape. The shape
+        # is decided by which endpoint was called (get_warnings vs. get_warnings_for_object), not
+        # by how many objects ended up in the batch.
         gadget = Gadget.objects.create(name="critical-off", is_active=False)
         payload = {"pks": [gadget.pk]}
 
         gated = client.patch(BULK_ACTIVATE_URL, data=payload, format="json")
         assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
-        assert gated.data["warnings"] == {"non_field_errors": ["critical-off is critical."]}
+        assert gated.data["warnings"] == {str(gadget.pk): {"non_field_errors": ["critical-off is critical."]}}
         gadget.refresh_from_db()
         assert gadget.is_active is False
 

@@ -31,6 +31,7 @@ LOCAL_APPS = [
     "tests.confirmation.apps.ConfirmationConfig",
     "tests.employee.apps.EmployeeConfig",
     "tests.erring.apps.ErringConfig",
+    "tests.features.apps.FeaturesConfig",
     "tests.logging.apps.LoggingConfig",
     "tests.product.apps.ProductConfig",
     "tests.store.apps.StoreConfig",

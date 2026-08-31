@@ -29,34 +29,43 @@ def test_lock_queue_item_returns_locked_instance(sender, receiver):
 
 
 @pytest.mark.django_db
-def test_allow_transition(monkeypatch, sender, receiver):
+def test_allow_transition(sender, receiver):
     qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
     send_transition = Transition.objects.get(workflow=qi.workflow, code="send")
+    await_transition = Transition.objects.get(workflow=qi.workflow, code="await")
 
-    monkeypatch.setattr(QueueItem, "available_transitions", lambda self, user=None: [send_transition])
+    # queued -> send is a legal source, queued -> await is not.
     assert qi.allow_transition(send_transition)
+    assert not qi.allow_transition(await_transition)
 
     qi.fast_transition("send")
     qi.fast_transition("delay")
     cancel_transition = Transition.objects.get(workflow=qi.workflow, code="cancel")
-    retry_transition = Transition.objects.get(workflow=qi.workflow, code="retry")
 
-    monkeypatch.setattr(QueueItem, "available_transitions", lambda self, user=None: [cancel_transition])
     assert qi.allow_transition(cancel_transition)
-
-    monkeypatch.setattr(QueueItem, "available_transitions", lambda self, user=None: [])
-    assert not qi.allow_transition(retry_transition)
+    assert not qi.allow_transition(await_transition)
 
 
 @pytest.mark.django_db
-def test_allow_transition_not_gated_by_workflow_code(monkeypatch, sender, receiver):
+def test_allow_transition_rejects_ignored_source(sender, receiver):
     qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    cancel_transition = Transition.objects.get(workflow=qi.workflow, code="cancel")
+    qi.fast_transition("cancel")
+    error_transition = Transition.objects.get(workflow=qi.workflow, code="error")
 
-    monkeypatch.setattr(QueueItem, "available_transitions", lambda self, user=None: [cancel_transition])
+    # cancelled -> error exists as a TransitionSource but is marked ignored.
+    assert qi.workflow_state.code == "cancelled"
+    assert qi.should_ignore_transition_from_state(error_transition)
+    assert not qi.allow_transition(error_transition)
+
+
+@pytest.mark.django_db
+def test_allow_transition_not_gated_by_workflow_code(sender, receiver):
+    qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    send_transition = Transition.objects.get(workflow=qi.workflow, code="send")
+
     qi.workflow.code = "delayed"
 
-    assert qi.allow_transition(cancel_transition)
+    assert qi.allow_transition(send_transition)
 
 
 @pytest.mark.django_db
