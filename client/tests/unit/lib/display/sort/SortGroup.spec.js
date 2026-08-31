@@ -184,12 +184,17 @@ describe("lib/display/sort/SortGroup.vue", () => {
         expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
     });
 
-    scopedIt("shows Reset sort when the active sort differs from the default, and restores it on click", async () => {
+    scopedIt("emits an empty sort on Reset, rather than the default's concrete values", async () => {
+        // Emitting the default's literal values (instead of []) would let the host
+        // persist them as an explicit stored preference, pinning today's default
+        // forever instead of continuing to follow it. Emitting [] routes through
+        // the host's "empty sort is the default" handling, which applies the
+        // default without storing anything.
         const wrapper = mount(SortGroup, {
             props: { sorted: ["-updated", "mrr"], defaultSorted: ["mrr"] },
         });
         await wrapper.get('[data-qa="sort-reset"]').trigger("click");
-        expect(wrapper.emitted("update:sorted")[0][0]).toEqual(["mrr"]);
+        expect(wrapper.emitted("update:sorted")[0][0]).toEqual([]);
     });
 
     scopedIt("shows Reset sort when only the order differs from the default", () => {

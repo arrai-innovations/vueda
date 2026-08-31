@@ -97,7 +97,7 @@ const remove = (base) => apply(removeSortField(localSorted.value, base));
 const matchesDefault = computed(() => sameOrder(localSorted.value, props.defaultSorted));
 const resetToDefault = () => {
     if (!matchesDefault.value) {
-        apply([...props.defaultSorted]);
+        apply([]);
     }
 };
 // The drag wrapper has already mutated `localSorted` in place by the time `change`
