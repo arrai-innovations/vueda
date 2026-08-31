@@ -63,12 +63,14 @@ Local validation error codes are namespaced to avoid collisions. `required` and 
 
 ## Server Validation Ingestion and Clearing
 
-Server validation enters the form state through a single method: `handleServerFormValidationError(error)`. This method takes a `FormValidationError` instance (produced by client {@term CRUDL} adapters from HTTP 400 responses) and iterates its two maps:
+Server feedback enters the form state through a single method: `handleServerFormValidationError(error)`. This method takes a `ServerFeedbackError` instance and iterates its two maps:
 
 - `error.errors` entries are written as `state.errors[name].server`
 - `error.messages` entries are written as `state.messages[name].server`
 
-`FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is always empty. `.messages` is instead populated by `ConfirmationRequiredError` (parsed from a 409 response), directly from that response's `warnings` mapping. Both classes expose the same `{errors, messages}` shape, which is what lets `handleServerFormValidationError` ingest either one without branching on error type. See [The Warning Channel](#the-warning-channel) below for the full 409 lifecycle.
+`FormValidationError` (parsed from a 400 response) extends `ServerFeedbackError`. It only populates `.errors`; its `.messages` stays empty. `ConfirmationRequiredError` (parsed from a 409 response) also extends `ServerFeedbackError`. It writes warnings into `.messages` from the response's `warnings` mapping.
+
+The shared `{errors, messages}` shape lets `handleServerFormValidationError` ingest server feedback without branching on error type. Callers still branch before ingestion to keep blocking errors separate from confirm-then-resubmit warnings. See [The Warning Channel](#the-warning-channel) below for the full 409 lifecycle.
 
 Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path; this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
 
@@ -106,7 +108,7 @@ The default submission pipeline, implemented in `useObjectForm`, follows a fixed
 4. Check `anyModified`. If the form has no changes, call `onSubmitNotAnyModified`; by default this shows a "No Changes Detected" toast and stops submission.
 5. Check `anyError`. If errors exist, call `onSubmitAnyError`; by default this filters ignored fields, strips the `server` code from remaining errors, and if non-server errors remain, shows a "Pre-save Validation Failed" toast, scrolls to the first error field, and stops submission. If only `server` errors remain, submission proceeds (the user is retrying after server feedback).
 6. Execute the create or `update` operation.
-7. If the operation fails with a `FormValidationError`, call `onSubmissionError`; by default this ingests the error into form state and scrolls to the first error field.
+7. If the operation fails with a `ServerFeedbackError` that is not a `ConfirmationRequiredError`, call `onSubmissionError`. By default, this hook ingests the error into form state and scrolls to the first error field.
 8. If the operation succeeds, call `onSubmissionSuccess`; by default this shows a success toast and redirects.
 
 Each step in this sequence (`onSubmitNotAnyModified`, `onSubmitAnyError`, `onSubmissionError`, `onSubmissionSuccess`) is a replaceable hook on the `useObjectForm` return object. Projects can override individual hooks without forking the entire submission pipeline.
@@ -131,7 +133,7 @@ Structured feedback objects (where a server error entry is an object rather than
 
 **Ignored array items not matching bracket-keyed errors.** Ignoring a base array field name (e.g., `items`) does not automatically ignore bracket-keyed error paths under it (e.g., `items[0].quantity`). The submission gating logic matches ignored prefixes using `.` separators, so `items` matches `items.something` but not `items[0].something`. This can leave the form blocked by errors on fields the developer intended to ignore.
 
-**Non-400 responses bypassing form feedback.** Only HTTP 400 responses are parsed as `FormValidationError`. A server endpoint that returns a validation-shaped payload with a different status code (for example, a 500 from an unhandled exception) will not populate form-context errors. The form feedback remains empty while the error surfaces through generic error handling.
+**Non-400 responses bypassing form feedback.** The default adapters only parse HTTP 400 responses as `FormValidationError`. A server endpoint may return a validation-shaped payload with a different status code, for example a 500 from an unhandled exception. The form context stays empty unless a custom adapter converts that response to a `ServerFeedbackError` subclass. Otherwise the error surfaces through generic error handling.
 
 **Reserved-code violation (`server`).** Local attempts to write the `server` code now throw immediately. The typical signature is: `Error code "server" is reserved for server-originated validation and cannot be set from local validation...`. This protects submission gating semantics by preventing local validation from entering the retryable server namespace.
 
@@ -142,7 +144,9 @@ Structured feedback objects (where a server error entry is an object rather than
 - {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
 - {@api js:module:@arrai-innovations/vueda/use/useActionForm}
 - {@api js:module:@arrai-innovations/vueda/utils/errors}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
 - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
 - {@api vue:component:ActionForm}
 - {@api vue:component:FormConfirmDialog}

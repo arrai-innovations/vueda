@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **Server feedback has a shared base class (`ServerFeedbackError`, `FormValidationError`, `ConfirmationRequiredError`)**:
+    - VUEDA now exports `ServerFeedbackError` from `@vueda/utils/errors.js`. It is the public base class for feedback errors the form system can ingest. `FormValidationError` and `ConfirmationRequiredError` extend it. They preserve their existing names, messages, response data, and concrete `instanceof` checks.
+    - `useObjectForm`, `useActionForm`, and `ErrorDisplay` now treat custom `ServerFeedbackError` subclasses as ingestible form feedback. They exclude `ConfirmationRequiredError`; that class remains reserved for warning confirmation when it carries a digest.
+      _Custom CRUDL adapters that need automatic form feedback should throw a `ServerFeedbackError` subclass. Populate `errors` and/or `messages`. Continue to throw `ConfirmationRequiredError` for warning confirmation._
+
 - **A failing field no longer blanks the form (`FieldRenderer`, `useFieldRenderer`, `buildForm`)**:
     - A widget that threw during setup or render sent the error to the nearest boundary, and the client had none, so one unrenderable field took down every other field on the page. `FieldRenderer` now contains a field's failure to that field. The surrounding form still renders, and the failed field shows an `ErrorDisplay` naming itself and the widget that failed, which reports to Sentry like any other displayed error.
     - `useFieldRenderer` gained `error`, `errored`, `renderFailureText`, and `clearError`, following the `error`/`errored` shape the rest of the client uses. Component resolution runs in the consuming component's own render, where an error boundary cannot reach it, so resolution failures are caught separately from setup and render failures. A configuration change that resolves different components clears a stale failure, so a field fixed upstream renders again.
@@ -404,7 +409,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `Alert`, `Sonner` toasts, and every floating surface (Popover, HoverCard, Dialog, Sheet, AlertDialog, dropdown / context / menubar menus, combobox / select lists, navigation menu) now carry the same hairline edge and popover / overlay elevation. `Sonner` also overrides vue-sonner's built-in `border` and drop-only shadow to match.
     - Cards, panels, table / toolbar dividers, fieldsets, sidebars, status cards (`ModelActionForm`, `ViewDestroy`), badges, chips, and the view family were converted. Real borders are kept only where correct: curved edges, dashed edges, joined-segment and OTP seams, 2px accent rails, and transparent layout spacers.
     - New theme utilities: `overlay-hairline` (hairline edge + popover elevation in one `box-shadow`) and its `overlay-hairline-elevated` modifier (swaps to the overlay drop for dialogs / sheets).
-      _No action required. If you overrode a theme key to swap a border colour, recolour the edge with `--vueda-hairline-color` (or a `hairline-*` variant) instead of `border-*`. If a theme key set both `hairline` and a `shadow-*` utility, use `overlay-hairline` instead — they both write `box-shadow` and cannot coexist._
+      _No action required. If you overrode a theme key to swap a border colour, recolour the edge with `--vueda-hairline-color` (or a `hairline-*` variant) instead of `border-*`. If a theme key set both `hairline` and a `shadow-*` utility, use `overlay-hairline` instead. They both write `box-shadow` and cannot coexist._
 
 - **Combobox search input behavior for a selected value (WidgetCombobox)**:
     - Selecting an option in an API-backed `WidgetCombobox` left the search box showing the raw value instead of the label. An API-backed `WidgetCombobox` now starts with a blank search box every time it opens and lists the full result set, while a static-mode combobox still pre-fills the search box with the selected option on open.

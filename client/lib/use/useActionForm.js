@@ -12,7 +12,7 @@ import {
     defaultOnSubmissionWarningsRequireConfirmation,
     defaultOnSubmitNotAnyModified,
 } from "@vueda/use/useObjectForm.js";
-import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
@@ -108,7 +108,7 @@ export function useActionForm(formContext, props) {
     });
 
     const handleError = async (error, dryRun) => {
-        if (error instanceof FormValidationError) {
+        if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
             formContext.handleServerFormValidationError(error);
             return;
         }

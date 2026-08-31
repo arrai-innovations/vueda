@@ -73,7 +73,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## Error Classification
 
-**Default adapters classify errors by HTTP status code and response shape.** The primary error types are {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} (for `400` responses, representing server-side validation failures) and `FetchError` (for all other non-success statuses). `FormValidationError` carries the response body, which typically contains per-field error messages that the form system can display inline.
+**Default adapters classify errors by HTTP status code and response shape.** The primary error types are {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} (for `400` responses, representing server-side validation failures) and `FetchError` (for all other non-success statuses). `FormValidationError` extends {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}. That base marks error classes the form system can ingest into form state. It carries the response body, which typically contains per-field error messages that the form system can display inline.
 
 **List adapters use a response-shape heuristic to distinguish filter errors from generic fetch errors.** `singlePagePaginatedListCrudAdaptor` checks whether any non-page, non-search query parameter key appears as a key in the response body. If the heuristic matches, the error is classified as a `ListFilterError` (indicating that a filter value was invalid). If the heuristic fails (for example, because the error response does not mirror parameter names), the error is classified as a generic `FetchError`. This heuristic-based classification means that unusual error response shapes can produce unexpected error types.
 
@@ -82,6 +82,8 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 **Projects replace adapters by calling `setListCrud` or `setObjectCrud` with their own functions.** A project that needs GraphQL transport, offline-first caching, or mock data for testing can skip `setupDefaultListCrud()` and `setupDefaultObjectCrud()` entirely and register custom adapter functions. Alternatively, a project can call the setup functions for the defaults and then overwrite individual slots.
 
 **Custom adapters must satisfy the same contracts as the defaults.** List adapters must call the provided callbacks (`pushObjects`, `clearObjects`, etc.) to write results and must resolve to `void`. Object adapters must resolve to the object data. Adapters that support cancellation must return a promise with a `.cancel()` method. The composables do not validate adapter return values at runtime; contract violations surface as downstream bugs (missing data, unresolved promises, or `TypeError` on undefined results).
+
+**Custom adapters that want automatic form feedback should throw `ServerFeedbackError`.** A replacement transport can subclass {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError} and populate its `errors` and `messages` maps. `useObjectForm`, `useActionForm`, and `handleServerFormValidationError` route that feedback into the `server` code. The adapter does not need to mimic `FormValidationError` exactly. Confirmation remains separate. For confirm-then-resubmit behavior, throw {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError} or a subclass with a non-null `digest`.
 
 **Per-instance overrides provide a narrower replacement scope.** Instead of replacing a global adapter, a single composable instance can override specific slots via the `handlers` parameter at creation time. This is useful for one-off behavior changes (for example, a list that needs a different pagination adapter) without affecting other instances.
 
@@ -119,5 +121,6 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 - {@api js:function:@arrai-innovations/vueda/utils/fetchSupport#fetchHelper}
 - {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#CancellablePromise}
 - {@api js:type:@arrai-innovations/vueda/utils/fetchSupport#MaybeCancellablePromise}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
 - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
 - {@api js:module:@arrai-innovations/vueda/utils/errors}

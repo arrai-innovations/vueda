@@ -23,7 +23,7 @@ flowchart TD
 
     subgraph Client["Client Adapter"]
         GATE{{"Status<br/>= 400?"}}
-        FVE["FormValidationError<br/>constructor"]
+        FVE["FormValidationError<br/>(ServerFeedbackError)"]
     end
 
     GATE -- "Yes" --> FVE
@@ -48,7 +48,9 @@ flowchart TD
 
 The server is the sole authority over validation outcomes. It decides what is valid, what is a warning, and what shape the error payload takes. The client is the authority over how those payloads are represented in the runtime state and rendered in the UI. Neither side has visibility into the other's internal logic; they communicate solely through HTTP responses.
 
-The contract has a single classification gate: **HTTP 400 means form validation; everything else does not.** This is a deliberate constraint. The client's {@term CRUDL} adapters, auth handlers, and action form components all share the same rule: 400 responses are wrapped in `FormValidationError` and routed into form state. Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths and do not populate form feedback. This means that a validation-shaped payload returned with a 500 status will never appear in form fields, and a generic error returned with a 400 status will be treated as validation feedback.
+The contract has a single classification gate in the default transport: **HTTP 400 means form validation; everything else does not.** This constraint is deliberate. The client's {@term CRUDL} adapters, auth handlers, and action form components all share one rule. They wrap 400 responses in `FormValidationError` and route them into form state. `FormValidationError` extends `ServerFeedbackError`, the public base class for feedback errors the form system can ingest.
+
+Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths. They do not populate form feedback. A validation-shaped 500 will not appear in form fields unless a custom adapter converts it to a `ServerFeedbackError` subclass. The default adapters treat any 400 as validation feedback, even when the payload is generic.
 
 ## Wire Error Shapes and Status Branches
 
@@ -95,7 +97,9 @@ Which shape a request gets is decided by which hook handled it, never by countin
 
 None of these hooks enforce this shape in code: `gate_warnings` only checks the mapping for truthiness and digests it as opaque JSON, so nothing raises if a caller returns something else. But the client's default rendering (below) only understands these two shapes; a caller that deviates is expected to also supply its own client-side rendering to interpret whatever it returns instead. When the mapping is non-empty and the request has not acknowledged it, the write is withheld and the response is `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of a 400.
 
-On the client, this 409 is parsed into a `ConfirmationRequiredError`. Its `.messages` map is populated directly from the response's `warnings` mapping (`.errors` is always empty, since a confirmation response carries no blocking errors). `handleServerFormValidationError(error)` ingests both error classes the same way, reading `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`, so form components do not need to branch on which class they received.
+The client parses this 409 into a `ConfirmationRequiredError`, which also extends `ServerFeedbackError`. It populates `.messages` directly from the response's `warnings` mapping. It leaves `.errors` empty, since a confirmation response carries no blocking errors. `handleServerFormValidationError(error)` ingests the shared base-class shape without branching: it reads `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`.
+
+Callers still branch on class before ingestion. `FormValidationError` and custom `ServerFeedbackError` subclasses use the blocking-feedback path. `ConfirmationRequiredError` uses the confirm-then-resubmit path when it carries a digest.
 
 The response gives the client no way to infer which of the two shapes `.messages` is in from the payload alone — a per-object mapping and a plain field-keyed mapping are both just JSON objects. So `ConfirmationRequiredError` also carries `.bulk`: `true` for the per-object shape, `false` for the aggregate shape. This is not derived from the response body; it is set by whichever client call constructed the error, because that call is the only place that knows which request path (single-object or bulk) it took.
 
@@ -105,7 +109,7 @@ See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#
 
 ## Client Classification and Form-State Ingestion
 
-Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` for bulk delete, `storeUser` for authentication, `ModelActionForm` for action execution) all follow the same classification rule: HTTP 400 becomes `FormValidationError`, everything else becomes `FetchError` or a more specific non-form error class.
+Client CRUDL adapters all follow the same classification rule. This includes `objectCrud` for object mutations, `listCrud` for bulk delete, `storeUser` for authentication, and `ModelActionForm` for action execution. HTTP 400 becomes `FormValidationError`. Everything else becomes `FetchError` or a more specific non-form error class. Custom adapters that replace the transport can throw a `ServerFeedbackError` subclass. Use that when custom blocking feedback should enter the same form-state ingestion path.
 
 `FormValidationError` construction happens at the adapter layer, before the error reaches any form-context handler. The constructor:
 
@@ -114,7 +118,7 @@ Client CRUDL adapters (`objectCrud` for `create`/`update`/`delete`, `listCrud` f
 3. Extracts structured-object paths (those with a `.detail` suffix) and string paths.
 4. Builds the `errors` map from all paths. `messages` is always empty.
 
-Form context ingestion occurs when `handleServerFormValidationError(error)` is called. This iterates `error.errors` and `error.messages`, writing each entry under the `server` code key. The `server` code is what distinguishes server-originated feedback from local validation (`required`, `validate`) in the two-dimensional error storage.
+Call `handleServerFormValidationError(error)` with a `ServerFeedbackError` to ingest form feedback. The method iterates `error.errors` and `error.messages`, writing each entry under the `server` code key. The `server` code distinguishes server-originated feedback from local validation (`required`, `validate`) in the two-dimensional error storage.
 
 The `server` code is reserved and runtime-enforced in client form APIs. Local calls that try to write `server` through `updateError` or `updateMessage` throw; only `handleServerFormValidationError` is allowed to populate that namespace.
 
@@ -157,7 +161,9 @@ This means that a form component fetching choices for a field that references an
 - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
 - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
 - {@api js:module:@arrai-innovations/vueda/utils/errors}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
 - {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
+- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.errors}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.messages}
 - {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.serverStack}
