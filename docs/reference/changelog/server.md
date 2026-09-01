@@ -122,6 +122,9 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **`PERMISSION_NAMES_MAPPING` read at call time**:
+    - `override_settings(PERMISSION_NAMES_MAPPING=...)` now changes the codename `get_permission_codename` returns, and reaches every place that resolves a mapped permission name: row-level filtering, model-info metadata, workflow state checks, and object history access. These six call sites previously bound the setting to a module global at import, so an override taken after import — as `override_settings` does — reached none of them. The value is cached and invalidated on `setting_changed`, so a normal request still resolves the mapping without a settings lookup on every permission check.
+      _No action is required for an application that configures `PERMISSION_NAMES_MAPPING` once at startup. A test that used `override_settings(PERMISSION_NAMES_MAPPING=...)` and got no effect now sees the override applied._
 - **`available_transitions_for` transition permissions**:
     - `HasWorkflowModelMixin.available_transitions_for` now applies each transition's configured `TransitionPermission` rows to the calling user. Its filter previously reached `check_transition_permission` through the model class rather than an object, which bound the transition to `self` and left `user` at `None`, so the method's first branch admitted every candidate. A caller holding the workflow's own permissions received transitions whose transition permissions they did not hold, disagreeing with the single-object `available_transitions` for the same object and user.
     - A transition is returned when the caller may take it on at least one of the given objects, matching the source-state filter, which already admits a transition leaving any of the objects' states. The method resolves the concrete instances so that workflow state grants, state denies, and `RowLevelPermissions` hooks apply per object. Passing `user=None` still returns every candidate.
