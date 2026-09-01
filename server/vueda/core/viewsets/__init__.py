@@ -418,13 +418,14 @@ class NoExtraFieldsForViewSetMixin:
         )
 
     @staticmethod
-    def reject_unrecognized_query_params(request, valid_fields):
+    def reject_unrecognized_query_params(request, valid_fields, message_fields=None):
         valid_fields = set(valid_fields)
+        message_fields = valid_fields if message_fields is None else set(message_fields)
         extra_keys = set(request.query_params) - valid_fields
         if extra_keys:
             raise VuedaValidationError(
                 {
-                    key: [f"Invalid query parameter. Valid filters are {', '.join(sorted(valid_fields))}."]
+                    key: [f"Invalid query parameter.  Valid filters are {', '.join(sorted(message_fields))}."]
                     for key in extra_keys
                 }
             )
@@ -531,7 +532,12 @@ class NoExtraFieldsForViewSetMixin:
                 if hasattr(filter_obj, "lookup_expr"):
                     filterset_fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
 
-        self.reject_unrecognized_query_params(request, extra_allowed_fields | filterset_fields)
+        # A filterset's "valid filters" message names only its filter fields; pagination, ordering,
+        # search, and flex-fields params are accepted but not filters, so they stay out of the message.
+        message_fields = filterset_fields if hasattr(self, "filterset_class") else extra_allowed_fields
+        self.reject_unrecognized_query_params(
+            request, extra_allowed_fields | filterset_fields, message_fields=message_fields
+        )
 
         serializer = self.get_serializer()
 
