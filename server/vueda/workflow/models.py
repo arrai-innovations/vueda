@@ -524,6 +524,38 @@ class ObjectState(SimpleHistoryModelMixin):
         return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
 
 
+def _permitted_transition_ids(
+    model: type["HasWorkflowModelMixin"],
+    transitions: list[Transition],
+    state_by_object: dict[int, int],
+    user: User,
+) -> list[int]:
+    """
+    Return the ids of ``transitions`` that ``user`` may take on at least one of the objects in
+    ``state_by_object``, which maps an object id to the id of that object's current state.
+    """
+    objects_by_state: dict[int, list[HasWorkflowModelMixin]] = {}
+    # ``state_by_object`` names these objects explicitly, so read them past any default manager
+    # filtering, the same way the object state lookup that produced it does.
+    for instance in model._base_manager.filter(pk__in=list(state_by_object)):
+        objects_by_state.setdefault(state_by_object[instance.pk], []).append(instance)
+    sources_by_transition: dict[int, set[int]] = {}
+    for transition_id, source_id in TransitionSource.objects.filter(
+        transition__in=[transition.id for transition in transitions],
+    ).values_list("transition_id", "source_id"):
+        sources_by_transition.setdefault(transition_id, set()).add(source_id)
+    permitted_ids = []
+    for transition in transitions:
+        objects_in_source_states = [
+            instance
+            for source_id in sources_by_transition.get(transition.id, ())
+            for instance in objects_by_state.get(source_id, ())
+        ]
+        if any(instance.check_transition_permission(transition, user) for instance in objects_in_source_states):
+            permitted_ids.append(transition.id)
+    return permitted_ids
+
+
 class HasWorkflowModelMixin(models.Model):
     """
     Model-level utility methods for objects with workflow.
@@ -667,6 +699,14 @@ class HasWorkflowModelMixin(models.Model):
     ) -> QuerySet[Transition]:
         """
         Returns available transitions for a list of objects.
+
+        A transition is available when at least one of ``objs`` sits in one of its source states and
+        ``user`` may take it on that object. This matches the source-state filter, which admits a
+        transition leaving any of the objects' states rather than all of them.
+
+        ``check_transition_permission`` resolves ``user.has_perms(perms, obj=...)``, so the answer
+        depends on the object it receives. This classmethod therefore loads the concrete instances
+        and asks each candidate object rather than asking the model class.
         """
         workflow = Workflow.objects.get(content_type=cls.get_content_type())
         workflow_permissions = [
@@ -679,20 +719,28 @@ class HasWorkflowModelMixin(models.Model):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
-        object_states = ObjectState.objects.filter(
-            workflow__content_type=cls.get_content_type(),
-            object_id__in=objs,
-        ).values_list("state", flat=True)
+        state_by_object = dict(
+            ObjectState.objects.filter(
+                workflow__content_type=cls.get_content_type(),
+                object_id__in=[getattr(obj, "pk", obj) for obj in objs],
+            ).values_list("object_id", "state")
+        )
         transitions = (
             Transition.objects.filter(
                 workflow=workflow,
-                transition_sources__source__in=object_states,
+                transition_sources__source__in=set(state_by_object.values()),
             )
             .exclude(transition_permissions__isnull=True)
             .select_related("target")
             .all()
         )
-        return transitions.filter(pk__in=[t.id for t in transitions if cls.check_transition_permission(t, user)])
+        candidates = list(transitions)
+        if user is None:
+            # Programmatic use sees every candidate, matching ``check_transition_permission``.
+            permitted_ids = [transition.id for transition in candidates]
+        else:
+            permitted_ids = _permitted_transition_ids(cls, candidates, state_by_object, user)
+        return transitions.filter(pk__in=permitted_ids)
 
     @classmethod
     def check_workflow_permission(cls, user: User | None = None) -> bool:

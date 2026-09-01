@@ -118,6 +118,10 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **`available_transitions_for` transition permissions**:
+    - `HasWorkflowModelMixin.available_transitions_for` now applies each transition's configured `TransitionPermission` rows to the calling user. Its filter previously reached `check_transition_permission` through the model class rather than an object, which bound the transition to `self` and left `user` at `None`, so the method's first branch admitted every candidate. A caller holding the workflow's own permissions received transitions whose transition permissions they did not hold, disagreeing with the single-object `available_transitions` for the same object and user.
+    - A transition is returned when the caller may take it on at least one of the given objects, matching the source-state filter, which already admits a transition leaving any of the objects' states. The method resolves the concrete instances so that workflow state grants, state denies, and `RowLevelPermissions` hooks apply per object. Passing `user=None` still returns every candidate.
+      _No VUEDA endpoint calls this method. If an application called it directly and compensated for the missing filter, remove that workaround._
 - **Workflow state permission deferral**:
     - Model viewsets now defer a baseline permission denial only for a state grant matching the caller's groups, action-specific codename, model content type, and workflow, and only when the request has a guaranteed later state-aware decision. Unrelated rules and state denies no longer admit list or create requests, and workflow state data no longer suppresses authentication, composite permission expressions, or additional DRF permission classes.
     - Workflow model lists now apply state grants and denies before pagination even when the model does not define `RowLevelPermissions`. A state `list_*` grant can admit the endpoint but returns only rows in matching granted states; matching denies remove rows from users with baseline list permission. Create remains model-authorized because a new object has no current workflow state.

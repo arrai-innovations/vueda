@@ -19,6 +19,7 @@ from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Transition
+from vueda.workflow.models import TransitionPermission
 from vueda.workflow.models import WorkflowPermission
 
 
@@ -341,6 +342,81 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
 
         assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
+
+    def test_available_transitions_for_applies_transition_permissions(self, customer_order, workflow_user):
+        # workflow_user holds store.fulfill_orders, which every transition in the fixture requires.
+        # Add a second requirement to pack_order that the user does not hold.
+        pack_order = Transition.objects.get(workflow=customer_order.workflow, code="pack_order")
+        TransitionPermission.objects.create(
+            transition=pack_order,
+            permission=Permission.objects.get(codename="create_customerorder", content_type__app_label="store"),
+        )
+
+        assert not customer_order.check_transition_permission(pack_order, workflow_user)
+
+        transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id], user=workflow_user)
+
+        assert {transition.code for transition in transitions} == {"cancel_order", "hold_order"}
+
+    def test_available_transitions_for_agrees_with_available_transitions(self, customer_order, workflow_user):
+        pack_order = Transition.objects.get(workflow=customer_order.workflow, code="pack_order")
+        TransitionPermission.objects.create(
+            transition=pack_order,
+            permission=Permission.objects.get(codename="create_customerorder", content_type__app_label="store"),
+        )
+
+        single = {transition.code for transition in customer_order.available_transitions(user=workflow_user)}
+        multi = {
+            transition.code
+            for transition in store_models.CustomerOrder.available_transitions_for(
+                [customer_order.id], user=workflow_user
+            )
+        }
+
+        assert multi == single
+
+    def test_available_transitions_for_without_user_ignores_transition_permissions(self, customer_order):
+        pack_order = Transition.objects.get(workflow=customer_order.workflow, code="pack_order")
+        TransitionPermission.objects.create(
+            transition=pack_order,
+            permission=Permission.objects.get(codename="create_customerorder", content_type__app_label="store"),
+        )
+
+        transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id])
+
+        assert {transition.code for transition in transitions} == {"cancel_order", "hold_order", "pack_order"}
+
+    def test_available_transitions_for_admits_a_transition_permitted_on_any_object(self, customer_order, workflow_user):
+        # A second order, moved to packed, where a state rule denies the permission every transition
+        # in the fixture requires. cancel_order leaves both states; ship_order leaves packed only.
+        packed_order = store_models.CustomerOrder.objects.create(
+            order_number=Decimal("1002"),
+            customer=customer_order.customer,
+            order_state=customer_order.order_state,
+            shipping_method="free",
+        )
+        packed_state = State.objects.get(code="packed", workflow__code="order_fulfillment")
+        packed_object_state = packed_order.object_state
+        packed_object_state.state = packed_state
+        packed_object_state.save()
+        StatePermission.objects.create(
+            state=packed_state,
+            permission=Permission.objects.get(codename="fulfill_orders", content_type__app_label="store"),
+            group=Group.objects.get(name="Order Workflow Managers"),
+            grant_or_deny=False,
+        )
+
+        cancel_order = Transition.objects.get(workflow=customer_order.workflow, code="cancel_order")
+        assert customer_order.check_transition_permission(cancel_order, workflow_user)
+        assert not packed_order.check_transition_permission(cancel_order, workflow_user)
+
+        transitions = store_models.CustomerOrder.available_transitions_for(
+            [customer_order.id, packed_order.id], user=workflow_user
+        )
+        codes = {transition.code for transition in transitions}
+
+        assert "cancel_order" in codes
+        assert "ship_order" not in codes
 
     def test_available_transitions_for_requires_workflow_permissions(self, customer_order, workflow_user):
         WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
