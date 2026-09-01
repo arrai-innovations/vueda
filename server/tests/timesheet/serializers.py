@@ -3,9 +3,9 @@ from rest_framework import serializers
 from tests.employee.serializers import EmployeeSerializer
 from tests.timesheet import models
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
-from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
+from vueda.history.serializers import VuedaHistorySerializer
 
 
 class TimesheetEntrySerializer(VuedaHistorySerializer):

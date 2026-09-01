@@ -9,7 +9,6 @@ __all__ = (
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
     "VuedaExpandableFieldsSerializerMixin",
-    "VuedaHistorySerializer",
     "VuedaListSerializer",
     "VuedaLookupSerializer",
     "VuedaReadonlyListSerializer",
@@ -39,7 +38,6 @@ from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
-from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 from vueda.info.registration import get_serializer_for_model
 
 
@@ -600,15 +598,6 @@ class VuedaSerializer(
         expandable_fields = {}
         fields = ["formatted_name", "available_actions"]
         list_serializer_class = VuedaListSerializer
-
-
-class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
-    """``VuedaSerializer`` extended with audit-history fields from ``simple-history``."""
-
-    class Meta(SimpleHistorySerializerMixin.Meta, VuedaSerializer.Meta):
-        expandable_fields = VuedaSerializer.Meta.expandable_fields.copy()
-        expandable_fields.update(SimpleHistorySerializerMixin.Meta.expandable_fields)
-        fields = VuedaSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields
 
 
 class VuedaLookupSerializer(VuedaSerializer):

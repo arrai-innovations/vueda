@@ -32,8 +32,8 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
+from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
-from vueda.history.models import SimpleHistoryModelMixin
 from vueda.workflow.exceptions import InvalidTransitionError
 
 

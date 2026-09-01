@@ -149,7 +149,7 @@ After implementing nested writes, verify the following:
     - {@api py:module:vueda.core.serializers}
     - {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
-    - {@api py:class:vueda.core.serializers.VuedaHistorySerializer}
+    - {@api py:class:vueda.history.serializers.VuedaHistorySerializer}
     - {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}
     - {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}

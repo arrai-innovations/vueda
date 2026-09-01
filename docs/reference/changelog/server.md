@@ -21,6 +21,10 @@ public-facing documentation baseline.
 
 ### Breaking Changes
 
+- **History classes move to the app that owns them**:
+    - `VuedaHistorySerializer` moves from `vueda.core.serializers` to `vueda.history.serializers`, and `VuedaHistoryViewSet` moves from `vueda.core.viewsets` to `vueda.history.viewsets`. Both classes are unchanged; only their import path moves. `vueda.core` no longer imports `vueda.history` at all, so a project that omits the optional history app now loads no history module.
+    - `SimpleHistoryModelMixin`, `SimpleHistoryManager`, and `ProxyAwareHistoricalRecords` move from `vueda.history.models` to `vueda.core.simple_history`. `vueda.workflow` tracks its own models through that mixin and must reach it without importing the optional history app. The generated `Historical*` models keep the `vueda_workflow` app label, and this change generates no migrations.
+      _Update `from vueda.core.serializers import VuedaHistorySerializer` to `from vueda.history.serializers import VuedaHistorySerializer`, and `from vueda.core.viewsets import VuedaHistoryViewSet` to `from vueda.history.viewsets import VuedaHistoryViewSet`. A project that imported the simple-history mixin, manager, or records class from `vueda.history.models` should import it from `vueda.core.simple_history` instead. `VuedaHistoryModel` stays in `vueda.history.models`._
 - **Read-only serializer permission metadata**:
     - Model-info `model_permissions` now exposes only the mapped `list` and `read` permissions when a model's canonical serializer subclasses `VuedaReadonlySerializer`. Other permission rows remain in Django's permission table, and the change does not alter server authorization.
       _If an integration treated `model_permissions` as a complete database permission inventory, account for the filtered read-only surface or query Django's permission model directly._
