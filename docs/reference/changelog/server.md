@@ -46,7 +46,7 @@ public-facing documentation baseline.
       _No repository production code raised `is_warning=True`; only a logging test fixture did. If a downstream project raised it, migrate to `get_warnings()`. If a downstream project imported `vueda.core.logging_filters` or referenced the `ignore_validation_warnings` `LOGGING` filter, remove that import and filter reference._
 - **Unrecognized query parameters are rejected on every route**:
     - `NoExtraFieldsForViewSetMixin.retrieve` now rejects any query parameter other than the flex-fields params (`e`, `f`, `om`) with a 400. `NoExtraFieldsForViewSetMixin.list` now applies the same rejection to a viewset with no `filterset_class`, accepting only pagination, ordering, search, and flex-fields params. Previously, `retrieve` accepted any query parameter unconditionally on every viewset, and `list` accepted any query parameter unconditionally on a viewset with no `filterset_class`; only `list` on a viewset with a `filterset_class` rejected unrecognized parameters. `list` on a viewset with a `filterset_class` is unchanged.
-      _Drop any query parameter sent to a `retrieve` endpoint, or to a `list` endpoint without a filterset, that is not a pagination, ordering, search, or flex-fields param — for example, a cache-busting parameter appended by a client or proxy._
+      _Drop any query parameter sent to a `retrieve` endpoint that is not `e`, `f`, or `om`. Drop any query parameter sent to a `list` endpoint without a filterset that is not a pagination, ordering, search, or flex-fields param (for example, a cache-busting parameter appended by a client or proxy)._
 
 ### Features
 
