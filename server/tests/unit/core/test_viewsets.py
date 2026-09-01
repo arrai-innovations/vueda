@@ -6,6 +6,9 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.db import connection
+from django.db.models import Prefetch
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
@@ -20,12 +23,14 @@ from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.timesheet.models import Timesheet
+from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.test_model_info import VuedaTestData
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import filter_new_prefetch_lookups
 
 
 def test_vueda_read_only_viewset_excludes_write_actions():
@@ -44,6 +49,27 @@ def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
             pass
 
     assert InvalidCombinedViewSet is not None
+
+
+def test_filter_new_prefetch_lookups_drops_a_bare_string_duplicate():
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries")
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_drops_a_prefetch_object_duplicate():
+    queryset = Timesheet.objects.prefetch_related(Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all()))
+    plan = ["timesheet_entries"]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries")
+    other_lookup = Prefetch("history", queryset=Timesheet.history.model.objects.all())
+
+    assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
 
 
 @pytest.mark.django_db
@@ -747,6 +773,167 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert error_key in response.data
         assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
+
+    def _create_timesheets(self, count):
+        supervisor = Employee.objects.create(user=self.users["test_admin@domain.invalid"], employee_number="super")
+        for i in range(count):
+            employee = Employee.objects.create(user=self.users["test_admin@domain.invalid"], employee_number=f"emp-{i}")
+            self.model.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+                supervisor=supervisor,
+            )
+        return supervisor
+
+    def test_list_with_expands_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,supervisor"}
+
+        # Warm the requesting user's Django permission cache (ModelBackend.get_all_permissions,
+        # cached on the user instance for the rest of the test) once, up front, so the one-time cost
+        # of the first request against this user doesn't masquerade as a row-count-dependent one.
+        authenticated_client.get(self.list_url(), data=query, format="json")
+
+        counts = {}
+        for row_count in (2, 10):
+            self.model.objects.all().delete()
+            supervisor = self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(self.list_url(), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert result["supervisor"]["id"] == supervisor.id
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"expanded list query count grows with row count: {counts}"
+
+    def test_list_with_expand_survives_sparse_fieldset_and_query_count_does_not_grow(self, authenticated_client):
+        # "f" (sparse fields) does not name "employee", but requesting it via "e" still renders it
+        # (see FlexFieldsWriteableNestedSerializerMixin.apply_flex_fields), so the plan must still
+        # cover it.
+        query = {
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id",
+        }
+
+        # See test_list_with_expands_query_count_does_not_grow_with_row_count for why this is needed.
+        authenticated_client.get(self.list_url(), data=query, format="json")
+
+        counts = {}
+        for row_count in (2, 10):
+            self.model.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(self.list_url(), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert isinstance(result["employee"], dict)
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, (
+            f"expanded list dropped by a sparse fieldset still grows query count with row count: {counts}"
+        )
+
+
+@pytest.mark.django_db
+class TestTimesheetWithAliasedSupervisorViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        supervisor = Employee.objects.create(user=user, employee_number="super")
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+                supervisor=supervisor,
+            )
+        return supervisor
+
+    def test_list_with_source_aliased_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        # "manager" is declared with source="supervisor" (vs. TimesheetViewSet's plain "supervisor"
+        # expand), so the plan must resolve it against the model's "supervisor" relation, not a
+        # (nonexistent) "manager" attribute.
+        url = reverse("timesheet.timesheetmanager-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "manager"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            supervisor = self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert result["manager"]["id"] == supervisor.id
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"source-aliased expand query count grows with row count: {counts}"
+
+
+@pytest.mark.django_db
+class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithPrefetchedEntriesViewSet.queryset`` hand-declares its own
+    ``prefetch_related("timesheet_entries")``, the exact relation "entries" also expands. Before
+    ``filter_new_prefetch_lookups``, ``VuedaViewSet.get_queryset()`` would add a second, different
+    ``Prefetch`` for the same lookup on top of it, and Django raises ``ValueError`` the moment such
+    a queryset is evaluated -- this covers that it no longer does.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def test_list_with_expand_does_not_raise_when_viewset_already_prefetches_the_relation(self, authenticated_client):
+        user = self.users["test_user@domain.invalid"]
+        employee = Employee.objects.create(user=user, employee_number="1")
+        timesheet = Timesheet.objects.create(
+            period_start=datetime.date(2024, 1, 1),
+            period_end=datetime.date(2024, 1, 15),
+            employee=employee,
+        )
+        entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+        url = reverse("timesheet.timesheetprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert len(response.data["results"]) == 1
+        entries = response.data["results"][0]["entries"]
+        assert [e["id"] for e in entries] == [entry.id]
 
 
 @pytest.mark.django_db

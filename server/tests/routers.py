@@ -4,11 +4,21 @@ from tests.employee.viewsets import UserWithPermissionsViewSet
 from tests.product.viewsets import ProductViewSet
 from tests.timesheet.viewsets import TimesheetEntryViewSet
 from tests.timesheet.viewsets import TimesheetViewSet
+from tests.timesheet.viewsets import TimesheetWithAliasedSupervisorViewSet
+from tests.timesheet.viewsets import TimesheetWithPrefetchedEntriesViewSet
 from vueda.core.routers import VuedaRouter
 
 
 tests_router = VuedaRouter()
 tests_router.register("timesheets", TimesheetViewSet)
+tests_router.register(
+    "timesheets_with_aliased_supervisor", TimesheetWithAliasedSupervisorViewSet, basename="timesheet.timesheetmanager"
+)
+tests_router.register(
+    "timesheets_with_prefetched_entries",
+    TimesheetWithPrefetchedEntriesViewSet,
+    basename="timesheet.timesheetprefetched",
+)
 tests_router.register("products", ProductViewSet)
 tests_router.register("timesheetentries", TimesheetEntryViewSet)
 tests_router.register("users_with_groups", UserWithGroupsViewSet, basename="employee.usergroup")
