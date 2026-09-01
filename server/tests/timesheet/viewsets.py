@@ -1,3 +1,4 @@
+from tests.timesheet import filtersets
 from tests.timesheet import models
 from tests.timesheet import serializers
 from vueda.core import viewsets
@@ -6,6 +7,7 @@ from vueda.core import viewsets
 class TimesheetViewSet(viewsets.VuedaHistoryViewSet):
     queryset = models.Timesheet.objects.all()
     serializer_class = serializers.TimesheetSerializer
+    filterset_class = filtersets.TimesheetFilterSet
     permit_list_expands = ["employee", "supervisor"]
 
 

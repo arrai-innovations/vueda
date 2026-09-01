@@ -389,10 +389,12 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
 
 class NoExtraFieldsForViewSetMixin:
     """
-    Mixin for DRF ViewSets to validate query parameters against filter and serializer fields.
-    It raises a VuedaValidationError (400) for any query parameter that is not recognized as a
-    valid field or an explicitly allowed extra field. It handles validation for both filter class
-    fields and fields specified in REST Flex Fields settings.
+    Mixin for DRF ViewSets that raises a VuedaValidationError (400) for any query parameter `list` or
+    `retrieve` does not recognize.
+
+    `list` recognizes filterset fields (from `filterset_class`, when declared) plus pagination,
+    ordering, search, and REST Flex Fields params (`get_extra_allowed_fields()`). A viewset with no
+    `filterset_class` recognizes only the latter set. `retrieve` recognizes only the expand, fields and omit params.
     """
 
     @staticmethod
@@ -406,6 +408,26 @@ class NoExtraFieldsForViewSetMixin:
             settings.REST_FRAMEWORK["SEARCH_PARAM"],
             settings.REST_FRAMEWORK["ORDERING_PARAM"],
         )
+
+    @staticmethod
+    def get_retrieve_allowed_fields():
+        return (
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
+            settings.REST_FLEX_FIELDS["OMIT_PARAM"],
+        )
+
+    @staticmethod
+    def reject_unrecognized_query_params(request, valid_fields):
+        valid_fields = set(valid_fields)
+        extra_keys = set(request.query_params) - valid_fields
+        if extra_keys:
+            raise VuedaValidationError(
+                {
+                    key: [f"Invalid query parameter. Valid filters are {', '.join(sorted(valid_fields))}."]
+                    for key in extra_keys
+                }
+            )
 
     @staticmethod
     def validate_flex_expand_and_field_param(request, serializer):
@@ -483,6 +505,8 @@ class NoExtraFieldsForViewSetMixin:
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, *args, **kwargs):
+        self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
+
         serializer = self.get_serializer()
 
         results = self.validate_flex_expand_and_field_param(request, serializer)
@@ -492,33 +516,23 @@ class NoExtraFieldsForViewSetMixin:
         return super().retrieve(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        """
-        If you provide fields to filter by that are not filtered by the filter class, you get a 400 error.
-        """
+        extra_allowed_fields = set(self.get_extra_allowed_fields())
+        filterset_fields = set()
         if hasattr(self, "filterset_class"):
-            fields = set()
             # get_fields() only gets fields from the meta, not declared fields on the filterset.
             for filter_name, filter_obj in self.filterset_class.get_filters().items():
                 widget = filter_obj.field.widget
                 # If the filter has suffixes, then we need to use those with the filter name.
                 if hasattr(widget, "suffixes"):
                     for suffix in widget.suffixes:
-                        fields.add(f"{filter_name}_{suffix}")
+                        filterset_fields.add(f"{filter_name}_{suffix}")
                 else:
-                    fields.add(filter_name)
+                    filterset_fields.add(filter_name)
                 if hasattr(filter_obj, "lookup_expr"):
-                    fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
-            # pagination and expanding are allowed
-            fields.update(self.get_extra_allowed_fields())
-            extra_keys = set(request.query_params) - fields
-            if extra_keys:
-                valid_filters = sorted(fields - set(self.get_extra_allowed_fields()))
-                raise VuedaValidationError(
-                    {
-                        key: [f"Invalid query parameter.  Valid filters are {', '.join(valid_filters)}."]
-                        for key in extra_keys
-                    }
-                )
+                    filterset_fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
+
+        self.reject_unrecognized_query_params(request, extra_allowed_fields | filterset_fields)
+
         serializer = self.get_serializer()
 
         results = self.validate_flex_expand_and_field_param(request, serializer)
