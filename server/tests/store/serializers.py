@@ -8,9 +8,9 @@ from tests.fields import RangeField
 from tests.store import models
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import GenericForeignKeySerializer
-from vueda.core.serializers import VuedaHistorySerializer
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
+from vueda.history.serializers import VuedaHistorySerializer
 from vueda.user.serializers import UserSerializer
 from vueda.workflow.serializers import HasWorkflowSerializerMixin
 

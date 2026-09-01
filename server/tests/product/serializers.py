@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from tests.product.models import Product
-from vueda.core.serializers import VuedaHistorySerializer
+from vueda.history.serializers import VuedaHistorySerializer
 
 
 class ProductSerializer(VuedaHistorySerializer):

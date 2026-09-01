@@ -12,7 +12,6 @@ __all__ = (
     "ListRowLevelViewSetMixin",
     "NoExtraFieldsForViewSetMixin",
     "PerActionSerializerMixin",
-    "VuedaHistoryViewSet",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
     "WarningConfirmationMixin",
@@ -45,7 +44,6 @@ from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
-from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
@@ -794,10 +792,6 @@ class VuedaViewSet(
             queryset = queryset.annotate(formatted_name=F(formatted_name))
 
         return queryset
-
-
-class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
-    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
 
 
 class VuedaReadOnlyViewSet(

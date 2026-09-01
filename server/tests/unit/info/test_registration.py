@@ -46,8 +46,8 @@ class TestRegistration:
             assert registered_item["serializer"] == ProductSerializer
 
     def test_register_improperly(self):
-        from vueda.core.serializers import VuedaHistorySerializer
-        from vueda.core.viewsets import VuedaHistoryViewSet
+        from vueda.history.serializers import VuedaHistorySerializer
+        from vueda.history.viewsets import VuedaHistoryViewSet
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         registration.get_empty_registry()
@@ -81,7 +81,7 @@ class TestRegistration:
 
     def test_register_serializer_decorator(self):
         from tests.product.models import Product
-        from vueda.core.serializers import VuedaHistorySerializer
+        from vueda.history.serializers import VuedaHistorySerializer
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         _registry = registration.get_empty_registry()
@@ -110,7 +110,7 @@ class TestRegistration:
             assert registered_item["viewset"] is None
 
     def test_register_serializer_improperly(self):
-        from vueda.core.serializers import VuedaHistorySerializer
+        from vueda.history.serializers import VuedaHistorySerializer
 
         # Make the registry a new dictionary, so tests don't pollute each other.
         registration.get_empty_registry()
