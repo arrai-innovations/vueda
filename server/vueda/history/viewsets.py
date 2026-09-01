@@ -1,6 +1,9 @@
-"""ViewSet mixin for exposing django-simple-history list and diff actions."""
+"""ViewSet base and mixin for exposing django-simple-history list and diff actions."""
 
-__all__ = ("SimpleHistoryViewSetMixin",)
+__all__ = (
+    "SimpleHistoryViewSetMixin",
+    "VuedaHistoryViewSet",
+)
 
 from django.contrib.auth import get_user_model
 from django.db.models import Max
@@ -9,6 +12,7 @@ from django.db.models import Subquery
 from rest_framework.response import Response
 
 from vueda.core.decorators import action
+from vueda.core.viewsets import VuedaViewSet
 from vueda.history.serializers import DynamicHistoricalSerializer
 
 
@@ -101,3 +105,7 @@ class SimpleHistoryViewSetMixin:
         serialized_data.reverse()
 
         return self.get_paginated_response(serialized_data)
+
+
+class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
+    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""

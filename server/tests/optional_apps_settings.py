@@ -10,7 +10,13 @@ from vueda.core.default_settings import get_defaults
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
 
-INCLUDE_HISTORY = os.environ.get("VUEDA_INCLUDE_HISTORY", "true").lower() not in {"0", "false", "no", "off"}
+
+def _env_flag(name, default="true"):
+    return os.environ.get(name, default).lower() not in {"0", "false", "no", "off"}
+
+
+INCLUDE_HISTORY = _env_flag("VUEDA_INCLUDE_HISTORY")
+INCLUDE_WORKFLOW = _env_flag("VUEDA_INCLUDE_WORKFLOW", "false")
 
 VUEDA_APPS = [
     "vueda.core",
@@ -20,6 +26,8 @@ VUEDA_APPS = [
 ]
 if INCLUDE_HISTORY:
     VUEDA_APPS.append("vueda.history")
+if INCLUDE_WORKFLOW:
+    VUEDA_APPS.append("vueda.workflow")
 
 env = TomlEnv(
     {**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")},
