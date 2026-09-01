@@ -122,6 +122,11 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **Workflow state permission query cost**:
+    - `HasWorkflowModelMixin.check_state_permission` issued one query per permission string. A caller evaluating several permissions against one object paid a round trip for each. One query now resolves every codename the object's current state grants or denies, and `available_transitions` runs its whole pass inside one cached-state block.
+    - Measured against `store.CustomerOrder` on the `order_fulfillment` workflow, `available_transitions` cost `8 + 4n` queries in the number of transitions leaving the current state, and now costs `6 + n`. A list response carrying `valid_transitions` for rows with three candidate transitions cost 17 queries per row and now costs 9.
+    - Permission results do not move. State grants, state denies, deny-wins across conflicting groups, the no-matching-rule case, and both `RowLevelPermissions` hooks return what they returned before. `VuedaUserMixin.has_perm` remains the single authority, and a transition run through the workflow endpoint still re-reads the object's state after the row lock.
+      _No integrator action. A project that called `check_state_permission` directly gets the same answer, and its signature gains only an optional `caller` argument._
 - **`available_transitions_for` transition permissions**:
     - `HasWorkflowModelMixin.available_transitions_for` now applies each transition's configured `TransitionPermission` rows to the calling user. Its filter previously reached `check_transition_permission` through the model class rather than an object, which bound the transition to `self` and left `user` at `None`, so the method's first branch admitted every candidate. A caller holding the workflow's own permissions received transitions whose transition permissions they did not hold, disagreeing with the single-object `available_transitions` for the same object and user.
     - A transition is returned when the caller may take it on at least one of the given objects, matching the source-state filter, which already admits a transition leaving any of the objects' states. The method resolves the concrete instances so that workflow state grants, state denies, and `RowLevelPermissions` hooks apply per object. Passing `user=None` still returns every candidate.
