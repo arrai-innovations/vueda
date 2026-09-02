@@ -21,6 +21,10 @@ public-facing documentation baseline.
 
 ### Breaking Changes
 
+- **History classes move to the app that owns them**:
+    - `VuedaHistorySerializer` moves from `vueda.core.serializers` to `vueda.history.serializers`, and `VuedaHistoryViewSet` moves from `vueda.core.viewsets` to `vueda.history.viewsets`. Both classes are unchanged; only their import path moves. `vueda.core` no longer imports `vueda.history` at all, so a project that omits the optional history app now loads no history module.
+    - `SimpleHistoryModelMixin`, `SimpleHistoryManager`, and `ProxyAwareHistoricalRecords` move from `vueda.history.models` to `vueda.core.simple_history`. `vueda.workflow` tracks its own models through that mixin and must reach it without importing the optional history app. The generated `Historical*` models keep the `vueda_workflow` app label, and this change generates no migrations.
+      _Update `from vueda.core.serializers import VuedaHistorySerializer` to `from vueda.history.serializers import VuedaHistorySerializer`, and `from vueda.core.viewsets import VuedaHistoryViewSet` to `from vueda.history.viewsets import VuedaHistoryViewSet`. A project that imported the simple-history mixin, manager, or records class from `vueda.history.models` should import it from `vueda.core.simple_history` instead. `VuedaHistoryModel` stays in `vueda.history.models`._
 - **Read-only serializer permission metadata**:
     - Model-info `model_permissions` now exposes only the mapped `list` and `read` permissions when a model's canonical serializer subclasses `VuedaReadonlySerializer`. Other permission rows remain in Django's permission table, and the change does not alter server authorization.
       _If an integration treated `model_permissions` as a complete database permission inventory, account for the filtered read-only surface or query Django's permission model directly._
@@ -121,6 +125,10 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **`available_transitions_for` transition permissions**:
+    - `HasWorkflowModelMixin.available_transitions_for` now applies each transition's configured `TransitionPermission` rows to the calling user. Its filter previously reached `check_transition_permission` through the model class rather than an object, which bound the transition to `self` and left `user` at `None`, so the method's first branch admitted every candidate. A caller holding the workflow's own permissions received transitions whose transition permissions they did not hold, disagreeing with the single-object `available_transitions` for the same object and user.
+    - A transition is returned when the caller may take it on at least one of the given objects, matching the source-state filter, which already admits a transition leaving any of the objects' states. The method resolves the concrete instances so that workflow state grants, state denies, and `RowLevelPermissions` hooks apply per object. Passing `user=None` still returns every candidate.
+      _No VUEDA endpoint calls this method. If an application called it directly and compensated for the missing filter, remove that workaround._
 - **Workflow state permission deferral**:
     - Model viewsets now defer a baseline permission denial only for a state grant matching the caller's groups, action-specific codename, model content type, and workflow, and only when the request has a guaranteed later state-aware decision. Unrelated rules and state denies no longer admit list or create requests, and workflow state data no longer suppresses authentication, composite permission expressions, or additional DRF permission classes.
     - Workflow model lists now apply state grants and denies before pagination even when the model does not define `RowLevelPermissions`. A state `list_*` grant can admit the endpoint but returns only rows in matching granted states; matching denies remove rows from users with baseline list permission. Create remains model-authorized because a new object has no current workflow state.

@@ -2,16 +2,17 @@ from tests.timesheet import filtersets
 from tests.timesheet import models
 from tests.timesheet import serializers
 from vueda.core import viewsets
+from vueda.history.viewsets import VuedaHistoryViewSet
 
 
-class TimesheetViewSet(viewsets.VuedaHistoryViewSet):
+class TimesheetViewSet(VuedaHistoryViewSet):
     queryset = models.Timesheet.objects.all()
     serializer_class = serializers.TimesheetSerializer
     filterset_class = filtersets.TimesheetFilterSet
     permit_list_expands = ["employee", "supervisor"]
 
 
-class TimesheetEntryViewSet(viewsets.VuedaHistoryViewSet):
+class TimesheetEntryViewSet(VuedaHistoryViewSet):
     queryset = models.TimesheetEntry.objects.all()
     serializer_class = serializers.TimesheetEntrySerializer
     column_totals = ["hours"]

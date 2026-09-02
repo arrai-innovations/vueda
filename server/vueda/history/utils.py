@@ -8,8 +8,8 @@ __all__ = (
 from django.apps.registry import Apps
 from django.utils import timezone
 
+from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
-from vueda.history.models import SimpleHistoryModelMixin
 
 
 DEFAULT = object()

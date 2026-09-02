@@ -1,7 +1,7 @@
 from tests.product.filtersets import ProductFilterSet
 from tests.product.models import Product
 from tests.product.serializers import ProductSerializer
-from vueda.core.viewsets import VuedaHistoryViewSet
+from vueda.history.viewsets import VuedaHistoryViewSet
 
 
 class ProductViewSet(VuedaHistoryViewSet):
