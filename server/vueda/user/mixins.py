@@ -52,7 +52,7 @@ class VUEDAPermissionsMixin(PermissionsMixin):
 
             if isinstance(obj, HasWorkflowModelMixin) and obj.workflow:
                 has_workflow = True
-                grant_or_deny = obj.check_state_permission(perm, self.groups.all())
+                grant_or_deny = obj.check_state_permission(perm, self.groups.all(), caller=self)
 
         if grant_or_deny is False:
             decision = False
