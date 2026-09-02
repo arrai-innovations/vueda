@@ -51,7 +51,7 @@ Django's `CompositePrimaryKey` field requires coordinated deviations at the seri
 
 ## Observable Failure Modes
 
-**Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter.  Valid filters are ..."`. The error includes the valid filter set for diagnosis.
+**Query parameter typo returns 400.** A misspelled filter key or an unsupported query parameter produces an HTTP 400 with `"Invalid query parameter. Valid filters are ..."`. The error includes the valid filter set for diagnosis.
 
 **Extra payload key returns 400.** An unrecognized top-level key in a create or `update` request body produces a field-keyed validation error. Nested serializer payload drift is not caught by this check; only top-level keys are validated.
 

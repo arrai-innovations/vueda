@@ -8,6 +8,7 @@ __all__ = (
     "Lookup",
     "SingletonModel",
     "VuedaModel",
+    "annotate_formatted_name",
     "apply_vueda_feature_policy",
     "supports_vueda_feature_policy",
 )
@@ -64,6 +65,22 @@ class FormattedNameBaseModel(models.Model):
         return getattr(cls, "formatted_name_lookup_expression", None) or callable(
             getattr(cls, "get_formatted_name", None)
         )
+
+
+def annotate_formatted_name(queryset):
+    """
+    Annotate ``formatted_name`` on ``queryset`` from the model's ``formatted_name_lookup_expression``,
+    when it declares one. A no-op for a model without one.
+
+    Shared by ``VuedaViewSet.get_queryset`` (the root queryset), ``VuedaListSerializer.to_representation``
+    (a "many" expand fetched through a related manager), and the prefetch-plan builder in
+    ``vueda.core.viewsets`` (a "many" expand's ``Prefetch`` queryset), so the three agree on when
+    ``formatted_name`` needs the annotation rather than each re-deriving it.
+    """
+    lookup_expression = getattr(queryset.model, "formatted_name_lookup_expression", None)
+    if isinstance(lookup_expression, str):
+        queryset = queryset.annotate(formatted_name=models.F(lookup_expression))
+    return queryset
 
 
 class Lookup(FormattedNameBaseModel):

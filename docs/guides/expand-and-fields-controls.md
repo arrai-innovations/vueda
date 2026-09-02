@@ -17,7 +17,7 @@ The objective is a model whose API responses include only the fields and expande
 
 Before you begin, ensure the following are in place:
 
-The model has a registered serializer and viewset, and model-info returns complete metadata including `model_fields` and `model_expands`. The serializer has relations (ForeignKey, ManyToMany, or computed fields) that could benefit from inline expansion rather than separate lookups. You understand the performance tradeoff: expanding relations on `list` endpoints can multiply query cost, so action-level restrictions may be needed.
+The model has a registered serializer and viewset, and model-info returns complete metadata including `model_fields` and `model_expands`. The serializer has relations (ForeignKey, ManyToMany, or computed fields) that could benefit from inline expansion rather than separate lookups. You understand the performance tradeoff: the server derives `select_related`/`prefetch_related` automatically from what a request's `e` value expands, so an expanded relation costs a fixed number of additional joins or prefetch queries per request, not one per row (see [Query Cost of List and Retrieve Expansion](../core-concepts/field-and-expand-semantics#query-cost-of-list-and-retrieve-expansion)). Expanding still grows the response payload per row, so action-level restrictions may still be worth setting to bound payload size and expansion depth on `list` endpoints.
 
 ## Server Expand and Field Allow-Lists
 
@@ -197,7 +197,7 @@ class WidgetViewSet(VuedaViewSet):
     permit_retrieve_expands = ["category", "tags"]
 ```
 
-In this example, `list` responses can expand `category` but not `tags` (avoiding expensive many-to-many joins on list queries), while `retrieve` responses can expand both. A request that asks to expand `tags` on a `list` endpoint returns a 400 with a message identifying which expansions are permitted.
+In this example, `list` responses can expand `category` but not `tags` (keeping the `list` response payload smaller), while `retrieve` responses can expand both. A request that asks to expand `tags` on a `list` endpoint returns a 400 with a message identifying which expansions are permitted.
 
 If `permit_list_expands` is not set, all declared expansions are allowed on `list`. The same applies to `permit_retrieve_expands` for `retrieve`. Setting either property to an empty list disables expansion entirely for that action.
 
@@ -245,7 +245,7 @@ The server validates `f` and `e` query parameters on both `list` and `retrieve` 
 
 **Invalid `e` values** produce a 400 response. The error message identifies the invalid expand names and lists which expansions are permitted. The permitted set is action-sensitive when `permit_list_expands` or `permit_retrieve_expands` is configured: if no expansions are permitted for the action, the error message says so explicitly.
 
-**Unknown `list` query parameters** (parameters that are not filters, pagination, ordering, expand, or field selectors) produce a 400 response with field-keyed validation errors listing the valid filters. This is consistent with the flex-field and serializer validation behavior.
+**Unknown query parameters** produce a 400 response with field-keyed validation errors listing the valid filters. On `list`, this covers any parameter that is not a filter, pagination, ordering, search, expand, or field selector. On `retrieve`, only expand and field selectors (`e`, `f`, `om`) are valid; filter, pagination, ordering, and search parameters are rejected there too, since a detail route already identifies its object by primary key. This is consistent with the flex-field and serializer validation behavior.
 
 **Expanded nested serializers** omit `available_actions` by default in their response payloads. This means an expanded relation will include its field data but not its per-object action availability. If the client needs action information for an expanded object, a separate retrieve request is required.
 

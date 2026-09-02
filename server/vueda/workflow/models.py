@@ -14,6 +14,7 @@ __all__ = (
     "WorkflowPermission",
 )
 
+from collections import defaultdict
 from collections.abc import Iterable
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -533,27 +534,33 @@ def _permitted_transition_ids(
     """
     Return the ids of ``transitions`` that ``user`` may take on at least one of the objects in
     ``state_by_object``, which maps an object id to the id of that object's current state.
+
+    The loop runs object by object rather than transition by transition, so each object's workflow,
+    state, and state rules resolve once inside its own ``cached_workflow_state()`` block. A
+    transition already permitted on an earlier object is not asked about again.
     """
-    objects_by_state: dict[int, list[HasWorkflowModelMixin]] = {}
-    # ``state_by_object`` names these objects explicitly, so read them past any default manager
-    # filtering, the same way the object state lookup that produced it does.
-    for instance in model._base_manager.filter(pk__in=list(state_by_object)):
-        objects_by_state.setdefault(state_by_object[instance.pk], []).append(instance)
     sources_by_transition: dict[int, set[int]] = {}
     for transition_id, source_id in TransitionSource.objects.filter(
         transition__in=[transition.id for transition in transitions],
     ).values_list("transition_id", "source_id"):
         sources_by_transition.setdefault(transition_id, set()).add(source_id)
-    permitted_ids = []
-    for transition in transitions:
-        objects_in_source_states = [
-            instance
-            for source_id in sources_by_transition.get(transition.id, ())
-            for instance in objects_by_state.get(source_id, ())
+    permitted_ids = set()
+    # ``state_by_object`` names these objects explicitly, so read them past any default manager
+    # filtering, the same way the object state lookup that produced it does.
+    for instance in model._base_manager.filter(pk__in=list(state_by_object)):
+        state_id = state_by_object[instance.pk]
+        candidates = [
+            transition
+            for transition in transitions
+            if transition.id not in permitted_ids and state_id in sources_by_transition.get(transition.id, ())
         ]
-        if any(instance.check_transition_permission(transition, user) for instance in objects_in_source_states):
-            permitted_ids.append(transition.id)
-    return permitted_ids
+        if not candidates:
+            continue
+        with instance.cached_workflow_state():
+            for transition in candidates:
+                if instance.check_transition_permission(transition, user):
+                    permitted_ids.add(transition.id)
+    return [transition.id for transition in transitions if transition.id in permitted_ids]
 
 
 class HasWorkflowModelMixin(models.Model):
@@ -665,16 +672,20 @@ class HasWorkflowModelMixin(models.Model):
     def available_transitions(self, user: User | None = None) -> QuerySet[Transition]:
         """
         Returns available transitions for this object.
+
+        The whole pass runs inside one ``cached_workflow_state()`` block, so the object's workflow,
+        current state, and state rules are read once rather than once per candidate transition.
         """
-        if (
-            user is not None
-            and not WorkflowPermission.objects.filter(
-                workflow__content_type=self.get_content_type(),
-            ).exists()
-        ):
-            raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
-        transitions = self.fast_available_transitions()
-        return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
+        with self.cached_workflow_state():
+            if (
+                user is not None
+                and not WorkflowPermission.objects.filter(
+                    workflow__content_type=self.get_content_type(),
+                ).exists()
+            ):
+                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            transitions = self.fast_available_transitions()
+            return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
 
     def fast_available_transitions(self) -> QuerySet[Transition]:
         """
@@ -766,25 +777,66 @@ class HasWorkflowModelMixin(models.Model):
         raise PermissionDenied(f"User {user.get_username()!r} does not have permission for workflow {workflow.code!r}.")
 
     def check_state_permission(
-        self, perm: str, groups: Iterable[str] | Iterable[int] | QuerySet["Group"]
+        self,
+        perm: str,
+        groups: Iterable[str] | Iterable[int] | QuerySet["Group"],
+        caller: models.Model | None = None,
     ) -> bool | None:
         """
         Check whether the object's current state grants or denies ``perm`` for any of ``groups``.
         Returns ``True`` (grant), ``False`` (deny), or ``None`` (no state rule applies).
         When multiple rules match, deny takes precedence over grant.
+
+        ``caller`` is the user ``groups`` belongs to. Passing it lets one ``cached_workflow_state()``
+        block resolve that caller's rules once instead of once per permission. Without it every call
+        resolves, which is what an uncached caller gets.
         """
-        # If multiple group rules match, deny takes precedence over grant.
-        matching_rules = StatePermission.objects.filter(
+        return self._state_permission_rules(groups, caller).get(perm.rsplit(".", maxsplit=1)[-1])
+
+    def _state_permission_rules(
+        self,
+        groups: Iterable[str] | Iterable[int] | QuerySet["Group"],
+        caller: models.Model | None = None,
+    ) -> dict[str, bool]:
+        """
+        Every state rule that applies to this object for ``groups``, keyed by permission codename.
+
+        One query resolves every codename the current state grants or denies. ``has_perm`` asks
+        about one permission at a time, so a pass evaluating several against one object would
+        otherwise pay a round trip for each.
+
+        A codename absent from the mapping has no matching rule, which is the ``None`` that
+        ``check_state_permission`` returns.
+
+        The cache is keyed by ``caller`` rather than by the group set, so ``groups`` stays a
+        subquery on the rule lookup and never becomes a query of its own. Each new block resolves
+        again, so a caller whose group membership changed is read afresh on its next authorization
+        pass even when the same user instance is reused.
+        """
+        cache = self._workflow_state_cache
+        caller_key = (caller._meta.label, caller.pk) if caller is not None and caller.pk is not None else None
+        if cache is not None and caller_key is not None:
+            by_caller = cache.setdefault("state_permission_rules", {})
+            if caller_key in by_caller:
+                return by_caller[caller_key]
+
+        matched = defaultdict(list)
+        for codename, grant_or_deny in StatePermission.objects.filter(
             state=self.workflow_state,
-            permission__codename=perm.rsplit(".", maxsplit=1)[-1],
             permission__content_type=self.get_content_type(),
             group__in=groups,
-        ).values_list("grant_or_deny", flat=True)
-        if any(rule is False for rule in matching_rules):
-            return False
-        if any(rule is True for rule in matching_rules):
-            return True
-        return None
+        ).values_list("permission__codename", "grant_or_deny"):
+            matched[codename].append(grant_or_deny)
+        rules = {}
+        for codename, values in matched.items():
+            # If multiple group rules match, deny takes precedence over grant.
+            if any(value is False for value in values):
+                rules[codename] = False
+            elif any(value is True for value in values):
+                rules[codename] = True
+        if cache is not None and caller_key is not None:
+            cache["state_permission_rules"][caller_key] = rules
+        return rules
 
     def check_transition_permission(self, transition: Transition, user: User | None = None) -> bool:
         """
