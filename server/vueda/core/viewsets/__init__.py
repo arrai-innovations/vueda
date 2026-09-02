@@ -15,6 +15,9 @@ __all__ = (
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
     "WarningConfirmationMixin",
+    "build_prefetch_plan",
+    "filter_new_prefetch_lookups",
+    "resolve_relation_path",
 )
 
 import warnings
@@ -22,9 +25,10 @@ import warnings
 from django.conf import settings
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
-from django.db.models import F
+from django.db.models import Prefetch
 from django.db.models import Q
 from django.db.models import Sum
+from django.db.models.fields.reverse_related import ForeignObjectRel
 from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
@@ -34,6 +38,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.serializers import ListSerializer
 
 from vueda.core.decorators import DRY_RUN_HEADER
@@ -41,8 +46,10 @@ from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.models import annotate_formatted_name
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
 
 
@@ -383,6 +390,208 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
+
+
+def _resolve_relation_segment(model, segment):
+    """
+    Match ``segment`` against one of ``model``'s relations by the same accessor name Django uses
+    for instance attribute access, ``select_related``, and ``prefetch_related`` alike: a forward
+    relation's field name, or a reverse relation's accessor name (``get_accessor_name()``), which
+    is not the same string as the reverse field's own ``name`` (that is the query lookup name --
+    ``related_query_name()`` territory -- and can differ from the attribute/prefetch accessor
+    whenever ``related_name`` and ``related_query_name`` diverge).
+
+    Returns ``(related_model, is_to_one)`` for a matching relation, or ``None`` when ``segment``
+    names a plain column, a Python property or method, or a ``GenericForeignKey`` (a relation with
+    no fixed ``related_model`` to plan against).
+    """
+    for field in model._meta.get_fields():
+        if not field.is_relation:
+            continue
+
+        name = field.get_accessor_name() if isinstance(field, ForeignObjectRel) else field.name
+        if name != segment:
+            continue
+
+        related_model = getattr(field, "related_model", None)
+        if related_model is None:
+            return None
+
+        is_to_one = bool(getattr(field, "one_to_one", False) or getattr(field, "many_to_one", False))
+        return related_model, is_to_one
+
+    return None
+
+
+def resolve_relation_path(model, source):
+    """
+    Walk a serializer field's dotted ``source`` against ``model``'s relations, one segment per dot,
+    the same traversal DRF's own attribute resolution performs. Returns ``(orm_path, leaf_model,
+    is_to_one)``: ``orm_path`` is ``source`` with dots replaced by the ``__`` lookup separator,
+    ``leaf_model`` is the model the last segment relates to, and ``is_to_one`` says whether every
+    segment in the chain is single-valued (forward foreign key or one-to-one, either direction) --
+    the condition under which the whole chain can live in ``select_related`` rather than needing
+    ``prefetch_related``.
+
+    Returns ``None`` when ``source`` does not resolve to a chain of relations -- a plain column, a
+    dotted path through a Python property or method, or a path through a ``GenericForeignKey``.
+    Such a source cannot be turned into a queryset plan and is left for the ORM to resolve lazily
+    at representation time, same as it does today.
+    """
+    current_model = model
+    is_to_one = True
+
+    for segment in source.split("."):
+        resolved = _resolve_relation_segment(current_model, segment)
+        if resolved is None:
+            return None
+
+        current_model, segment_is_to_one = resolved
+        is_to_one = is_to_one and segment_is_to_one
+
+    return source.replace(".", "__"), current_model, is_to_one
+
+
+def build_prefetch_plan(serializer, model):
+    """
+    Derive the ``select_related``/``prefetch_related`` paths needed for ``serializer``'s resolved
+    fields against ``model``, so a list or retrieve response's query count no longer grows with the
+    row count for whatever a request's ``?e=`` actually expanded.
+
+    Walks ``serializer.fields`` rather than re-deriving expansion rules, so it depends on that
+    resolution already having happened: for the root ``serializer``, the caller must have already
+    applied the request's query-param resolution (``vueda.core.serializers.ensure_flex_fields_applied``
+    -- ``VuedaViewSet.get_queryset`` does this before calling here); a recursive call on a nested
+    child gets this for free, because a child's expand/fields/omit values were passed as constructor
+    kwargs and ``rest_flex_fields`` applies those automatically the moment ``.fields`` is accessed.
+    Either way, a nested serializer only appears in ``.fields`` when the response will actually
+    traverse it. A field never named in ``?e=`` (or excluded by a ``permit_{action}_expands``
+    restriction) never becomes one, so it is never planned.
+
+    ``?f=`` (sparse fields) and ``?om=`` (omit) play no part in this either way, through two
+    separate mechanisms that both happen to have the same effect:
+    ``FlexFieldsWriteableNestedSerializerMixin.apply_flex_fields`` re-admits an already-requested
+    expand's own name into the sparse-fields set, as a side effect of defaulting its sub-fields to a
+    wildcard when none are requested; ``VuedaExpandableFieldsSerializerMixin._get_expanded_field_names``
+    does the same for omit, as a side effect of always hiding ``available_actions`` from an expanded
+    object. Neither parameter can drop an expand this plan would otherwise cover, nor can either one
+    add one the request never named in ``?e=``. The plan simply mirrors whatever survives in
+    ``.fields``.
+
+    Depth is bounded the same way: a serializer with nothing further expanded at some level has no
+    further nested serializer fields, so the recursion here terminates exactly where
+    ``rest_flex_fields``'s own (already-validated) expansion depth does, with no second bound to
+    maintain.
+
+    A field's ``source`` (defaulting to its name, honoring an explicit ``source=`` in its
+    ``expandable_fields`` declaration) is resolved against ``model``'s actual relations via
+    :func:`resolve_relation_path`, not against the nested serializer's own declared ``Meta.model``,
+    so a plan is only produced for a source that genuinely names a relation chain.
+
+    A ``GenericForeignKey`` expand (``GenericForeignKeySerializer``) resolves its concrete
+    serializer per-instance at representation time, after any queryset planning could run, so it is
+    intentionally not planned here -- it keeps resolving lazily, same as it does today. A
+    ``GenericRelation`` (a reverse collection onto a fixed, known model) is a normal to-many
+    relation and is planned like any other.
+
+    Returns ``(select_related, prefetch_related)``: lists ready to splat into
+    ``queryset.select_related(*select_related)`` and ``queryset.prefetch_related(*prefetch_related)``.
+    """
+    select_related = []
+    prefetch_related = []
+
+    for field in serializer.fields.values():
+        child = field.child if isinstance(field, ListSerializer) else field
+        if not isinstance(child, BaseSerializer) or isinstance(child, GenericForeignKeySerializer):
+            continue
+
+        resolved = resolve_relation_path(model, field.source)
+        if resolved is None:
+            continue
+
+        orm_path, related_model, is_to_one = resolved
+        child_select_related, child_prefetch_related = build_prefetch_plan(child, related_model)
+
+        if is_to_one:
+            select_related.append(orm_path)
+            select_related.extend(f"{orm_path}__{nested}" for nested in child_select_related)
+            for nested_prefetch in child_prefetch_related:
+                if isinstance(nested_prefetch, Prefetch):
+                    prefetch_related.append(
+                        Prefetch(f"{orm_path}__{nested_prefetch.prefetch_through}", queryset=nested_prefetch.queryset)
+                    )
+                else:
+                    prefetch_related.append(f"{orm_path}__{nested_prefetch}")
+        else:
+            # Pre-annotate formatted_name so VuedaListSerializer.to_representation's own
+            # "not already annotated" check finds it and skips re-annotating: re-annotating a
+            # queryset serving a prefetched relation clones it, discarding the cached prefetch
+            # result and forcing one fresh query per row -- the exact regression this plan exists
+            # to prevent.
+            related_queryset = annotate_formatted_name(related_model._default_manager.all())
+            if child_select_related:
+                related_queryset = related_queryset.select_related(*child_select_related)
+            if child_prefetch_related:
+                related_queryset = related_queryset.prefetch_related(*child_prefetch_related)
+            prefetch_related.append(Prefetch(orm_path, queryset=related_queryset))
+
+    return select_related, prefetch_related
+
+
+def _prefetch_cache_keys(lookup):
+    """
+    Return the set of cache keys Django's ``prefetch_related_objects`` registers as already fetched
+    while resolving ``lookup``: one for every intermediate level of its path -- always the literal
+    ``__``-joined path up to that level, since ``to_attr`` can only rename a lookup's own final level
+    -- plus the lookup's own ``prefetch_to`` (its ``to_attr`` when set, otherwise its full
+    ``prefetch_through`` path). Django keys its ``done_queries`` cache by exactly these values, one
+    entry per level as it walks a lookup's path, not by the lookup's path as a whole.
+    """
+    prefetch = lookup if isinstance(lookup, Prefetch) else Prefetch(lookup)
+    segments = prefetch.prefetch_through.split("__")
+    intermediate_levels = {"__".join(segments[:level]) for level in range(1, len(segments))}
+    return intermediate_levels | {prefetch.prefetch_to}
+
+
+def filter_new_prefetch_lookups(queryset, prefetch_related):
+    """
+    Drop any entry in ``prefetch_related`` (as returned by :func:`build_prefetch_plan`) whose cache
+    key ``queryset`` -- or an earlier-accepted entry in this same call -- already registers, so
+    ``VuedaViewSet.get_queryset()`` never hands Django two different querysets for the same lookup.
+
+    ``prefetch_related`` raises ``ValueError: '<lookup>' lookup was already seen with a different
+    queryset`` the moment two lookups register the same cache key with two different
+    ``Prefetch.queryset`` values, and this happens even when one side is a bare string (an implicit
+    default-manager queryset) and the other an explicit ``Prefetch``. A viewset whose own
+    ``queryset``/``get_queryset()`` already prefetches a relation this plan also covers -- most
+    plausibly a relation the application hand-optimized before this plan existed -- would otherwise
+    crash the first time a request actually resolves that relation. Deferring to the existing lookup
+    keeps whatever customization it carries (including its own ``formatted_name`` annotation, if it
+    needs one) rather than overriding it with the plan's default. Two plan entries can collide the
+    same way -- a serializer that aliases one relation under two expandable-field names produces two
+    ``Prefetch`` objects for the same path -- so an entry this call already accepted also counts as
+    "already registered" for the entries that follow it. Django's cache key is the lookup's own
+    ``prefetch_to``, not its full path, so a lookup that sets ``to_attr`` registers under that alias
+    and never collides with a plan entry for the same path under its default attribute name.
+
+    Reads ``queryset._prefetch_related_lookups``, a private Django attribute with no public
+    equivalent; it is a plain tuple of ``str``/``Prefetch`` entries across the Django versions this
+    package supports (5.2, 6.0, 6.1).
+    """
+    seen_cache_keys = set()
+    for lookup in queryset._prefetch_related_lookups:
+        seen_cache_keys |= _prefetch_cache_keys(lookup)
+
+    new_lookups = []
+    for lookup in prefetch_related:
+        prefetch = lookup if isinstance(lookup, Prefetch) else Prefetch(lookup)
+        if prefetch.prefetch_to in seen_cache_keys:
+            continue
+
+        new_lookups.append(lookup)
+        seen_cache_keys |= _prefetch_cache_keys(lookup)
+
+    return new_lookups
 
 
 class NoExtraFieldsForViewSetMixin:
@@ -804,12 +1013,31 @@ class VuedaViewSet(
         return super().get_object()
 
     def get_queryset(self):
+        """
+        Annotate ``formatted_name`` and, for ``list``/``retrieve``, apply the ``select_related``/
+        ``prefetch_related`` plan :func:`build_prefetch_plan` derives from what the request's ``?e=``
+        actually expanded, so an expanded response's query count does not grow with the number of
+        rows returned. See :func:`build_prefetch_plan` for why ``?f=``/``?om=`` play no part in this.
+
+        A plan entry whose lookup this queryset already prefetches (typically a relation the
+        viewset's own ``queryset``/``get_queryset()`` hand-optimized before this plan existed) is
+        dropped rather than applied a second time; see :func:`filter_new_prefetch_lookups` for why
+        that matters for ``prefetch_related`` specifically.
+        """
         queryset = super().get_queryset()
+        queryset = annotate_formatted_name(queryset)
 
-        formatted_name = getattr(queryset.model, "formatted_name_lookup_expression", None)
+        if getattr(self, "action", None) in ("list", "retrieve"):
+            serializer = self.get_serializer()
+            ensure_flex_fields_applied(serializer)
 
-        if isinstance(formatted_name, str):
-            queryset = queryset.annotate(formatted_name=F(formatted_name))
+            select_related, prefetch_related = build_prefetch_plan(serializer, queryset.model)
+            if select_related:
+                queryset = queryset.select_related(*select_related)
+            if prefetch_related:
+                prefetch_related = filter_new_prefetch_lookups(queryset, prefetch_related)
+                if prefetch_related:
+                    queryset = queryset.prefetch_related(*prefetch_related)
 
         return queryset
 

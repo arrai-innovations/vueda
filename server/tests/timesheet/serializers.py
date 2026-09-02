@@ -43,6 +43,25 @@ class TimesheetSerializer(VuedaHistorySerializer):
         return "bar"
 
 
+class TimesheetWithAliasedSupervisorSerializer(TimesheetSerializer):
+    class Meta(TimesheetSerializer.Meta):
+        expandable_fields = dict(TimesheetSerializer.Meta.expandable_fields)
+        expandable_fields["manager"] = (EmployeeSerializer, {"source": "supervisor"})
+
+
+class TimesheetWithPrefetchedEntriesSerializer(TimesheetSerializer):
+    class Meta(TimesheetSerializer.Meta):
+        expandable_fields = dict(TimesheetSerializer.Meta.expandable_fields)
+        expandable_fields["entries"] = (TimesheetEntrySerializer, {"source": "timesheet_entries", "many": True})
+
+
+class TimesheetWithAliasedEntriesSerializer(TimesheetSerializer):
+    class Meta(TimesheetSerializer.Meta):
+        expandable_fields = dict(TimesheetSerializer.Meta.expandable_fields)
+        expandable_fields["entries"] = (TimesheetEntrySerializer, {"source": "timesheet_entries", "many": True})
+        expandable_fields["entries_again"] = (TimesheetEntrySerializer, {"source": "timesheet_entries", "many": True})
+
+
 class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaHistorySerializer):
     class Meta(VuedaHistorySerializer.Meta):
         model = models.Timesheet
