@@ -6,6 +6,7 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
@@ -1689,3 +1690,139 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
         assert response.data["first_history_entry"] != response.data["last_history_entry"], (
             f"first_history_entry and last_history_entry should differ after an update: {response.data}"
         )
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
+    """
+    DistributorViewSet declares a filterset_class; NoteViewSet does not. Together they cover
+    both branches of NoExtraFieldsForViewSetMixin on both list and retrieve.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @pytest.fixture
+    def authenticated_client(self, api_client, test_data):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    def test_list_with_filterset_class_accepts_valid_filter(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(reverse("store.distributor-list"), data={"name": distributor.name})
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert [result["id"] for result in response.data["results"]] == [distributor.pk]
+
+    def test_list_with_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        response = authenticated_client.get(reverse("store.distributor-list"), data={"nosuchparam": "1"})
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == [
+            "Invalid query parameter.  Valid filters are id, id__in, name, name__exact, "
+            "name_icontains, name_icontains__icontains."
+        ]
+
+    def test_retrieve_with_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "name"},
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["name"] == distributor.name
+
+    def test_retrieve_with_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={"nosuchparam": "1"},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]
+
+    def test_retrieve_with_filterset_class_rejects_filterset_field(self, authenticated_client, test_data):
+        """A filterset field name is only recognized on list; retrieve identifies its object by pk alone."""
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={"name": distributor.name},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["name"] == ["Invalid query parameter.  Valid filters are e, f, om."]
+
+    def test_list_without_filterset_class_accepts_extra_allowed_param(self, authenticated_client, test_data):
+        """
+        NoteViewSet has no filterset_class and permits a list expand, so it can exercise all seven
+        get_extra_allowed_fields() params as genuinely valid values, not just recognized keys.
+        """
+        info.registration.get_empty_registry()
+        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
+
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+
+        query = {
+            settings.PAGE_QUERY_PARAM: 1,
+            settings.PAGE_SIZE_QUERY_PARAM: 10,
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,content_object.*",
+            settings.REST_FLEX_FIELDS["OMIT_PARAM"]: "text",
+            settings.REST_FRAMEWORK["SEARCH_PARAM"]: "distributor",
+            settings.REST_FRAMEWORK["ORDERING_PARAM"]: "object_id",
+        }
+        assert set(query) == set(store_viewsets.NoteViewSet.get_extra_allowed_fields()), (
+            "query should exercise every param get_extra_allowed_fields() recognizes"
+        )
+
+        response = authenticated_client.get(reverse("store.note-list"), data=query)
+
+        self.assert_response(response, HTTPStatus.OK)
+        result = next(result for result in response.data["results"] if result["id"] == note.pk)
+        assert "text" not in result
+        assert result["content_object"]["id"] == distributor.pk
+
+    def test_list_without_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        response = authenticated_client.get(reverse("store.note-list"), data={"nosuchparam": "1"})
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, o, om, p, ps, s."]
+
+    def test_retrieve_without_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+        response = authenticated_client.get(
+            reverse("store.note-detail", kwargs={"pk": note.pk}),
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "text"},
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["text"] == note.text
+
+    def test_retrieve_without_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+        response = authenticated_client.get(
+            reverse("store.note-detail", kwargs={"pk": note.pk}),
+            data={"nosuchparam": "1"},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]

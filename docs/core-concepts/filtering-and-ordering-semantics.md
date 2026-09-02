@@ -31,11 +31,15 @@ Choice metadata for filters follows a two part shape. Static choices (enumeratio
 
 ## Query Namespace and Validation Boundary
 
-`list` endpoints enforce strict query parameter validation. The accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus suffix), framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`), and any keys derived from the filterset's lookup expression configuration. Any query key outside this namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter.  Valid filters are ..."`.
+`list` and `retrieve` endpoints both enforce strict query parameter validation, with a narrower accepted namespace on `retrieve`.
 
-This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them. The benefit is that typos and stale client code produce immediate, diagnosable errors rather than returning unfiltered results silently. The cost is that any query parameter not declared in the filterset or framework defaults is an error, which can be surprising when integrating with external tools that append their own query parameters.
+On `list`, the accepted query key namespace is the union of: declared filter field names, suffix-derived keys (filter field name plus suffix), any keys derived from the filterset's lookup expression configuration, and framework-level parameters (`s`, `o`, `p`, `ps`, `e`, `f`, `om`). A viewset with no `filterset_class` accepts only the framework-level parameters, since it has no declared filter fields to add to the namespace.
 
-Validation runs when the viewset has a `filterset_class`. If no filterset class is defined, the query-parameter namespace check does not apply; only framework-level parameters are meaningful, and unknown keys are ignored.
+On `retrieve`, the accepted query key namespace is `e`, `f`, and `om` only. A detail route already identifies its object by primary key, so filter, pagination, ordering, and search parameters carry no meaning there and are rejected along with any other unrecognized key.
+
+Any query key outside the accepted namespace is rejected with an HTTP 400 response containing a field-keyed validation error: `"Invalid query parameter. Valid filters are ..."`.
+
+This strict validation is a deliberate departure from upstream DRF, which typically ignores unknown query parameters. VUEDA treats unknown query keys as invalid contract usage rather than silently discarding them.
 
 ## Search Contract Surface
 
@@ -79,7 +83,7 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 ## Observable Failure Modes
 
-**Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter.  Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
+**Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter. Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
 
 **Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
 

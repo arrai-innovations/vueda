@@ -245,7 +245,7 @@ The server validates `f` and `e` query parameters on both `list` and `retrieve` 
 
 **Invalid `e` values** produce a 400 response. The error message identifies the invalid expand names and lists which expansions are permitted. The permitted set is action-sensitive when `permit_list_expands` or `permit_retrieve_expands` is configured: if no expansions are permitted for the action, the error message says so explicitly.
 
-**Unknown `list` query parameters** (parameters that are not filters, pagination, ordering, expand, or field selectors) produce a 400 response with field-keyed validation errors listing the valid filters. This is consistent with the flex-field and serializer validation behavior.
+**Unknown query parameters** produce a 400 response with field-keyed validation errors listing the valid filters. On `list`, this covers any parameter that is not a filter, pagination, ordering, search, expand, or field selector. On `retrieve`, only expand and field selectors (`e`, `f`, `om`) are valid; filter, pagination, ordering, and search parameters are rejected there too, since a detail route already identifies its object by primary key. This is consistent with the flex-field and serializer validation behavior.
 
 **Expanded nested serializers** omit `available_actions` by default in their response payloads. This means an expanded relation will include its field data but not its per-object action availability. If the client needs action information for an expanded object, a separate retrieve request is required.
 

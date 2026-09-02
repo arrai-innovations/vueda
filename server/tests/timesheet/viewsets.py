@@ -1,6 +1,7 @@
 from django.db.models import Prefetch
 from rest_framework.permissions import IsAuthenticated
 
+from tests.timesheet import filtersets
 from tests.timesheet import models
 from tests.timesheet import serializers
 from vueda.core import viewsets
@@ -10,6 +11,7 @@ from vueda.history.viewsets import VuedaHistoryViewSet
 class TimesheetViewSet(VuedaHistoryViewSet):
     queryset = models.Timesheet.objects.all()
     serializer_class = serializers.TimesheetSerializer
+    filterset_class = filtersets.TimesheetFilterSet
     permit_list_expands = ["employee", "supervisor"]
 
 
