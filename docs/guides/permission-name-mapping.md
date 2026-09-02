@@ -47,7 +47,9 @@ The mapping must be decided before Django generates permission rows. Once `migra
 
 ## Set Mapping and Patch Import Order
 
-The `patch_django` module applies the mapping by monkey-patching two Django internals: `auth.get_permission_codename` (used at runtime to resolve codenames) and `management._get_builtin_permissions` (used during migration to generate permission rows). The patch reads `PERMISSION_NAMES_MAPPING` from settings at import time, so the mapping must be finalized in settings before the patch module is imported.
+The `patch_django` module applies the mapping by monkey-patching two Django internals: `auth.get_permission_codename` (used at runtime to resolve codenames) and `management._get_builtin_permissions` (used during migration to generate permission rows). Both patched functions read `PERMISSION_NAMES_MAPPING` from settings at call time, not at import time; the value is cached and the cache clears on Django's `setting_changed` signal, so a mapping change made after `patch_django` is imported — including `override_settings(PERMISSION_NAMES_MAPPING=...)` in tests — still reaches codename resolution and permission-row generation.
+
+`patch_django` also decides, once at import time, whether `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` need a reverse-mapping rewrite. That decision is not re-evaluated later, so if you use a reverse mapping, `PERMISSION_NAMES_MAPPING` must still be finalized in settings before the patch module is imported.
 
 If you started from a VUEDA project template, the patch import is already in your base settings:
 
@@ -59,7 +61,7 @@ from vueda.core import patch_django  # noqa F401
 
 If you are setting up a project manually, place this import in your base settings module after `PERMISSION_NAMES_MAPPING` is defined. The import must execute at every runtime entry point that generates or uses permissions: the server process, the test runner, and the migration environment.
 
-Import order matters. If you override `PERMISSION_NAMES_MAPPING` in an environment-specific settings file (for example, `local.py` importing from `base.py` via `from config.settings.base import *`), the override happens after the base module's patch import. At that point, the patch has already captured the base mapping. Either move the mapping override before the patch import, or re-import `patch_django` after the override.
+Import order matters for the reverse-mapping `perms_map` rewrite, since that decision is made once at `patch_django` import time. If you override `PERMISSION_NAMES_MAPPING` in an environment-specific settings file (for example, `local.py` importing from `base.py` via `from config.settings.base import *`) after the base module's patch import, `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` keep whichever rewrite the base mapping selected. Either move the mapping override before the patch import, or re-import `patch_django` after the override. Codename resolution itself (`get_permission_codename`, `get_builtin_permissions`) and the runtime paths that read `PERMISSION_NAMES_MAPPING` directly — row-level filtering, model-info metadata, workflow state checks, and object history access — are not affected by this ordering, since all of them read the current setting value at call time.
 
 `patch_django` is not auto-imported by `vueda.core`. An explicit import is required. If the import is missing, no monkey-patch is applied: Django generates `add_*/change_*/view_*` codenames, but runtime checks look for `create_*/update_*/read_*` codenames, and every permission check fails.
 
