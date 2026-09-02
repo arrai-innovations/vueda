@@ -467,6 +467,12 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
     # non-zero has been known to cause issues with some databases with timeouts
     return_dict["DATABASES"]["default"]["CONN_MAX_AGE"] = 0
+    if "vueda.history" in return_dict["VUEDA_APPS"]:
+        return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
+        # Protect event tables from updates and deletes. A purge must use pgtrigger.ignore.
+        return_dict.setdefault("PGHISTORY_APPEND_ONLY", True)
+        # Keep pghistory's ContextForeignKey, row-level trigger, and indexing defaults.
+        # VUEDA defines no retention policy.
     return_dict["INSTALLED_APPS"] = (
         return_dict["DJANGO_APPS"]
         + return_dict["VUEDA_APPS"]

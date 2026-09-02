@@ -21,6 +21,12 @@ public-facing documentation baseline.
 
 ### Breaking Changes
 
+- **Model history moves to PostgreSQL triggers**:
+    - `vueda.history` now records changes through `django-pghistory` and `django-pgtrigger` instead of Django signals, and it tracks every eligible `VuedaModel` subclass by default rather than only those inheriting a history-specific base. A model controls its own tracking through `class Vueda.History`: `enabled` opts a model out, `exclude_fields` keeps named columns out of the event model, and `reason` records why. `password` is always excluded, whatever a model declares, because a declaration replaces inherited policy rather than adding to it. Installing `vueda.history` adds `pghistory` and `pgtrigger` to `INSTALLED_APPS` and sets `PGHISTORY_APPEND_ONLY`, so event tables reject updates and deletes at the database. VUEDA keeps pghistory's `ContextForeignKey`, row-level trigger, and indexing defaults, and ships no retention policy.
+    - Every app containing a tracked model gains an event model and trigger migrations of its own. Installing or removing `vueda.history` therefore changes generated migrations, and settings modules that share one migration history must all include the app or all omit it.
+    - A model with a composite primary key cannot be tracked and reports `vueda_core.E013` until its `History` section sets `enabled = False`. An `exclude_fields` entry naming a field the model does not have, or a field a retained generated field's expression reads, reports the same check. Proxy models write to the concrete model's event table and generate no event model of their own. Unmanaged models are skipped, because VUEDA does not own their tables.
+      _Run `makemigrations` after upgrading and review the generated event models and triggers in each app that owns a tracked model. Purging event rows requires `pgtrigger.ignore`, because append-only otherwise blocks the delete. A model that should not be tracked needs `class Vueda.History` with `enabled = False`; a model in an optional app cannot declare that section unless the project also installs `vueda.history`._
+
 - **History classes move to the app that owns them**:
     - `VuedaHistorySerializer` moves from `vueda.core.serializers` to `vueda.history.serializers`, and `VuedaHistoryViewSet` moves from `vueda.core.viewsets` to `vueda.history.viewsets`. Both classes are unchanged; only their import path moves. `vueda.core` no longer imports `vueda.history` at all, so a project that omits the optional history app now loads no history module.
     - `SimpleHistoryModelMixin`, `SimpleHistoryManager`, and `ProxyAwareHistoricalRecords` move from `vueda.history.models` to `vueda.core.simple_history`. `vueda.workflow` tracks its own models through that mixin and must reach it without importing the optional history app. The generated `Historical*` models keep the `vueda_workflow` app label, and this change generates no migrations.
@@ -53,6 +59,10 @@ public-facing documentation baseline.
       _Drop any query parameter sent to a `retrieve` endpoint that is not `e`, `f`, or `om`. Drop any query parameter sent to a `list` endpoint without a filterset that is not a pagination, ordering, search, or flex-fields param (for example, a cache-busting parameter appended by a client or proxy)._
 
 ### Features
+
+- **Ordered feature contributions**:
+    - `FeatureSection` gains `contribute_order`, which sequences contributors lowest first with the section name breaking a tie. A feature that reads a model's finished field list now runs after every feature that adds one. History uses this so an event model includes fields another feature contributed.
+      _No integrator action unless a project registers its own feature section. Set `contribute_order` when the order in which a contributor sees the model matters._
 
 - **Optional workflow app boundary**:
     - Applications may omit `vueda.workflow` and `vueda.vdq` together. Model-info, ordinary CRUDL routes, history URL imports, and schema setup no longer import workflow models when workflow is absent. `vueda.vdq` still requires `vueda.workflow` and now fails early with a clear configuration error if installed without it.
@@ -128,6 +138,10 @@ public-facing documentation baseline.
       _No action is required to adopt this; it changes query counts, not response shapes. A viewset that already applies its own `select_related`/`prefetch_related` for an expanded relation keeps serving that relation from its own lookup; the derived plan detects the overlap and defers to it rather than adding a second lookup for the same path._
 
 ### Fixes
+
+- **Group migration generation with module-style migrations**:
+    - `updategroupmigrations` failed with `AttributeError` when any installed app shipped its migrations as a single module rather than a package. Such an app is now skipped, since it has no directory a generated migration could live in.
+      _No integrator action._
 
 - **Workflow state permission query cost**:
     - `HasWorkflowModelMixin.check_state_permission` issued one query per permission string. A caller evaluating several permissions against one object paid a round trip for each. One query now resolves every codename the object's current state grants or denies, and `available_transitions` runs its whole pass inside one cached-state block.

@@ -16,6 +16,8 @@ class AbstractProbeBase(VuedaModel):
     """An abstract base whose declaration must reach every concrete subclass."""
 
     name = models.CharField(max_length=255)
+    secret = models.CharField(max_length=255, blank=True)
+    token = models.CharField(max_length=255, blank=True)
 
     class Vueda:
         class Probe:

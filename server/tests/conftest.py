@@ -54,6 +54,44 @@ def api_client():
 
 
 @pytest.fixture(autouse=True, scope="function")
+def discard_orphaned_event_models():
+    """Drop event models that history registered for a model ``isolate_apps`` has since rolled back.
+
+    ``pghistory.track`` attaches the event model it generates to the tracked model's app ``models``
+    module and registers its triggers in the process-wide ``pgtrigger`` registry. ``isolate_apps``
+    restores the app registry when its block exits, but restores neither of those, so the generated
+    class and its trigger names outlive the model they track. A later test that reuses the model
+    name then fails, because pghistory refuses to overwrite an existing module attribute and
+    pgtrigger refuses a duplicate trigger name on a table.
+
+    Removing only the orphans keeps both protections intact for a real name collision.
+    """
+    yield
+
+    from django.apps import apps
+    from pgtrigger import registry as pgtrigger_registry
+
+    def is_orphaned(model):
+        app_models = apps.all_models.get(model._meta.app_label, {})
+        return app_models.get(model._meta.model_name) is not model
+
+    for app_config in apps.get_app_configs():
+        models_module = getattr(app_config, "models_module", None)
+        if models_module is None:
+            continue
+        registered = apps.all_models[app_config.label]
+        for name, value in list(vars(models_module).items()):
+            if not isinstance(value, type) or getattr(value, "pgh_tracked_model", None) is None:
+                continue
+            if registered.get(name.lower()) is not value:
+                delattr(models_module, name)
+
+    for uri, (model, _trigger) in list(pgtrigger_registry._registry.items()):
+        if is_orphaned(model):
+            pgtrigger_registry.delete(uri)
+
+
+@pytest.fixture(autouse=True, scope="function")
 def suffix_each_test(request):
     """
     A `pytest` fixture to isolate the database state for each asynchronous Django test when using `pytest-django` with
