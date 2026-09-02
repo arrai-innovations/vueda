@@ -58,6 +58,54 @@ def test_django_starts_without_workflow_or_vdq_with_history_installed():
     assert_probe_succeeded(result)
 
 
+def test_no_history_backend_without_the_history_app():
+    """The pghistory backend exists only where the optional feature app does."""
+    result = run_optional_apps_probe(
+        """
+        import django
+
+        django.setup()
+
+        from django.apps import apps
+        from django.conf import settings
+
+        assert not apps.is_installed("pghistory"), settings.INSTALLED_APPS
+        assert not apps.is_installed("pgtrigger"), settings.INSTALLED_APPS
+        assert not hasattr(settings, "PGHISTORY_APPEND_ONLY")
+        assert not [entry for entry in settings.MIDDLEWARE if "pghistory" in entry or "vueda.history" in entry]
+
+        tracked = [model for model in apps.get_models() if getattr(model, "pgh_tracked_model", None) is not None]
+        assert tracked == [], [model._meta.label for model in tracked]
+        """,
+        include_history=False,
+    )
+
+    assert_probe_succeeded(result)
+
+
+def test_the_history_backend_is_configured_with_the_history_app():
+    result = run_optional_apps_probe(
+        """
+        import django
+
+        django.setup()
+
+        from django.apps import apps
+        from django.conf import settings
+
+        assert apps.is_installed("pghistory")
+        assert apps.is_installed("pgtrigger")
+        assert settings.PGHISTORY_APPEND_ONLY is True
+        assert "vueda.history.middleware.VuedaHistoryMiddleware" in settings.MIDDLEWARE
+
+        tracked = [model for model in apps.get_models() if getattr(model, "pgh_tracked_model", None) is not None]
+        assert tracked, "the history app installs no event models"
+        """
+    )
+
+    assert_probe_succeeded(result)
+
+
 def test_django_starts_without_history_workflow_or_vdq():
     result = run_optional_apps_probe(
         """

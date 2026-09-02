@@ -19,6 +19,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Min
 
+from vueda.core.audit import audited_action
 from vueda.vdq.celery import app
 from vueda.vdq.celery import cancel_task
 from vueda.vdq.exceptions import AnymailTransientError
@@ -33,7 +34,21 @@ from vueda.workflow.exceptions import InvalidTransitionError
 logger = logging.getLogger(__name__)
 
 
-class BaseTask(DjangoTask):
+class AuditedTask(DjangoTask):
+    """Runs a task body inside one named action context.
+
+    Delivery writes to several tables per message and has no request to take a context from, so
+    without this each write would record an event that nothing associates with the rest.
+    """
+
+    abstract = True
+
+    def __call__(self, *args, **kwargs):
+        with audited_action(self.name):
+            return super().__call__(*args, **kwargs)
+
+
+class BaseTask(AuditedTask):
     autoretry_for = (AnymailTransientError,)
     retry_backoff = 2**4
     max_retries = 12
@@ -131,7 +146,7 @@ def send_message(self, qi_pk, method):
         raise Ignore()
 
 
-class CheckUnknownSMSMessageTask(DjangoTask):
+class CheckUnknownSMSMessageTask(AuditedTask):
     autoretry_for = (QueueItem.DoesNotExist,)
     default_retry_delay = 10
     retry_jitter = False

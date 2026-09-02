@@ -469,6 +469,12 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     return_dict["DATABASES"]["default"]["CONN_MAX_AGE"] = 0
     if "vueda.history" in return_dict["VUEDA_APPS"]:
         return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
+        # Names the acting user and request behind every event a request produces. It runs after
+        # authentication, because it reads request.user.
+        return_dict["MIDDLEWARE"] = [
+            *return_dict["MIDDLEWARE"],
+            "vueda.history.middleware.VuedaHistoryMiddleware",
+        ]
         # Protect event tables from updates and deletes. A purge must use pgtrigger.ignore.
         return_dict.setdefault("PGHISTORY_APPEND_ONLY", True)
         # Keep pghistory's ContextForeignKey, row-level trigger, and indexing defaults.
