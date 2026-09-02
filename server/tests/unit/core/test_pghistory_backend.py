@@ -11,6 +11,7 @@ from django.apps import apps
 from django.db import DatabaseError
 from django.db import connection
 
+from tests.conftest import BaseTestCallCommand
 from tests.store import models as store_models
 from vueda.core.audit import audited_action
 from vueda.history.middleware import VuedaHistoryMiddleware
@@ -30,6 +31,17 @@ def events_for(instance):
     """Return the event rows for one object, oldest first."""
     event_model = apps.get_model(instance._meta.app_label, f"{instance.__class__.__name__}Event")
     return list(event_model.objects.filter(pgh_obj_id=instance.pk).order_by("pgh_id"))
+
+
+def _trigger_names(table):
+    """Return the triggers PostgreSQL currently has on ``table``."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT tgname FROM pg_trigger JOIN pg_class ON pg_class.oid = tgrelid "
+            "WHERE relname = %s AND NOT tgisinternal",
+            [table],
+        )
+        return sorted(row[0] for row in cursor.fetchall())
 
 
 def make_invoice(name="Invoice A"):
@@ -250,6 +262,34 @@ class TestBackendChecks:
         from vueda.history.checks import check_history_middleware
 
         assert check_history_middleware(app_configs=None) == []
+
+
+class TestMigrationPaths(BaseTestCallCommand):
+    """Event models and triggers are ordinary migration state, and must behave like it.
+
+    Every test run already proves the forward path, because each test database is built from the
+    migrations. What is left to prove is that the path runs backwards and forwards again.
+    """
+
+    @pytest.mark.django_db
+    def test_the_event_migration_rolls_back_and_forward_again(self):
+        """One round trip, because migrating this app twice is the expensive part of the test."""
+        succeeded, results = self.call_command("migrate", "store", "0008")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "store_invoiceevent" not in connection.introspection.table_names()
+        assert _trigger_names("store_invoice") == []
+
+        succeeded, results = self.call_command("migrate", "store")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "store_invoiceevent" in connection.introspection.table_names()
+        assert _trigger_names("store_invoice")
+
+        invoice = make_invoice()
+        assert [event.pgh_label for event in events_for(invoice)] == ["insert"]
 
 
 class TestAppendOnly:
