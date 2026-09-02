@@ -266,6 +266,23 @@ class TestAppendOnly:
                     ["Tampered", event.pgh_id],
                 )
 
+    def test_the_documented_purge_path_removes_event_rows(self):
+        """Retention is the integrator's to define, so append-only must have a way through."""
+        import pgtrigger
+
+        invoice = make_invoice()
+        invoice.name = "Renamed"
+        invoice.save()
+        event_model = apps.get_model("store", "InvoiceEvent")
+        recorded = events_for(invoice)
+
+        with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
+            deleted, _ = event_model.objects.filter(pgh_obj_id=invoice.pk).delete()
+
+        assert [event.pgh_label for event in recorded] == ["insert", "update"]
+        assert deleted == len(recorded)
+        assert events_for(invoice) == []
+
     def test_an_event_row_cannot_be_deleted(self):
         invoice = make_invoice()
         event = events_for(invoice)[0]

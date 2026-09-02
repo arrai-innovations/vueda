@@ -167,7 +167,7 @@ class MyFeatureConfig(AppConfig):
 
 `FeatureSection.validate` receives the model and its resolved section, and returns error messages for rules that span options. Resolution runs it before the contributor. Resolution omits a failed section from contribution and turns its messages into system-check errors.
 
-`FeatureSection.contribute` runs once per concrete model, immediately after Django prepares it. It may call `model.add_to_class()` to add a database field, a `GenericRelation`, or a descriptor. A database field added here reaches `ModelState`, which is what keeps a migration-relevant option visible to migration generation. Contributors run in section-name order. VUEDA omits any section it could not resolve or validate, so a feature never acts on a faulty declaration.
+`FeatureSection.contribute` runs once per concrete model, immediately after Django prepares it. It may call `model.add_to_class()` to add a database field, a `GenericRelation`, or a descriptor. A database field added here reaches `ModelState`, which is what keeps a migration-relevant option visible to migration generation. Contributors run in `contribute_order`, lowest first, with the section name breaking a tie. A feature that reads a model's finished field list sets a high order so it runs after every feature that adds one. History does this, which is why an event model includes the fields another feature contributed. VUEDA omits any section it could not resolve or validate, so a feature never acts on a faulty declaration.
 
 A contributor receives every concrete multi-table child separately with that child's resolved policy. The feature must decide whether a database artifact belongs to the parent table, the child table, or both. It must not add a local field that clashes with a field inherited from a concrete parent.
 
@@ -175,6 +175,6 @@ A proxy model gets no contributor pass of its own, because its concrete model al
 
 ## Current Status
 
-`class Vueda` is the declaration contract. The history and workflow integrations still follow the existing model, serializer, viewset, and filterset inheritance, and they will derive from this policy instead.
+History derives from this policy. With `vueda.history` installed, `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. No base class or decorator takes part.
 
-Until then, an explicit `enabled` that disagrees with a model's current base classes produces a system-check error. VUEDA does not accept and then ignore the declaration. Declaring `History.enabled = True` requires `VuedaHistoryModel`, and `Workflow.enabled = True` requires `HasWorkflowModelMixin`, exactly as before this contract existed.
+Workflow has not converted yet. It still follows `HasWorkflowModelMixin`, so an explicit `Workflow.enabled` that disagrees with a model's base classes produces a system-check error. VUEDA does not accept and then ignore the declaration.
