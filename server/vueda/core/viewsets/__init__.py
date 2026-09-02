@@ -538,36 +538,60 @@ def build_prefetch_plan(serializer, model):
     return select_related, prefetch_related
 
 
+def _prefetch_cache_keys(lookup):
+    """
+    Return the set of cache keys Django's ``prefetch_related_objects`` registers as already fetched
+    while resolving ``lookup``: one for every intermediate level of its path -- always the literal
+    ``__``-joined path up to that level, since ``to_attr`` can only rename a lookup's own final level
+    -- plus the lookup's own ``prefetch_to`` (its ``to_attr`` when set, otherwise its full
+    ``prefetch_through`` path). Django keys its ``done_queries`` cache by exactly these values, one
+    entry per level as it walks a lookup's path, not by the lookup's path as a whole.
+    """
+    prefetch = lookup if isinstance(lookup, Prefetch) else Prefetch(lookup)
+    segments = prefetch.prefetch_through.split("__")
+    intermediate_levels = {"__".join(segments[:level]) for level in range(1, len(segments))}
+    return intermediate_levels | {prefetch.prefetch_to}
+
+
 def filter_new_prefetch_lookups(queryset, prefetch_related):
     """
-    Drop any entry in ``prefetch_related`` (as returned by :func:`build_prefetch_plan`) whose exact
-    lookup path ``queryset`` already prefetches, so ``VuedaViewSet.get_queryset()`` never hands
-    Django two different querysets for the same lookup.
+    Drop any entry in ``prefetch_related`` (as returned by :func:`build_prefetch_plan`) whose cache
+    key ``queryset`` -- or an earlier-accepted entry in this same call -- already registers, so
+    ``VuedaViewSet.get_queryset()`` never hands Django two different querysets for the same lookup.
 
-    Unlike ``select_related`` -- a plain set of field names Django merges silently across repeated
-    calls -- ``prefetch_related`` raises ``ValueError: '<lookup>' lookup was already seen with a
-    different queryset`` the moment the same lookup path appears twice with two different
+    ``prefetch_related`` raises ``ValueError: '<lookup>' lookup was already seen with a different
+    queryset`` the moment two lookups register the same cache key with two different
     ``Prefetch.queryset`` values, and this happens even when one side is a bare string (an implicit
     default-manager queryset) and the other an explicit ``Prefetch``. A viewset whose own
     ``queryset``/``get_queryset()`` already prefetches a relation this plan also covers -- most
     plausibly a relation the application hand-optimized before this plan existed -- would otherwise
-    crash the first time a request actually resolves that relation. Deferring to the existing
-    lookup keeps whatever customization it carries (including its own ``formatted_name`` annotation,
-    if it needs one) rather than overriding it with the plan's default.
+    crash the first time a request actually resolves that relation. Deferring to the existing lookup
+    keeps whatever customization it carries (including its own ``formatted_name`` annotation, if it
+    needs one) rather than overriding it with the plan's default. Two plan entries can collide the
+    same way -- a serializer that aliases one relation under two expandable-field names produces two
+    ``Prefetch`` objects for the same path -- so an entry this call already accepted also counts as
+    "already registered" for the entries that follow it. Django's cache key is the lookup's own
+    ``prefetch_to``, not its full path, so a lookup that sets ``to_attr`` registers under that alias
+    and never collides with a plan entry for the same path under its default attribute name.
 
     Reads ``queryset._prefetch_related_lookups``, a private Django attribute with no public
     equivalent; it is a plain tuple of ``str``/``Prefetch`` entries across the Django versions this
     package supports (5.2, 6.0, 6.1).
     """
-    existing_lookups = {
-        lookup.prefetch_through if isinstance(lookup, Prefetch) else lookup
-        for lookup in queryset._prefetch_related_lookups
-    }
-    return [
-        lookup
-        for lookup in prefetch_related
-        if (lookup.prefetch_through if isinstance(lookup, Prefetch) else lookup) not in existing_lookups
-    ]
+    seen_cache_keys = set()
+    for lookup in queryset._prefetch_related_lookups:
+        seen_cache_keys |= _prefetch_cache_keys(lookup)
+
+    new_lookups = []
+    for lookup in prefetch_related:
+        prefetch = lookup if isinstance(lookup, Prefetch) else Prefetch(lookup)
+        if prefetch.prefetch_to in seen_cache_keys:
+            continue
+
+        new_lookups.append(lookup)
+        seen_cache_keys |= _prefetch_cache_keys(lookup)
+
+    return new_lookups
 
 
 class NoExtraFieldsForViewSetMixin:

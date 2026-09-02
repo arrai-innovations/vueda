@@ -72,6 +72,40 @@ def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
     assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
 
 
+def test_filter_new_prefetch_lookups_drops_a_plan_entry_the_existing_lookup_passes_through():
+    # "timesheet_entries__timesheet" registers "timesheet_entries" as its own cache key while
+    # Django walks it one level at a time, even though "timesheet_entries" never appears as a
+    # standalone lookup here -- the plan entry must be dropped by that cache key, not by comparing
+    # whole lookup paths.
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_drops_a_second_plan_entry_for_the_same_path():
+    # Two plan entries for the same lookup collide with each other exactly as a plan entry and an
+    # existing lookup do; the first is kept and the second dropped rather than both reaching
+    # queryset.prefetch_related() and raising at evaluation time.
+    queryset = Timesheet.objects.all()
+    first = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.filter(hours__gt=0))
+    second = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())
+
+    assert filter_new_prefetch_lookups(queryset, [first, second]) == [first]
+
+
+def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_renamed_with_to_attr():
+    # The existing lookup's cache key is its to_attr ("raw_timesheet_entries"), not its lookup path
+    # ("timesheet_entries"), so it does not collide with a plan entry for the same path under the
+    # relation's default attribute name.
+    queryset = Timesheet.objects.prefetch_related(
+        Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all(), to_attr="raw_timesheet_entries")
+    )
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
 @pytest.mark.django_db
 class TestProductViewSet(BaseTestModelViewSet):
     model = Product
@@ -934,6 +968,175 @@ class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, Bas
         assert len(response.data["results"]) == 1
         entries = response.data["results"][0]["entries"]
         assert [e["id"] for e in entries] == [entry.id]
+
+
+@pytest.mark.django_db
+class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithAliasedEntriesViewSet.queryset`` is plain ``Timesheet.objects.all()``, so the
+    response is served entirely by the plan ``build_prefetch_plan`` derives -- unlike
+    ``TestTimesheetWithPrefetchedEntriesViewSet``, whose viewset's own hand-declared prefetch serves
+    the response and never exercises the plan's own ``Prefetch``. This covers the to-many branch's
+    query count and its ``formatted_name`` pre-annotation, plus the plan colliding with itself when
+    "entries" and "entries_again" both expand the same "timesheet_entries" relation.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            timesheet = Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+            )
+            TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+    def test_list_with_to_many_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        url = reverse("timesheet.timesheetaliasedentries-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert len(result["entries"]) == 1
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to-many expand query count grows with row count: {counts}"
+
+    def test_list_with_both_aliases_of_the_same_relation_does_not_raise(self, authenticated_client):
+        row_count = 2
+        self._create_timesheets(row_count)
+
+        url = reverse("timesheet.timesheetaliasedentries-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries,entries_again"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert len(response.data["results"]) == row_count
+        for result in response.data["results"]:
+            assert len(result["entries"]) == 1
+            assert len(result["entries_again"]) == 1
+
+
+@pytest.mark.django_db
+class TestTimesheetWithDeeperPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithDeeperPrefetchedEntriesViewSet.queryset`` hand-declares
+    ``prefetch_related("timesheet_entries__timesheet")``, a lookup that passes through -- but never
+    equals -- the "entries" expand's own "timesheet_entries" path. Before
+    ``filter_new_prefetch_lookups`` compared lookups by cache key rather than by lookup path, this
+    combination still raised ``ValueError`` at evaluation time, because Django registers
+    "timesheet_entries" as its own cache key while walking the deeper lookup one level at a time --
+    this covers that it no longer does.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def test_list_with_expand_does_not_raise_when_viewset_prefetches_through_the_relation(self, authenticated_client):
+        user = self.users["test_user@domain.invalid"]
+        employee = Employee.objects.create(user=user, employee_number="1")
+        timesheet = Timesheet.objects.create(
+            period_start=datetime.date(2024, 1, 1),
+            period_end=datetime.date(2024, 1, 15),
+            employee=employee,
+        )
+        entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+        url = reverse("timesheet.timesheetdeeperprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        entries = response.data["results"][0]["entries"]
+        assert [e["id"] for e in entries] == [entry.id]
+
+
+@pytest.mark.django_db
+class TestTimesheetWithToAttrPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithToAttrPrefetchedEntriesViewSet.queryset`` hand-declares its own
+    "timesheet_entries" prefetch under ``to_attr="raw_timesheet_entries"``, a distinct cache key
+    from the "entries" expand's own plan entry (which uses the relation's default attribute name).
+    Before ``filter_new_prefetch_lookups`` compared lookups by lookup path rather than cache key,
+    the plan entry was dropped as though it collided, silently falling back to one query per row --
+    this covers that it now runs and holds a flat query count.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            timesheet = Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+            )
+            TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+    def test_list_with_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        url = reverse("timesheet.timesheettoattrprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            for result in response.data["results"]:
+                assert len(result["entries"]) == 1
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to_attr-prefetched expand query count grows with row count: {counts}"
 
 
 @pytest.mark.django_db
