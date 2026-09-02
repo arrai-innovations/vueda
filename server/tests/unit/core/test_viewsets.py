@@ -1330,7 +1330,10 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         response = authenticated_client.get(reverse("store.distributor-list"), data={"nosuchparam": "1"})
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert "nosuchparam" in response.data
+        assert response.data["nosuchparam"] == [
+            "Invalid query parameter.  Valid filters are id, id__in, name, name__exact, "
+            "name_icontains, name_icontains__icontains."
+        ]
 
     def test_retrieve_with_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
         distributor = test_data.distributors["T-Shirt Corp."]
@@ -1350,7 +1353,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         )
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert "nosuchparam" in response.data
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]
 
     def test_retrieve_with_filterset_class_rejects_filterset_field(self, authenticated_client, test_data):
         """A filterset field name is only recognized on list; retrieve identifies its object by pk alone."""
@@ -1361,7 +1364,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         )
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert "name" in response.data
+        assert response.data["name"] == ["Invalid query parameter.  Valid filters are e, f, om."]
 
     def test_list_without_filterset_class_accepts_extra_allowed_param(self, authenticated_client, test_data):
         """
@@ -1402,7 +1405,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         response = authenticated_client.get(reverse("store.note-list"), data={"nosuchparam": "1"})
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert "nosuchparam" in response.data
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, o, om, p, ps, s."]
 
     def test_retrieve_without_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
         distributor = test_data.distributors["T-Shirt Corp."]
@@ -1432,4 +1435,4 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         )
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert "nosuchparam" in response.data
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]
