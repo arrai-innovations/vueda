@@ -15,6 +15,9 @@ env = TomlEnv({**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "co
 
 locals().update(get_defaults(env))
 
+# MD5 is intentionally test-only. It exercises Django's password API without paying the production Scrypt cost.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 decimal.setcontext(decimal.Context(rounding=decimal.ROUND_HALF_UP))  # Sensible decimal rounding
 
 DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
