@@ -58,6 +58,17 @@ class ProbeProxy(ProbeTracked):
         proxy = True
 
 
+class ProbeUntracked(VuedaModel):
+    """Opts out of history, so nothing should generate an event model or a trigger for it."""
+
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "Covers the opt-out path."
+
+
 class ProbeLookup(Lookup):
     """A lookup table, which carries feature policy the same way a VuedaModel does."""
 

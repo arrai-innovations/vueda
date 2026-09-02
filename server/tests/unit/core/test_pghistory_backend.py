@@ -217,6 +217,71 @@ class TestRequestContext:
         assert metadata["method"] == "GET"
 
 
+class TestPolicyArtifacts:
+    """What a model's policy produces, and just as importantly what it does not."""
+
+    def test_an_opted_out_model_has_no_event_model(self):
+        with pytest.raises(LookupError):
+            apps.get_model("features", "ProbeUntrackedEvent")
+
+    @pytest.mark.django_db
+    def test_an_opted_out_model_has_no_triggers(self):
+        table = apps.get_model("features", "ProbeUntracked")._meta.db_table
+
+        # Assert the table exists first, so a missing migration cannot pass this test vacuously.
+        assert table in connection.introspection.table_names()
+        assert _trigger_names(table) == []
+
+    def test_a_mandatory_exclusion_is_not_snapshotted(self):
+        """The floor holds for a model that declares nothing about history."""
+        event_fields = [field.name for field in apps.get_model("employee", "UserEvent")._meta.concrete_fields]
+
+        assert "password" not in event_fields
+        assert "email" in event_fields
+
+    def test_an_author_declaration_cannot_restore_a_mandatory_exclusion(self):
+        """A declaration replaces the inherited value, so the floor cannot live in author policy."""
+        from vueda.history.apps import _resolve_exclusions
+
+        user_model = apps.get_model("employee", "User")
+
+        assert _resolve_exclusions(user_model, ("email",)) == ["email", "password"]
+
+    def test_a_proxy_has_no_event_model_of_its_own(self):
+        with pytest.raises(LookupError):
+            apps.get_model("features", "ProbeProxyEvent")
+
+    @pytest.mark.django_db
+    def test_a_proxy_write_lands_in_the_concrete_event_model(self):
+        from tests.features import models as feature_models
+
+        instance = feature_models.ProbeProxy.objects.create(name="Through the proxy")
+
+        event_model = apps.get_model("features", "ProbeTrackedEvent")
+        events = event_model.objects.filter(pgh_obj_id=instance.pk)
+        assert [event.pgh_label for event in events] == ["insert"]
+
+    def test_an_unmanaged_model_is_skipped(self):
+        """VUEDA does not own an unmanaged model's table, so it must not install triggers on it."""
+        with pytest.raises(LookupError):
+            apps.get_model("erring", "PropertyFormattedNameEvent")
+
+
+class TestMigrationState:
+    @pytest.mark.django_db
+    def test_no_migration_is_missing(self):
+        """Registration is deterministic, so a fresh run must find nothing left to write."""
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        out = StringIO()
+        try:
+            call_command("makemigrations", "--check", "--dry-run", stdout=out)
+        except SystemExit:
+            pytest.fail(f"Models and migrations disagree:\n{out.getvalue()}")
+
+
 class TestBackendChecks:
     """The middleware is a default, and a project can replace the list that carries it."""
 
