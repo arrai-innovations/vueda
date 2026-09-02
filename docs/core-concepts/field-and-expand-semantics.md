@@ -92,6 +92,18 @@ The expand validation path works as follows. On each request, `FlexFieldsMixin.g
 
 Trying to expand on a model that does not have any expandable fields, will generate the error "No expands are permitted.".
 
+## Query Cost of List and Retrieve Expansion
+
+An expanded relation's query cost does not grow with the number of rows in the response. `VuedaViewSet.get_queryset()` derives `select_related` and `prefetch_related` directly from what a request's `e` value actually expands, and applies that plan before the queryset is paginated or evaluated. Expanding `category` on a `list` of 100 objects costs one additional join, not 100 additional queries; expanding a to-many relation like `tags` costs one additional prefetch query, not one per row.
+
+Only `e` decides what the plan covers, together with whatever narrows `e` itself: {@term Action-Scoped Expand} restrictions and `MAXIMUM_EXPANSION_DEPTH`. `f` (sparse fields) and `om` (omit) play no part in it either way, and this is not a limitation of the plan; it reflects what the response actually does. An expand named in `e` renders regardless of what `f` or `om` say, through two separate mechanisms that happen to produce the same result: the field-defaulting behavior described in [Multi-level Field and Expand Data](#multi-level-field-and-expand-data) below re-admits an expand's own name into the effective `f` set as a side effect of defaulting its sub-fields to "all" when none are requested, and a similar side effect of always hiding `available_actions` from an expanded object re-admits it into the effective `om` set. Either way, an `f` that omits an expand's name, or an `om` that names it, drops neither the field from the response nor its relation from the plan. `f` and `om` still work normally for ordinary, non-expanded fields, and for narrowing which sub-fields of an already-expanded relation come back — neither of which changes what the plan needs to prefetch, since the plan only cares about which relations get traversed, not which of their columns are returned.
+
+The plan follows a field's `source` (a `source=` in an `expandable_fields` declaration that names a different attribute than the field's own key resolves against that attribute, not the key), and it only ever covers what `e` actually resolved: a field never named in `e`, or one restricted away by {@term Action-Scoped Expand} controls, contributes nothing to the plan.
+
+This does not apply to a `GenericForeignKeySerializer` expand: the related model is not known until representation time (see [Generic Foreign Key Expands](#generic-foreign-key-expands) above), so it continues to resolve per-instance the same way it always has, outside of any queryset plan.
+
+This removes the per-row query cost of expansion, but not its other costs. Response payload size still grows with both row count and expansion depth, and each distinct expanded relation still costs one join or prefetch query per request, which is why {@term Action-Scoped Expand} restrictions above remain worth setting for `list` endpoints with many expandable relations or large row counts.
+
 ## Client Normalization and Cache Semantics
 
 Model-info responses undergo normalization when the client stores them. The normalization performs three transformations:
@@ -144,6 +156,9 @@ Specifying both fields and wildcards is allowed, like `id,available_actions,*` i
 - {@api py:function:vueda.info.registration.get_serializer_for_model}
 - {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
 - {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
+- {@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset}
+- {@api py:function:vueda.core.viewsets.build_prefetch_plan}
+- {@api py:function:vueda.core.viewsets.resolve_relation_path}
 - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}

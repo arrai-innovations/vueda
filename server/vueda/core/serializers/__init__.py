@@ -14,6 +14,7 @@ __all__ = (
     "VuedaReadonlyListSerializer",
     "VuedaReadonlySerializer",
     "VuedaSerializer",
+    "ensure_flex_fields_applied",
 )
 
 import copy
@@ -25,7 +26,6 @@ import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.db.models import CompositePrimaryKey
-from django.db.models import F
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
 from rest_flex_fields import split_levels
@@ -34,6 +34,7 @@ from rest_framework import serializers
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields.serializers import FileField as VuedaFileField
 from vueda.core.fields.serializers import ImageField as VuedaImageField
+from vueda.core.models import annotate_formatted_name
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
@@ -108,6 +109,27 @@ class NoExtraFieldsSerializerMixin:
         return attrs
 
 
+def ensure_flex_fields_applied(serializer):
+    """
+    Apply the request's query-param-driven expand/fields/omit resolution (``_flex_options_rep_only``)
+    to ``serializer.fields``. ``rest_flex_fields`` only applies this resolution automatically inside
+    ``to_representation()``; merely accessing ``.fields`` does not, because the ``get_fields()`` that
+    triggers applies a separate, constructor-kwarg-driven options set (``_flex_options_base``)
+    instead, which is empty for a serializer built the normal way from a request.
+
+    Needed by a caller that must inspect the resolved field tree -- which fields a request's ``?e=``
+    actually turned into nested serializers -- without first serializing an instance, such as a
+    queryset's prefetch plan (``vueda.core.viewsets.build_prefetch_plan``).
+
+    A no-op if this serializer instance already applied it, whether by a prior call here or by
+    ``to_representation`` itself, so calling this before a representation happens does not double
+    the expansion work or clobber ``fields`` that expansion already added to.
+    """
+    if not serializer._flex_fields_rep_applied:
+        serializer.apply_flex_fields(serializer.fields, serializer._flex_options_rep_only)
+        serializer._flex_fields_rep_applied = True
+
+
 class FlexFieldsWriteableNestedSerializerMixin(
     drf_writable_nested.UniqueFieldsMixin,
     flex_serializers.FlexFieldsSerializerMixin,
@@ -152,16 +174,15 @@ class FlexFieldsWriteableNestedSerializerMixin(
         serializer with explicit kwargs is opting in to restricting both directions, unlike a
         client shaping a response with a query parameter.
 
-        We only want to apply flex fields to the serializer fields if the serializer is being
-        used in a view. We don't want to apply flex fields to the serializer fields if the
-        serializer is being used as a nested serializer, because it should already have the
-        flex fields applied. Double applying flex fields to the serializer fields will cause an
-        error.
+        Delegates the view-bound check and the actual application to
+        ``ensure_flex_fields_applied``, the same helper a caller like
+        ``VuedaViewSet.get_queryset`` uses to resolve ``.fields`` before an instance is ever
+        serialized (for prefetch planning). Both call sites must agree on when application is
+        safe and on the ``_flex_fields_rep_applied`` double-application guard, so that logic
+        lives in one place rather than two copies that could drift.
         """
-        if not self._flex_fields_rep_applied:  # noqa SIM102
-            if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
-                self.apply_flex_fields(self.fields, self._flex_options_rep_only)
-                self._flex_fields_rep_applied = True
+        if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
+            ensure_flex_fields_applied(self)
         return super().to_representation(instance)
 
     def to_internal_value(self, data):
@@ -173,8 +194,11 @@ class FlexFieldsWriteableNestedSerializerMixin(
         narrowing and stays on the write path.
 
         ``?f=``/``?om=`` are not applied here. They narrow the representation only, in
-        ``to_representation``, so a required field they exclude still fails validation instead
-        of silently losing its validator.
+        ``to_representation`` (via ``ensure_flex_fields_applied``), so a required field they
+        exclude still fails validation instead of silently losing its validator. Deserialization
+        must not call ``ensure_flex_fields_applied`` for this reason: that helper runs the full
+        ``apply_flex_fields``, sparse-fieldset removal included, which is exactly what would
+        drop the validator.
         """
         if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
             self._expand_fields_for_write(self.fields, self._flex_options_rep_only)
@@ -579,16 +603,20 @@ class VuedaListSerializer(serializers.ListSerializer):
     mirroring the annotation that ``VuedaViewSet.get_queryset()`` applies for direct requests.
     This ensures ``formatted_name`` is populated even when objects are fetched via a related
     manager during expand (which bypasses the viewset queryset).
+
+    The annotate is skipped when ``formatted_name`` is already present in the queryset's
+    annotations -- not only to avoid redundant work, but because annotating a queryset that is
+    serving a prefetched relation clones it, discarding the cached prefetch result and forcing a
+    fresh query per row. ``vueda.core.viewsets.build_prefetch_plan`` pre-annotates a to-many
+    expand's ``Prefetch`` queryset for exactly this reason, so this check finds it already done.
     """
 
     def to_representation(self, data):
         child_model = getattr(getattr(self.child, "Meta", None), "model", None)
         if child_model and hasattr(data, "annotate"):
-            lookup = getattr(child_model, "formatted_name_lookup_expression", None)
-            if lookup is not None:
-                existing = getattr(getattr(data, "query", None), "annotations", {})
-                if "formatted_name" not in existing:
-                    data = data.annotate(formatted_name=F(lookup))
+            existing = getattr(getattr(data, "query", None), "annotations", {})
+            if "formatted_name" not in existing:
+                data = annotate_formatted_name(data)
         return super().to_representation(data)
 
 
