@@ -13,9 +13,17 @@ from django.db import connection
 
 from tests.store import models as store_models
 from vueda.core.audit import audited_action
+from vueda.history.middleware import VuedaHistoryMiddleware
 
 
 pytestmark = pytest.mark.django_db
+
+
+class ProjectHistoryMiddleware(VuedaHistoryMiddleware):
+    """Stands in for a project that extends the middleware rather than using it as shipped."""
+
+    def get_context(self, request):
+        return {**super().get_context(request), "tenant": "acme"}
 
 
 def events_for(instance):
@@ -195,6 +203,53 @@ class TestRequestContext:
         metadata = events_for(written["invoice"])[0].pgh_context.metadata
         assert metadata["user"] is None
         assert metadata["method"] == "GET"
+
+
+class TestBackendChecks:
+    """The middleware is a default, and a project can replace the list that carries it."""
+
+    def test_the_configured_middleware_satisfies_the_check(self):
+        from vueda.history.checks import check_history_middleware
+
+        assert check_history_middleware(app_configs=None) == []
+
+    def test_a_stack_without_history_middleware_is_reported(self, settings):
+        from vueda.history.checks import check_history_middleware
+
+        settings.MIDDLEWARE = [
+            entry for entry in settings.MIDDLEWARE if entry != "vueda.history.middleware.VuedaHistoryMiddleware"
+        ]
+
+        warnings = check_history_middleware(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_history.W001"]
+
+    def test_middleware_before_authentication_is_reported(self, settings):
+        """It reads request.user, which nothing has set before AuthenticationMiddleware runs."""
+        from vueda.history.checks import check_history_middleware
+
+        settings.MIDDLEWARE = [
+            "vueda.history.middleware.VuedaHistoryMiddleware",
+            "django.contrib.auth.middleware.AuthenticationMiddleware",
+        ]
+
+        warnings = check_history_middleware(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_history.W002"]
+
+    def test_the_default_stack_places_the_middleware_after_authentication(self, settings):
+        history = settings.MIDDLEWARE.index("vueda.history.middleware.VuedaHistoryMiddleware")
+        auth = settings.MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
+
+        assert auth < history
+
+    def test_a_project_subclass_satisfies_the_check(self, settings):
+        """A project may extend the middleware to record metadata of its own."""
+        settings.MIDDLEWARE = ["tests.unit.core.test_pghistory_backend.ProjectHistoryMiddleware"]
+
+        from vueda.history.checks import check_history_middleware
+
+        assert check_history_middleware(app_configs=None) == []
 
 
 class TestAppendOnly:

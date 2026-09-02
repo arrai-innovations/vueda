@@ -141,3 +141,10 @@ class HistoryConfig(AppConfig):
     name = "vueda.history"
     label = "vueda_history"
     verbose_name = "VUEDA History"
+
+    def ready(self):
+        from django.core.checks import register
+
+        from .checks import check_history_middleware
+
+        register(check_history_middleware)
