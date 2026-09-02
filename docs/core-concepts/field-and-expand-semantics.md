@@ -29,6 +29,8 @@ GET /routes/myapp/widget/1/?f=id&f=name&f=status&e=owner
 
 The server reads the `f` values as the sparse field set and the `e` values as the `expand` set. Fields not listed in `f` are omitted from the response. Expands listed in `e` cause the related serializer to be embedded inline in the response rather than returning only the foreign key value.
 
+`f` and its complement `om` (omit) shape the response only, on every request method. On a `create` or `update`, the request body still validates against the serializer's full field set regardless of `f`/`om`: a required field stays required even when `f`/`om` excludes it from the response the write returns. `e` is different because it changes how the body is read, not just how the response is shaped: a relation named in `e` deserializes from a nested object payload, and the same relation left out of `e` deserializes from a flat primary key. See [Nested Write Compatibility](./nested-write-compatibility) for how the serializer mixin enforces this split.
+
 ## Field Metadata Contract
 
 The `model_fields` section of a model-info response is derived from the canonical registered serializer's field definitions. Each field entry carries structural metadata: `read_only`, `required`, `many`, type descriptors, and optional constraints like `max_length` or `min_value`. When a field has static choices defined on the serializer, those choices are included in the metadata as well.
@@ -121,6 +123,8 @@ Specifying both fields and wildcards is allowed, like `id,available_actions,*` i
 **Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid `expand` keys, the entire request fails. The valid expands are not partially applied in the response; the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
 
 **Invalid sparse field keys produce field-keyed validation errors.** Unknown `f` values return HTTP 400 with a payload keyed by the invalid field name and a `code: invalid` error. In write flows, this validation error can be mistaken for a data validation failure because it follows the same response shape. The distinguishing signal is the error message text, which references valid field names.
+
+**A required field excluded by `f`/`om` still must be sent on a write.** `f` and `om` narrow the response only; they do not narrow what a `create` or `update` validates. Omitting a required field from the request body because `f`/`om` excludes it from the response returns HTTP 400 naming that field, not a successful write with the field left blank or defaulted.
 
 **Missing PK marker blocks the entire model on the client.** If the server's metadata response does not include a field with `pk: true`, `storeModelInfo` throws and caches the error. All subsequent operations for that `app.model`; config generation, route guards, form loading; fail immediately with the cached error. The only recovery is to recreate the store instance.
 

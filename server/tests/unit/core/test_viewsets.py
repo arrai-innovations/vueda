@@ -7,6 +7,7 @@ from typing import TypedDict
 import pytest
 from django.conf import settings
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -753,6 +754,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
+            ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
         ],
         "Customer Updater": [
@@ -796,6 +798,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "employee" relation
+                # must still be supplied even though the response won't include it.
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
             },
@@ -803,9 +808,108 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" not in response.data
+        assert response.data == {"period_start": "2024-02-16", "period_end": "2024-02-25"}, response.data
+
+    def test_update_timesheet_with_field_param_excluding_required_field_fails_validation(self, api_client):
+        """A required relation ("employee") dropped by ?f= must still be required (issue #205):
+        ?f= shapes the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        # "serverStack" is debug-only noise the test settings attach to error responses; strip it
+        # before comparing so the assertion checks the whole error payload, not just one key.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start,period_end"),
+            ("OMIT_PARAM", "employee"),
+        ],
+    )
+    def test_create_timesheet_with_field_param_excluding_required_field_fails_validation(
+        self, api_client, param_name, requested
+    ):
+        """A required relation ("employee") dropped by ?f=/?om= must still be required on create
+        (issue #205): the parameters shape the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(
+            reverse(
+                "timesheet.timesheet-list",
+                query={settings.REST_FLEX_FIELDS[param_name]: requested},
+            ),
+            data={
+                "period_start": datetime.date(2024, 3, 1),
+                "period_end": datetime.date(2024, 3, 15),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
+
+    def test_partial_update_timesheet_with_field_param_does_not_bypass_validation(self, api_client):
+        """A PATCH still validates a field present in the body even when ?f= excludes it from the
+        response (issue #205): sparse fieldset narrows the response, not what gets validated."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start"},
+            ),
+            data={"employee": 999999},  # no employee with this pk
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "employee": [ErrorDetail('Invalid pk "999999" - object does not exist.', code="does_not_exist")]
+        }, response.data
+        t1.refresh_from_db()
+        assert t1.employee_id == e1.pk
 
     def test_update_timesheet_with_non_existing_field(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -828,6 +932,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
             ),
             data={
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
                 "une": "ssss",
@@ -836,9 +941,19 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 400)
-        assert "period_end" in response.data
-        assert "employee" not in response.data
-        assert "une" in response.data
+        # ?f= no longer narrows the field set that validates the write, so "period_end" -- a real
+        # field left out of the requested subset -- validates normally instead of being rejected
+        # as an unknown field. The full-payload comparison confirms that: only "une" errors.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "une": [
+                ErrorDetail(
+                    "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
+                    "formatted_name, id, period_end, period_start, supervisor.",
+                    code="invalid",
+                )
+            ]
+        }, response.data
 
     def test_expand_with_existing_expands(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -1008,6 +1123,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 },
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "quantity" scalar
+                # must still be supplied even though the response won't include it.
+                "quantity": ci1.quantity,
                 "cart": cart.pk,
                 "product_option": {
                     "disabled": False,

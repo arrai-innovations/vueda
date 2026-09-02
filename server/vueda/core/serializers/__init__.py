@@ -138,18 +138,46 @@ class FlexFieldsWriteableNestedSerializerMixin(
 
         return super().apply_flex_fields(fields, flex_options)
 
-    def to_internal_value(self, data):
+    def to_representation(self, instance):
         """
-        We want to apply flex fields to the serializer fields, but only if the
-        serializer is being used in a view. We don't want to apply flex fields
-        to the serializer fields if the serializer is being used as a nested
-        serializer, because it should already have the flex fields applied.
-        Double applying flex fields to the serializer fields will cause an error.
+        ``?f=``/``?om=`` (``_flex_options_rep_only``, sourced from query params) narrow the
+        representation only. Applying them here, rather than in ``to_internal_value``, keeps a
+        write validating against the serializer's full field set while still narrowing the
+        response a write returns, since ``to_representation`` runs after ``save()``.
+
+        ``fields=``/``omit=`` passed as serializer kwargs (``_flex_options_base``) are a
+        different entry point: ``get_fields()`` applies them before either
+        ``to_internal_value`` or ``to_representation`` runs, so they narrow validation and
+        representation alike. That is unchanged and deliberate -- a caller constructing a
+        serializer with explicit kwargs is opting in to restricting both directions, unlike a
+        client shaping a response with a query parameter.
+
+        We only want to apply flex fields to the serializer fields if the serializer is being
+        used in a view. We don't want to apply flex fields to the serializer fields if the
+        serializer is being used as a nested serializer, because it should already have the
+        flex fields applied. Double applying flex fields to the serializer fields will cause an
+        error.
         """
         if not self._flex_fields_rep_applied:  # noqa SIM102
             if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
                 self.apply_flex_fields(self.fields, self._flex_options_rep_only)
                 self._flex_fields_rep_applied = True
+        return super().to_representation(instance)
+
+    def to_internal_value(self, data):
+        """
+        ``?e=`` (expand) names relations whose payload is a nested object rather than a flat
+        PK, so each expanded relation is swapped for its nested serializer here, before
+        deserialization, to accept that shape. See the nested-writable-inlines guide for the
+        query-param contract; this half of flex-field handling is independent of sparse-fieldset
+        narrowing and stays on the write path.
+
+        ``?f=``/``?om=`` are not applied here. They narrow the representation only, in
+        ``to_representation``, so a required field they exclude still fails validation instead
+        of silently losing its validator.
+        """
+        if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
+            self._expand_fields_for_write(self.fields, self._flex_options_rep_only)
 
         # Django REST Framework does not automatically pass `initial_data` to nested serializers.
         # Some nested serializers may need access to `initial_data` for validation,
@@ -159,6 +187,24 @@ class FlexFieldsWriteableNestedSerializerMixin(
             if isinstance(field, serializers.BaseSerializer) and field_name in initial_data:
                 field.initial_data = initial_data[field_name]
         return super().to_internal_value(data)
+
+    def _expand_fields_for_write(self, fields, flex_options):
+        """
+        Swap each ``?e=`` relation for its nested serializer, the expand half of
+        ``apply_flex_fields``, without its sparse-fieldset removal -- a write validates every
+        field regardless of ``?f=``/``?om=``, so removal has no place on this path. Nested
+        ``?f=``/``?om=`` selectors for the expanded relation (e.g. ``f=employee.name``) are not
+        passed down either, for the same reason: they must not narrow the nested serializer's
+        own validation. ``to_representation`` re-swaps the relation with a fresh nested
+        serializer that does carry them, for the response.
+        """
+        expand_fields, next_expand_fields = split_levels(flex_options["expand"])
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = self._expandable_fields.keys()
+
+        for name in expand_fields:
+            if name in self._expandable_fields:
+                fields[name] = self._make_expanded_field_serializer(name, next_expand_fields, {}, {})
 
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
