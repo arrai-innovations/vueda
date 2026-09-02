@@ -59,11 +59,15 @@ VUEDA replaces Django's default permission codename vocabulary with {@term CRUDL
 
 In order for any changed permission names to take effect before permissions are created/used in migrations, and before permissions are created by `post_migrate`, we need to monkey-patch Django at the bottom of the project's `settings` file.
 
-`vueda.core.patch_django` reads `settings.PERMISSION_NAMES_MAPPING` when it is first imported and caches the mapping. It then patches Django's `get_permission_codename` function and `get_builtin_permissions` function to use the cached mapping. Modifying this setting later in code (too late), will cause permissions to exist in the database with the original django permission names, which will cause issues when you are looking for the `create_order` permission, but it was created as `add_order`. This can cause unexpected authorization failures.
+`vueda.core.patch_django` installs its monkey-patches at import time, but the decision it makes about `PERMISSION_NAMES_MAPPING` differs by call site:
 
-If you need to make changes to this setting, you should import the defaults, override the permission names, and then import the monkey-patch at the bottom of the settings file. As long as this is done in this order, no issues should arise.
+- `get_permission_codename` and `get_builtin_permissions` read `settings.PERMISSION_NAMES_MAPPING` at call time, not at import time. The value is cached and the cache is cleared on Django's `setting_changed` signal, so `override_settings(PERMISSION_NAMES_MAPPING=...)` reaches both functions immediately.
+- Row-level filtering, model-info metadata, workflow state checks, and object history access each read `settings.PERMISSION_NAMES_MAPPING` directly at call time, rather than through `get_permission_codename`. They previously bound the setting to a module global at import, so they follow the same call-time contract as the two patched functions above.
+- Selecting whether `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` need a reverse-mapping rewrite still happens once, at `patch_django` import time. This decision is not re-evaluated later, so a mapping change made after `patch_django` is imported does not change which `perms_map` entries are active.
 
-The consequence of this lifecycle is that if `vueda.core.patch_django` is imported before `PERMISSION_NAMES_MAPPING` is finalized in your settings, the patch module captures an incomplete or absent mapping. For example, by a third-party app that imports it during its own `AppConfig.ready()` before VUEDA's settings are applied. For the full permission evaluation model, see [Permission Model](./permission-model).
+Existing `auth_permission` rows keep the codenames created during migration regardless of any later mapping change. If you change `PERMISSION_NAMES_MAPPING` on a project that has already migrated, the permission rows and any group assignments must be updated to match; the setting only controls codename generation going forward and runtime codename resolution, not rows already written to the database.
+
+If you use a reverse mapping (Django names as the mapped output), finalize `PERMISSION_NAMES_MAPPING` in settings before importing `patch_django`, so the `perms_map` rewrite it performs at import time reflects the mapping you intend to use. For the full permission evaluation model, see [Permission Model](./permission-model).
 
 ## Client ModelConfig Derivation and Cache
 
@@ -95,7 +99,7 @@ Configuration failures surface at different points in the application lifecycle 
 
 **Optional dependency coupling.** If `drf_spectacular` is importable, `get_defaults` mutates the apps list, REST framework schema class, and adds `SPECTACULAR_SETTINGS`. If the dependency is removed after initial setup, these settings disappear, which can change the shape of the settings dict. This is not a failure per se, but it means that the presence or absence of an optional dependency changes the runtime settings surface.
 
-**Permission mapping drift.** Importing `vueda.core.patch_django` before the permission mapping is in place causes the patch to capture stale or empty mapping data. Permissions are then created and checked under Django's default codenames (`add_*`, `view_*`, `change_*`) rather than VUEDA's CRUDL names. The symptom is authorization failures that seem unrelated to the actual permission assignments.
+**Permission mapping drift.** Omitting the `vueda.core.patch_django` import leaves `get_permission_codename` and `get_builtin_permissions` unpatched: permissions are created and checked under Django's default codenames (`add_*`, `view_*`, `change_*`) rather than VUEDA's CRUDL names. The symptom is authorization failures that seem unrelated to the actual permission assignments. If `patch_django` is imported but a reverse mapping is finalized in settings only after that import, `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` keep the `perms_map` rewrite selected at import time, which can leave HTTP-method-to-codename resolution out of sync with the mapping actually in effect.
 
 **Server/client query parameter drift.** Overriding the server's query parameter settings without updating the client constants breaks the wire contract. Client requests continue to send the original parameter names, which the server ignores because they no longer match the parameter names it expects. The symptom is that search, ordering, pagination, or flex-field selections have no effect; requests succeed but return unfiltered, unordered, or unpaginated results.
 

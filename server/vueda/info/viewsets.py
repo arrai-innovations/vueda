@@ -1,7 +1,6 @@
 """ViewSets for model info, field choices, and filterset choices in the info API."""
 
 __all__ = (
-    "PERMISSION_NAMES_MAPPING",
     "ChoicesQueryset",
     "FilterChoice",
     "FilterChoicesQueryset",
@@ -39,9 +38,6 @@ from vueda.info.registration import get_registration
 from vueda.info.serializers import ModelInfoChoicesSerializer
 from vueda.info.serializers import ModelInfoFilterSetChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
-
-
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
@@ -236,8 +232,8 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         field_info = get_field_info(serializer.Meta.model)
 
         permission_read_name = "read"
-        if "read" in PERMISSION_NAMES_MAPPING:
-            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+        if "read" in settings.PERMISSION_NAMES_MAPPING:
+            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
         # If we add field level permissions at some point, then we will want to check them here.
         if self.choices_field in field_info.fields_and_pk:
@@ -411,12 +407,12 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         filtr = filter_mapping[self.choices_field]
 
         permission_read_name = "read"
-        if "read" in PERMISSION_NAMES_MAPPING:
-            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+        if "read" in settings.PERMISSION_NAMES_MAPPING:
+            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
         permission_list_name = "list"
-        if "list" in PERMISSION_NAMES_MAPPING:
-            permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+        if "list" in settings.PERMISSION_NAMES_MAPPING:
+            permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
 
         # Build a queryset narrowed by all OTHER active filters (exclude this field's param).
         other_params = self.request.query_params.copy()

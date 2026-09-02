@@ -3,6 +3,7 @@ from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -330,6 +331,35 @@ class TestModelInfoSerializer:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == len(EXPECTED_RESULTS)
+
+    def test_get_model_permissions_reads_permission_names_mapping_at_call_time(self, test_data, api_client):
+        # get_model_permissions previously closed over PERMISSION_NAMES_MAPPING at import (vueda/
+        # info/serializers.py), so overriding "read"/"list" left the codename filter pinned to
+        # "read_customerdata"/"list_customerdata" regardless of what the override requested. The
+        # module (and any lazily-imported bits of it) must already be loaded under the default
+        # setting before the override below, exactly like a real app import at process startup,
+        # or a stale binding would coincidentally pick up the override on its first-ever read.
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        self.register_viewsets()
+        detail_url = reverse("info.model_info-detail", args=("store", "customerdata"))
+        expand_data = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["model_permissions"]}
+
+        baseline_response = api_client.get(detail_url, format="json", data=expand_data)
+
+        assert baseline_response.status_code == HTTPStatus.OK, response_body(baseline_response)
+        assert {p["codename"] for p in baseline_response.data["model_permissions"]} == {
+            "read_customerdata",
+            "list_customerdata",
+        }
+
+        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read", "list": "mutated_list"}):
+            response = api_client.get(detail_url, format="json", data=expand_data)
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # No "mutated_read_customerdata"/"mutated_list_customerdata" permission rows exist, so a
+        # call-time lookup filters the payload down to nothing, unlike the stale default codenames.
+        assert response.data["model_permissions"] == []
 
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",

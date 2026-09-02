@@ -1,7 +1,6 @@
 """Views for history-aware who-is and object history retrieval."""
 
 __all__ = (
-    "PERMISSION_NAMES_MAPPING",
     "GetObjectHistoryView",
     "WhoIsView",
 )
@@ -24,9 +23,6 @@ from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_open_api_parameter
 from vueda.core.permissions import DjangoObjectPermissions
 from vueda.user.views import WhoIsView as CoreWhoIsView
-
-
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class WhoIsView(CoreWhoIsView):
@@ -158,8 +154,8 @@ class GetObjectHistoryView(DynamicObjectView):
             )
 
         permission_read_name = "read"
-        if "read" in PERMISSION_NAMES_MAPPING:
-            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+        if "read" in settings.PERMISSION_NAMES_MAPPING:
+            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
         if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=self.object):
             err_msg = "You do not have permission to perform this action."

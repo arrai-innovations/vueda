@@ -1,9 +1,6 @@
 """DRF ViewSet for listing and executing workflow transitions."""
 
-__all__ = (
-    "PERMISSION_NAMES_MAPPING",
-    "WorkflowViewSet",
-)
+__all__ = ("WorkflowViewSet",)
 
 from django.conf import settings
 from django.db import transaction
@@ -28,9 +25,6 @@ from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
 from vueda.workflow.permissions import WorkflowObjectPermissions
 from vueda.workflow.serializers import WorkflowSerializer
-
-
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -110,8 +104,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             )
 
         permission_read_name = "read"
-        if "read" in PERMISSION_NAMES_MAPPING:
-            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+        if "read" in settings.PERMISSION_NAMES_MAPPING:
+            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
         if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=instance):
             err_msg = "You do not have permission to perform this action."

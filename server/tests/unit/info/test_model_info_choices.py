@@ -2,11 +2,16 @@ from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info_choices import EXPECTED_RESULTS
@@ -121,6 +126,55 @@ class TestModelInfoChoices:
         info.register_serializer(store_serializers.OrderItemSerializer)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    def test_choices_reads_permission_names_mapping_at_call_time(self, api_client):
+        # ModelInfoChoicesViewSet.get_queryset previously closed over PERMISSION_NAMES_MAPPING at
+        # import (vueda/info/viewsets.py), so overriding "read" left choices_permissions pinned to
+        # "read_product" regardless of what the override requested. "tangible_type" is a relation
+        # field, so it also requires "list_tangibletype" on the related model -- that requirement
+        # is hardcoded in get_queryset, not settings-driven, so both users need it unconditionally.
+        product_content_type = ContentType.objects.get_for_model(store_models.Product)
+        tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
+        list_tangible_type_permission = Permission.objects.get(
+            content_type=tangible_type_content_type, codename="list_tangibletype"
+        )
+        stale_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type, codename="read_product", defaults={"name": "Can read product"}
+        )
+        mutated_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type,
+            codename="mutated_read_product",
+            defaults={"name": "Can mutated read product"},
+        )
+        stale_reader = get_user_model().objects.create_user(
+            email="choices-stale-reader@domain.invalid", name="Choices Stale Reader", password="password"
+        )
+        stale_reader.user_permissions.add(stale_permission, list_tangible_type_permission)
+        mutated_reader = get_user_model().objects.create_user(
+            email="choices-mutated-reader@domain.invalid", name="Choices Mutated Reader", password="password"
+        )
+        mutated_reader.user_permissions.add(mutated_permission, list_tangible_type_permission)
+
+        self.register_viewsets()
+        choices_url = reverse("info.model_info_choices-list", args=("store", "product", "tangible_type"))
+
+        # Hit the endpoint once outside the override so any lazily-imported module involved is
+        # already loaded under the default setting, like a real app import at process startup.
+        api_client.force_authenticate(stale_reader)
+        baseline_response = api_client.get(choices_url, format="json")
+        assert baseline_response.status_code == HTTPStatus.OK, response_body(baseline_response)
+
+        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read"}):
+            api_client.force_authenticate(stale_reader)
+            stale_permission_response = api_client.get(choices_url, format="json")
+
+            api_client.force_authenticate(mutated_reader)
+            mutated_permission_response = api_client.get(choices_url, format="json")
+
+        # stale_reader holds the stale "read_product" permission, which no longer satisfies the
+        # check once the override maps "read" to "mutated_read".
+        assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
+        assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",

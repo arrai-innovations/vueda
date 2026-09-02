@@ -1,7 +1,6 @@
 """ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
 
 __all__ = (
-    "PERMISSION_NAMES_MAPPING",
     "AtomicCreateModelViewSetMixin",
     "AtomicDestroyModelViewSetMixin",
     "AtomicModelViewSet",
@@ -51,9 +50,6 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
-
-
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
 
 
 class WarningConfirmationMixin:
@@ -191,8 +187,8 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         row_level_permissions = getattr(model, "RowLevelPermissions", None)
 
         permission_name = perm_type
-        if perm_type in PERMISSION_NAMES_MAPPING:
-            permission_name = PERMISSION_NAMES_MAPPING[perm_type]
+        if perm_type in settings.PERMISSION_NAMES_MAPPING:
+            permission_name = settings.PERMISSION_NAMES_MAPPING[perm_type]
 
         perm = f"{model._meta.app_label}.{permission_name}_{model._meta.model_name}"
 
