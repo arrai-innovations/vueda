@@ -4,7 +4,7 @@ __all__ = ("audited_action",)
 
 import contextlib
 
-from vueda.core.installed_apps import history_is_installed
+import pghistory
 
 
 @contextlib.contextmanager
@@ -17,14 +17,7 @@ def audited_action(action, **metadata):
     other writes of the same operation.
 
     Nesting follows pghistory: an inner block adds to the metadata of the outer one and restores it
-    on exit. Without the history app the block does nothing, so a caller in an optional app needs no
-    guard of its own.
+    on exit.
     """
-    if not history_is_installed():
-        yield
-        return
-
-    import pghistory
-
     with pghistory.context(action=action, **metadata):
         yield
