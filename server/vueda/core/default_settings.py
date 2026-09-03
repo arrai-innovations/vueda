@@ -123,6 +123,10 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/). `use_mailers=True`
     raises `ImproperlyConfigured` on Django < 6.1, since those versions ignore `MAILERS` and would otherwise
     silently fall back to Django's default SMTP backend instead of the configured one.
+
+    `VUEDA_APPS` must include `vueda.history`. VUEDA ships pghistory event models and trigger operations in
+    the migrations of every app that owns a tracked model, so a configuration without the app cannot load
+    the migration graph. Omitting it raises `ImproperlyConfigured`.
     """
     if use_mailers and django.VERSION < (6, 1):
         raise ImproperlyConfigured(
@@ -467,20 +471,33 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
     # non-zero has been known to cause issues with some databases with timeouts
     return_dict["DATABASES"]["default"]["CONN_MAX_AGE"] = 0
-    if "vueda.history" in return_dict["VUEDA_APPS"]:
-        return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
-        # Names the acting user and request behind every event a request produces. Position is part
-        # of the contract: it reads request.user, so it must follow AuthenticationMiddleware, and
-        # everything it should attribute has to run inside it. vueda_history.W001 and W002 report a
-        # project that drops or reorders it.
-        middleware = list(return_dict["MIDDLEWARE"])
-        after = middleware.index("django.contrib.auth.middleware.AuthenticationMiddleware") + 1
-        middleware.insert(after, "vueda.history.middleware.VuedaHistoryMiddleware")
-        return_dict["MIDDLEWARE"] = middleware
-        # Protect event tables from updates and deletes. A purge must use pgtrigger.ignore.
-        return_dict.setdefault("PGHISTORY_APPEND_ONLY", True)
-        # Keep pghistory's ContextForeignKey, row-level trigger, and indexing defaults.
-        # VUEDA defines no retention policy.
+    # Django loads the migrations of every installed app whatever else is installed, and VUEDA ships
+    # event models and trigger operations in the migrations of each app that owns a tracked model.
+    # Those migrations depend on a pghistory node, so a configuration without the app cannot load
+    # the graph.
+    if "vueda.history" not in return_dict["VUEDA_APPS"]:
+        raise ImproperlyConfigured(
+            "'vueda.history' is required in VUEDA_APPS. VUEDA ships pghistory event models and "
+            "trigger operations in the migrations of every app that owns a tracked model, and those "
+            "migrations depend on the pghistory app, so omitting it stops Django from loading the "
+            "migration graph. To stop tracking a model, declare 'class Vueda' with a 'History' "
+            "section setting 'enabled = False' on it."
+        )
+    return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
+    # Names the acting user and request behind every event a request produces. Position is part of
+    # the contract: it reads request.user, so it must follow AuthenticationMiddleware, and
+    # everything it should attribute has to run inside it. vueda_history.W001 and W002 report a
+    # project that drops or reorders it.
+    middleware = list(return_dict["MIDDLEWARE"])
+    after = middleware.index("django.contrib.auth.middleware.AuthenticationMiddleware") + 1
+    middleware.insert(after, "vueda.history.middleware.VuedaHistoryMiddleware")
+    return_dict["MIDDLEWARE"] = middleware
+    # Protect event tables from updates and deletes. A purge must use pgtrigger.ignore. A project
+    # override would diverge from the trigger SQL in the shipped migrations, so this is not a
+    # setdefault.
+    return_dict["PGHISTORY_APPEND_ONLY"] = True
+    # Keep pghistory's ContextForeignKey, row-level trigger, and indexing defaults.
+    # VUEDA defines no retention policy.
     return_dict["INSTALLED_APPS"] = (
         return_dict["DJANGO_APPS"]
         + return_dict["VUEDA_APPS"]

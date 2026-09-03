@@ -108,3 +108,26 @@ def test_spectacular_tags_omit_workflow_when_workflow_app_is_omitted():
     assert "vueda.info" in tag_names
     assert "vueda.user" in tag_names
     assert "vueda.workflow" not in tag_names
+
+
+def test_the_history_backend_is_configured_for_every_project():
+    defaults = get_defaults(_env())
+
+    assert "pghistory" in defaults["THIRD_PARTY_APPS"]
+    assert "pgtrigger" in defaults["THIRD_PARTY_APPS"]
+    assert defaults["PGHISTORY_APPEND_ONLY"] is True
+
+    middleware = defaults["MIDDLEWARE"]
+
+    assert (
+        middleware.index("vueda.history.middleware.VuedaHistoryMiddleware")
+        == middleware.index("django.contrib.auth.middleware.AuthenticationMiddleware") + 1
+    )
+
+
+def test_omitting_the_history_app_is_rejected():
+    # The event models VUEDA ships live in the migrations of each app that owns a tracked model,
+    # and those migrations depend on the pghistory app, so the configuration cannot load its
+    # migration graph without it.
+    with pytest.raises(ImproperlyConfigured, match=r"'vueda\.history' is required"):
+        get_defaults(_env(VUEDA_APPS="vueda.core,vueda.info,vueda.user,vueda.release"))
