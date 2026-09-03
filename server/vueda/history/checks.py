@@ -39,7 +39,7 @@ def check_history_middleware(app_configs, **kwargs):
     if history_index is None:
         return [
             CheckWarning(
-                "vueda.history is installed but no history middleware is configured.",
+                "No history middleware is configured.",
                 hint=(
                     "Add 'vueda.history.middleware.VuedaHistoryMiddleware' to MIDDLEWARE, after "
                     "AuthenticationMiddleware. Without it, the events of one request record no shared "

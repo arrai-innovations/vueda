@@ -15,10 +15,10 @@ from vueda.user.serializers import WhoIsSerializer as CoreWhoIsSerializer
 
 
 class UserSerializer(SimpleHistorySerializerMixin, CoreUserSerializer):
-    """
-    This is a serializer adding historical records to the core user serializer.
+    """Core user serializer with historical records added.
 
-    This decoupling helps make the history app optional.
+    ``vueda.user`` does not import ``vueda.history``, so the history-aware variant lives here for a
+    project to select.
     """
 
     class Meta(CoreUserSerializer.Meta):
@@ -42,8 +42,10 @@ class WhoIsSerializer(
     SimpleHistorySerializerMixin,
     CoreWhoIsSerializer,
 ):
-    """
-    This decoupling helps make the history app optional.
+    """Core who-is serializer with historical records added.
+
+    ``vueda.user`` does not import ``vueda.history``, so the history-aware variant lives here for a
+    project to select.
     """
 
     class Meta(CoreWhoIsSerializer.Meta):
