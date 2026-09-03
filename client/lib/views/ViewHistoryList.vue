@@ -16,20 +16,19 @@ import {
     ALL_PAGES,
     DEFAULT_PAGE_SIZE,
     DEFAULT_PAGE_SIZE_OPTIONS,
-    FIELDS_PARAM,
     PAGE_PARAM,
     PAGE_SIZE_PARAM,
 } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import omit from "lodash-es/omit.js";
 import { DateTime } from "luxon";
 import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
- * Paginated list view showing the history audit trail for a specific model instance,
- * displaying field-level changes with old and new values in a table or card layout.
+ * Paginated list view showing the history of one model instance as the actions that produced it.
+ * Each action groups the events it wrote, and each event lists its field changes with old and new
+ * values, in a table or card layout.
  *
  * @vueda-slot-forward PaginationFooter
  */
@@ -64,20 +63,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Ordered list of field names to display as columns in the history table. */
+    /**
+     * Ordered list of column names to display. The history response defines the set: `recorded_at`,
+     * `actor`, `kind`, `label`, `model`, `relation`, `type`, `field`, `old`, and `new`. `field` is a
+     * table-only column; the card layout stacks each event's changes inside `old` and `new`.
+     */
     fields: {
         type: Array,
-        default: () => [
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-            "field",
-            "old",
-            "new",
-        ],
+        default: () => ["recorded_at", "actor", "kind", "label", "model", "type", "field", "old", "new"],
     },
     /** Rows-per-page options offered by the pagination footer; the final `"all"` entry loads every history page at once. */
     pageSizeOptions: {
@@ -89,7 +82,7 @@ const props = defineProps({
         type: [Number, String],
         default: DEFAULT_PAGE_SIZE,
     },
-    /** When true, displays the total number of history records in the pagination bar. */
+    /** When true, displays the total number of actions in the pagination bar. */
     showTotalRecordNum: {
         type: Boolean,
         default: true,
@@ -132,10 +125,9 @@ const modelListProps = reactive({
         pk: toRef(props, "pk"),
         action: "history_list",
     },
-    pkKey: "history_id",
+    pkKey: "id",
     params: {
         [PAGE_PARAM]: currentPage,
-        [FIELDS_PARAM]: ["history"],
     },
     intendToList: validAndActive,
 });
@@ -189,76 +181,97 @@ const loading = computed(() => loadingCombine(instanceList.state.loading, modelC
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: titleStr.value, loading: instanceList.state.loading }));
 
-const extraFieldObjects = computed(() => {
-    const objects = [
-        {
-            name: `old`,
-            extra: true,
-            label: "Old",
-        },
-        {
-            name: `new`,
-            extra: true,
-            label: "New",
-        },
-    ];
-    if (isTable.value) {
-        objects.push({
-            name: `field`,
-            extra: true,
-            label: "Field",
-        });
-    }
-    return objects;
-});
-const calculatedHistoryFieldsObjects = computed(() => {
-    const historyFields = modelConfig.info?.expand?.filter((expand) => expand.name === "history")[0]?.f;
-    return historyFields ? Object.entries(historyFields).map(([key, value]) => ({ name: key, ...value })) : [];
-});
+// The columns come from the history response, not from the model's own fields. Every entry is an
+// `extra` field so ObjectsGrid renders it without consulting model info.
+const HISTORY_COLUMNS = [
+    { name: "recorded_at", label: "When" },
+    { name: "actor", label: "Who" },
+    { name: "kind", label: "Kind" },
+    { name: "label", label: "Action" },
+    { name: "model", label: "Model" },
+    { name: "relation", label: "Relation" },
+    { name: "type", label: "Type" },
+    { name: "field", label: "Field" },
+    { name: "old", label: "Old" },
+    { name: "new", label: "New" },
+].map((column) => ({ ...column, extra: true }));
 const computedFieldObjects = computed(() => {
     return props.fields
-        .map((field) => {
-            return (
-                calculatedHistoryFieldsObjects.value.find((f) => f.name === field) ||
-                extraFieldObjects.value.find((f) => f.name === field)
-            );
-        })
+        .filter((name) => isTable.value || name !== "field")
+        .map((name) => HISTORY_COLUMNS.find((column) => column.name === name))
         .filter(Boolean);
-});
-const calculatedHistoryFields = computed(() => {
-    return calculatedHistoryFieldsObjects.value.map((field) => field.name);
 });
 
 const router = useRouter();
-const computedChangeObjects = computed(() => {
-    return instanceList.state.objectsInOrder.flatMap((item, parentIndex) => {
-        if (!item.num_changes) {
-            return { ...item, field: "(Created)", parent_row: parentIndex };
-        }
-        return item.changes.map((change, changeIndex) => {
-            let baseObject = {
-                parent_row: parentIndex,
+
+// The server says nothing about a field when an event carries no difference: a create has no
+// earlier snapshot, a delete repeats the one before it, and an update may have touched no tracked
+// value. The wording for that row is the client's.
+const NO_CHANGE_FIELD = {
+    created: "(created)",
+    deleted: "(deleted)",
+};
+const noChangeField = (type) => NO_CHANGE_FIELD[type] ?? "(no field changes)";
+
+const groupMeta = (group) => ({
+    group_id: group.id,
+    action_id: group.action_id,
+    recorded_at: group.recorded_at,
+    kind: group.kind,
+    label: group.label,
+    actor: group.actor,
+});
+const eventMeta = (event) => ({
+    event_id: event.id,
+    model: event.model,
+    object_id: event.object_id,
+    relation: event.relation,
+    type: event.type,
+    event_recorded_at: event.recorded_at,
+});
+// Table rows: one per field change. The first row of an action carries the action's metadata and
+// the first row of each event carries the event's, so the grid reads as nested groups without
+// repeating the same cell down a column.
+const computedChangeRows = computed(() => {
+    return instanceList.state.objectsInOrder.flatMap((group, groupIndex) => {
+        return (group.events ?? []).flatMap((event, eventIndex) => {
+            const noChanges = !event.changes?.length;
+            const changes = noChanges ? [{ field: noChangeField(event.type) }] : event.changes;
+            return changes.map((change, changeIndex) => ({
+                id: `${event.id}:${changeIndex}`,
+                group_row: groupIndex,
+                group_start: eventIndex === 0 && changeIndex === 0,
+                event_start: changeIndex === 0,
+                no_changes: noChanges,
+                ...(eventIndex === 0 && changeIndex === 0 ? groupMeta(group) : {}),
+                ...(changeIndex === 0 ? eventMeta(event) : {}),
                 field: change.field,
-                new: change.new,
                 old: change.old,
-            };
-            if (changeIndex === 0) {
-                baseObject = { ...baseObject, ...omit(item, "changes") };
-            }
-            return baseObject;
+                new: change.new,
+            }));
         });
     });
 });
-
+// Card rows: one per event, keeping its change list so the old and new cells can stack it.
+const computedEventRows = computed(() => {
+    return instanceList.state.objectsInOrder.flatMap((group, groupIndex) => {
+        return (group.events ?? []).map((event, eventIndex) => ({
+            id: event.id,
+            group_row: groupIndex,
+            group_start: eventIndex === 0,
+            event_start: true,
+            ...(eventIndex === 0 ? groupMeta(group) : {}),
+            ...eventMeta(event),
+            changes: event.changes ?? [],
+        }));
+    });
+});
 const computedCalculatedObjects = computed(() => {
-    if (isTable.value) {
-        return computedChangeObjects.value;
-    }
-    return instanceList.state.objectsInOrder;
+    return isTable.value ? computedChangeRows.value : computedEventRows.value;
 });
 
 const evenColumn = (obj) => {
-    return obj.parent_row % 2 === 0;
+    return obj.group_row % 2 === 0;
 };
 const theme = useTheme("ViewHistoryList", props);
 const icons = useIcons("ViewHistoryList", props);
@@ -270,34 +283,56 @@ const formatHistoryDate = (date) => {
 const formatRelativeHistoryDate = (date) => {
     return date ? DateTime.fromISO(date).toRelative() : "";
 };
-// Map django-simple-history's raw single-character codes (and the normalized strings
-// downstream consumers may produce) onto a pill kind + icon name + readable label. Unknown
-// values fall through to the raw value so the cell still renders something audit-safe.
+// Map the event types the server publishes onto a pill kind, icon name, and readable label. An
+// unknown value falls through to the raw value so the cell still renders something audit-safe.
 const HISTORY_TYPE_MAP = {
-    "+": { kind: "created", icon: "typeCreated", label: "created" },
     created: { kind: "created", icon: "typeCreated", label: "created" },
-    "~": { kind: "updated", icon: "typeUpdated", label: "updated" },
     updated: { kind: "updated", icon: "typeUpdated", label: "updated" },
-    changed: { kind: "updated", icon: "typeUpdated", label: "updated" },
-    "-": { kind: "deleted", icon: "typeDeleted", label: "deleted" },
     deleted: { kind: "deleted", icon: "typeDeleted", label: "deleted" },
-    restored: { kind: "restored", icon: "typeRestored", label: "restored" },
 };
 const historyTypeMeta = (value) => HISTORY_TYPE_MAP[value] ?? null;
+// A referenced row arrives as `{ id, display, missing }`. The server publishes the absence
+// structurally; the wording for a row that no longer exists is the client's.
+const isReference = (value) =>
+    value !== null && typeof value === "object" && !Array.isArray(value) && "missing" in value && "display" in value;
+const isEmptyValue = (value) => value === null || value === undefined || value === "";
+const referenceText = (reference, noun = "row") => {
+    if (reference.missing) {
+        return reference.id === null || reference.id === undefined
+            ? `deleted ${noun}`
+            : `deleted ${noun} #${reference.id}`;
+    }
+    return reference.display ?? String(reference.id);
+};
+// One side of a change, as the diff chip shows it: `text` to render, `empty` for a side that
+// holds nothing, and `missing` for a reference whose row is gone.
+const changeSide = (value) => {
+    if (isEmptyValue(value)) {
+        return { text: "empty", empty: true, missing: false };
+    }
+    if (isReference(value)) {
+        return { text: referenceText(value), empty: false, missing: value.missing };
+    }
+    if (typeof value === "object") {
+        return { text: JSON.stringify(value), empty: false, missing: false };
+    }
+    return { text: String(value), empty: false, missing: false };
+};
+// `app_label.Model` reads as the model alone in a column that already says which row it names.
+const modelDisplay = (label) => (label ? label.split(".").pop() : "");
 // Show the dedicated empty state only after loading settles with zero rows. While loading,
 // keep the grid visible so its skeleton rows render.
 const hasHistory = computed(() => !!instanceList.state.loading || (instanceList.state.objectsInOrder?.length ?? 0) > 0);
 const rowAttrs = (obj) => {
-    if (obj?.parent_row === undefined || obj?.parent_row === null) {
+    if (obj?.group_row === undefined || obj?.group_row === null) {
         return null;
     }
-    // The first row of a revision carries the meta columns; subsequent rows in the same
-    // revision share the same `parent_row` index but have only `field`, `old`, `new` set.
-    // The grouping ordering in `computedChangeObjects` guarantees siblings are contiguous.
-    const isStart = obj.history_id !== undefined && obj.history_id !== null;
+    // The first row of an action carries its metadata; the rows that follow belong to the same
+    // action and share its `group_row`. The flattening keeps an action's rows contiguous.
     return {
-        "data-rev-start": isStart ? "true" : undefined,
-        "data-rev-child": !isStart ? "true" : undefined,
+        "data-rev-start": obj.group_start ? "true" : undefined,
+        "data-rev-child": !obj.group_start ? "true" : undefined,
+        "data-event-start": obj.event_start ? "true" : undefined,
         class: theme("row"),
     };
 };
@@ -318,8 +353,8 @@ const slots = useSlots();
                 </div>
                 <strong :class="theme('emptyTitle')">No history yet</strong>
                 <p :class="theme('emptyDesc')">
-                    This record has no recorded changes. Once edits are made, they appear here grouped by revision with
-                    a per-field old to new diff.
+                    This record has no recorded changes. Once edits are made, they appear here grouped by the action
+                    that made them, with a per-field old to new diff.
                 </p>
             </slot>
         </div>
@@ -385,115 +420,94 @@ const slots = useSlots();
                 :fields="computedFieldObjects"
                 :loading="loading"
                 :objects-in-order="computedCalculatedObjects"
+                pk-key="id"
                 :related-objects="instanceList.state.relatedObjects"
                 :row-attrs="rowAttrs"
                 :table-breakpoint="effectiveTableBreakpoint"
                 @update:is-table="handleIsTableUpdate"
             >
-                <template v-for="field in calculatedHistoryFields" :key="field" #[`field(${field})`]="{ obj }">
-                    <slot :name="`field(${field})`" v-bind="{ obj }">
-                        <template v-if="field === 'history_date'">
-                            <span v-if="obj[field]" :class="theme('cellDate')">
-                                {{ formatHistoryDate(obj[field]) }}
+                <template #field(recorded_at)="{ obj }">
+                    <slot name="field(recorded_at)" v-bind="{ obj }">
+                        <span v-if="obj.recorded_at" :class="theme('cellDate')">
+                            {{ formatHistoryDate(obj.recorded_at) }}
+                        </span>
+                        <span v-if="obj.recorded_at" :class="theme('cellDateRel')">
+                            {{ formatRelativeHistoryDate(obj.recorded_at) }}
+                        </span>
+                    </slot>
+                </template>
+                <template #field(actor)="{ obj }">
+                    <slot name="field(actor)" v-bind="{ obj }">
+                        <span
+                            v-if="obj.actor"
+                            :class="theme('cellUser')"
+                            :data-missing="obj.actor.missing ? 'true' : undefined"
+                        >
+                            <UserAvatar v-if="!obj.actor.missing" :name="obj.actor.display" :size="22" />
+                            <span :class="theme('cellUserName')" :data-missing="obj.actor.missing ? 'true' : undefined">
+                                {{ referenceText(obj.actor, "user") }}
                             </span>
-                            <span v-if="obj[field]" :class="theme('cellDateRel')">
-                                {{ formatRelativeHistoryDate(obj[field]) }}
+                        </span>
+                    </slot>
+                </template>
+                <template #field(kind)="{ obj }">
+                    <slot name="field(kind)" v-bind="{ obj }">
+                        <span v-if="obj.kind" :class="theme('kindPill')" :data-kind="obj.kind">{{ obj.kind }}</span>
+                    </slot>
+                </template>
+                <template #field(model)="{ obj }">
+                    <slot name="field(model)" v-bind="{ obj }">
+                        <span v-if="obj.model" :class="theme('cellModel')" :data-relation="obj.relation">
+                            {{ modelDisplay(obj.model) }}
+                            <span v-if="obj.relation === 'related'" :class="theme('cellModelObject')">
+                                #{{ obj.object_id }}
                             </span>
-                        </template>
-                        <template v-else-if="field === 'history_user'">
-                            <span v-if="obj[field]" :class="theme('cellUser')">
-                                <UserAvatar :name="obj[field]" :size="22" />
-                                <span :class="theme('cellUserName')">{{ obj[field] }}</span>
-                            </span>
-                        </template>
-                        <template v-else-if="field === 'history_type'">
-                            <span
-                                v-if="historyTypeMeta(obj[field])"
-                                :class="theme('typePill')"
-                                :data-kind="historyTypeMeta(obj[field]).kind"
-                            >
-                                <component
-                                    :is="icons(historyTypeMeta(obj[field]).icon).component"
-                                    v-if="icons(historyTypeMeta(obj[field]).icon)"
-                                    v-bind="icons(historyTypeMeta(obj[field]).icon).props"
-                                />
-                                {{ historyTypeMeta(obj[field]).label }}
-                            </span>
-                            <template v-else>
-                                {{ obj[field] }}
-                            </template>
-                        </template>
-                        <template v-else>
-                            {{ obj[field] }}
+                        </span>
+                    </slot>
+                </template>
+                <template #field(type)="{ obj }">
+                    <slot name="field(type)" v-bind="{ obj }">
+                        <span
+                            v-if="historyTypeMeta(obj.type)"
+                            :class="theme('typePill')"
+                            :data-kind="historyTypeMeta(obj.type).kind"
+                        >
+                            <component
+                                :is="icons(historyTypeMeta(obj.type).icon).component"
+                                v-if="icons(historyTypeMeta(obj.type).icon)"
+                                v-bind="icons(historyTypeMeta(obj.type).icon).props"
+                            />
+                            {{ historyTypeMeta(obj.type).label }}
+                        </span>
+                        <template v-else-if="obj.type">
+                            {{ obj.type }}
                         </template>
                     </slot>
                 </template>
-                <template #field(new)="{ obj }">
-                    <slot name="field(new)" v-bind="{ obj }">
+                <template v-for="side in ['old', 'new']" :key="side" #[`field(${side})`]="{ obj }">
+                    <slot :name="`field(${side})`" v-bind="{ obj }">
                         <template v-if="!isTable">
                             <span
                                 v-for="changed in obj.changes"
                                 :key="changed.field"
                                 :class="theme('diff')"
-                                data-side="new"
-                                :data-empty="
-                                    changed.new === null || changed.new === undefined || changed.new === ''
-                                        ? 'true'
-                                        : undefined
-                                "
+                                :data-side="side"
+                                :data-empty="changeSide(changed[side]).empty ? 'true' : undefined"
+                                :data-missing="changeSide(changed[side]).missing ? 'true' : undefined"
                             >
-                                {{
-                                    changed.new === null || changed.new === undefined || changed.new === ""
-                                        ? "empty"
-                                        : changed.new
-                                }}
+                                <span :class="theme('diffField')">{{ changed.field }}</span>
+                                {{ changeSide(changed[side]).text }}
                             </span>
                         </template>
-                        <template v-else>
-                            <span
-                                :class="theme('diff')"
-                                data-side="new"
-                                :data-empty="
-                                    obj.new === null || obj.new === undefined || obj.new === '' ? 'true' : undefined
-                                "
-                            >
-                                {{ obj.new === null || obj.new === undefined || obj.new === "" ? "empty" : obj.new }}
-                            </span>
-                        </template>
-                    </slot>
-                </template>
-                <template #field(old)="{ obj }">
-                    <slot name="field(old)" v-bind="{ obj }">
-                        <template v-if="!isTable">
-                            <span
-                                v-for="changed in obj.changes"
-                                :key="changed.field"
-                                :class="theme('diff')"
-                                data-side="old"
-                                :data-empty="
-                                    changed.old === null || changed.old === undefined || changed.old === ''
-                                        ? 'true'
-                                        : undefined
-                                "
-                            >
-                                {{
-                                    changed.old === null || changed.old === undefined || changed.old === ""
-                                        ? "empty"
-                                        : changed.old
-                                }}
-                            </span>
-                        </template>
-                        <template v-else>
-                            <span
-                                :class="theme('diff')"
-                                data-side="old"
-                                :data-empty="
-                                    obj.old === null || obj.old === undefined || obj.old === '' ? 'true' : undefined
-                                "
-                            >
-                                {{ obj.old === null || obj.old === undefined || obj.old === "" ? "empty" : obj.old }}
-                            </span>
-                        </template>
+                        <span
+                            v-else-if="!obj.no_changes"
+                            :class="theme('diff')"
+                            :data-side="side"
+                            :data-empty="changeSide(obj[side]).empty ? 'true' : undefined"
+                            :data-missing="changeSide(obj[side]).missing ? 'true' : undefined"
+                        >
+                            {{ changeSide(obj[side]).text }}
+                        </span>
                     </slot>
                 </template>
             </objects-grid>
