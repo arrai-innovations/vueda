@@ -22,12 +22,15 @@ from vueda.core.options import get_vueda_options
 
 
 @pytest.fixture
-def without_history_section(monkeypatch):
-    """Drop the History section registration, standing in for an installation without the app."""
+def without_workflow_section(monkeypatch):
+    """Drop the Workflow section registration, standing in for an installation without the app.
+
+    History is not a candidate: every supported configuration installs it.
+    """
     import vueda.core.features as features
 
     sections = dict(features._SECTIONS)
-    sections.pop("History")
+    sections.pop("Workflow")
     monkeypatch.setattr(features, "_SECTIONS", sections)
 
 
@@ -324,15 +327,15 @@ class TestChecks:
         assert [error.id for error in errors] == ["vueda_core.E010"]
         assert "unknown feature section 'Telemetry'" in errors[0].msg
 
-    def test_a_known_section_reports_its_absent_app(self, without_history_section):
+    def test_a_known_section_reports_its_absent_app(self, without_workflow_section):
         with isolate_apps("tests.features"):
 
             class AbsentAppModel(VuedaModel):
                 name = models.CharField(max_length=255)
 
                 class Vueda:
-                    class History:
-                        enabled = False
+                    class Workflow:
+                        enabled = True
 
                 class Meta:
                     app_label = "features"
@@ -340,7 +343,7 @@ class TestChecks:
             errors = check_model_feature_declaration(AbsentAppModel)
 
         assert [error.id for error in errors] == ["vueda_core.E011"]
-        assert "'vueda.history' is not installed" in errors[0].msg
+        assert "'vueda.workflow' is not installed" in errors[0].msg
         assert "INSTALLED_APPS" in errors[0].hint
 
     def test_an_unknown_option_is_reported(self):

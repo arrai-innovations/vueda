@@ -110,9 +110,9 @@ History triggers attach to the shared database table, and workflow resolves a pr
 
 ## Feature Apps That Are Not Installed
 
-Installing a feature app makes its feature available. The owning section then decides whether a given model participates. With `vueda.history` installed, history tracks eligible models by default unless they opt out. Installing `vueda.workflow` makes workflow available, but a model must explicitly opt in.
+Installing a feature app makes its feature available. The owning section then decides whether a given model participates. Every supported configuration installs `vueda.history`, so history tracks eligible models by default unless they opt out. `vueda.workflow` is optional, and a model must explicitly opt in even where it is installed.
 
-Declaring a section whose feature app is absent is a system-check error naming the app to install. A section name no installed app owns is a separate error listing the sections that are available. System checks report both cases.
+Declaring a section whose feature app is absent is a system-check error naming the app to install. A model that declares a `Workflow` section in a project without `vueda.workflow` reports that error. A section name no installed app owns is a separate error listing the sections that are available. System checks report both cases.
 
 ## Validation
 
@@ -175,6 +175,6 @@ A proxy model gets no contributor pass of its own, because its concrete model al
 
 ## Current Status
 
-History derives from this policy. With `vueda.history` installed, `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. No base class or decorator takes part.
+History derives from this policy. `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. No base class or decorator takes part.
 
 Workflow has not converted yet. It still follows `HasWorkflowModelMixin`, so an explicit `Workflow.enabled` that disagrees with a model's base classes produces a system-check error. VUEDA does not accept and then ignore the declaration.
