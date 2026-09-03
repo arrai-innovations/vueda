@@ -8,6 +8,7 @@ import decimal
 
 import pytest
 from django.apps import apps
+from django.contrib.auth.models import AnonymousUser
 from django.db import DatabaseError
 from django.db import connection
 
@@ -156,6 +157,28 @@ class TestActionContext:
         assert metadata["action"] == "inner"
         assert metadata["detail"] == "nested"
 
+    def test_an_action_with_no_request_defaults_to_the_system_kind(self):
+        with audited_action("invoice.create"):
+            invoice = make_invoice()
+
+        assert events_for(invoice)[0].pgh_context.metadata["kind"] == "system"
+
+    def test_an_action_records_the_kind_it_names(self):
+        with audited_action("history.purge", kind="command"):
+            invoice = make_invoice()
+
+        assert events_for(invoice)[0].pgh_context.metadata["kind"] == "command"
+
+    def test_a_nested_action_keeps_the_kind_of_the_outer_one(self):
+        """A service operation called from a command is still part of that command."""
+        with audited_action("outer", kind="command"):
+            with audited_action("inner"):
+                invoice = make_invoice()
+
+        metadata = events_for(invoice)[0].pgh_context.metadata
+        assert metadata["action"] == "inner"
+        assert metadata["kind"] == "command"
+
     def test_a_write_outside_any_action_still_records_an_event(self):
         """Losing the context loses the grouping, not the history."""
         invoice = make_invoice()
@@ -194,6 +217,26 @@ class TestRequestContext:
         assert metadata["user"] == user.pk
         assert metadata["url"] == "/api/invoices/"
         assert metadata["method"] == "POST"
+        assert metadata["kind"] == "request"
+
+    def test_an_action_named_inside_a_request_stays_a_request(self):
+        from django.http import HttpResponse
+        from django.test import RequestFactory
+
+        written = {}
+
+        def view(request):
+            with audited_action("invoice.import"):
+                written["invoice"] = make_invoice()
+            return HttpResponse()
+
+        request = RequestFactory().post("/api/invoices/import/")
+        request.user = AnonymousUser()
+        VuedaHistoryMiddleware(view)(request)
+
+        metadata = events_for(written["invoice"])[0].pgh_context.metadata
+        assert metadata["action"] == "invoice.import"
+        assert metadata["kind"] == "request"
 
     def test_an_anonymous_request_records_the_action_without_a_user(self):
         from django.contrib.auth.models import AnonymousUser

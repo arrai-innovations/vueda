@@ -81,7 +81,7 @@ class Command(BaseCommand):
         cutoff = timezone.now() - timedelta(days=options["days"])
         event_models = [m for m in apps.get_models() if getattr(m, "pgh_tracked_model", None) is not None]
 
-        with audited_action("history.purge", cutoff=cutoff.isoformat()):
+        with audited_action("history.purge", kind="command", cutoff=cutoff.isoformat()):
             for event_model in event_models:
                 with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
                     deleted, _ = event_model.objects.filter(pgh_created_at__lt=cutoff).delete()

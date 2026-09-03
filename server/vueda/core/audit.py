@@ -8,7 +8,7 @@ import pghistory
 
 
 @contextlib.contextmanager
-def audited_action(action, **metadata):
+def audited_action(action, kind=None, **metadata):
     """Group every audited write inside this block under one action.
 
     Request traffic takes its context from history middleware. A management command, a background
@@ -16,8 +16,18 @@ def audited_action(action, **metadata):
     outside any context still record events; they just carry no identity associating them with the
     other writes of the same operation.
 
-    Nesting follows pghistory: an inner block adds to the metadata of the outer one and restores it
-    on exit.
+    ``kind`` says what sort of source the action came from. The middleware records ``request``,
+    VDQ tasks record ``task``, and a management command should pass ``command``. A block that names
+    no kind keeps the kind of the action it runs inside, so a service operation called from a request
+    stays a request action; at the top level it defaults to ``system``. The history API publishes the
+    kind, so a project that adds one should expect clients to render it as an unrecognized value.
+
+    Nesting follows pghistory: an inner block adds its metadata to the outer action, and the outer
+    action keeps that metadata until it exits.
     """
-    with pghistory.context(action=action, **metadata):
+    with pghistory.context(action=action, **metadata) as current:
+        if kind is not None:
+            current.metadata["kind"] = kind
+        else:
+            current.metadata.setdefault("kind", "system")
         yield

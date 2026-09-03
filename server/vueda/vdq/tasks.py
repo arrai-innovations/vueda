@@ -44,7 +44,7 @@ class AuditedTask(DjangoTask):
     abstract = True
 
     def __call__(self, *args, **kwargs):
-        with audited_action(self.name):
+        with audited_action(self.name, kind="task"):
             return super().__call__(*args, **kwargs)
 
 
