@@ -9,6 +9,9 @@ from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -322,3 +325,78 @@ class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin,
 
         assert change["old"] == {"id": size_pk, "display": None, "missing": True}
         assert change["new"]["missing"] is False
+
+
+@pytest.mark.django_db
+class TestHistoryQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """A page must cost the same whether it carries one change or a hundred.
+
+    Grouping and reference resolution both happen in bulk, so the reads a page needs depend on the
+    shape of the models, not on how much history exists.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Cost Reader": [
+            ("store", "Distributor", "read"),
+            ("store", "Product", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "cost_reader@domain.invalid": {
+            "name": "Cost Reader",
+            "password": "testpass",
+            "groups": ["Cost Reader"],
+        },
+    }
+
+    @pytest.fixture
+    def reader_client(self, api_client):
+        api_client.force_authenticate(user=self.users["cost_reader@domain.invalid"])
+        return api_client
+
+    @pytest.fixture
+    def distributor(self):
+        return store_models.Distributor.objects.create(name="Cost Co.", description="Start.")
+
+    def add_actions(self, distributor, count, prefix):
+        """Each action updates the distributor and adds one of its products."""
+        for index in range(count):
+            with audited_action(f"{prefix}.{index}", kind="command"):
+                distributor.description = f"{prefix} revision {index}."
+                distributor.save()
+                store_models.Product.objects.create(
+                    name=f"{prefix} product {index}",
+                    description="Bulk resolution fodder.",
+                    quantity=index,
+                    distributor=distributor,
+                    order_between=[1, 2],
+                    tangible_type=store_models.TangibleType.objects.get(code="physical"),
+                    condition="new",
+                )
+
+    def read_history(self, client, distributor):
+        # A fresh user object each time, because Django caches permissions on the one it checked,
+        # which would otherwise make the second read look cheaper than the first.
+        client.force_authenticate(user=get_user_model().objects.get(email="cost_reader@domain.invalid"))
+        response = client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
+        self.assert_response(response, HTTPStatus.OK)
+        return response.data
+
+    def test_a_page_costs_the_same_however_many_events_it_carries(self, reader_client, distributor):
+        self.add_actions(distributor, 2, "small")
+        with CaptureQueriesContext(connection) as small:
+            small_data = self.read_history(reader_client, distributor)
+
+        self.add_actions(distributor, 8, "large")
+        with CaptureQueriesContext(connection) as large:
+            large_data = self.read_history(reader_client, distributor)
+
+        assert small_data["totalRecords"] == 3, "two actions plus the context-less create"  # noqa: PLR2004
+        assert large_data["totalRecords"] == 11  # noqa: PLR2004
+        assert sum(len(group["events"]) for group in large_data["results"]) > sum(
+            len(group["events"]) for group in small_data["results"]
+        ), "the larger page really does carry more events"
+        assert len(large.captured_queries) == len(small.captured_queries), (
+            "a page of history must not cost one query per event or per referenced row"
+        )
