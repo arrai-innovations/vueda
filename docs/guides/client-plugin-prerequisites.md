@@ -132,7 +132,7 @@ toast.warning("Please check your input");
 toast.info("No changes detected");
 ```
 
-**What depends on it:** `ActionForm` displays success, error, and warning toasts after form submissions. `AuthorizingForm` shows a redirect confirmation toast. `useObjectForm` default handlers show toasts for "No Changes Detected", "Pre-save Validation Failed", and "Save Validation Failed" scenarios. `ClickToCopyText`, `ViewWorkflowTransition`, and the MFA setup views also use toast notifications.
+**What depends on it:** `ActionForm` displays success, error, and warning toasts after form submissions, including for `ViewExecuteTransition`'s workflow-transition submissions, which run through the same `ActionForm` shell. `AuthorizingForm` shows a redirect confirmation toast. `useObjectForm` default handlers show toasts for "No Changes Detected", "Pre-save Validation Failed", and "Save Validation Failed" scenarios. `ClickToCopyText` and the MFA setup views also use toast notifications.
 
 **What fails without it:** If the `Sonner` toaster is not mounted, `toast(...)` calls silently do nothing (no error is thrown, but no notification appears).
 

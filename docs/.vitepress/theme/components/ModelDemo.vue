@@ -7,7 +7,7 @@ import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 
 /**
  * Docs-only harness that previews a real model view (ViewList, ViewRead, ViewDestroy,
- * ViewAction, ViewWorkflowTransition, ViewHistoryList, ...) against offline data.
+ * ViewAction, ViewExecuteTransition, ViewHistoryList, ...) against offline data.
  *
  * It is the CRUDL counterpart to `AuthDemo`. Both mount the real view in an isolated
  * sub-app (see `demoSubApp.js`); they differ in where the offline seam sits. Auth views

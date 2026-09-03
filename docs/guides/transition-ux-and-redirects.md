@@ -33,7 +33,7 @@ Action and transition routes pass through `requireModelInfo` before rendering. T
 
 For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard {@term CRUDL} routes; the guard does not distinguish between them at the admission level.
 
-{@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. Transition codes resolve to `ViewWorkflowTransition`. When the action cannot be resolved, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
+{@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. A transition code with no project override resolves to `ViewExecuteTransition`, which composes {@api vue:component:ModelActionForm} with a `run-action` that submits through `storeWorkflow.executeTransition` rather than the generic model-action endpoint; a project-supplied `ViewAction{App}{Model}{Code}.vue` or `ViewAction{Code}.vue` still takes priority over it for a matching code. When the action cannot be resolved at all, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 
 The guard requires transition objects to have a valid string `code`. The server enforces this as a required, non-blank field, so the guard's check should not trigger in normal operation. If this error surfaces, it indicates a data integrity issue rather than a workflow misconfiguration.
 
@@ -46,6 +46,8 @@ The guard requires transition objects to have a valid string `code`. The server 
 **Dry-run** executes the action with the `Dry-Run: true` header. Use the `readyToDryRun` mechanism for validation and prefetch behaviour: when the form signals readiness, the action runs in dry-run mode to surface validation errors before the user commits. Dry-run responses should not trigger redirect or success toast behaviour. A dry run is a validation path, not a commit path.
 
 **Cancel** calls `redirectTo("cancel")`, which resolves the cancel target through the same redirect precedence chain as success. The cancel path does not execute the action; it navigates away from the action view.
+
+`ViewExecuteTransition` shares this same submit, dry-run, and cancel flow. Its `run-action` forwards `ActionForm`'s `dryRun` and `acknowledgeWarnings` arguments straight to `storeWorkflow.executeTransition`, so dry-run validation errors surface through the same field errors and validation summary as any other model action, and an unacknowledged-warnings `409` drives the same `FormConfirmDialog` confirm-then-retry flow.
 
 ## Redirect Precedence and Route Targets
 
@@ -89,7 +91,7 @@ The server's workflow execute-transition endpoint ({@api rest:endpoint:PATCH:/vu
 The bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
 :::
 
-**Transition identification** uses `code` throughout. `ViewWorkflowTransition` submits the selected transition's `code` as `transition_code` in the request payload. The transition's `name` is display-only; it appears in UI labels and confirmation text but is not used for execution or routing. This distinction is important: a transition's display name can change without affecting routing or execution, but a `code` change requires updating route guard expectations and any client-side transition references.
+**Transition identification** uses `code` throughout. The route's action parameter carries the transition `code` verbatim from admission (the route guard) through resolution (`ViewActionRouter`) to submission: `ViewExecuteTransition` passes it straight to `storeWorkflow.executeTransition`, which sends it as `transition_code` in the request payload without recasing it. The transition's `name` is display-only; `ViewExecuteTransition` uses it for the page title and confirmation copy, but it is never used for execution or routing. This distinction is important: a transition's display name can change without affecting routing or execution, but a `code` change requires updating route guard expectations and any client-side transition references.
 
 ## Verification Checklist
 
@@ -108,7 +110,7 @@ After implementing transition UX, verify the following:
 
 ## Known Limitations
 
-**`ViewWorkflowTransition` requires a valid transition code on submit.** If the selected transition is invalid or missing at submission time, the component throws rather than displaying a validation error. Ensure the transition selection UI only offers valid options.
+**`ViewExecuteTransition` renders no source-state, target-state, or per-object eligibility context.** It confirms the transition's display name and the selected objects, the same as any other `ModelActionForm`-based confirmation, but does not explain why an object is or is not eligible for the transition. A rejected object in a dry run is identified by id in the resulting field errors, not by a human-readable eligibility summary.
 
 ## Relevant Implementation Surface
 
@@ -131,5 +133,6 @@ After implementing transition UX, verify the following:
     - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
     - {@api js:function:@arrai-innovations/vueda/use/useConfirmationController#useConfirmationController}
 - Vue.js Components:
-    - {@api vue:component:ViewWorkflowTransition}
+    - {@api vue:component:ViewExecuteTransition}
+    - {@api vue:component:ModelActionForm}
     - {@api vue:component:FormConfirmDialog}

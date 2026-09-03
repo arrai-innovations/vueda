@@ -6,33 +6,11 @@ type: reference
 ---
 
 <script setup>
-import PageTitle from "@vueda/shell/page-title/PageTitle.vue";
-import Button from "@vueda/controls/button/Button.vue";
-import Textarea from "@vueda/controls/textarea/Textarea.vue";
-import Field from "@vueda/shell/field/Field.vue";
-import FieldContent from "@vueda/shell/field/FieldContent.vue";
-import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
-import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
-import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
 import Table from "@vueda/grid/table/Table.vue";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import {
-    faArrowRight,
-    faFlagCheckered,
-    faRotateLeft,
-    faLock,
-    faCircleQuestion,
-} from "@fortawesome/free-solid-svg-icons";
-import {
-    faBell,
-    faEnvelope,
-} from "@fortawesome/free-regular-svg-icons";
 import { ref } from "vue";
 import { demoResponse } from "../../.vitepress/theme/fixtures/demoApi.js";
 import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
-const selectedTransition = ref("send-for-review");
 const copyDiscounts = ref(true);
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
@@ -193,166 +171,30 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
 </VuedaDemo>
 </ClientOnly>
 
-## ViewWorkflowTransition
+## ViewExecuteTransition
 
-Promotes the default workflow transition RadioGroup (which renders as a raw debug string) into structured **transition cards**. Each card shows the target state pill, a plain-language description, and side-effect metadata. A reason textarea below the list is stored against the audit entry.
+The framework confirmation for a workflow transition code with no project-supplied override.
+Visually it is the `ViewAction` layout above, unchanged: the same tone-tracked banner, the same
+selected-records panel, and the same prompt-then-actions-strip layout, all still `ModelActionForm`
+underneath. There is no dedicated demo below because there is nothing new to look at; see the
+`ViewAction` demos above for the shared visual pattern.
 
-The current state is surfaced in a tinted strip below the title bar so there is no ambiguity about where the object is starting from.
+The differences are behavioral, not visual. The action's display name defaults to the matching
+transition's own `name` from the workflow metadata (falling back to a start-cased version of the
+transition code while metadata is still loading), and confirming submits through the workflow
+execute-transition endpoint — carrying `transition_code` — instead of the generic model-action
+endpoint `ViewAction` uses.
 
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="invoice" · current_state="draft" · 3 transitions available · interactive</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Move invoice to next state">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Cancel</Button>
-      </template>
-    </PageTitle>
-    <!-- current state strip -->
-    <div class="flex items-center gap-3 border-b-hairline bg-muted/15 px-6 py-3">
-      <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently</span>
-      <span class="inline-flex items-center gap-1.5 rounded-full border border-info/25 bg-info/8 px-2.5 py-1 text-xs font-semibold text-info">
-        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-        Draft
-      </span>
-      <span class="text-xs text-muted-foreground">INV-2026-1182 · $14,028.50 · created 2026-04-21</span>
-    </div>
-    <!-- body -->
-    <div class="px-6 py-5">
-      <div class="mb-4 flex items-baseline justify-between">
-        <h3 class="text-sm font-semibold">Available transitions</h3>
-        <span class="text-xs text-muted-foreground">3 of 6 transitions allowed for your role</span>
-      </div>
-      <RadioGroup v-model="selectedTransition" class="flex flex-col gap-3">
-        <!-- send for review -->
-        <div :class="selectedTransition === 'send-for-review' ? 'border-primary bg-primary/5' : 'border-border bg-card'" class="cursor-pointer rounded-vueda-control border p-4 transition-colors" @click="selectedTransition = 'send-for-review'">
-          <div class="flex items-start gap-3">
-            <RadioGroupItem id="tr-review" value="send-for-review" class="mt-0.5 shrink-0" />
-            <div class="flex-1 min-w-0">
-              <p class="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                Send for review
-                <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-                <span class="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">In review</span>
-              </p>
-              <p class="mt-1 text-sm text-muted-foreground">Routes to the assigned reviewer. The invoice becomes read-only for editors until reviewed. Notifies <strong class="text-foreground">priya.s</strong>.</p>
-              <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span><FontAwesomeIcon :icon="faBell" /> 1 notification</span>
-                <span>SLA · 2 business days</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- send to customer -->
-        <div :class="selectedTransition === 'send-to-customer' ? 'border-primary bg-primary/5' : 'border-border bg-card'" class="cursor-pointer rounded-vueda-control border p-4 transition-colors" @click="selectedTransition = 'send-to-customer'">
-          <div class="flex items-start gap-3">
-            <RadioGroupItem id="tr-send" value="send-to-customer" class="mt-0.5 shrink-0" />
-            <div class="flex-1 min-w-0">
-              <p class="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                Send to customer
-                <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-                <span class="inline-flex items-center rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">Sent</span>
-              </p>
-              <p class="mt-1 text-sm text-muted-foreground">Skip the review step (allowed for invoices under $5,000). Emails the PDF to the billing contact and starts the payment-due timer.</p>
-              <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span><FontAwesomeIcon :icon="faEnvelope" /> Email + PDF</span>
-                <span>Locks invoice</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- void (disabled) -->
-        <div class="cursor-not-allowed rounded-vueda-control border border-border bg-card p-4 opacity-50">
-          <div class="flex items-start gap-3">
-            <RadioGroupItem id="tr-void" value="void" :disabled="true" class="mt-0.5 shrink-0" />
-            <div class="flex-1 min-w-0">
-              <p class="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                Void
-                <FontAwesomeIcon :icon="faArrowRight" class="text-xs text-muted-foreground" />
-                <span class="inline-flex items-center rounded-full border border-destructive/20 bg-destructive/5 px-2 py-0.5 text-xs font-semibold text-destructive">Voided</span>
-              </p>
-              <p class="mt-1 text-sm text-muted-foreground">Voiding requires the <em>billing.admin</em> role. Voided invoices remain visible in audit and reports but cannot be sent or paid.</p>
-              <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span><FontAwesomeIcon :icon="faLock" /> Restricted</span>
-                <span>Irreversible</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </RadioGroup>
-      <div class="mt-5">
-        <Field orientation="vertical">
-          <FieldLabel for="vwt-reason">
-            Reason
-            <span class="font-normal text-muted-foreground">(optional)</span>
-          </FieldLabel>
-          <FieldContent>
-            <Textarea id="vwt-reason" placeholder="Add context for the reviewer — visible in the audit log." />
-            <FieldDescription>Stored against the audit entry. Visible to anyone with access to this invoice.</FieldDescription>
-          </FieldContent>
-        </Field>
-      </div>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Cancel</Button>
-      <Button tone="primary">
-        <FontAwesomeIcon :icon="faArrowRight" />
-        {{ selectedTransition === 'send-for-review' ? 'Send for review' : selectedTransition === 'send-to-customer' ? 'Send to customer' : 'Apply transition' }}
-      </Button>
-      <span class="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-        <FontAwesomeIcon :icon="faCircleQuestion" />
-        Transition is recorded against your account
-      </span>
-    </div>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>current-state strip: <code>bg-muted/15</code> tint below PageTitle; the state pill reuses the same tone classes as Badge</span>
-    <span>transition cards: <code>RadioGroup v-model</code> + ternary <code>border-primary bg-primary/5</code> vs <code>border-border bg-card</code>; card wrapper <code>@click</code> makes the whole surface selectable</span>
-    <span>destination pills: hand-rolled <code>inline-flex rounded-full border</code> with tone classes — Badge has no info/success/warning variants</span>
-    <span>disabled option: <code>opacity-50 cursor-not-allowed</code> on wrapper div; <code>:disabled="true"</code> on RadioGroupItem prevents keyboard selection</span>
-    <span>submit label: reflects the selected transition name — not just "Submit"</span>
-    <span>reason textarea: Field + Textarea + FieldDescription; stored in the audit log, so the description says so</span>
-  </footer>
-</VuedaDemo>
+::: warning
+This confirmation does not explain source state, target state, or why a given object is or is not
+eligible for the transition. It confirms the transition's display name and the selected records
+only, the same as any other `ModelActionForm` confirmation. A dry-run rejection still identifies
+the rejected object ids in the field errors and validation summary; it just does not render a
+human-readable eligibility summary alongside them. A richer, transition-aware confirmation
+surface is a distinct, not-yet-built concern.
+:::
 
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="invoice" · current_state="paid" · terminal state · no transitions available</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
-    <PageTitle title="Move invoice to next state">
-      <template #button>
-        <Button size="sm" emphasis="ghost">Back to invoice</Button>
-      </template>
-    </PageTitle>
-    <!-- current state strip -->
-    <div class="flex items-center gap-3 border-b-hairline bg-muted/15 px-6 py-3">
-      <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Currently</span>
-      <span class="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-        Paid
-      </span>
-      <span class="text-xs text-muted-foreground">INV-2026-1095 · $2,440.00 · paid 2026-04-12</span>
-    </div>
-    <!-- empty state -->
-    <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <FontAwesomeIcon :icon="faFlagCheckered" class="text-3xl text-muted-foreground/40" />
-      <p class="font-semibold text-foreground">No transitions available from <em>Paid</em></p>
-      <p class="max-w-sm text-sm text-muted-foreground">This is a terminal state in the invoice workflow. To make changes, issue a credit note or refund from the invoice page instead.</p>
-    </div>
-    <!-- actions strip -->
-    <div class="flex flex-wrap items-center gap-3 border-t-hairline px-6 py-4">
-      <Button emphasis="ghost">Back to invoice</Button>
-      <span class="ml-auto"></span>
-      <Button emphasis="outline">
-        <FontAwesomeIcon :icon="faRotateLeft" />
-        Issue credit note
-      </Button>
-    </div>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>terminal state: show an empty state instead of an empty RadioGroup; explain why and offer the relevant escape hatch</span>
-    <span>empty state icon: muted at <code>text-muted-foreground/40</code> — decorative, not informational</span>
-    <span>escape-hatch action: pushed to the right with <code>ml-auto spacer</code> so it does not compete with Back</span>
-  </footer>
-</VuedaDemo>
+theme keys: {@api theme-key:ViewExecuteTransition}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: `ViewExecuteTransition.vue`
 
 ## ViewHistoryList
 
@@ -425,20 +267,18 @@ Every action view is `ModelActionForm` underneath, so the same slots and props r
 
 The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
 
-| Surface                  | Key tokens                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| Info banner              | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
-| Success banner           | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
-| Warning banner           | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
-| Destructive banner       | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
-| Prompt block             | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
-| Object list              | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
-| Actions strip            | `--border` (top hairline)                                                                    |
-| Transition card selected | `--primary` via `border-primary`, `bg-primary/5`                                             |
-| Current state strip      | `--muted` via `bg-muted/15`; state pill tone from the workflow state vocabulary              |
-| Diff old                 | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
-| Diff new                 | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Revision stripe          | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
-| Type pill (updated)      | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
-| Type pill (created)      | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Type pill (restored)     | `--warning` via `bg-warning/10`, `border-warning/25`, `text-warning`                         |
+| Surface              | Key tokens                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| Info banner          | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
+| Success banner       | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
+| Warning banner       | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
+| Destructive banner   | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
+| Prompt block         | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
+| Object list          | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
+| Actions strip        | `--border` (top hairline)                                                                    |
+| Diff old             | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
+| Diff new             | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Revision stripe      | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
+| Type pill (updated)  | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
+| Type pill (created)  | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Type pill (restored) | `--warning` via `bg-warning/10`, `border-warning/25`, `text-warning`                         |

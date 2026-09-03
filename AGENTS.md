@@ -62,7 +62,7 @@ relative to the package directory, not the repo root.
 ```bash
 just test-server -k test_login
 just test-server tests/test_auth.py
-just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js
+just test-client tests/unit/lib/views/ViewActionRouter.spec.js
 just coverage-server --cov-report=html
 just test-docs-tooling-py -x --lf
 ```
