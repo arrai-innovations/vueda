@@ -496,6 +496,12 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     # override would diverge from the trigger SQL in the shipped migrations, so this is not a
     # setdefault.
     return_dict["PGHISTORY_APPEND_ONLY"] = True
+    # Stamp each event with the moment of its own write. pghistory's default, NOW(), is the
+    # transaction's start time, which would give every event of one request the same timestamp and
+    # leave the history API unable to order them. Grouping does not need that shared time: a
+    # context row already identifies the action. Like append-only, this is written into the trigger
+    # SQL, so it is not a setdefault.
+    return_dict["PGHISTORY_CREATED_AT_FUNCTION"] = "clock_timestamp()"
     # Keep pghistory's ContextForeignKey, row-level trigger, and indexing defaults.
     # VUEDA defines no retention policy.
     return_dict["INSTALLED_APPS"] = (

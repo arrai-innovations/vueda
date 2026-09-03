@@ -64,8 +64,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="insert_insert",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."name", _pgh_attach_context(), NOW(), \'insert\', NEW."id"); RETURN NULL;',
-                    hash="550e4a91f6549af4b04396a20edf03f40df2aa73",
+                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."name", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id"); RETURN NULL;',
+                    hash="bd78d48b195b00a357d9fd4b8854d426a12d31fc",
                     operation="INSERT",
                     pgid="pgtrigger_insert_insert_52e78",
                     table="users_user",
@@ -79,8 +79,8 @@ class Migration(migrations.Migration):
                 name="update_update",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
                     condition='WHEN (OLD."date_joined" IS DISTINCT FROM (NEW."date_joined") OR OLD."email" IS DISTINCT FROM (NEW."email") OR OLD."formatted_name" IS DISTINCT FROM (NEW."formatted_name") OR OLD."id" IS DISTINCT FROM (NEW."id") OR OLD."is_active" IS DISTINCT FROM (NEW."is_active") OR OLD."is_superuser" IS DISTINCT FROM (NEW."is_superuser") OR OLD."is_system" IS DISTINCT FROM (NEW."is_system") OR OLD."name" IS DISTINCT FROM (NEW."name"))',
-                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."name", _pgh_attach_context(), NOW(), \'update\', NEW."id"); RETURN NULL;',
-                    hash="39487a417c8f32533380e746f9afcd214cb572f1",
+                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."name", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id"); RETURN NULL;',
+                    hash="d8549d88e4ef4099bc9517d8d7523dd6c86a675e",
                     operation="UPDATE",
                     pgid="pgtrigger_update_update_16e22",
                     table="users_user",
@@ -93,8 +93,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="delete_delete",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (OLD."date_joined", OLD."email", OLD."id", OLD."is_active", OLD."is_superuser", OLD."is_system", OLD."name", _pgh_attach_context(), NOW(), \'delete\', OLD."id"); RETURN NULL;',
-                    hash="31eee98cc50fa359adc6bfa0c9edbf0aaf8dfd42",
+                    func='INSERT INTO "users_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (OLD."date_joined", OLD."email", OLD."id", OLD."is_active", OLD."is_superuser", OLD."is_system", OLD."name", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id"); RETURN NULL;',
+                    hash="d7d69427d7bbc9eeff5e91452f91c2590ca9a30a",
                     operation="DELETE",
                     pgid="pgtrigger_delete_delete_56c96",
                     table="users_user",

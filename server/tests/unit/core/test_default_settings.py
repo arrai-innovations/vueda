@@ -116,6 +116,7 @@ def test_the_history_backend_is_configured_for_every_project():
     assert "pghistory" in defaults["THIRD_PARTY_APPS"]
     assert "pgtrigger" in defaults["THIRD_PARTY_APPS"]
     assert defaults["PGHISTORY_APPEND_ONLY"] is True
+    assert defaults["PGHISTORY_CREATED_AT_FUNCTION"] == "clock_timestamp()"
 
     middleware = defaults["MIDDLEWARE"]
 

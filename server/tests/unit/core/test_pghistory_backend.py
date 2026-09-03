@@ -179,6 +179,27 @@ class TestActionContext:
         assert metadata["action"] == "inner"
         assert metadata["kind"] == "command"
 
+    def test_an_event_records_its_own_write_time_not_the_transactions(self):
+        """One transaction's events must not collapse onto the moment it began.
+
+        pghistory's default stamps every event with the transaction's start time, which would give
+        each event of one request an identical time and leave nothing to order them by.
+        """
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT NOW()")
+            transaction_start = cursor.fetchone()[0]
+
+        with audited_action("invoice.create"):
+            invoice = make_invoice()
+            line = make_line(invoice)
+
+        invoice_event = events_for(invoice)[0]
+        line_event = events_for(line)[0]
+
+        assert invoice_event.pgh_created_at > transaction_start
+        assert line_event.pgh_created_at >= invoice_event.pgh_created_at
+        assert invoice_event.pgh_context_id == line_event.pgh_context_id, "still one action"
+
     def test_a_write_outside_any_action_still_records_an_event(self):
         """Losing the context loses the grouping, not the history."""
         invoice = make_invoice()
