@@ -19,9 +19,9 @@ The server is organized into four responsibility layers. Each layer builds on th
 
 (`vueda.core`) defines the base model, serializer, and viewset contracts that all domain modules inherit. This layer establishes transactional boundaries (all writes within a request are atomic), the permission-evaluation order, an input-validation policy (unknown fields are rejected), and routing conventions. A domain module that extends `VuedaModel`, `VuedaSerializer`, and `VuedaViewSet` inherits all of these behaviours.
 
-(`vueda.history`) defines the base model, serializer, and viewset for objects that require audit history. These base classes inherit the corresponding `vueda.core` base classes and incorporate the use of simple history to provide audit history. A domain module that extends `VuedaHistoryModel`, `VuedaHistorySerializer`, and `VuedaHistoryViewSet` inherits all of these behaviours and those from their corresponding `vueda.core` base classes.
+(`vueda.history`) records model changes through PostgreSQL triggers. Every eligible `VuedaModel` subclass is tracked by default, whatever else it extends, and a model opts out or excludes fields through `class Vueda.History`. `VuedaHistoryModel`, `VuedaHistorySerializer`, and `VuedaHistoryViewSet` remain the classes that read that history back, through the history expands and the `history-list` endpoint.
 
-A module that does not extend the `vueda.core` or `vueda.history` base classes, opts out of the integration entirely.
+A module whose models do not extend the `vueda.core` base classes opts out of the integration entirely, history included.
 
 ### Metadata and discovery
 
