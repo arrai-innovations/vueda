@@ -1,8 +1,13 @@
-"""Serializers for rendering historical record diffs."""
+"""Serializer base for history-tracked models, and serializers for rendering historical record diffs."""
 
-__all__ = ("DynamicHistoricalSerializer",)
+__all__ = (
+    "DynamicHistoricalSerializer",
+    "VuedaHistorySerializer",
+)
 
+from vueda.core.serializers import VuedaSerializer
 from vueda.history.serializers.mixins import HistoricalModelSerializerMixin
+from vueda.history.serializers.mixins import SimpleHistorySerializerMixin
 
 
 class DynamicHistoricalSerializer(HistoricalModelSerializerMixin):
@@ -24,3 +29,12 @@ class DynamicHistoricalSerializer(HistoricalModelSerializerMixin):
                 if hasattr(model_field, "source") and model_field.source == field_name:
                     model_field.source = None  # Remove redundant `source`
                 self.fields[field_name] = model_field
+
+
+class VuedaHistorySerializer(SimpleHistorySerializerMixin, VuedaSerializer):
+    """``VuedaSerializer`` extended with audit-history fields from ``simple-history``."""
+
+    class Meta(SimpleHistorySerializerMixin.Meta, VuedaSerializer.Meta):
+        expandable_fields = VuedaSerializer.Meta.expandable_fields.copy()
+        expandable_fields.update(SimpleHistorySerializerMixin.Meta.expandable_fields)
+        fields = VuedaSerializer.Meta.fields + SimpleHistorySerializerMixin.Meta.fields

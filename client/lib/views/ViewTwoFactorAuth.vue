@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
@@ -15,7 +16,6 @@ import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * Two-factor authentication challenge view presented after initial login. Lets the user select an available
@@ -79,6 +79,10 @@ const handleSubmit = ({ formValues }) => {
 const form = reactive({
     values: {},
 });
+let formContext = null;
+const handleFormContext = (context) => {
+    formContext = context;
+};
 
 const isActive = useIsActive();
 const methods = ref([]);
@@ -115,9 +119,9 @@ const sendCodeMethods = ["sms", "email"];
 const toggleRecovery = () => {
     useRecoveryCode.value = !useRecoveryCode.value;
     if (useRecoveryCode.value) {
-        form.values.method = "recovery";
+        formContext?.updateValue("method", "recovery");
     } else {
-        form.values.method = undefined;
+        formContext?.updateValue("method", undefined);
     }
 };
 onBeforeUnmount(clearCooldownTimer);
@@ -133,6 +137,7 @@ onBeforeUnmount(clearCooldownTimer);
         action-success-summary="Two-Factor Authentication Successful"
         action-error-summary="Two-Factor Authentication Failed"
         @form-object="form.values = $event"
+        @form-context="handleFormContext"
     >
         <template #action-form-inner>
             <slot

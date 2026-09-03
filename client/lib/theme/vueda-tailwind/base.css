@@ -708,8 +708,12 @@
 
 /* Sonner toast type tints. Surface stays popover; the toast root carries
  * the type color, which the icon and title pick up via `color: inherit`.
- * Description is reset to `--muted-foreground` so the type tint reads as
- * a glance cue (icon + title) rather than coloring the whole body.
+ * On the normal surface the description stays `--muted-foreground` so the tint
+ * reads as a glance cue (icon + title) rather than coloring the whole body;
+ * `richColors` lets it ride the tint too, matching Alert. That description
+ * colour is not set here: Sonner.vue feeds it to vue-sonner's own
+ * `--description-text` variable, and vue-sonner keeps the `richColors` case on
+ * `color: inherit` itself.
  * Specificity bumped past vue-sonner's stock rules with the `[data-type]`
  * attribute. */
 [data-sonner-toast][data-styled="true"][data-type="success"] {
@@ -724,10 +728,6 @@
 [data-sonner-toast][data-styled="true"][data-type="error"] {
     color: var(--destructive);
 }
-[data-sonner-toast][data-styled="true"] [data-description] {
-    color: var(--muted-foreground);
-}
-
 /* Drag-to-dismiss affordance. vue-sonner only sets `user-select: none` once a
  * swipe is already underway (after `[data-swiped="true"]`), so starting a
  * mouse drag on top of toast text triggers native text selection instead of
@@ -763,6 +763,24 @@
     background: transparent !important;
     border-color: transparent !important;
     color: var(--foreground) !important;
+}
+
+/* In-toast button focus rings. vue-sonner paints these as a black
+ * `rgba(0, 0, 0, .2)` / `rgba(0, 0, 0, .4)` box-shadow with no dark-mode
+ * counterpart, so the indicator disappears against whichever surface happens
+ * to be dark: the close button's ring vanishes on the dark popover, and the
+ * action button's vanishes on its own near-black light-mode fill (that button
+ * is inverted, painted `--normal-text` on `--normal-bg`). Swap both to the
+ * VUEDA ring, which tracks the palette and holds the WCAG 2.2 SC 2.4.13 width
+ * at every DPR step. Outline rather than `focus-ring-shadow`: neither button
+ * carries a hairline to snap to, and the toast does not clip its overflow.
+ * The `[data-sonner-toaster]` ancestor outranks vue-sonner on specificity, so
+ * these do not depend on stylesheet order. */
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible,
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button]:focus-visible {
+    box-shadow: none;
+    outline: var(--vueda-focus-ring-width) solid var(--ring);
+    outline-offset: var(--vueda-focus-ring-offset);
 }
 
 /* Toast motion: vue-sonner's stock transform/opacity/height/box-shadow

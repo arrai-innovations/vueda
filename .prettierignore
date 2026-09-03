@@ -25,6 +25,10 @@ client/types
 
 # generated docs outputs
 docs/reference/api
+docs/reference/theming/keys
+docs/reference/theming/keys.md
+docs/reference/theming/tokens
+docs/reference/theming/tokens.md
 docs/public/api
 docs/.generated
 docs/.vitepress/cache

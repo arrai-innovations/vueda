@@ -105,7 +105,7 @@ vi.mock("@vueda/controls/input-otp/InputOTP.vue", () => ({ default: InputOTPStub
 vi.mock("@vueda/controls/input-otp/InputOTPGroup.vue", () => ({ default: InputOTPGroupStub }));
 vi.mock("@vueda/controls/input-otp/InputOTPSlot.vue", () => ({ default: InputOTPSlotStub }));
 vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: FeedbackSpinnerStub }));
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/use/useIcons.js", () => ({ ICON_OVERRIDE_PROPS: {}, useIcons: () => () => null }));
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => useModelConfigMock() }));
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => storeUserMock() }));

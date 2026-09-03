@@ -26,7 +26,10 @@ def register(canonical_serializer, canonical_viewset=None):
     Register a model so that it can be used with ModelInfoViewSet. You should do this in the ready method of an
      AppConfig, not as a side effect of importing viewsets or serializers.
 
-    :param canonical_serializer: The serializer to use as a reference for the model.
+    :param canonical_serializer: The serializer to use as a reference for the model. Only a ``Meta.model``
+     is required; it does not need to inherit ``VuedaSerializer``. The ``/info/`` meta-API falls back to
+     defaults for any ``VuedaExpandableFieldsSerializerMixin`` hooks (``generate_expand_model_info``,
+     ``get_expand_model_info``, ``get_field_model_info``) the serializer doesn't define.
     :param canonical_viewset: The viewset to use as a reference for the model.
     """
 
@@ -77,7 +80,10 @@ def register_serializer(canonical_serializer):
     Because there is no viewset, the info available will be limited to
 
 
-    :param canonical_serializer: The serializer to use as a reference for the model.
+    :param canonical_serializer: The serializer to use as a reference for the model. Only a ``Meta.model``
+     is required; it does not need to inherit ``VuedaSerializer``. The ``/info/`` meta-API falls back to
+     defaults for any ``VuedaExpandableFieldsSerializerMixin`` hooks (``generate_expand_model_info``,
+     ``get_expand_model_info``, ``get_field_model_info``) the serializer doesn't define.
     """
 
     def decorator(decorated_canonical_serializer):
@@ -127,7 +133,7 @@ def get_registration(content_type):
     except ContentType.DoesNotExist:
         raise ValueError(f"ContentType {content_type} does not exist.")
 
-        # Construct the key as "app_label.model"
+    # Construct the key as "app_label.model"
     key = f"{content_type.app_label}.{content_type.model}"
 
     # this deepcopy is defensive to prevent inadvertent modification of the registry

@@ -44,6 +44,22 @@ Use `@deprecated <text>` in the JSDoc block for a Vue SFC or exported JavaScript
 defineOptions({});
 ```
 
+## JavaScript function signatures
+
+Document options-object parameters with a description for the object itself and dotted `@param` names for first-level properties. The TypeDoc renderer shows those properties below the parameter table. TypeDoc does not document deeper nested paths here; use a named `@typedef` when a nested object needs its own documented shape.
+
+```js
+/**
+ * Runs a model action.
+ *
+ * @param {object} options - Action options.
+ * @param {boolean} [options.dryRun] - Whether to validate without writing.
+ * @param {string} [options.acknowledgeWarnings] - Warning digest acknowledged by the user.
+ * @returns {Promise<void>}
+ */
+export function runAction(options) {}
+```
+
 ## `@vueda-spread` on shared prop/emit constants (JS files)
 
 When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The vue-docgen normalizer injects those entries into every component that spreads the constant.

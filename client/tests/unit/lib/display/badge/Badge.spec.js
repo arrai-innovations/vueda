@@ -30,6 +30,47 @@ describe("lib/display/badge/Badge.vue", () => {
             expect(wrapper.classes()).toContain("text-foreground");
         });
 
+        scopedIt.each([
+            ["info", "text-info", "bg-info/10", "var(--info)"],
+            ["success", "text-success", "bg-success/10", "var(--success)"],
+            ["warning", "text-warning", "bg-warning/10", "var(--warning)"],
+        ])("applies tinted %s variant classes", (variant, textClass, surfaceClass, token) => {
+            const wrapper = mount(Badge, { props: { variant } });
+            const classes = wrapper.classes();
+            expect(classes).toContain(textClass);
+            expect(classes).toContain(surfaceClass);
+            // The tinted tones paint a 50% tone hairline, so they must not also declare the
+            // transparent hairline the solid fills use, or the two would race in the cascade.
+            expect(classes).toContain(`[--vueda-hairline-color:color-mix(in_oklab,${token}_50%,transparent)]`);
+            expect(classes).not.toContain("[--vueda-hairline-color:transparent]");
+            expect(classes).not.toContain("hairline-border");
+        });
+
+        scopedIt.each(["default", "secondary", "destructive"])(
+            "keeps the solid %s variant on a transparent hairline",
+            (variant) => {
+                const classes = mount(Badge, { props: { variant } }).classes();
+                expect(classes).toContain("[--vueda-hairline-color:transparent]");
+                expect(classes).not.toContain("text-info");
+                expect(classes).not.toContain("text-success");
+                expect(classes).not.toContain("text-warning");
+            },
+        );
+
+        scopedIt("gives a tinted variant an anchor hover and active step", () => {
+            const classes = mount(Badge, { props: { variant: "success" } }).classes();
+            expect(classes).toContain("[a&]:hover:bg-success/20");
+            expect(classes).toContain("[a&]:active:bg-success/25");
+        });
+
+        scopedIt("composes a tinted variant with the numeric recipe", () => {
+            const classes = mount(Badge, { props: { variant: "warning", numeric: true } }).classes();
+            expect(classes).toContain("text-warning");
+            expect(classes).toContain("tabular-nums");
+            expect(classes).toContain("px-1");
+            expect(classes).not.toContain("px-2");
+        });
+
         scopedIt("merges custom class while preserving variant classes", () => {
             const wrapper = mount(Badge, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");

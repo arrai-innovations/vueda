@@ -67,7 +67,6 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
-import { useObjectsWorkflowTransitions } from "@vueda/use/useObjectsWorkflowTransitions.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
@@ -179,13 +178,7 @@ export function useDetailView(options, formInitialValue) {
     );
 
     const fetchFields = computed(() => options.fetchFields ?? modelConfig.config?.fetchFields);
-
-    const objectTransitions = useObjectsWorkflowTransitions(
-        toRef(options, "app"),
-        toRef(options, "model"),
-        toRef(options, "pk"),
-        isActive,
-    );
+    const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
 
     const instanceObjectProps = reactive({
         target: {
@@ -195,7 +188,14 @@ export function useDetailView(options, formInitialValue) {
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         pk: toRef(options, "pk"),
         params: {
-            [FIELDS_PARAM]: computed(() => [modelConfig.info?.pk ?? "id", fetchFields.value, "available_actions"]),
+            [FIELDS_PARAM]: computed(() =>
+                [
+                    modelConfig.info?.pk ?? "id",
+                    fetchFields.value,
+                    "available_actions",
+                    hasValidTransitions.value ? "valid_transitions" : null,
+                ].filter(Boolean),
+            ),
             [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
         },
         intendToRetrieve,
@@ -211,7 +211,7 @@ export function useDetailView(options, formInitialValue) {
             if (vAA && loading === false) {
                 assignReactiveObject(
                     formInitialValue,
-                    omit(cloneDeep(instanceObject.state.object), "available_actions"),
+                    omit(cloneDeep(instanceObject.state.object), "available_actions", "valid_transitions"),
                 );
             }
         },
@@ -255,7 +255,7 @@ export function useDetailView(options, formInitialValue) {
         return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
     });
 
-    const availableTransitions = computed(() => objectTransitions.transitions?.map((t) => t.code));
+    const availableTransitions = computed(() => instanceObject.state.object?.valid_transitions?.map((t) => t.code));
 
     const detailActions = computed(() =>
         availableActions.value.filter((n) => {

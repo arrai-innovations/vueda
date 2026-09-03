@@ -15,9 +15,9 @@ from tests.permissions import IsCartOrOrderCreator
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
-from vueda.core.viewsets import VuedaHistoryViewSet
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.history.viewsets import VuedaHistoryViewSet
 from vueda.workflow.views import HasWorkflowViewMixin
 
 

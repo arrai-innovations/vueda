@@ -3,16 +3,16 @@
  * @description Bridges a generic form context with an object instance, handling submission, redirection, and unsaved-change warnings.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
+import { toast } from "@arrai-innovations/vue-sonner";
 import { useConfirmationController } from "@vueda/use/useConfirmationController.js";
 import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { ConfirmationRequiredError, FormValidationError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * @typedef {object} ObjectFormRawProps
@@ -51,7 +51,7 @@ import { toast } from "vue-sonner";
  * Type for handling when there are no changes detected upon submission attempt.
  * @typedef {(options: {
  *     formContext: FormContext,
- *     toast: import("vue-sonner").toast
+ *     toast: import("@arrai-innovations/vue-sonner").toast
  * }) => Promise<boolean>} OnSubmitNotAnyModified
  */
 
@@ -59,7 +59,7 @@ import { toast } from "vue-sonner";
  * Type for handling submission when form errors are present.
  * @typedef {(options: {
  *     formContext: FormContext,
- *     toast: import("vue-sonner").toast
+ *     toast: import("@arrai-innovations/vue-sonner").toast
  * }) => Promise<boolean>} OnSubmitAnyError
  */
 
@@ -68,7 +68,7 @@ import { toast } from "vue-sonner";
  * @typedef {(options: {
  *     error: Error,
  *     formContext: FormContext,
- *     toast: import("vue-sonner").toast,
+ *     toast: import("@arrai-innovations/vue-sonner").toast,
  *     isUpdate: boolean,
  *     state: ObjectFormState
  * }) => Promise<Boolean>} OnSubmissionError
@@ -79,7 +79,7 @@ import { toast } from "vue-sonner";
  * @typedef {(options: {
  *     isUpdate: boolean,
  *     state: ObjectFormState,
- *     toast: import("vue-sonner").toast,
+ *     toast: import("@arrai-innovations/vue-sonner").toast,
  *     router: import("vue-router").Router,
  *     formContext: FormContext
  * }) => Promise<void>} OnSubmissionSuccess
@@ -89,7 +89,7 @@ import { toast } from "vue-sonner";
  * Default implementation for onSubmitNotAnyModified hook.
  *
  * @param {object} options
- * @param {import("vue-sonner").toast} options.toast
+ * @param {import("@arrai-innovations/vue-sonner").toast} options.toast
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
@@ -104,7 +104,7 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * Default implementation for onSubmitAnyError hook.
  *
  * @param {object} options
- * @param {import("vue-sonner").toast} options.toast
+ * @param {import("@arrai-innovations/vue-sonner").toast} options.toast
  * @param {FormContext} options.formContext
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
@@ -150,13 +150,13 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @param {ObjectFormState} options.state - The form state.
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
- * @param {import("vue-sonner").toast} options.toast - The toast service.
+ * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
  * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
-    if (error instanceof FormValidationError) {
+    if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
         formContext.handleServerFormValidationError(error);
-        const plural = Object.keys(error.messages).length > 1;
+        const plural = Object.keys(error.errors).length > 1;
         toast.warning("Save Validation Failed", {
             description: `Please review the new error${plural ? "s" : ""} displayed. You have been scrolled to the first error.`,
             duration: 15000,
@@ -177,7 +177,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  *     error: import('@vueda/utils/errors.js').ConfirmationRequiredError,
  *     formContext: FormContext,
  *     confirmation: import('@vueda/use/useConfirmationController.js').ConfirmationController,
- *     toast: import("vue-sonner").toast,
+ *     toast: import("@arrai-innovations/vue-sonner").toast,
  *     state: ObjectFormState
  * }) => Promise<boolean>} OnSubmissionWarningsRequireConfirmation
  */
@@ -203,7 +203,7 @@ export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, fo
     // validation messages intact.
     Object.keys(confirmation.messages ?? {}).forEach((name) => formContext.clearServerErrors(name));
     formContext.handleServerFormValidationError(error);
-    return await confirmation.request(error.messages);
+    return await confirmation.request(error.messages, { bulk: error.bulk });
 };
 
 /**
@@ -211,7 +211,7 @@ export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, fo
  *
  * @param {object} options
  * @param {boolean} options.isUpdate - Whether it was a create or update submission.
- * @param {import("vue-sonner").toast} options.toast - The toast service.
+ * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
  * @param {import("vue-router").Router} options.router - The router.
  * @param {ObjectFormState} options.state - The form state.
  * @returns {Promise<void>}

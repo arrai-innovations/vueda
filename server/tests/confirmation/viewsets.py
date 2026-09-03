@@ -22,12 +22,13 @@ class ThingViewSet(VuedaViewSet):
         if errors:
             raise VuedaValidationError(errors)
 
-    def get_warnings(self, action, objs):
+    def get_warnings_for_object(self, action, obj):
         # Viewset-level warnings: destroying a thing that still has a positive count is unusual.
-        if action == "destroy":
-            flagged = sorted(obj.name for obj in objs if obj.count > 0)
-            if flagged:
-                return {"non_field_errors": [f"{name} still has a positive count." for name in flagged]}
+        # This single-object hook is reused for both single-object and bulk destroy: the default
+        # get_warnings(action, objs) calls it once per object in a bulk request and keys each
+        # result by object id, so the same rule applies whether one object or many are destroyed.
+        if action == "destroy" and obj.count > 0:
+            return {"non_field_errors": [f"{obj.name} still has a positive count."]}
         return {}
 
     @action(detail=True, methods=["post"], confirm=True)
@@ -69,10 +70,10 @@ class GadgetViewSet(DeactivateActionViewSetMixin, VuedaViewSet):
     serializer_class = my_serializers.GadgetSerializer
     permission_classes = (AllowAny,)
 
-    def get_warnings(self, action, objs):
-        # Viewset-level warnings: toggling a critical gadget deserves a second look.
-        if action in ("activate", "deactivate"):
-            flagged = sorted(obj.name for obj in objs if obj.name.startswith("critical"))
-            if flagged:
-                return {"non_field_errors": [f"{name} is critical." for name in flagged]}
+    def get_warnings_for_object(self, action, obj):
+        # Viewset-level warnings: toggling a critical gadget deserves a second look. Reused for
+        # both single-object and bulk activate/deactivate; see
+        # ThingViewSet.get_warnings_for_object.
+        if action in ("activate", "deactivate") and obj.name.startswith("critical"):
+            return {"non_field_errors": [f"{obj.name} is critical."]}
         return {}

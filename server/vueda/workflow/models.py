@@ -15,7 +15,10 @@ __all__ = (
 )
 
 from collections.abc import Iterable
+from collections.abc import Iterator
+from contextlib import contextmanager
 
+import django
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -29,8 +32,8 @@ from simple_history.models import HistoricalRecords
 
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
+from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
-from vueda.history.models import SimpleHistoryModelMixin
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
@@ -57,12 +60,23 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
 
-    def save(self, *args, **kwargs) -> None:
-        """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
-        self.historical_app_label = self.content_type.app_label
-        self.historical_model = self.content_type.model
+    if django.VERSION >= (6, 0):
 
-        super().save(*args, **kwargs)
+        def save(self, **kwargs) -> None:
+            """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
+            self.historical_app_label = self.content_type.app_label
+            self.historical_model = self.content_type.model
+
+            super().save(**kwargs)
+
+    else:
+
+        def save(self, *args, **kwargs) -> None:
+            """Snapshot ``historical_app_label`` and ``historical_model`` before saving."""
+            self.historical_app_label = self.content_type.app_label
+            self.historical_model = self.content_type.model
+
+            super().save(*args, **kwargs)
 
 
 class WorkflowPermission(SimpleHistoryModelMixin):
@@ -110,14 +124,26 @@ class WorkflowPermission(SimpleHistoryModelMixin):
             f"{'deleted ' if deleted_permission else ''}permission: {permission}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
+    if django.VERSION >= (6, 0):
 
-        super().save(*args, **kwargs)
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+
+            super().save(*args, **kwargs)
 
 
 class State(SimpleHistoryModelMixin):
@@ -195,14 +221,26 @@ class StatePermission(SimpleHistoryModelMixin):
             f"grant_or_deny: {'grant' if self.grant_or_deny else 'deny'}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
-        self.historical_group_name = self.group.name
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            self.historical_group_name = self.group.name
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            self.historical_group_name = self.group.name
+            super().save(*args, **kwargs)
 
 
 class InitialState(SimpleHistoryModelMixin):
@@ -343,13 +381,24 @@ class TransitionPermission(SimpleHistoryModelMixin):
             f"{'deleted ' if deleted_permission else ''}permission: {permission}"
         )
 
-    def save(self, *args, **kwargs):
-        # Set the historical permission codename, so if the permission is deleted,
-        # we don't just have an id that may not be the same on the server.
-        self.historical_permission_codename = self.permission.codename
-        self.historical_permission_content_type_app_label = self.permission.content_type.app_label
-        self.historical_permission_content_type_model_name = self.permission.content_type.model
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            super().save(**kwargs)
+    else:
+
+        def save(self, *args, **kwargs):
+            # Set the historical permission codename, so if the permission is deleted,
+            # we don't just have an id that may not be the same on the server.
+            self.historical_permission_codename = self.permission.codename
+            self.historical_permission_content_type_app_label = self.permission.content_type.app_label
+            self.historical_permission_content_type_model_name = self.permission.content_type.model
+            super().save(*args, **kwargs)
 
 
 class TransitionSource(SimpleHistoryModelMixin):
@@ -475,6 +524,38 @@ class ObjectState(SimpleHistoryModelMixin):
         return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
 
 
+def _permitted_transition_ids(
+    model: type["HasWorkflowModelMixin"],
+    transitions: list[Transition],
+    state_by_object: dict[int, int],
+    user: User,
+) -> list[int]:
+    """
+    Return the ids of ``transitions`` that ``user`` may take on at least one of the objects in
+    ``state_by_object``, which maps an object id to the id of that object's current state.
+    """
+    objects_by_state: dict[int, list[HasWorkflowModelMixin]] = {}
+    # ``state_by_object`` names these objects explicitly, so read them past any default manager
+    # filtering, the same way the object state lookup that produced it does.
+    for instance in model._base_manager.filter(pk__in=list(state_by_object)):
+        objects_by_state.setdefault(state_by_object[instance.pk], []).append(instance)
+    sources_by_transition: dict[int, set[int]] = {}
+    for transition_id, source_id in TransitionSource.objects.filter(
+        transition__in=[transition.id for transition in transitions],
+    ).values_list("transition_id", "source_id"):
+        sources_by_transition.setdefault(transition_id, set()).add(source_id)
+    permitted_ids = []
+    for transition in transitions:
+        objects_in_source_states = [
+            instance
+            for source_id in sources_by_transition.get(transition.id, ())
+            for instance in objects_by_state.get(source_id, ())
+        ]
+        if any(instance.check_transition_permission(transition, user) for instance in objects_in_source_states):
+            permitted_ids.append(transition.id)
+    return permitted_ids
+
+
 class HasWorkflowModelMixin(models.Model):
     """
     Model-level utility methods for objects with workflow.
@@ -485,16 +566,30 @@ class HasWorkflowModelMixin(models.Model):
         ObjectStateProxy,
     )
 
+    # Populated only inside ``cached_workflow_state``; ``None`` means "read through to the database".
+    _workflow_state_cache: dict | None = None
+
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
-        """
-        Save the object and create a workflow object if it doesn't exist.
-        """
-        super().save(*args, **kwargs)
-        if not self.object_state:
-            self.create_object_state()
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            """
+            Save the object and create a workflow object if it doesn't exist.
+            """
+            super().save(**kwargs)
+            if not self.object_state:
+                self.create_object_state()
+    else:
+
+        def save(self, *args, **kwargs):
+            """
+            Save the object and create a workflow object if it doesn't exist.
+            """
+            super().save(*args, **kwargs)
+            if not self.object_state:
+                self.create_object_state()
 
     def create_object_state(self):
         """
@@ -514,16 +609,52 @@ class HasWorkflowModelMixin(models.Model):
         # get_for_model() is cached
         return ContentType.objects.get_for_model(cls)
 
+    @contextmanager
+    def cached_workflow_state(self) -> Iterator[None]:
+        """
+        Hold this object's ``workflow`` and ``object_state`` for the duration of the block.
+
+        One authorization pass reads both repeatedly: ``check_state_permission`` resolves the
+        current state for every permission it is asked about, and ``VuedaUserMixin.has_perm``
+        reads the workflow to decide whether state rules apply at all. Without this, each read
+        is a fresh query.
+
+        The cache is scoped to a block rather than to the instance on purpose. ``execute_transition``
+        checks a transition, takes a row lock, and checks again against the locked row, and that
+        second check has to observe any state written in between. Nested blocks reuse the
+        outermost cache and leave it to the outermost block to clear.
+        """
+        if self._workflow_state_cache is not None:
+            yield
+            return
+        self._workflow_state_cache = {}
+        try:
+            yield
+        finally:
+            self._workflow_state_cache = None
+
     @property
     def workflow(self) -> Workflow | None:
         """Return the ``Workflow`` configured for this model, or ``None`` if none exists."""
-        return Workflow.objects.filter(content_type=self.get_content_type()).first()
+        cache = self._workflow_state_cache
+        if cache is not None and "workflow" in cache:
+            return cache["workflow"]
+        workflow = Workflow.objects.filter(content_type=self.get_content_type()).first()
+        if cache is not None:
+            cache["workflow"] = workflow
+        return workflow
 
     @property
     def object_state(self) -> ObjectState | None:
         """Return the ``ObjectState`` record for this instance, or ``None`` if not yet created."""
-        osp = self.object_states_proxy.first()
-        return osp and osp.object_state
+        cache = self._workflow_state_cache
+        if cache is not None and "object_state" in cache:
+            return cache["object_state"]
+        osp = self.object_states_proxy.select_related("object_state__state").first()
+        object_state = osp and osp.object_state
+        if cache is not None:
+            cache["object_state"] = object_state
+        return object_state
 
     @property
     def workflow_state(self) -> State | None:
@@ -568,6 +699,14 @@ class HasWorkflowModelMixin(models.Model):
     ) -> QuerySet[Transition]:
         """
         Returns available transitions for a list of objects.
+
+        A transition is available when at least one of ``objs`` sits in one of its source states and
+        ``user`` may take it on that object. This matches the source-state filter, which admits a
+        transition leaving any of the objects' states rather than all of them.
+
+        ``check_transition_permission`` resolves ``user.has_perms(perms, obj=...)``, so the answer
+        depends on the object it receives. This classmethod therefore loads the concrete instances
+        and asks each candidate object rather than asking the model class.
         """
         workflow = Workflow.objects.get(content_type=cls.get_content_type())
         workflow_permissions = [
@@ -580,20 +719,28 @@ class HasWorkflowModelMixin(models.Model):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
-        object_states = ObjectState.objects.filter(
-            workflow__content_type=cls.get_content_type(),
-            object_id__in=objs,
-        ).values_list("state", flat=True)
+        state_by_object = dict(
+            ObjectState.objects.filter(
+                workflow__content_type=cls.get_content_type(),
+                object_id__in=[getattr(obj, "pk", obj) for obj in objs],
+            ).values_list("object_id", "state")
+        )
         transitions = (
             Transition.objects.filter(
                 workflow=workflow,
-                transition_sources__source__in=object_states,
+                transition_sources__source__in=set(state_by_object.values()),
             )
             .exclude(transition_permissions__isnull=True)
             .select_related("target")
             .all()
         )
-        return transitions.filter(pk__in=[t.id for t in transitions if cls.check_transition_permission(t, user)])
+        candidates = list(transitions)
+        if user is None:
+            # Programmatic use sees every candidate, matching ``check_transition_permission``.
+            permitted_ids = [transition.id for transition in candidates]
+        else:
+            permitted_ids = _permitted_transition_ids(cls, candidates, state_by_object, user)
+        return transitions.filter(pk__in=permitted_ids)
 
     @classmethod
     def check_workflow_permission(cls, user: User | None = None) -> bool:
@@ -662,8 +809,43 @@ class HasWorkflowModelMixin(models.Model):
         """
         Check if transition is allowed for this object.
         return falsy or a string will raise a InvalidTransitionError exception in apply_transition
+
+        Resolves only ``transition``. The cost does not grow with the number of other transitions
+        leaving the current state. Use ``available_transitions`` when the permitted set itself is
+        what is wanted.
         """
-        return transition in self.available_transitions(user=user)
+        with self.cached_workflow_state():
+            if (
+                user is not None
+                and not WorkflowPermission.objects.filter(
+                    workflow__content_type=self.get_content_type(),
+                ).exists()
+            ):
+                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            workflow = self.workflow
+            if workflow is None:
+                return False
+            # The single-transition form of the source-state filter in fast_available_transitions.
+            if not TransitionSource.objects.filter(
+                transition=transition,
+                transition__workflow=workflow,
+                source=self.workflow_state,
+                ignored=False,
+            ).exists():
+                return False
+            return self.check_transition_permission(transition, user)
+
+    def get_transition_warnings(self, transition: Transition, user: User | None = None) -> dict:
+        """
+        Hook returning advisory warnings for a transition, consulted before it is written.
+
+        Override to report warnings that should gate the transition behind confirmation (HTTP 409)
+        without denying it outright the way ``allow_transition`` does. Return the aggregate
+        ``{field: [messages]}`` warnings dict (use ``"non_field_errors"`` for warnings not tied to a
+        field). The default returns ``{}``, meaning no confirmation is required. See
+        ``vueda.core.exceptions.gate_warnings`` for how the caller turns this into a 409.
+        """
+        return {}
 
     def get_transition(self, transition_code: str) -> Transition:
         """Return the ``Transition`` with the given code in this object's workflow. Raises ``Transition.DoesNotExist`` if not found."""
@@ -687,38 +869,64 @@ class HasWorkflowModelMixin(models.Model):
             ignored=True,
         ).exists()
 
-    def apply_transition(
-        self, transition_code: str, user: User | None = None, dry_run: bool = False
+    def check_transition(self, transition_code: str, user: User | None = None) -> tuple[Transition, User]:
+        """
+        Validate that ``transition_code`` can be applied by ``user``, without writing anything.
+
+        Performs the same permission and ``allow_transition`` checks as ``apply_transition``
+        (raising the same exceptions), and resolves the effective ``user`` (falling back to the
+        request user from history context, then the system user, exactly as ``apply_transition``
+        does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
+        before writing should call this first, then ``apply_checked_transition``.
+        """
+        # One cache per call, so the second check under the row lock re-reads the state the lock protects.
+        with self.cached_workflow_state():
+            self.check_workflow_permission(user)
+            transition: Transition = self.get_transition(transition_code)
+            if user is None:
+                # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
+                request = getattr(HistoricalRecords.context, "request", None)
+                if request:
+                    user = request.user
+                else:
+                    user = get_system_user()
+            if not self.check_transition_permission(transition, user):
+                raise PermissionDenied(
+                    f"User {user.get_username()!r} does not have permission for transition"
+                    f" {transition.name}({transition.code!r})"
+                )
+            allowed_or_denied_or_denied_with_message = self.allow_transition(transition, user)
+            if not allowed_or_denied_or_denied_with_message or isinstance(
+                allowed_or_denied_or_denied_with_message, str
+            ):
+                raise InvalidTransitionError(
+                    allowed_or_denied_or_denied_with_message
+                    or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
+                )
+            return transition, user
+
+    def apply_checked_transition(
+        self, transition: Transition, user: User | None = None, dry_run: bool = False
     ) -> tuple[State, int | None]:
         """
-        Apply a transition to the object.
+        Write an already-authorized transition (as returned by ``check_transition``) without
+        re-checking permissions or availability.
         """
-        self.check_workflow_permission(user)
-        transition: Transition = self.get_transition(transition_code)
-        if user is None:
-            # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
-            request = getattr(HistoricalRecords.context, "request", None)
-            if request:
-                user = request.user
-            else:
-                user = get_system_user()
-        if not self.check_transition_permission(transition, user):
-            raise PermissionDenied(
-                f"User {user.get_username()!r} does not have permission for transition"
-                f" {transition.name}({transition.code!r})"
-            )
-        allowed_or_denied_or_denied_with_message = self.allow_transition(transition, user)
-        if not allowed_or_denied_or_denied_with_message or isinstance(allowed_or_denied_or_denied_with_message, str):
-            raise InvalidTransitionError(
-                allowed_or_denied_or_denied_with_message
-                or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
-            )
         self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
         self.on_transition(transition, user, dry_run)
         if hasattr(self.object_state, "history"):
             # return the new latest history record id
             return transition.target, self.object_state.history.latest().history_id
         return transition.target, None
+
+    def apply_transition(
+        self, transition_code: str, user: User | None = None, dry_run: bool = False
+    ) -> tuple[State, int | None]:
+        """
+        Apply a transition to the object.
+        """
+        transition, user = self.check_transition(transition_code, user)
+        return self.apply_checked_transition(transition, user, dry_run)
 
     def fast_transition(self, transition_code: str) -> None:
         """

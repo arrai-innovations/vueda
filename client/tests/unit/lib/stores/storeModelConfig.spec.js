@@ -206,7 +206,7 @@ const dummyModelInfo = {
 };
 
 describe("lib/stores/storeModelConfig.js", () => {
-    let mockedFetchModelInfo, storeModelConfigModule, storeModelConfig;
+    let mockedFetchModelInfo, storeModelConfigModule, storeModelConfig, AuthScopeInvalidatedError;
     beforeEach(async () => {
         // Reset Pinia before each test.
         setActivePinia(createPinia());
@@ -220,6 +220,7 @@ describe("lib/stores/storeModelConfig.js", () => {
 
         storeModelConfigModule = await import("@vueda/stores/storeModelConfig.js");
         storeModelConfig = storeModelConfigModule.storeModelConfig;
+        ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
     });
     afterEach(() => {
         vi.resetAllMocks();
@@ -786,6 +787,70 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(cancelMock).toHaveBeenCalled();
 
             expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
+        });
+    });
+    describe("clearAuthScoped", () => {
+        scopedIt("empties builtConfigs and initialized but keeps the integrator's own configs", async () => {
+            const store = storeModelConfig();
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { verboseName: "Mine" },
+                { list: { sorted: ["name"] } },
+            );
+            await store.getConfig({ app: "testApp", model: "testModel" });
+
+            const genericKey = getAppModelDotName({ app: "testApp", model: "testModel" });
+            expect(store.builtConfigs[genericKey]).toBeDefined();
+
+            store.clearAuthScoped();
+
+            expect(store.builtConfigs).toEqual({});
+            expect(store.initialized).toEqual({});
+            expect(store.genericConfigs[genericKey]).toEqual({ verboseName: "Mine" });
+            expect(store.specificConfigs[`${genericKey}-list`]).toEqual({ sorted: ["name"] });
+        });
+
+        scopedIt("cancels in-flight builds", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const cancellablePromise = new Promise(() => {});
+            const cancelMock = vi.fn();
+            cancellablePromise.cancel = cancelMock;
+            mockedFetchModelInfo.mockReturnValue(cancellablePromise);
+
+            store.getConfig({ app: "testApp", model: "testModel" });
+            expect(store.initialized).toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
+
+            store.clearAuthScoped();
+
+            expect(cancelMock).toHaveBeenCalled();
+            expect(store.initialized).toEqual({});
+        });
+
+        scopedIt("writes nothing when a build finishes after the clear", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            let resolveFetch;
+            mockedFetchModelInfo.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const inFlight = store.getConfig({ app: "testApp", model: "testModel" });
+            store.clearAuthScoped();
+            resolveFetch(dummyModelInfo);
+
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
+            expect(store.builtConfigs).toEqual({});
+
+            mockedFetchModelInfo.mockResolvedValue(dummyModelInfo);
+            const rebuilt = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(rebuilt.verboseName).toBe("timesheet");
         });
     });
 });

@@ -44,6 +44,11 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     };
 });
 
+const userStoreMock = reactive({ identityGeneration: 0 });
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: vi.fn(() => userStoreMock),
+}));
+
 const isActive = ref(true);
 vi.mock("@vueda/use/useIsActive", () => ({
     useIsActive: vi.fn(() => isActive),
@@ -64,6 +69,7 @@ describe("lib/use/useModelConfig.js", () => {
     afterEach(async () => {
         vi.clearAllMocks();
         isActive.value = true;
+        userStoreMock.identityGeneration = 0;
     });
 
     scopedIt("fetches config and sets it in returnObject", async () => {
@@ -180,6 +186,27 @@ describe("lib/use/useModelConfig.js", () => {
         await vi.waitUntil(() => !result.loading);
         expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
         expect(result.config.fields).toEqual(["id"]);
+    });
+    scopedIt("rebuilds the config when the authenticated user changes", async () => {
+        const app = ref("blog");
+        const model = ref("article");
+
+        mockStore.getConfig.mockImplementation(async ({ app, model, view }) => {
+            const key = view ? getAppModelViewDotName({ app, model, view }) : getAppModelDotName({ app, model });
+            mockStore.builtConfigs[key] = { fields: ["id"] };
+        });
+
+        const result = useModelConfig(app, model);
+        await flushPromises();
+        await vi.waitUntil(() => !result.loading);
+        expect(mockStore.getConfig).toHaveBeenCalledTimes(1);
+
+        // the store dropped its built configs at the identity boundary, so the composable has to rebuild
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+        await vi.waitUntil(() => !result.loading);
+
+        expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
     });
     scopedIt("includes modelInfo.info from useModelInfo", async () => {
         const app = ref("blog");

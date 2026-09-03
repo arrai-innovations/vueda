@@ -16,13 +16,27 @@ from typing import Any
 from typing import Protocol
 from typing import TypeVar
 
+import django
+from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 
 
 _T = TypeVar("_T")
 
+# ``isolation_level`` is a psycopg enum, so it is only meaningful for the postgres family of
+# backends. Other backends either ignore it or reject it outright; sqlite raises
+# ``TypeError: isolation_level must be str or None`` on connect.
+_POSTGRES_ENGINES = frozenset(
+    {
+        "django.db.backends.postgresql",
+        "django.contrib.gis.db.backends.postgis",
+        "timescale.db.backends.postgresql",
+        "timescale.db.backends.postgis",
+    }
+)
 
-class EnvLike(Protocol):
+
+class EnvLike(Protocol):  # pragma: no cover
     def __call__(self, key: str, default: Any = ...) -> Any: ...
     def bool(self, key: str, default: Any = ...) -> bool: ...
     def str(self, key: str, default: Any = ...) -> str: ...
@@ -79,7 +93,7 @@ class EnvLike(Protocol):
     def dj_cache_url(self, key: str, default: Any = ..., **kwargs: Any) -> dict[str, Any]: ...
 
 
-def get_defaults(env: EnvLike):
+def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     """
     Get a sane and consistent set of default django settings, dotenv lookup keys & defaults and return them as a dict.
 
@@ -100,9 +114,23 @@ def get_defaults(env: EnvLike):
     locals().update(get_defaults(env))
     ```
 
-    :param env: Env-like adapter providing __call__, bool, int, float, list, and dj_db_url.
-    :return: dict of default settings
+    `env` is an env-like adapter providing `__call__`, `bool`, `int`, `float`, `list`, and `dj_db_url`,
+    among others.
+
+    Email is configured through Django's deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings by
+    default, since `EMAIL_BACKEND` still works on Django 6.1 and `MAILERS` doesn't exist before it. Pass
+    `use_mailers=True` to configure Django 6.1+'s `MAILERS` setting instead; see the
+    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/). `use_mailers=True`
+    raises `ImproperlyConfigured` on Django < 6.1, since those versions ignore `MAILERS` and would otherwise
+    silently fall back to Django's default SMTP backend instead of the configured one.
     """
+    if use_mailers and django.VERSION < (6, 1):
+        raise ImproperlyConfigured(
+            f"get_defaults(use_mailers=True) requires Django 6.1+; Django {django.get_version()} ignores "
+            "MAILERS and would silently use the default SMTP EmailBackend instead of the configured one. "
+            "Pass use_mailers=False (the default) on this Django version to configure EMAIL_BACKEND instead."
+        )
+    email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
     return_dict = {
         "CELERY_BROKER_URL": env("CELERY_BROKER_URL", default=""),
@@ -114,11 +142,6 @@ def get_defaults(env: EnvLike):
         "LOGGING": {
             "version": 1,
             "disable_existing_loggers": False,
-            "filters": {
-                "ignore_validation_warnings": {
-                    "()": "vueda.core.logging_filters.FilterOutVuedaValidationWarnings",
-                }
-            },
             "formatters": {
                 "verbose": {
                     "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
@@ -141,7 +164,6 @@ def get_defaults(env: EnvLike):
                     "maxBytes": 1024 * 1024 * 100,  # 100 MB
                     "backupCount": 5,
                     "formatter": "verbose",
-                    "filters": ["ignore_validation_warnings"],
                     "delay": True,
                 },
             },
@@ -163,8 +185,6 @@ def get_defaults(env: EnvLike):
         "USE_TZ": True,
         "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
         "DATABASES": {"default": env.dj_db_url("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
-        "EMAIL_BACKEND": env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
-        "EMAIL_TIMEOUT": 5,
         "EMAIL_SUBJECT_PREFIX": env("EMAIL_SUBJECT_PREFIX", default=""),
         "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
         "SESSION_COOKIE_HTTPONLY": True,
@@ -371,7 +391,12 @@ def get_defaults(env: EnvLike):
             "PACKAGE_MANAGER": env("PACKAGE_MANAGER", default="auto"),  # auto, uv, pipenv
         },
     }
-    if return_dict["EMAIL_BACKEND"] == "anymail.backends.mailgun.EmailBackend":
+    if use_mailers:
+        return_dict["MAILERS"] = {"default": {"BACKEND": email_backend, "OPTIONS": {"timeout": 5}}}
+    else:
+        return_dict["EMAIL_BACKEND"] = email_backend
+        return_dict["EMAIL_TIMEOUT"] = 5
+    if email_backend == "anymail.backends.mailgun.EmailBackend":
         return_dict.update(
             {
                 "ANYMAIL_MAILGUN_API_KEY": env("ANYMAIL_MAILGUN_API_KEY"),
@@ -389,29 +414,35 @@ def get_defaults(env: EnvLike):
     except ImportError:
         pass
     else:
+        spectacular_tags = [
+            {
+                "name": "vueda.info",
+                "x-displayName": "Info",
+                "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
+            },
+        ]
+        if "vueda.workflow" in return_dict["VUEDA_APPS"]:
+            spectacular_tags.append(
+                {
+                    "name": "vueda.workflow",
+                    "x-displayName": "Workflow",
+                    "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
+                },
+            )
+        spectacular_tags.append(
+            {
+                "name": "vueda.user",
+                "x-displayName": "User",
+                "description": "This model is used to provide a way to login, logout, and retrieve the logged in users details.",
+            }
+        )
         return_dict["THIRD_PARTY_APPS"] += ["drf_spectacular"]
         return_dict["REST_FRAMEWORK"]["DEFAULT_SCHEMA_CLASS"] = "vueda.core.open_api.VuedaAutoSchema"
         return_dict["SPECTACULAR_SETTINGS"] = {
             "TITLE": "VUEDA API",
             "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-simple-history), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
             "VERSION": "1.0.0",
-            "TAGS": [
-                {
-                    "name": "vueda.info",
-                    "x-displayName": "Info",
-                    "description": "This model is used to fetch information about models in the project.  It can return information about fields, permissions, actions, expands, filtering, and ordering.",
-                },
-                {
-                    "name": "vueda.workflow",
-                    "x-displayName": "Workflow",
-                    "description": "This model is used to provide workflow for models in the project that need it.  It provides a way to get information about the workflow, states, transitions, and the state an object is in.  It also provides a way to execute a transition on an object.",
-                },
-                {
-                    "name": "vueda.user",
-                    "x-displayName": "User",
-                    "description": "This model is used to provide a way to login, logout, and retrieve the logged in users details.",
-                },
-            ],
+            "TAGS": spectacular_tags,
             "COMPONENT_SPLIT_PATCH": False,
             "SHOW_REQUEST_BODY": True,
             "SHOW_RESPONSE_BODY": True,
@@ -433,7 +464,8 @@ def get_defaults(env: EnvLike):
     return_dict["DATABASES"]["default"]["ATOMIC_REQUESTS"] = True
     if "OPTIONS" not in return_dict["DATABASES"]["default"]:
         return_dict["DATABASES"]["default"]["OPTIONS"] = {}
-    return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
+    if return_dict["DATABASES"]["default"].get("ENGINE") in _POSTGRES_ENGINES:
+        return_dict["DATABASES"]["default"]["OPTIONS"]["isolation_level"] = IsolationLevel.REPEATABLE_READ
     # non-zero has been known to cause issues with some databases with timeouts
     return_dict["DATABASES"]["default"]["CONN_MAX_AGE"] = 0
     return_dict["INSTALLED_APPS"] = (

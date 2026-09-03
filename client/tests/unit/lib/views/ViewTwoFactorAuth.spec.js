@@ -5,12 +5,22 @@ import { defineComponent, h, reactive, ref } from "vue";
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 
+const formValues = reactive({});
+const updateFormValue = vi.fn((name, value) => {
+    formValues[name] = value;
+});
+const formContext = {
+    state: { values: formValues },
+    updateValue: updateFormValue,
+};
+
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
-    emits: ["form-object"],
+    emits: ["form-object", "form-context"],
     props: ["runAction", "formProps"],
     setup(props, { slots, emit }) {
-        emit("form-object", {});
+        emit("form-object", ref(formValues));
+        emit("form-context", formContext);
         return () =>
             h("div", { "data-qa": "authorizing-form" }, [
                 slots["action-form-inner"] ? slots["action-form-inner"]({}) : null,
@@ -131,8 +141,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     useTheme: makeUseThemeMock({ slotResolver: (part) => part }),
     THEME_OVERRIDE_PROPS: {},
 }));
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
-vi.mock("@vueda/utils/html.js", () => ({ escapeHtml: (v) => v }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 vi.mock("@vueda/stores/storeUser.js", async () => {
     const actual = await vi.importActual("@vueda/stores/storeUser.js");
     UnauthorizedErrorClass = actual.UnauthorizedError;
@@ -156,6 +165,8 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         routerPush.mockClear();
         useIsActiveMock.mockReset();
         storeUserMock.mockReset();
+        updateFormValue.mockClear();
+        formValues.method = undefined;
         activeRef = ref(false);
         useIsActiveMock.mockReturnValue(activeRef);
         userStore = reactive({
@@ -181,13 +192,15 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
 
         scopedIt("toggleRecovery flips the recovery flag and clears method", async () => {
             const wrapper = mount(ViewTwoFactorAuth);
-            wrapper.vm.form.values = { method: "sms" };
+            formValues.method = "sms";
             wrapper.vm.toggleRecovery();
             expect(wrapper.vm.useRecoveryCode).toBe(true);
             expect(wrapper.vm.form.values.method).toBe("recovery");
+            expect(updateFormValue).toHaveBeenLastCalledWith("method", "recovery");
             wrapper.vm.toggleRecovery();
             expect(wrapper.vm.useRecoveryCode).toBe(false);
             expect(wrapper.vm.form.values.method).toBeUndefined();
+            expect(updateFormValue).toHaveBeenLastCalledWith("method", undefined);
         });
 
         scopedIt("redirects when methods fetch returns unauthorized", async () => {

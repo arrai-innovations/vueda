@@ -23,8 +23,15 @@ import "./ViewSetupDevice.theme.js";
 import "./ViewTwoFactorAuth.theme.js";
 import "./ViewUpdate.theme.js";
 import "./ViewWorkflowTransition.theme.js";
+import "./_ActionBannerPrimitives.theme.js";
 
 export default {
+    // ---------- Action banner meta keys ----------
+    // Underscore-prefixed entries are composition primitives consumed by leaf
+    // entries via `composes`. They are full theme entries and can be overridden
+    // through setTheme / useThemeOverride; overriding `_ActionBanner` propagates
+    // to every leaf that composes from it.
+    _ActionBanner: {},
     // ---------- Action forms ----------
     ActionForm: {},
     ModelActionForm: {},

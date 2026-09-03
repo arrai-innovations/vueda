@@ -48,7 +48,7 @@ patchTheme({
         list: {
             class: ["flex flex-col gap-3 mb-4"],
         },
-        /** Clickable `<label>` wrapping one transition option. Borders the option with the card radius and routes `data-selected="true"` to a primary border + primary/5 background, and `data-disabled="true"` to opacity 55 + `not-allowed` cursor. `has-[:focus-visible]` hoists the inner {@api theme-key:ViewWorkflowTransition.optionRadio}'s focus ring onto the option chassis so keyboard users see a ring on the visible target rather than the visually-hidden input. The textarea / reason path parked in BACKLOG-003 lands below the list, not on the option itself. */
+        /** Clickable `<label>` wrapping one transition option. Borders the option with the card radius and routes `data-selected="true"` to a primary border + primary/5 background, and `data-disabled="true"` to opacity 55 + `not-allowed` cursor. `has-[:focus-visible]` hoists the inner {@api theme-key:ViewWorkflowTransition.optionRadio}'s focus ring onto the option chassis so keyboard users see a ring on the visible target rather than the visually-hidden input. A per-transition reason field, if one is ever added, belongs below the list rather than on the option itself. */
         option: {
             class: [
                 "relative flex flex-col gap-1 px-4 py-3",

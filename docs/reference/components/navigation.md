@@ -17,12 +17,19 @@ import NavigationMenu from "@vueda/navigation/menu/NavigationMenu.vue";
 import NavigationMenuItem from "@vueda/navigation/menu/NavigationMenuItem.vue";
 import NavigationMenuList from "@vueda/navigation/menu/NavigationMenuList.vue";
 import NavigationMenuTrigger from "@vueda/navigation/menu/NavigationMenuTrigger.vue";
+import NavigationMenuContent from "@vueda/navigation/menu/NavigationMenuContent.vue";
+import NavigationMenuLink from "@vueda/navigation/menu/NavigationMenuLink.vue";
 import Menubar from "@vueda/navigation/menubar/Menubar.vue";
 import MenubarMenu from "@vueda/navigation/menubar/MenubarMenu.vue";
 import MenubarShortcut from "@vueda/navigation/menubar/MenubarShortcut.vue";
 import MenubarTrigger from "@vueda/navigation/menubar/MenubarTrigger.vue";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
+import MenubarContent from "@vueda/navigation/menubar/MenubarContent.vue";
+import MenubarItem from "@vueda/navigation/menubar/MenubarItem.vue";
+import MenubarLabel from "@vueda/navigation/menubar/MenubarLabel.vue";
+import MenubarSeparator from "@vueda/navigation/menubar/MenubarSeparator.vue";
+import MenubarCheckboxItem from "@vueda/navigation/menubar/MenubarCheckboxItem.vue";
+import MenubarRadioGroup from "@vueda/navigation/menubar/MenubarRadioGroup.vue";
+import MenubarRadioItem from "@vueda/navigation/menubar/MenubarRadioItem.vue";
 </script>
 
 # Navigation
@@ -41,9 +48,10 @@ For the mechanics of overriding any of this, see
 belong in [CSS tokens](../theming/tokens.md); compositions belong in
 [theme keys](../theming/keys.md).
 
-NavigationMenu and Menubar "open content" cells below are static anatomy panels rendered with
-the same Tailwind classes the theme keys produce, avoiding portal-positioning constraints inside
-the docs grid. Trigger cells are live components.
+Every cell below is a live component, including the two open-content panels. NavigationMenu
+renders its content inside the menu root rather than a portal, so that panel needs nothing but
+reserved space. Menubar's panel is portal-based, so it is force-mounted with its side pinned to
+land in the same reserved space.
 
 ## Breadcrumb
 
@@ -133,10 +141,10 @@ Theme keys: {@api theme-key:BreadcrumbList}, {@api theme-key:BreadcrumbItem},
 ## NavigationMenu
 
 NavigationMenu renders a horizontal list of triggers that open flyout content panels through a
-shared viewport. The viewport renders inside the NavigationMenu root element (not in a portal),
-so the open content panel is shown as a static anatomy panel. Every trigger state below is the
-live component rendered in that state, so what you see is exactly what your customization will
-produce.
+shared viewport. The viewport renders inside the NavigationMenu root element rather than in a
+portal, so with the viewport disabled an open panel sits in the menu's own stacking context and
+can be shown in place. Every cell below is the live component rendered in the named state, so
+what you see is exactly what your customization will produce.
 
 Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList},
 {@api theme-key:NavigationMenuTrigger}, {@api theme-key:NavigationMenuContent},
@@ -199,26 +207,39 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
       <span>caret rotates 180° on open</span>
     </template>
   </DemoCard>
-  <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground rounded-vueda-control overlay-hairline overflow-hidden p-2 flex flex-col gap-0.5">
-      <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm hover:bg-accent hover:text-accent-foreground">
-        <span class="font-medium leading-none">Components</span>
-        <span class="text-muted-foreground text-xs leading-snug">Browse the component library</span>
-      </a>
-      <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm bg-accent/50 text-accent-foreground">
-        <span class="font-medium leading-none">Theming</span>
-        <span class="text-xs leading-snug opacity-70">Tokens, keys, and overrides</span>
-      </a>
-      <a href="#" class="flex flex-col gap-1 rounded-sm p-2 text-sm hover:bg-accent hover:text-accent-foreground">
-        <span class="font-medium leading-none">Guides</span>
-        <span class="text-muted-foreground text-xs leading-snug">Integration and customization</span>
-      </a>
+  <DemoCard title="content anatomy" description=" (live, viewport disabled)">
+    <div class="pb-40">
+      <ClientOnly>
+        <NavigationMenu :viewport="false" default-value="products">
+          <NavigationMenuList>
+            <NavigationMenuItem value="products">
+              <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+              <NavigationMenuContent force-mount class="md:w-64">
+                <NavigationMenuLink href="#">
+                  <span class="font-medium leading-none">Components</span>
+                  <span class="text-muted-foreground text-xs leading-snug">Browse the component library</span>
+                </NavigationMenuLink>
+                <ForceState state="hover" as="block">
+                  <NavigationMenuLink href="#">
+                    <span class="font-medium leading-none">Theming</span>
+                    <span class="text-muted-foreground text-xs leading-snug">Tokens, keys, and overrides</span>
+                  </NavigationMenuLink>
+                </ForceState>
+                <NavigationMenuLink href="#" :active="true">
+                  <span class="font-medium leading-none">Guides</span>
+                  <span class="text-muted-foreground text-xs leading-snug">Integration and customization</span>
+                </NavigationMenuLink>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>viewport: bg <code>--popover</code>, rounded, <code>overlay-hairline</code></span>
-      <span>link: flex-col, gap-1, p-2, rounded-sm, text-sm</span>
-      <span>active link: bg <code>--accent/50</code></span>
-      <span>hover/focus link: bg <code>--accent</code></span>
+      <span>real <code>NavigationMenuContent</code> and <code>NavigationMenuLink</code>: this family renders inside the menu root rather than a portal, so the panel is plain <code>md:absolute</code> and needs only reserved space</span>
+      <span>surface comes from <code>group-data-[viewport=false]/navigation-menu:bg-popover</code>, so the panel is only self-toned when the viewport is disabled</span>
+      <span>row 2 is wrapped in <code>ForceState</code>; the link recipe paints hover and focus with <code>bg-accent</code></span>
+      <span>row 3 sets <code>:active="true"</code>, which emits <code>data-active</code>. The default theme has no <code>data-[active]</code> recipe, so it renders identically to row 1 today.</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -226,9 +247,9 @@ Theme keys: {@api theme-key:NavigationMenu}, {@api theme-key:NavigationMenuList}
 ## Menubar
 
 Menubar renders a bordered application-style menu bar (h-9, rounded-vueda-control,
-shadow-vueda-control). Each trigger opens a portal-based content panel. The open content panel
-is shown as a static anatomy panel covering all item variants; the bar and its triggers are
-live components.
+shadow-vueda-control). Each trigger opens a portal-based content panel. The panel below is that
+real content, force-mounted so it stays open, and it covers every item variant the family
+provides.
 
 Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
 {@api theme-key:MenubarContent}, {@api theme-key:MenubarItem},
@@ -263,49 +284,48 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <span>trigger hover/focus/open: bg <code>--accent</code>, fg <code>--accent-foreground</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="content anatomy" description="(static panel)">
-    <div class="bg-popover text-popover-foreground min-w-48 rounded-vueda-control overlay-hairline p-1">
-      <div class="px-2 py-1.5 text-sm font-medium">File</div>
-      <div class="bg-border -mx-1 my-1 h-px"></div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none">
-        New Window
-        <MenubarShortcut :keys="['⌘', 'N']" />
-      </div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none bg-accent text-accent-foreground">
-        Open...
-        <MenubarShortcut :keys="['⌘', 'O']" />
-      </div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none opacity-50">
-        Close
-        <MenubarShortcut :keys="['⌘', 'W']" />
-      </div>
-      <div class="bg-border -mx-1 my-1 h-px"></div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none">
-        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
-          <FontAwesomeIcon :icon="faCheck" class="size-3" />
-        </span>
-        Show Toolbar
-      </div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none text-muted-foreground">
-        Show Statusbar
-      </div>
-      <div class="bg-border -mx-1 my-1 h-px"></div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none">
-        <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
-          <FontAwesomeIcon :icon="faCircle" class="size-2" />
-        </span>
-        Small Text
-      </div>
-      <div class="relative flex cursor-default items-center gap-2 rounded-xs py-1.5 pr-2 pl-8 text-sm select-none text-muted-foreground">
-        Large Text
-      </div>
+  <DemoCard title="content anatomy" description=" (live, force-mounted)">
+    <div class="pb-72">
+      <ClientOnly>
+        <Menubar>
+          <MenubarMenu value="file">
+            <MenubarTrigger>File</MenubarTrigger>
+            <MenubarContent force-mount side="bottom" align="start" :side-offset="6" :avoid-collisions="false" @escape-key-down.prevent @pointer-down-outside.prevent @focus-outside.prevent @interact-outside.prevent>
+              <MenubarLabel>File</MenubarLabel>
+              <MenubarSeparator />
+              <MenubarItem>
+                New Window
+                <MenubarShortcut :keys="['⌘', 'N']" />
+              </MenubarItem>
+              <ForceState state="focus" as="block">
+                <MenubarItem>
+                  Open...
+                  <MenubarShortcut :keys="['⌘', 'O']" />
+                </MenubarItem>
+              </ForceState>
+              <MenubarItem disabled>
+                Close
+                <MenubarShortcut :keys="['⌘', 'W']" />
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarCheckboxItem :model-value="true">Show Toolbar</MenubarCheckboxItem>
+              <MenubarCheckboxItem :model-value="false">Show Statusbar</MenubarCheckboxItem>
+              <MenubarSeparator />
+              <MenubarRadioGroup model-value="compact">
+                <MenubarRadioItem value="compact">Compact</MenubarRadioItem>
+                <MenubarRadioItem value="cosy">Cosy</MenubarRadioItem>
+              </MenubarRadioGroup>
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
+      </ClientOnly>
     </div>
     <template #footer>
-      <span>content: bg <code>--popover</code>, min-w-48, rounded, <code>overlay-hairline</code></span>
-      <span>item hover/focus: bg <code>--accent</code></span>
-      <span>indicator: size-3.5, absolute left-2</span>
-      <span>shortcut: <code>MenubarShortcut</code> with parsed <code>KbdGroup</code></span>
-      <span>disabled: opacity-50 pointer-events-none</span>
+      <span>every row is real: <code>MenubarLabel</code>, <code>MenubarSeparator</code>, <code>MenubarItem</code>, <code>MenubarCheckboxItem</code>, <code>MenubarRadioItem</code>, and <code>MenubarShortcut</code></span>
+      <span>the check and radio indicators are the components' own, driven by <code>model-value</code>, not glyphs placed by hand</span>
+      <span>"Open..." sits in a <code>ForceState</code> wrapper; "Close" carries the real <code>disabled</code> prop</span>
+      <span>this panel is portal-based like DropdownMenu, so its side is pinned and it lands in the card's reserved space</span>
+      <span>Menubar item recipes must stay identical to the DropdownMenu keys; see [Overlays](./overlays.md)</span>
     </template>
   </DemoCard>
 </VuedaDemo>

@@ -1,6 +1,6 @@
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import AlertDialog from "@vueda/shell/alert-dialog/AlertDialog.vue";
-import AlertDialogAction from "@vueda/shell/alert-dialog/AlertDialogAction.vue";
 import AlertDialogCancel from "@vueda/shell/alert-dialog/AlertDialogCancel.vue";
 import AlertDialogContent from "@vueda/shell/alert-dialog/AlertDialogContent.vue";
 import AlertDialogDescription from "@vueda/shell/alert-dialog/AlertDialogDescription.vue";
@@ -32,13 +32,16 @@ const props = defineProps({
     cancelLabel: { type: String, default: "Cancel" },
 });
 
-const warnings = computed(() => {
-    const messages = props.controller?.messages ?? {};
-    return Object.values(messages).flatMap((value) => (Array.isArray(value) ? value : [value]));
+const warnings = computed(() => props.controller?.messages ?? {});
+const bulk = computed(() => props.controller?.bulk ?? false);
+
+const flatWarnings = computed(() => {
+    return Object.values(warnings.value).flatMap((value) => (Array.isArray(value) ? value : [value]));
 });
 
 const onOpenChange = (open) => {
-    // Dismissing via Escape or the overlay is treated as a cancel.
+    // AlertDialogContent prevents outside interaction, so Escape is the only gesture (besides the
+    // Cancel button) that can report the dialog closed here; treat it as a cancel.
     if (!open) {
         props.controller.cancel();
     }
@@ -58,21 +61,21 @@ onBeforeUnmount(() => props.controller.unregister?.());
                 <AlertDialogTitle>{{ title }}</AlertDialogTitle>
                 <AlertDialogDescription>{{ description }}</AlertDialogDescription>
             </AlertDialogHeader>
-            <!-- @slot warnings Replaces the default rendered list of warning messages. -->
-            <slot name="warnings" :warnings="warnings">
+            <!-- @slot warnings Replaces the default rendered warnings. `warnings` is the controller's raw warnings mapping; `bulk` reports which shape it is in (`true` for per-object keys, `false` for a single object's field-keyed messages), sourced from the `ConfirmationRequiredError` that reported it. The default rendering makes no assumption about that shape: it flattens every value in `warnings` into a plain list of messages, ignoring keys. -->
+            <slot name="warnings" :warnings="warnings" :flat-warnings="flatWarnings" :bulk="bulk">
                 <ul class="list-disc ps-5 text-sm">
-                    <li v-for="(warning, index) in warnings" :key="index" data-qa="form-confirm-warning">
+                    <li v-for="(warning, index) in flatWarnings" :key="index" data-qa="form-confirm-warning">
                         {{ warning }}
                     </li>
                 </ul>
             </slot>
             <AlertDialogFooter>
-                <AlertDialogCancel data-qa="form-confirm-cancel" @click="controller.cancel()">
+                <AlertDialogCancel data-qa="form-confirm-cancel">
                     {{ cancelLabel }}
                 </AlertDialogCancel>
-                <AlertDialogAction data-qa="form-confirm-action" @click="controller.confirm()">
+                <Button data-qa="form-confirm-action" type="button" tone="primary" @click="controller.confirm()">
                     {{ confirmLabel }}
-                </AlertDialogAction>
+                </Button>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

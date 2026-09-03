@@ -41,11 +41,12 @@ const toastMock = {
     loading: vi.fn(),
     message: vi.fn(),
 };
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 describe("lib/router/guards.js", () => {
     let guards;
     let warnSpy;
+    let AuthScopeInvalidatedError;
 
     beforeEach(async () => {
         vi.resetModules();
@@ -68,6 +69,7 @@ describe("lib/router/guards.js", () => {
         workflowStore = { fetchWorkflowTransition };
 
         guards = await import("@vueda/router/guards.js");
+        ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
     });
     afterEach(() => {
         warnSpy?.mockRestore();
@@ -179,6 +181,20 @@ describe("lib/router/guards.js", () => {
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
         expect(result).toEqual({ name: "nf" });
+    });
+
+    scopedIt("requireModelInfo abandons the navigation when the authenticated user changed", async () => {
+        fetchWorkflowTransition.mockResolvedValue([]);
+        fetchModelInfo.mockRejectedValue(new AuthScopeInvalidatedError("storeModelInfo.fetchModelInfo", "a.b"));
+        const router = { resolve: vi.fn((r) => r) };
+        const instance = {};
+        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+
+        expect(result).toBeUndefined();
+        expect(toastMock.error).not.toHaveBeenCalled();
+        expect(router.resolve).not.toHaveBeenCalled();
     });
 
     scopedIt("requireModelInfo redirects when action not found", async () => {

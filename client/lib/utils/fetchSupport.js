@@ -2,7 +2,8 @@
  * @module utils/fetchSupport
  * @description Low-level fetch helper that decodes responses and wraps failures in typed errors.
  */
-import { FetchError } from "@vueda/utils/errors.js";
+import { getCSRFValue } from "@vueda/utils/csrf.js";
+import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 
 /**
  * Fetches a URL and returns the response.
@@ -21,6 +22,64 @@ export async function getJsonOrText(response) {
         }
     }
     return data;
+}
+
+/**
+ * Builds the headers every model-action request shares.
+ *
+ * @param {object} [options={}] - The header options.
+ * @param {boolean} [options.dryRun] - When true, sends the request in dry-run mode.
+ * @param {string} [options.acknowledgeWarnings] - Warnings digest from a prior 409, sent so the server lets the gated
+ *  request proceed.
+ * @returns {{[key: string]: string}} The request headers.
+ */
+export function actionRequestHeaders({ dryRun, acknowledgeWarnings } = {}) {
+    const headers = {
+        "X-CSRFToken": getCSRFValue(),
+        "Content-Type": "application/json",
+    };
+    if (dryRun) {
+        headers["Dry-Run"] = "true";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
+    }
+    return headers;
+}
+
+/**
+ * Classifies a model-action response the way every VUEDA action CRUD handler does: a 400 carries field errors, a 409
+ * carries warnings the operator has not acknowledged, and anything else outside the success set is a fetch failure.
+ *
+ * @param {Response} response - The response to classify.
+ * @param {object} options - The classification options.
+ * @param {string} options.messagePrefix - The message used when the response is a plain failure.
+ * @param {Set<number>} [options.successStatuses] - Statuses that count as success. Defaults to every `response.ok`
+ *  status; pass a set to hold a handler to specific codes (delete accepts only 204, plus 200 during a dry run).
+ * @param {Set<number>} [options.emptyStatuses=new Set([204])] - Success statuses whose body is not read back to the caller.
+ * @param {boolean} [options.bulk=false] - Whether this request targets the bulk path or detailed path.
+ *  Passed straight through to `ConfirmationRequiredError` so the renderer knows which warnings shape to expect back.
+ * @returns {Promise<{[key: string]: any}|string|undefined>} The decoded response data, or undefined for an empty status.
+ * @throws {import("@vueda/utils/errors.js").FormValidationError} On a 400.
+ * @throws {import("@vueda/utils/errors.js").ConfirmationRequiredError} On a 409.
+ * @throws {import("@vueda/utils/errors.js").FetchError} On any other unsuccessful status.
+ */
+export async function readActionResponse(
+    response,
+    { messagePrefix, successStatuses, emptyStatuses = new Set([204]), bulk = false },
+) {
+    const responseData = await getJsonOrText(response);
+    if (response.status === 400) {
+        throw new FormValidationError(responseData, response);
+    }
+    if (response.status === 409) {
+        throw new ConfirmationRequiredError(responseData, response, { bulk });
+    }
+    const succeeded = successStatuses ? successStatuses.has(response.status) : response.ok;
+    if (!succeeded) {
+        throw new FetchError(messagePrefix, response, responseData);
+    }
+    return emptyStatuses.has(response.status) ? undefined : responseData;
 }
 
 /**

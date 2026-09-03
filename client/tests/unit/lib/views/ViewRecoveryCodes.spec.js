@@ -102,7 +102,7 @@ const toastMock = {
     loading: vi.fn(),
     message: vi.fn(),
 };
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 const routerHasRoute = vi.fn(() => true);

@@ -166,6 +166,27 @@ function typeRef(type) {
     return { name: typeToString(type) };
 }
 
+function memberFromNode(prop, typeRefFn) {
+    return compact({
+        name: prop.name,
+        kind: "property",
+        type: typeRefFn(prop.type),
+        description: textFromComment(prop.comment),
+        required: prop.flags?.isOptional ? false : undefined,
+    });
+}
+
+function membersFromReflection(type, typeRefFn) {
+    if (type?.type === "reflection" && type.declaration?.children?.length) {
+        return type.declaration.children.map((prop) => memberFromNode(prop, typeRefFn));
+    }
+    if ((type?.type === "union" || type?.type === "intersection") && Array.isArray(type.types)) {
+        const members = type.types.flatMap((item) => membersFromReflection(item, typeRefFn) || []);
+        return members.length ? members : undefined;
+    }
+    return undefined;
+}
+
 const repoRoot = getRepoRoot();
 
 function sourceLocation(sources) {
@@ -232,6 +253,7 @@ function signatureFromNode(signature, typeRefFn = typeRef) {
             type: typeRefFn(param.type),
             optional: param.flags?.isOptional,
             default: param.defaultValue,
+            members: membersFromReflection(param.type, typeRefFn),
         }),
     );
 
@@ -321,14 +343,7 @@ export class TypeDocNormalizer extends Normalizer {
             let nodeMembers;
             if (kind === "type" && node.type) {
                 if (node.type.type === "reflection" && node.type.declaration?.children?.length) {
-                    nodeMembers = node.type.declaration.children.map((prop) =>
-                        compact({
-                            name: prop.name,
-                            kind: "property",
-                            type: resolveTypeRef(prop.type),
-                            description: textFromComment(prop.comment),
-                        }),
-                    );
+                    nodeMembers = node.type.declaration.children.map((prop) => memberFromNode(prop, resolveTypeRef));
                 } else {
                     const typeName = typeToString(node.type);
                     if (typeName && typeName !== "unknown") {

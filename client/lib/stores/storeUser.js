@@ -2,12 +2,13 @@
  * @module stores/storeUser
  * @description Pinia store for managing authentication state, including login, logout, password reset, and two-factor auth.
  */
+import { clearAuthScopedStores } from "@vueda/stores/authScope.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
-import { defineStore } from "pinia";
+import { defineStore, getActivePinia } from "pinia";
 
 /**
  * An error for use from the user store.
@@ -65,6 +66,8 @@ const authErrorResolver = (response, data) => {
  *   {
  *       loggedIn: boolean,
  *       loggedInUser: object,
+ *       principalId: (string|number|null|undefined),
+ *       identityGeneration: number,
  *       initialized: boolean|undefined,
  *       loading: boolean,
  *       error: Error|null,
@@ -124,9 +127,27 @@ export const storeUser = defineStore("user", {
         initializingPromise: null,
         recentlyLoggedIn: false,
         pendingFlow: null,
+        /**
+         * The id of the authenticated user, `null` while nobody is authenticated, and `undefined`
+         * until the first who-is response has been seen. The `undefined` sentinel is what keeps the
+         * first who-is from counting as a change of user.
+         *
+         * @type {string|number|null|undefined}
+         */
+        principalId: undefined,
+        /**
+         * Incremented once per change of authenticated user, after the authorization-dependent
+         * caches have been dropped. Watch it to rebuild anything derived from those caches.
+         *
+         * @type {number}
+         */
+        identityGeneration: 0,
     }),
     actions: {
         fetchCurrentUser({ preserveError = false } = {}) {
+            // Captured synchronously, because the success handler below runs after an await and the
+            // module-level active instance can belong to another Pinia by then.
+            const pinia = getActivePinia();
             if (this.initialized) {
                 this.initialized = false;
             }
@@ -144,9 +165,23 @@ export const storeUser = defineStore("user", {
             )
                 .then((user) => {
                     // non-logged in users still 200, just empty user.
+                    const nextPrincipalId = user?.id ?? null;
+                    const previousPrincipalId = this.principalId;
                     this.loggedIn = !!user.id;
                     this.recentlyLoggedIn = user.recently_logged_in;
                     this.loggedInUser = user;
+                    this.principalId = nextPrincipalId;
+                    // Every path that can change who is authenticated (login, logout, reauthenticate,
+                    // two-factor, TOTP activation, init) funnels through here, so this is the one place
+                    // that has to notice. Compare the principal only: `recently_logged_in` flips on
+                    // reauthenticate and `totp_devices` changes on device activation, neither of which
+                    // changes what the user is permitted to see.
+                    if (previousPrincipalId !== undefined && previousPrincipalId !== nextPrincipalId) {
+                        // Includes the change to nobody: the library has no call site for `logout`, so
+                        // it cannot assume the application navigates away from the cached data.
+                        this.identityGeneration += 1;
+                        clearAuthScopedStores(pinia);
+                    }
                 })
                 .catch((error) => {
                     if (!preserveError) {

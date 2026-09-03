@@ -4,12 +4,12 @@
  * context for sign-in flows. The caller owns the layout; this composable wires the
  * reactive behavior.
  */
+import { toast } from "@arrai-innovations/vue-sonner";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * @typedef {object} SignInFlowOptions

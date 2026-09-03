@@ -4,14 +4,22 @@ __all__ = (
     "ActivatableBaseModel",
     "BaseModelMeta",
     "EmailTemplateBase",
+    "FormattedNameBaseModel",
     "Lookup",
     "SingletonModel",
     "VuedaModel",
+    "apply_vueda_feature_policy",
+    "supports_vueda_feature_policy",
 )
 
+import django
 from django.contrib.admin.utils import lookup_field
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models.signals import class_prepared
+
+from vueda.core.options import failed_sections
+from vueda.core.options import resolve_vueda_options
 
 
 class BaseModelMeta:
@@ -104,11 +112,21 @@ class SingletonModel(VuedaModel):
     class Meta(BaseModelMeta):
         abstract = True
 
-    def save(self, *args, **kwargs):
-        """Delete all other rows and force ``id=1`` before saving."""
-        self.__class__.objects.exclude(id=self.id).delete()
-        self.id = 1
-        super().save(*args, **kwargs)
+    if django.VERSION >= (6, 0):
+
+        def save(self, **kwargs):
+            """Delete all other rows and force ``id=1`` before saving."""
+            self.__class__.objects.exclude(id=self.id).delete()
+            self.id = 1
+            super().save(**kwargs)
+
+    else:
+
+        def save(self, *args, **kwargs):
+            """Delete all other rows and force ``id=1`` before saving."""
+            self.__class__.objects.exclude(id=self.id).delete()
+            self.id = 1
+            super().save(*args, **kwargs)
 
     @classmethod
     def load(cls) -> "SingletonModel":
@@ -134,3 +152,36 @@ class EmailTemplateBase(VuedaModel):
 
     class Meta(BaseModelMeta):
         abstract = True
+
+
+def supports_vueda_feature_policy(model):
+    """Return whether ``model`` belongs to the current family of VUEDA model bases."""
+    return isinstance(model, type) and issubclass(model, FormattedNameBaseModel)
+
+
+def apply_vueda_feature_policy(sender, **kwargs):
+    """Resolve a prepared model's ``class Vueda`` policy and let each feature contribute to it.
+
+    Django sends ``class_prepared`` only for concrete and proxy models, after it has built the
+    model's fields and options, so a contributor sees a complete model. A contributor may call
+    ``sender.add_to_class()`` to add a field, a generic relation, or a descriptor; a database field
+    added here reaches ``ModelState``, which is what makes it visible to migration generation.
+
+    A proxy takes the policy of its concrete model and gets no contributor pass of its own, because
+    both history triggers and workflow object state resolve a proxy to that shared table.
+    """
+    if not supports_vueda_feature_policy(sender):
+        return
+
+    options = resolve_vueda_options(sender)
+    if sender._meta.proxy:
+        return
+
+    unresolved = failed_sections(options.problems)
+    for name, section_options in options.items():
+        contribute = section_options.section.contribute
+        if contribute is not None and name not in unresolved:
+            contribute(sender, options)
+
+
+class_prepared.connect(apply_vueda_feature_policy, dispatch_uid="vueda.core.apply_vueda_feature_policy")

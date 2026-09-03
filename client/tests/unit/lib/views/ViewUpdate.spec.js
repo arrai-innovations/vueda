@@ -37,11 +37,17 @@ vi.mock("@vueda/controls/button/Button.vue", () => ({
 vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({
     default: defineComponent({ name: "LoadingSpinnerInline", template: "<span />" }),
 }));
+// Mirrors the real dialog's `warnings` scoped slot (`{ warnings }`) so ViewUpdate's default
+// FieldWarningsList rendering and its `form-confirm-dialog-warnings`/`warning-entry` overrides can
+// be exercised the same way they work against the real FormConfirmDialog.
 const FormConfirmDialogStub = defineComponent({
     name: "FormConfirmDialogStub",
     props: ["controller", "title", "description", "confirmLabel"],
-    setup() {
-        return () => h("div", { "data-qa": "form-confirm-dialog" });
+    setup(props, { slots }) {
+        return () =>
+            h("div", { "data-qa": "form-confirm-dialog" }, [
+                slots.warnings ? slots.warnings({ warnings: props.controller.messages }) : null,
+            ]);
     },
 });
 vi.mock("@vueda/form/confirm/FormConfirmDialog.vue", () => ({ default: FormConfirmDialogStub }));
@@ -204,6 +210,46 @@ describe("lib/views/ViewUpdate.vue", () => {
             });
             const body = wrapper.find('[data-qa="update-form"]');
             expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-outer-class"]));
+        });
+    });
+
+    describe("Warning confirmation dialog", () => {
+        scopedIt("renders FieldWarningsList with the confirmation controller's warnings by default", async () => {
+            mockComposableResult.objectForm.confirmation.messages = { count: ["A negative count is unusual."] };
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.get('[data-qa="field-warnings-list"]').text()).toContain("A negative count is unusual.");
+        });
+
+        scopedIt("forwards the warning-entry slot to FieldWarningsList's entry slot", async () => {
+            mockComposableResult.objectForm.confirmation.messages = { count: ["A negative count is unusual."] };
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: {
+                    "warning-entry": `<template #warning-entry="{ field, messages }">
+                        <div data-qa="custom-warning-entry" :data-field="field">{{ messages.join(", ") }}</div>
+                    </template>`,
+                },
+            });
+            const entry = wrapper.get('[data-qa="custom-warning-entry"]');
+            expect(entry.attributes("data-field")).toBe("count");
+            expect(entry.text()).toBe("A negative count is unusual.");
+        });
+
+        scopedIt("form-confirm-dialog-warnings slot overrides the default FieldWarningsList rendering", async () => {
+            mockComposableResult.objectForm.confirmation.messages = { count: ["unusual"] };
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: {
+                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings }">
+                        <div data-qa="custom-warnings">{{ JSON.stringify(warnings) }}</div>
+                    </template>`,
+                },
+            });
+            expect(wrapper.find('[data-qa="field-warnings-list"]').exists()).toBe(false);
+            expect(JSON.parse(wrapper.get('[data-qa="custom-warnings"]').text())).toEqual({ count: ["unusual"] });
         });
     });
 });

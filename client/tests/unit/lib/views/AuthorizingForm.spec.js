@@ -56,10 +56,11 @@ describe("lib/views/AuthorizingForm.vue", () => {
         expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(false);
     });
 
-    scopedIt("emits form-object on mount", () => {
+    scopedIt("emits form-object and form-context on mount", () => {
         const wrapper = mountAuthorizingForm();
         const emitArg = wrapper.emitted("form-object")[0][0];
         expect(emitArg.value).toBe(formContext.state.values);
+        expect(wrapper.emitted("form-context")[0][0]).toBe(formContext);
     });
 
     scopedIt("delegates to useSignInFlow with component props", () => {

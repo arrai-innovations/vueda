@@ -24,7 +24,7 @@ const toastMock = {
 vi.mock("@vueuse/core", () => ({
     useClipboard: () => ({ copy: copySpy }),
 }));
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 describe("lib/display/click-to-copy-text/ClickToCopyText.vue", () => {
     let ClickToCopyText;

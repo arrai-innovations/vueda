@@ -226,6 +226,9 @@ class TestModelInfoSerializer:
             store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
         )
         info.register(store_serializers.DistributorProxySerializer, store_viewsets.DistributorProxyViewSet)
+        # Registration doesn't require the serializer to inherit VuedaSerializer; this is a plain
+        # rest_framework ModelSerializer registered to prove that path doesn't blow up.
+        info.register_serializer(store_serializers.InvoiceLineBaseSerializer)
 
     def check_model_actions_data(self, response_data, expected_data, expected_actions_key, app_label, model_name):
         data = response_data.data["model_actions"]

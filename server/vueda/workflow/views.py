@@ -22,7 +22,6 @@ from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from simple_history.models import HistoricalChanges
@@ -36,31 +35,11 @@ from vueda.workflow.permissions import WorkflowObjectPermissions
 
 class HasWorkflowViewMixin:
     """
-    Mixin for rest_framework Views or ViewSets that will have a workflow object related to their object's model.
+    Marker for REST framework views whose model participates in a workflow.
 
-    User.has_perm with obj=None is too late to check for state permissions, which are always 'row' level.
-    We need to skip User.has_perm(..., obj=None) if state permissions are defined.
+    Permission classes own model-scope deferral. This mixin deliberately does not suppress
+    permission failures because the complete permission expression may contain unrelated gates.
     """
-
-    def check_permissions(self, request):
-        # workflow state permissions are inherently row level, so skip the generic check if we have state permissions
-        model = self.get_queryset().model
-
-        # catch PermissionDenied to delay if we have state permissions
-        # if we just call super after, we let anonymous users in
-        super_error = None
-        super_value = None
-        try:
-            super_value = super().check_permissions(request)
-        except PermissionDenied as e:
-            super_error = e
-        if issubclass(model, models.HasWorkflowModelMixin):
-            workflow = models.Workflow.objects.filter(content_type=model.get_content_type()).first()
-            if models.StatePermission.objects.filter(state__workflow=workflow).exists():
-                return True
-        if super_error:
-            raise super_error
-        return super_value
 
 
 HasWorkflowViewSetMixin = HasWorkflowViewMixin

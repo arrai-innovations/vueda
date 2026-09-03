@@ -9,7 +9,7 @@ status: draft
 
 This guide covers how to configure {@term Expand} and sparse field controls so that `list`, `read`, `create`, and `update` payloads request only the fields and relations they need. The controls work across two boundaries: the server declares which fields and expansions are available and validates requests against those declarations, while the client configures which fields and expansions to request per view.
 
-The guide assumes a working {@term CRUDL} surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUDL Views](./configure-crud-views).
+The guide assumes a working {@term CRUDL} surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that drives field and expand defaults, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For broader view configuration (actions, filtering, sorting), see [Configure CRUDL Views](./configure-crud-views). If a `SerializerMethodField`'s generated metadata needs correcting, see [Customize Model Info Field and Expand Metadata](./customize-model-info-metadata).
 
 ## Goal and Preconditions
 
@@ -286,7 +286,8 @@ With expand and field controls configured, verify the surface end-to-end:
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
     - {@api py:class:vueda.core.serializers.GenericForeignKeySerializer}
     - {@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}
-    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expandable_fields}
+    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expand_model_info}
+    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_field_model_info}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
 - JavaScript:

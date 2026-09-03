@@ -6,7 +6,7 @@ from tests.product.serializers import ProductPropertyFieldSerializer
 from tests.product.serializers import ProductRenamedFieldSerializer
 from tests.product.serializers import ProductSerializer
 from tests.product.serializers import ProductSourceFieldSerializer
-from vueda.core.viewsets import VuedaHistoryViewSet
+from vueda.history.viewsets import VuedaHistoryViewSet
 
 
 class ProductViewSet(VuedaHistoryViewSet):

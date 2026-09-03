@@ -184,9 +184,9 @@ History records do not have their own `ContentType`. The history expand (`first_
 ## Relevant Implementation Surface
 
 - Python:
-    - {@api py:class:vueda.history.models.ProxyAwareHistoricalRecords}
+    - {@api py:class:vueda.core.simple_history.ProxyAwareHistoricalRecords}
     - {@api py:class:vueda.history.models.VuedaHistoryModel}
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
-    - {@api py:class:vueda.core.serializers.VuedaHistorySerializer}
-    - {@api py:class:vueda.core.viewsets.VuedaHistoryViewSet}
+    - {@api py:class:vueda.history.serializers.VuedaHistorySerializer}
+    - {@api py:class:vueda.history.viewsets.VuedaHistoryViewSet}
     - {@api py:function:vueda.info.registration.register}

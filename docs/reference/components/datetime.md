@@ -17,6 +17,8 @@ import Calendar from "@vueda/controls/calendar/Calendar.vue";
 import CalendarFooter from "@vueda/controls/calendar/CalendarFooter.vue";
 import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import DateRangeDisplay from "@vueda/display/date-display/DateRangeDisplay.vue";
+import DateTimeDisplay from "@vueda/display/date-display/DateTimeDisplay.vue";
 
 const dateValue = new CalendarDate(2026, 5, 10);
 const placeholderMay = new CalendarDate(2026, 5, 1);
@@ -478,6 +480,78 @@ Theme keys: {@api theme-key:CalendarFooter}. Token surface:
     <template #footer>
       <span>summary text mono + tabular</span>
       <span>top border <code>--border</code></span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Display components
+
+The families above all **edit** a value. `DateTimeDisplay` and `DateRangeDisplay`
+**read** one: they take a value and render formatted, non-editable text. Reach for
+them in a table cell, a read view, or an audit row, where a field control would
+imply the value can be changed in place.
+
+`DateTimeDisplay` accepts an ISO string, a JS `Date`, or a Luxon `DateTime`, and
+`DateRangeDisplay` takes a `start` and an `end`. Both parse in the reader's own
+time zone, so the rendered text below depends on where the page is opened; the
+values are fixed, the zone is not. Neither component claims a locale beyond the
+`en-CA` Luxon locale it sets internally.
+
+`DateTimeDisplay` also renders a **relative** label ("4 months ago") next to the
+absolute one by default, and refreshes it on a timer. That output moves with the
+clock, so the first card below turns it off to stay deterministic and the second
+shows it on with that caveat stated.
+
+Theme keys: {@api theme-key:DateTimeDisplay}, {@api theme-key:DateRangeDisplay}.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="DateTimeDisplay" description=" (absolute only, deterministic)">
+    <div class="flex flex-col gap-2 text-sm">
+      <DateTimeDisplay value="2026-04-12T14:30:00Z" :show-relative="false" :show-tooltip="false" />
+      <DateTimeDisplay value="2026-04-12T14:30:00Z" :show-relative="false" :show-tooltip="false" :show-time="false" />
+    </div>
+    <template #footer>
+      <span>first row is the default absolute output; second sets <code>:show-time="false"</code> to drop the time portion</span>
+      <span><code>:show-relative="false"</code> suppresses the clock-dependent label, which is what makes these two rows stable</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="DateTimeDisplay" description=" (with the relative label)">
+    <div class="flex flex-col gap-2 text-sm">
+      <DateTimeDisplay value="2026-04-12T14:30:00Z" :show-tooltip="false" />
+      <DateTimeDisplay format="relative" value="2026-04-12T14:30:00Z" :show-tooltip="false" />
+    </div>
+    <template #footer>
+      <span>the parenthesised label counts from now, so it reads differently every time this page loads</span>
+      <span><code>format="relative"</code> drops the absolute part and keeps only that label</span>
+      <span>the label refreshes on a timer, every minute and every second for very recent values</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="DateTimeDisplay" description=" (inline in a sentence)">
+    <p class="text-sm">
+      Invoice INV-2026-0418 was issued
+      <DateTimeDisplay inline value="2026-04-12T14:30:00Z" :show-relative="false" :show-tooltip="false" />
+      and is due on
+      <DateTimeDisplay inline value="2026-05-12T14:30:00Z" :show-relative="false" :show-time="false" :show-tooltip="false" />.
+    </p>
+    <template #footer>
+      <span><code>inline</code> drops the wrapping element so the value sits in the text flow instead of forming its own block</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="DateRangeDisplay" description=" (collapses redundant segments)">
+    <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2 text-sm">
+      <StateLabel>same day</StateLabel>
+      <DateRangeDisplay end="2026-04-01" start="2026-04-01" />
+      <StateLabel>same month</StateLabel>
+      <DateRangeDisplay end="2026-04-30" start="2026-04-01" />
+      <StateLabel>same year</StateLabel>
+      <DateRangeDisplay end="2026-09-08" start="2026-04-01" />
+      <StateLabel>across years</StateLabel>
+      <DateRangeDisplay end="2027-01-06" start="2026-12-28" />
+    </div>
+    <template #footer>
+      <span>a range on one day renders as a single date, not a span with two identical ends</span>
+      <span>the year appears once when both ends share it, and the month once when both ends share that too</span>
+      <span>pass <code>:show-time="true"</code> to include the time portion on both ends</span>
     </template>
   </DemoCard>
 </VuedaDemo>

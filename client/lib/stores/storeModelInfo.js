@@ -2,10 +2,11 @@
  * @module stores/storeModelInfo
  * @description Pinia store and supporting types for fetching and caching Django model metadata from the server.
  */
+import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { FetchError } from "@vueda/utils/errors.js";
+import { AuthScopeInvalidatedError, FetchError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
@@ -80,6 +81,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {number} [maxDigits] - The maximum number of digits allowed for the field (for decimals).
  * @property {number} [decimalPlaces] - The number of decimal places allowed for the field (for decimals).
  * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array of label/value pairs.
+ * @property {LabelValuePair[]} [displayChoices] - Read-only display labels for stored values. Does not affect editable choices.
  * @property {boolean} [pk] - Indicates whether the field is a primary key.
  * @property {boolean} [hidden] - Indicates whether the field is hidden in the UI.
  * @property {string[]} [lookupExprs] - Array of lookup expressions for filtering.
@@ -267,13 +269,38 @@ export const storeModelInfo = defineStore("modelInfo", {
         infos: {},
         promises: {},
         errors: {},
+        /**
+         * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
+         * response if it changed while the request was in flight.
+         *
+         * @type {number}
+         */
+        authScopeGeneration: 0,
     }),
     actions: {
+        /**
+         * Drops everything this store caches, because it is all permission-filtered for the
+         * previously authenticated user.
+         *
+         * Keys are deleted in place so `toRef` handles consumers hold into `infos` keep reading the
+         * live container. Never replace a container here (that is what `$reset` does, and it detaches
+         * every held handle).
+         *
+         * @returns {void}
+         */
+        clearAuthScoped() {
+            this.authScopeGeneration += 1;
+            trimReactiveObject(this.infos, {});
+            trimReactiveObject(this.errors, {});
+            trimReactiveObject(this.promises, {});
+        },
         fetchModelInfo(args) {
             if (!args.app || !args.model) {
                 return Promise.reject(new Error("storeModelInfo.fetchModelInfo: app and model must be provided"));
             }
             const key = getAppModelDotName(args);
+            const generation = this.authScopeGeneration;
+            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
             const existing = this.infos[key];
             const cachedError = this.errors[key];
             if (existing) {
@@ -371,16 +398,27 @@ export const storeModelInfo = defineStore("modelInfo", {
                             throw new Error(`storeModelInfo.fetchModelInfo: no pk field found for ${key}`);
                         }
 
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this payload was
+                            // filtered for the previous principal, so it must not be cached or returned.
+                            throw new AuthScopeInvalidatedError("storeModelInfo.fetchModelInfo", key);
+                        }
                         this.infos[key] = data;
 
                         return data;
                     })
                     .catch((e) => {
-                        this.errors[key] = e;
+                        if (isCurrentAuthScope()) {
+                            this.errors[key] = e;
+                        }
                         throw e;
                     })
                     .finally(() => {
-                        delete this.promises[key];
+                        if (isCurrentAuthScope()) {
+                            // a changed generation means `clearAuthScoped` already removed this entry,
+                            // and anything now at this key belongs to a newer fetch.
+                            delete this.promises[key];
+                        }
                     });
             }
 

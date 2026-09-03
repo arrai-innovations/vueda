@@ -162,7 +162,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 }
                 if (typeof customField === "string") {
                     // let props and modelConfig not pass actual components
-                    return availableFields[customField];
+                    const namedField = availableFields[customField];
+                    if (!namedField) {
+                        throw new Error(
+                            `No field component named "${customField}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                        );
+                    }
+                    return namedField;
                 }
                 if (!customField) {
                     throw new Error(
@@ -233,7 +239,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 }
                 if (typeof customWidget === "string") {
                     // Allow props and modelConfig to pass component names
-                    return availableWidgets[customWidget];
+                    const namedWidget = availableWidgets[customWidget];
+                    if (!namedWidget) {
+                        throw new Error(
+                            `No widget component named "${customWidget}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
+                        );
+                    }
+                    return namedWidget;
                 }
                 if (!customWidget) {
                     throw new Error(
@@ -252,12 +264,15 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
+                const readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
                 const baseProps = {
                     ...getWidgetProps(detailObject),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                 };
-                if (detailObject.choices === true) {
+                if (readOnly && detailObject.displayChoices) {
+                    baseProps.options = detailObject.displayChoices;
+                } else if (detailObject.choices === true) {
                     if (isExpandedField) {
                         const { expandDetail, expandFieldName } = field;
                         baseProps.fieldApp = expandDetail.appLabel;
@@ -276,7 +291,7 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     baseProps.options = detailObject.choices;
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
-                baseProps.readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
+                baseProps.readOnly = readOnly;
                 return baseProps;
             });
         });

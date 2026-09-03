@@ -16,16 +16,25 @@ import TableHead from "@vueda/grid/table/TableHead.vue";
 import TableHeader from "@vueda/grid/table/TableHeader.vue";
 import TableRow from "@vueda/grid/table/TableRow.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import Badge from "@vueda/display/badge/Badge.vue";
+import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
+import Input from "@vueda/controls/input/Input.vue";
+import NativeSelect from "@vueda/controls/native-select/NativeSelect.vue";
+import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption.vue";
+import Pagination from "@vueda/navigation/pagination/Pagination.vue";
+import PaginationBar from "@vueda/navigation/pagination/PaginationBar.vue";
+import PaginationContent from "@vueda/navigation/pagination/PaginationContent.vue";
+import PaginationFirst from "@vueda/navigation/pagination/PaginationFirst.vue";
+import PaginationLast from "@vueda/navigation/pagination/PaginationLast.vue";
+import PaginationMeta from "@vueda/navigation/pagination/PaginationMeta.vue";
+import PaginationNext from "@vueda/navigation/pagination/PaginationNext.vue";
+import PaginationPrevious from "@vueda/navigation/pagination/PaginationPrevious.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import {
-    faAnglesLeft,
-    faAnglesRight,
     faArrowDownLong,
     faArrowUpLong,
     faBars,
     faCalendar,
-    faChevronLeft,
-    faChevronRight,
     faCircleNotch,
     faCircleQuestion,
     faDownload,
@@ -43,6 +52,25 @@ import {
     faTriangleExclamation,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { computed, ref } from "vue";
+
+// Selection state for the DataTable recipe below. Three of the five rows start
+// selected, so the header checkbox opens in its indeterminate state and the
+// selection bar opens visible. Both are derived, so clicking a row checkbox
+// updates the count and can empty the bar entirely.
+const recipeSearch = ref("");
+const recipePage = ref(1);
+const recipePageSize = ref("5");
+const recipeRows = ref([true, true, true, false, false]);
+const recipeSelectedCount = computed(() => recipeRows.value.filter(Boolean).length);
+const recipeSelectAll = computed(() => {
+    if (recipeSelectedCount.value === 0) return false;
+    if (recipeSelectedCount.value === recipeRows.value.length) return true;
+    return "indeterminate";
+});
+const setRecipeSelectAll = (value) => {
+    recipeRows.value = recipeRows.value.map(() => value === true);
+};
 </script>
 
 # Tables
@@ -103,28 +131,28 @@ Seven additional keys cover the inner elements:
             <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-primary/10 text-primary border-primary/30">Sent</span></TableCell>
+            <TableCell><Badge variant="info">Sent</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
+            <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
           </TableRow>
           <TableRow>
             <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-muted text-foreground border-border">Draft</span></TableCell>
+            <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$612.00</TableCell>
           </TableRow>
         </TableBody>
@@ -439,7 +467,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
     <div class="flex items-center gap-2 flex-wrap">
       <div class="relative flex-[0_1_280px] min-w-[160px]">
         <FontAwesomeIcon :icon="faMagnifyingGlass" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground pointer-events-none" />
-        <input type="text" placeholder="Search invoices…" class="w-full h-8 pl-7 pr-2 rounded border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/30" />
+        <Input v-model="recipeSearch" type="text" placeholder="Search invoices…" class="pl-7" aria-label="Search invoices" />
       </div>
       <Button size="sm" emphasis="outline">
         <FontAwesomeIcon :icon="faFilter" />Filter
@@ -479,9 +507,9 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       <button class="text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline px-1">Clear all</button>
     </div>
     <!-- selection bar -->
-    <div class="flex items-center gap-3 px-3 py-1.5 rounded border border-primary/30 bg-primary/10 text-[12px] font-medium text-foreground">
-      <input type="checkbox" checked aria-label="Selected" class="size-3.5 rounded-sm border border-border accent-primary" />
-      <span><strong class="font-semibold">3</strong> rows selected</span>
+    <div v-if="recipeSelectedCount" class="flex items-center gap-3 px-3 py-1.5 rounded border border-primary/30 bg-primary/10 text-[12px] font-medium text-foreground">
+      <Checkbox :model-value="recipeSelectAll" aria-label="Selected rows" @update:model-value="setRecipeSelectAll" />
+      <span><strong class="font-semibold">{{ recipeSelectedCount }}</strong> rows selected</span>
       <div class="flex-1"></div>
       <Button size="sm" emphasis="ghost">
         <FontAwesomeIcon :icon="faPaperPlane" />Send
@@ -502,7 +530,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
         <TableHeader>
           <TableRow>
             <TableHead class="!pr-0 !w-9">
-              <input type="checkbox" aria-label="Select all" class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" />
+              <Checkbox :model-value="recipeSelectAll" aria-label="Select all rows" class="translate-y-0.5" @update:model-value="setRecipeSelectAll" />
             </TableHead>
             <TableHead aria-sort="descending" class="cursor-pointer select-none">
               <span class="inline-flex items-center gap-1.5">
@@ -541,12 +569,12 @@ bar appears at accent tint to signal a system-level state distinct from hover.
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow data-state="selected">
-            <TableCell class="!pr-0 !w-9"><input type="checkbox" checked class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" /></TableCell>
+          <TableRow :data-state="recipeRows[0] ? 'selected' : undefined">
+            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[0]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
             <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-primary/10 text-primary border-primary/30">Sent</span></TableCell>
+            <TableCell><Badge variant="info">Sent</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -556,12 +584,12 @@ bar appears at accent tint to signal a system-level state distinct from hover.
               </span>
             </TableCell>
           </TableRow>
-          <TableRow data-state="selected">
-            <TableCell class="!pr-0 !w-9"><input type="checkbox" checked class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" /></TableCell>
+          <TableRow :data-state="recipeRows[1] ? 'selected' : undefined">
+            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[1]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
             <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-warning/10 text-warning border-warning/50">Overdue</span></TableCell>
+            <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -571,12 +599,12 @@ bar appears at accent tint to signal a system-level state distinct from hover.
               </span>
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell class="!pr-0 !w-9"><input type="checkbox" class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" /></TableCell>
+          <TableRow :data-state="recipeRows[2] ? 'selected' : undefined">
+            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[2]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
             <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -586,12 +614,12 @@ bar appears at accent tint to signal a system-level state distinct from hover.
               </span>
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell class="!pr-0 !w-9"><input type="checkbox" class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" /></TableCell>
+          <TableRow :data-state="recipeRows[3] ? 'selected' : undefined">
+            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[3]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
             <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-muted text-foreground border-border">Draft</span></TableCell>
+            <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$612.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -601,12 +629,12 @@ bar appears at accent tint to signal a system-level state distinct from hover.
               </span>
             </TableCell>
           </TableRow>
-          <TableRow>
-            <TableCell class="!pr-0 !w-9"><input type="checkbox" class="size-3.5 rounded-sm border border-border accent-primary translate-y-0.5" /></TableCell>
+          <TableRow :data-state="recipeRows[4] ? 'selected' : undefined">
+            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[4]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
             <TableCell class="font-mono text-[11px]">INV-2026-00477</TableCell>
             <TableCell>Riverbend Builders</TableCell>
             <TableCell class="font-mono text-[11px]">2026-04-04</TableCell>
-            <TableCell><span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border bg-success/10 text-success border-success/50">Paid</span></TableCell>
+            <TableCell><Badge variant="success">Paid</Badge></TableCell>
             <TableCell class="text-right tabular-nums">$11,240.00</TableCell>
             <TableCell>
               <span class="inline-flex gap-0.5">
@@ -620,24 +648,35 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       </Table>
     </div>
     <!-- footer -->
-    <div class="flex items-center gap-3 flex-wrap">
-      <span class="font-mono text-[11px] text-muted-foreground">Showing 1 to 5 of 48</span>
-      <div class="flex-1"></div>
-      <span class="font-mono text-[11px] text-muted-foreground">Rows per page: 25</span>
-      <nav class="flex items-center gap-0.5" aria-label="Pagination">
-        <button disabled aria-label="First" class="inline-flex items-center justify-center size-7 rounded border border-transparent text-muted-foreground disabled:opacity-40 hover:bg-muted hover:border-border text-[11px]"><FontAwesomeIcon :icon="faAnglesLeft" /></button>
-        <button disabled aria-label="Previous" class="inline-flex items-center justify-center size-7 rounded border border-transparent text-muted-foreground disabled:opacity-40 hover:bg-muted hover:border-border text-[11px]"><FontAwesomeIcon :icon="faChevronLeft" /></button>
-        <span class="font-mono text-[11px] text-muted-foreground px-1.5">Page 1 of 6</span>
-        <button aria-label="Next" class="inline-flex items-center justify-center size-7 rounded border border-transparent text-muted-foreground hover:bg-muted hover:border-border text-[11px]"><FontAwesomeIcon :icon="faChevronRight" /></button>
-        <button aria-label="Last" class="inline-flex items-center justify-center size-7 rounded border border-transparent text-muted-foreground hover:bg-muted hover:border-border text-[11px]"><FontAwesomeIcon :icon="faAnglesRight" /></button>
-      </nav>
-    </div>
+    <PaginationBar>
+      <PaginationMeta>1 to 5 of 48 · page {{ recipePage }} of 10</PaginationMeta>
+      <div class="flex items-center gap-3">
+        <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          Rows
+          <NativeSelect v-model="recipePageSize" class="w-auto">
+            <NativeSelectOption value="5">5</NativeSelectOption>
+            <NativeSelectOption value="25">25</NativeSelectOption>
+            <NativeSelectOption value="50">50</NativeSelectOption>
+          </NativeSelect>
+        </span>
+        <Pagination v-model:page="recipePage" :total="48" :items-per-page="5">
+          <PaginationContent>
+            <PaginationFirst />
+            <PaginationPrevious />
+            <PaginationNext />
+            <PaginationLast />
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </PaginationBar>
   </div>
   <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
     <span class="whitespace-nowrap">toolbar: search left, view controls right, secondary actions on a chip rail</span>
     <span class="whitespace-nowrap">selection bar: accent tint distinguishes it from hover</span>
     <span class="whitespace-nowrap">sortable header: sort glyph flips to <code>row-reverse</code> on numeric columns</span>
     <span class="whitespace-nowrap">in-row actions: shown for selected rows; reveal on hover for others</span>
-    <span class="whitespace-nowrap">pagination: prev/next with first/last; row count meta on the left</span>
+    <span class="whitespace-nowrap">search field and every checkbox are live <code>Input</code> and <code>Checkbox</code></span>
+    <span class="whitespace-nowrap">selection is real: toggling a row updates the count, the row tint, and the header's indeterminate state</span>
+    <span class="whitespace-nowrap">footer: live <code>PaginationBar</code> + <code>PaginationMeta</code> + <code>Pagination</code>; the page control works</span>
   </div>
 </VuedaDemo>

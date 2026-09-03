@@ -6,11 +6,12 @@ from contextlib import contextmanager
 from importlib import import_module
 from importlib import reload
 
+import django
 from django.apps import apps
 from django.conf import settings
 from django.http import QueryDict
-from django.test import modify_settings
 from django.test import override_settings
+from django.test.utils import TestContextDecorator
 from django.test.utils import extend_sys_path
 from django.urls import get_resolver
 from django.urls import include
@@ -21,18 +22,52 @@ from tests.urls import urlpatterns
 from vueda.info import registration
 
 
-# This is a decorator.
-class info_register_aware_modify_settings(modify_settings):  # noqa N801
+def set_email_backend(settings, backend):
     """
-    When django calls enable, it reruns the ready functions for all apps. This
-    results in `register(TOTPDeviceSerializer, TOTPDeviceViewSet)` getting
-    called a second time, which we don't allow. So, we need to clear the
-    registry before we enable the second time.
+    For use with the pytest `settings` fixture, not the `override_settings`
+    decorator (which requires a django.test.SimpleTestCase subclass to
+    decorate a class, and can scope-bleed or fight other fixtures when
+    decorating a plain pytest function).
+
+    Django 6.1 deprecates EMAIL_BACKEND (RemovedInDjango70Warning) in favor of
+    MAILERS. For tests, this helper always uses MAILERS on 6.1+.
+    """
+    if django.VERSION >= (6, 1):
+        settings.MAILERS = {"default": {"BACKEND": backend}}
+    else:
+        settings.EMAIL_BACKEND = backend
+
+
+# This is a decorator.
+class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa N801
+    """
+    Clears the info registry before the wrapped test runs.
+
+    Appending to INSTALLED_APPS (see append_installed_apps) reruns the ready()
+    function for all apps, which results in `register(TOTPDeviceSerializer,
+    TOTPDeviceViewSet)` getting called a second time, which we don't allow. So
+    this needs to run before append_installed_apps() does, clearing the
+    registry so the re-run ready() calls land in an empty one.
     """
 
     def enable(self):
         registration.get_empty_registry()
-        super().enable()
+
+    def disable(self):
+        pass
+
+
+def append_installed_apps(settings, *apps_to_append):
+    """
+    For use with the pytest `settings` fixture. Companion to
+    info_registry_clear_with_appended_apps: appends to INSTALLED_APPS the way
+    modify_settings(INSTALLED_APPS={"append": [...]}) used to as a decorator,
+    but from inside the test body so call-order relative to
+    info_registry_clear_with_appended_apps (and any other settings the test
+    sets first, e.g. AUTH_USER_MODEL) is explicit rather than decorator-stack
+    order.
+    """
+    settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, *apps_to_append]
 
 
 class BaseTestMigrations:
@@ -97,8 +132,7 @@ class BaseTestMigrations:
             #   new test could get created for django, and then this wouldn't be a customization.
             with extend_sys_path(temp_dir):
                 new_module = os.path.basename(target_dir) + ".migrations"
-                migration_modules = settings.MIGRATION_MODULES
-                migration_modules[app_label] = new_module
+                migration_modules = {**settings.MIGRATION_MODULES, app_label: new_module}
                 with self.settings(MIGRATION_MODULES=migration_modules):
                     yield target_migrations_dir
 

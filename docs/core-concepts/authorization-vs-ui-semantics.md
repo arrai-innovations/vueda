@@ -53,7 +53,7 @@ This means that detail-view action buttons reflect current, per-object authoriza
 
 Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system; transition codes are treated as first-class action identifiers at every level where actions are evaluated.
 
-On the server, the `permitted_transitions` endpoint returns transition objects with `code` and `name` properties for transitions that the requesting user is permitted to execute. This endpoint enforces `vueda_workflow.read_workflow` at the viewset level and, at the transition level, performs permission checks per transition. The `code` property is the machine identifier; `name` is display text only.
+On the server, the `permitted_transitions` endpoint returns transition objects with `code` and `name` properties for transitions that the requesting user is permitted to execute. For a model with a configured workflow, this endpoint enforces `vueda_workflow.read_workflow` at the viewset level and, at the transition level, performs permission checks per transition. For a model with no configured workflow, it instead enforces the target model's own `read` permission and returns an empty list. The `code` property is the machine identifier; `name` is display text only.
 
 On the client, transition codes are extracted from the permitted-transitions response and appended to the action set that route guards consume. The `requireModelInfo` guard concatenates transition codes with model-info actions before checking whether the route's target action exists in the set. This means a route to a transition view is allowed only if the transition's code appears in the user's permitted transitions, which are themselves permission-filtered by the server.
 
@@ -75,7 +75,7 @@ The separation between server authorization and client UI semantics creates pred
 
 **Action name normalization mismatch.** The action namespace uses `retrieve` internally, but external references may use `read`. `getActionName` normalizes `read` to `retrieve` before matching. If a custom action or route uses `read` without normalization, the guard or `ViewActionRouter` will not find a match. The symptom is an "Action Not Found" toast or a `ViewActionNotFound` render.
 
-**Cached metadata errors.** Both `storeModelInfo` and `storeWorkflow` cache fetch errors. If a model-info or permitted-transitions fetch fails (network error, 403, invalid response), the error is cached per `app.model` key. Subsequent navigation attempts for the same model short-circuit to the cached error without retrying the fetch. Recovery requires recreating the store instance (typically through component lifecycle reset).
+**Cached metadata errors.** Both `storeModelInfo` and `storeWorkflow` cache fetch errors. If a model-info or permitted-transitions fetch fails (network error, 403, invalid response), the error is cached per `app.model` key. Subsequent navigation attempts for the same model short-circuit to the cached error without retrying the fetch. The cached error is dropped when the authenticated user changes, so signing in as someone else clears it; within one session, recovery means calling `clearAuthScoped()` on the store (which also drops its cached metadata) or reloading the application.
 
 ## Relevant Implementation Surface
 

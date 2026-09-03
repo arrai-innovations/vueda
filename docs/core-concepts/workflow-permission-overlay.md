@@ -9,7 +9,7 @@ status: draft
 
 Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same {@term CRUDL} permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
 
-This page explains how state permissions, transition permissions, and the DRF model-scope bypass compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route {@term Action Namespace}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
+This page explains how state permissions, transition permissions, and DRF model-scope deferral compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route {@term Action Namespace}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
 
 ## Overlay Boundary and Authority
 
@@ -31,17 +31,23 @@ When {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm} evaluat
 
 The deny-wins precedence is deterministic: for a given object state, permission codename, and group set, if any matching row has `grant_or_deny=False`, the result is `False` regardless of how many grant rows also match. This applies when a user belongs to multiple groups with conflicting rules for the same state and codename.
 
-## Model-Scope Bypass and Object-Scope Truth
+## Model-Scope Deferral and Later Decisions
 
 DRF evaluates permissions in two phases: a model-scope check (`has_permission`) before the object is fetched, and an object-scope check (`has_object_permission`) after the object is available. State permissions depend on a concrete object's current state, which is not available at model scope. This creates a problem: a user who lacks baseline model permissions would be denied access at the model scope before the object is fetched, even though a state-permission grant would have allowed access to specific objects.
 
-VUEDA solves this with a model-scope bypass. {@api py:class:vueda.core.permissions.ObjectPermissions} `has_permission` checks whether any `StatePermission` grant rows exist for the user's groups and the required codename. If such rows exist, the model-scope check returns `True` immediately, deferring the real authorization decision to the object-scope phase, where the object's state is available.
+{@api py:class:vueda.core.permissions.ObjectPermissions} first resolves the view action and runs the baseline model permission check. When that check denies access, `ObjectPermissions` considers deferral only if a later framework path is guaranteed to make a state-aware decision. A state grant can defer the model-scope denial only when it matches the workflow, model content type, required permission codename, and one of the user's groups. Unrelated grants, state denies, and grants for another model do not change model-scope admission.
 
-`WorkflowObjectPermissions` applies a broader bypass: it returns `True` at model scope when any `StatePermission` rows exist for the workflow (not just grants for the user's groups), deferring all effective decisions to object-scope checks.
+Standard retrieve, update, partial-update, and destroy actions defer to DRF's object permission check. A custom action may declare itself in the viewset's `workflow_object_permission_actions` collection only when the action always performs an object permission check. A detail route alone is not sufficient because DRF does not require every detail action to fetch its object through `get_object()`.
 
-The consequence of this bypass is that the failure shape changes. Without workflow state permissions, a user missing a model permission sees `403` from the model-scope check; the object is never fetched. With state permissions present, the model-scope check may pass, and the denial moves to the object-scope phase. Depending on the endpoint, this can change a `403` into a `404` (when DRF raises `Http404` at object scope) or shift the error to a different point in the request lifecycle. Adding or removing `StatePermission` data can change which layer denies access, altering the HTTP status code and error message without changing any permission assignments.
+List actions use a separate later decision. `ListRowLevelViewSetMixin` applies the workflow overlay to the queryset even when the model does not define `RowLevelPermissions`. A user with baseline `list_*` permission receives rows with no matching state rule or a matching grant, while matching state denies are removed. A user admitted by a state `list_*` grant receives only rows with a matching grant. Deny wins when the user's groups supply conflicting rules. Filtering runs before pagination, serialization, and column totals.
 
-The model-scope bypass does not incorporate the object's current state; it cannot, because no object exists at that phase yet. This means model-scope admission succeeds based on the existence of state-permission data, not on whether that data would actually grant access for the eventual object. The object-scope check is where the real authorization decision happens.
+Create requests do not defer. A new object has no current workflow state, so state `create_*` rules do not override the baseline model permission. Collection or custom actions without a guaranteed later state-aware decision also retain the baseline model-scope result.
+
+This deferral belongs to `ObjectPermissions` alone. `HasWorkflowViewMixin` does not suppress permission failures from authentication, composite permission expressions, or other application permission classes. A matching state grant can make `ObjectPermissions` pass while another permission class still denies the complete request.
+
+`WorkflowObjectPermissions`, used by the separate workflow endpoint surface, retains its broader model-scope bypass when any state-permission row exists for the target workflow. Workflow endpoints add their own workflow, object, and transition checks; this behavior is separate from model viewsets using `ObjectPermissions`.
+
+Deferral can change the failure shape. Without a matching state grant, a user missing a model permission sees `403` at model scope. When a matching grant defers an object action, denial for the eventual object's state commonly becomes `404`, hiding the object's existence. A state-granted list returns `200` with only effectively authorized rows and may be empty when no current rows match the grant.
 
 ## Transition Permission Gates
 
@@ -56,6 +62,8 @@ Transition execution requires passing three distinct gates, each checked indepen
 Permission check failures at the transition level surface differently depending on the endpoint. {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions} returns `403` when the user lacks workflow-level permission. `execute_transition` converts `PermissionDenied` and `InvalidTransitionError` into `400` validation-style responses rather than HTTP-level authorization rejections. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400`.
 
 The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workflow`. This check runs during `check_permissions`, before any object-specific or transition-specific logic. A user who lacks this permission sees `403` on all workflow endpoints, object state, permitted transitions, and execute transition, regardless of their other permissions.
+
+`permitted_transitions` skips this gate for an `app_label/model` pair with no configured workflow: it falls through to the target model's own `read` permission check instead, and returns `200` with an empty transition list once that check passes. The gate applies as described above as soon as a workflow is configured for the model.
 
 ## Client {@term Action Namespace} Overlay
 
@@ -73,11 +81,11 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 **State permissions change `has_perm` outcomes without changing group assignments.** Symptom: `user.has_perm("myapp.update_widget", obj=instance)` returns a different result than `user.has_perm("myapp.update_widget")` for the same user and codename. This is by design; state overlay is object-scoped.
 
-**Model-scope bypass permits, then object-scope denies.** Symptom: requests that previously returned `403` now return `404` after adding state-permission rows. The model-scope bypass lets the request through, and the denial moves to the object scope, where DRF may raise `Http404`.
+**A matching state grant defers, then object scope denies.** Symptom: an object request that would return `403` at model scope instead returns `404`. A grant matching the caller, codename, content type, and workflow deferred the request, but the eventual object's state did not grant access.
 
 **Transition is absent from `permitted_transitions` despite existing in the workflow.** Symptom: expected transition never appears for any user. Cause: the transition has no `TransitionPermission` rows. Transitions without permission rows are excluded, not default-allowed.
 
-**`permitted_transitions` returns `403`.** Symptom: no transitions are available for the model. Cause: the user lacks `vueda_workflow.read_workflow`, or no `WorkflowPermission` rows exist for the workflow's content type and the user's groups.
+**`permitted_transitions` returns `403`.** Symptom: no transitions are available for the model. Cause: for a model with a configured workflow, the user lacks `vueda_workflow.read_workflow`, or no `WorkflowPermission` rows exist for the workflow's content type and the user's groups. For a model with no configured workflow, the cause is instead the user lacking `read` permission for that model; a readable model with no workflow returns `200` with an empty list, not `403`.
 
 **Transition execution returns `400` validation error.** Multiple possible causes: the transition is not valid from the object's current state (`InvalidTransitionError`), the user lacks transition-level permission (`PermissionDenied`), or the row lock cannot be acquired. Check the error message to distinguish between these cases.
 

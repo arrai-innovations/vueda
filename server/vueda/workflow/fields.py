@@ -8,7 +8,7 @@ from rest_framework import serializers
 class AvailableTransitionField(serializers.ListField):
     def __init__(self):
         kwargs = {
-            "child": serializers.CharField(read_only=True),
+            "child": serializers.DictField(read_only=True),
             "read_only": True,
             "required": False,
         }
@@ -20,7 +20,7 @@ class AvailableTransitionField(serializers.ListField):
         request = self.context.get("request")
         if not request or not hasattr(instance, "available_transitions"):
             return []
-        return list(instance.available_transitions(request.user).order_by("code").values_list("code", flat=True))
+        return list(instance.available_transitions(request.user).order_by("code").values("code", "name"))
 
     def get_attribute(self, instance):
         return self.get_value(instance)

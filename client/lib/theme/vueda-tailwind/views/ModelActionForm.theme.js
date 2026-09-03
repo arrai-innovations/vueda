@@ -5,6 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
  */
+import "./_ActionBannerPrimitives.theme.js";
 import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
@@ -46,9 +47,8 @@ patchTheme({
         },
         /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. */
         banner: {
+            composes: ["_ActionBanner.banner"],
             class: [
-                "flex items-start gap-3 p-4",
-                "border-b-hairline",
                 // info
                 "group-data-[tone=info]/model-action-form:border-border",
                 "group-data-[tone=info]/model-action-form:bg-[color-mix(in_oklab,var(--info)_6%,transparent)]",
@@ -65,11 +65,8 @@ patchTheme({
         },
         /** 36 px circular icon tile leading the banner. Tile fill and foreground swap with tone (info / success / warning / danger) via the `group/model-action-form` scope; matches the destructive tile recipe on {@api theme-key:ActionForm.validationIcon} so danger surfaces read as siblings. */
         bannerIcon: {
+            composes: ["_ActionBanner.bannerIcon"],
             class: [
-                "flex items-center justify-center shrink-0",
-                "w-9 h-9 rounded-full",
-                "text-[18px] font-semibold leading-none",
-
                 // info
                 "group-data-[tone=info]/model-action-form:bg-info",
                 "group-data-[tone=info]/model-action-form:text-info-foreground",
@@ -89,15 +86,18 @@ patchTheme({
         },
         /** Inner column beside the icon: title, description, optional meta strip. `min-w-0` lets a long title ellipsize instead of pushing the banner wider. */
         bannerBody: {
-            class: ["flex flex-col gap-1 min-w-0"],
+            composes: ["_ActionBanner.bannerBody"],
+            class: [],
         },
         /** Banner title. 14 px / 600 / foreground; the action's "what is about to happen" headline. */
         bannerTitle: {
-            class: ["text-[14px] font-semibold leading-[1.3] text-foreground"],
+            composes: ["_ActionBanner.bannerTitle"],
+            class: [],
         },
         /** One-line description beneath the banner title. 12 px / muted-foreground so the headline / supporting-copy hierarchy reads at a glance. */
         bannerDesc: {
-            class: ["text-[12px] font-normal leading-[1.5] text-muted-foreground"],
+            composes: ["_ActionBanner.bannerDesc"],
+            class: [],
         },
         /** Optional mono meta strip below the banner description (e.g. "action archive · scope 4 selected"). Mono with a small letter-spacing bump so machine-readable values stay legible at 11 px. */
         bannerMeta: {
@@ -193,6 +193,19 @@ patchTheme({
         /** Non-field error block passthrough. Empty by default; the tone-tracked banner above and the per-field validation alert on {@api theme-key:ActionForm.validation} carry most failure feedback. */
         nonFieldErrorBlock: {
             class: "",
+        },
+        /** One warned object's group inside the confirmation dialog's per-object warnings view (see {@api theme-key:ActionForm.validation} for the analogous per-field alert). A left rule in the warning tone separates each object's messages from the next, echoing {@api theme-key:ModelActionForm.message}'s primary-toned rule for the confirm prompt. */
+        confirmWarningGroup: {
+            class: [
+                "flex flex-col gap-1",
+                "rounded-vueda-control bg-muted/25",
+                "border-l-2 border-warning/60",
+                "px-3 py-2",
+            ],
+        },
+        /** Label row above a warned object's messages, rendering the object's own display link via {@api vue:component:WidgetReadOnly}. The messages themselves render via {@api vue:component:FieldWarningsList}. */
+        confirmWarningLabel: {
+            class: ["text-[12px] font-medium text-foreground"],
         },
     },
 });

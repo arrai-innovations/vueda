@@ -12,7 +12,6 @@ __all__ = (
     "ListRowLevelViewSetMixin",
     "NoExtraFieldsForViewSetMixin",
     "PerActionSerializerMixin",
-    "VuedaHistoryViewSet",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
     "WarningConfirmationMixin",
@@ -45,7 +44,6 @@ from vueda.core.models import ActivatableBaseModel
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.utils import sort_by_dot_count_alphabetically
-from vueda.history.viewsets import SimpleHistoryViewSetMixin
 
 
 PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
@@ -72,22 +70,45 @@ class WarningConfirmationMixin:
       ``perform_create``/``perform_update``. A serializer without ``get_warnings`` (including a
       ``ListSerializer`` wrapping a Vueda serializer, i.e. bulk writes) is skipped, so warnings on
       bulk/list saves are not surfaced.
-    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): the viewset-level
-      ``get_warnings(action, objs)`` hook, called by ``VuedaViewSet.destroy`` and
-      ``DeactivateActionViewSetMixin``.
+    - ``destroy``, ``activate``, and ``deactivate`` (single and bulk): ``get_warnings_for_object``
+      for a single object, and ``get_warnings`` for a bulk request; called by
+      ``VuedaViewSet.destroy`` and ``DeactivateActionViewSetMixin``. See their docstrings.
     """
 
-    def get_warnings(self, action, objs):
+    def get_warnings_for_object(self, action, obj):
         """
-        Viewset-level warnings hook for actions that write without a per-object serializer.
+        Single-object warnings hook for actions that write without a per-object serializer.
 
         ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
-        and ``objs`` is an iterable or queryset of the affected instances. Return the aggregate
-        ``{field: [messages]}`` warnings dict (the same shape the serializer-level
-        ``get_warnings()`` returns; use ``"non_field_errors"`` for warnings not tied to a field).
+        and ``obj`` is the single affected instance. Return the aggregate ``{field: [messages]}``
+        shape (the same shape the serializer-level ``get_warnings()`` returns; use
+        ``"non_field_errors"`` for a warning not tied to a field).
+
+        Called directly for a single-object request. The default ``get_warnings`` below also calls
+        this once per instance for a bulk request, keying each result by object id, so overriding
+        this hook alone gates both the single-object and bulk forms of ``action`` with the same
+        rule -- override ``get_warnings`` instead only if bulk needs different or bulk-optimized
+        logic.
+
         The default returns ``{}``, meaning no confirmation is required.
         """
         return {}
+
+    def get_warnings(self, action, objs):
+        """
+        Bulk warnings hook for actions that write without a per-object serializer.
+
+        ``action`` is the action name string (``"destroy"``, ``"activate"``, or ``"deactivate"``)
+        and ``objs`` is a queryset of the affected instances for a bulk request. Return the
+        per-object ``{object_id: {field: [messages]}}`` shape, one entry per warned object keyed
+        by ``str(pk)``, so the client can attribute each warning back to its object.
+
+        The default calls ``get_warnings_for_object(action, obj)`` once per instance in ``objs``
+        and keys each non-empty result by ``str(obj.pk)``. Override ``get_warnings_for_object``
+        instead unless bulk needs its own logic (for example a single bulk-optimized query rather
+        than one check per instance).
+        """
+        return {str(obj.pk): warnings for obj in objs if (warnings := self.get_warnings_for_object(action, obj))}
 
     def _gate_warnings(self, serializer):
         get_warnings = getattr(serializer, "get_warnings", None)
@@ -151,6 +172,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     """Filter out rows the user cannot access and expose column aggregates."""
 
     column_totals: list[str] = []
+    applies_workflow_state_list_filter = True
 
     def apply_row_level_filter(self, queryset, perm_type="list"):
         """
@@ -180,46 +202,55 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                 return queryset.none()
             # else, optional_q is None or True, so we don't filter
 
-            # Layer 4: workflow-aware queryset filtering
-            if "vueda.workflow" in settings.INSTALLED_APPS:
-                from vueda.workflow.models import HasWorkflowModelMixin
-                from vueda.workflow.models import StatePermission
-                from vueda.workflow.models import Workflow
+        # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
+        # Apply them even when the model does not define RowLevelPermissions.
+        if "vueda.workflow" in settings.INSTALLED_APPS:
+            from vueda.workflow.models import HasWorkflowModelMixin
+            from vueda.workflow.models import StatePermission
+            from vueda.workflow.models import Workflow
 
-                if issubclass(model, HasWorkflowModelMixin):
-                    workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-                    if workflow:
-                        from django.contrib.contenttypes.models import ContentType
-                        from django.db.models import Exists
-                        from django.db.models import OuterRef
+            if issubclass(model, HasWorkflowModelMixin):
+                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
+                if workflow:
+                    from django.contrib.contenttypes.models import ContentType
+                    from django.db.models import Exists
+                    from django.db.models import OuterRef
 
-                        codename = perm.rsplit(".", maxsplit=1)[-1]
-                        content_type = ContentType.objects.get_for_model(model)
-                        user = self.request.user
+                    codename = perm.rsplit(".", maxsplit=1)[-1]
+                    content_type = ContentType.objects.get_for_model(model)
+                    user = self.request.user
 
-                        state_denied = Exists(
-                            StatePermission.objects.filter(
-                                state=OuterRef("object_states_proxy__state"),
-                                permission__codename=codename,
-                                permission__content_type=content_type,
-                                group__in=user.groups.all(),
-                                grant_or_deny=False,
-                            )
+                    state_denied = Exists(
+                        StatePermission.objects.filter(
+                            state=OuterRef("object_states_proxy__state"),
+                            state__workflow=workflow,
+                            permission__codename=codename,
+                            permission__content_type=content_type,
+                            group__in=user.groups.all(),
+                            grant_or_deny=False,
                         )
-                        state_granted = Exists(
-                            StatePermission.objects.filter(
-                                state=OuterRef("object_states_proxy__state"),
-                                permission__codename=codename,
-                                permission__content_type=content_type,
-                                group__in=user.groups.all(),
-                                grant_or_deny=True,
-                            )
+                    )
+                    state_granted = Exists(
+                        StatePermission.objects.filter(
+                            state=OuterRef("object_states_proxy__state"),
+                            state__workflow=workflow,
+                            permission__codename=codename,
+                            permission__content_type=content_type,
+                            group__in=user.groups.all(),
+                            grant_or_deny=True,
                         )
-                        queryset = queryset.annotate(
-                            _state_denied=state_denied,
-                            _state_granted=state_granted,
-                        )
+                    )
+                    queryset = queryset.annotate(
+                        _state_denied=state_denied,
+                        _state_granted=state_granted,
+                    )
 
+                    if user.has_perm(perm):
+                        queryset = queryset.filter(_state_denied=False)
+                    else:
+                        queryset = queryset.filter(_state_denied=False, _state_granted=True)
+
+                    if row_level_permissions is not None:
                         workflow_q = row_level_permissions.check_queryset_workflow(
                             queryset,
                             perm,
@@ -530,7 +561,7 @@ class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
 
-    Both actions consult the viewset-level ``get_warnings(action, objs)`` hook (provided by
+    Both actions consult ``get_warnings_for_object``/``get_warnings`` (provided by
     ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
     gating the write behind a 409 confirmation when warnings are reported.
     """
@@ -546,7 +577,7 @@ class DeactivateActionViewSetMixin:
                 )
             if not instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
-            gate_warnings(request, self.get_warnings("deactivate", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("deactivate", instance))
             instance.is_active = False
             instance.save()
             return Response(
@@ -596,7 +627,7 @@ class DeactivateActionViewSetMixin:
             if instance.is_active:
                 raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
 
-            gate_warnings(request, self.get_warnings("activate", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("activate", instance))
             instance.is_active = True
             instance.save()
             return Response(
@@ -648,9 +679,10 @@ class VuedaViewSet(
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
-    - Override ``get_warnings(action, objs)`` (from ``WarningConfirmationMixin``) to gate
+    - Override ``get_warnings_for_object`` (from ``WarningConfirmationMixin``) to gate
       single and bulk ``destroy`` (and ``activate``/``deactivate`` when
-      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation.
+      ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation with the same rule
+      for both; override ``get_warnings`` instead if bulk needs its own logic.
     """
 
     detail_args = ["pk"]
@@ -692,7 +724,7 @@ class VuedaViewSet(
         if pk:
             instance = self.get_object()
             self.destroy_validation((instance,))
-            gate_warnings(request, self.get_warnings("destroy", (instance,)))
+            gate_warnings(request, self.get_warnings_for_object("destroy", instance))
             if dry_run:
                 return Response(status=status.HTTP_200_OK)
             self.perform_destroy(instance)
@@ -760,10 +792,6 @@ class VuedaViewSet(
             queryset = queryset.annotate(formatted_name=F(formatted_name))
 
         return queryset
-
-
-class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
-    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
 
 
 class VuedaReadOnlyViewSet(

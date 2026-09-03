@@ -1,9 +1,17 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
-import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError } from "@vueda/utils/errors.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { defineComponent, h } from "vue";
+
+// Set by a test before mounting to drive ActionFormStub's `form-confirm-dialog-warnings` slot
+// scope, mirroring what the real ActionForm forwards from FormConfirmDialog's `warnings` slot.
+// `actionFormBulk` mirrors the `bulk` flag the real chain sources from the
+// `ConfirmationRequiredError` that reported `actionFormWarnings` -- the request path that produced
+// the response, not the component's own selection count.
+let actionFormWarnings = {};
+let actionFormBulk = false;
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
@@ -31,6 +39,16 @@ const ActionFormStub = defineComponent({
                                   verb: "confirm",
                                   type: "submit",
                                   disabled: false,
+                              })
+                            : null,
+                    ),
+                    h(
+                        "div",
+                        { "data-qa": "action-form-stub-confirm-dialog-slot" },
+                        slots["form-confirm-dialog-warnings"]
+                            ? slots["form-confirm-dialog-warnings"]({
+                                  warnings: actionFormWarnings,
+                                  bulk: actionFormBulk,
                               })
                             : null,
                     ),
@@ -77,8 +95,32 @@ const FormFieldStub = defineComponent({
 
 const WidgetReadOnlyStub = defineComponent({
     name: "WidgetReadOnlyStub",
+    props: ["app", "model", "foreignKeyObj", "invalid", "hidden", "loading", "warning"],
     setup(_, { slots }) {
         return () => h("div", { "data-qa": "widget-read-only" }, slots.default ? slots.default() : null);
+    },
+});
+
+// Renders one entry per field in `messages`, exposing the `entry` slot with `{ field, messages }`
+// so a test can drive ModelActionForm's `warning-entry` forwarding without the real component's
+// header/list/inline layout logic getting in the way.
+const FieldWarningsListStub = defineComponent({
+    name: "FieldWarningsListStub",
+    props: ["messages"],
+    setup(props, { slots }) {
+        return () =>
+            h(
+                "div",
+                { "data-qa": "field-warnings-list-stub" },
+                Object.entries(props.messages ?? {}).map(([field, rawMessages]) => {
+                    const messages = Array.isArray(rawMessages) ? rawMessages : [rawMessages];
+                    return h(
+                        "div",
+                        { "data-qa": "field-warnings-list-entry", "data-field": field, key: field },
+                        slots.entry ? slots.entry({ field, messages }) : messages.join("; "),
+                    );
+                }),
+            );
     },
 });
 
@@ -101,7 +143,7 @@ const toastMock = {
     loading: vi.fn(),
     message: vi.fn(),
 };
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 let routeQuery = {};
 const routerPush = vi.fn();
@@ -110,29 +152,40 @@ vi.mock("vue-router", () => ({
     useRoute: () => ({ query: routeQuery }),
 }));
 
-const getListUrl = vi.fn(({ action }) => `/list-url/${action || ""}`);
-const getDetailUrl = vi.fn(({ pk, action }) => `/detail-url/${pk}/${action || ""}`);
-vi.mock("@vueda/utils/urls.js", () => ({ getListUrl, getDetailUrl }));
+/**
+ * A stand-in for a reactive-helpers instance, with the action verbs spied.
+ *
+ * @returns {object} The instance stub.
+ */
+function createInstanceStub() {
+    const state = { loading: false, errored: false, error: null };
+    return {
+        state,
+        clearError: vi.fn(),
+        bulkDelete: vi.fn(() => Promise.resolve(true)),
+        delete: vi.fn(() => Promise.resolve(true)),
+        executeAction: vi.fn(() => Promise.resolve({ ok: true })),
+    };
+}
 
-const getCSRFValue = vi.fn(() => "token");
-vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue }));
-
-const fetchHelper = vi.fn((url, options, message, errorResolver) => {
-    if (fetchHelper.shouldReject) {
-        const response = fetchHelper.response || new Response(null, { status: 500 });
-        const data = fetchHelper.responseData;
-        const error = errorResolver(message, response, data);
-        return Promise.reject(error);
-    }
-    return Promise.resolve(fetchHelper.responseData);
+// `useModelAction` builds its own transport instances; stub the factories so this spec observes which
+// verb the component's action reaches, not the HTTP the handlers would send.
+const instanceStubs = { fallbackList: null, instanceObject: null };
+vi.mock("@arrai-innovations/reactive-helpers", async () => {
+    const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+    return {
+        ...actual,
+        useListInstance: () => instanceStubs.fallbackList,
+        useObjectInstance: () => instanceStubs.instanceObject,
+    };
 });
-vi.mock("@vueda/utils/fetchSupport.js", () => ({ fetchHelper }));
 
 vi.mock("@vueda/views/ActionForm.vue", () => ({ default: ActionFormStub }));
 vi.mock("@vueda/display/loading/LoadingSpinnerInline.vue", () => ({ default: LoadingSpinnerInlineStub }));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: ButtonStub }));
 vi.mock("@vueda/form/form-model/FormField.vue", () => ({ default: FormFieldStub }));
 vi.mock("@vueda/widgets/WidgetReadOnly.vue", () => ({ default: WidgetReadOnlyStub }));
+vi.mock("@vueda/form/confirm/FieldWarningsList.vue", () => ({ default: FieldWarningsListStub }));
 
 let ModelActionForm, vue;
 
@@ -166,6 +219,7 @@ function mountModelActionForm(options = {}) {
             requestMethod: options.requestMethod,
             enableDryRun: options.enableDryRun,
             confirmText: options.confirmText,
+            instanceList: options.instanceList,
         },
         slots: options.slots,
         global: {
@@ -183,16 +237,13 @@ describe("lib/views/ModelActionForm.vue", () => {
         mockedUseTheme.mockClear();
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
-        getListUrl.mockClear();
-        getDetailUrl.mockClear();
-        getCSRFValue.mockClear();
-        fetchHelper.mockClear();
-        fetchHelper.shouldReject = false;
-        fetchHelper.responseData = undefined;
-        fetchHelper.response = undefined;
+        instanceStubs.fallbackList = createInstanceStub();
+        instanceStubs.instanceObject = createInstanceStub();
         routeQuery = {};
         modelConfig.info = { verboseName: "Person", verboseNamePlural: "People" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
+        actionFormWarnings = {};
+        actionFormBulk = false;
     });
 
     describe("Rendering", () => {
@@ -273,112 +324,91 @@ describe("lib/views/ModelActionForm.vue", () => {
         });
     });
 
-    describe("defaultRunAction", () => {
-        scopedIt("constructs bulk destroy request", async () => {
-            fetchHelper.responseData = { ok: true };
+    describe("Action routing", () => {
+        scopedIt("runs a bulk action through the supplied list", async () => {
+            const instanceList = createInstanceStub();
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
                 requestMethod: "PATCH",
+                instanceList,
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await runAction({});
-            expect(getListUrl).toHaveBeenCalledWith({ app: "app", model: "person", action: "activate" });
-            expect(fetchHelper).toHaveBeenCalledWith(
-                "/list-url/activate",
-                expect.objectContaining({ method: "PATCH" }),
-                "Failed to execute action",
-                expect.any(Function),
+
+            const result = await runAction({});
+
+            expect(instanceList.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ action: "activate", pks: [1, 2], requestMethod: "PATCH" }),
             );
-            const body = JSON.parse(fetchHelper.mock.calls[0][1].body);
-            expect(body.pks).toEqual([1, 2]);
+            expect(result).toEqual({ ok: true });
         });
 
-        scopedIt("constructs detail request for single object", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("falls back to a transport-only list when the caller supplies none", async () => {
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] } });
+            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
+            await runAction({});
+
+            expect(instanceStubs.fallbackList.executeAction).toHaveBeenCalled();
+        });
+
+        scopedIt("runs a single-object action through the object instance", async () => {
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 5 }] },
                 requestMethod: "POST",
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
             await runAction({});
-            expect(getDetailUrl).toHaveBeenCalledWith({ app: "app", model: "person", pk: 5, action: "activate" });
-            const opts = fetchHelper.mock.calls[0][1];
-            expect(opts.method).toBe("POST");
-            expect(opts.body).toBeUndefined();
+
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ action: "activate", requestMethod: "POST" }),
+            );
         });
 
-        scopedIt("includes transformed submit data", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("passes transformed submit data through as the request body", async () => {
             const transformSubmitDataFn = vi.fn(() => ({ custom: true }));
+            const instanceList = createInstanceStub();
             const { wrapper } = mountModelActionForm({
                 fetchState: { objectsInOrder: [{ id: 9 }, { id: 10 }] },
                 transformSubmitDataFn,
+                instanceList,
             });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
+
             await runAction({});
-            const body = JSON.parse(fetchHelper.mock.calls[0][1].body);
-            expect(body).toEqual({ pks: [9, 10], custom: true });
+
+            expect(instanceList.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ formData: { custom: true } }),
+            );
             expect(transformSubmitDataFn).toHaveBeenCalled();
         });
 
-        scopedIt("returns FormValidationError for 400 responses", async () => {
-            fetchHelper.shouldReject = true;
-            fetchHelper.response = new Response(JSON.stringify({ field: ["bad"] }), { status: 400 });
-            fetchHelper.responseData = { field: ["bad"] };
+        scopedIt("rethrows an error the instance stored", async () => {
+            const failure = new FetchError("nope", new Response(null, { status: 500 }), {});
+            instanceStubs.instanceObject.executeAction.mockImplementation(() => {
+                instanceStubs.instanceObject.state.errored = true;
+                instanceStubs.instanceObject.state.error = failure;
+                return Promise.resolve(null);
+            });
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
             const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction({})).rejects.toBeInstanceOf(FormValidationError);
+
+            await expect(runAction({})).rejects.toBe(failure);
+            expect(instanceStubs.instanceObject.clearError).toHaveBeenCalled();
         });
 
-        scopedIt("returns ConfirmationRequiredError for 409 responses", async () => {
-            fetchHelper.shouldReject = true;
-            const responseData = { confirmation_required: true, digest: "d1", warnings: { count: ["unusual"] } };
-            fetchHelper.response = new Response(JSON.stringify(responseData), { status: 409 });
-            fetchHelper.responseData = responseData;
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
-            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            const error = await runAction({}).catch((e) => e);
-            expect(error).toBeInstanceOf(ConfirmationRequiredError);
-            expect(error.digest).toBe("d1");
-            expect(error.messages).toEqual({ count: ["unusual"] });
-        });
-
-        scopedIt("returns FetchError for other failures", async () => {
-            fetchHelper.shouldReject = true;
-            fetchHelper.response = new Response(null, { status: 500 });
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
-            const runAction = wrapper.getComponent(ActionFormStub).props("runAction");
-            await expect(runAction({})).rejects.toBeInstanceOf(FetchError);
-        });
-
-        scopedIt("adds Dry-Run header when performing dry run", async () => {
-            fetchHelper.responseData = { ok: true };
+        scopedIt("forwards the dry-run flag and an acknowledged warnings digest", async () => {
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
 
             await wrapper.vm.defaultRunAction({ dryRun: true, formValues: {} });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Dry-Run"]).toBe("true");
-        });
-
-        scopedIt("adds Acknowledge-Warnings header when a digest is acknowledged", async () => {
-            fetchHelper.responseData = { ok: true };
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: true, acknowledgeWarnings: undefined }),
+            );
 
             await wrapper.vm.defaultRunAction({ formValues: {}, acknowledgeWarnings: "d1" });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Acknowledge-Warnings"]).toBe("d1");
-        });
-
-        scopedIt("omits Acknowledge-Warnings header when no digest is acknowledged", async () => {
-            fetchHelper.responseData = { ok: true };
-            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 11 }] } });
-
-            await wrapper.vm.defaultRunAction({ formValues: {} });
-
-            const options = fetchHelper.mock.calls[0][1];
-            expect(options.headers["Acknowledge-Warnings"]).toBeUndefined();
+            expect(instanceStubs.instanceObject.executeAction).toHaveBeenLastCalledWith(
+                expect.objectContaining({ dryRun: false, acknowledgeWarnings: "d1" }),
+            );
         });
     });
 
@@ -468,6 +498,142 @@ describe("lib/views/ModelActionForm.vue", () => {
 
             await wrapper.get('[data-qa="typed-confirm-field-input"]').setValue("yes");
             expect(custom.attributes("disabled")).toBeUndefined();
+        });
+    });
+
+    describe("Warning confirmation dialog", () => {
+        scopedIt(
+            "renders one group per warned object for bulk warnings, each with a WidgetReadOnly label and its own FieldWarningsList",
+            () => {
+                actionFormWarnings = {
+                    1: { count: ["Order 1001 ships express."] },
+                    2: { count: ["Order 1002 ships express."] },
+                };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm();
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(2);
+
+                const widgetReadOnly1 = groups[0].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly1.props("app")).toBe("app");
+                expect(widgetReadOnly1.props("model")).toBe("person");
+                expect(widgetReadOnly1.props("foreignKeyObj")).toEqual({ id: 1 });
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Order 1001 ships express.",
+                );
+
+                const widgetReadOnly2 = groups[1].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly2.props("app")).toBe("app");
+                expect(widgetReadOnly2.props("model")).toBe("person");
+                expect(widgetReadOnly2.props("foreignKeyObj")).toEqual({ id: 2 });
+                expect(groups[1].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Order 1002 ships express.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders a single unkeyed group with no WidgetReadOnly label for a single-object action's flat warnings",
+            () => {
+                actionFormWarnings = { count: ["A negative count is unusual."] };
+                const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders per-object groups for a one-object custom bulk-runner response, even though only one object is selected",
+            () => {
+                // Mirrors a custom `run-action` (e.g. a workflow-transition runner) that always issues
+                // a bulk request: the response's ConfirmationRequiredError reports bulk:true
+                // regardless of how many objects are targeted, and the renderer must follow that
+                // signal rather than the component's own one-object selection count.
+                actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                const widgetReadOnly = groups[0].getComponent(WidgetReadOnlyStub);
+                expect(widgetReadOnly.props("foreignKeyObj")).toEqual({ id: 9 });
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt(
+            "renders a single unkeyed group for a multi-object selection when the response reports the aggregate shape",
+            () => {
+                actionFormWarnings = { count: ["A negative count is unusual."] };
+                actionFormBulk = false;
+                const { wrapper } = mountModelActionForm({
+                    fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
+                });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "A negative count is unusual.",
+                );
+            },
+        );
+
+        scopedIt("forwards the warning-entry slot to every group's FieldWarningsList, adding pk to the scope", () => {
+            actionFormWarnings = {
+                1: { count: ["Order 1001 ships express."] },
+                2: { count: ["Order 1002 ships express."] },
+            };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm({
+                slots: {
+                    "warning-entry": `<template #warning-entry="{ field, messages, pk }">
+                        <div data-qa="custom-warning-entry" :data-pk="pk" :data-field="field">{{ messages.join(", ") }}</div>
+                    </template>`,
+                },
+            });
+
+            const entries = wrapper.findAll('[data-qa="custom-warning-entry"]');
+            expect(entries).toHaveLength(2);
+            expect(entries[0].attributes("data-pk")).toBe("1");
+            expect(entries[0].attributes("data-field")).toBe("count");
+            expect(entries[0].text()).toBe("Order 1001 ships express.");
+            expect(entries[1].attributes("data-pk")).toBe("2");
+        });
+
+        scopedIt("forwards warnings, bulk, and normalized-warnings to a form-confirm-dialog-warnings override", () => {
+            actionFormWarnings = { 9: { count: ["A negative count is unusual."] } };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 9 }] },
+                slots: {
+                    "form-confirm-dialog-warnings": `<template #form-confirm-dialog-warnings="{ warnings, bulk, normalizedWarnings }">
+                            <div
+                                data-qa="custom-dialog-warnings"
+                                :data-bulk="bulk"
+                                :data-warnings="JSON.stringify(warnings)"
+                                :data-normalized-count="normalizedWarnings.length"
+                                :data-normalized-pk="normalizedWarnings[0].pk"
+                            />
+                        </template>`,
+                },
+            });
+
+            const custom = wrapper.get('[data-qa="custom-dialog-warnings"]');
+            expect(custom.attributes("data-bulk")).toBe("true");
+            expect(JSON.parse(custom.attributes("data-warnings"))).toEqual({
+                9: { count: ["A negative count is unusual."] },
+            });
+            expect(custom.attributes("data-normalized-count")).toBe("1");
+            expect(custom.attributes("data-normalized-pk")).toBe("9");
         });
     });
 });

@@ -39,6 +39,11 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     };
 });
 
+const userStoreMock = reactive({ identityGeneration: 0 });
+vi.mock("@vueda/stores/storeUser.js", () => ({
+    storeUser: vi.fn(() => userStoreMock),
+}));
+
 vi.mock("@vueda/use/useIsActive.js", () => ({
     useIsActive: vi.fn(() => ref(true)),
 }));
@@ -58,6 +63,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         workflowStoreFnMocks.getUsingVuedaWorkflow.mockReturnValue(true);
         app.value = "myApp";
         model.value = "myModel";
+        userStoreMock.identityGeneration = 0;
     });
 
     scopedIt("returns inert state when getUsingVuedaWorkflow is false", () => {
@@ -110,6 +116,34 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         expect(isReactive(result)).toBe(true);
         await flushPromises();
         expect(mockedUseLoadingErrorInstance.setError).toHaveBeenCalledWith(error);
+    });
+
+    scopedIt("refetches transitions when the authenticated user changes", async () => {
+        const key = getAppModelDotName({ app: unref(app), model: unref(model) });
+        const transitions = [{ code: "one", name: "One" }];
+        workflowStoreMock.workflowTransitions[key] = transitions;
+        workflowStoreMock.fetchWorkflowTransition.mockResolvedValue(transitions);
+
+        const es = effectScope();
+        let result;
+        es.run(() => {
+            result = useWorkflowTransitions(app, model);
+        });
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
+
+        // the store dropped its cache at the identity boundary, so the last fetched key no longer
+        // describes anything this instance holds
+        delete workflowStoreMock.workflowTransitions[key];
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(2);
+
+        workflowStoreMock.workflowTransitions[key] = [{ code: "two", name: "Two" }];
+        await flushPromises();
+        expect(result.transitions).toEqual([{ code: "two", name: "Two" }]);
+        es.stop();
     });
 
     scopedIt("does not fetch if isActive is false", async () => {

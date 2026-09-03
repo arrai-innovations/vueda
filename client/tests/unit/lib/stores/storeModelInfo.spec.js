@@ -1,6 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
+import { toRef } from "vue";
 
 const fetchHelper = vi.fn();
 const getUrl = vi.fn(() => "/info/");
@@ -10,13 +11,25 @@ vi.mock("@vueda/utils/urls.js", () => ({ getUrl }));
 vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "http://test" }));
 
 describe("lib/stores/storeModelInfo.js", () => {
-    let storeModule, store;
+    let storeModule, store, AuthScopeInvalidatedError;
+
+    const serverData = (label) => ({
+        app_label: "blog",
+        model: "post",
+        model_fields: { id: { pk: true, type_db: "AutoField" }, title: { type_db: label } },
+        model_actions: [],
+        model_expands: [],
+        model_ordering: [],
+        model_filtering: {},
+        model_permissions: [],
+    });
 
     beforeEach(async () => {
         setActivePinia(createPinia());
         fetchHelper.mockReset();
         getUrl.mockReturnValue("/info/");
         storeModule = await import("@vueda/stores/storeModelInfo.js");
+        ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
         store = storeModule.storeModelInfo();
     });
 
@@ -146,5 +159,82 @@ describe("lib/stores/storeModelInfo.js", () => {
         await expect(store.fetchModelInfo({ app: "", model: null })).rejects.toThrow(
             "storeModelInfo.fetchModelInfo: app and model must be provided",
         );
+    });
+    describe("clearAuthScoped", () => {
+        scopedIt("empties infos, errors, and promises", async () => {
+            const key = getAppModelDotName({ app: "blog", model: "post" });
+            store.infos[key] = { pk: "id" };
+            store.errors["blog.other"] = new Error("cached");
+            store.promises["blog.third"] = Promise.resolve({});
+
+            store.clearAuthScoped();
+
+            expect(store.infos).toEqual({});
+            expect(store.errors).toEqual({});
+            expect(store.promises).toEqual({});
+        });
+
+        scopedIt("deletes keys in place so a reference held by a consumer stays live (forbids $reset)", async () => {
+            const args = { app: "blog", model: "post" };
+            const key = getAppModelDotName(args);
+            fetchHelper.mockResolvedValue(serverData("CharField"));
+            await store.fetchModelInfo(args);
+
+            // this is the handle useModelInfo keeps: toRef(modelInfoStore.infos, key)
+            const held = toRef(store.infos, key);
+            expect(held.value.fields.title.typeDb).toBe("CharField");
+
+            store.clearAuthScoped();
+            expect(held.value).toBeUndefined();
+
+            fetchHelper.mockResolvedValue(serverData("TextField"));
+            await store.fetchModelInfo(args);
+            expect(held.value.fields.title.typeDb).toBe("TextField");
+        });
+
+        scopedIt("discards a response that arrives after the clear and lets the next call refetch", async () => {
+            const args = { app: "blog", model: "post" };
+            const key = getAppModelDotName(args);
+            let resolveFetch;
+            fetchHelper.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const inFlight = store.fetchModelInfo(args);
+            store.clearAuthScoped();
+            resolveFetch(serverData("CharField"));
+
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
+            expect(store.infos[key]).toBeUndefined();
+
+            fetchHelper.mockResolvedValueOnce(serverData("TextField"));
+            const refetched = await store.fetchModelInfo(args);
+            expect(fetchHelper).toHaveBeenCalledTimes(2);
+            expect(refetched.fields.title.typeDb).toBe("TextField");
+        });
+
+        scopedIt("does not cache an error that arrives after the clear", async () => {
+            const args = { app: "blog", model: "post" };
+            const key = getAppModelDotName(args);
+            let rejectFetch;
+            fetchHelper.mockReturnValueOnce(
+                new Promise((resolve, reject) => {
+                    rejectFetch = reject;
+                }),
+            );
+
+            const inFlight = store.fetchModelInfo(args);
+            store.clearAuthScoped();
+            rejectFetch(new storeModule.ModelInfoError("Forbidden"));
+
+            await expect(inFlight).rejects.toThrow("Forbidden");
+            expect(store.errors[key]).toBeUndefined();
+
+            fetchHelper.mockResolvedValueOnce(serverData("CharField"));
+            await store.fetchModelInfo(args);
+            expect(fetchHelper).toHaveBeenCalledTimes(2);
+        });
     });
 });

@@ -6,6 +6,8 @@ __pycache__
 htmlcov
 coverage/
 node_modules
+# This repo is a pnpm workspace; npm lockfiles are never authoritative here.
+package-lock.json
 dist
 *.log
 logs

@@ -50,7 +50,12 @@ const props = defineProps({
 });
 const { formContext, onSubmissionErrorHandler: OnSubmissionErrorHandler, redirectTo } = useAuthFlow(props);
 const theme = useTheme("AuthForm", props);
-const emit = defineEmits(["form-object"]);
+const emit = defineEmits([
+    /** Emitted on mount with a readonly ref to the reactive form values object. */
+    "form-object",
+    /** Emitted on mount with the form context. Use its methods for programmatic form updates. */
+    "form-context",
+]);
 const userStore = storeUser();
 
 onMounted(() => {
@@ -58,6 +63,7 @@ onMounted(() => {
         "form-object",
         toRef(() => formContext.state.values),
     );
+    emit("form-context", formContext);
 });
 </script>
 

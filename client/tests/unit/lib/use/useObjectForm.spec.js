@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
 
@@ -16,7 +16,7 @@ const toastMock = {
     loading: vi.fn(),
     message: vi.fn(),
 };
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 vi.mock("vue-router", async () => {
@@ -145,6 +145,73 @@ describe("lib/use/useObjectForm.js", () => {
         expect(routerPush).toHaveBeenCalled();
     });
 
+    scopedIt("submit ingests custom server feedback errors from adapter overrides", async () => {
+        class CustomServerFeedbackError extends ServerFeedbackError {
+            constructor() {
+                super("Custom validation failed", { errors: { name: ["Use a different name."] } });
+                this.name = "CustomServerFeedbackError";
+            }
+        }
+
+        const props = reactive({
+            app: "app",
+            model: "model",
+            verboseName: "model",
+            redirectAfter: "list",
+            firstErrorField: "name",
+        });
+        const formContext = {
+            state: reactive({
+                anyModified: true,
+                anyError: false,
+                submittingValues: { name: "test" },
+                errors: {},
+                anyIgnored: false,
+                ignored: {},
+            }),
+            setAllTouched: vi.fn(),
+            handleServerFormValidationError: vi.fn((error) => {
+                for (const [name, message] of Object.entries(error.errors)) {
+                    formContext.state.errors[name] = { server: message };
+                }
+            }),
+        };
+        const error = new CustomServerFeedbackError();
+        const instanceObject = {
+            state: reactive({
+                pkKey: "id",
+                pk: "",
+                object: {},
+                errored: false,
+                error: null,
+            }),
+            create: vi.fn(() => {
+                instanceObject.state.errored = true;
+                instanceObject.state.error = error;
+                return Promise.resolve();
+            }),
+            update: vi.fn().mockResolvedValue(),
+            clearError: vi.fn(() => {
+                instanceObject.state.errored = false;
+                instanceObject.state.error = null;
+            }),
+        };
+        const { state, submit } = useObjectForm({ props, formContext, instanceObject });
+
+        await submit();
+        await flushPromises();
+
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
+        expect(formContext.state.errors).toEqual({ name: { server: ["Use a different name."] } });
+        expect(toastMock.warning).toHaveBeenCalledWith("Save Validation Failed", {
+            description: "Please review the new error displayed. You have been scrolled to the first error.",
+            duration: 15000,
+        });
+        expect(instanceObject.clearError).toHaveBeenCalled();
+        expect(state.submitErrored).toBe(true);
+        expect(routerPush).not.toHaveBeenCalled();
+    });
+
     const buildConfirmationScenario = () => {
         const props = reactive({
             app: "app",
@@ -203,6 +270,7 @@ describe("lib/use/useObjectForm.js", () => {
         expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
         expect(objectForm.confirmation.open).toBe(true);
         expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        expect(objectForm.confirmation.bulk).toBe(false);
         expect(instanceObject.create).toHaveBeenCalledTimes(1);
 
         objectForm.confirmation.confirm();
@@ -300,6 +368,7 @@ describe("lib/use/useObjectForm.js", () => {
         expect(instanceObject.create).toHaveBeenCalledTimes(1);
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(true);
+        expect(formContext.handleServerFormValidationError).not.toHaveBeenCalled();
         expect(routerPush).not.toHaveBeenCalled();
     });
 

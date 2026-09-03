@@ -1,17 +1,18 @@
 <script setup>
-// Loaded after vue-sonner's stylesheet so its equal-specificity rules win:
-// swaps vue-sonner's real border for a DPR-aware inset hairline (no chromatic
-// fringing on rich-colour edges) and its drop-only shadow for the VUEDA
-// popover elevation. See Sonner.css.
+// vue-sonner ships its base stylesheet separately; without it the Toaster has no
+// fixed positioning or surface styling (toasts render in document flow, unstyled).
+// The theme below only layers VUEDA tokens on top of these base rules.
+import { Toaster as Sonner } from "@arrai-innovations/vue-sonner";
+import "@arrai-innovations/vue-sonner/style.css";
+// Swaps vue-sonner's real border for a DPR-aware inset hairline (no chromatic
+// fringing on rich-colour edges) and its drop-only shadow for the VUEDA popover
+// elevation. Wins on selector specificity rather than stylesheet order, so the
+// import sorter is free to place it either side of the base stylesheet above.
+// See Sonner.css.
 import "@vueda/feedback/toast/Sonner.css";
 import "@vueda/theme/vueda-tailwind/feedback/Sonner.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-// vue-sonner ships its base stylesheet separately; without it the Toaster has no
-// fixed positioning or surface styling (toasts render in document flow, unstyled).
-// The theme below only layers VUEDA tokens on top of these base rules.
-import { Toaster as Sonner } from "vue-sonner";
-import "vue-sonner/style.css";
 
 /**
  * A toast notification container built on vue-sonner, providing styled toast popups
@@ -63,6 +64,12 @@ const icon = useIcons("Sonner", props);
                 '--normal-text': 'var(--popover-foreground)',
                 '--normal-border': 'var(--border)',
                 '--border-radius': 'var(--vueda-card-radius)',
+                // Body copy and the cancel button's fill. vue-sonner routes these through
+                // --description-text / --cancel-bg as of the 2.0.11 fork; before that they were
+                // literals no variable could reach, which left the description stuck at the
+                // upstream near-black once --normal-bg flipped to the dark popover.
+                '--description-text': 'var(--muted-foreground)',
+                '--cancel-bg': 'var(--secondary)',
                 // richColors cells: mixed against --popover rather than transparent, so the
                 // filled surface stays opaque like every other floating overlay (Popover,
                 // Dialog) instead of true alpha over unpredictable page content underneath.

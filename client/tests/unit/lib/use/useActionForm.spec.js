@@ -1,6 +1,7 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
+import { mount } from "@vue/test-utils";
 import { useActionForm } from "@vueda/use/useActionForm.js";
-import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive } from "vue";
 
@@ -12,7 +13,7 @@ const toastMock = vi.hoisted(() => ({
     loading: vi.fn(),
     message: vi.fn(),
 }));
-vi.mock("vue-sonner", () => ({ toast: toastMock }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 describe("lib/use/useActionForm.js", () => {
     beforeEach(() => {
@@ -31,14 +32,43 @@ describe("lib/use/useActionForm.js", () => {
         clearServerErrors: vi.fn(),
     });
 
-    const makeConfirmationError = (digest = "d1", warnings = { count: ["unusual"] }) =>
-        new ConfirmationRequiredError({ confirmation_required: true, digest, warnings }, {});
+    const makeConfirmationError = (digest = "d1", warnings = { count: ["unusual"] }, bulk = false) =>
+        new ConfirmationRequiredError({ confirmation_required: true, digest, warnings }, {}, { bulk });
 
     // runAction that 409s until the digest is acknowledged, then succeeds.
     const makeGatedRunAction = (error) =>
         vi.fn(({ acknowledgeWarnings }) =>
             acknowledgeWarnings === error.digest ? Promise.resolve("ok") : Promise.reject(error),
         );
+
+    scopedIt("ingests custom server feedback errors from action handlers", async () => {
+        class CustomServerFeedbackError extends ServerFeedbackError {
+            constructor() {
+                super("Custom validation failed", { errors: { name: ["Use a different name."] } });
+                this.name = "CustomServerFeedbackError";
+            }
+        }
+
+        const formContext = createFormContext();
+        formContext.handleServerFormValidationError.mockImplementation((error) => {
+            for (const [name, message] of Object.entries(error.errors)) {
+                formContext.state.errors[name] = { server: message };
+            }
+        });
+        const error = new CustomServerFeedbackError();
+        const runAction = vi.fn(() => Promise.reject(error));
+        const props = reactive({ runAction });
+        const actionForm = await withSetup(() => useActionForm(formContext, props));
+
+        await actionForm.handleConfirm();
+        await flushPromises();
+
+        expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
+        expect(formContext.state.errors).toEqual({ name: { server: ["Use a different name."] } });
+        expect(actionForm.combinedError.value).toBe(null);
+        expect(actionForm.combinedErrored.value).toBe(false);
+        expect(toastMock.error).not.toHaveBeenCalled();
+    });
 
     describe("Warning confirmation", () => {
         scopedIt("opens confirmation on 409 and retries with the digest when confirmed", async () => {
@@ -57,6 +87,7 @@ describe("lib/use/useActionForm.js", () => {
             expect(formContext.handleServerFormValidationError).toHaveBeenCalledWith(error);
             expect(actionForm.confirmation.open).toBe(true);
             expect(actionForm.confirmation.messages).toEqual({ count: ["unusual"] });
+            expect(actionForm.confirmation.bulk).toBe(false);
             expect(runAction).toHaveBeenCalledTimes(1);
 
             actionForm.confirmation.confirm();
@@ -75,6 +106,29 @@ describe("lib/use/useActionForm.js", () => {
             expect(actionForm.combinedErrored.value).toBe(false);
             expect(actionForm.combinedLoading.value).toBe(false);
         });
+
+        scopedIt(
+            "carries bulk:true from a custom bulk run-action's response even when it targets one object",
+            async () => {
+                const formContext = createFormContext();
+                // Mirrors a custom bulk runner (e.g. a workflow-transition action) that always issues
+                // a bulk request and gets back the per-object warnings shape, even for one target.
+                const error = makeConfirmationError("d1", { 9: { count: ["unusual"] } }, true);
+                const runAction = makeGatedRunAction(error);
+                const props = reactive({ runAction });
+                const actionForm = await withSetup(() => useActionForm(formContext, props));
+                actionForm.confirmation.register();
+
+                const submitPromise = actionForm.handleConfirm();
+                await flushPromises();
+
+                expect(actionForm.confirmation.messages).toEqual({ 9: { count: ["unusual"] } });
+                expect(actionForm.confirmation.bulk).toBe(true);
+
+                actionForm.confirmation.cancel();
+                await submitPromise;
+            },
+        );
 
         scopedIt("settles without toast or redirect when confirmation is cancelled", async () => {
             const formContext = createFormContext();
@@ -145,6 +199,7 @@ describe("lib/use/useActionForm.js", () => {
             expect(runAction).toHaveBeenCalledTimes(1);
             expect(actionForm.confirmation.open).toBe(false);
             expect(actionForm.combinedError.value).toBe(error);
+            expect(formContext.handleServerFormValidationError).not.toHaveBeenCalled();
             expect(toastMock.error).toHaveBeenCalled();
         });
 
@@ -223,6 +278,40 @@ describe("lib/use/useActionForm.js", () => {
                 dryRun: false,
                 acknowledgeWarnings: "d1",
             });
+        });
+    });
+
+    describe("Teardown", () => {
+        scopedIt("ignores a run that settles after the shell tore down", async () => {
+            const formContext = createFormContext();
+            let settleRun;
+            const runPromise = new Promise((resolve) => {
+                settleRun = resolve;
+            });
+            runPromise.cancel = vi.fn();
+            const runAction = vi.fn(() => runPromise);
+            const redirectTo = vi.fn();
+            const props = reactive({ runAction, redirectTo });
+            let actionForm;
+            const wrapper = mount({
+                setup() {
+                    actionForm = useActionForm(formContext, props);
+                    return () => null;
+                },
+            });
+
+            const submitPromise = actionForm.handleConfirm();
+            await flushPromises();
+            wrapper.unmount();
+            // reactive-helpers resolves a cancelled run rather than rejecting it (`false`, or `null`
+            // for executeAction, with no stored error), so the outcome alone cannot tell the two
+            // apart and an unguarded teardown would toast success on its way out.
+            settleRun(false);
+            await submitPromise;
+
+            expect(runPromise.cancel).toHaveBeenCalled();
+            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(redirectTo).not.toHaveBeenCalled();
         });
     });
 });

@@ -51,6 +51,49 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3, b: 2 });
     });
 
+    scopedIt("reports a component resolution failure as field error state", () => {
+        const props = vue.reactive({
+            formModelName: "foo",
+            formModel: {
+                fieldComponents: { foo: "FieldFoo" },
+                get widgetComponents() {
+                    throw new Error('No widget component named "WidgetNope" for field "foo" in app "a" model "b"');
+                },
+                fieldDetails: {},
+                fieldProps: {},
+                widgetProps: {},
+            },
+            objectGridFieldSlotProps: {},
+        });
+        const result = useFieldRenderer(props, {}, {});
+
+        expect(result.errored.value).toBe(true);
+        expect(result.error.value.message).toContain('No widget component named "WidgetNope"');
+        // No widget resolved, so the phrase names the field alone.
+        expect(result.renderFailureText.value).toBe('rendering the "foo" field');
+        expect(result.fieldComponent.value).toBeNull();
+        expect(result.widgetComponent.value).toBeNull();
+    });
+
+    scopedIt("reports no error and names the widget when resolution succeeds", () => {
+        const props = vue.reactive({
+            formModelName: "foo",
+            formModel: {
+                fieldComponents: { foo: "FieldFoo" },
+                widgetComponents: { foo: { name: "WidgetTextInput" } },
+                fieldDetails: {},
+                fieldProps: {},
+                widgetProps: {},
+            },
+            objectGridFieldSlotProps: {},
+        });
+        const result = useFieldRenderer(props, {}, {});
+
+        expect(result.errored.value).toBe(false);
+        expect(result.error.value).toBeNull();
+        expect(result.renderFailureText.value).toBe('rendering the "foo" field with WidgetTextInput');
+    });
+
     scopedIt("computes fieldValuePath for object grid rows", async () => {
         const fieldSetContext = { state: vue.reactive({ name: "items" }) };
         const props = vue.reactive({

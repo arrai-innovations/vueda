@@ -1,4 +1,5 @@
 <script setup>
+import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
 import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
 import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
@@ -15,7 +16,6 @@ import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, reactive, ref, toRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 
 /**
  * Multi-step form that guides the user through enrolling a two-factor authentication device.
