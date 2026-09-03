@@ -155,7 +155,10 @@ def get_migrations_path(app_config):
     except ModuleNotFoundError:
         return None
 
-    return module.__path__[0] if module.__path__ else None
+    # An app can ship migrations as a single module rather than a package, which has no __path__ and
+    # therefore no directory for a generated migration to live in. pgtrigger is one such app.
+    paths = getattr(module, "__path__", None)
+    return paths[0] if paths else None
 
 
 def locate_empty_migration_slots(lines):

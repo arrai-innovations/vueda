@@ -341,6 +341,11 @@ class OrderItemCompositePK(VuedaModel):
     formatted_name = None
     formatted_name_lookup_expression = "product__formatted_name"
 
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "pghistory cannot track a composite primary key."
+
     class Meta(VuedaModel.Meta):
         default_related_name = "order_items_composite_pks"
         verbose_name = "Order Items Composite PK"
@@ -358,6 +363,11 @@ class OrderItemAltCompositePK(VuedaModel):
 
     formatted_name = None
     formatted_name_lookup_expression = "product__formatted_name"
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "pghistory cannot track a composite primary key."
 
     class Meta(VuedaModel.Meta):
         default_related_name = "order_items_alt_composite_pks"

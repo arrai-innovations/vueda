@@ -3,13 +3,15 @@ import subprocess
 import sys
 import textwrap
 
+import pytest
 
-def run_optional_apps_probe(script, *, include_history=True, include_workflow=False):
+
+def run_optional_apps_probe(script, *, include_workflow=False, include_vdq=False):
     env = {
         **os.environ,
         "DJANGO_SETTINGS_MODULE": "tests.optional_apps_settings",
-        "VUEDA_INCLUDE_HISTORY": "true" if include_history else "false",
         "VUEDA_INCLUDE_WORKFLOW": "true" if include_workflow else "false",
+        "VUEDA_INCLUDE_VDQ": "true" if include_vdq else "false",
     }
 
     return subprocess.run(
@@ -25,14 +27,69 @@ def assert_probe_succeeded(result):
     assert result.returncode == 0, result.stderr
 
 
-# Naming one module lets a new import into another one pass unnoticed, so assert on the package.
-ASSERT_NO_HISTORY_IMPORTS = """
-        imported = sorted(name for name in sys.modules if name.split(".")[:2] == ["vueda", "history"])
+# Every configuration installs the history app, so its own modules load. The boundary that still
+# holds is that nothing in vueda.core reaches its API classes. Naming one module lets a new import
+# into another one pass unnoticed, so assert on all of them.
+ASSERT_NO_HISTORY_API_IMPORTS = """
+        history_api = ["vueda.history.serializers", "vueda.history.viewsets", "vueda.history.views"]
+        imported = [name for name in history_api if name in sys.modules]
         assert imported == [], imported
 """
 
 
-def test_django_starts_without_workflow_or_vdq_with_history_installed():
+# Every configuration installs history, so the event models VUEDA ships are always part of the
+# graph. Workflow is optional, and VDQ requires it.
+SUPPORTED_APP_COMBINATIONS = (
+    pytest.param({}, {"vueda_user", "vueda_release"}, id="history"),
+    pytest.param({"include_workflow": True}, {"vueda_user", "vueda_release", "vueda_workflow"}, id="workflow"),
+    pytest.param(
+        {"include_workflow": True, "include_vdq": True},
+        {"vueda_user", "vueda_release", "vueda_workflow", "vueda_vdq"},
+        id="workflow-and-vdq",
+    ),
+)
+
+
+@pytest.mark.parametrize(("apps_installed", "expected_labels"), SUPPORTED_APP_COMBINATIONS)
+def test_every_supported_app_combination_loads_the_migration_graph(apps_installed, expected_labels):
+    """A shipped migration may not describe a model that only some configurations build.
+
+    An event model holds a ``pgh_context`` foreign key, so the migration that adds it depends on a
+    ``pghistory`` node. Omitting an app whose migrations carry that dependency raises
+    ``NodeNotFoundError`` while the graph loads, long before any check or test runs.
+    """
+    result = run_optional_apps_probe(
+        """
+        import io
+
+        import django
+
+        django.setup()
+
+        from django.core.management import call_command
+        from django.db import connection
+        from django.db.migrations.loader import MigrationLoader
+
+        loader = MigrationLoader(connection)
+        loaded = {app_label for app_label, _ in loader.graph.nodes}
+        expected = set(EXPECTED_LABELS) | {"pghistory"}
+        assert expected <= loaded, sorted(expected - loaded)
+
+        output = io.StringIO()
+        pending = False
+        try:
+            call_command("makemigrations", "--check", "--dry-run", stdout=output)
+        except SystemExit:
+            pending = True
+        assert not pending, output.getvalue()
+        """.replace("EXPECTED_LABELS", repr(sorted(expected_labels))),
+        **apps_installed,
+    )
+
+    assert_probe_succeeded(result)
+
+
+def test_django_starts_without_workflow_or_vdq():
     result = run_optional_apps_probe(
         """
         import sys
@@ -58,27 +115,24 @@ def test_django_starts_without_workflow_or_vdq_with_history_installed():
     assert_probe_succeeded(result)
 
 
-def test_django_starts_without_history_workflow_or_vdq():
+def test_the_history_backend_is_configured():
     result = run_optional_apps_probe(
         """
-        import sys
-
         import django
 
         django.setup()
 
-        from django.core.checks import run_checks
-        from django.urls import get_resolver
+        from django.apps import apps
+        from django.conf import settings
 
-        messages = run_checks()
-        assert messages == [], [(message.id, message.msg) for message in messages]
-        get_resolver().url_patterns
+        assert apps.is_installed("pghistory")
+        assert apps.is_installed("pgtrigger")
+        assert settings.PGHISTORY_APPEND_ONLY is True
+        assert "vueda.history.middleware.VuedaHistoryMiddleware" in settings.MIDDLEWARE
 
-        assert "vueda.workflow.models" not in sys.modules
-        assert "vueda.vdq.models" not in sys.modules
+        tracked = [model for model in apps.get_models() if getattr(model, "pgh_tracked_model", None) is not None]
+        assert tracked, "the history app installs no event models"
         """
-        + ASSERT_NO_HISTORY_IMPORTS,
-        include_history=False,
     )
 
     assert_probe_succeeded(result)
@@ -97,14 +151,12 @@ def test_stale_optional_url_includes_are_empty_when_apps_are_absent():
         import vueda.vdq.urls
         import vueda.workflow.urls
 
-        assert vueda.history.urls.urlpatterns == []
+        assert vueda.history.urls.urlpatterns
         assert vueda.workflow.urls.urlpatterns == []
         assert vueda.vdq.urls.urlpatterns == []
-        assert "vueda.history.views" not in sys.modules
         assert "vueda.workflow.models" not in sys.modules
         assert "vueda.vdq.models" not in sys.modules
-        """,
-        include_history=False,
+        """
     )
 
     assert_probe_succeeded(result)
@@ -211,7 +263,7 @@ def test_vdq_requires_workflow():
     assert_probe_succeeded(result)
 
 
-def test_core_api_classes_load_without_history():
+def test_core_api_classes_load_without_the_history_api():
     result = run_optional_apps_probe(
         """
         import sys
@@ -228,46 +280,13 @@ def test_core_api_classes_load_without_history():
         assert issubclass(VuedaViewSet, object)
         assert ModelInfoSerializer is not None
         """
-        + ASSERT_NO_HISTORY_IMPORTS,
-        include_history=False,
+        + ASSERT_NO_HISTORY_API_IMPORTS,
     )
 
     assert_probe_succeeded(result)
 
 
-def test_workflow_starts_without_history():
-    result = run_optional_apps_probe(
-        """
-        import sys
-
-        import django
-
-        django.setup()
-
-        from django.core.checks import run_checks
-        from django.urls import get_resolver
-
-        messages = run_checks()
-        assert messages == [], [(message.id, message.msg) for message in messages]
-        get_resolver().url_patterns
-
-        from vueda.workflow.models import ObjectState
-        from vueda.workflow.models import Workflow
-
-        # Workflow tracks its own history through simple-history whether or not the app is present,
-        # and the generated models stay in vueda_workflow so its migrations still apply.
-        for model in (Workflow, ObjectState):
-            assert model.history.model._meta.app_label == "vueda_workflow"
-        """
-        + ASSERT_NO_HISTORY_IMPORTS,
-        include_history=False,
-        include_workflow=True,
-    )
-
-    assert_probe_succeeded(result)
-
-
-def test_history_classes_stay_available_when_history_is_installed():
+def test_the_history_api_classes_are_available():
     result = run_optional_apps_probe(
         """
         import django

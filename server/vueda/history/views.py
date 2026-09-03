@@ -26,8 +26,10 @@ from vueda.user.views import WhoIsView as CoreWhoIsView
 
 
 class WhoIsView(CoreWhoIsView):
-    """
-    This decoupling helps make the history app optional.
+    """Core who-is view with the current history id annotated.
+
+    ``vueda.user`` does not import ``vueda.history``, so the history-aware variant lives here and a
+    project routes ``who-is/`` to it instead of the core view.
     """
 
     def get_serializer_class(self):

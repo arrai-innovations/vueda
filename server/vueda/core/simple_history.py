@@ -1,9 +1,8 @@
 """Shared django-simple-history integration for VUEDA models.
 
 This lives in ``vueda.core`` rather than ``vueda.history`` because models outside the history app
-track their own history. ``vueda.workflow`` does, and it must not import the optional history app
-to get that behaviour. ``simple_history`` is an unconditional dependency, so nothing here needs
-the history app installed.
+track their own history through it. ``vueda.workflow`` does, while ``vueda.history`` itself now
+records through pghistory, so the simple-history pieces sit with the models that still use them.
 """
 
 __all__ = (

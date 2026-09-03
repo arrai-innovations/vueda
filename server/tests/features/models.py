@@ -16,6 +16,8 @@ class AbstractProbeBase(VuedaModel):
     """An abstract base whose declaration must reach every concrete subclass."""
 
     name = models.CharField(max_length=255)
+    secret = models.CharField(max_length=255, blank=True)
+    token = models.CharField(max_length=255, blank=True)
 
     class Vueda:
         class Probe:
@@ -54,6 +56,17 @@ class ProbeProxy(ProbeTracked):
 
     class Meta:
         proxy = True
+
+
+class ProbeUntracked(VuedaModel):
+    """Opts out of history, so nothing should generate an event model or a trigger for it."""
+
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "Covers the opt-out path."
 
 
 class ProbeLookup(Lookup):
