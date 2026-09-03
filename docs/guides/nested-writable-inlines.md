@@ -70,7 +70,9 @@ Content-Type: application/json
 }
 ```
 
-Omitting `e=customer` while sending `customer` as an object would cause a type error. The `f` (fields) parameter can also be used on mutation requests to control which fields are included in deserialization; validate both `f` and `e` against the payload shape, not just on `read` requests.
+Omitting `e=customer` while sending `customer` as an object would cause a type error. Validate `e` against the payload shape on write requests, not just on `read` requests. `e` has to be explicit because expand membership is what `permit_{action}_expands` checks to authorize a nested write on that relation in the first place.
+
+The `f` (fields) and `om` (omit) sparse-fieldset parameters shape the response only. They never change what a write validates: a write always validates against the serializer's full field set, so a field the body supplies is validated fully even when `f`/`om` would exclude it from the response. On `create` and full `update`, this means the request body must supply every required field regardless of `f`/`om`. On a partial update, whether a field is required at all still follows the normal partial-update rule -- a field the body omits stays optional, `f`/`om`-excluded or not.
 
 ## Reverse-Relation Update Semantics
 
@@ -131,7 +133,7 @@ After implementing nested writes, verify the following:
 - Sending object payloads without matching `e` parameters produces `incorrect_type` errors, not silent failures.
 - Readonly inline relations ignore write data without errors.
 - Nested validation errors appear as focusable form field errors on the client.
-- The `f` parameter on write requests correctly limits which fields are deserialized.
+- A POST/PUT with `f`/`om` still requires every required field; a PATCH with `f`/`om` still validates every field the body supplies. Only the response is narrowed.
 
 ## Troubleshooting
 
