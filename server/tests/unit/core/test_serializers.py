@@ -449,6 +449,52 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         else:
             pytest.fail("Serializer is valid when it should not be")
 
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", ["period_start"]),
+            ("OMIT_PARAM", ["employee"]),
+            (None, None),  # baseline: no flex-fields query parameter at all
+        ],
+    )
+    def test_flex_fields_param_does_not_require_a_field_absent_from_partial_update_body(
+        self, employee, valid_timesheet_data, param_name, requested
+    ):
+        """The complement of test_flex_fields_param_does_not_bypass_validation_on_partial_update:
+        a PATCH (partial=True) that never supplies "employee" at all is still valid even though
+        ?f=/?om= also excludes "employee" from the response. Sparse-fieldset parameters shape the
+        response only; they do not make an absent field required. The (None, None) case is the
+        baseline this compares against: an ordinary PATCH with no flex-fields query parameter at
+        all behaves identically, which is what shows ?f=/?om= are a genuine no-op here rather than
+        coincidentally not breaking anything."""
+        t = Timesheet.objects.create(**{**valid_timesheet_data, "employee": employee})
+        patch_data = {"period_start": "2024-02-16"}  # employee omitted entirely
+
+        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        context = {"request": FakeRequest(query, patch_data, "PATCH")}
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
+
+        serializer = TimesheetSerializer(instance=t, data=patch_data, context=context, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        # The write succeeds identically in all three cases, but the response narrows
+        # per-parameter exactly as it would on a read: ?f= restricts to the requested field,
+        # ?om= drops only "employee", and the no-param baseline includes it.
+        if param_name == "FIELDS_PARAM":
+            assert serializer.data == {"period_start": "2024-02-16"}, serializer.data
+        elif param_name == "OMIT_PARAM":
+            assert "employee" not in serializer.data, serializer.data
+            assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        else:
+            assert serializer.data["employee"] == employee.pk, serializer.data
+            assert serializer.data["period_start"] == "2024-02-16", serializer.data
+
+        t.refresh_from_db()
+        assert t.period_start == date(2024, 2, 16)
+        assert t.employee_id == employee.pk
+
     def test_flex_fields_with_invalid_field_param(self, employee, valid_timesheet_data):
         put_data = {
             "employee": employee.pk,

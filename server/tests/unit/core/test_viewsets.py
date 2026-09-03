@@ -1302,6 +1302,64 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         t1.refresh_from_db()
         assert t1.employee_id == e1.pk
 
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start"),
+            ("OMIT_PARAM", "employee"),
+            (None, None),
+        ],
+    )
+    def test_partial_update_timesheet_with_field_param_does_not_require_an_omitted_field(
+        self, api_client, param_name, requested
+    ):
+        """The complement of test_partial_update_timesheet_with_field_param_does_not_bypass_validation:
+        a PATCH that never sends "employee" at all still succeeds even though ?f=/?om= also
+        excludes "employee" from the response. Sparse-fieldset parameters shape the response only;
+        they do not make an absent field required on a partial update (issue #205). The
+        (None, None) case is the baseline this compares against: an ordinary PATCH with no
+        flex-fields query parameter at all succeeds the same way, which is what shows ?f=/?om= are
+        a genuine no-op here rather than coincidentally not breaking anything."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query=query,
+            ),
+            data={"period_start": datetime.date(2024, 2, 16)},  # employee omitted entirely
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        # The write succeeds identically in all three cases, but the response narrows
+        # per-parameter exactly as it would on a read: ?f= restricts to the requested field,
+        # ?om= drops only "employee", and the no-param baseline includes it.
+        if param_name == "FIELDS_PARAM":
+            assert response.data == {"period_start": "2024-02-16"}, response.data
+        elif param_name == "OMIT_PARAM":
+            assert "employee" not in response.data, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        else:
+            assert response.data["employee"] == e1.pk, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        t1.refresh_from_db()
+        assert t1.period_start == datetime.date(2024, 2, 16)
+        assert t1.employee_id == e1.pk  # unchanged: never supplied, so the partial update left it alone
+
     def test_update_timesheet_with_non_existing_field(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
