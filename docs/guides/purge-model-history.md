@@ -7,7 +7,7 @@ status: draft
 
 # Purge Model History Rows
 
-VUEDA ships no retention policy. With `vueda.history` installed, every tracked model keeps every event it has ever recorded, and those tables only grow. When history stops being useful depends on your data, your regulator, and your storage budget. VUEDA leaves that call to you.
+VUEDA ships no retention policy. Every tracked model keeps every event it has ever recorded, and those tables only grow. When history stops being useful depends on your data, your regulator, and your storage budget. VUEDA leaves that call to you.
 
 This guide covers deleting event rows once you have decided which ones to remove.
 
