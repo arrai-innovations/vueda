@@ -25,7 +25,6 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
-from django.db.models import Q
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from rest_flex_fields import WILDCARD_VALUES
@@ -46,6 +45,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import annotate_formatted_name
+from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
@@ -183,91 +183,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         Calls ``RowLevelPermissions.check_queryset`` and, when the model has a workflow,
         also annotates state permission info and calls ``check_queryset_workflow``.
         """
-        model = queryset.model
-        row_level_permissions = getattr(model, "RowLevelPermissions", None)
-
-        permission_name = perm_type
-        if perm_type in settings.PERMISSION_NAMES_MAPPING:
-            permission_name = settings.PERMISSION_NAMES_MAPPING[perm_type]
-
-        perm = f"{model._meta.app_label}.{permission_name}_{model._meta.model_name}"
-
-        if row_level_permissions is not None:
-            optional_q = row_level_permissions.check_queryset(
-                queryset,
-                perm,
-                self.request.user,
-                perm_type,
-            )
-            if isinstance(optional_q, Q):
-                queryset = queryset.filter(optional_q)
-            elif optional_q is False:
-                return queryset.none()
-            # else, optional_q is None or True, so we don't filter
-
-        # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
-        # Apply them even when the model does not define RowLevelPermissions.
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            from vueda.workflow.models import HasWorkflowModelMixin
-            from vueda.workflow.models import StatePermission
-            from vueda.workflow.models import Workflow
-
-            if issubclass(model, HasWorkflowModelMixin):
-                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-                if workflow:
-                    from django.contrib.contenttypes.models import ContentType
-                    from django.db.models import Exists
-                    from django.db.models import OuterRef
-
-                    codename = perm.rsplit(".", maxsplit=1)[-1]
-                    content_type = ContentType.objects.get_for_model(model)
-                    user = self.request.user
-
-                    state_denied = Exists(
-                        StatePermission.objects.filter(
-                            state=OuterRef("object_states_proxy__state"),
-                            state__workflow=workflow,
-                            permission__codename=codename,
-                            permission__content_type=content_type,
-                            group__in=user.groups.all(),
-                            grant_or_deny=False,
-                        )
-                    )
-                    state_granted = Exists(
-                        StatePermission.objects.filter(
-                            state=OuterRef("object_states_proxy__state"),
-                            state__workflow=workflow,
-                            permission__codename=codename,
-                            permission__content_type=content_type,
-                            group__in=user.groups.all(),
-                            grant_or_deny=True,
-                        )
-                    )
-                    queryset = queryset.annotate(
-                        _state_denied=state_denied,
-                        _state_granted=state_granted,
-                    )
-
-                    if user.has_perm(perm):
-                        queryset = queryset.filter(_state_denied=False)
-                    else:
-                        queryset = queryset.filter(_state_denied=False, _state_granted=True)
-
-                    if row_level_permissions is not None:
-                        workflow_q = row_level_permissions.check_queryset_workflow(
-                            queryset,
-                            perm,
-                            user,
-                            perm_type,
-                            "_state_denied",
-                            "_state_granted",
-                        )
-                        if isinstance(workflow_q, Q):
-                            queryset = queryset.filter(workflow_q)
-                        elif workflow_q is False:
-                            return queryset.none()
-
-        return queryset
+        return filter_rows_for_user(queryset, self.request.user, perm_type=perm_type)
 
     def get_column_info(self, queryset):
         """Return aggregated totals for any fields listed in ``column_totals``."""
