@@ -12,6 +12,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.urls import NoReverseMatch
 from django.urls import reverse
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -400,3 +401,25 @@ class TestHistoryQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseT
         assert len(large.captured_queries) == len(small.captured_queries), (
             "a page of history must not cost one query per event or per referenced row"
         )
+
+
+@pytest.mark.django_db
+class TestOptedOutModels:
+    """A model that records no history offers none, rather than an endpoint that fails."""
+
+    def test_a_tracked_model_offers_the_history_action(self):
+        from tests.store import viewsets as store_viewsets
+
+        names = {action.__name__ for action in store_viewsets.DistributorViewSet.get_extra_actions()}
+        assert "history_list" in names
+
+    def test_an_opted_out_model_offers_no_history_action(self):
+        from tests.store import viewsets as store_viewsets
+
+        names = {action.__name__ for action in store_viewsets.OrderItemCompositePKViewSet.get_extra_actions()}
+        assert "history_list" not in names
+
+    def test_an_opted_out_model_has_no_history_route(self):
+        reverse("store.orderitemcompositepk-detail", kwargs={"pk": "1,1"})  # the model is routed
+        with pytest.raises(NoReverseMatch):
+            reverse("store.orderitemcompositepk-history-list", kwargs={"pk": "1,1"})

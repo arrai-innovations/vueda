@@ -122,13 +122,13 @@ class DistributorProxyFilterSet(VuedaFilterSet):
 Point the viewset at the proxy model and proxy serializer. Override `get_allowed_extra_actions` if the proxy needs different action visibility than the parent:
 
 ```python
-from vueda.history.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaViewSet
 from .filtersets import DistributorProxyFilterSet
 from .models import DistributorProxy
 from .serializers import DistributorProxySerializer
 
 
-class DistributorProxyViewSet(VuedaHistoryViewSet):
+class DistributorProxyViewSet(VuedaViewSet):
     queryset = DistributorProxy.objects.all()
     serializer_class = DistributorProxySerializer
     filterset_class = DistributorProxyFilterSet
@@ -188,5 +188,5 @@ History records do not have their own `ContentType`. The history expand (`first_
     - {@api py:class:vueda.history.models.VuedaHistoryModel}
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
     - {@api py:class:vueda.history.serializers.VuedaHistorySerializer}
-    - {@api py:class:vueda.history.viewsets.VuedaHistoryViewSet}
+    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
     - {@api py:function:vueda.info.registration.register}

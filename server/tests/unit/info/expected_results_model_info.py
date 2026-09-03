@@ -607,6 +607,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "option types",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.optiontype",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.optiontype",
@@ -654,6 +662,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.optiontype",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "list",
                     "bulk": False,
@@ -1351,6 +1367,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "carts",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.cart",
@@ -1404,6 +1428,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "abandoned-carts-count",
                     "bulk": False,
@@ -2858,6 +2890,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "inventory entry reasons",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.inventoryrecordreason",
@@ -2904,7 +2944,16 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [],
+            "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.inventoryrecordreason",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+            ],
             "expected_expands": [],
             "expected_fields": {
                 "object_revision": {
@@ -5840,6 +5889,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "inventory entries",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.inventoryrecord",
@@ -5886,7 +5943,16 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [],
+            "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.inventoryrecord",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+            ],
             "expected_expands": [
                 {
                     "name": "product_option",
@@ -6624,6 +6690,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "cart items",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.cartitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.cartitem",
@@ -6648,6 +6722,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.cartitem",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "list",
                     "bulk": False,
@@ -6952,6 +7034,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "Packing Boxes",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.packingbox",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.packingbox",
@@ -6999,6 +7089,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.packingbox",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "list",
                     "bulk": False,
@@ -7620,6 +7718,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "order composite pks",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.ordercompositepk",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.ordercompositepk",
@@ -7667,6 +7773,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.ordercompositepk",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "list",
                     "bulk": False,
@@ -8457,6 +8571,14 @@ EXPECTED_RESULTS = [
             "verbose_name_plural": "notes",
             "expected_actions_admin": [
                 {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.note",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
                     "name": "list",
                     "bulk": False,
                     "description": "list store.note",
@@ -8504,6 +8626,14 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "history-list",
+                    "bulk": False,
+                    "description": "history-list store.note",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "list",
                     "bulk": False,

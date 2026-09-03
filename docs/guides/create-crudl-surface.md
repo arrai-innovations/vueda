@@ -75,7 +75,7 @@ The `NoExtraFieldsSerializerMixin` (which `VuedaSerializer` includes) rejects un
 
 ## ViewSet Contract
 
-The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet` for standard models or `VuedaHistoryViewSet` for models that include audit history. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
+The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet`. It carries the history endpoint for every model that records history, so no history-specific base class exists. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet

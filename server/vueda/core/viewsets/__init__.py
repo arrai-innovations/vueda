@@ -51,7 +51,12 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.history.actions import build_action_groups
+from vueda.history.queries import action_groups_for
+from vueda.history.queries import events_in_groups
 from vueda.history.revision import annotate_object_revision
+from vueda.history.revision import is_tracked
+from vueda.history.serializers.actions import HistoryActionGroupSerializer
 
 
 class WarningConfirmationMixin:
@@ -838,6 +843,39 @@ class VuedaViewSet(
         # outside one.
         if self.action:
             pghistory.context(action=self.action)
+
+    @classmethod
+    def get_extra_actions(cls):
+        """Drop the history endpoint for a model that records no history.
+
+        Every consumer of the extra actions reads this: the router that builds the routes, the
+        permitted-action list the client renders, and the model-info metadata. Gating here means an
+        opted-out model has no history route, no control, and no schema entry, rather than a route
+        that answers with an error.
+        """
+        extra_actions = super().get_extra_actions()
+        model = getattr(getattr(cls, "queryset", None), "model", None)
+        if model is None:
+            model = getattr(getattr(getattr(cls, "serializer_class", None), "Meta", None), "model", None)
+        if model is not None and not is_tracked(model):
+            extra_actions = [action for action in extra_actions if action.__name__ != "history_list"]
+        return extra_actions
+
+    @action(detail=True, methods=["get"])
+    def history_list(self, request, pk=None):
+        """Return this object's history as the user actions behind it.
+
+        A page is a page of actions. One action that wrote several rows stays whole, because the
+        grouping and the visibility filter both run in the database before the paginator sees
+        anything.
+        """
+        # get_object() authorizes the requested object, which is what makes its own events visible.
+        instance = self.get_object()
+        groups = action_groups_for(instance, request.user)
+        page = self.paginate_queryset(groups)
+        events = events_in_groups(instance, request.user, [group["group_key"] for group in page])
+        serializer = HistoryActionGroupSerializer(build_action_groups(instance, page, events), many=True)
+        return self.get_paginated_response(serializer.data)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
