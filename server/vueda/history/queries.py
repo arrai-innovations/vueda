@@ -11,7 +11,11 @@ __all__ = (
     "events_in_groups",
 )
 
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.db.models import BigIntegerField
+from django.db.models import CharField
 from django.db.models import F
+from django.db.models import Func
 from django.db.models import Min
 from django.db.models import TextField
 from django.db.models.functions import Cast
@@ -32,17 +36,34 @@ def _visible_events(instance, user):
     )
 
 
+class _First(Func):
+    """The first element of an ordered array aggregate."""
+
+    arity = 1
+    template = "(%(expressions)s)[1]"
+
+
+#: The order of events inside a group, which also names the group's earliest event.
+EVENT_ORDER = ("pgh_created_at", "pgh_obj_model", "pgh_id")
+
+
 def action_groups_for(instance, user):
     """One row per action, newest first, ready to paginate.
 
-    Actions that share a recorded time break the tie on the group key, which is unique, so a page
-    boundary stays in the same place between requests.
+    Actions that share a recorded time break the tie on their earliest event's identifier parts,
+    the tracked model label and then the numeric event id, which is the published rule. That keeps
+    a page boundary in the same place between requests without comparing identifiers as strings,
+    where ``:9`` would sort after ``:10``.
     """
     return (
         _visible_events(instance, user)
         .values("group_key")
-        .annotate(recorded_at=Min("pgh_created_at"))
-        .order_by("-recorded_at", "group_key")
+        .annotate(
+            recorded_at=Min("pgh_created_at"),
+            first_model=_First(ArrayAgg("pgh_obj_model", order_by=EVENT_ORDER), output_field=CharField()),
+            first_id=_First(ArrayAgg("pgh_id", order_by=EVENT_ORDER), output_field=BigIntegerField()),
+        )
+        .order_by("-recorded_at", "first_model", "first_id")
     )
 
 
@@ -53,8 +74,4 @@ def events_in_groups(instance, user, group_keys):
     The tracked model label and the event id break a tie, which keeps a rendered group from
     reshuffling between requests.
     """
-    return (
-        _visible_events(instance, user)
-        .filter(group_key__in=list(group_keys))
-        .order_by("pgh_created_at", "pgh_obj_model", "pgh_id")
-    )
+    return _visible_events(instance, user).filter(group_key__in=list(group_keys)).order_by(*EVENT_ORDER)

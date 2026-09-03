@@ -5,15 +5,20 @@ history. These assertions are the public contract, so changing one changes the r
 integrator depends on.
 """
 
+from datetime import timedelta
 from http import HTTPStatus
 from typing import ClassVar
 
+import pgtrigger
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import NoReverseMatch
 from django.urls import reverse
+from django.utils import timezone
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
@@ -21,6 +26,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
 from vueda.core.audit import audited_action
+from vueda.workflow.models import StatePermission
 
 
 @pytest.mark.django_db
@@ -208,6 +214,67 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         assert group["label"] == "partial_update"
         assert group["actor"] == {"id": reader.pk, "display": reader.formatted_name, "missing": False}
 
+    def test_repeated_updates_in_one_action_are_separate_events(self, reader_client, reader, written):
+        distributor, _ = written
+        with audited_action("distributor.rename", kind="command"):
+            distributor.name = "Widget Co. Ltd."
+            distributor.save()
+            distributor.name = "Widget Company Ltd."
+            distributor.save()
+        group = self.action_group(reader_client, distributor, "distributor.rename")
+
+        assert [(event["relation"], event["type"]) for event in group["events"]] == [("self", "updated")] * 2
+        # The generated formatted_name column changes alongside name, so pick the name change out.
+        assert [[c for c in event["changes"] if c["field"] == "name"] for event in group["events"]] == [
+            [{"field": "name", "old": "Widget Co.", "new": "Widget Co. Ltd."}],
+            [{"field": "name", "old": "Widget Co. Ltd.", "new": "Widget Company Ltd."}],
+        ]
+
+    def test_a_deleted_actor_is_marked_missing(self, reader_client, written):
+        distributor, _ = written
+        actor = get_user_model().objects.create_user(email="gone@domain.invalid", name="Gone", password="x")
+        actor_pk = actor.pk
+        with audited_action("distributor.touch", kind="request", user=actor_pk):
+            distributor.description = "Touched by someone who has since left."
+            distributor.save()
+        actor.delete()
+        group = self.action_group(reader_client, distributor, "distributor.touch")
+
+        assert group["actor"] == {"id": actor_pk, "display": None, "missing": True}
+
+    def record_event(self, instance, recorded_at):
+        """Write an event row directly, as a replay of older history would, with a chosen time.
+
+        ``pgh_created_at`` is ``auto_now_add``, so the time is set after the insert, inside the
+        named append-only ignore the purge guide uses.
+        """
+        event_model = type(instance).pgh_event_model
+        snapshot = {field.attname: getattr(instance, field.attname) for field in type(instance)._meta.concrete_fields}
+        event = event_model.objects.create(pgh_label="update", pgh_obj_id=instance.pk, **snapshot)
+        with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
+            event_model.objects.filter(pk=event.pk).update(pgh_created_at=recorded_at)
+        return event
+
+    def test_groups_sharing_a_time_order_by_their_earliest_event(self, reader_client, written):
+        """The published tie rule: tracked model label, then numeric event id, never the id as text."""
+        distributor, product = written
+        # A moment no recorded group shares, so the tie is only among the three written here.
+        same_moment = timezone.now() - timedelta(days=1)
+        # Written in the reverse of the expected order, so insertion order cannot pass this by luck.
+        later_id = self.record_event(distributor, same_moment)
+        product_event = self.record_event(product, same_moment)
+        earlier_id = self.record_event(distributor, same_moment)
+        assert earlier_id.pgh_id > later_id.pgh_id, "the test needs the higher id written first"
+
+        results = self.history(reader_client, distributor)["results"]
+        tied = [group["id"] for group in results if group["recorded_at"] == results[-1]["recorded_at"]]
+
+        assert tied == [
+            f"store.Distributor:{later_id.pgh_id}",
+            f"store.Distributor:{earlier_id.pgh_id}",
+            f"store.Product:{product_event.pgh_id}",
+        ]
+
     def test_history_requires_authentication(self, api_client, written):
         distributor, _ = written
         response = api_client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
@@ -326,6 +393,123 @@ class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin,
 
         assert change["old"] == {"id": size_pk, "display": None, "missing": True}
         assert change["new"]["missing"] is False
+
+
+@pytest.mark.django_db
+class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """An event the requester may not read is removed before pagination and leaves no trace.
+
+    A customer's history reaches two related models with different rules. A cart has no row
+    rules, so its events follow model-level read alone and survive the cart's deletion. An order
+    participates in a workflow, so its events follow the row's current state and vanish with it.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer Reader": [
+            ("store", "Customer", "read"),
+            ("store", "Cart", "read"),
+            ("store", "CustomerOrder", "read"),
+        ],
+        "Customer Only": [
+            ("store", "Customer", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "full_reader@domain.invalid": {"name": "Full Reader", "password": "testpass", "groups": ["Customer Reader"]},
+        "customer_only@domain.invalid": {"name": "Customer Only", "password": "testpass", "groups": ["Customer Only"]},
+        "the_customer@domain.invalid": {"name": "The Customer", "password": "testpass", "groups": []},
+    }
+
+    @pytest.fixture
+    def written(self):
+        """A customer, then one action that creates a cart and an order for it.
+
+        The onboarding action writes only related rows, so a requester who may read none of them
+        must not see the action at all.
+        """
+        customer = store_models.Customer.objects.create(user=self.users["the_customer@domain.invalid"])
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        with audited_action("customer.onboard", kind="command"):
+            cart = store_models.Cart.objects.create(customer=customer)
+            order = store_models.CustomerOrder.objects.create(
+                order_number=1001, customer=customer, order_state=order_state, shipping_method="free"
+            )
+        return customer, cart, order
+
+    def history(self, client, email, customer):
+        client.force_authenticate(user=get_user_model().objects.get(email=email))
+        response = client.get(reverse("store.customer-history-list", kwargs={"pk": customer.pk}))
+        self.assert_response(response, HTTPStatus.OK)
+        return response.data
+
+    @staticmethod
+    def models_seen(data):
+        return [(event["model"], event["type"]) for group in data["results"] for event in group["events"]]
+
+    def test_a_reader_of_every_model_sees_every_event(self, api_client, written):
+        customer, _, _ = written
+        data = self.history(api_client, "full_reader@domain.invalid", customer)
+
+        assert data["totalRecords"] == 2, "the onboarding action plus the context-less create"  # noqa: PLR2004
+        assert self.models_seen(data) == [
+            ("store.Cart", "created"),
+            ("store.CustomerOrder", "created"),
+            ("store.Customer", "created"),
+        ]
+
+    def test_a_related_event_needs_model_level_read(self, api_client, written):
+        customer, cart, _ = written
+        with audited_action("cart.reserve", kind="command"):
+            cart.reserved_until = "12:00"
+            cart.save()
+
+        data = self.history(api_client, "customer_only@domain.invalid", customer)
+
+        assert self.models_seen(data) == [("store.Customer", "created")]
+        assert data["totalRecords"] == 1, "a group whose only events are hidden does not count"
+        assert [group["label"] for group in data["results"]] == [None], "nor does it appear"
+
+    def test_a_state_denied_related_row_hides_its_events(self, api_client, written):
+        customer, _, order = written
+        StatePermission.objects.create(
+            state=order.object_state.state,
+            permission=Permission.objects.get(codename="read_customerorder", content_type__app_label="store"),
+            group=Group.objects.get(name="Customer Reader"),
+            grant_or_deny=False,
+        )
+
+        data = self.history(api_client, "full_reader@domain.invalid", customer)
+
+        assert ("store.CustomerOrder", "created") not in self.models_seen(data)
+        assert ("store.Cart", "created") in self.models_seen(data), "the deny reaches only the order"
+
+    def test_a_deleted_row_without_row_rules_keeps_its_events(self, api_client, written):
+        customer, cart, _ = written
+        cart_pk = cart.pk
+        with audited_action("cart.abandon", kind="command"):
+            cart.delete()
+
+        data = self.history(api_client, "full_reader@domain.invalid", customer)
+        abandon = next(group for group in data["results"] if group["label"] == "cart.abandon")
+
+        assert self.models_seen(data).count(("store.Cart", "created")) == 1
+        assert [(e["model"], e["type"], e["relation"], e["object_id"], e["changes"]) for e in abandon["events"]] == [
+            ("store.Cart", "deleted", "related", str(cart_pk), [])
+        ]
+
+    def test_a_deleted_row_with_row_rules_loses_its_events(self, api_client, written):
+        customer, _, order = written
+        with audited_action("order.void", kind="command"):
+            order.delete()
+
+        data = self.history(api_client, "full_reader@domain.invalid", customer)
+
+        assert "store.CustomerOrder" not in {model for model, _ in self.models_seen(data)}
+        assert "order.void" not in [group["label"] for group in data["results"]], (
+            "a group left with no visible event does not appear"
+        )
+        assert data["totalRecords"] == 2, "onboarding still shows its cart event"  # noqa: PLR2004
 
 
 @pytest.mark.django_db
