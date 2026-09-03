@@ -260,11 +260,8 @@ def test_the_history_api_is_part_of_the_core_viewset():
 
         django.setup()
 
-        from vueda.core.serializers import VuedaSerializer
         from vueda.core.viewsets import VuedaViewSet
-        from vueda.history.serializers import VuedaHistorySerializer
 
-        assert issubclass(VuedaHistorySerializer, VuedaSerializer)
         assert "history_list" in {action.__name__ for action in VuedaViewSet.get_extra_actions()}
         """
     )

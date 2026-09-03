@@ -266,70 +266,6 @@ class TestProductViewSet(BaseTestModelViewSet):
             f"supervisor message: {response.data['supervisor'][0]['message']}"
         )
 
-    def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
-        instance = page_data.first()
-
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry"}
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-        self.update_expected_retrieve_response(expected_retrieve_response, instance)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "first_history_entry" in response.data
-        assert "history" in response.data
-        # The first history record should be the same as the first_history_entry.
-        assert response.data["history"][0] == response.data["first_history_entry"]
-        # Remove history.  We will use first_history_entry for other asserts.
-        del response.data["history"]
-        first_history_entry = response.data.pop("first_history_entry")
-        # Remove the history fields, copying the history id as current history id,
-        # since that is supposed to be in the response.
-        for key in (
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ):
-            del first_history_entry[key]
-        first_history_entry["object_revision"] = expected_retrieve_response["object_revision"]
-        # Now these dictionaries are the same.
-        assert expected_retrieve_response == response.data
-        assert first_history_entry == expected_retrieve_response
-
-    def test_retrieve_with_history_first_and_last_expands(self, page_data, authenticated_client, update_arguments):
-        instance = page_data.first()
-
-        # Create a second history entry so first_history_entry and last_history_entry can be
-        # distinguished from each other (a freshly created instance only has one history entry).
-        update_response = authenticated_client.put(self.detail_url(instance.id), data=update_arguments, format="json")
-        assert update_response.status_code == HTTPStatus.OK, response_body(update_response)
-
-        detail_querystring = {
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
-        }
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "history" in response.data
-        assert "first_history_entry" in response.data
-        assert "last_history_entry" in response.data
-
-        history = response.data["history"]
-        assert len(history) == 2, f"history data: {history}"  # noqa: PLR2004
-
-        # history is ordered most-recent-first (history_date descending).
-        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
-        assert response.data["last_history_entry"] == history[0], (
-            f"last_history_entry should be the most recent history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] == history[-1], (
-            f"first_history_entry should be the oldest history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
-            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
-        )
-
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
         pks = list(page_data.values_list("pk", flat=True))
 
@@ -340,7 +276,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,second_history_entry"}
+        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
@@ -352,8 +288,7 @@ class TestProductViewSet(BaseTestModelViewSet):
             f"second_history_entry data: {response.data['second_history_entry'][0]}"
         )
         assert (
-            str(response.data["second_history_entry"][0]["message"])
-            == "Invalid expands. Permitted expands are first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all"
+            str(response.data["second_history_entry"][0]["message"]) == "Invalid expands. No expands are permitted."
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data
 
@@ -389,7 +324,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid expands. Permitted expands are distributor, distributor.first_history_entry, distributor.history, distributor.last_history_entry, first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
 
@@ -419,7 +354,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, distributor.object_revision, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
 
@@ -759,7 +694,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands. Permitted expands are employee, first_history_entry, foo, history, last_history_entry, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
+            == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data
 
@@ -1841,34 +1776,6 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
         expected_update_response["formatted_name"] = expected_update_response["name"]
-
-    def test_retrieve_with_history_expand(self, page_data, authenticated_client, expected_retrieve_response):
-        instance = page_data.first()
-
-        detail_querystring = {
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
-        }
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-
-        self.update_expected_retrieve_response(expected_retrieve_response, instance)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "first_history_entry" in response.data
-        assert "history" in response.data
-        assert "last_history_entry" in response.data
-
-        history = response.data["history"]
-        # history is ordered most-recent-first (history_date descending).
-        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
-        assert response.data["last_history_entry"] == history[0], (
-            f"last_history_entry should be the most recent history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] == history[-1], (
-            f"first_history_entry should be the oldest history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
-            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
-        )
 
 
 @pytest.mark.django_db

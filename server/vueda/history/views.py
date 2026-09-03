@@ -1,12 +1,8 @@
 """Views for history-aware who-is and object history retrieval."""
 
-__all__ = (
-    "GetObjectHistoryView",
-    "WhoIsView",
-)
+__all__ = ("GetObjectHistoryView",)
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 from rest_framework import status as drf_status
@@ -19,25 +15,6 @@ from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_open_api_parameter
 from vueda.core.permissions import DjangoObjectPermissions
-from vueda.history.revision import annotate_object_revision
-from vueda.user.views import WhoIsView as CoreWhoIsView
-
-
-class WhoIsView(CoreWhoIsView):
-    """Core who-is view with the current history id annotated.
-
-    ``vueda.user`` does not import ``vueda.history``, so the history-aware variant lives here and a
-    project routes ``who-is/`` to it instead of the core view.
-    """
-
-    def get_serializer_class(self):
-        from vueda.history.serializers.users import WhoIsSerializer
-
-        return WhoIsSerializer
-
-    def get_object(self):
-        queryset = annotate_object_revision(get_user_model().objects.filter(pk=self.request.user.pk))
-        return queryset.get(pk=self.request.user.pk)
 
 
 class DynamicObjectPermissions(DjangoObjectPermissions):
