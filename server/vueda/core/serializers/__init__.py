@@ -39,6 +39,10 @@ from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
+from vueda.history.revision import REVISION_ANNOTATION
+from vueda.history.revision import ObjectRevisionField
+from vueda.history.revision import annotate_object_revision
+from vueda.history.revision import is_tracked
 from vueda.info.registration import get_serializer_for_model
 
 
@@ -613,10 +617,23 @@ class VuedaListSerializer(serializers.ListSerializer):
 
     def to_representation(self, data):
         child_model = getattr(getattr(self.child, "Meta", None), "model", None)
-        if child_model and hasattr(data, "annotate"):
-            existing = getattr(getattr(data, "query", None), "annotations", {})
-            if "formatted_name" not in existing:
-                data = annotate_formatted_name(data)
+        if child_model:
+            # A relation arrives as its manager. Resolve it the way the parent does, because a
+            # manager reports no annotations and no result cache, so every check below would say
+            # "not yet done" and annotate a prefetched relation into a fresh query per row.
+            if hasattr(data, "all"):
+                data = data.all()
+            if hasattr(data, "annotate"):
+                existing = getattr(getattr(data, "query", None), "annotations", {})
+                # Annotating a queryset that has already run clones it and discards the prefetch
+                # cache. A relation the project prefetched itself arrives that way, so leave it be;
+                # its rows publish no revision.
+                already_fetched = getattr(data, "_result_cache", None) is not None
+                if not already_fetched:
+                    if "formatted_name" not in existing:
+                        data = annotate_formatted_name(data)
+                    if REVISION_ANNOTATION not in existing:
+                        data = annotate_object_revision(data)
         return super().to_representation(data)
 
 
@@ -635,6 +652,40 @@ class VuedaSerializer(
 
     available_actions = AvailableActionsField()
     formatted_name = serializers.ReadOnlyField(style={"hidden": True})
+    object_revision = ObjectRevisionField()
+
+    def get_fields(self):
+        fields = super().get_fields()
+        model = getattr(getattr(self, "Meta", None), "model", None)
+        if model is not None and not is_tracked(model):
+            # An opted-out model publishes no revision, because it records nothing to revise.
+            fields.pop("object_revision", None)
+        return fields
+
+    def _reload_with_revision(self, instance):
+        """Re-read a written row so its revision annotation is present.
+
+        A create or update returns the instance the write produced, which carries no annotation.
+        The nested writable path reuses one serializer class for parent and child, so the view's
+        queryset may belong to a different model than the instance; fall back to the instance's own
+        manager in that case.
+        """
+        if not is_tracked(type(instance)):
+            return instance
+        model = type(instance)
+        view = self.context.get("view")
+        view_queryset = view.get_queryset() if view is not None else None
+        queryset = view_queryset if view_queryset is not None and view_queryset.model is model else None
+        if queryset is None:
+            queryset = annotate_object_revision(model._default_manager.all())
+        reloaded = queryset.filter(pk=instance.pk).first()
+        return reloaded if reloaded is not None else instance
+
+    def create(self, validated_data):
+        return self._reload_with_revision(super().create(validated_data))
+
+    def update(self, instance, validated_data):
+        return self._reload_with_revision(super().update(instance, validated_data))
 
     def get_warnings(self):
         """
@@ -670,7 +721,7 @@ class VuedaSerializer(
 
     class Meta:
         expandable_fields = {}
-        fields = ["formatted_name", "available_actions"]
+        fields = ["formatted_name", "available_actions", "object_revision"]
         list_serializer_class = VuedaListSerializer
 
 

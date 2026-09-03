@@ -105,7 +105,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert valid_fields == {
             "available_actions",
-            "current_history_id",
+            "object_revision",
             "customer",
             "customer.dict_data",
             "customer.first_history_entry",
@@ -203,7 +203,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert valid_fields == {
             "available_actions",
-            "current_history_id",
+            "object_revision",
             "customer",
             "customer.dict_data",
             "customer.first_history_entry",
@@ -528,8 +528,8 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             assert e.detail == {
                 "invalid_field_name": [
                     ErrorDetail(
-                        "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
-                        "formatted_name, id, period_end, period_start, supervisor.",
+                        "Invalid field.  Valid fields are available_actions, employee, "
+                        "formatted_name, id, object_revision, period_end, period_start, supervisor.",
                         code="invalid",
                     )
                 ]
@@ -976,7 +976,9 @@ class TestVuedaReadonlySerializer:
         serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
 
         assert {field.read_only for field in serializer.fields.values()} == {True}
-        assert set(store_serializers.CustomerDataSerializer.Meta.read_only_fields) == set(serializer.fields.keys())
+        # An unmanaged model records no history, so it publishes no revision even though the
+        # declared field list names one. Every field it does publish must still be read only.
+        assert set(serializer.fields.keys()) <= set(store_serializers.CustomerDataSerializer.Meta.read_only_fields)
 
     def test_list_serializer_class_is_readonly_variant(self):
         assert store_serializers.CustomerDataSerializer.Meta.list_serializer_class is VuedaReadonlyListSerializer

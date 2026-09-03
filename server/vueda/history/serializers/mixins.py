@@ -14,12 +14,8 @@ from vueda.history.fields import filter_fields_for_flexlike_on_historical_record
 
 
 class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    current_history_id = drf_serializers.IntegerField(
-        read_only=True, label="Current History ID", style={"hidden": True}
-    )
-
     class Meta:
-        fields = ["current_history_id"]
+        fields = []
         expandable_fields = {
             "history": (
                 HistoricalRecordField,
@@ -220,7 +216,7 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
             for field_name, field in fields.items():
                 if "pk" in field:
                     del field["pk"]
-                if field_name not in {"available_actions", "current_history_id"}:
+                if field_name not in {"available_actions", "object_revision"}:
                     sorted_expandable_data[field_name] = field
 
             if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expandable_field:
@@ -252,26 +248,6 @@ class SimpleHistorySerializerMixin(metaclass=drf_serializers.SerializerMetaclass
         if not value_fields:
             return {}
         return data.history.values(*value_fields).first()
-
-    def return_annotated_instance(self, instance):
-        # Return the instance re-fetched through a queryset so current_history_id is populated
-        # (SimpleHistoryManager.get_queryset() annotates it; a bare create()/save() result won't have it).
-        # nested writable reuses the same serializer class for creating and updating nested models, so
-        # self.context["view"] may belong to a different (parent) model than `instance` -- in that case
-        # fall back to the instance's own model manager instead of the view's queryset.
-        view_queryset = self.context["view"].get_queryset()
-        model = type(instance)
-        queryset = view_queryset if view_queryset.model is model else model._default_manager
-        annotated_instance = queryset.filter(id=instance.id).first()
-        return annotated_instance if annotated_instance is not None else instance
-
-    def create(self, validated_data):
-        created_instance = super().create(validated_data)
-        return self.return_annotated_instance(created_instance)
-
-    def update(self, instance, validated_data):
-        updated_instance = super().update(instance, validated_data)
-        return self.return_annotated_instance(updated_instance)
 
 
 class HistoricalModelSerializerMixin(drf_serializers.Serializer):

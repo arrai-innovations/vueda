@@ -7,27 +7,11 @@ records through pghistory, so the simple-history pieces sit with the models that
 
 __all__ = (
     "ProxyAwareHistoricalRecords",
-    "SimpleHistoryManager",
     "SimpleHistoryModelMixin",
 )
 
 from django.db import models
-from django.db.models import Max
-from django.db.models import OuterRef
-from django.db.models import Subquery
 from simple_history.models import HistoricalRecords
-
-
-class SimpleHistoryManager(models.Manager):
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.annotate(
-            current_history_id=Subquery(
-                queryset.filter(history_records__id=OuterRef("pk"))
-                .annotate(current_history_id=Max("history_records__history_id"))
-                .values("current_history_id")
-            )
-        )
 
 
 class ProxyAwareHistoricalRecords(HistoricalRecords):
@@ -61,8 +45,6 @@ class ProxyAwareHistoricalRecords(HistoricalRecords):
 
 
 class SimpleHistoryModelMixin(models.Model):
-    objects = SimpleHistoryManager()
-
     history = ProxyAwareHistoricalRecords(related_name="history_records", inherit=True)
 
     class Meta:

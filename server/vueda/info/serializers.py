@@ -2129,15 +2129,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                         "type_model": "GeneratedField",
                                                         "type_serializer": "ModelField",
                                                     },
-                                                    "current_history_id": {
+                                                    "object_revision": {
                                                         "choices": False,
-                                                        "label": "Current History ID",
+                                                        "label": "Object Revision",
                                                         "many": False,
                                                         "read_only": True,
                                                         "required": False,
                                                         "type_db": None,
                                                         "type_model": None,
-                                                        "type_serializer": "IntegerField",
+                                                        "type_serializer": "ObjectRevisionField",
                                                     },
                                                 },
                                             },
@@ -2944,15 +2944,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 "type_model": "GeneratedField",
                                                 "type_serializer": "ModelField",
                                             },
-                                            "current_history_id": {
+                                            "object_revision": {
                                                 "choices": False,
-                                                "label": "Current History ID",
+                                                "label": "Object Revision",
                                                 "many": False,
                                                 "read_only": True,
                                                 "required": False,
                                                 "type_db": None,
                                                 "type_model": None,
-                                                "type_serializer": "IntegerField",
+                                                "type_serializer": "ObjectRevisionField",
                                             },
                                         },
                                     }

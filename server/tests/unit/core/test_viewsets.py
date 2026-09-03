@@ -28,6 +28,7 @@ from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.test_model_info import VuedaTestData
+from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
@@ -181,7 +182,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         return {
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local", "Fresh"],
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "id": instance.id,
             "name": "Apple",
         }
@@ -200,7 +201,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         return {
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local"],
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "formatted_name": "Apple",
             "id": instance.id,
             "name": "Apple",
@@ -243,7 +244,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -290,10 +291,8 @@ class TestProductViewSet(BaseTestModelViewSet):
             "history_user",
             "history_relation",
         ):
-            if key == "history_id":
-                expected_retrieve_response["current_history_id"] = first_history_entry[key]
-                first_history_entry["current_history_id"] = first_history_entry[key]
             del first_history_entry[key]
+        first_history_entry["object_revision"] = expected_retrieve_response["object_revision"]
         # Now these dictionaries are the same.
         assert expected_retrieve_response == response.data
         assert first_history_entry == expected_retrieve_response
@@ -420,7 +419,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.description, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, distributor.object_revision, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
 
@@ -469,14 +468,14 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "order_state",
             "shipping_method",
             "formatted_name",
-            "current_history_id",
+            "object_revision",
             "valid_transitions",
             "workflow_state_code",
             "workflow_state_name",
         } == frozenset(response.data.keys())
         assert isinstance(response.data["customer"], int)
         assert isinstance(response.data["order_items"], list)
-        assert {"id", "customer_order", "product_option", "quantity", "formatted_name"} == frozenset(
+        assert {"id", "customer_order", "product_option", "quantity", "formatted_name", "object_revision"} == frozenset(
             response.data["order_items"][0].keys()
         )
         assert isinstance(response.data["order_items"][0]["customer_order"], int)
@@ -492,6 +491,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "name",
             "sku",
             "quantity_available",
+            "object_revision",
         } == frozenset(response.data["order_items"][0]["product_option"])
         assert isinstance(response.data["order_items"][0]["product_option"]["product"], dict)
 
@@ -623,7 +623,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "employee": self.employee_1.id,
             "id": instance.id,
             "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
@@ -644,7 +644,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "id": instance.id,
             "employee": self.employee_1.id,
             "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
@@ -677,7 +677,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -693,13 +693,13 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         response_info = {x: y for x, y in response.data.items() if x == "results"}
-        current_history_id = response_info["results"][0]["current_history_id"]
-        assert current_history_id is not None
+        object_revision = response_info["results"][0]["object_revision"]
+        assert object_revision is not None
         assert keys == set(response_info["results"][0].keys())
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -735,6 +735,9 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "formatted_name": str(employee.employee_number),
             "id": employee.id,
             "user": employee.user_id,
+            # An expanded object carries no revision. Only the queryset the view builds is
+            # annotated, and a relation resolved through select_related is not.
+            "object_revision": None,
         }
         period_start = instance.period_start
         period_end = instance.period_end
@@ -1397,8 +1400,8 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert errors == {
             "une": [
                 ErrorDetail(
-                    "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
-                    "formatted_name, id, period_end, period_start, supervisor.",
+                    "Invalid field.  Valid fields are available_actions, employee, "
+                    "formatted_name, id, object_revision, period_end, period_start, supervisor.",
                     code="invalid",
                 )
             ]
@@ -1811,7 +1814,7 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "description": "Updated Description",
             "id": instance.id,
             "name": instance.name,
@@ -1821,7 +1824,7 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "description": instance.description,
             "id": instance.id,
             "name": instance.name,

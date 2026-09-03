@@ -51,6 +51,7 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.history.revision import annotate_object_revision
 
 
 class WarningConfirmationMixin:
@@ -441,7 +442,7 @@ def build_prefetch_plan(serializer, model):
             # queryset serving a prefetched relation clones it, discarding the cached prefetch
             # result and forcing one fresh query per row -- the exact regression this plan exists
             # to prevent.
-            related_queryset = annotate_formatted_name(related_model._default_manager.all())
+            related_queryset = annotate_object_revision(annotate_formatted_name(related_model._default_manager.all()))
             if child_select_related:
                 related_queryset = related_queryset.select_related(*child_select_related)
             if child_prefetch_related:
@@ -948,6 +949,7 @@ class VuedaViewSet(
         """
         queryset = super().get_queryset()
         queryset = annotate_formatted_name(queryset)
+        queryset = annotate_object_revision(queryset)
 
         if getattr(self, "action", None) in ("list", "retrieve"):
             serializer = self.get_serializer()

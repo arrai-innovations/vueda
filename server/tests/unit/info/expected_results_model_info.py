@@ -56,14 +56,6 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
                 {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.distributor",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
                     "name": "history-list",
                     "bulk": False,
                     "description": "history-list store.distributor",
@@ -491,11 +483,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -680,6 +672,17 @@ EXPECTED_RESULTS = [
             ],
             "expected_expands": [],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -1280,11 +1283,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -1519,6 +1522,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -1811,14 +1825,6 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
                 {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
                     "name": "history-list",
                     "bulk": False,
                     "description": "history-list store.customerorder",
@@ -1849,14 +1855,6 @@ EXPECTED_RESULTS = [
                     "description": "create store.customerorder",
                     "detail": False,
                     "method_names": ["post"],
-                },
-                {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.customerorder",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
                 },
                 {
                     "name": "history-list",
@@ -2662,11 +2660,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -2909,6 +2907,17 @@ EXPECTED_RESULTS = [
             "expected_actions_customer": [],
             "expected_expands": [],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -3048,14 +3057,6 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
                 {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
                     "name": "history-list",
                     "bulk": False,
                     "description": "history-list store.product",
@@ -3076,14 +3077,6 @@ EXPECTED_RESULTS = [
                     "name": "retrieve",
                     "bulk": False,
                     "description": "retrieve store.product",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.product",
                     "detail": True,
                     "method_names": ["get"],
                     "parameters": ["pk"],
@@ -3119,11 +3112,11 @@ EXPECTED_RESULTS = [
                             "choices": False,
                             "hidden": False,
                         },
-                        "current_history_id": {
-                            "label": "Current History ID",
+                        "object_revision": {
+                            "label": "Object Revision",
                             "type_db": None,
                             "type_model": None,
-                            "type_serializer": "IntegerField",
+                            "type_serializer": "ObjectRevisionField",
                             "many": False,
                             "read_only": True,
                             "required": False,
@@ -3958,11 +3951,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -4420,14 +4413,6 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
                 {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
                     "name": "history-list",
                     "bulk": False,
                     "description": "history-list store.productoption",
@@ -4448,14 +4433,6 @@ EXPECTED_RESULTS = [
                     "name": "retrieve",
                     "bulk": False,
                     "description": "retrieve store.productoption",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.productoption",
                     "detail": True,
                     "method_names": ["get"],
                     "parameters": ["pk"],
@@ -5215,11 +5192,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -5696,6 +5673,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -6265,6 +6253,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -6844,6 +6843,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -7007,6 +7017,17 @@ EXPECTED_RESULTS = [
             ],
             "expected_expands": [],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -7732,6 +7753,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
@@ -7871,14 +7903,6 @@ EXPECTED_RESULTS = [
                     "description": "destroy store.distributorproxy",
                     "detail": True,
                     "method_names": ["delete"],
-                    "parameters": ["pk"],
-                },
-                {
-                    "name": "current",
-                    "bulk": False,
-                    "description": "current store.distributorproxy",
-                    "detail": True,
-                    "method_names": ["get"],
                     "parameters": ["pk"],
                 },
                 {
@@ -8309,11 +8333,11 @@ EXPECTED_RESULTS = [
                     "type_model": None,
                     "type_serializer": "CharField",
                 },
-                "current_history_id": {
-                    "label": "Current History ID",
+                "object_revision": {
+                    "label": "Object Revision",
                     "type_db": None,
                     "type_model": None,
-                    "type_serializer": "IntegerField",
+                    "type_serializer": "ObjectRevisionField",
                     "many": False,
                     "read_only": True,
                     "required": False,
@@ -8507,6 +8531,17 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_fields": {
+                "object_revision": {
+                    "label": "Object Revision",
+                    "type_db": None,
+                    "type_model": None,
+                    "type_serializer": "ObjectRevisionField",
+                    "many": False,
+                    "read_only": True,
+                    "required": False,
+                    "choices": False,
+                    "hidden": True,
+                },
                 "id": {
                     "label": "ID",
                     "type_db": "AutoField",
