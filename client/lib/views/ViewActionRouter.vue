@@ -6,8 +6,8 @@ import { getActionName } from "@vueda/utils/actionMap.js";
 import { getPascalCaseName } from "@vueda/utils/case.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
+import ViewExecuteTransition from "@vueda/views/ViewExecuteTransition.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
-import ViewWorkflowTransition from "@vueda/views/ViewWorkflowTransition.vue";
 import { computedAsync } from "@vueuse/core";
 import { ref, toRef, watch } from "vue";
 
@@ -41,7 +41,7 @@ const props = defineProps({
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
-const getExtraActionComponent = async (action) => {
+const getExtraActionComponent = async (action, fallback) => {
     try {
         // by app, model and action
         return (
@@ -55,7 +55,7 @@ const getExtraActionComponent = async (action) => {
             return (await import(`@/views/ViewAction${getPascalCaseName(action)}.vue`)).default;
         } catch (e) {
             // no extra action component found
-            return ViewAction;
+            return fallback;
         }
     }
 };
@@ -67,8 +67,6 @@ watch(
         const actionName = getActionName(actionStr);
         if (loading) {
             actionComponentRef.value = () => ViewLoading;
-        } else if (actionName === "transition") {
-            actionComponentRef.value = () => ViewWorkflowTransition;
         } else if (!actionsObj && !transitionObjects) {
             actionComponentRef.value = () => ViewActionNotFound;
         } else if (actionsObj?.length || transitionObjects?.length) {
@@ -76,10 +74,20 @@ watch(
             const transition = transitionObjects.find((transition) => transition.code === actionName);
             if (!action && !transition) {
                 actionComponentRef.value = () => ViewActionNotFound;
-            } else if (Object.keys(crudComponents).includes(actionStr)) {
+            } else if (!transition && Object.keys(crudComponents).includes(actionStr)) {
+                // Gated on !transition so a transition code that happens to collide with a
+                // crudComponents key (a default key, or one a project registered via
+                // setCrudComponents) is never shadowed by that registry entry. A transition always
+                // resolves through the naming-convention imports and the ViewExecuteTransition
+                // fallback below instead.
                 actionComponentRef.value = async () => await crudComponents[actionStr](props);
             } else {
-                actionComponentRef.value = async () => await getExtraActionComponent(actionStr);
+                // A recognized transition code falls back to ViewExecuteTransition (submits through
+                // storeWorkflow.executeTransition); every other recognized action falls back to the
+                // generic ViewAction. Either fallback still yields to a project-supplied
+                // ViewAction{App}{Model}{Code}.vue or ViewAction{Code}.vue override.
+                const fallback = transition ? ViewExecuteTransition : ViewAction;
+                actionComponentRef.value = async () => await getExtraActionComponent(actionStr, fallback);
             }
         }
     },
