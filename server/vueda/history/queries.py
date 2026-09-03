@@ -36,8 +36,7 @@ def action_groups_for(instance, user):
     """One row per action, newest first, ready to paginate.
 
     Actions that share a recorded time break the tie on the group key, which is unique, so a page
-    boundary stays in the same place between requests. The database records an event time per
-    transaction, so two actions tie only when one transaction produced both.
+    boundary stays in the same place between requests.
     """
     return (
         _visible_events(instance, user)
@@ -48,11 +47,11 @@ def action_groups_for(instance, user):
 
 
 def events_in_groups(instance, user, group_keys):
-    """Every visible event of the named groups, in the order they belong in a group.
+    """Every visible event of the named groups, in the order they were written.
 
-    Events of one action share a recorded time whenever one transaction produced them, so the
-    tracked model label and the event id decide the order in practice. Both are stable, which is
-    what keeps a rendered group from reshuffling between requests.
+    Each event carries the moment of its own write, so the recorded time orders a group faithfully.
+    The tracked model label and the event id break a tie, which keeps a rendered group from
+    reshuffling between requests.
     """
     return (
         _visible_events(instance, user)

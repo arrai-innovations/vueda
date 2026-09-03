@@ -82,18 +82,19 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         assert data["totalRecords"] == 2, "one action group plus the context-less create"  # noqa: PLR2004
         assert data["totalPages"] == 1
 
-    def test_group_order_is_stable(self, reader_client, written):
-        """A page boundary must land in the same place on every request.
+    def test_groups_are_newest_first(self, reader_client, written):
+        distributor, _ = written
+        results = self.history(reader_client, distributor)["results"]
 
-        The database stamps an event with its transaction's time, so actions written by one
-        transaction share a recorded time and the group key breaks the tie.
-        """
+        assert [group["label"] for group in results] == ["distributor.restock", None]
+
+    def test_group_order_is_stable(self, reader_client, written):
+        """A page boundary must land in the same place on every request."""
         distributor, _ = written
         first = [group["id"] for group in self.history(reader_client, distributor)["results"]]
         second = [group["id"] for group in self.history(reader_client, distributor)["results"]]
 
         assert first == second
-        assert len(first) == 2  # noqa: PLR2004
 
     def action_group(self, client, distributor, label):
         results = self.history(client, distributor)["results"]
@@ -162,6 +163,30 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         group = self.action_group(reader_client, distributor, "distributor.restock")
 
         assert group["recorded_at"] == min(event["recorded_at"] for event in group["events"])
+
+    def test_events_follow_the_order_they_were_written(self, reader_client, reader):
+        """Write the later-named model first, so alphabetical order would give the wrong answer.
+
+        Each event carries the moment of its own write, not its transaction's start, which is what
+        lets one action's events be ordered at all.
+        """
+        distributor = store_models.Distributor.objects.create(name="Order Co.", description="First.")
+        with audited_action("distributor.reorder", kind="command"):
+            store_models.Product.objects.create(
+                name="Written First",
+                description="A product created before the distributor changed.",
+                quantity=1,
+                distributor=distributor,
+                order_between=[1, 2],
+                tangible_type=store_models.TangibleType.objects.get(code="physical"),
+                condition="new",
+            )
+            distributor.description = "Second."
+            distributor.save()
+
+        group = self.action_group(reader_client, distributor, "distributor.reorder")
+
+        assert [event["model"] for event in group["events"]] == ["store.Product", "store.Distributor"]
 
     def test_a_request_records_its_actor_kind_and_action_name(self, reader_client, reader, written):
         distributor, _ = written
