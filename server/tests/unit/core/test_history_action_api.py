@@ -82,15 +82,26 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         assert data["totalRecords"] == 2, "one action group plus the context-less create"  # noqa: PLR2004
         assert data["totalPages"] == 1
 
-    def test_groups_are_newest_first(self, reader_client, written):
-        distributor, _ = written
-        results = self.history(reader_client, distributor)["results"]
+    def test_group_order_is_stable(self, reader_client, written):
+        """A page boundary must land in the same place on every request.
 
-        assert [group["label"] for group in results] == ["distributor.restock", None]
+        The database stamps an event with its transaction's time, so actions written by one
+        transaction share a recorded time and the group key breaks the tie.
+        """
+        distributor, _ = written
+        first = [group["id"] for group in self.history(reader_client, distributor)["results"]]
+        second = [group["id"] for group in self.history(reader_client, distributor)["results"]]
+
+        assert first == second
+        assert len(first) == 2  # noqa: PLR2004
+
+    def action_group(self, client, distributor, label):
+        results = self.history(client, distributor)["results"]
+        return next(row for row in results if row["label"] == label)
 
     def test_one_action_carries_both_of_its_events(self, reader_client, written):
         distributor, product = written
-        group = self.history(reader_client, distributor)["results"][0]
+        group = self.action_group(reader_client, distributor, "distributor.restock")
 
         assert group["action_id"] is not None
         assert group["id"] == group["action_id"]
@@ -105,7 +116,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_an_event_identifier_names_the_tracked_model(self, reader_client, written):
         distributor, _ = written
-        group = self.history(reader_client, distributor)["results"][0]
+        group = self.action_group(reader_client, distributor, "distributor.restock")
         event = group["events"][0]
 
         model, _, event_id = event["id"].rpartition(":")
@@ -114,7 +125,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_an_update_reports_only_the_fields_that_changed(self, reader_client, written):
         distributor, _ = written
-        group = self.history(reader_client, distributor)["results"][0]
+        group = self.action_group(reader_client, distributor, "distributor.restock")
         update = group["events"][0]
 
         assert update["changes"] == [
@@ -128,13 +139,16 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
     def test_a_create_reports_no_changes(self, reader_client, written):
         distributor, _ = written
         results = self.history(reader_client, distributor)["results"]
+        action = next(row for row in results if row["label"] == "distributor.restock")
+        create = next(row for row in results if row["label"] is None)
 
-        assert results[0]["events"][1]["changes"] == [], "an insert has no preceding snapshot"
-        assert results[1]["events"][0]["changes"] == []
+        assert action["events"][1]["changes"] == [], "an insert has no preceding snapshot"
+        assert create["events"][0]["changes"] == []
 
     def test_a_write_outside_an_action_is_its_own_group(self, reader_client, written):
         distributor, _ = written
-        create = self.history(reader_client, distributor)["results"][1]
+        results = self.history(reader_client, distributor)["results"]
+        create = next(row for row in results if row["action_id"] is None)
 
         assert create["action_id"] is None
         assert create["kind"] is None
@@ -145,7 +159,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_the_group_time_is_its_earliest_event(self, reader_client, written):
         distributor, _ = written
-        group = self.history(reader_client, distributor)["results"][0]
+        group = self.action_group(reader_client, distributor, "distributor.restock")
 
         assert group["recorded_at"] == min(event["recorded_at"] for event in group["events"])
 
@@ -158,8 +172,128 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
-        group = self.history(reader_client, distributor)["results"][0]
+        results = self.history(reader_client, distributor)["results"]
+        group = next(row for row in results if row["label"] == "partial_update")
 
         assert group["kind"] == "request"
         assert group["label"] == "partial_update"
         assert group["actor"] == {"id": reader.pk, "display": reader.formatted_name, "missing": False}
+
+    def test_history_requires_authentication(self, api_client, written):
+        distributor, _ = written
+        response = api_client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
+
+        assert response.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED), response_body(response)
+
+    def test_an_action_never_splits_across_pages(self, reader_client, written):
+        """The page unit is the action, so a group is whole or absent."""
+        distributor, _ = written
+        url = reverse("store.distributor-history-list", kwargs={"pk": distributor.pk})
+
+        first = reader_client.get(url, data={"ps": 1, "p": 1})
+        second = reader_client.get(url, data={"ps": 1, "p": 2})
+        self.assert_response(first, HTTPStatus.OK)
+        self.assert_response(second, HTTPStatus.OK)
+
+        assert first.data["totalRecords"] == 2, "two groups, not three events"  # noqa: PLR2004
+        assert len(first.data["results"]) == 1
+        assert len(second.data["results"]) == 1
+
+        action = next(
+            row for row in first.data["results"] + second.data["results"] if row["label"] == "distributor.restock"
+        )
+        assert len(action["events"]) == 2, "both of the action's events stayed together"  # noqa: PLR2004
+
+
+@pytest.mark.django_db
+class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """A field that points at another row publishes that row structurally, not as text.
+
+    The reader can read product options but not option types. The display names still resolve,
+    because a value inside an authorized event is part of that event. The ordinary object read
+    behaves the same way: it resolves related display names without a second permission check.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Product Option Reader": [
+            ("store", "ProductOption", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "option_reader@domain.invalid": {
+            "name": "Option Reader",
+            "password": "testpass",
+            "groups": ["Product Option Reader"],
+        },
+    }
+
+    @pytest.fixture
+    def reader_client(self, api_client):
+        api_client.force_authenticate(user=self.users["option_reader@domain.invalid"])
+        return api_client
+
+    @pytest.fixture
+    def size(self):
+        return store_models.OptionType.objects.get(code="size")
+
+    @pytest.fixture
+    def colour(self):
+        return store_models.OptionType.objects.get(code="colour")
+
+    @pytest.fixture
+    def product_option(self, size, colour):
+        distributor = store_models.Distributor.objects.create(
+            name="FK Test Distributor",
+            description="Used for the reference test.",
+        )
+        product = store_models.Product.objects.create(
+            distributor=distributor,
+            name="FK Test Product",
+            tangible_type=store_models.TangibleType.objects.get(code="physical"),
+            order_between=(1, 10),
+        )
+        product_option = store_models.ProductOption.objects.create(
+            product=product,
+            option_type=size,
+            name="Test Option",
+            sku="FKTEST-001",
+            gtin="0000000000001",
+            price="9.99",
+        )
+        with audited_action("option.recategorize", kind="command"):
+            product_option.option_type = colour
+            product_option.save()
+        return product_option
+
+    def change_of(self, client, product_option, field):
+        response = client.get(reverse("store.productoption-history-list", kwargs={"pk": product_option.pk}))
+        self.assert_response(response, HTTPStatus.OK)
+        group = next(row for row in response.data["results"] if row["label"] == "option.recategorize")
+        return next(change for change in group["events"][0]["changes"] if change["field"] == field)
+
+    def test_a_reference_carries_its_id_and_current_display(self, reader_client, product_option, size, colour):
+        change = self.change_of(reader_client, product_option, "option_type")
+
+        assert change["old"] == {"id": size.pk, "display": size.formatted_name, "missing": False}
+        assert change["new"] == {"id": colour.pk, "display": colour.formatted_name, "missing": False}
+
+    def test_a_referent_the_requester_cannot_read_still_resolves(self, reader_client, product_option):
+        """The reader holds no option type permission, and the live object read shows these too."""
+        reader = self.users["option_reader@domain.invalid"]
+        assert not reader.has_perm("store.read_optiontype")
+
+        change = self.change_of(reader_client, product_option, "option_type")
+
+        assert change["old"]["display"] is not None
+        assert change["new"]["display"] is not None
+
+    def test_a_deleted_referent_is_marked_missing(self, reader_client, product_option, size):
+        """The client owns the wording, so the server publishes the absence structurally."""
+        size_pk = size.pk
+        size.delete()
+
+        change = self.change_of(reader_client, product_option, "option_type")
+
+        assert change["old"] == {"id": size_pk, "display": None, "missing": True}
+        assert change["new"]["missing"] is False

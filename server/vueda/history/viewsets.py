@@ -1,11 +1,11 @@
-"""ViewSet base and mixin for exposing django-simple-history list and diff actions."""
+"""ViewSet mixins exposing an object's history as the actions that produced it."""
 
 __all__ = (
+    "HistoryActionViewSetMixin",
     "SimpleHistoryViewSetMixin",
     "VuedaHistoryViewSet",
 )
 
-from django.contrib.auth import get_user_model
 from django.db.models import Max
 from django.db.models import OuterRef
 from django.db.models import Subquery
@@ -13,10 +13,37 @@ from rest_framework.response import Response
 
 from vueda.core.decorators import action
 from vueda.core.viewsets import VuedaViewSet
-from vueda.history.serializers import DynamicHistoricalSerializer
+from vueda.history.actions import build_action_groups
+from vueda.history.queries import action_groups_for
+from vueda.history.queries import events_in_groups
+from vueda.history.serializers.actions import HistoryActionGroupSerializer
 
 
-class SimpleHistoryViewSetMixin:
+class HistoryActionViewSetMixin:
+    """Return an object's history as the user actions behind it.
+
+    A page is a page of actions. One action that wrote several rows stays whole, because the
+    grouping and the visibility filter both run in the database before the paginator sees anything.
+    """
+
+    @action(detail=True, methods=["get"])
+    def history_list(self, request, pk=None):
+        # get_object() authorizes the requested object, which is what makes its own events visible.
+        instance = self.get_object()
+        groups = action_groups_for(instance, request.user)
+        page = self.paginate_queryset(groups)
+        events = events_in_groups(instance, request.user, [group["group_key"] for group in page])
+        serializer = HistoryActionGroupSerializer(build_action_groups(instance, page, events), many=True)
+        return self.get_paginated_response(serializer.data)
+
+
+class SimpleHistoryViewSetMixin(HistoryActionViewSetMixin):
+    """Adds the pre-v3 per-object revision token to the action-grouped history.
+
+    The token and its endpoint still come from django-simple-history. They are replaced by
+    ``object_revision`` on the ordinary serializer.
+    """
+
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.annotate(
@@ -29,83 +56,10 @@ class SimpleHistoryViewSetMixin:
 
     @action(detail=True)
     def current(self, request, pk=None):
-        # history_serializer mix with
         history_id = request.query_params.get("history_id")
         is_current = self.get_queryset().filter(pk=pk, current_history_id=history_id).exists()
         return Response({"current": is_current})
 
-    @action(detail=True, methods=["get"])
-    def history_list(self, request, pk=None):
-        # if it is slow then we should try making postgres do it.
-        user_model = get_user_model()
-        user_cache = {}
-        instance = self.get_object()
-        history_queryset = instance.history.order_by("-history_date")
-        page = self.paginate_queryset(history_queryset)
-        if self.paginator.page.has_next():
-            next_page_number = self.paginator.page.next_page_number()
-            next_page = self.paginator.page.paginator.page(next_page_number)
-            previous_entry = history_queryset[next_page.start_index() - 1]
-        else:
-            previous_entry = None
-        serializer_class = self.get_serializer_class()
-        serialized_data = []
-        page.reverse()
-        for entry in page:
-            if previous_entry is None:
-                # all the field names on the entry
-                different_fields = []
-                delta = None
-            else:
-                delta = entry.diff_against(previous_entry, foreign_keys_are_objs=True)
-                different_fields = delta.changed_fields
-
-            serializer = DynamicHistoricalSerializer(
-                instance=entry,
-                model_serializer_class=serializer_class,
-                different_fields=different_fields,
-            )
-            new_data = serializer.data
-            user_id = new_data["history_user"]
-            if user_id:
-                if user_id not in user_cache:
-                    user_cache[user_id] = user_model.objects.get(pk=user_id).formatted_name
-                new_data["history_user"] = user_cache[user_id]
-            new_data["num_changes"] = len(different_fields)
-            changes = []
-            if different_fields:
-                for change in delta.changes:
-                    if hasattr(change.new, "_meta") or hasattr(change.old, "_meta"):
-                        copy = {
-                            "new": change.new.formatted_name if hasattr(change.new, "_meta") else change.new.pk,
-                            "old": change.old.formatted_name if hasattr(change.old, "_meta") else change.old.pk,
-                            "field": change.field,
-                        }
-                    else:
-                        copy = {
-                            "new": change.new,
-                            "old": change.old,
-                            "field": change.field,
-                        }
-                    changes.append(copy)
-
-                new_data["changes"] = changes
-            elif delta:
-                copy = {
-                    "new": "",
-                    "old": "",
-                    "field": "related object updated",
-                }
-                new_data["changes"] = changes
-                new_data["num_changes"] = 1
-                changes.append(copy)
-            previous_entry = entry
-            serialized_data.append(new_data)
-
-        serialized_data.reverse()
-
-        return self.get_paginated_response(serialized_data)
-
 
 class VuedaHistoryViewSet(SimpleHistoryViewSetMixin, VuedaViewSet):
-    """``VuedaViewSet`` extended with ``simple-history`` audit endpoints."""
+    """``VuedaViewSet`` extended with the history endpoints."""
