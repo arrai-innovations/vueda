@@ -21,6 +21,7 @@ __all__ = (
 
 import warnings
 
+import pghistory
 from django.conf import settings
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
@@ -827,6 +828,15 @@ class VuedaViewSet(
     """
 
     detail_args = ["pk"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Name what the request is doing inside the action the history middleware opened, so an
+        # event records "update" or "execute_transition" rather than only that a request happened.
+        # Called as a function rather than entered, this adds to an open action and does nothing
+        # outside one.
+        if self.action:
+            pghistory.context(action=self.action)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
