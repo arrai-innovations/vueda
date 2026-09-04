@@ -18,7 +18,6 @@ def strtobool(value):
 
 class ProductFilterSet(VuedaFilterSet):
     distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
-    distributor.model = my_models.Product
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
     name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
     tangible_type = rest_framework.ModelChoiceFilter(
@@ -101,14 +100,10 @@ class CartFilterSet(VuedaFilterSet):
     product_name = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__product__name", label="Product name"
     )
-    # This can't be done in the init, because they were not designed to do that, even though they need the model.
-    product_name.model = my_models.Cart
 
     product_quantity = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__quantity_available", label="Product quantity"
     )
-    # This can't be done in the init, because they were not designed to do that, even though they need the model.
-    product_quantity.model = my_models.Cart
 
     class Meta:
         model = my_models.Cart
