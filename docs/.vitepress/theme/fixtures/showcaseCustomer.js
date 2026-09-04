@@ -222,17 +222,26 @@ export const customerModelInfo = {
             ),
         },
     ],
-    // Becomes `config.sortables` / `sortablesDetails`, which is what populates the
+    // `fields` becomes `config.sortables` / `sortablesDetails`, which is what populates the
     // SortControl add menu. `notes` is deliberately absent: a long free-text column is
     // not something the server offers as an ordering field.
-    ordering: [
-        { name: "account", type: "alpha" },
-        { name: "owner", type: "alpha" },
-        { name: "tier", type: "alpha" },
-        { name: "mrr", type: "numeric" },
-        { name: "currency", type: "alpha" },
-        { name: "taxExempt", type: "boolean" },
-    ],
+    //
+    // `default` is the order the server sorts by when a list request carries no `o` param, and
+    // becomes `config.sorted` — the sort ViewList opens with, and the one SortGroup's Reset sort
+    // restores. Every name it holds must also appear in `fields` carrying a boolean `ascending`,
+    // which is where the default's direction comes from; a field that isn't part of the default
+    // carries no `ascending` key at all. See `docs/core-concepts/server-client-metadata-contract.md`.
+    ordering: {
+        default: ["account"],
+        fields: [
+            { name: "account", type: "alpha", ascending: true },
+            { name: "owner", type: "alpha" },
+            { name: "tier", type: "alpha" },
+            { name: "mrr", type: "numeric" },
+            { name: "currency", type: "alpha" },
+            { name: "taxExempt", type: "boolean" },
+        ],
+    },
     // Becomes `config.filterables` / `filterableDetails`, which is what populates the
     // FilterMenu. Keys are the query-param field names the list endpoint receives.
     filtering: {
