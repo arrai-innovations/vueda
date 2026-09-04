@@ -11,169 +11,248 @@ from tests.conftest import response_body
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
-from tests.unit.info.utils import create_test_data
 from vueda import info
 
 
-class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create: ClassVar[dict] = {
-        "Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-            ("store", "Cart", "delete"),
-            ("store", "Cart", "list"),
-            ("store", "Cart", "read"),
-            ("store", "CartItem", "delete"),
-            ("store", "CartItem", "list"),
-            ("store", "CartItem", "read"),
-            ("store", "Customer", "list"),
-            ("store", "Customer", "read"),
-            ("store", "CustomerData", "list"),
-            ("store", "CustomerData", "read"),
-            ("store", "CustomerOrder", "create"),
-            ("store", "CustomerOrder", "delete"),
-            ("store", "CustomerOrder", "list"),
-            ("store", "CustomerOrder", "read"),
-            ("store", "CustomerOrder", "update"),
-            ("store", "Distributor", "create"),
-            ("store", "Distributor", "delete"),
-            ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
-            ("store", "Distributor", "update"),
-            ("store", "DistributorProxy", "create"),
-            ("store", "DistributorProxy", "delete"),
-            ("store", "DistributorProxy", "list"),
-            ("store", "DistributorProxy", "read"),
-            ("store", "DistributorProxy", "update"),
-            ("store", "InventoryRecord", "create"),
-            ("store", "InventoryRecord", "delete"),
-            ("store", "InventoryRecord", "list"),
-            ("store", "InventoryRecord", "read"),
-            ("store", "InventoryRecord", "update"),
-            ("store", "InventoryRecordReason", "create"),
-            ("store", "InventoryRecordReason", "delete"),
-            ("store", "InventoryRecordReason", "list"),
-            ("store", "InventoryRecordReason", "read"),
-            ("store", "InventoryRecordReason", "update"),
-            ("store", "Note", "create"),
-            ("store", "Note", "delete"),
-            ("store", "Note", "list"),
-            ("store", "Note", "read"),
-            ("store", "Note", "update"),
-            ("store", "OptionType", "create"),
-            ("store", "OptionType", "delete"),
-            ("store", "OptionType", "list"),
-            ("store", "OptionType", "read"),
-            ("store", "OptionType", "update"),
-            ("store", "OrderItem", "create"),
-            ("store", "OrderItem", "delete"),
-            ("store", "OrderItem", "list"),
-            ("store", "OrderItem", "read"),
-            ("store", "OrderItem", "update"),
-            ("store", "OrderCompositePK", "create"),
-            ("store", "OrderCompositePK", "delete"),
-            ("store", "OrderCompositePK", "list"),
-            ("store", "OrderCompositePK", "read"),
-            ("store", "OrderCompositePK", "update"),
-            ("store", "OrderItemCompositePK", "create"),
-            ("store", "OrderItemCompositePK", "delete"),
-            ("store", "OrderItemCompositePK", "list"),
-            ("store", "OrderItemCompositePK", "read"),
-            ("store", "OrderItemCompositePK", "update"),
-            ("store", "OrderItemAltCompositePK", "create"),
-            ("store", "OrderItemAltCompositePK", "delete"),
-            ("store", "OrderItemAltCompositePK", "list"),
-            ("store", "OrderItemAltCompositePK", "read"),
-            ("store", "OrderItemAltCompositePK", "update"),
-            ("store", "OrderState", "create"),
-            ("store", "OrderState", "delete"),
-            ("store", "OrderState", "list"),
-            ("store", "OrderState", "read"),
-            ("store", "OrderState", "update"),
-            ("store", "PackingBox", "create"),
-            ("store", "PackingBox", "delete"),
-            ("store", "PackingBox", "list"),
-            ("store", "PackingBox", "read"),
-            ("store", "PackingBox", "update"),
-            ("store", "Product", "create"),
-            ("store", "Product", "delete"),
-            ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("store", "Product", "update"),
-            ("store", "ProductOption", "create"),
-            ("store", "ProductOption", "delete"),
-            ("store", "ProductOption", "list"),
-            ("store", "ProductOption", "read"),
-            ("store", "ProductOption", "update"),
-            ("store", "SpecialCare", "create"),
-            ("store", "SpecialCare", "delete"),
-            ("store", "SpecialCare", "list"),
-            ("store", "SpecialCare", "read"),
-            ("store", "SpecialCare", "update"),
-            ("store", "TangibleType", "create"),
-            ("store", "TangibleType", "delete"),
-            ("store", "TangibleType", "list"),
-            ("store", "TangibleType", "read"),
-            ("store", "TangibleType", "update"),
-            ("employee", "User", "create"),
-            ("employee", "User", "delete"),
-            ("employee", "User", "list"),
-            ("employee", "User", "read"),
-            ("employee", "User", "update"),
-        ],
-        "Customer": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-            ("store", "Cart", "create"),
-            ("store", "Cart", "delete"),
-            ("store", "Cart", "read"),
-            ("store", "Cart", "update"),
-            ("store", "CartItem", "create"),
-            ("store", "CartItem", "delete"),
-            ("store", "CartItem", "list"),
-            ("store", "CartItem", "read"),
-            ("store", "CartItem", "update"),
-            ("store", "Customer", "read"),
-            ("store", "Customer", "delete"),
-            ("store", "CustomerData", "list"),
-            ("store", "CustomerData", "read"),
-            ("store", "CustomerOrder", "create"),
-            ("store", "CustomerOrder", "read"),
-            ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
-            ("store", "DistributorProxy", "list"),
-            ("store", "DistributorProxy", "read"),
-            ("store", "Note", "list"),
-            ("store", "Note", "read"),
-            ("store", "OptionType", "list"),
-            ("store", "OptionType", "read"),
-            ("store", "OrderItem", "create"),
-            ("store", "OrderItem", "list"),
-            ("store", "OrderItem", "read"),
-            ("store", "OrderCompositePK", "create"),
-            ("store", "OrderCompositePK", "list"),
-            ("store", "OrderCompositePK", "read"),
-            ("store", "OrderItemCompositePK", "create"),
-            ("store", "OrderItemCompositePK", "list"),
-            ("store", "OrderItemCompositePK", "read"),
-            ("store", "OrderItemAltCompositePK", "create"),
-            ("store", "OrderItemAltCompositePK", "list"),
-            ("store", "OrderItemAltCompositePK", "read"),
-            ("store", "OrderState", "list"),
-            ("store", "OrderState", "read"),
-            ("store", "PackingBox", "list"),
-            ("store", "PackingBox", "read"),
-            ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("store", "ProductOption", "list"),
-            ("store", "ProductOption", "read"),
-            ("store", "SpecialCare", "list"),
-            ("store", "SpecialCare", "read"),
-            ("store", "TangibleType", "list"),
-            ("store", "TangibleType", "read"),
-            ("employee", "User", "read"),
-        ],
-    }
+ADMIN_PERMISSIONS = (
+    ("contenttypes", "ContentType", "list"),
+    ("contenttypes", "ContentType", "read"),
+    ("store", "Cart", "delete"),
+    ("store", "Cart", "list"),
+    ("store", "Cart", "read"),
+    ("store", "CartItem", "delete"),
+    ("store", "CartItem", "list"),
+    ("store", "CartItem", "read"),
+    ("store", "Customer", "list"),
+    ("store", "Customer", "read"),
+    ("store", "CustomerData", "list"),
+    ("store", "CustomerData", "read"),
+    ("store", "CustomerOrder", "create"),
+    ("store", "CustomerOrder", "delete"),
+    ("store", "CustomerOrder", "list"),
+    ("store", "CustomerOrder", "read"),
+    ("store", "CustomerOrder", "update"),
+    ("store", "Distributor", "create"),
+    ("store", "Distributor", "delete"),
+    ("store", "Distributor", "list"),
+    ("store", "Distributor", "read"),
+    ("store", "Distributor", "update"),
+    ("store", "DistributorProxy", "create"),
+    ("store", "DistributorProxy", "delete"),
+    ("store", "DistributorProxy", "list"),
+    ("store", "DistributorProxy", "read"),
+    ("store", "DistributorProxy", "update"),
+    ("store", "InventoryRecord", "create"),
+    ("store", "InventoryRecord", "delete"),
+    ("store", "InventoryRecord", "list"),
+    ("store", "InventoryRecord", "read"),
+    ("store", "InventoryRecord", "update"),
+    ("store", "InventoryRecordReason", "create"),
+    ("store", "InventoryRecordReason", "delete"),
+    ("store", "InventoryRecordReason", "list"),
+    ("store", "InventoryRecordReason", "read"),
+    ("store", "InventoryRecordReason", "update"),
+    ("store", "Note", "create"),
+    ("store", "Note", "delete"),
+    ("store", "Note", "list"),
+    ("store", "Note", "read"),
+    ("store", "Note", "update"),
+    ("store", "OptionType", "create"),
+    ("store", "OptionType", "delete"),
+    ("store", "OptionType", "list"),
+    ("store", "OptionType", "read"),
+    ("store", "OptionType", "update"),
+    ("store", "OrderItem", "create"),
+    ("store", "OrderItem", "delete"),
+    ("store", "OrderItem", "list"),
+    ("store", "OrderItem", "read"),
+    ("store", "OrderItem", "update"),
+    ("store", "OrderCompositePK", "create"),
+    ("store", "OrderCompositePK", "delete"),
+    ("store", "OrderCompositePK", "list"),
+    ("store", "OrderCompositePK", "read"),
+    ("store", "OrderCompositePK", "update"),
+    ("store", "OrderItemCompositePK", "create"),
+    ("store", "OrderItemCompositePK", "delete"),
+    ("store", "OrderItemCompositePK", "list"),
+    ("store", "OrderItemCompositePK", "read"),
+    ("store", "OrderItemCompositePK", "update"),
+    ("store", "OrderItemAltCompositePK", "create"),
+    ("store", "OrderItemAltCompositePK", "delete"),
+    ("store", "OrderItemAltCompositePK", "list"),
+    ("store", "OrderItemAltCompositePK", "read"),
+    ("store", "OrderItemAltCompositePK", "update"),
+    ("store", "OrderState", "create"),
+    ("store", "OrderState", "delete"),
+    ("store", "OrderState", "list"),
+    ("store", "OrderState", "read"),
+    ("store", "OrderState", "update"),
+    ("store", "PackingBox", "create"),
+    ("store", "PackingBox", "delete"),
+    ("store", "PackingBox", "list"),
+    ("store", "PackingBox", "read"),
+    ("store", "PackingBox", "update"),
+    ("store", "Product", "create"),
+    ("store", "Product", "delete"),
+    ("store", "Product", "list"),
+    ("store", "Product", "read"),
+    ("store", "Product", "update"),
+    ("store", "ProductOption", "create"),
+    ("store", "ProductOption", "delete"),
+    ("store", "ProductOption", "list"),
+    ("store", "ProductOption", "read"),
+    ("store", "ProductOption", "update"),
+    ("store", "SpecialCare", "create"),
+    ("store", "SpecialCare", "delete"),
+    ("store", "SpecialCare", "list"),
+    ("store", "SpecialCare", "read"),
+    ("store", "SpecialCare", "update"),
+    ("store", "TangibleType", "create"),
+    ("store", "TangibleType", "delete"),
+    ("store", "TangibleType", "list"),
+    ("store", "TangibleType", "read"),
+    ("store", "TangibleType", "update"),
+    ("employee", "User", "create"),
+    ("employee", "User", "delete"),
+    ("employee", "User", "list"),
+    ("employee", "User", "read"),
+    ("employee", "User", "update"),
+)
+
+CUSTOMER_PERMISSIONS = (
+    ("contenttypes", "ContentType", "list"),
+    ("contenttypes", "ContentType", "read"),
+    ("store", "Cart", "create"),
+    ("store", "Cart", "delete"),
+    ("store", "Cart", "read"),
+    ("store", "Cart", "update"),
+    ("store", "CartItem", "create"),
+    ("store", "CartItem", "delete"),
+    ("store", "CartItem", "list"),
+    ("store", "CartItem", "read"),
+    ("store", "CartItem", "update"),
+    ("store", "Customer", "read"),
+    ("store", "Customer", "delete"),
+    ("store", "CustomerData", "list"),
+    ("store", "CustomerData", "read"),
+    ("store", "CustomerOrder", "create"),
+    ("store", "CustomerOrder", "read"),
+    ("store", "Distributor", "list"),
+    ("store", "Distributor", "read"),
+    ("store", "DistributorProxy", "list"),
+    ("store", "DistributorProxy", "read"),
+    ("store", "Note", "list"),
+    ("store", "Note", "read"),
+    ("store", "OptionType", "list"),
+    ("store", "OptionType", "read"),
+    ("store", "OrderItem", "create"),
+    ("store", "OrderItem", "list"),
+    ("store", "OrderItem", "read"),
+    ("store", "OrderCompositePK", "create"),
+    ("store", "OrderCompositePK", "list"),
+    ("store", "OrderCompositePK", "read"),
+    ("store", "OrderItemCompositePK", "create"),
+    ("store", "OrderItemCompositePK", "list"),
+    ("store", "OrderItemCompositePK", "read"),
+    ("store", "OrderItemAltCompositePK", "create"),
+    ("store", "OrderItemAltCompositePK", "list"),
+    ("store", "OrderItemAltCompositePK", "read"),
+    ("store", "OrderState", "list"),
+    ("store", "OrderState", "read"),
+    ("store", "PackingBox", "list"),
+    ("store", "PackingBox", "read"),
+    ("store", "Product", "list"),
+    ("store", "Product", "read"),
+    ("store", "ProductOption", "list"),
+    ("store", "ProductOption", "read"),
+    ("store", "SpecialCare", "list"),
+    ("store", "SpecialCare", "read"),
+    ("store", "TangibleType", "list"),
+    ("store", "TangibleType", "read"),
+    ("employee", "User", "read"),
+)
+
+# Every registration the info API is expected to know about, as (serializer, viewset) pairs.
+# A viewset of None means the model is registered with its serializer only.
+REGISTRATIONS = (
+    (store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet),
+    (store_serializers.CustomerDataSerializer, store_viewsets.CustomerDataViewSet),
+    (store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet),
+    (store_serializers.ProductSerializer, store_viewsets.ProductViewSet),
+    (store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet),
+    (store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet),
+    (store_serializers.CartSerializer, store_viewsets.CartViewSet),
+    (store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet),
+    (store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet),
+    (store_serializers.OrderItemSerializer, None),
+    (store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet),
+    (store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet),
+    (store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet),
+    (store_serializers.NoteSerializer, store_viewsets.NoteViewSet),
+    (store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet),
+    (store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet),
+    (store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet),
+    (store_serializers.DistributorProxySerializer, store_viewsets.DistributorProxyViewSet),
+    # Registration doesn't require the serializer to inherit VuedaSerializer; this is a plain
+    # rest_framework ModelSerializer registered to prove that path doesn't blow up.
+    (store_serializers.InvoiceLineBaseSerializer, None),
+)
+
+# The same registrations, keyed the way the parametrized cases and the detail route name a model.
+REGISTRATIONS_BY_MODEL = {
+    (serializer.Meta.model._meta.app_label, serializer.Meta.model._meta.model_name): (serializer, viewset)
+    for serializer, viewset in REGISTRATIONS
+}
+
+EXPANDED_FIELDS = [
+    "model_actions",
+    "model_expands",
+    "model_fields",
+    "model_filtering",
+    "model_ordering",
+    "model_permissions",
+]
+
+
+def apply_registration(serializer, viewset):
+    if viewset is None:
+        info.register_serializer(serializer)
+    else:
+        info.register(serializer, viewset)
+
+
+def register_all_models():
+    """Register every model, which is what the list endpoint reports on."""
+    info.registration.get_empty_registry()
+    for serializer, viewset in REGISTRATIONS:
+        apply_registration(serializer, viewset)
+
+
+def register_model(app_label, model_name):
+    """
+    Register the model under test, plus the model it proxies when it is a proxy model.
+
+    The detail response for a model is built from that model's own registration, so registering the
+    rest is work every parametrized case would pay for and no case would use. The one exception is
+    the history expands: SimpleHistorySerializerMixin.get_expandable_fields() looks up its canonical
+    serializer through ContentType.objects.get_for_model(), which resolves a proxy model to the
+    content type of the model it proxies, so that registration has to be there too.
+    """
+    info.registration.get_empty_registry()
+
+    serializer, viewset = REGISTRATIONS_BY_MODEL[(app_label, model_name)]
+    meta = serializer.Meta.model._meta
+    if meta.proxy:
+        concrete_meta = meta.concrete_model._meta
+        apply_registration(*REGISTRATIONS_BY_MODEL[(concrete_meta.app_label, concrete_meta.model_name)])
+
+    apply_registration(serializer, viewset)
+
+
+class AdminTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """The admin group and user only, so admin tests don't create the customer group as well."""
+
+    groups_to_create: ClassVar[dict] = {"Admin": ADMIN_PERMISSIONS}
 
     users_to_create: ClassVar[dict] = {
         "test_admin@domain.invalid": {
@@ -181,54 +260,53 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             "password": "testpass",
             "groups": ["Admin"],
         },
+    }
+
+
+class CustomerTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """The customer group and user only, so customer tests don't create the admin group as well."""
+
+    groups_to_create: ClassVar[dict] = {"Customer": CUSTOMER_PERMISSIONS}
+
+    users_to_create: ClassVar[dict] = {
         "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
             "groups": ["Customer"],
         },
-        "test_customer_2@domain.invalid": {
-            "name": "Test Customer 2",
-            "password": "testpass",
-            "groups": ["Customer"],
-        },
     }
 
-    def __init__(self):
-        create_test_data(self)
 
+class BaseModelInfo:
+    """
+    Shared setup for the model info tests. ``test_data_class`` names the group and user the
+    subclass authenticates as, so each test creates one group instead of all of them.
+    """
 
-@pytest.mark.django_db
-class TestModelInfoSerializer:
-    @pytest.fixture
-    def test_data(self):
-        return VuedaTestData()
+    test_data_class: ClassVar[type]
+    user_email: ClassVar[str]
 
-    @staticmethod
-    def register_viewsets():
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        """Leave an empty registry behind, whichever module runs next."""
+        yield
         info.registration.get_empty_registry()
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.CustomerDataSerializer, store_viewsets.CustomerDataViewSet)
-        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
-        info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
-        info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
-        info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
-        info.register(store_serializers.PackingBoxSerializer, store_viewsets.PackingBoxViewSet)
-        info.register(store_serializers.NoteSerializer, store_viewsets.NoteViewSet)
-        info.register(store_serializers.OrderCompositePKSerializer, store_viewsets.OrderCompositePKViewSet)
-        info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
-        info.register(
-            store_serializers.OrderItemAltCompositePKSerializer, store_viewsets.OrderItemAltCompositePKViewSet
-        )
-        info.register(store_serializers.DistributorProxySerializer, store_viewsets.DistributorProxyViewSet)
-        # Registration doesn't require the serializer to inherit VuedaSerializer; this is a plain
-        # rest_framework ModelSerializer registered to prove that path doesn't blow up.
-        info.register_serializer(store_serializers.InvoiceLineBaseSerializer)
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        test_data = self.test_data_class()
+        api_client.force_authenticate(user=test_data.users[self.user_email])
+        return api_client
+
+
+class BaseModelInfoDetail(BaseModelInfo):
+    """
+    The detail response for every registered model, checked against the expected results. Subclasses
+    differ only in who asks: ``expected_actions_key`` names the actions the subclass's user is
+    allowed to see.
+    """
+
+    expected_actions_key: ClassVar[str]
 
     def check_model_actions_data(self, response_data, expected_data, expected_actions_key, app_label, model_name):
         data = response_data.data["model_actions"]
@@ -348,35 +426,20 @@ class TestModelInfoSerializer:
                             f'"{app_label}", "{model_name}" -> "expected_permissions" -> "{model_permission}"'
                         )
 
-    def test_info_list(self, test_data, api_client):
-        user = test_data.users["test_customer_1@domain.invalid"]
-        api_client.force_authenticate(user=user)
-
-        self.register_viewsets()
-
-        response = api_client.get(reverse("info.model_info-list"), format="json")
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["totalRecords"] == len(EXPECTED_RESULTS)
-
     @pytest.mark.parametrize(
         "app_label, model_name, kwargs",
         EXPECTED_RESULTS,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
     )
-    def test_info_detail_admin(
+    def test_info_detail(
         self,
-        test_data,
-        api_client,
+        authenticated_client,
         app_label,
         model_name,
         kwargs,
     ):
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
+        register_model(app_label, model_name)
 
-        self.register_viewsets()
-
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse(
                 "info.model_info-detail",
                 args=(
@@ -385,23 +448,16 @@ class TestModelInfoSerializer:
                 ),
             ),
             format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_actions",
-                    "model_expands",
-                    "model_fields",
-                    "model_filtering",
-                    "model_ordering",
-                    "model_permissions",
-                ],
-            },
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: EXPANDED_FIELDS},
         )
+
+        expected_actions_key = self.expected_actions_key
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["verbose_name"] == kwargs["verbose_name"]
         assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
         self.check_model_actions_data(
-            response, kwargs["expected_actions_admin"], "expected_actions_admin", app_label, model_name
+            response, kwargs[expected_actions_key], expected_actions_key, app_label, model_name
         )
         self.check_model_expands_data(response, kwargs["expected_expands"], app_label, model_name)
         self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
@@ -409,52 +465,33 @@ class TestModelInfoSerializer:
         self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
         self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
 
-    @pytest.mark.parametrize(
-        "app_label, model_name, kwargs",
-        EXPECTED_RESULTS,  # pytest likes to dump the whole def, so we move the parameterize details elsewhere
-    )
-    def test_info_detail_customer(
-        self,
-        test_data,
-        api_client,
-        app_label,
-        model_name,
-        kwargs,
-    ):
-        user = test_data.users["test_customer_1@domain.invalid"]
-        api_client.force_authenticate(user=user)
 
-        self.register_viewsets()
+@pytest.mark.django_db
+class TestModelInfoList(BaseModelInfo):
+    test_data_class = CustomerTestData
+    user_email = "test_customer_1@domain.invalid"
 
-        response = api_client.get(
-            reverse(
-                "info.model_info-detail",
-                args=(
-                    app_label,
-                    model_name,
-                ),
-            ),
-            format="json",
-            data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
-                    "model_actions",
-                    "model_expands",
-                    "model_fields",
-                    "model_filtering",
-                    "model_ordering",
-                    "model_permissions",
-                ],
-            },
-        )
+    def test_info_list(self, authenticated_client):
+        register_all_models()
+
+        response = authenticated_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["verbose_name"] == kwargs["verbose_name"]
-        assert response.data["verbose_name_plural"] == kwargs["verbose_name_plural"]
-        self.check_model_actions_data(
-            response, kwargs["expected_actions_customer"], "expected_actions_customer", app_label, model_name
-        )
-        self.check_model_expands_data(response, kwargs["expected_expands"], app_label, model_name)
-        self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
-        self.check_model_filtering_data(response, kwargs["expected_filtering"], app_label, model_name)
-        self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
-        self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
+        # Compare 'app_label.model' instead of totals, so you can see what is missing.
+        assert {f"{result['app_label']}.{result['model']}" for result in response.data["results"]} == {
+            f"{result[0]}.{result[1]}" for result in EXPECTED_RESULTS
+        }
+
+
+@pytest.mark.django_db
+class TestModelInfoSerializerAdmin(BaseModelInfoDetail):
+    test_data_class = AdminTestData
+    user_email = "test_admin@domain.invalid"
+    expected_actions_key = "expected_actions_admin"
+
+
+@pytest.mark.django_db
+class TestModelInfoSerializerCustomer(BaseModelInfoDetail):
+    test_data_class = CustomerTestData
+    user_email = "test_customer_1@domain.invalid"
+    expected_actions_key = "expected_actions_customer"
