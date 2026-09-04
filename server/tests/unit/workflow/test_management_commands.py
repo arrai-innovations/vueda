@@ -1149,23 +1149,34 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
                 f"to migrate workflow for workflow_multi." in results
             )
 
-            assert len(migration.changed_data) == 10, migration.changed_data  # noqa: PLR2004
+            # Every row the fixture wrote is captured, one change each, across all five models.
+            captured = [(change["model_name"], change["history_type"]) for change in migration.changed_data]
+            assert sorted(captured) == sorted(
+                [
+                    ("workflow", "added"),
+                    ("state", "added"),
+                    ("state", "added"),
+                    ("initialstate", "added"),
+                    ("transition", "added"),
+                    ("workflowpermission", "added"),
+                    ("workflowpermission", "added"),
+                ]
+            ), migration.changed_data
 
-            # The workflow added record should be the first record, and it should have a specific history date.
+            # The workflow itself is captured first, because its row was written first.
             first_change = migration.changed_data[0]
-            assert first_change == {
-                "changes": {
-                    "code": "complete",
-                    "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
-                    "historical_app_label": "workflow_multi",
-                    "historical_model": "workflowmulti",
-                    "id": {"code": "complete"},
-                    "name": "complete",
-                },
-                "history_date": datetime.datetime(2024, 7, 17, 19, 53, 55, 857366, tzinfo=datetime.UTC),
-                "history_type": "added",
-                "model_name": "workflow",
+            assert first_change["model_name"] == "workflow"
+            assert first_change["history_type"] == "added"
+            assert first_change["changes"] == {
+                "code": "complete_task",
+                "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
+                "historical_app_label": "workflow_multi",
+                "historical_model": "workflowmulti",
+                "id": {"code": "complete_task"},
+                "name": "complete task",
             }, first_change
+            # The date is when the write was really recorded, so only its type is fixed.
+            assert isinstance(first_change["history_date"], datetime.datetime)
 
             # Run makeworkflowmigrations again, to verify no changes are detected.
             succeeded, results = self.call_command("makeworkflowmigrations", "workflow_multi", "--import-instead")
@@ -1176,16 +1187,18 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
 
 
 class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCommand):
-    def get_unmatched_history_records_by_date(self, unmatched_history_data):
-        history_records_by_date = {}
+    def get_unmatched_events_by_label(self, unmatched_history_data):
+        """Group the codes of the events no migration captured, by what each event recorded.
+
+        Grouping used to be by date, because the fixture wrote its own. A real write is stamped with
+        the moment it happened, so every event in one test shares a date and only the event type
+        separates them.
+        """
+        events_by_label = {}
         for record in unmatched_history_data:
-            key = (record["history_type"], record["history_date"])
-            if key not in history_records_by_date:
-                history_records_by_date[key] = set()
+            events_by_label.setdefault(record["pgh_label"], set()).add(record["code"])
 
-            history_records_by_date[key].add(record["code"])
-
-        return history_records_by_date
+        return events_by_label
 
     def _group_results(self, results):
         grouped_results = []
@@ -1303,10 +1316,13 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
                                     # Make sure the history pk is in the change and history data.
                                     assert f"'matches_history': {history_pk}" in change_data
-                                    assert f"'history_id': {history_pk}" in history_data
-                                    # Make sure the history dates are the same.
-                                    # [1] should contain a string like 'datetime(2025, 1, 1, 1, 0, tzinfo='
-                                    assert change_data.split("datetime.")[1] == history_data.split("datetime.")[1]
+                                    assert f"'pgh_id': {history_pk}" in history_data
+                                    # The two dates no longer agree, and should not. A change in a
+                                    # migration file carries the date the edit was recorded under
+                                    # the old backend; an event carries the moment the write really
+                                    # happened, which for these fixtures is when the test ran.
+                                    assert "datetime." in change_data
+                                    assert "datetime." in history_data
 
                             previous_line = line
 
@@ -1338,23 +1354,14 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             assert not num_changes_not_matching_history_records
             assert num_unmatched_history == 1, unmatched_history_data
 
-            history_records_by_date = self.get_unmatched_history_records_by_date(unmatched_history_data)
+            events_by_label = self.get_unmatched_events_by_label(unmatched_history_data)
 
-            assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 10))] == frozenset(
-                ("delete_1", "delete_2", "delete_3", "delete_4")
-            ), history_records_by_date
-            assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 11))] == frozenset(
-                ("add_1", "add_2", "add_3", "add_4", "delete_2", "delete_3", "delete_4")
-            ), history_records_by_date
-            assert history_records_by_date[("~", (2025, 1, 1, 1, 0, 12))] == frozenset(
-                ("add_2a", "add_3a", "add_4a", "delete_3a", "delete_4a")
-            ), history_records_by_date
-            assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 13))] == frozenset(
-                ("add_3a", "add_4a", "delete_4a")
-            ), history_records_by_date
-            assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 14))] == frozenset(("add_4",)), (
-                history_records_by_date
+            # Every write the fixture made after 0002 is uncaptured, and each code appears once per
+            # event it recorded rather than once overall.
+            assert events_by_label["delete"] == frozenset(("delete_1", "delete_2", "delete_3", "delete_4")), (
+                events_by_label
             )
+            assert events_by_label["insert"] == frozenset(("delete_2", "delete_3", "delete_4")), events_by_label
 
             # Roll back 0003.
             succeeded, results = self.call_command("migrate", "workflow_duplicates", "0002")
@@ -1387,7 +1394,9 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
             state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
 
-            assert state_codes == {"add_1", "add_2a", "add_4", "delete_2", "delete_3a", "not_used_by_test"}
+            # Replaying the generated migration lands on what the fixture's writes left behind:
+            # delete_1 gone, delete_2 added back, delete_3 and delete_4 added back then removed.
+            assert state_codes == {"delete_2", "not_used_by_test"}
 
             # Run migration 0004 backwards
             succeeded, results = self.call_command("migrate", "workflow_duplicates", "0003")

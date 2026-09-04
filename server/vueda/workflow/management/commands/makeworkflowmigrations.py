@@ -2,13 +2,17 @@
 
 __all__ = (
     "INDENT8",
+    "MIGRATION_ACTION_KIND",
     "MIGRATION_MODIFIED_COMMENT",
     "NEWLINE",
     "Command",
+    "RecordChange",
+    "RecordDelta",
     "WorkflowChangeTypes",
     "add_history_to_data",
     "apply_and_save_changes",
     "backwards_migrate_workflow",
+    "compare_records",
     "forwards_migrate_workflow",
     "get_attr_names_for_workflow_models",
     "get_history_diff",
@@ -27,6 +31,7 @@ __all__ = (
     "handle_workflow_permission",
     "make_sure_permissions_exist",
     "manage_state_objects",
+    "tracked_field_names",
     "workflow_migration_action",
 )
 
@@ -119,6 +124,11 @@ class WorkflowChangeTypes(enum.Enum):
 INDENT8 = "        "
 
 
+# The action kind a generated workflow migration opens, and the kind the legacy conversion gives a
+# row a migration wrote. Reading it back separates a migration's writes from a person's edit.
+MIGRATION_ACTION_KIND = "migration"
+
+
 # Add a comment right after the Django generated comment, to help find our created migrations.
 # This way we can find the last one we did, parse the generated date from the Django comment,
 # and look at history to determine what changed in the workflow since the migration was created.
@@ -144,6 +154,8 @@ def workflow_migration_action(apps, change_reason):
     """
     user_model = apps.get_model(settings.AUTH_USER_MODEL)
     system_user = user_model.objects.filter(is_system=True).first()
+    # The kind is written out rather than named, because this function's source is copied into a
+    # generated migration and a module constant would not go with it. It matches MIGRATION_ACTION_KIND.
     return audited_action(change_reason, kind="migration", user=system_user and system_user.pk)
 
 
@@ -1035,22 +1047,74 @@ def get_attr_names_for_workflow_models():
     return workflow_model_field_names_to_attname
 
 
+class RecordChange:
+    """One field's value before and after a write."""
+
+    __slots__ = ("field", "new", "old")
+
+    def __init__(self, field, old, new):
+        self.field = field
+        self.old = old
+        self.new = new
+
+
+class RecordDelta:
+    """What differs between two events, and the two events themselves.
+
+    django-simple-history built this through ``diff_against``. A pghistory event model holds the
+    tracked row's own columns and nothing that compares them, so the comparison lives here. The
+    shape is unchanged, because everything downstream reads ``changes``, ``old_record``, and
+    ``new_record``.
+    """
+
+    __slots__ = ("changes", "new_record", "old_record")
+
+    def __init__(self, changes, old_record, new_record):
+        self.changes = changes
+        self.old_record = old_record
+        self.new_record = new_record
+
+
+def tracked_field_names(event_model):
+    """Return an event model's tracked columns as ``(name, attname)`` pairs.
+
+    pghistory copies the tracked row's concrete fields and adds its own ``pgh_`` columns. Change data
+    is keyed by field name and read by attname, so both are needed.
+    """
+    return [
+        (field.name, field.attname)
+        for field in event_model._meta.concrete_fields
+        if not field.attname.startswith("pgh_")
+    ]
+
+
+def compare_records(old_record, new_record):
+    """Return the fields whose value differs between two events."""
+    changes = [
+        RecordChange(name, getattr(old_record, attname), getattr(new_record, attname))
+        for name, attname in tracked_field_names(type(new_record))
+        if getattr(old_record, attname) != getattr(new_record, attname)
+    ]
+    return RecordDelta(changes, old_record, new_record)
+
+
 def get_history_diff(old_history_record, new_history_record):
+    """Classify one write and return what it changed.
+
+    A write with nothing before it is an add, and one whose event records a delete is a delete. Each
+    compares against an empty row of the same model, so every field the write set or cleared shows
+    up as a change.
+    """
     if old_history_record is None:
         empty_record = type(new_history_record)()
-        return WorkflowChangeTypes.ADDED.value, new_history_record.diff_against(empty_record)
+        return WorkflowChangeTypes.ADDED.value, compare_records(empty_record, new_history_record)
 
-    elif old_history_record and old_history_record.history_type == "-":
-        # If we don't have an old history record, then this workflow
-        # was added and deleted between migrations, so we can ignore it.
-        if old_history_record is None:
-            return None, None
-
+    elif old_history_record.pgh_label == "delete":
         empty_record = type(old_history_record)()
-        return WorkflowChangeTypes.DELETED.value, empty_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.DELETED.value, compare_records(old_history_record, empty_record)
 
     else:  # old_history_record is not None
-        return WorkflowChangeTypes.CHANGED.value, new_history_record.diff_against(old_history_record)
+        return WorkflowChangeTypes.CHANGED.value, compare_records(old_history_record, new_history_record)
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
@@ -1314,130 +1378,76 @@ class Command(BaseCommand):
 
     @staticmethod
     def _get_historical_queryset_for_model(model_name, workflow_model, content_type_id):
+        """Return every recorded write for one workflow model, narrowed to one app's workflow.
+
+        The narrowing walks the event model's own foreign keys, which point at the live rows. When
+        the workflow itself has been deleted that walk finds nothing, so each case falls back to the
+        workflow's own recorded events to learn which rows belonged to it.
+        """
+        events = workflow_model.pgh_event_model.objects
+
+        def workflow_id_from_events():
+            return (
+                models.WorkflowEvent.objects.filter(content_type_id=content_type_id)
+                .values_list("id", flat=True)
+                .order_by("pgh_id")
+                .first()
+            )
+
+        def state_ids_of(workflow_id):
+            return frozenset(models.StateEvent.objects.filter(workflow_id=workflow_id).values_list("id", flat=True))
+
+        def transition_ids_of(workflow_id):
+            return frozenset(
+                models.TransitionEvent.objects.filter(workflow_id=workflow_id).values_list("id", flat=True)
+            )
+
         match model_name:
             case "initialstate":
-                records = workflow_model.history.filter(state__workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'state__workflow__content_type_id' can't find the state or
-                # workflow.
+                records = events.filter(state__workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    state_ids = frozenset(
-                        models.HistoricalState.objects.filter(workflow_id=workflow_id).values_list("id", flat=True)
-                    )
-                    records = workflow_model.history.filter(state_id__in=state_ids)
+                    records = events.filter(state_id__in=state_ids_of(workflow_id_from_events())).order_by("pgh_id")
                 return records
 
             case "state":
-                records = workflow_model.history.filter(workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'workflow__content_type_id' can't find the workflow.
+                records = events.filter(workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    records = workflow_model.history.filter(workflow_id=workflow_id)
+                    records = events.filter(workflow_id=workflow_id_from_events()).order_by("pgh_id")
                 return records
 
             case "statepermission":
-                records = workflow_model.history.filter(state__workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'state__workflow__content_type_id' can't find the state or
-                # workflow.
+                records = events.filter(state__workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    state_ids = frozenset(
-                        models.HistoricalState.objects.filter(workflow_id=workflow_id).values_list("id", flat=True)
-                    )
-                    records = workflow_model.history.filter(state_id__in=state_ids)
+                    records = events.filter(state_id__in=state_ids_of(workflow_id_from_events())).order_by("pgh_id")
                 return records
 
             case "transition":
-                records = workflow_model.history.filter(workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'workflow__content_type_id' can't find the workflow.
+                records = events.filter(workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    records = workflow_model.history.filter(workflow_id=workflow_id)
+                    records = events.filter(workflow_id=workflow_id_from_events()).order_by("pgh_id")
                 return records
 
             case "transitionpermission":
-                records = workflow_model.history.filter(transition__workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'transition__workflow__content_type_id' can't find the transition or
-                # workflow.
+                records = events.filter(transition__workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
+                    records = events.filter(transition_id__in=transition_ids_of(workflow_id_from_events())).order_by(
+                        "pgh_id"
                     )
-                    transition_ids = frozenset(
-                        models.HistoricalTransition.objects.filter(workflow_id=workflow_id).values_list("id", flat=True)
-                    )
-                    records = workflow_model.history.filter(transition_id__in=transition_ids)
-
                 return records
 
             case "transitionsource":
-                records = workflow_model.history.filter(transition__workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'transition__workflow__content_type_id' can't find the transition or
-                # workflow.
+                records = events.filter(transition__workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    source_ids = frozenset(
-                        models.HistoricalState.objects.filter(workflow_id=workflow_id).values_list("id", flat=True)
-                    )
-                    records = workflow_model.history.filter(source_id__in=source_ids)
+                    records = events.filter(source_id__in=state_ids_of(workflow_id_from_events())).order_by("pgh_id")
                 return records
 
             case "workflow":
-                return workflow_model.history.filter(content_type_id=content_type_id).order_by("history_date")
+                return events.filter(content_type_id=content_type_id).order_by("pgh_id")
 
             case "workflowpermission":
-                records = workflow_model.history.filter(workflow__content_type_id=content_type_id).order_by(
-                    "history_date"
-                )
-                # The workflow was deleted, so 'workflow__content_type_id' can't find the workflow.
+                records = events.filter(workflow__content_type_id=content_type_id).order_by("pgh_id")
                 if not records.exists():
-                    workflow_id = (
-                        models.HistoricalWorkflow.objects.filter(content_type_id=content_type_id)
-                        .values_list("id", flat=True)
-                        .order_by("history_date")
-                        .first()
-                    )
-                    records = workflow_model.history.filter(workflow_id=workflow_id)
+                    records = events.filter(workflow_id=workflow_id_from_events()).order_by("pgh_id")
                 return records
 
     @staticmethod
@@ -1450,42 +1460,42 @@ class Command(BaseCommand):
                 query = changed_item["state_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "state":
                 query = changed_item["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "statepermission":
                 query = changed_item["state_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transition":
                 query = changed_item["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionpermission":
                 query = changed_item["transition_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "transitionsource":
                 query = changed_item["source_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
             case "workflow":
@@ -1498,7 +1508,7 @@ class Command(BaseCommand):
                 query = changed_item["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
-                workflow = models.HistoricalWorkflow.objects.filter(**query).last()
+                workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
                 return ContentType.objects.filter(id=workflow.content_type_id).first()
 
     def _recursive_compile_changed_item(self, query, *, history_date=None):
@@ -1523,48 +1533,28 @@ class Command(BaseCommand):
 
                 case "source_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("source_id"))
-                    if history_date is not None:
-                        sub_query["history_date__lte"] = history_date
-                    historical_state = (
-                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
-                    )
+                    historical_state = models.StateEvent.objects.filter(**sub_query).order_by("pgh_id").last()
 
                     query["source_id"] = historical_state.id if historical_state else None
 
                 case "state_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("state_id"))
-                    if history_date is not None:
-                        sub_query["history_date__lte"] = history_date
-                    historical_state = (
-                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
-                    )
+                    historical_state = models.StateEvent.objects.filter(**sub_query).order_by("pgh_id").last()
                     query["state_id"] = historical_state.id if historical_state else None
 
                 case "target_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("target_id"))
-                    if history_date is not None:
-                        sub_query["history_date__lte"] = history_date
-                    historical_state = (
-                        models.HistoricalState.objects.filter(**sub_query).order_by("history_date").last()
-                    )
+                    historical_state = models.StateEvent.objects.filter(**sub_query).order_by("pgh_id").last()
                     query["target_id"] = historical_state.id if historical_state else None
 
                 case "transition_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("transition_id"))
-                    if history_date is not None:
-                        sub_query["history_date__lte"] = history_date
-                    historical_transition = (
-                        models.HistoricalTransition.objects.filter(**sub_query).order_by("history_date").last()
-                    )
+                    historical_transition = models.TransitionEvent.objects.filter(**sub_query).order_by("pgh_id").last()
                     query["transition_id"] = historical_transition.id if historical_transition else None
 
                 case "workflow_id":
                     sub_query = self._recursive_compile_changed_item(query.pop("workflow_id"))
-                    if history_date is not None:
-                        sub_query["history_date__lte"] = history_date
-                    historical_workflow = (
-                        models.HistoricalWorkflow.objects.filter(**sub_query).order_by("history_date").last()
-                    )
+                    historical_workflow = models.WorkflowEvent.objects.filter(**sub_query).order_by("pgh_id").last()
                     query["workflow_id"] = historical_workflow.id if historical_workflow else None
 
         return query
@@ -1597,12 +1587,12 @@ class Command(BaseCommand):
         history_date = changed_item["history_date"]
         match history_type_text:
             case WorkflowChangeTypes.ADDED.value:
-                history_type = "+"
+                event_label = "insert"
             case WorkflowChangeTypes.CHANGED.value:
-                history_type = "~"
+                event_label = "update"
             case WorkflowChangeTypes.DELETED.value:
-                history_type = "-"
-        historical_queryset = historical_queryset.filter(history_type=history_type)
+                event_label = "delete"
+        historical_queryset = historical_queryset.filter(pgh_label=event_label)
 
         match model_name:
             case "initialstate":
@@ -1617,7 +1607,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**initialstate_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "state":
@@ -1630,7 +1620,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**state_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "statepermission":
@@ -1647,7 +1637,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**statepermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transition":
@@ -1660,7 +1650,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transition_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionpermission":
@@ -1677,7 +1667,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transitionpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "transitionsource":
@@ -1694,7 +1684,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**transitionsource_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflow":
@@ -1707,7 +1697,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**workflow_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
             case "workflowpermission":
@@ -1724,7 +1714,7 @@ class Command(BaseCommand):
                 historical_queryset = historical_queryset.filter(**workflowpermission_query)
                 historical_queryset = self._remove_previously_matched_pks(historical_queryset, model_name)
 
-                historical_obj = historical_queryset.order_by("history_date").first()
+                historical_obj = historical_queryset.order_by("pgh_id").first()
                 self._add_previously_matched_pk(historical_obj, model_name)
 
         return historical_obj
@@ -1772,9 +1762,14 @@ class Command(BaseCommand):
                     if model_name not in history_by_model_name:
                         history_by_model_name[model_name] = {}
 
-                    historical_queryset = self._get_historical_queryset_for_model(
+                    recorded = self._get_historical_queryset_for_model(
                         workflow_model_name, workflow_model, content_type_id
                     )
+                    # A generated workflow migration opens an action naming itself, so its own
+                    # writes are known exactly. Matching them by value could not work anyway: an
+                    # event carries the moment it was really written, which for a migration is when
+                    # it was applied, not the date of the edit it replays.
+                    historical_queryset = recorded.exclude(pgh_context__metadata__kind=MIGRATION_ACTION_KIND)
                     history_pks = tuple(historical_queryset.values_list("pk", flat=True))
                     existing_history_pks = set()
 
@@ -1807,7 +1802,8 @@ class Command(BaseCommand):
                             )
 
                     history_by_model_name[model_name][workflow_model_name] = {
-                        "queryset": historical_queryset,
+                        # Every write, which is what a change is diffed against.
+                        "queryset": recorded,
                         "unmatched": modified_historical_queryset,
                     }
 
@@ -1866,15 +1862,24 @@ class Command(BaseCommand):
         return migrations_by_app
 
     @staticmethod
-    def _get_history_record_for_date(hist_model, obj_id, history_date):
-        hist_obj = hist_model.objects.filter(id=obj_id, history_date__gte=history_date).order_by("history_date").first()
+    def _get_history_record_at(event_model, obj_id, recorded_at):
+        """Return a related row as it stood when the write being described was recorded.
 
-        if hist_obj is None or hist_obj.history_type != "-":
-            hist_obj = (
-                hist_model.objects.filter(id=obj_id, history_date__lte=history_date).order_by("-history_date").first()
-            )
+        A deleted row's closest record is the first event at or after that moment, which is the
+        delete itself. A row that still exists is described by its last event at or before it. Which
+        applies is not known here, so a delete found first wins and otherwise the earlier event does.
 
-        return hist_obj
+        Ordering is by recorded time, not by event id: ids number each event table separately and
+        this compares across two of them. Every event is stamped with ``clock_timestamp()``, so
+        writes inside one transaction still order.
+        """
+        recorded = event_model.objects.filter(id=obj_id)
+        event = recorded.filter(pgh_created_at__gte=recorded_at).order_by("pgh_created_at", "pgh_id").first()
+
+        if event is None or event.pgh_label != "delete":
+            event = recorded.filter(pgh_created_at__lte=recorded_at).order_by("-pgh_created_at", "-pgh_id").first()
+
+        return event
 
     # This function is a complexity of 25, but is much cleaner as a single function.
     def _parse_related_fields_into_changes_data(self, history_diff, historical_date, change, field_name, ct):  # noqa C901
@@ -1897,16 +1902,12 @@ class Command(BaseCommand):
                 # want will be the last history record before the date we have.
                 # But, at this point in the code, we don't know if the workflow was deleted or not.
                 if change.new:
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, change.new, historical_date
-                    )
+                    hist_workflow = self._get_history_record_at(models.WorkflowEvent, change.new, historical_date)
 
                     new = {"code": hist_workflow.code}
 
                 if change.old:
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, change.old, historical_date
-                    )
+                    hist_workflow = self._get_history_record_at(models.WorkflowEvent, change.old, historical_date)
 
                     old = {"code": hist_workflow.code}
 
@@ -1953,9 +1954,9 @@ class Command(BaseCommand):
                 # want will be the last history record before the date we have.
                 # But, at this point in the code, we don't know if the workflow or state was deleted or not.
                 if change.new:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.new, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -1964,9 +1965,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.old, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -1976,9 +1977,9 @@ class Command(BaseCommand):
 
             case "target_id":
                 if change.new:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.new, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -1987,9 +1988,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.old, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -1999,9 +2000,9 @@ class Command(BaseCommand):
 
             case "source_id":
                 if change.new:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.new, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.new, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     new = {
@@ -2010,9 +2011,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_state = self._get_history_record_for_date(models.HistoricalState, change.old, historical_date)
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_state.workflow_id, historical_date
+                    hist_state = self._get_history_record_at(models.StateEvent, change.old, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_state.workflow_id, historical_date
                     )
 
                     old = {
@@ -2022,11 +2023,9 @@ class Command(BaseCommand):
 
             case "transition_id":
                 if change.new:
-                    hist_transition = self._get_history_record_for_date(
-                        models.HistoricalTransition, change.new, historical_date
-                    )
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_transition.workflow_id, historical_date
+                    hist_transition = self._get_history_record_at(models.TransitionEvent, change.new, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_transition.workflow_id, historical_date
                     )
 
                     new = {
@@ -2035,11 +2034,9 @@ class Command(BaseCommand):
                     }
 
                 if change.old:
-                    hist_transition = self._get_history_record_for_date(
-                        models.HistoricalTransition, change.old, historical_date
-                    )
-                    hist_workflow = self._get_history_record_for_date(
-                        models.HistoricalWorkflow, hist_transition.workflow_id, historical_date
+                    hist_transition = self._get_history_record_at(models.TransitionEvent, change.old, historical_date)
+                    hist_workflow = self._get_history_record_at(
+                        models.WorkflowEvent, hist_transition.workflow_id, historical_date
                     )
 
                     old = {
@@ -2436,22 +2433,22 @@ class Command(BaseCommand):
                         changes_by_app[app_label]["migrations_path"] = app_data["migrations_path"]
 
                         for new_record in unmatched:
-                            match new_record.history_type:
-                                case "+":
+                            match new_record.pgh_label:
+                                case "insert":
                                     old_record = None
-                                    history_date = new_record.history_date
+                                    history_date = new_record.pgh_created_at
 
-                                case "~":
+                                case "update":
                                     old_record = queryset.filter(
-                                        pk__lt=new_record.pk,
+                                        pgh_id__lt=new_record.pgh_id,
                                         id=new_record.id,
                                     ).first()
-                                    history_date = new_record.history_date
+                                    history_date = new_record.pgh_created_at
 
-                                case "-":
+                                case "delete":
                                     old_record = new_record
                                     new_record = None
-                                    history_date = old_record.history_date
+                                    history_date = old_record.pgh_created_at
 
                             history_type, history_diff = get_history_diff(old_record, new_record)
 
