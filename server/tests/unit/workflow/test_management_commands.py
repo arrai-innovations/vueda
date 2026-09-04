@@ -128,7 +128,7 @@ class BaseAddedWorkflow:
         ]
 
         data = convert_data_to_list_of_dicts_without_id_fields(
-            models.State.objects.filter(workflow_id=workflow_pk).values()
+            models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
         )
         assert data == [
             {
@@ -481,7 +481,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -640,7 +640,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == [
                 {
@@ -772,7 +772,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
@@ -885,7 +885,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -1062,7 +1062,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
