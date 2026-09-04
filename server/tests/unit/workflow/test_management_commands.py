@@ -3,8 +3,10 @@ import datetime
 import io
 import os
 import time
+from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db.migrations.recorder import MigrationRecorder
 
@@ -12,8 +14,10 @@ from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import info_registry_clear_with_appended_apps
+from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
+from vueda.workflow.models import WorkflowEvent
 
 
 def convert_data_to_list_of_dicts_without_id_fields(queryset):
@@ -51,6 +55,17 @@ class BaseAddedWorkflow:
         # Reload 0003, because we rewrote it after it would have imported it.
         assert results, "No results were captured when makeworkflowmigrations was called."
         self.reload_module(results, migration_dir)
+
+        # The migration writes through the workflow triggers, so it has to depend on the migration
+        # that installs them. Depending on the newest vueda_workflow migration is what guarantees it.
+        migration_filepath = os.path.join(
+            migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+        )
+        with open(migration_filepath, encoding="utf-8") as f:
+            generated_migration = f.read()
+        workflow_migrations = Path(workflow_module.__file__).parent / "migrations"
+        newest = sorted(path.stem for path in workflow_migrations.glob("0*.py"))[-1]
+        assert f'("vueda_workflow", "{newest}")' in generated_migration
 
         results = frozenset([line.strip() for line in results if line.strip()])
         assert "Creating empty migration for workflow changes." in results
@@ -103,6 +118,14 @@ class BaseAddedWorkflow:
 
         # If the assert above passes, then we definitely have a workflow id.
         workflow_pk = models.Workflow.objects.filter(code="added_workflow").first().id
+
+        # The migration's writes record events, and they name the migration that made them.
+        events = WorkflowEvent.objects.filter(pgh_obj_id=workflow_pk)
+        assert [event.pgh_label for event in events] == ["insert"]
+        metadata = events[0].pgh_context.metadata
+        assert metadata["kind"] == "migration"
+        assert metadata["action"].startswith("Workflow Migration - 0003_workflow_migrations_")
+        assert metadata["user"] == get_user_model().objects.get(is_system=True).pk
 
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
@@ -1745,8 +1768,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" not in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def make_sure_permissions_exist(app_label):" not in migration_content
             assert (
                 "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
@@ -1844,8 +1870,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def make_sure_permissions_exist(app_label):" in migration_content
             assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
             assert (
@@ -1950,8 +1979,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" not in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def make_sure_permissions_exist(app_label):" not in migration_content
             assert (
                 "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
@@ -2051,8 +2083,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def make_sure_permissions_exist(app_label):" in migration_content
             assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
             assert (

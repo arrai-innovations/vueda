@@ -27,6 +27,7 @@ __all__ = (
     "handle_workflow_permission",
     "make_sure_permissions_exist",
     "manage_state_objects",
+    "workflow_migration_action",
 )
 
 import copy
@@ -41,6 +42,7 @@ from pathlib import Path
 from pprint import pformat
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -54,6 +56,7 @@ from django.db.models import Count
 from django.db.transaction import atomic
 from django.utils import timezone
 
+from vueda.core.audit import audited_action
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
@@ -128,7 +131,28 @@ MIGRATION_MODIFIED_COMMENT = (
 # Functions we use when rewriting the empty migration we created.
 # We write the source code using inspect.get_source(...) into the migration.
 #############################################################################
+def workflow_migration_action(apps, change_reason):
+    """Group every write a generated workflow migration makes under one action.
+
+    The events a migration writes are attributed to the system user and labelled with the migration
+    that wrote them, so reading history back separates a migration's writes from a person's edit.
+    Nothing else in the migration needs to know about it: the triggers record whatever the block
+    writes, under whatever context is open.
+
+    The user model is read through the migration's own registry, because a migration must not depend
+    on the shape the live model has now.
+    """
+    user_model = apps.get_model(settings.AUTH_USER_MODEL)
+    system_user = user_model.objects.filter(is_system=True).first()
+    return audited_action(change_reason, kind="migration", user=system_user and system_user.pk)
+
+
 def forwards_migrate_workflow(apps, changed_items, change_reason):
+    with workflow_migration_action(apps, change_reason):
+        _forwards_migrate_workflow(apps, changed_items, change_reason)
+
+
+def _forwards_migrate_workflow(apps, changed_items, change_reason):
     for changed_item in changed_items:
         match changed_item["model_name"]:
             case "workflow":
@@ -165,6 +189,11 @@ def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: n
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
+    with workflow_migration_action(apps, change_reason):
+        _backwards_migrate_workflow(apps, changed_items, change_reason)
+
+
+def _backwards_migrate_workflow(apps, changed_items, change_reason):
     handle_state_objects(apps, reversing=True)
 
     # Make sure we go through the changed_items in reverse order, so we undo things correctly.
@@ -1093,6 +1122,7 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     else:
         result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
         result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
+        result_mapping[("audited_action",)] = f"{NEWLINE}from vueda.core.audit import audited_action{NEWLINE}"
 
     if as_mapping:
         return result_mapping
@@ -1130,8 +1160,11 @@ def get_migration_sources(import_instead=False, as_mapping=False):
         result_mapping.update(
             {
                 ("WorkflowChangeTypes",): inspect.getsource(WorkflowChangeTypes),
+                ("workflow_migration_action",): inspect.getsource(workflow_migration_action),
                 ("forwards_migrate_workflow",): inspect.getsource(forwards_migrate_workflow),
+                ("_forwards_migrate_workflow",): inspect.getsource(_forwards_migrate_workflow),
                 ("backwards_migrate_workflow",): inspect.getsource(backwards_migrate_workflow),
+                ("_backwards_migrate_workflow",): inspect.getsource(_backwards_migrate_workflow),
                 ("make_sure_permissions_exist",): inspect.getsource(make_sure_permissions_exist),
                 ("handle_workflow",): inspect.getsource(handle_workflow),
                 ("handle_workflow_permission",): inspect.getsource(handle_workflow_permission),
