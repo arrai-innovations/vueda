@@ -34,15 +34,109 @@ VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the
 
 **Custom generated-field expression.** Override the `formatted_name` field with a different expression; for example, `Cast(F("order_number"), output_field=CharField())`. This keeps the value database-persisted while deriving it from a different source.
 
-**Null field with a lookup expression.** Set `formatted_name = None` on the model and define `formatted_name_lookup_expression` as a string pointing to an alternate field path (e.g., `"data__formatted_name"`). `VuedaViewSet` annotates every queryset with this expression in `get_queryset`, so `formatted_name` returns the resolved value in all list and retrieve responses. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset, so `formatted_name` is populated in expand responses as well. Choice endpoints use the same annotation when resolving labels.
+**Null field with a lookup expression.** Set `formatted_name = None` on the model and define `formatted_name_lookup_expression` as a string pointing to an alternate field path (e.g., `"data__formatted_name"`). `FormattedNameManager` — the default manager `FormattedNameBaseModel` provides — annotates every queryset the model builds with this expression, and `VuedaViewSet.get_queryset` does the same for the querysets DRF builds, so `formatted_name` returns the resolved value in all list and retrieve responses. Because the annotation is on the model's own manager, `formatted_name` also works on a plain `Model.objects.all()`: in a management command, in the admin, through a reverse relation, or anywhere else a queryset is built (see [Replacing the default manager](#replacing-the-default-manager)). When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset, so `formatted_name` is populated in expand responses as well. Choice endpoints use the same annotation when resolving labels. Point the expression at a real column: the annotation is a plain `F(...)` over that path, so every segment has to be a database field. An expression aimed at another model's `formatted_name` works only when that model has a `formatted_name` column of its own — it is not followed through a second `formatted_name_lookup_expression`, and pointing at one raises a `FieldError` when the queryset is annotated. Every relation the path crosses also has to be single-valued: a forward foreign key or a one-to-one, nullable or not. Reaching through a reverse foreign key, a many-to-many, or a `GenericRelation` would join a row per related object, so the model would quietly return more rows than its table holds on every queryset rather than failing anywhere — `vueda_info.E008` reports that at startup.
 
 **Null field with a Python method.** Set `formatted_name = None` on the model and implement a `get_formatted_name()` method for runtime computation. This is the most flexible option but requires explicit wiring in the serializer (covered in the next section). Choice endpoints resolve labels using a priority order: `get_formatted_name()` method, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices.
 
-Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`.
+Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`; pointing `formatted_name_lookup_expression` through a relation that can match more than one row triggers `vueda_info.E008`; and declaring a `formatted_name_lookup_expression` on a model whose default manager isn't a `FormattedNameManager` triggers `vueda_info.E009`.
+
+**Ordering by `formatted_name`.** The first three strategies are sortable in the database, so `formatted_name` may be named as a plain field name in a viewset's `ordering` or `ordering_fields`, or in the model's own `Meta.ordering`, and clients may request it with `?o=formatted_name`. A generated field is sorted as its own column; a lookup expression is sorted through the annotation `VuedaViewSet.get_queryset` already adds. Either way, model-info metadata reports the field as `formatted_name` — the lookup expression behind it stays a server-side detail.
+
+On a viewset, whichever strategy the model uses:
+
+```python
+class DeliveryViewSet(VuedaViewSet):
+    queryset = Delivery.objects.all()
+    serializer_class = DeliverySerializer
+    ordering = ["formatted_name"]
+```
+
+Or as the model's own default, which applies whenever the viewset declares no `ordering` of its own:
+
+```python
+class Delivery(VuedaModel):
+    formatted_name = None
+    formatted_name_lookup_expression = "recipient__name"
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["formatted_name"]
+```
+
+Prefix the name with `-` for descending order. To control where rows with a null `formatted_name` land, declare the term as an `F("formatted_name").asc(nulls_last=True)` expression instead, the same as for any other field (see [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#nulls-placement-for-client-requested-ordering)).
+
+A term may also be a scalar database function — `Lower("formatted_name")` for a case-insensitive sort, `Coalesce("formatted_name", "code")` to fall back to another column — the same as for any other field. Metadata still reports the field the function reads, so the client sends `?o=formatted_name` either way (see [Database Functions in a Default Ordering](../core-concepts/filtering-and-ordering-semantics#database-functions-in-a-default-ordering)).
+
+A model-level ordering on a lookup-expression `formatted_name` names something that is not one of the model's own fields, which Django's `models.E015` system check would normally reject. `FormattedNameBaseModel._check_ordering` withholds that one term from the check, since `FormattedNameManager` annotates the expression onto every queryset the model builds and so makes the ordering valid by the time the query runs. Every other term in the same `Meta.ordering` is still checked as usual, so a genuinely stale field name is still reported.
+
+The manager is what makes that suppression safe, so the suppression asks about the manager. `Meta.ordering` applies to every queryset, not only the ones a viewset builds, so the annotation has to be there too — otherwise withholding the check would trade a startup error for a `FieldError` at query time in a management command, a data migration, or an admin page. A model whose default manager doesn't inherit `FormattedNameManager` is therefore left to `models.E015`, which is right about it. `vueda_info.E009` reports the same model with a hint aimed at the manager rather than at the ordering, but only for a registered model, so it is a second opinion rather than what makes the suppression sound.
+
+#### Replacing the default manager
+
+Django uses the first manager declared on a model as its default, so a model that declares its own `objects` shadows `FormattedNameManager` and loses the annotation. Inherit from it rather than from `models.Manager` when a VUEDA model needs a manager of its own:
+
+```python
+from vueda.core.models import FormattedNameManager, VuedaModel
+
+
+class DeliveryManager(FormattedNameManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(archived=False)
+
+
+class Delivery(VuedaModel):
+    formatted_name = None
+    formatted_name_lookup_expression = "recipient__name"
+
+    objects = DeliveryManager()
+```
+
+Build on `super().get_queryset()` rather than a fresh queryset, so the annotation survives. For a manager built with `Manager.from_queryset()`, pass `FormattedNameManager` as the base: `FormattedNameManager.from_queryset(DeliveryQuerySet)`.
+
+This only matters for models with a `formatted_name_lookup_expression` and no `formatted_name` column — the one strategy where the name has no column of its own. A model with the generated-field column, or one using `get_formatted_name()`, is unaffected either way.
+
+A manager declared on an abstract base shadows the default manager just as readily as one declared on the model, and is the easier case to miss, since the model that names the lookup expression can be several classes away from the one that names the manager. `SimpleHistoryManager` inherits `FormattedNameManager` for that reason: it is declared as `objects` on `SimpleHistoryModelMixin`, which sits closer in the MRO than `FormattedNameBaseModel`, so without inheriting it every `VuedaHistoryModel` subclass would lose the annotation. `VUEDAUserManager` and `SentItemManager` sit on models that have no annotation to lose.
+
+::: warning
+A model that replaces its default manager without inheriting `FormattedNameManager` is back to the pre-manager behavior: evaluating a queryset from that manager raises `FieldError: Cannot resolve keyword 'formatted_name'`. Two checks report it at startup. The `models.E015` suppression above asks about the manager before withholding anything, so such a model keeps Django's own error on a `Meta.ordering` that names `formatted_name`, registered or not. `vueda_info.E009` reports the manager itself, for a registered model, with a hint aimed at fixing the manager.
+:::
+
+`Model._base_manager` is not this manager and never carries the annotation. Django builds the base manager itself, as a plain `models.Manager`, unless `Meta.base_manager_name` names one — deliberately, since the base manager is what fetches related objects and a default manager may filter them out.
+
+Only a model whose `Meta.ordering` names `formatted_name` has to care: a base-manager queryset carrying that ordering has no annotation to sort and raises `FieldError`. Anything reached through `get()` is safe, since `get()` clears ordering — that covers `refresh_from_db` and dereferencing a foreign key — and so are `select_related` and `prefetch_related`, which order by nothing of the related model's own. What is not safe is a base-manager queryset evaluated as a whole: `dumpdata --use-base-manager`, and the related-object collection a cascade delete performs (`Collector.related_objects` hands back a plain `_base_manager` queryset that `Collector.collect` evaluates without clearing ordering). Set `Meta.base_manager_name = "objects"` on a model in that position to make Django use this manager for those paths too, or order by the lookup expression's own path instead of by `formatted_name`.
+
+The Python-method strategy cannot be ordered by: the value is computed per object, so the database has no column to sort on, and sorting in Python would mean loading every row of the table. Ordering declared on a method-backed `formatted_name` triggers `vueda_info.E005` at startup. Switch that model to `formatted_name_lookup_expression` if the value needs to be sortable. Where the value needs a join or an aggregate that no field path reaches, back it with a database view — a `managed = False` model related by `OneToOneField` — and point `formatted_name_lookup_expression` at a real column on that view (see [Queryset annotations](../core-concepts/filtering-and-ordering-semantics#queryset-annotations)).
+
+**Ordering and filtering by a related model's `formatted_name`.** A related model's formatted name is named the way any other related path is, and works to any depth:
+
+```python
+class CartViewSet(VuedaViewSet):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+    ordering = ["customer__formatted_name"]
+    ordering_fields = ["customer__formatted_name", "customer__user__formatted_name"]
+
+
+class CartFilterSet(VuedaFilterSet):
+    customer_name = filters.CharFilter(field_name="customer__formatted_name", lookup_expr="icontains")
+
+    class Meta:
+        model = Cart
+        fields = []
+```
+
+When `Customer` reaches its formatted name through `formatted_name_lookup_expression = "data__formatted_name"`, `customer__formatted_name` names no column the database knows: the annotation `VuedaViewSet.get_queryset` adds belongs to the `Cart` queryset, not to the `Customer` rows it joins. `VuedaOrderingFilter` rewrites the path to `customer__data__formatted_name` before the query runs, and `FormattedNamePathFilterSetMixin` does the same for a filter's `field_name`. Both VUEDA filterset bases — `VuedaFilterSet` and `VuedaCompositePrimaryKeyFilterSet` — already include that mixin, so `CartFilterSet` above needs nothing extra; a filterset built on django-filter's `FilterSet` directly has to mix it in itself, ahead of the `FilterSet` base (see [The filterset half of the rewrite](../core-concepts/filtering-and-ordering-semantics#the-filterset-half-of-the-rewrite)). Clients keep using the declared name — it is what `?o=` takes, what `model_ordering` and `model_filtering` report, and what a generated filter label is built from. The resolved path is server-side only and is not accepted as a query parameter.
+
+Two shapes are refused rather than rewritten, left out of the metadata, and reported by `vueda_info.E006`: a related `formatted_name` that a `get_formatted_name()` method computes (no column exists behind it at any depth), and a path that reaches the related model through a reverse foreign key or many-to-many, which would join a row per related object and multiply the rows a list request returns.
+
+::: warning
+This applies to a viewset's `ordering` and `ordering_fields`, to `?o=`, and to filters — not to a model's `Meta.ordering`, which applies to every queryset including ones no filter backend touches. `ordering = ["customer__formatted_name"]` in a model's `Meta` is still rejected by Django's `models.E015`; only the model's own un-prefixed `formatted_name` is withheld from that check.
+:::
 
 **Models that cannot inherit `VuedaModel`.** Django's built-in `Group`, `Permission`, and `ContentType` do not inherit from `VuedaModel`, but VUEDA patches them in `InfoConfig.ready()` so they work correctly as expandable fields without any action on your part. `Group` and `Permission` receive `formatted_name_lookup_expression = "name"`. `ContentType` receives a `get_formatted_name()` method that returns `app_labeled_name` (the `"app_label | verbose_name"` display string).
 
 If you have a third-party model that cannot inherit `VuedaModel` but needs to participate in VUEDA's expand and formatted-name system, apply the same pattern in your own `AppConfig.ready()`: set `formatted_name_lookup_expression` to a field path string, or assign a `get_formatted_name` method that returns a string. Then add `_has_formatted_name_field` as a classmethod that returns truthy, and `_get_formatted_name` as an instance method that reads the annotated `formatted_name` attribute when present and falls back to `get_formatted_name()` or `lookup_field`. The `FormattedNameBaseModel` source is the reference implementation for both.
+
+To name a lookup-expression `formatted_name` in such a model's `Meta.ordering`, assign `FormattedNameBaseModel._check_ordering` as well — without it, `models.E015` reports the term — and give the model a `FormattedNameManager` (or a subclass) as its default manager, so the annotation the withheld check assumes is actually there on every queryset.
 
 ## Serializer Contract
 
@@ -89,6 +183,8 @@ class WidgetViewSet(VuedaViewSet):
     filterset_class = WidgetFilterSet
     ordering_fields = ["name", "status"]
 ```
+
+Set a default sort order with the viewset's `ordering` attribute (or the model's `Meta.ordering`), never with an `order_by()` on the `queryset` attribute or inside `get_queryset`. Model-info reads the declarations, not the code, so an `order_by()` applied in code sorts the rows without being described — and `model_ordering.default` then advertises a different order to every client. See [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#metadata-projection-for-ordering-and-filtering).
 
 `VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on `list` queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
 
@@ -224,6 +320,7 @@ With all pieces in place, verify the surface end-to-end:
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
+    - {@api py:class:vueda.core.filters.FormattedNamePathFilterSetMixin}
     - {@api py:class:vueda.core.routers.VuedaRouter}
     - {@api py:function:vueda.info.registration.register}
     - {@api py:class:vueda.core.serializers.VuedaListSerializer}
