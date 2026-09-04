@@ -28,7 +28,9 @@ const props = defineProps({
     },
     /**
      * The server's default sort order, in the same `-`-prefixed representation as `sorted`.
-     * Reset sort restores this order; the control is hidden whenever `sorted` already matches it.
+     * Read only to decide whether Reset sort has anything to do: the control is hidden whenever
+     * `sorted` already matches it. Reset itself emits an empty `update:sorted` rather than this
+     * array, leaving the host to resolve what "the default" means — see the `update:sorted` event.
      */
     defaultSorted: {
         type: Array,
@@ -51,7 +53,15 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([
-    /** Emitted when the active sort array changes. */
+    /**
+     * Emitted when the active sort array changes. Reset sort emits an empty array, which the host
+     * reads as "use the default" rather than as "sort by nothing" — a list with no `o` param is one
+     * the server sorts by its own default anyway.
+     * {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} answers it by
+     * clearing the stored sort preference and applying `defaultSorted`; a host that just assigns
+     * what it receives clears the sort instead. Emitting `defaultSorted` here would say the opposite:
+     * `useViewList` would store it as an explicit preference, which is the one thing a default is not.
+     */
     "update:sorted",
 ]);
 
@@ -95,6 +105,10 @@ const toggle = (base) => apply(toggleSortField(localSorted.value, base));
 const remove = (base) => apply(removeSortField(localSorted.value, base));
 // Hidden once the active sort already matches the default, since there is nothing to reset.
 const matchesDefault = computed(() => sameOrder(localSorted.value, props.defaultSorted));
+// Emits an empty sort, not `defaultSorted`: the host is what turns that into the default (see the
+// `update:sorted` event). `localSorted` is emptied along with it and the chips disappear until the
+// host echoes the default back through `sorted`, which is the same optimistic round-trip every
+// other edit here makes.
 const resetToDefault = () => {
     if (!matchesDefault.value) {
         apply([]);

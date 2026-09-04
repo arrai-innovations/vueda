@@ -211,7 +211,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListSortGroup
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
- * @property {string[]} defaultSorted - The server's default sort order (from `modelConfig.config.sorted`), sanitized against `sortablesList` (auto-unwrapped). Applied when the view has neither an URL sort nor a stored preference; a stored preference always wins over it. Also the array `SortGroup`'s Reset sort control restores the default.
+ * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Applied whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to, since a request without the ordering param is one the server sorts by its own default. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
  * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
  * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
  * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
@@ -675,9 +675,11 @@ export function useViewList(options) {
     const columnTotals = computed(() => instanceList.state.columnTotals || {});
     const mobileSortDrawerVisible = ref(false);
     const sortablesList = computed(() => unref(sorting.state.sortables) || []);
-    // The server's default sort (from `modelConfig.config.sorted`), sanitized against the
-    // currently sortable fields. Applied when a view has neither a URL sort nor a stored
-    // preference; a stored preference (even an empty one) always wins over this default.
+    // The configured default sort (from `modelConfig.config.sorted`, which is the server's
+    // `model_ordering.default` unless a project overrode it), sanitized against the currently
+    // sortable fields. This is what the read-out shows whenever the URL carries no sort, because
+    // that is exactly the request the server answers with its own default ordering. On first load a
+    // stored preference wins over it, since that reflects an explicit prior choice.
     const defaultSorted = computed(() => sanitizeSortFields(modelConfig.config?.sorted || [], sortablesList.value));
     // Layout-independent gate for the sort control: show it whenever the model
     // exposes sortable fields. The control picks its own surface (popover vs
@@ -789,6 +791,11 @@ export function useViewList(options) {
             if (!isEqual(restored, sorting.state.sorted)) {
                 assignReactiveObject(sorting.state.sorted, restored);
             }
+            // Canonicalize whatever ended up applied, the way every branch of initialization does,
+            // so the URL always spells out the sort in effect — including a default that is only in
+            // play because the URL carried no `o` of its own. Nothing is written to the preference
+            // store here: arriving at a URL is not the same as choosing a sort, and `updateSorted`
+            // is what records a choice.
             const canonicalQuery = queryWithCurrentSort(route.query, restored);
             if (!isEqual(canonicalQuery, route.query)) {
                 router.replace({ query: canonicalQuery });

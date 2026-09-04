@@ -11,7 +11,8 @@ import { computed, reactive, toRef } from "vue";
  * ordinal (shown only when `showOrdinal` is set) doubles as the drag handle for
  * reordering within the host strip. The label segment shows the field's human
  * label and a direction glyph; clicking it toggles ascending/descending. The
- * trailing segment removes the field from the sort. This is the sort-side
+ * trailing segment removes the field from the sort, and is present only when
+ * `removable` is set. This is the sort-side
  * counterpart to {@api vue:component:FilterChip}: neutral-tinted, since ordering
  * is not a predicate and the accent is reserved for filters, actions, and selection.
  */
@@ -45,9 +46,11 @@ const props = defineProps({
         default: true,
     },
     /**
-     * Show the remove ("x") control. Hidden once removing would leave nothing
-     * sorted; the host strip ({@api vue:component:SortGroup}) passes `false` for
-     * a lone chip regardless of whether that chip is part of the default sort.
+     * Show the remove ("x") control. The host strip
+     * ({@api vue:component:SortGroup}) passes `false` for a lone chip, so the
+     * last active sort field can't be removed from the chip itself — clearing it
+     * would leave the strip with no chips to read the sort from, while the server
+     * would still sort by its own default. Reset sort is the way back instead.
      */
     removable: {
         type: Boolean,
