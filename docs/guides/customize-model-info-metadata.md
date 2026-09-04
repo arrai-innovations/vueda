@@ -15,7 +15,11 @@ For the full metadata contract this guide customizes, see [Server-Client Metadat
 
 A `SerializerMethodField` you declare directly on a serializer, or list in `Meta.expandable_fields`, has no model column and no fixed field type backing it. VUEDA cannot infer whether `get_<field>()` returns a string, a number, a date, or a nested object, so the generated `model_fields`/`model_expands` entry for it may report a generic or misleading type.
 
-Override the hooks below when the generated metadata for one of your method fields does not match what the field actually returns.
+The same hook also applies to a field that isn't a `SerializerMethodField` but still isn't backed by a concrete model field — for example, a field whose `source` names a `@property` or an annotated value rather than a real column. `type_db`/`type_model` are `null` for that field too, and the `vueda_info.W001` system check may flag it if its `source` makes partial progress toward a model field before breaking (see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract#failure-modes-and-recovery)). `get_field_model_info` is the sanctioned way to describe such a field's real shape, the same as for a `SerializerMethodField`.
+
+This only ever applies to a field's `source=`, never to a model's `<field>_lookup_expression`. A `lookup_expression` is fed directly to `models.F()` for queryset annotation and to Django admin's `lookup_field()`, so it must always name a real database path; `vueda_info.W001` flags any `lookup_expression` that fails to resolve, and the fix is to correct the expression itself, not to describe it away with `get_field_model_info`.
+
+Override the hooks below when the generated metadata for one of your method fields (or another non-model-backed field) does not match what the field actually returns.
 
 ## Correcting a Method Field's Type (`model_fields`)
 

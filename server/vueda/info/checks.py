@@ -1,4 +1,5 @@
 from django.core.checks import Error
+from django.core.checks import Warning as CheckWarning
 
 
 def _is_property_on_model(model, attr_name):
@@ -99,3 +100,58 @@ def check_formatted_name_configuration(app_configs, **kwargs):
                 errors.extend(_validate_model_formatted_name(child_model))
 
     return errors
+
+
+def _validate_field_source_resolution(serializer_class, model):
+    from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+    warnings = []
+    serializer_instance = serializer_class()
+    for field_name, field in serializer_instance.get_fields().items():
+        _model_field, unresolved_path = resolve_serializer_field_model_field(model, field_name, field)
+        if unresolved_path is None:
+            continue
+
+        # A lookup_expression is fed straight to models.F() for queryset annotation and to Django
+        # admin's lookup_field(); neither can reach a @property or method, so it has no legitimate
+        # non-model-backed reading the way a field's source= does -- the hint below shouldn't offer
+        # get_field_model_info as if it might be one.
+        is_lookup_expression = isinstance(getattr(model, f"{field_name}_lookup_expression", None), str)
+        if is_lookup_expression:
+            hint = (
+                f"'{unresolved_path}' did not resolve to a model field. formatted_name_lookup_expression is "
+                "used for queryset annotation and Django admin field lookups, both DB-level operations, so it "
+                "must name a real field path. Fix the model's lookup expression."
+            )
+        else:
+            hint = (
+                f"'{unresolved_path}' did not resolve to a model field. If {field_name} is genuinely not "
+                "model-backed, override get_field_model_info to correct its model_fields metadata. "
+                "Otherwise, fix the field's source=."
+            )
+
+        warnings.append(
+            CheckWarning(
+                f"{serializer_class.__name__}.{field_name} does not resolve to a field on {model.__name__}.",
+                hint=hint,
+                obj=serializer_class,
+                id="vueda_info.W001",
+            )
+        )
+    return warnings
+
+
+def check_field_source_resolution(app_configs, **kwargs):
+    from vueda.info.registration import get_all_registrations
+
+    warnings = []
+    checked = set()
+
+    for _key, registration in get_all_registrations().items():
+        serializer_class = registration["serializer"]
+        model = serializer_class.Meta.model
+        if serializer_class not in checked:
+            checked.add(serializer_class)
+            warnings.extend(_validate_field_source_resolution(serializer_class, model))
+
+    return warnings
