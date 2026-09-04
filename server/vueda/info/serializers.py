@@ -2054,14 +2054,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 "parameters": ["pk"],
                                             },
                                             {
-                                                "name": "current",
-                                                "description": "current store.customer",
-                                                "detail": True,
-                                                "bulk": False,
-                                                "method_names": ["get"],
-                                                "parameters": ["pk"],
-                                            },
-                                            {
                                                 "name": "history-list",
                                                 "description": "history-list store.customer",
                                                 "detail": True,
