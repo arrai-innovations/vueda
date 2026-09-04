@@ -17,6 +17,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.db import models
+from django.db.models import Q
 from django.test import TransactionTestCase
 from django.urls import reverse
 from psycopg import connect
@@ -174,23 +175,62 @@ class BaseTestGroupMixin:
 
     @property
     def groups(self):
-        if not hasattr(self, "_groups"):
-            self._groups = []
-            for group_name, permissions in self.groups_to_create.items():
-                group, _ = Group.objects.get_or_create(name=group_name)
-                _permissions = []
-                for permission in permissions:
-                    app_label, model, perm_name = permission
-                    content_type = ContentType.objects.get(app_label=app_label, model=model.lower())
-                    model_class = content_type.model_class()
-                    permission_obj, _ = Permission.objects.get_or_create(
-                        content_type=content_type,
-                        codename=f"{perm_name}_{model_class.__name__.lower()}",
-                        defaults={"name": f"Can {' '.join(perm_name.split('_'))} {model_class._meta.verbose_name}"},
-                    )
-                    _permissions.append(permission_obj)
-                group.permissions.set(_permissions)
-                self._groups.append(group)
+        """
+        Create the groups in ``groups_to_create`` and give them their permissions.
+
+        The content types and permissions for every group are each fetched in a single query, rather
+        than a pair of queries per permission entry. Almost every test builds groups during setup and
+        some name a hundred permissions, so those per-entry lookups were a large share of the setup
+        cost. ``ContentType.objects.get()`` does not use the content type cache, so none of them were
+        being saved by it either.
+        """
+        if hasattr(self, "_groups"):
+            return self._groups
+
+        wanted_content_types = {
+            (app_label, model.lower())
+            for permissions in self.groups_to_create.values()
+            for app_label, model, _perm_name in permissions
+        }
+
+        content_types = {}
+        if wanted_content_types:
+            query = Q()
+            for app_label, model_name in wanted_content_types:
+                query |= Q(app_label=app_label, model=model_name)
+            content_types = {
+                (content_type.app_label, content_type.model): content_type
+                for content_type in ContentType.objects.filter(query)
+            }
+
+            missing = wanted_content_types - set(content_types)
+            if missing:
+                names = ", ".join(f"{app_label}.{model}" for app_label, model in sorted(missing))
+                raise ContentType.DoesNotExist(f"No content type for {names}.")
+
+        # Permissions for a model are few, so fetching all of them for the content types in play is
+        # cheaper than asking for each (content type, codename) pair individually.
+        permissions_by_content_type_and_codename = {
+            (permission.content_type_id, permission.codename): permission
+            for permission in Permission.objects.filter(content_type__in=list(content_types.values()))
+        }
+
+        self._groups = []
+        for group_name, permissions in self.groups_to_create.items():
+            group, _ = Group.objects.get_or_create(name=group_name)
+            group_permissions = []
+            for app_label, model, perm_name in permissions:
+                content_type = content_types[(app_label, model.lower())]
+                # A content type's `model` is the model's `_meta.model_name`, which is its class name
+                # lowercased, so it gives the same codename as resolving the model class would.
+                codename = f"{perm_name}_{content_type.model}"
+                permission = permissions_by_content_type_and_codename.get((content_type.pk, codename))
+                if permission is None:
+                    raise Permission.DoesNotExist(f"No permission with codename {codename!r} on {app_label}.{model}.")
+                group_permissions.append(permission)
+            group.permissions.set(group_permissions)
+            self._groups.append(group)
+
         return self._groups
 
 
@@ -215,7 +255,8 @@ class BaseTestUserMixin:
                 )
                 user.set_password(user_data["password"])
                 user.save()
-                for group_name in user_data["groups"]:
+                # "groups" is optional, for users that only exist to be associated with test objects.
+                for group_name in user_data.get("groups", ()):
                     group = Group.objects.get(name=group_name)
                     user.groups.add(group)
                 self._users[email] = user
