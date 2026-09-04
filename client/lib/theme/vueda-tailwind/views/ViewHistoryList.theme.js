@@ -119,7 +119,7 @@ patchTheme({
         cellModelObject: {
             class: ["font-mono text-[11px] text-muted-foreground"],
         },
-        /** History-type pill ("Created", "Updated", "Deleted", "Restored") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive, restored = warning); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
+        /** History-type pill ("Created", "Updated", "Deleted") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
         typePill: {
             class: [
                 "inline-flex items-center gap-1 rounded-full hairline px-2 py-0.5",
@@ -136,9 +136,6 @@ patchTheme({
                 "data-[kind=deleted]:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_25%,transparent)]",
                 "data-[kind=deleted]:bg-[color-mix(in_oklab,var(--destructive)_8%,transparent)]",
                 "data-[kind=deleted]:text-destructive",
-                "data-[kind=restored]:[--vueda-hairline-color:color-mix(in_oklab,var(--warning)_30%,transparent)]",
-                "data-[kind=restored]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)]",
-                "data-[kind=restored]:text-warning",
             ],
         },
         /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; kept light because the history view surfaces only a filter slot and a layout toggle, not a full control strip. */

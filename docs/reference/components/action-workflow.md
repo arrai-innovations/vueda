@@ -443,4 +443,3 @@ The action banner, selected-objects panel, prompt block, and actions strip are a
 | Revision stripe          | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
 | Type pill (updated)      | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
 | Type pill (created)      | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Type pill (restored)     | `--warning` via `bg-warning/10`, `border-warning/25`, `text-warning`                         |
