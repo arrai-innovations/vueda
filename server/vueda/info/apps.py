@@ -37,10 +37,12 @@ class InfoConfig(AppConfig):
         from django.core.checks import register
 
         from .checks import check_formatted_name_configuration
+        from .checks import check_ordering_configuration
 
         # Add a default ordering to content types, to remove a warning.
         ContentType._meta.ordering = ["app_label", "model"]
         register(check_formatted_name_configuration)
+        register(check_ordering_configuration)
 
         # Patch Django built-in models with formatted_name support so they integrate
         # correctly with Vueda's formatted_name system without changes to core code.

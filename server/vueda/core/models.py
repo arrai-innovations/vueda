@@ -152,6 +152,69 @@ class FormattedNameBaseModel(models.Model):
             getattr(cls, "get_formatted_name", None)
         )
 
+    @classmethod
+    def _check_ordering(cls):
+        """
+        Django's own ordering checks, minus the ``formatted_name`` term Django cannot resolve.
+
+        A model whose formatted name comes from ``formatted_name_lookup_expression`` has no
+        ``formatted_name`` column, and Django's ``models.E015`` resolves the names in ``Meta.ordering``
+        against the model's own fields. It would reject ``ordering = ["formatted_name"]`` on such a
+        model even though the ordering is valid: ``FormattedNameManager`` annotates the lookup
+        expression under that name onto every queryset the model builds, and the database sorts the
+        annotation.
+
+        The manager is what makes withholding the term safe, so the manager is what this asks about.
+        ``Meta.ordering`` applies to every queryset of the model, not just the ones a viewset builds,
+        so suppressing ``models.E015`` on a model whose default manager doesn't annotate would trade a
+        startup error for a ``FieldError`` at query time on any path that didn't go through
+        ``VuedaViewSet.get_queryset``. Such a model is left to ``models.E015``, which is right about
+        it: there really is no ``formatted_name`` to order by. ``vueda_info.E009`` reports the same
+        model with a hint aimed at the manager rather than at the ordering, but it is a second opinion
+        rather than the thing that makes this sound — it only reaches registered models, while
+        ``Meta.ordering`` breaks queries whether or not anything registered the model.
+
+        ``formatted_name_annotation_path`` is the single rule behind every ``formatted_name``
+        annotation VUEDA adds, so asking it rather than reading the lookup expression directly keeps
+        this in step with what the manager will actually do. It answers ``None`` for a model that
+        declares a lookup expression *and* keeps a ``formatted_name`` column, which is annotated by
+        nothing and needs no suppression: the column is a real field, so ``models.E015`` resolves the
+        term on its own.
+
+        ``Model._base_manager`` is the one path the manager doesn't cover, since Django builds that
+        one itself as a plain ``models.Manager``. Evaluating a base-manager queryset that keeps this
+        ordering raises ``FieldError``; see the note at the end of ``FormattedNameManager`` for which
+        callers reach it and why almost none do.
+
+        Only that term is withheld, and only on a model that has a lookup expression to reach it
+        through. Every other term is still Django's to check, including a ``formatted_name`` on a
+        model that resolves it in Python with ``get_formatted_name()`` — nothing annotates that one,
+        so ``models.E015`` is right to reject it, and ``vueda_info.E005`` explains why.
+        """
+        ordering = cls._meta.ordering
+
+        if formatted_name_annotation_path(cls) is None or not isinstance(ordering, (list, tuple)):
+            return super()._check_ordering()
+
+        # Read from `_meta` rather than from the class, so a `Meta.default_manager_name` pointing at a
+        # manager that does inherit FormattedNameManager counts — that is a supported way to fix the
+        # model, and Django uses the same attribute to decide which manager the annotation comes from.
+        if not isinstance(cls._meta.default_manager, FormattedNameManager):
+            return super()._check_ordering()
+
+        remaining = [term for term in ordering if not _names_own_formatted_name(term)]
+        if len(remaining) == len(ordering):
+            return super()._check_ordering()
+
+        # Django reads the terms off `_meta`, so the term it can't resolve is withheld there rather
+        # than by matching the message it would produce. System checks run once at startup on a single
+        # thread, and the original list is back before this returns.
+        cls._meta.ordering = remaining
+        try:
+            return super()._check_ordering()
+        finally:
+            cls._meta.ordering = ordering
+
 
 class Lookup(FormattedNameBaseModel):
     """
