@@ -333,6 +333,67 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
             f"allow_transition cost varies with the number of transitions leaving the state: {counts}"
         )
 
+    def test_state_rules_observe_a_group_change_on_the_next_authorization_pass(self, customer_order, workflow_user):
+        workflow_group = Group.objects.get(name="Order Workflow Managers")
+        read_permission = Permission.objects.get(
+            content_type=customer_order.get_content_type(),
+            codename="read_customerorder",
+        )
+        StatePermission.objects.create(
+            state=customer_order.workflow_state,
+            permission=read_permission,
+            group=workflow_group,
+            grant_or_deny=True,
+        )
+        with customer_order.cached_workflow_state():
+            assert workflow_user.has_perm("store.read_customerorder", obj=customer_order)
+
+        # Same user instance, no refresh_from_db, no re-fetch. The rules cache is keyed by the
+        # caller rather than by a resolved group set, so the next pass re-reads membership.
+        workflow_user.groups.remove(workflow_group)
+
+        with customer_order.cached_workflow_state():
+            assert not workflow_user.has_perm("store.read_customerorder", obj=customer_order)
+
+    def test_available_transitions_query_count_grows_by_one_per_candidate(self, customer_order, workflow_user):
+        object_state = customer_order.object_state
+        candidate_counts = {}
+        for state_code in ("on_hold", "packed", "new"):
+            object_state.state = State.objects.get(code=state_code, workflow__code="order_fulfillment")
+            object_state.save()
+            candidate_counts[state_code] = customer_order.fast_available_transitions().count()
+            # Django's ModelBackend caches a user's model permissions on first use, so warm that
+            # here rather than charging the first measured call for it.
+            list(customer_order.available_transitions(user=workflow_user))
+        assert candidate_counts == {"on_hold": 1, "packed": 2, "new": 3}
+
+        counts = {}
+        for state_code, candidates in candidate_counts.items():
+            object_state.state = State.objects.get(code=state_code, workflow__code="order_fulfillment")
+            object_state.save()
+            with CaptureQueriesContext(connection) as captured:
+                list(customer_order.available_transitions(user=workflow_user))
+            counts[candidates] = len(captured)
+
+        # One query per candidate, for that transition's own permission rows. The object's workflow,
+        # current state, and state rules resolve once for the whole pass. Pinning an absolute number
+        # would break on any Django or backend change, so record the growth instead. Restoring
+        # per-permission querying puts it back at four per candidate.
+        growth = {candidates: counts[candidates] - counts[1] for candidates in counts}
+        assert growth == {1: 0, 2: 1, 3: 2}, counts
+
+    def test_state_rules_resolve_once_for_several_permissions(self, customer_order, workflow_user):
+        perms = ["store.read_customerorder", "store.update_customerorder", "store.delete_customerorder"]
+        # Warm Django's per-user model permission cache and the user's resolved group ids.
+        outside_block = [workflow_user.has_perm(perm, obj=customer_order) for perm in perms]
+
+        with customer_order.cached_workflow_state(), CaptureQueriesContext(connection) as captured:
+            inside_block = [workflow_user.has_perm(perm, obj=customer_order) for perm in perms]
+
+        assert inside_block == outside_block
+        state_rule_queries = [query for query in captured.captured_queries if "statepermission" in query["sql"]]
+        assert len(state_rule_queries) == 1, [query["sql"] for query in state_rule_queries]
+
     def test_available_transitions_for_returns_classlevel_transitions(self, customer_order):
         transitions = store_models.CustomerOrder.available_transitions_for([customer_order.id])
 

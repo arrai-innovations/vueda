@@ -4,6 +4,8 @@ from typing import ClassVar
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -19,6 +21,7 @@ from tests.timesheet.serializers import TimesheetSerializerExclude
 from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda import info
+from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import VuedaReadonlyListSerializer
 from vueda.core.viewsets import get_recursive_expands_and_fields
@@ -309,7 +312,11 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         }
 
     def test_flex_fields_with_valid_field_param(self, employee, valid_timesheet_data):
+        """?f= narrows the response, not validation: the PUT below must still supply the
+        required "employee" relation even though ?f= only asks for period_start/period_end back,
+        and the saved "employee" is absent from the narrowed response."""
         put_data = {
+            "employee": employee.pk,
             "period_start": "2024-02-16",
             "period_end": "2024-02-28",
         }
@@ -338,12 +345,160 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16", serializer.data
-        assert serializer.data["period_end"] == "2024-02-28", serializer.data
-        assert "employee" not in serializer.data, serializer.data
+        assert serializer.data == {"period_start": "2024-02-16", "period_end": "2024-02-28"}, serializer.data
+
+    @pytest.mark.parametrize(
+        "param_name,requested,dropped_field",
+        [
+            ("FIELDS_PARAM", ["period_end"], "period_start"),  # ?f= excludes a required scalar
+            ("FIELDS_PARAM", ["period_start", "period_end"], "employee"),  # ?f= excludes a required relation
+            ("OMIT_PARAM", ["period_start"], "period_start"),  # ?om= excludes a required scalar
+            ("OMIT_PARAM", ["employee"], "employee"),  # ?om= excludes a required relation
+        ],
+    )
+    def test_flex_fields_param_excluding_required_field_fails_validation(
+        self, employee, valid_timesheet_data, param_name, requested, dropped_field
+    ):
+        """A required field dropped by ?f= or ?om= must still be required: both parameters shape
+        the response, not what a write validates (issue #205)."""
+        put_data = {
+            "employee": employee.pk,
+            "period_start": "2024-02-16",
+            "period_end": "2024-02-28",
+        }
+        del put_data[dropped_field]
+
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, put_data, "PUT")}
+
+        t = Timesheet.objects.create(
+            **{
+                **valid_timesheet_data,
+                "employee": employee,
+            }
+        )
+
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
+
+        serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            # The whole error payload, not just the dropped field: this also asserts that no
+            # *other* field spuriously errors (e.g. the fields ?f=/?om= excluded are not treated
+            # as unknown/extra).
+            assert e.detail == {dropped_field: [ErrorDetail("This field is required.", code="required")]}, e.detail
+        else:
+            pytest.fail("Serializer is valid when it should not be")
+
+        # The validation error above means the write never reached save(), so it cannot have
+        # produced a database integrity error from the dropped validator either.
+        t.refresh_from_db()
+        assert t.period_start == date(2024, 2, 15)
+        assert t.period_end == date(2024, 2, 29)
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", ["period_start", "period_end"]),
+            ("OMIT_PARAM", ["employee"]),
+        ],
+    )
+    def test_flex_fields_param_excluding_required_field_fails_validation_on_create(
+        self, employee, param_name, requested
+    ):
+        """Same as test_flex_fields_param_excluding_required_field_fails_validation, but for a
+        POST (create, no existing instance) rather than a PUT."""
+        post_data = {
+            "period_start": "2024-03-01",
+            "period_end": "2024-03-15",
+        }
+
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, post_data, "POST")}
+        context["view"] = FakeView(context["request"], TimesheetSerializer, "create")
+
+        serializer = TimesheetSerializer(data=post_data, context=context)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            assert e.detail == {"employee": [ErrorDetail("This field is required.", code="required")]}, e.detail
+        else:
+            pytest.fail("Serializer is valid when it should not be")
+
+        assert not Timesheet.objects.filter(period_start=date(2024, 3, 1)).exists()
+
+    def test_flex_fields_param_does_not_bypass_validation_on_partial_update(self, employee, valid_timesheet_data):
+        """A PATCH (partial=True) still validates a field present in the body even when ?f=
+        excludes it: sparse fieldset narrows the response, not what gets validated."""
+        t = Timesheet.objects.create(**{**valid_timesheet_data, "employee": employee})
+        patch_data = {"employee": 999999}  # no employee with this pk
+
+        context = {
+            "request": FakeRequest({settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start"]}, patch_data, "PATCH")
+        }
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
+
+        serializer = TimesheetSerializer(instance=t, data=patch_data, context=context, partial=True)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            assert e.detail == {
+                "employee": [ErrorDetail('Invalid pk "999999" - object does not exist.', code="does_not_exist")]
+            }, e.detail
+        else:
+            pytest.fail("Serializer is valid when it should not be")
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", ["period_start"]),
+            ("OMIT_PARAM", ["employee"]),
+            (None, None),  # baseline: no flex-fields query parameter at all
+        ],
+    )
+    def test_flex_fields_param_does_not_require_a_field_absent_from_partial_update_body(
+        self, employee, valid_timesheet_data, param_name, requested
+    ):
+        """The complement of test_flex_fields_param_does_not_bypass_validation_on_partial_update:
+        a PATCH (partial=True) that never supplies "employee" at all is still valid even though
+        ?f=/?om= also excludes "employee" from the response. Sparse-fieldset parameters shape the
+        response only; they do not make an absent field required. The (None, None) case is the
+        baseline this compares against: an ordinary PATCH with no flex-fields query parameter at
+        all behaves identically, which is what shows ?f=/?om= are a genuine no-op here rather than
+        coincidentally not breaking anything."""
+        t = Timesheet.objects.create(**{**valid_timesheet_data, "employee": employee})
+        patch_data = {"period_start": "2024-02-16"}  # employee omitted entirely
+
+        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        context = {"request": FakeRequest(query, patch_data, "PATCH")}
+        context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
+
+        serializer = TimesheetSerializer(instance=t, data=patch_data, context=context, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        # The write succeeds identically in all three cases, but the response narrows
+        # per-parameter exactly as it would on a read: ?f= restricts to the requested field,
+        # ?om= drops only "employee", and the no-param baseline includes it.
+        if param_name == "FIELDS_PARAM":
+            assert serializer.data == {"period_start": "2024-02-16"}, serializer.data
+        elif param_name == "OMIT_PARAM":
+            assert "employee" not in serializer.data, serializer.data
+            assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        else:
+            assert serializer.data["employee"] == employee.pk, serializer.data
+            assert serializer.data["period_start"] == "2024-02-16", serializer.data
+
+        t.refresh_from_db()
+        assert t.period_start == date(2024, 2, 16)
+        assert t.employee_id == employee.pk
 
     def test_flex_fields_with_invalid_field_param(self, employee, valid_timesheet_data):
         put_data = {
+            "employee": employee.pk,
             "period_start": "2024-02-16",
             "period_end": "2024-02-28",
             "invalid_field_name": "invalid_value",
@@ -367,10 +522,19 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
-            assert "period_end" in e.detail
-            assert e.detail["period_end"][0].code == "invalid", e.detail
-            assert "invalid_field_name" in e.detail
-            assert e.detail["invalid_field_name"][0].code == "invalid", e.detail
+            # ?f= no longer narrows the field set that validates the write, so "period_end" -- a
+            # real field left out of the requested subset -- validates normally instead of being
+            # rejected as an unknown field. The full-dict comparison confirms that: only
+            # "invalid_field_name" errors, not "period_end" alongside it.
+            assert e.detail == {
+                "invalid_field_name": [
+                    ErrorDetail(
+                        "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
+                        "formatted_name, id, period_end, period_start, supervisor.",
+                        code="invalid",
+                    )
+                ]
+            }, e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
@@ -648,6 +812,86 @@ class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, Base
         # to_internal_value should have propagated initial_data from the main serializer
         # down to the nested EmployeeSerializer field
         assert serializer.fields["employee"].initial_data == employee_data
+
+
+class _PlainSpecialCareSerializer(FlexFieldsWriteableNestedSerializerMixin, serializers.ModelSerializer):
+    """A bare ModelSerializer plus only the mixin under test, with none of VuedaSerializer's other
+    mixins layered on top. Issue #205 reproduced with exactly this combination, so the fix is
+    verified against it directly rather than only through a VuedaSerializer/viewset stack."""
+
+    class Meta:
+        model = store_models.SpecialCare
+        fields = ["id", "code", "field_that_contains_the_name"]
+
+
+@pytest.mark.django_db
+class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
+    @pytest.mark.parametrize("param_name", ["FIELDS_PARAM", "OMIT_PARAM"])
+    def test_sparse_fieldset_does_not_drop_a_required_field_validator(self, param_name):
+        # "f=id" and "om=code,field_that_contains_the_name" both request the same subset: id only.
+        requested = ["id"] if param_name == "FIELDS_PARAM" else ["code", "field_that_contains_the_name"]
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, {}, "POST")}
+        context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
+
+        count_before = store_models.SpecialCare.objects.count()
+        serializer = _PlainSpecialCareSerializer(data={}, context=context)
+
+        assert not serializer.is_valid()
+        # The whole error payload: this also confirms nothing else errors (e.g. the excluded
+        # "field_that_contains_the_name" is not spuriously flagged, since it is optional anyway).
+        assert serializer.errors == {"code": [ErrorDetail("This field is required.", code="required")]}, (
+            serializer.errors
+        )
+        # The validation error means the write never reached save(), so it created no row.
+        assert store_models.SpecialCare.objects.count() == count_before
+
+    @pytest.mark.parametrize("param_name", ["FIELDS_PARAM", "OMIT_PARAM"])
+    def test_sparse_fieldset_excluding_a_required_field_still_validates_when_the_field_is_supplied(self, param_name):
+        """The complement of test_sparse_fieldset_does_not_drop_a_required_field_validator: the
+        same ?f=/?om= subset that excludes "code" from the response does not stop the write from
+        succeeding when the body actually supplies "code" -- ?f=/?om= only narrow what comes
+        back, never what is required to be sent."""
+        requested = ["id"] if param_name == "FIELDS_PARAM" else ["code", "field_that_contains_the_name"]
+        request_data = {"code": "sc-1"}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, request_data, "POST")}
+        context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
+
+        count_before = store_models.SpecialCare.objects.count()
+        serializer = _PlainSpecialCareSerializer(data=request_data, context=context)
+
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+
+        assert store_models.SpecialCare.objects.count() == count_before + 1
+        assert instance.code == "sc-1"
+        assert instance.field_that_contains_the_name == ""
+        # Both requested subsets narrow the response down to "id" alone.
+        assert serializer.data == {"id": instance.pk}, serializer.data
+
+    @pytest.mark.parametrize(
+        "param_name,requested,expected_data",
+        [
+            ("FIELDS_PARAM", ["id"], lambda pk: {"id": pk}),
+            ("OMIT_PARAM", ["field_that_contains_the_name"], lambda pk: {"id": pk, "code": "sc-1"}),
+        ],
+    )
+    def test_sparse_fieldset_leaves_a_blank_allowed_field_optional_and_narrows_the_response(
+        self, param_name, requested, expected_data
+    ):
+        request_data = {"code": "sc-1"}  # field_that_contains_the_name omitted: blank=True, so optional
+
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, request_data, "POST")}
+        context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
+
+        serializer = _PlainSpecialCareSerializer(data=request_data, context=context)
+
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+
+        assert instance.code == "sc-1"
+        assert instance.field_that_contains_the_name == ""
+        # ?f=/?om= narrow the response only -- the write above validated and stored every field.
+        assert serializer.data == expected_data(instance.pk), serializer.data
 
 
 class TestPrimaryKeyListSerializer:

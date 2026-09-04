@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from types import SimpleNamespace
 
+import pghistory
 import pytest
 from celery.exceptions import Ignore
 from django.utils import timezone
@@ -28,6 +29,26 @@ def test_send_message_missing_queue_item(monkeypatch):
 
     with pytest.raises(Ignore):
         send_message(99999, "email")
+
+
+@pytest.mark.django_db
+def test_a_task_runs_inside_a_task_action(monkeypatch):
+    """Every write a task makes carries the task's name and the ``task`` kind."""
+    seen = {}
+
+    @contextmanager
+    def fake_lock(pk, skip_locked=True):
+        with pghistory.context() as active:
+            seen.update(active.metadata)
+        yield None
+
+    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+
+    with pytest.raises(Ignore):
+        send_message(99999, "email")
+
+    assert seen["action"] == send_message.name
+    assert seen["kind"] == "task"
 
 
 @pytest.mark.django_db

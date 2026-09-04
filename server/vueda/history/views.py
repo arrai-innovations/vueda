@@ -1,7 +1,6 @@
 """Views for history-aware who-is and object history retrieval."""
 
 __all__ = (
-    "PERMISSION_NAMES_MAPPING",
     "GetObjectHistoryView",
     "WhoIsView",
 )
@@ -26,12 +25,11 @@ from vueda.core.permissions import DjangoObjectPermissions
 from vueda.user.views import WhoIsView as CoreWhoIsView
 
 
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
-
-
 class WhoIsView(CoreWhoIsView):
-    """
-    This decoupling helps make the history app optional.
+    """Core who-is view with the current history id annotated.
+
+    ``vueda.user`` does not import ``vueda.history``, so the history-aware variant lives here and a
+    project routes ``who-is/`` to it instead of the core view.
     """
 
     def get_serializer_class(self):
@@ -158,8 +156,8 @@ class GetObjectHistoryView(DynamicObjectView):
             )
 
         permission_read_name = "read"
-        if "read" in PERMISSION_NAMES_MAPPING:
-            permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+        if "read" in settings.PERMISSION_NAMES_MAPPING:
+            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
         if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=self.object):
             err_msg = "You do not have permission to perform this action."

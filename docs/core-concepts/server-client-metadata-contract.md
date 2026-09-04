@@ -113,6 +113,8 @@ There is no metadata for wire version or schema negotiation between the server a
 
 This reduced contract assumes the canonical serializer inherits `VuedaSerializer`. A serializer-only registration that doesn't, will still produce `model_fields` and `model_permissions`, but an empty `model_expands` unless it also inherits `VuedaExpandableFieldsSerializerMixin` — see [Customization Hooks](#customization-hooks) above.
 
+This reduced contract assumes the canonical serializer inherits `VuedaSerializer`. A serializer-only registration that doesn't, will still produce `model_fields` and `model_permissions`, but an empty `model_expands` unless it also inherits `VuedaExpandableFieldsSerializerMixin` — see [Customization Hooks](#customization-hooks) above.
+
 ## Failure Modes and Recovery
 
 **Unregistered model returns 404.** Requesting model-info for a model that is not in the registration registry returns a 404. The client wraps this in a `ModelInfoError`, displays a "Model Not Found" toast, and redirects to the configured `actionRedirect` target.

@@ -54,6 +54,10 @@ class FeatureSection:
     messages for rules that span options. A failed section is reported by system checks and never
     reaches ``contribute``. ``contribute`` runs once per concrete model, right after Django prepares
     it, and may call ``model.add_to_class()`` to add fields or other behaviour.
+
+    ``contribute_order`` sequences the contributors, lowest first, with section name breaking a tie.
+    A feature that reads the finished field list must sort after every feature that adds a field, or
+    it sees a model that is still being assembled.
     """
 
     name: str
@@ -61,6 +65,7 @@ class FeatureSection:
     options: Mapping[str, FeatureOption] = field(default_factory=dict)
     validate: Callable[[type, Mapping[str, Any]], Iterable[str]] | None = None
     contribute: Callable[[type, Any], None] | None = None
+    contribute_order: int = 0
 
 
 _SECTIONS: dict[str, FeatureSection] = {}

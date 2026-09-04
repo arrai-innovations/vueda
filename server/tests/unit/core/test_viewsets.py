@@ -6,7 +6,14 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.db import connection
+from django.db.models import Prefetch
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -19,13 +26,18 @@ from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet import serializers as timesheet_serializers
 from tests.timesheet.models import Timesheet
+from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.utils import create_test_data
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import build_prefetch_plan
+from vueda.core.viewsets import filter_new_prefetch_lookups
 
 
 class StoreTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -76,6 +88,114 @@ def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
             pass
 
     assert InvalidCombinedViewSet is not None
+
+
+def test_filter_new_prefetch_lookups_drops_a_bare_string_duplicate():
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries")
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_drops_a_prefetch_object_duplicate():
+    queryset = Timesheet.objects.prefetch_related(Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all()))
+    plan = ["timesheet_entries"]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries")
+    other_lookup = Prefetch("history", queryset=Timesheet.history.model.objects.all())
+
+    assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
+
+
+def test_filter_new_prefetch_lookups_drops_a_plan_entry_the_existing_lookup_passes_through():
+    # "timesheet_entries__timesheet" registers "timesheet_entries" as its own cache key while
+    # Django walks it one level at a time, even though "timesheet_entries" never appears as a
+    # standalone lookup here -- the plan entry must be dropped by that cache key, not by comparing
+    # whole lookup paths.
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == []
+
+
+def test_filter_new_prefetch_lookups_drops_a_second_plan_entry_for_the_same_path():
+    # Two plan entries for the same lookup collide with each other exactly as a plan entry and an
+    # existing lookup do; the first is kept and the second dropped rather than both reaching
+    # queryset.prefetch_related() and raising at evaluation time.
+    queryset = Timesheet.objects.all()
+    first = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.filter(hours__gt=0))
+    second = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())
+
+    assert filter_new_prefetch_lookups(queryset, [first, second]) == [first]
+
+
+def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_renamed_with_to_attr():
+    # The existing lookup's cache key is its to_attr ("raw_timesheet_entries"), not its lookup path
+    # ("timesheet_entries"), so it does not collide with a plan entry for the same path under the
+    # relation's default attribute name.
+    queryset = Timesheet.objects.prefetch_related(
+        Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all(), to_attr="raw_timesheet_entries")
+    )
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
+def expanded_serializer(serializer_class, expand):
+    """Build ``serializer_class`` with ``expand`` applied, the way a request's ``?e=`` applies it.
+
+    ``build_prefetch_plan`` reads ``serializer.fields``, and an expandable field only becomes a
+    nested serializer field once ``rest_flex_fields`` has processed the request, so an unexpanded
+    serializer yields an empty plan rather than the one under test.
+    """
+    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}))
+    serializer = serializer_class(context={"request": request})
+    ensure_flex_fields_applied(serializer)
+
+    return serializer
+
+
+def prefetch_for(prefetch_related, lookup):
+    for entry in prefetch_related:
+        if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
+            return entry
+
+    raise AssertionError(f"no Prefetch for {lookup!r} in {prefetch_related!r}")
+
+
+def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_queryset():
+    # OrderItem resolves formatted_name through formatted_name_lookup_expression and stores no
+    # column of its own, so the Prefetch queryset the plan builds has to carry the annotation.
+    # Without it VuedaListSerializer.to_representation re-annotates the queryset serving the
+    # prefetched relation, which clones it, drops the cached prefetch result, and costs one query
+    # per row. The rendered formatted_name stays correct either way, because _get_formatted_name
+    # resolves it per instance when the annotation is missing, so the value proves nothing here and
+    # the annotation's presence is what this asserts.
+    serializer = expanded_serializer(store_serializers.CustomerOrderSerializer, "order_items")
+
+    _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+
+    assert "formatted_name" in annotations
+
+
+def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
+    # TimesheetEntry.formatted_name is a stored GeneratedField, so the plan must leave it alone.
+    # Annotating every to-many prefetch unconditionally would satisfy the test above while shadowing
+    # a real column here, which is the case annotate_formatted_name's lookup-expression check exists
+    # to skip.
+    serializer = expanded_serializer(timesheet_serializers.TimesheetWithAliasedEntriesSerializer, "entries")
+
+    _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
+
+    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+
+    assert "formatted_name" not in annotations
 
 
 @pytest.mark.django_db
@@ -779,11 +899,342 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
 
+    def _create_timesheets(self, count):
+        supervisor = Employee.objects.create(user=self.users["test_admin@domain.invalid"], employee_number="super")
+        for i in range(count):
+            employee = Employee.objects.create(user=self.users["test_admin@domain.invalid"], employee_number=f"emp-{i}")
+            self.model.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+                supervisor=supervisor,
+            )
+        return supervisor
+
+    def test_list_with_expands_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,supervisor"}
+
+        # Warm the requesting user's Django permission cache (ModelBackend.get_all_permissions,
+        # cached on the user instance for the rest of the test) once, up front, so the one-time cost
+        # of the first request against this user doesn't masquerade as a row-count-dependent one.
+        authenticated_client.get(self.list_url(), data=query, format="json")
+
+        counts = {}
+        for row_count in (2, 10):
+            self.model.objects.all().delete()
+            supervisor = self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(self.list_url(), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert result["supervisor"]["id"] == supervisor.id
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"expanded list query count grows with row count: {counts}"
+
+    def test_list_with_expand_survives_sparse_fieldset_and_query_count_does_not_grow(self, authenticated_client):
+        # "f" (sparse fields) does not name "employee", but requesting it via "e" still renders it
+        # (see FlexFieldsWriteableNestedSerializerMixin.apply_flex_fields), so the plan must still
+        # cover it.
+        query = {
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id",
+        }
+
+        # See test_list_with_expands_query_count_does_not_grow_with_row_count for why this is needed.
+        authenticated_client.get(self.list_url(), data=query, format="json")
+
+        counts = {}
+        for row_count in (2, 10):
+            self.model.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(self.list_url(), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert isinstance(result["employee"], dict)
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, (
+            f"expanded list dropped by a sparse fieldset still grows query count with row count: {counts}"
+        )
+
+
+@pytest.mark.django_db
+class TestTimesheetWithAliasedSupervisorViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        supervisor = Employee.objects.create(user=user, employee_number="super")
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+                supervisor=supervisor,
+            )
+        return supervisor
+
+    def test_list_with_source_aliased_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        # "manager" is declared with source="supervisor" (vs. TimesheetViewSet's plain "supervisor"
+        # expand), so the plan must resolve it against the model's "supervisor" relation, not a
+        # (nonexistent) "manager" attribute.
+        url = reverse("timesheet.timesheetmanager-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "manager"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            supervisor = self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert result["manager"]["id"] == supervisor.id
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"source-aliased expand query count grows with row count: {counts}"
+
+
+@pytest.mark.django_db
+class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithPrefetchedEntriesViewSet.queryset`` hand-declares its own
+    ``prefetch_related("timesheet_entries")``, the exact relation "entries" also expands. Before
+    ``filter_new_prefetch_lookups``, ``VuedaViewSet.get_queryset()`` would add a second, different
+    ``Prefetch`` for the same lookup on top of it, and Django raises ``ValueError`` the moment such
+    a queryset is evaluated -- this covers that it no longer does.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def test_list_with_expand_does_not_raise_when_viewset_already_prefetches_the_relation(self, authenticated_client):
+        user = self.users["test_user@domain.invalid"]
+        employee = Employee.objects.create(user=user, employee_number="1")
+        timesheet = Timesheet.objects.create(
+            period_start=datetime.date(2024, 1, 1),
+            period_end=datetime.date(2024, 1, 15),
+            employee=employee,
+        )
+        entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+        url = reverse("timesheet.timesheetprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert len(response.data["results"]) == 1
+        entries = response.data["results"][0]["entries"]
+        assert [e["id"] for e in entries] == [entry.id]
+
+
+@pytest.mark.django_db
+class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithAliasedEntriesViewSet.queryset`` is plain ``Timesheet.objects.all()``, so the
+    response is served entirely by the plan ``build_prefetch_plan`` derives -- unlike
+    ``TestTimesheetWithPrefetchedEntriesViewSet``, whose viewset's own hand-declared prefetch serves
+    the response and never exercises the plan's own ``Prefetch``. This covers the to-many branch's
+    query count and its ``formatted_name`` pre-annotation, plus the plan colliding with itself when
+    "entries" and "entries_again" both expand the same "timesheet_entries" relation.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            timesheet = Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+            )
+            TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+    def test_list_with_to_many_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        url = reverse("timesheet.timesheetaliasedentries-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            for result in response.data["results"]:
+                assert len(result["entries"]) == 1
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to-many expand query count grows with row count: {counts}"
+
+    def test_list_with_both_aliases_of_the_same_relation_does_not_raise(self, authenticated_client):
+        row_count = 2
+        self._create_timesheets(row_count)
+
+        url = reverse("timesheet.timesheetaliasedentries-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries,entries_again"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert len(response.data["results"]) == row_count
+        for result in response.data["results"]:
+            assert len(result["entries"]) == 1
+            assert len(result["entries_again"]) == 1
+
+
+@pytest.mark.django_db
+class TestTimesheetWithDeeperPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithDeeperPrefetchedEntriesViewSet.queryset`` hand-declares
+    ``prefetch_related("timesheet_entries__timesheet")``, a lookup that passes through -- but never
+    equals -- the "entries" expand's own "timesheet_entries" path. Before
+    ``filter_new_prefetch_lookups`` compared lookups by cache key rather than by lookup path, this
+    combination still raised ``ValueError`` at evaluation time, because Django registers
+    "timesheet_entries" as its own cache key while walking the deeper lookup one level at a time --
+    this covers that it no longer does.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def test_list_with_expand_does_not_raise_when_viewset_prefetches_through_the_relation(self, authenticated_client):
+        user = self.users["test_user@domain.invalid"]
+        employee = Employee.objects.create(user=user, employee_number="1")
+        timesheet = Timesheet.objects.create(
+            period_start=datetime.date(2024, 1, 1),
+            period_end=datetime.date(2024, 1, 15),
+            employee=employee,
+        )
+        entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+        url = reverse("timesheet.timesheetdeeperprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        response = authenticated_client.get(url, data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        entries = response.data["results"][0]["entries"]
+        assert [e["id"] for e in entries] == [entry.id]
+
+
+@pytest.mark.django_db
+class TestTimesheetWithToAttrPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
+    """
+    ``TimesheetWithToAttrPrefetchedEntriesViewSet.queryset`` hand-declares its own
+    "timesheet_entries" prefetch under ``to_attr="raw_timesheet_entries"``, a distinct cache key
+    from the "entries" expand's own plan entry (which uses the relation's default attribute name).
+    Before ``filter_new_prefetch_lookups`` compared lookups by lookup path rather than cache key,
+    the plan entry was dropped as though it collided, silently falling back to one query per row --
+    this covers that it now runs and holds a flat query count.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_user@domain.invalid": {
+            "name": "Test User",
+            "password": "testpass",
+            "groups": [],
+        },
+    }
+
+    @pytest.fixture
+    def authenticated_client(self, api_client):
+        api_client.force_authenticate(user=self.users["test_user@domain.invalid"])
+        return api_client
+
+    def _create_timesheets(self, count):
+        user = self.users["test_user@domain.invalid"]
+        for i in range(count):
+            employee = Employee.objects.create(user=user, employee_number=f"emp-{i}")
+            timesheet = Timesheet.objects.create(
+                period_start=datetime.date(2024, 1, 1),
+                period_end=datetime.date(2024, 1, 15),
+                employee=employee,
+            )
+            TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
+
+    def test_list_with_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
+        url = reverse("timesheet.timesheettoattrprefetched-list")
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+
+        counts = {}
+        for row_count in (2, 10):
+            Timesheet.objects.all().delete()
+            self._create_timesheets(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            for result in response.data["results"]:
+                assert len(result["entries"]) == 1
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to_attr-prefetched expand query count grows with row count: {counts}"
+
 
 @pytest.mark.django_db
 class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
+            ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
         ],
         "Customer Updater": [
@@ -827,6 +1278,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "employee" relation
+                # must still be supplied even though the response won't include it.
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
             },
@@ -834,9 +1288,166 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" not in response.data
+        assert response.data == {"period_start": "2024-02-16", "period_end": "2024-02-25"}, response.data
+
+    def test_update_timesheet_with_field_param_excluding_required_field_fails_validation(self, api_client):
+        """A required relation ("employee") dropped by ?f= must still be required (issue #205):
+        ?f= shapes the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        # "serverStack" is debug-only noise the test settings attach to error responses; strip it
+        # before comparing so the assertion checks the whole error payload, not just one key.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start,period_end"),
+            ("OMIT_PARAM", "employee"),
+        ],
+    )
+    def test_create_timesheet_with_field_param_excluding_required_field_fails_validation(
+        self, api_client, param_name, requested
+    ):
+        """A required relation ("employee") dropped by ?f=/?om= must still be required on create
+        (issue #205): the parameters shape the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(
+            reverse(
+                "timesheet.timesheet-list",
+                query={settings.REST_FLEX_FIELDS[param_name]: requested},
+            ),
+            data={
+                "period_start": datetime.date(2024, 3, 1),
+                "period_end": datetime.date(2024, 3, 15),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
+
+    def test_partial_update_timesheet_with_field_param_does_not_bypass_validation(self, api_client):
+        """A PATCH still validates a field present in the body even when ?f= excludes it from the
+        response (issue #205): sparse fieldset narrows the response, not what gets validated."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start"},
+            ),
+            data={"employee": 999999},  # no employee with this pk
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "employee": [ErrorDetail('Invalid pk "999999" - object does not exist.', code="does_not_exist")]
+        }, response.data
+        t1.refresh_from_db()
+        assert t1.employee_id == e1.pk
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start"),
+            ("OMIT_PARAM", "employee"),
+            (None, None),
+        ],
+    )
+    def test_partial_update_timesheet_with_field_param_does_not_require_an_omitted_field(
+        self, api_client, param_name, requested
+    ):
+        """The complement of test_partial_update_timesheet_with_field_param_does_not_bypass_validation:
+        a PATCH that never sends "employee" at all still succeeds even though ?f=/?om= also
+        excludes "employee" from the response. Sparse-fieldset parameters shape the response only;
+        they do not make an absent field required on a partial update (issue #205). The
+        (None, None) case is the baseline this compares against: an ordinary PATCH with no
+        flex-fields query parameter at all succeeds the same way, which is what shows ?f=/?om= are
+        a genuine no-op here rather than coincidentally not breaking anything."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query=query,
+            ),
+            data={"period_start": datetime.date(2024, 2, 16)},  # employee omitted entirely
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        # The write succeeds identically in all three cases, but the response narrows
+        # per-parameter exactly as it would on a read: ?f= restricts to the requested field,
+        # ?om= drops only "employee", and the no-param baseline includes it.
+        if param_name == "FIELDS_PARAM":
+            assert response.data == {"period_start": "2024-02-16"}, response.data
+        elif param_name == "OMIT_PARAM":
+            assert "employee" not in response.data, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        else:
+            assert response.data["employee"] == e1.pk, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        t1.refresh_from_db()
+        assert t1.period_start == datetime.date(2024, 2, 16)
+        assert t1.employee_id == e1.pk  # unchanged: never supplied, so the partial update left it alone
 
     def test_update_timesheet_with_non_existing_field(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -859,6 +1470,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
             ),
             data={
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
                 "une": "ssss",
@@ -867,9 +1479,19 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 400)
-        assert "period_end" in response.data
-        assert "employee" not in response.data
-        assert "une" in response.data
+        # ?f= no longer narrows the field set that validates the write, so "period_end" -- a real
+        # field left out of the requested subset -- validates normally instead of being rejected
+        # as an unknown field. The full-payload comparison confirms that: only "une" errors.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "une": [
+                ErrorDetail(
+                    "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
+                    "formatted_name, id, period_end, period_start, supervisor.",
+                    code="invalid",
+                )
+            ]
+        }, response.data
 
     def test_expand_with_existing_expands(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -1039,6 +1661,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 },
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "quantity" scalar
+                # must still be supplied even though the response won't include it.
+                "quantity": ci1.quantity,
                 "cart": cart.pk,
                 "product_option": {
                     "disabled": False,
@@ -1329,3 +1954,170 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
         assert response.data["first_history_entry"] != response.data["last_history_entry"], (
             f"first_history_entry and last_history_entry should differ after an update: {response.data}"
         )
+
+
+class NoExtraFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The distributor rows tests/store/migrations/0003_setup_lookup_test_data.py already inserted, plus a
+    customer who may both list and retrieve distributors and notes -- the two viewsets
+    TestNoExtraFieldsForViewSetMixin drives (one with a filterset_class, one without).
+
+    Nothing is created here: the tests below make their own Note rows, and the distributors come from
+    the migration, so this only needs to grant the permissions and hand back the lookup.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+    def __init__(self):
+        self.distributors = {obj.name: obj for obj in store_models.Distributor.objects.all()}
+
+
+@pytest.mark.django_db
+class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
+    """
+    DistributorViewSet declares a filterset_class; NoteViewSet does not. Together they cover
+    both branches of NoExtraFieldsForViewSetMixin on both list and retrieve.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return NoExtraFieldsTestData()
+
+    @pytest.fixture
+    def authenticated_client(self, api_client, test_data):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    def test_list_with_filterset_class_accepts_valid_filter(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(reverse("store.distributor-list"), data={"name": distributor.name})
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert [result["id"] for result in response.data["results"]] == [distributor.pk]
+
+    def test_list_with_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        response = authenticated_client.get(reverse("store.distributor-list"), data={"nosuchparam": "1"})
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == [
+            "Invalid query parameter.  Valid filters are id, id__in, name, name__exact, "
+            "name_icontains, name_icontains__icontains."
+        ]
+
+    def test_retrieve_with_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "name"},
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["name"] == distributor.name
+
+    def test_retrieve_with_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={"nosuchparam": "1"},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]
+
+    def test_retrieve_with_filterset_class_rejects_filterset_field(self, authenticated_client, test_data):
+        """A filterset field name is only recognized on list; retrieve identifies its object by pk alone."""
+        distributor = test_data.distributors["T-Shirt Corp."]
+        response = authenticated_client.get(
+            reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
+            data={"name": distributor.name},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["name"] == ["Invalid query parameter.  Valid filters are e, f, om."]
+
+    def test_list_without_filterset_class_accepts_extra_allowed_param(self, authenticated_client, test_data):
+        """
+        NoteViewSet has no filterset_class and permits a list expand, so it can exercise all seven
+        get_extra_allowed_fields() params as genuinely valid values, not just recognized keys.
+        """
+        info.registration.get_empty_registry()
+        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
+
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+
+        query = {
+            settings.PAGE_QUERY_PARAM: 1,
+            settings.PAGE_SIZE_QUERY_PARAM: 10,
+            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,content_object.*",
+            settings.REST_FLEX_FIELDS["OMIT_PARAM"]: "text",
+            settings.REST_FRAMEWORK["SEARCH_PARAM"]: "distributor",
+            settings.REST_FRAMEWORK["ORDERING_PARAM"]: "object_id",
+        }
+        assert set(query) == set(store_viewsets.NoteViewSet.get_extra_allowed_fields()), (
+            "query should exercise every param get_extra_allowed_fields() recognizes"
+        )
+
+        response = authenticated_client.get(reverse("store.note-list"), data=query)
+
+        self.assert_response(response, HTTPStatus.OK)
+        result = next(result for result in response.data["results"] if result["id"] == note.pk)
+        assert "text" not in result
+        assert result["content_object"]["id"] == distributor.pk
+
+    def test_list_without_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        response = authenticated_client.get(reverse("store.note-list"), data={"nosuchparam": "1"})
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, o, om, p, ps, s."]
+
+    def test_retrieve_without_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+        response = authenticated_client.get(
+            reverse("store.note-detail", kwargs={"pk": note.pk}),
+            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "text"},
+        )
+
+        self.assert_response(response, HTTPStatus.OK)
+        assert response.data["text"] == note.text
+
+    def test_retrieve_without_filterset_class_rejects_unrecognized_param(self, authenticated_client, test_data):
+        distributor = test_data.distributors["T-Shirt Corp."]
+        note = store_models.Note.objects.create(
+            content_type=ContentType.objects.get_for_model(store_models.Distributor),
+            object_id=distributor.pk,
+            text="A note about the distributor.",
+        )
+        response = authenticated_client.get(
+            reverse("store.note-detail", kwargs={"pk": note.pk}),
+            data={"nosuchparam": "1"},
+        )
+
+        self.assert_response(response, HTTPStatus.BAD_REQUEST)
+        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]

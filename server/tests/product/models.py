@@ -84,6 +84,11 @@ class ProductModelOrderingLookupFormattedName(VuedaModel):
     formatted_name = None
     formatted_name_lookup_expression = "label"
 
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
     class Meta(VuedaModel.Meta):
         ordering = ["formatted_name"]
 
@@ -103,6 +108,11 @@ class ProductModelOrderingFormattedName(VuedaModel):
 
     name = models.CharField(max_length=255)
 
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
     class Meta(VuedaModel.Meta):
         ordering = ["formatted_name"]
 
@@ -115,6 +125,11 @@ class ProductModelOrderingPK(VuedaModel):
     Django itself loaded that way rather than one with a patched `Meta.ordering`."""
 
     name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
 
     class Meta(VuedaModel.Meta):
         ordering = ["pk"]

@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.settings import api_settings
@@ -173,6 +174,45 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_object_state_reads_permission_names_mapping_at_call_time(
+        self, settings, api_client, workflow_reader, customer_order
+    ):
+        # object_state previously closed over PERMISSION_NAMES_MAPPING at import (vueda/workflow/
+        # viewsets.py), so overriding the setting left the permission check pinned to
+        # "read_customerorder" regardless of what the override requested.
+        read_workflow = Permission.objects.get(codename="read_workflow")
+        mutated_read_permission, _ = Permission.objects.get_or_create(
+            codename="mutated_read_customerorder",
+            content_type=ContentType.objects.get_for_model(store_models.CustomerOrder),
+            defaults={"name": "Can mutated read customer order"},
+        )
+        mutated_reader = get_user_model().objects.create(
+            email="workflow-mutated-reader@domain.invalid", name="Workflow Mutated Reader"
+        )
+        mutated_reader.set_password("password")
+        mutated_reader.save()
+        mutated_reader.user_permissions.add(read_workflow, mutated_read_permission)
+
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        settings.PERMISSION_NAMES_MAPPING = {"read": "mutated_read"}
+
+        api_client.force_authenticate(workflow_reader)
+        stale_permission_response = api_client.get(object_state_url, format="json")
+
+        api_client.force_authenticate(mutated_reader)
+        mutated_permission_response = api_client.get(object_state_url, format="json")
+
+        # workflow_reader holds the stale "read_customerorder" permission, which no longer
+        # satisfies the check once the override maps "read" to "mutated_read".
+        assert stale_permission_response.status_code == status.HTTP_403_FORBIDDEN, response_body(
+            stale_permission_response
+        )
+        assert mutated_permission_response.status_code == status.HTTP_200_OK, response_body(mutated_permission_response)
 
     def test_permitted_transitions_returns_transitions_when_user_has_workflow_permissions(
         self, api_client, workflow_reader, customer_order

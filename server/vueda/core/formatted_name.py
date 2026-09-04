@@ -3,6 +3,7 @@
 __all__ = (
     "FORMATTED_NAME",
     "FORMATTED_NAME_LOOKUP_EXPRESSION",
+    "annotate_formatted_name",
     "formatted_name_annotation_path",
     "path_multiplies_rows",
     "resolve_formatted_name_path",
@@ -13,6 +14,7 @@ from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.admin.utils import get_model_from_relation
 from django.core.exceptions import FieldDoesNotExist
+from django.db.models import F
 from django.db.models.constants import LOOKUP_SEP
 
 
@@ -64,6 +66,34 @@ def formatted_name_annotation_path(model):
         return lookup_expression
 
     return None
+
+
+def annotate_formatted_name(queryset):
+    """
+    Annotate ``formatted_name`` on ``queryset`` when its model has a path to annotate, and return it
+    unchanged when it does not.
+
+    Shared by ``FormattedNameManager.get_queryset`` (every queryset the model itself builds),
+    ``VuedaViewSet.get_queryset`` (the root queryset DRF builds),
+    ``VuedaListSerializer.to_representation`` (a "many" expand fetched through a related manager), and
+    the prefetch-plan builder in ``vueda.core.viewsets`` (a "many" expand's ``Prefetch`` queryset), so
+    all four agree on when ``formatted_name`` needs the annotation rather than each re-deriving it.
+
+    ``formatted_name_annotation_path`` is the rule, so a model this declines to annotate is the same
+    model ``VuedaOrderingFilter`` and ``FormattedNamePathFilterSetMixin`` rewrite instead of leaving
+    on a column — see that function for the two shapes that need no annotation and would raise if
+    annotated anyway.
+
+    :param queryset: The queryset to annotate.
+    :type queryset: django.db.models.QuerySet
+    :return: The annotated queryset, or ``queryset`` itself when there is nothing to annotate.
+    :rtype: django.db.models.QuerySet
+    """
+    annotation_path = formatted_name_annotation_path(queryset.model)
+    if annotation_path is None:
+        return queryset
+
+    return queryset.annotate(**{FORMATTED_NAME: F(annotation_path)})
 
 
 def path_multiplies_rows(fields):

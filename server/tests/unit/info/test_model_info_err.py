@@ -484,7 +484,7 @@ class TestFormattedName:
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
         assert (
             "Cannot resolve keyword "
-            "'formatted_name' into field. Choices are: id, "
+            "'formatted_name' into field. Choices are: events, id, "
             "relatedobjectsaremissingdata, the_name_field"
         ) in response.data["serverStack"]
 

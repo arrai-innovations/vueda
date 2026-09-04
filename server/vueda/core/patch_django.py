@@ -9,11 +9,33 @@ __all__ = ()
 # This appears to be the only way we can change the history table permissions, without patching more things.
 from django.conf import settings
 from django.contrib import auth
+from django.core.signals import setting_changed
 
 
 auth.django_get_permission_codename = auth.get_permission_codename
 
-permission_names_mapping = settings.PERMISSION_NAMES_MAPPING
+# Cache PERMISSION_NAMES_MAPPING so the hot path of every permission check doesn't hit
+# Django's settings lookup, but keep the cache stale-free by clearing it on setting_changed.
+# This lets override_settings(PERMISSION_NAMES_MAPPING=...) reach get_permission_codename
+# and get_builtin_permissions immediately, unlike binding the mapping to a module global at import.
+_permission_names_mapping_cache = None
+
+
+def get_permission_names_mapping():
+    """Return PERMISSION_NAMES_MAPPING, read at call time and cached until the setting changes."""
+    global _permission_names_mapping_cache
+    if _permission_names_mapping_cache is None:
+        _permission_names_mapping_cache = settings.PERMISSION_NAMES_MAPPING
+    return _permission_names_mapping_cache
+
+
+def _clear_permission_names_mapping_cache(*, setting, **kwargs):
+    if setting == "PERMISSION_NAMES_MAPPING":
+        global _permission_names_mapping_cache
+        _permission_names_mapping_cache = None
+
+
+setting_changed.connect(_clear_permission_names_mapping_cache)
 
 
 def get_permission_codename(action, opts):
@@ -25,7 +47,7 @@ def get_permission_codename(action, opts):
     delete doesn't change
     list is new
     """
-    action = permission_names_mapping.get(action, action)
+    action = get_permission_names_mapping().get(action, action)
     return auth.django_get_permission_codename(action, opts)
 
 
@@ -49,6 +71,7 @@ def get_builtin_permissions(opts):
     This is a customized django function, since we need to update the action name within a loop.
     https://github.com/django/django/blob/f302343380c77e1eb5dab3b64dd70895a95926ca/django/contrib/auth/management/__init__.py#L22-L35
     """
+    permission_names_mapping = get_permission_names_mapping()
     perms = []
     for action in opts.default_permissions:
         action = permission_names_mapping.get(action, action)
@@ -88,6 +111,11 @@ _Options.__init__ = _patched_options_init
 
 # We also need to patch the perms_map in vueda\core\permissions.py and
 # vueda\workflow\permissions.py, if the permissions are not set to the default.
+# This selects which further patches apply, so it must run at import time, before
+# permissions are created. Unlike get_permission_codename and get_builtin_permissions
+# above, this decision does not move to call time; it reads the setting once here.
+permission_names_mapping = settings.PERMISSION_NAMES_MAPPING
+
 if (
     "add" not in permission_names_mapping
     and "add" in permission_names_mapping.values()

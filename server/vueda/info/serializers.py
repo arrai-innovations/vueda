@@ -54,9 +54,6 @@ from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
 
 
-PERMISSION_NAMES_MAPPING = settings.PERMISSION_NAMES_MAPPING
-
-
 class UnnameableOrderingTermError(Exception):
     """
     An ordering term ``model_ordering`` can't report under a single field name.
@@ -199,12 +196,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         if serializer is not None and issubclass(serializer, VuedaReadonlySerializer):
             permission_read_name = "read"
-            if "read" in PERMISSION_NAMES_MAPPING:
-                permission_read_name = PERMISSION_NAMES_MAPPING["read"]
+            if "read" in settings.PERMISSION_NAMES_MAPPING:
+                permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
             permission_list_name = "list"
-            if "list" in PERMISSION_NAMES_MAPPING:
-                permission_list_name = PERMISSION_NAMES_MAPPING["list"]
+            if "list" in settings.PERMISSION_NAMES_MAPPING:
+                permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
 
             permissions = permissions.filter(
                 codename__in=(

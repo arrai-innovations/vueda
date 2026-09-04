@@ -19,6 +19,7 @@ from django.db import models
 from django.db.models.signals import class_prepared
 
 from vueda.core.formatted_name import FORMATTED_NAME
+from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.options import failed_sections
 from vueda.core.options import resolve_vueda_options
@@ -104,13 +105,7 @@ class FormattedNameManager(models.Manager):
     """
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-
-        annotation_path = formatted_name_annotation_path(self.model)
-        if annotation_path is not None:
-            queryset = queryset.annotate(**{FORMATTED_NAME: models.F(annotation_path)})
-
-        return queryset
+        return annotate_formatted_name(super().get_queryset())
 
 
 class FormattedNameBaseModel(models.Model):
@@ -334,7 +329,8 @@ def apply_vueda_feature_policy(sender, **kwargs):
         return
 
     unresolved = failed_sections(options.problems)
-    for name, section_options in options.items():
+    ordered = sorted(options.items(), key=lambda item: (item[1].section.contribute_order, item[0]))
+    for name, section_options in ordered:
         contribute = section_options.section.contribute
         if contribute is not None and name not in unresolved:
             contribute(sender, options)
