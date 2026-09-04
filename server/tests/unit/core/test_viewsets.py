@@ -12,6 +12,8 @@ from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -24,14 +26,17 @@ from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet import serializers as timesheet_serializers
 from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.test_model_info import VuedaTestData
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
 
 
@@ -106,6 +111,59 @@ def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_rena
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
     assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
+def expanded_serializer(serializer_class, expand):
+    """Build ``serializer_class`` with ``expand`` applied, the way a request's ``?e=`` applies it.
+
+    ``build_prefetch_plan`` reads ``serializer.fields``, and an expandable field only becomes a
+    nested serializer field once ``rest_flex_fields`` has processed the request, so an unexpanded
+    serializer yields an empty plan rather than the one under test.
+    """
+    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}))
+    serializer = serializer_class(context={"request": request})
+    ensure_flex_fields_applied(serializer)
+
+    return serializer
+
+
+def prefetch_for(prefetch_related, lookup):
+    for entry in prefetch_related:
+        if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
+            return entry
+
+    raise AssertionError(f"no Prefetch for {lookup!r} in {prefetch_related!r}")
+
+
+def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_queryset():
+    # OrderItem resolves formatted_name through formatted_name_lookup_expression and stores no
+    # column of its own, so the Prefetch queryset the plan builds has to carry the annotation.
+    # Without it VuedaListSerializer.to_representation re-annotates the queryset serving the
+    # prefetched relation, which clones it, drops the cached prefetch result, and costs one query
+    # per row. The rendered formatted_name stays correct either way, because _get_formatted_name
+    # resolves it per instance when the annotation is missing, so the value proves nothing here and
+    # the annotation's presence is what this asserts.
+    serializer = expanded_serializer(store_serializers.CustomerOrderSerializer, "order_items")
+
+    _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+
+    assert "formatted_name" in annotations
+
+
+def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
+    # TimesheetEntry.formatted_name is a stored GeneratedField, so the plan must leave it alone.
+    # Annotating every to-many prefetch unconditionally would satisfy the test above while shadowing
+    # a real column here, which is the case annotate_formatted_name's lookup-expression check exists
+    # to skip.
+    serializer = expanded_serializer(timesheet_serializers.TimesheetWithAliasedEntriesSerializer, "entries")
+
+    _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
+
+    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+
+    assert "formatted_name" not in annotations
 
 
 @pytest.mark.django_db
