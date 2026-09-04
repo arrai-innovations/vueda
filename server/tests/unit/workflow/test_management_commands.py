@@ -1550,7 +1550,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
 
             # test_1 remains in the original object state
             test_2.update_object_state(state_second)
@@ -1560,7 +1559,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_first)
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             # Change the initial state to fourth.
             initial_state = workflow.initial_state
@@ -1584,7 +1582,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # Clean up the object states, so we can start fresh.
             models.ObjectState.objects.filter(workflow=workflow).delete()
-            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
 
             # Reset initial_state.
             initial_state = workflow.initial_state
@@ -1650,7 +1647,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # Clean up the object states, so we can start fresh.
             models.ObjectState.objects.filter(workflow=workflow).delete()
-            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
 
             # Roll back to 0001.
             succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
@@ -1674,7 +1670,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
 
             state_first = models.State.objects.get(code="first")
             state_second = models.State.objects.get(code="second")
@@ -1695,7 +1690,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_first)
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_initial_state")
@@ -1704,7 +1698,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # The historical counts should stay the same, since we should have updated test_1 to the new initial state.
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             assert test_1.object_state.state.code == "fourth"
             assert test_2.object_state.state.code == "second"
@@ -1750,10 +1743,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                in migration_content
-            )
             assert "code=make_sure_permissions_exist," in migration_content
             assert "code=forwards_migrate_workflow," in migration_content
             assert "reverse_code=backwards_migrate_workflow," in migration_content
@@ -1812,14 +1801,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                not in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                not in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" not in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
@@ -1852,10 +1835,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                not in migration_content
-            )
             assert "code=make_sure_permissions_exist," not in migration_content
             assert "code=forwards_migrate_workflow," not in migration_content
             assert "reverse_code=backwards_migrate_workflow," not in migration_content
@@ -1909,14 +1888,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
@@ -1959,10 +1932,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                in migration_content
-            )
             assert "code=make_sure_permissions_exist," in migration_content
             assert "code=forwards_migrate_workflow," in migration_content
             assert "reverse_code=backwards_migrate_workflow," in migration_content
@@ -2023,14 +1992,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                not in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                not in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" not in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
@@ -2063,10 +2026,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                not in migration_content
-            )
             assert "code=make_sure_permissions_exist," not in migration_content
             assert "code=forwards_migrate_workflow," not in migration_content
             assert "reverse_code=backwards_migrate_workflow," not in migration_content
@@ -2122,14 +2081,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content

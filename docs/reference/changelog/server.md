@@ -75,6 +75,10 @@ public-facing documentation baseline.
 
 ### Features
 
+- **Generated workflow migrations no longer write history by hand**:
+    - A generated workflow migration built its own `Historical*` rows, because a migration fires none of the signals django-simple-history recorded through. The triggers record whatever a migration writes, so the eight `handle_*` functions and `add_history_to_data` are gone from the generated source, along with the field bookkeeping that only existed to fill those rows.
+    - `manage_state_objects` decides whether an object was moved by reading the object state's events rather than counting history rows, and takes the object-state event model where it took the historical one. A workflow with no initial state is now skipped instead of raising.
+      _Run `updateworkflowmigrations` for each app with a generated workflow migration, so its copy of these functions matches. A migration left un-updated still applies and still writes `Historical*` rows, which nothing reads._
 - **Legacy workflow history is copied into the event tables**:
     - `vueda_workflow` migration `0009` copies every `Historical*` workflow row into its event table, reading the historical tables directly so the history of a workflow row someone deleted converts along with the rest. Each converted row becomes one event under an action of its own: a change reason is written in only two places and neither identifies one user action, so the conversion invents no grouping. The action metadata carries the acting user, the change reason where the source recorded one, the kind (`migration` when the reason names a workflow migration, otherwise `legacy`), and a source marker.
     - Only history older than migration `0008` is copied. A write after the triggers existed recorded its own event and kept writing a `Historical*` row as well, so copying that row would record the same write twice. The boundary is the moment `0008` applied, read from the migration record rather than guessed from how close two timestamps are.

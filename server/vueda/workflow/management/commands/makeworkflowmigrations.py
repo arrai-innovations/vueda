@@ -9,7 +9,6 @@ __all__ = (
     "RecordChange",
     "RecordDelta",
     "WorkflowChangeTypes",
-    "add_history_to_data",
     "apply_and_save_changes",
     "backwards_migrate_workflow",
     "compare_records",
@@ -57,9 +56,8 @@ from django.core.management import BaseCommand
 from django.db import migrations
 from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
-from django.db.models import Count
+from django.db.models import Q
 from django.db.transaction import atomic
-from django.utils import timezone
 
 from vueda.core.audit import audited_action
 from vueda.user.management.commands.utils import NEWLINE
@@ -250,7 +248,6 @@ def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: 
 
 
 def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
-    historical_workflow = apps.get_model("vueda_workflow", "HistoricalWorkflow")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -263,16 +260,7 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
 
             del data["id"]  # This needs to be removed before we create.
 
-            workflow = model_workflow.objects.create(**data)
-
-            add_history_to_data(
-                data,
-                workflow,
-                "+",
-                changed_item["history_date"],
-                change_reason,
-            )
-            historical_workflow.objects.create(**data)
+            model_workflow.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
@@ -280,38 +268,14 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
             del data["id"]
 
             apply_and_save_changes(workflow, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                workflow,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "code",
-                    "content_type_id",
-                    "historical_app_label",
-                    "historical_model",
-                    "name",
-                ),
-            )
-            historical_workflow.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
-            content_type = model_content_type.objects.get(**data["content_type_id"])
-            data["content_type_id"] = content_type.pk
-
             workflow = model_workflow.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, workflow, "-", changed_item["history_date"], change_reason)
-            historical_workflow.objects.create(**data)
             workflow.delete()
 
 
 def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):
-    historical_workflow_permission = apps.get_model("vueda_workflow", "HistoricalWorkflowPermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -330,10 +294,7 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
 
             del data["id"]  # This needs to be removed before we create.
 
-            workflow_permission = model_workflow_permission.objects.create(**data)
-
-            add_history_to_data(data, workflow_permission, "+", changed_item["history_date"], change_reason)
-            historical_workflow_permission.objects.create(**data)
+            model_workflow_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
@@ -356,43 +317,19 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
                 data["permission_id"] = tuple(new_permission_ids)
 
             apply_and_save_changes(workflow_permission, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                workflow_permission,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "historical_permission_codename",
-                    "historical_permission_content_type_app_label",
-                    "historical_permission_content_type_model_name",
-                    "permission_id",
-                    "workflow_id",
-                ),
-            )
-            historical_workflow_permission.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
-            permission = model_permission.objects.get(**data["permission_id"])
-            data["permission_id"] = permission.pk
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
-            data["workflow_id"] = workflow.pk
 
             workflow_permission = model_workflow_permission.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, workflow_permission, "-", changed_item["history_date"], change_reason)
-            historical_workflow_permission.objects.create(**data)
             workflow_permission.delete()
 
 
 def handle_state(apps, changed_item, change_reason, *, reversing=False):
-    historical_state = apps.get_model("vueda_workflow", "HistoricalState")
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -405,10 +342,7 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
 
             del data["id"]  # This needs to be removed before we create.
 
-            state = model_state.objects.create(**data)
-
-            add_history_to_data(data, state, "+", changed_item["history_date"], change_reason)
-            historical_state.objects.create(**data)
+            model_state.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
@@ -418,37 +352,17 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
             del data["id"]
 
             apply_and_save_changes(state, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                state,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "code",
-                    "name",
-                    "workflow_id",
-                ),
-            )
-            historical_state.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
-            data["workflow_id"] = workflow.pk
 
             state = model_state.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, state, "-", changed_item["history_date"], change_reason)
-            historical_state.objects.create(**data)
             state.delete()
 
 
 def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):
-    historical_state_permission = apps.get_model("vueda_workflow", "HistoricalStatePermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_group = apps.get_model("auth", "Group")
     model_permission = apps.get_model("auth", "Permission")
@@ -473,10 +387,7 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
 
             del data["id"]  # This needs to be removed before we create.
 
-            state_permission = model_state_permission.objects.create(**data)
-
-            add_history_to_data(data, state_permission, "+", changed_item["history_date"], change_reason)
-            historical_state_permission.objects.create(**data)
+            model_state_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
@@ -510,50 +421,23 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
                 data["group_id"] = tuple(new_group_ids)
 
             apply_and_save_changes(state_permission, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                state_permission,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "grant_or_deny",
-                    "group_id",
-                    "historical_group_name",
-                    "historical_permission_codename",
-                    "permission_id",
-                    "state_id",
-                ),
-            )
-            historical_state_permission.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
-            data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
             data["id"]["state_id"] = state.pk
-            data["state_id"] = state.pk
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
-            permission = model_permission.objects.get(**data["permission_id"])
-            data["permission_id"] = permission.pk
             group = model_group.objects.get(**data["id"]["group_id"])
             data["id"]["group_id"] = group.pk
-            data["group_id"] = group.pk
 
             state_permission = model_state_permission.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, state_permission, "-", changed_item["history_date"], change_reason)
-            historical_state_permission.objects.create(**data)
             state_permission.delete()
 
 
 def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
-    historical_initial_state = apps.get_model("vueda_workflow", "HistoricalInitialState")
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -571,10 +455,7 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
 
             del data["id"]  # This needs to be removed before we create.
 
-            initial_state = model_initial_state.objects.create(**data)
-
-            add_history_to_data(data, initial_state, "+", changed_item["history_date"], change_reason)
-            historical_initial_state.objects.create(**data)
+            model_initial_state.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
@@ -600,41 +481,20 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
                 data["state_id"] = tuple(state_ids)
 
             apply_and_save_changes(initial_state, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                initial_state,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "state_id",
-                    "workflow_id",
-                ),
-            )
-            historical_initial_state.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
-            data["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
             data["id"]["state_id"] = state.pk
-            data["state_id"] = state.pk
             data["id"]["workflow_id"] = workflow.pk
-            data["workflow_id"] = workflow.pk
 
             initial_state = model_initial_state.objects.get(**get_id_values_from_dict(data["id"], reversing=reversing))
 
-            del data["id"]
-
-            add_history_to_data(data, initial_state, "-", changed_item["history_date"], change_reason)
-            historical_initial_state.objects.create(**data)
             initial_state.delete()
 
 
 def handle_transition(apps, changed_item, change_reason, *, reversing=False):
-    historical_transition = apps.get_model("vueda_workflow", "HistoricalTransition")
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -651,10 +511,7 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
 
             del data["id"]  # This needs to be removed before we create.
 
-            transition = model_transition.objects.create(**data)
-
-            add_history_to_data(data, transition, "+", changed_item["history_date"], change_reason)
-            historical_transition.objects.create(**data)
+            model_transition.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
@@ -676,41 +533,18 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
                 data["target_id"] = tuple(state_ids)
 
             apply_and_save_changes(transition, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                transition,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "code",
-                    "name",
-                    "target_id",
-                    "workflow_id",
-                ),
-            )
-            historical_transition.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["workflow_id"])
             data["id"]["workflow_id"] = workflow.pk
-            data["workflow_id"] = workflow.pk
             data["target_id"]["workflow_id"] = workflow.pk
-            state = model_state.objects.get(**data["target_id"])
-            data["target_id"] = state.pk
 
             transition = model_transition.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, transition, "-", changed_item["history_date"], change_reason)
-            historical_transition.objects.create(**data)
             transition.delete()
 
 
 def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):
-    historical_transition_permission = apps.get_model("vueda_workflow", "HistoricalTransitionPermission")
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_transition = apps.get_model("vueda_workflow", "Transition")
@@ -732,10 +566,7 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
 
             del data["id"]  # This needs to be removed before we create.
 
-            transition_permission = model_transition_permission.objects.create(**data)
-
-            add_history_to_data(data, transition_permission, "+", changed_item["history_date"], change_reason)
-            historical_transition_permission.objects.create(**data)
+            model_transition_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
@@ -772,46 +603,21 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
                 data["transition_id"] = tuple(transition_ids)
 
             apply_and_save_changes(transition_permission, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                transition_permission,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "historical_permission_codename",
-                    "historical_permission_content_type_app_label",
-                    "historical_permission_content_type_model_name",
-                    "permission_id",
-                    "transition_id",
-                ),
-            )
-            historical_transition_permission.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             content_type = model_content_type.objects.get(**data["permission_id"]["content_type_id"])
             data["permission_id"]["content_type_id"] = content_type.pk
-            permission = model_permission.objects.get(**data["permission_id"])
-            data["permission_id"] = permission.pk
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
-            data["transition_id"]["workflow_id"] = workflow.pk
             transition = model_transition.objects.get(**data["id"]["transition_id"])
             data["id"]["transition_id"] = transition.pk
-            data["transition_id"] = transition.pk
 
             transition_permission = model_transition_permission.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, transition_permission, "-", changed_item["history_date"], change_reason)
-            historical_transition_permission.objects.create(**data)
             transition_permission.delete()
 
 
 def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):
-    historical_transition_source = apps.get_model("vueda_workflow", "HistoricalTransitionSource")
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_transition_source = apps.get_model("vueda_workflow", "TransitionSource")
@@ -832,10 +638,7 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
 
             del data["id"]  # This needs to be removed before we create.
 
-            transition_source = model_transition_source.objects.create(**data)
-
-            add_history_to_data(data, transition_source, "+", changed_item["history_date"], change_reason)
-            historical_transition_source.objects.create(**data)
+            model_transition_source.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
             data["id"]["source_id"] = get_id_values_from_item(data["id"]["source_id"], reversing=reversing)
@@ -876,121 +679,75 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
                 data["transition_id"] = tuple(transition_ids)
 
             apply_and_save_changes(transition_source, data, reversing=reversing)
-            add_history_to_data(
-                data,
-                transition_source,
-                "~",
-                changed_item["history_date"],
-                change_reason,
-                fields=(
-                    "id",
-                    "source_id",
-                    "transition_id",
-                    "ignored",
-                ),
-            )
-            historical_transition_source.objects.create(**data)
 
         case WorkflowChangeTypes.DELETED.value:
             workflow = model_workflow.objects.get(**data["id"]["source_id"]["workflow_id"])
             data["id"]["source_id"]["workflow_id"] = workflow.pk
-            data["source_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["source_id"])
             data["id"]["source_id"] = state.pk
-            data["source_id"] = state.pk
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
-            data["transition_id"]["workflow_id"] = workflow.pk
             transition = model_transition.objects.get(**data["id"]["transition_id"])
             data["id"]["transition_id"] = transition.pk
-            data["transition_id"] = transition.pk
 
             transition_source = model_transition_source.objects.get(**data["id"])
 
-            del data["id"]
-
-            add_history_to_data(data, transition_source, "-", changed_item["history_date"], change_reason)
-            historical_transition_source.objects.create(**data)
             transition_source.delete()
 
 
-def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):
+def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
+    """Give every object of a workflow its initial state, and move one nothing has changed since.
+
+    An object state with only its creation recorded against it is still wherever it was put, so a
+    changed initial state moves it. One that carries any later event was moved by someone, and the
+    state they moved it to is theirs to keep.
+
+    TODO: An earlier run of this counts as someone, because its update is an event like any other.
+      A workflow whose initial state changes twice therefore moves its objects only the first time.
+      Telling the two apart needs the sync's own writes to be identifiable, which the action context
+      cannot currently do here: pghistory sets its context as a transaction-local, so an action
+      opened around these writes is still attributed to everything else written in the same
+      transaction.
+    """
     if reversing:
         # Delete all object states
         workflow_obj_state_class.objects.filter(workflow=workflow).delete()
+        return
 
-    else:
-        initial_state = workflow.initial_state
-        for obj in obj_class.objects.all():
-            if not workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).exists():
-                historical_records = historical_workflow_obj_state_class.objects.filter(
-                    workflow=workflow,
-                    object_id=obj.pk,
-                )
-                original_historical_records_count = historical_records.count()
-                obj_state_obj = workflow_obj_state_class.objects.create(
-                    workflow=workflow,
-                    object_id=obj.id,
-                    state=initial_state.state,
-                )
-                # We are running through a migration, so we need to create history.
-                if original_historical_records_count == historical_records.count():
-                    historical_workflow_obj_state_class.objects.create(
-                        id=obj_state_obj.pk,
-                        workflow=workflow,
-                        object_id=obj.pk,
-                        state=initial_state.state,
-                        history_date=timezone.now(),
-                        history_relation=obj_state_obj,
-                        history_type="+",
-                    )
-            else:
-                # If a workflow's initial state has changed, and an object
-                # hasn't been changed, then switch it to the new initial state.
-                obj_state = (
-                    workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk)
-                    .exclude(state_id=initial_state.state_id)
-                    .first()
-                )
-                if obj_state is not None:
-                    # TODO: When this is switched to django-pghistory, we will need to add context before the
-                    #   ObjectState update, so we can use that to know the object state hasn't been changed,
-                    #   since it is possible for the initial state on a workflow to change multiple times.
-                    history_count = historical_workflow_obj_state_class.objects.filter(
-                        workflow=workflow, object_id=obj.pk
-                    ).aggregate(count=Count("history_id"))
-                    if history_count is not None and history_count["count"] == 1:
-                        workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
-                        historical_workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).update(
-                            state_id=initial_state.state_id
-                        )
+    initial_state = getattr(workflow, "initial_state", None)
+    if initial_state is None:
+        # A workflow part-way through its own migration has no initial state to give anything.
+        return
+
+    for obj in obj_class.objects.all():
+        obj_state = workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).first()
+
+        if obj_state is None:
+            workflow_obj_state_class.objects.create(
+                workflow=workflow,
+                object_id=obj.id,
+                state=initial_state.state,
+            )
+            continue
+
+        if obj_state.state_id == initial_state.state_id:
+            continue
+
+        changed_since_created = (
+            object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk).exclude(pgh_label="insert").exists()
+        )
+        if not changed_since_created:
+            workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
 
 
 def handle_state_objects(apps, *, reversing=False):
-    model_historical_object_state = apps.get_model("vueda_workflow", "HistoricalObjectState")
+    model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
     for workflow in model_workflow.objects.all():
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(
-            workflow, model_obj, model_object_state, model_historical_object_state, reversing=reversing
-        )
-
-
-def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):
-    # For changed history
-    for field_name in fields:
-        history_data[field_name] = getattr(obj, field_name)
-
-    # For all history
-    history_data["history_change_reason"] = change_reason
-    history_data["history_date"] = history_date
-    history_data["history_relation_id"] = obj.pk
-    history_data["history_type"] = history_type
-    history_data["id"] = obj.pk
+        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
 
 
 def get_id_values_from_item(values, reversing=False):
@@ -1240,7 +997,6 @@ def get_migration_sources(import_instead=False, as_mapping=False):
                 ("handle_transition_source",): inspect.getsource(handle_transition_source),
                 ("handle_state_objects",): inspect.getsource(handle_state_objects),
                 ("manage_state_objects",): inspect.getsource(manage_state_objects),
-                ("add_history_to_data",): inspect.getsource(add_history_to_data),
                 ("apply_and_save_changes",): inspect.getsource(apply_and_save_changes),
                 ("get_id_values_from_item",): inspect.getsource(get_id_values_from_item),
                 ("get_id_values_from_dict",): inspect.getsource(get_id_values_from_dict),
@@ -1769,7 +1525,12 @@ class Command(BaseCommand):
                     # writes are known exactly. Matching them by value could not work anyway: an
                     # event carries the moment it was really written, which for a migration is when
                     # it was applied, not the date of the edit it replays.
-                    historical_queryset = recorded.exclude(pgh_context__metadata__kind=MIGRATION_ACTION_KIND)
+                    # A write with no action at all is an edit, so it has to survive this. An
+                    # ``exclude`` across the nullable context join would drop it: the comparison is
+                    # unknown for a null join, and unknown is not true.
+                    historical_queryset = recorded.filter(
+                        Q(pgh_context__isnull=True) | ~Q(pgh_context__metadata__kind=MIGRATION_ACTION_KIND)
+                    )
                     history_pks = tuple(historical_queryset.values_list("pk", flat=True))
                     existing_history_pks = set()
 
@@ -2471,7 +2232,7 @@ class Command(BaseCommand):
         for workflow in models.Workflow.objects.all():
             model_class = workflow.content_type.model_class()
             if model_class is not None:
-                manage_state_objects(workflow, model_class, models.ObjectState, models.HistoricalObjectState)
+                manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
 
         if not changes_by_app:
             self.stdout.write(self.style.SUCCESS("No workflow changes detected."))
