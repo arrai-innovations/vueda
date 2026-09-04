@@ -4,6 +4,7 @@ __all__ = (
     "HISTORY_SECTION",
     "MANDATORY_EXCLUDED_FIELDS",
     "HistoryConfig",
+    "track_model",
 )
 
 import pghistory
@@ -95,24 +96,40 @@ def _validate_history_section(model, options):
     return errors
 
 
-def _contribute_history(model, options):
-    """Register pghistory event models and triggers for a model whose policy enables history.
+def track_model(model, *, exclude_fields=()):
+    """Register pghistory event models and triggers for ``model`` under VUEDA's backend policy.
 
-    Django has finished building the model by the time this runs, so pghistory sees every field.
-    The trackers are built here rather than shared, because a tracker resolves its trigger condition
-    against the first model it is applied to and keeps it, which leaks one model's field list into
-    the next.
+    Two callers reach this. The ``class Vueda.History`` contributor calls it for every model in the
+    feature-policy family. A model outside that family calls it directly, which is how workflow's
+    configuration and object-state records get event models that share the context field,
+    append-only behaviour, and mandatory exclusions of a policy-driven model.
+
+    Call it on a prepared model. The contributor runs on ``class_prepared``, and a direct caller
+    writes the call after the class body, so pghistory sees every field either way. The trackers are
+    built per call rather than shared, because a tracker resolves its trigger condition against the
+    first model it is applied to and keeps it, which leaks one model's field list into the next.
+
+    Returns ``model``, so a caller can register and re-export in one statement.
     """
-    section = options["History"]
-    if not section["enabled"] or not model._meta.managed:
-        return
+    if not model._meta.managed:
+        return model
 
     pghistory.track(
         pghistory.InsertEvent(),
         pghistory.UpdateEvent(),
         pghistory.DeleteEvent(),
-        exclude=_resolve_exclusions(model, section["exclude_fields"]) or None,
+        exclude=_resolve_exclusions(model, exclude_fields) or None,
     )(model)
+    return model
+
+
+def _contribute_history(model, options):
+    """Register event models for a model whose ``class Vueda.History`` policy enables history."""
+    section = options["History"]
+    if not section["enabled"]:
+        return
+
+    track_model(model, exclude_fields=section["exclude_fields"])
 
 
 HISTORY_SECTION = register_feature_section(
