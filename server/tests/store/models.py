@@ -348,7 +348,6 @@ class OrderItemCompositePK(VuedaModel):
         verbose_name_plural = "Order Items Composite PKs"
 
 
-# Tests require no objects of this type to exist.
 class OrderItemAltCompositePK(VuedaModel):
     pk = models.CompositePrimaryKey("order_id", "product_id")
     order = models.ForeignKey(OrderCompositePK, on_delete=models.PROTECT)
@@ -365,6 +364,26 @@ class OrderItemAltCompositePK(VuedaModel):
         ordering = ["order", "product", "quantity"]
         verbose_name = "Order Items Alt Composite PK"
         verbose_name_plural = "Order Items Alt Composite PKs"
+
+
+class OrderItemPKOrderedCompositePK(VuedaModel):
+    """Declares the "pk" alias as the model's own `Meta.ordering` on a `CompositePrimaryKey` model,
+    the model-level counterpart of OrderItemCompositePKOrderingPKViewSet: the alias names no single
+    column, so it has to expand to every field the key is built from."""
+
+    pk = models.CompositePrimaryKey("order_id", "product_id")
+    order = models.ForeignKey(OrderCompositePK, on_delete=models.PROTECT)
+    product = models.ForeignKey(ProductCompositePK, on_delete=models.PROTECT)
+    quantity = models.IntegerField(db_default=0)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "product__formatted_name"
+
+    class Meta(VuedaModel.Meta):
+        default_related_name = "order_items_pk_ordered_composite_pks"
+        ordering = ["pk"]
+        verbose_name = "Order Items PK Ordered Composite PK"
+        verbose_name_plural = "Order Items PK Ordered Composite PKs"
 
 
 class DistributorProxy(Distributor):

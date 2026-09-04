@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
 from tests.product.models import Product
+from tests.product.models import ProductModelOrderingFormattedName
+from tests.product.models import ProductModelOrderingLookupFormattedName
+from tests.product.models import ProductModelOrderingPK
+from vueda.core.serializers import VuedaSerializer
 from vueda.history.serializers import VuedaHistorySerializer
 
 
@@ -41,3 +45,21 @@ class ProductPropertyFieldSerializer(ProductSerializer):
 
     class Meta(ProductSerializer.Meta):
         fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
+
+
+class ProductModelOrderingPKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingPK
+        fields = ["id", "name"] + VuedaSerializer.Meta.fields
+
+
+class ProductModelOrderingFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingFormattedName
+        fields = ["id", "name"] + VuedaSerializer.Meta.fields
+
+
+class ProductModelOrderingLookupFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingLookupFormattedName
+        fields = ["id"] + VuedaSerializer.Meta.fields

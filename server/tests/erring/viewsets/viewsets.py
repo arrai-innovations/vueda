@@ -1,3 +1,4 @@
+from django.db.models import F
 from rest_framework.viewsets import ModelViewSet
 
 import tests.erring.filtersets as my_filtersets
@@ -68,3 +69,166 @@ class UnregisteredNonVuedaExpandableFieldsNonDictOptionsViewSet(ModelViewSet):
 
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.UnregisteredNonVuedaExpandableFieldsNonDictOptionsSerializer
+
+
+class ValidGetFormattedNameOrderingViewSet(VuedaViewSet):
+    """Default-orders by formatted_name on a model that computes it with a get_formatted_name()
+    method, which the database has nothing to sort by."""
+
+    queryset = my_models.ValidGetFormattedName.objects.all()
+    serializer_class = my_serializers.ValidGetFormattedNameSerializer
+    ordering = ["formatted_name"]
+
+
+class ValidGetFormattedNameOrderingFieldsViewSet(VuedaViewSet):
+    """Offers formatted_name to clients through `ordering_fields` instead of as the default ordering,
+    on the same method-backed model — still nothing for the database to sort by."""
+
+    queryset = my_models.ValidGetFormattedName.objects.all()
+    serializer_class = my_serializers.ValidGetFormattedNameSerializer
+    ordering_fields = ["formatted_name"]
+
+
+class ValidLookupExpressionOrderingViewSet(VuedaViewSet):
+    """Default-orders by formatted_name on a model that reaches it through
+    `formatted_name_lookup_expression`, which the database can sort by. A valid configuration, so the
+    ordering check must stay quiet about it."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["formatted_name"]
+
+
+class UnresolvableOrderingViewSet(VuedaViewSet):
+    """Default-orders by a field the model doesn't have, alongside one it does — the drift a viewset's
+    `ordering` can carry with nothing to catch it, since Django's own `models.E015` only reads
+    `Meta.ordering`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field", "no_such_field"]
+
+
+class UnresolvableOrderingFieldsViewSet(VuedaViewSet):
+    """Offers a field the model doesn't have to clients through `ordering_fields`. Nothing fails at
+    request time for this one — the metadata simply never advertises it — so the check is the only
+    signal there is."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field", "no_such_field"]
+
+
+class LabelledOrderingFieldsViewSet(VuedaViewSet):
+    """Writes both `ordering_fields` entries as DRF's `(field_name, label)` pair, one naming a real
+    field and one naming a field the model doesn't have.
+
+    The check reads a pair's name the same way the metadata does, so the stale pair is reported and
+    the good one isn't. Reading the pair as an ordering term instead would find no field path in
+    either, leaving a stale pair reported by nothing at all."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = [("the_name_field", "The Name"), ("no_such_field", "No Such Field")]
+
+
+class ResolvableOrderingAliasesViewSet(VuedaViewSet):
+    """Orders by the "pk" alias and by a formatted_name reached through
+    `formatted_name_lookup_expression`, neither of which is a field name on the model. Both resolve
+    the way the metadata resolves them, so the ordering check must stay quiet."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["pk"]
+    ordering_fields = ["formatted_name", "pk", "?"]
+
+
+class AnnotatedOrderingViewSet(VuedaViewSet):
+    """Orders by an annotation its own `get_queryset` adds. It is orderable without being a model
+    field, so the ordering check must resolve it against the queryset rather than reporting it."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["annotated_name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(annotated_name=F("the_name_field"))
+
+
+class ValidNullsOrderingViewSet(VuedaViewSet):
+    """Declares a nulls placement the way `VuedaOrderingFilter` documents it, with the flip list
+    naming a field the placement mapping covers. A valid configuration, so `vueda_info.E007` must
+    stay quiet."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = {"the_name_field": "first"}
+    nulls_ordering_flip = ["the_name_field"]
+
+
+class BadNullsOrderingPlacementViewSet(VuedaViewSet):
+    """Names a placement outside "first"/"last". There is no `nulls_<placement>` keyword for it to
+    become, so `VuedaOrderingFilter` ignores it and `vueda_info.E007` is the only signal that the
+    declaration doesn't do what it says."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = {"the_name_field": "First"}
+
+
+class NullsOrderingNotADictViewSet(VuedaViewSet):
+    """Declares `nulls_ordering` as a list of field names rather than a mapping of field name to
+    placement, which reads as a plausible shorthand but gives no placement to apply."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = ["the_name_field"]
+
+
+class NullsOrderingFlipWithoutPlacementViewSet(VuedaViewSet):
+    """Lists a field in `nulls_ordering_flip` that `nulls_ordering` gives no placement, so there is
+    nothing for the flip to act on — the half-written form of a declaration meant to work as a
+    pair."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering_flip = ["the_name_field"]
+
+
+class NullsOrderingBothAttributesWrongViewSet(VuedaViewSet):
+    """Gets both attributes wrong at once: an unusable placement in `nulls_ordering`, and a field in
+    `nulls_ordering_flip` that `nulls_ordering` doesn't cover.
+
+    The two are separate attributes that fail independently, so the check has to report both from one
+    run rather than making the reader fix one, re-run, and discover the other."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = {"the_name_field": "First"}
+    nulls_ordering_flip = ["id"]
+
+
+class NullsOrderingNotADictWithFlipViewSet(VuedaViewSet):
+    """Declares `nulls_ordering` as a list *and* names a field to flip.
+
+    An unusable `nulls_ordering` gives no field a placement, so the flip entry has nothing to act on
+    either. Both are reported: skipping the flip pass along with the declaration it depends on would
+    hide the second half of the same mistake."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = ["the_name_field"]
+    nulls_ordering_flip = ["the_name_field"]
+
+
+class NullsOrderingFlipNotIterableViewSet(VuedaViewSet):
+    """Declares `nulls_ordering_flip` as something with no field names to read.
+
+    `VuedaOrderingFilter` tests membership in it (`field_name in nulls_ordering_flip`), which raises
+    `TypeError` on a non-iterable, so this would 500 every descending `?o=` for a field that has a
+    placement. The filter drops it instead and the check reports the declaration."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    nulls_ordering = {"the_name_field": "first"}
+    nulls_ordering_flip = 1

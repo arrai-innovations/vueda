@@ -68,6 +68,30 @@ class ValidLookupExpressionSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class PlainManagerLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.PlainManagerLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MultiValuedLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MultiValuedLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SingleValuedLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SingleValuedLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class RelatedObjectsAreMissingDataSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.RelatedObjectsAreMissingData
