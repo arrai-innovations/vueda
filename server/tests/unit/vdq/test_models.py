@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 import pytest
 from django.core.files.base import ContentFile
-from django.test import override_settings
 
 from vueda.vdq.models import AnyMailQueueItem
 from vueda.vdq.models import AnyMailQueueItemAttachment
@@ -101,40 +100,43 @@ def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sm
 
 
 @pytest.mark.django_db
-def test_delete_email_attachments_deletes_when_all_queue_items_done(tmp_path, sender, receiver, other_receiver):
-    with override_settings(MEDIA_ROOT=tmp_path):
-        queue_item_one = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-        queue_item_two = QueueItem.objects.create(sender=sender, receiver=other_receiver, method="email")
+def test_delete_email_attachments_deletes_when_all_queue_items_done(
+    settings, tmp_path, sender, receiver, other_receiver
+):
+    settings.MEDIA_ROOT = tmp_path
 
-        detail_one = AnyMailQueueItem.objects.create(queue_item=queue_item_one, subject="Subj", text="Body", html="")
-        detail_two = AnyMailQueueItem.objects.create(queue_item=queue_item_two, subject="Subj", text="Body", html="")
+    queue_item_one = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    queue_item_two = QueueItem.objects.create(sender=sender, receiver=other_receiver, method="email")
 
-        attachment = AnyMailQueueItemAttachment.objects.create(
-            filename="attachment.txt",
-            mimetype="text/plain",
-            content_id_string="cid",
-        )
-        attachment.attachment.save("attachment.txt", ContentFile(b"payload"))
-        detail_one.attachments.add(attachment)
-        detail_two.attachments.add(attachment)
+    detail_one = AnyMailQueueItem.objects.create(queue_item=queue_item_one, subject="Subj", text="Body", html="")
+    detail_two = AnyMailQueueItem.objects.create(queue_item=queue_item_two, subject="Subj", text="Body", html="")
 
-        file_path = Path(attachment.attachment.path)
-        assert file_path.exists()
+    attachment = AnyMailQueueItemAttachment.objects.create(
+        filename="attachment.txt",
+        mimetype="text/plain",
+        content_id_string="cid",
+    )
+    attachment.attachment.save("attachment.txt", ContentFile(b"payload"))
+    detail_one.attachments.add(attachment)
+    detail_two.attachments.add(attachment)
 
-        queue_item_one.fast_transition("send")
-        queue_item_one.fast_transition("await")
-        queue_item_one.fast_transition("succeed")
-        queue_item_one.delete_email_attachments()
-        assert file_path.exists()
+    file_path = Path(attachment.attachment.path)
+    assert file_path.exists()
 
-        queue_item_two.fast_transition("send")
-        queue_item_two.fast_transition("await")
-        queue_item_two.fast_transition("succeed")
-        queue_item_one.delete_email_attachments()
+    queue_item_one.fast_transition("send")
+    queue_item_one.fast_transition("await")
+    queue_item_one.fast_transition("succeed")
+    queue_item_one.delete_email_attachments()
+    assert file_path.exists()
 
-        attachment.refresh_from_db()
-        assert not file_path.exists()
-        assert attachment.attachment.name == ""
+    queue_item_two.fast_transition("send")
+    queue_item_two.fast_transition("await")
+    queue_item_two.fast_transition("succeed")
+    queue_item_one.delete_email_attachments()
+
+    attachment.refresh_from_db()
+    assert not file_path.exists()
+    assert attachment.attachment.name == ""
 
 
 @pytest.mark.django_db
@@ -210,18 +212,19 @@ def test_queue_item_on_transition_dry_run_skips_file_cleanup(settings, monkeypat
 
 
 @pytest.mark.django_db
-def test_anymail_attachment_save_populates_metadata(tmp_path):
-    with override_settings(MEDIA_ROOT=tmp_path):
-        attachment = AnyMailQueueItemAttachment(
-            filename="report.pdf",
-            mimetype="",
-            content_id_string="cid",
-        )
-        attachment.attachment.save("report.pdf", ContentFile(b"binary-data"))
-        attachment.save()
+def test_anymail_attachment_save_populates_metadata(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
 
-        assert attachment.file_size == len(b"binary-data")
-        assert attachment.mimetype == "application/pdf"
+    attachment = AnyMailQueueItemAttachment(
+        filename="report.pdf",
+        mimetype="",
+        content_id_string="cid",
+    )
+    attachment.attachment.save("report.pdf", ContentFile(b"binary-data"))
+    attachment.save()
+
+    assert attachment.file_size == len(b"binary-data")
+    assert attachment.mimetype == "application/pdf"
 
 
 @pytest.mark.django_db

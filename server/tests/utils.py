@@ -8,9 +8,7 @@ from importlib import reload
 
 import django
 from django.apps import apps
-from django.conf import settings
 from django.http import QueryDict
-from django.test import override_settings
 from django.test.utils import TestContextDecorator
 from django.test.utils import extend_sys_path
 from django.urls import get_resolver
@@ -83,19 +81,11 @@ class BaseTestMigrations:
                 reload(module)
                 return module
 
-    # Copied from django with no changes:
-    # https://github.com/django/django/blob/14fb36e0b083ea963220602d01386cc0fb2c40e4/django/test/testcases.py#L393-L398
-    def settings(self, **kwargs):
-        """
-        A context manager that temporarily sets a setting and reverts to the
-        original value when exiting the context.
-        """
-        return override_settings(**kwargs)
-
-    # Copied from django with no changes:
+    # Adapted from django, with MIGRATION_MODULES set through the pytest
+    # `settings` fixture instead of override_settings:
     # //github.com/django/django/blob/14fb36e0b083ea963220602d01386cc0fb2c40e4/tests/migrations/test_base.py#L186-L222
     @contextmanager
-    def temporary_migration_module(self, app_label="migrations", module=None):
+    def temporary_migration_module(self, settings, app_label="migrations", module=None):
         """
         Allows testing management commands in a temporary migrations module.
 
@@ -103,8 +93,9 @@ class BaseTestMigrations:
         context manager in order to avoid creating migration files in your
         source tree inadvertently.
 
-        Takes the application label that will be passed to makemigrations or
-        squashmigrations and the Python path to a migrations module.
+        Takes the pytest `settings` fixture, the application label that will be
+        passed to makemigrations or squashmigrations, and the Python path to a
+        migrations module.
 
         The migrations module is used as a template for creating the temporary
         migrations module. If it isn't provided, the application's migrations
@@ -132,9 +123,12 @@ class BaseTestMigrations:
             #   new test could get created for django, and then this wouldn't be a customization.
             with extend_sys_path(temp_dir):
                 new_module = os.path.basename(target_dir) + ".migrations"
-                migration_modules = {**settings.MIGRATION_MODULES, app_label: new_module}
-                with self.settings(MIGRATION_MODULES=migration_modules):
+                original_migration_modules = settings.MIGRATION_MODULES
+                settings.MIGRATION_MODULES = {**original_migration_modules, app_label: new_module}
+                try:
                     yield target_migrations_dir
+                finally:
+                    settings.MIGRATION_MODULES = original_migration_modules
 
 
 class FakeRequest:
