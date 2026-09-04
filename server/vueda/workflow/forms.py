@@ -119,7 +119,8 @@ class RemoveHistoricalPermissionsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # A history record is not something a project grants permission on, whichever backend wrote
-        # it. pghistory marks its event models with ``pgh_tracked_model``.
+        # it. pghistory marks its event models with ``pgh_tracked_model``. The simple-history test
+        # goes when the last model recording that way does.
         excluded_ids = [
             content_type.pk
             for content_type in ContentType.objects.all()

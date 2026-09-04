@@ -750,6 +750,13 @@ def handle_state_objects(apps, *, reversing=False):
         manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
 
 
+def _content_type_of(workflow_event):
+    """Return the content type an event's workflow names, or ``None`` when there is no such event."""
+    if workflow_event is None:
+        return None
+    return ContentType.objects.filter(id=workflow_event.content_type_id).first()
+
+
 def get_id_values_from_item(values, reversing=False):
     # The changed fields have a tuple with 2 values, the other fields do not.
     # Testing as tuple instead of length, because values could be a dictionary
@@ -1119,10 +1126,12 @@ class Command(BaseCommand):
                 apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
 
             else:  # Deleted Workflows
-                historical_workflows = models.Workflow.history.filter(
+                # The model no longer carries a workflow, so the only trace of one is what history
+                # recorded about it.
+                recorded_workflows = models.WorkflowEvent.objects.filter(
                     historical_app_label=app_label, historical_model=model_name
                 )
-                if historical_workflows.exists():
+                if recorded_workflows.exists():
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
@@ -1208,51 +1217,57 @@ class Command(BaseCommand):
 
     @staticmethod
     def _get_content_type_for_model(model_name, history_type, changed_item):
+        """Return the content type a change belongs to, or ``None`` when history cannot say.
+
+        A change in a migration file names its workflow by code. Nothing guarantees this database
+        recorded that workflow: it may predate the event tables, or belong to a project the file was
+        written against. Such a change simply matches nothing here.
+        """
         changed_item = get_id_values_from_dict(changed_item)
 
-        # Using filter and first, or last for historical records, in case things have been deleted.
+        # Using filter and first, or last, in case things have been deleted.
         match model_name:
             case "initialstate":
                 query = changed_item["state_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "state":
                 query = changed_item["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "statepermission":
                 query = changed_item["state_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "transition":
                 query = changed_item["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "transitionpermission":
                 query = changed_item["transition_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "transitionsource":
                 query = changed_item["source_id"]["workflow_id"]
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
             case "workflow":
                 query = changed_item["content_type_id"]
@@ -1265,7 +1280,7 @@ class Command(BaseCommand):
                 if history_type == WorkflowChangeTypes.CHANGED.value:
                     query = get_id_values_from_dict(query)
                 workflow = models.WorkflowEvent.objects.filter(**query).order_by("pgh_id").last()
-                return ContentType.objects.filter(id=workflow.content_type_id).first()
+                return _content_type_of(workflow)
 
     def _recursive_compile_changed_item(self, query, *, history_date=None):
         # Using filter and first, or last for historical records, in case things have been deleted.
@@ -1542,7 +1557,7 @@ class Command(BaseCommand):
                             content_type = self._get_content_type_for_model(
                                 workflow_model_name, changed_item["history_type"], changed_item["changes"]
                             )
-                            if content_type.pk != content_type_id:
+                            if content_type is None or content_type.pk != content_type_id:
                                 continue
 
                             history_obj = self._get_history_obj_from_change(

@@ -1349,19 +1349,25 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
                             previous_line = line
 
-            assert num_changes_matching_history_records == {"num": 3, "sub_nums": [1, 5, 1]}
-            # There should be no changes not matching history records.
-            assert not num_changes_not_matching_history_records
+            # Nothing matches by value any more. Every change 0002 carries was applied by 0002
+            # itself, and a generated migration's own writes are dropped by the action they record
+            # before matching runs at all.
+            assert num_changes_matching_history_records == {"num": 0, "sub_nums": []}
+            # Three of 0002's own changes match nothing, and should not: a write a generated
+            # migration made is dropped by the action it recorded, before anything is matched by
+            # value. Only the states 0002 added and this test then re-added need matching at all.
+            assert num_changes_not_matching_history_records == 3  # noqa: PLR2004
             assert num_unmatched_history == 1, unmatched_history_data
 
             events_by_label = self.get_unmatched_events_by_label(unmatched_history_data)
 
-            # Every write the fixture made after 0002 is uncaptured, and each code appears once per
-            # event it recorded rather than once overall.
+            # The deletes are what no migration has captured. The three re-adds are not here,
+            # because they matched the three adds 0002 carries, one event each, which is the
+            # duplicate matching this test exists for.
+            assert set(events_by_label) == {"delete"}, events_by_label
             assert events_by_label["delete"] == frozenset(("delete_1", "delete_2", "delete_3", "delete_4")), (
                 events_by_label
             )
-            assert events_by_label["insert"] == frozenset(("delete_2", "delete_3", "delete_4")), events_by_label
 
             # Roll back 0003.
             succeeded, results = self.call_command("migrate", "workflow_duplicates", "0002")
@@ -1395,8 +1401,8 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
 
             # Replaying the generated migration lands on what the fixture's writes left behind:
-            # delete_1 gone, delete_2 added back, delete_3 and delete_4 added back then removed.
-            assert state_codes == {"delete_2", "not_used_by_test"}
+            # all four delete_N states removed, leaving only the state 0002 added and kept.
+            assert state_codes == {"not_used_by_test"}
 
             # Run migration 0004 backwards
             succeeded, results = self.call_command("migrate", "workflow_duplicates", "0003")

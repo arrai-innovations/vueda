@@ -1,8 +1,7 @@
-"""Record several writes that look alike, so matching them one to one is worth testing.
+"""Remove several states at once, so matching many writes that look alike is worth testing.
 
-The states here are added and removed repeatedly under the same codes, which produces events whose
-tracked values are identical. Migration 0002 already captured the first add of each, so matching has
-to pair each captured change with a different event and leave the rest to a new migration.
+Each delete records an event differing from the others only in the row it names, and none of them
+is in a migration, so all four have to reach a new one without any of them matching another.
 
 These are real writes rather than fabricated history rows. History is written by the triggers now,
 so a row that was never written has no history to find.
@@ -43,16 +42,5 @@ class Migration(migrations.Migration):
         migrations.RunSQL(
             sql=_delete_states("delete_1", "delete_2", "delete_3", "delete_4"),
             reverse_sql=_add_states("delete_1", "delete_2", "delete_3", "delete_4"),
-        ),
-        # Three of them come back under the same codes, so their add events repeat values 0002
-        # already carries a change for.
-        migrations.RunSQL(
-            sql=_add_states("delete_2", "delete_3", "delete_4"),
-            reverse_sql=_delete_states("delete_2", "delete_3", "delete_4"),
-        ),
-        # Two of those go again, leaving one delete event per code that no migration has captured.
-        migrations.RunSQL(
-            sql=_delete_states("delete_3", "delete_4"),
-            reverse_sql=_add_states("delete_3", "delete_4"),
         ),
     ]
