@@ -1,8 +1,9 @@
 """Shared django-simple-history integration for VUEDA models.
 
 This lives in ``vueda.core`` rather than ``vueda.history`` because models outside the history app
-track their own history through it. ``vueda.workflow`` does, while ``vueda.history`` itself now
-records through pghistory, so the simple-history pieces sit with the models that still use them.
+track their own history. ``vueda.workflow`` does, and it must not import the optional history app
+to get that behaviour. ``simple_history`` is an unconditional dependency, so nothing here needs
+the history app installed.
 """
 
 __all__ = (
@@ -17,13 +18,34 @@ from django.db.models import OuterRef
 from django.db.models import Subquery
 from simple_history.models import HistoricalRecords
 
+from vueda.core.models import FormattedNameManager
 
-class SimpleHistoryManager(models.Manager):
+
+class SimpleHistoryManager(FormattedNameManager):
+    """
+    Adds ``current_history_id`` to every queryset of a ``SimpleHistoryModelMixin`` model.
+
+    Inherits ``FormattedNameManager`` rather than ``models.Manager`` because
+    ``SimpleHistoryModelMixin`` declares this as ``objects`` on an abstract base that sits closer in
+    the MRO than ``FormattedNameBaseModel`` does. Django resolves a model's default manager by
+    ``(depth, creation_counter)``, so this manager shadows ``FormattedNameManager`` for every
+    ``VuedaHistoryModel`` subclass. Without inheriting it, any such model reaching its formatted name
+    through ``formatted_name_lookup_expression`` would lose the ``formatted_name`` annotation on every
+    queryset it builds, including the ones its own ``Meta.ordering`` is applied to. The
+    ``vueda_info.E009`` system check reports a model left in that position by some other manager.
+    """
+
     def get_queryset(self):
+        # Taken before the `formatted_name` annotation is applied, because the subquery below
+        # aggregates: an annotation on its source queryset would join into the subquery's GROUP BY
+        # for a column it never selects. This is the queryset a plain `models.Manager` would build,
+        # which is what the subquery was written against.
+        history_source = models.Manager.get_queryset(self)
+
         queryset = super().get_queryset()
         return queryset.annotate(
             current_history_id=Subquery(
-                queryset.filter(history_records__id=OuterRef("pk"))
+                history_source.filter(history_records__id=OuterRef("pk"))
                 .annotate(current_history_id=Max("history_records__history_id"))
                 .values("current_history_id")
             )
