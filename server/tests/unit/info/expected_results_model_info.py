@@ -4240,7 +4240,11 @@ EXPECTED_RESULTS = [
                     "filterset_name": "ProductFilterSet",
                     "hidden": False,
                     "input_type": "select",
-                    "label": "Distributor name",
+                    # Title cased, because `ProductFilterSet.distributor` declares no label of its own
+                    # and the filters on the class are never bound to a model, so the label is the one
+                    # `get_model_filtering_label` generates rather than the one django-filter's own
+                    # `Filter.label` property would.
+                    "label": "Distributor Name",
                     "lookup_exprs": ["exact"],
                     "model": "product",
                     "null_label": None,
