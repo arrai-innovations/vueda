@@ -311,7 +311,7 @@ class BaseModelInfoFilterSetChoices:
         )
         mutated_reader.user_permissions.add(mutated_read_permission, mutated_list_permission)
 
-        self.register_viewsets()
+        register_model("store", "product")
         choices_url = reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type"))
 
         # Hit the endpoint once outside the override so any lazily-imported module involved is
