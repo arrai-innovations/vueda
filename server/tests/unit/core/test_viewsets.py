@@ -21,11 +21,43 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.timesheet.models import Timesheet
 from tests.timesheet.viewsets import TimesheetViewSet
-from tests.unit.info.test_model_info import VuedaTestData
+from tests.unit.info.utils import create_test_data
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+
+
+class StoreTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The store objects the flex-fields viewset tests below retrieve, and the customer who is allowed
+    to retrieve them. Only `read` is granted, because every test here is a GET of a single record:
+    `ObjectPermissions` maps that to `read_<model>`.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "CustomerOrder", "read"),
+            ("store", "Product", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+        # Needed by create_test_data, which attaches a customer to this user. Nothing
+        # authenticates as them, so they need no group of their own.
+        "test_customer_2@domain.invalid": {
+            "name": "Test Customer 2",
+            "password": "testpass",
+        },
+    }
+
+    def __init__(self):
+        create_test_data(self)
 
 
 def test_vueda_read_only_viewset_excludes_write_actions():
@@ -301,7 +333,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 class TestStoreProductViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -367,7 +399,7 @@ class TestStoreProductViewSet:
 class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     @staticmethod
     def register_viewsets():
@@ -438,7 +470,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
 class TestStoreCustomerOrderViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_expand_exceeds_depth(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
