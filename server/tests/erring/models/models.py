@@ -146,3 +146,74 @@ class NonVuedaFormattedName(models.Model):
 
     def __str__(self):
         return self.some_field
+
+
+class SourceResolutionRelated(models.Model):
+    """Related model reached through an unresolvable dotted serializer ``source`` or lookup expression.
+
+    A source-mapped field, a dotted source that resolves, a traversing lookup expression that resolves,
+    and a SerializerMethodField are all covered against the real tests.store fixtures instead (see
+    PackingBoxSerializer.label, CartSerializer.customer_relation, Customer/CartItem/OrderItem/
+    InventoryRecord/OrderItemCompositePK's formatted_name, and CustomerSerializer.
+    number_of_ordered_products). This app is reserved for resolution that is meant to fail.
+    """
+
+    class Meta:
+        app_label = "erring"
+        managed = False
+
+
+class SourceResolution(VuedaModel):
+    """Backs SourceResolutionSerializer's set of source= failure modes: partial progress via a
+    missing terminal attribute, partial progress via a non-relation intermediate field, and a
+    single-segment source that fails at its very first attempt. See that serializer for detail.
+    """
+
+    related = models.ForeignKey(SourceResolutionRelated, on_delete=models.DO_NOTHING, null=True)
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Source resolution"
+        verbose_name_plural = "Source resolution"
+
+    def __str__(self):
+        return self.pk
+
+
+class UnresolvableLookupExpression(VuedaModel):
+    """Its formatted_name_lookup_expression resolves the relation but not the terminal field name --
+    partial progress, the same shape of break SourceResolution.bogus exercises for a source=.
+    """
+
+    related = models.ForeignKey(SourceResolutionRelated, on_delete=models.DO_NOTHING, null=True)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "related__does_not_exist"
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Unresolvable lookup expression"
+        verbose_name_plural = "Unresolvable lookup expression"
+
+    def __str__(self):
+        return self.pk
+
+
+class UnresolvableLookupExpressionAtFirstSegment(VuedaModel):
+    """Its formatted_name_lookup_expression's first segment doesn't exist at all. Unlike a source=
+    failing the same way, this must still be reported: a lookup_expression is fed straight to
+    models.F() for queryset annotation and to Django admin's lookup_field(), so it has no
+    legitimate non-model-backed reading the way a source= pointed at a @property does -- it is
+    always a real misconfiguration, wherever in the path it breaks.
+    """
+
+    formatted_name = None
+    formatted_name_lookup_expression = "does_not_exist"
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Unresolvable lookup expression at first segment"
+        verbose_name_plural = "Unresolvable lookup expression at first segment"
+
+    def __str__(self):
+        return self.pk

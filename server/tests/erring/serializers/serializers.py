@@ -92,6 +92,60 @@ class NonVuedaFormattedNameSerializer(VuedaSerializer):
         fields = ["id", "some_field"] + VuedaSerializer.Meta.fields
 
 
+class SourceResolutionSerializer(VuedaSerializer):
+    """Exercises every source= failure mode:
+
+    - bogus resolves its "related" segment but not "does_not_exist" -- partial progress, reported.
+    - through_non_relation resolves "formatted_name" (a real field) but can't continue past it,
+      since a CharField/GeneratedField isn't a relation -- also partial progress, also reported,
+      but through the NotRelationField branch of the walk rather than FieldDoesNotExist.
+    - typo's source doesn't exist at all, and has no dot -- zero progress, silently null, since a
+      source failing at its very first segment is at least as likely to be an intentional
+      @property/computed value as a mistake.
+    - computed is a SerializerMethodField, exercising its exclusion -- it is never model-backed
+      and must never produce a warning.
+    """
+
+    bogus = serializers.CharField(source="related.does_not_exist", read_only=True)
+    through_non_relation = serializers.CharField(source="formatted_name.foo", read_only=True)
+    typo = serializers.CharField(source="does_not_exist_at_all", read_only=True)
+    computed = serializers.SerializerMethodField()
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SourceResolution
+        fields = [
+            "id",
+            "bogus",
+            "through_non_relation",
+            "typo",
+            "computed",
+        ] + VuedaSerializer.Meta.fields
+
+    def get_computed(self, instance):
+        return "computed-value"
+
+
+class UnresolvableLookupExpressionSerializer(VuedaSerializer):
+    """Its model's formatted_name_lookup_expression resolves the relation but not the terminal field."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.UnresolvableLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class UnresolvableLookupExpressionAtFirstSegmentSerializer(VuedaSerializer):
+    """Its model's formatted_name_lookup_expression doesn't exist at all -- unlike a source= failing
+    at its first segment, this must still warn (see the model's docstring)."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.UnresolvableLookupExpressionAtFirstSegment
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class ExpandableFieldsListSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.NoExpandableFieldsData

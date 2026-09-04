@@ -630,3 +630,67 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
             "read_noexpandablefieldsdata",
             "update_noexpandablefieldsdata",
         ]
+
+
+class VuedaFieldSourceResolutionTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("contenttypes", "ContentType", "read"),
+            ("erring", "SourceResolution", "read"),
+            ("erring", "UnresolvableLookupExpression", "read"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+
+@pytest.mark.django_db
+class TestFieldSourceResolutionInfoEndpoint:
+    """A registry containing a field with an unresolvable source or lookup expression must not
+    prevent /info/ from completing (issue #207)."""
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaFieldSourceResolutionTestData()
+
+    @pytest.fixture(autouse=True)
+    def isolated_registry(self):
+        info.registration.get_empty_registry()
+        yield
+        info.registration.get_empty_registry()
+
+    def test_unresolvable_source_does_not_crash_info_endpoint(self, test_data, api_client):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.register_serializer(err_serializers.SourceResolutionSerializer)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "sourceresolution")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["model_fields"]["bogus"]["type_db"] is None
+        assert response.data["model_fields"]["bogus"]["type_model"] is None
+
+    def test_unresolvable_lookup_expression_does_not_crash_info_endpoint(self, test_data, api_client):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.register_serializer(err_serializers.UnresolvableLookupExpressionSerializer)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "unresolvablelookupexpression")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["model_fields"]["formatted_name"]["type_db"] is None
+        assert response.data["model_fields"]["formatted_name"]["type_model"] is None
