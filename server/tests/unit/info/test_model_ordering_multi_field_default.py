@@ -9,6 +9,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.product.serializers import ProductSerializer
 from tests.product.viewsets import ProductOrderingMultiFieldDefaultViewSet
+from tests.product.viewsets import ProductOrderingScalarFunctionMultiFieldViewSet
 from vueda import info
 
 
@@ -76,3 +77,79 @@ class TestModelOrderingMultiFieldDefaultValue:
             "type": "boolean",
             "ascending": True,
         }, response_body(response)
+
+
+@pytest.mark.django_db
+class TestModelOrderingScalarFunctionMultiFieldValue:
+    """ProductOrderingScalarFunctionMultiFieldViewSet's default `ordering` is a single scalar-function
+    term reading two columns, `Coalesce("name", "formatted_name")`, with an empty `ordering_fields`.
+
+    This is the one shape `model_ordering.default` can't name. Every name it reports is a name a client
+    sends back in `?o=`, and no single field name stands for the sort this expression performs:
+    reporting both would say the rows arrive sorted by "name" and then by "formatted_name", which is
+    not what `Coalesce` does. So the default ordering is dropped whole, the same as a term that
+    resolves to no field at all.
+
+    `fields` is a different question, and both columns belong in it. `VuedaOrderingFilter` makes each
+    field the term references an explicit `?o=` target — see
+    `tests/unit/filtering/test_ordering.py::TestOrderingScalarFunctionMultiFieldDefault` — so leaving
+    them out would make them orderable and invisible: no metadata-driven client would ever be offered
+    them. What is withheld is the claim about how the rows currently arrive, not the fields.
+    """
+
+    @pytest.fixture(autouse=True)
+    def register_product(self):
+        info.registration.get_empty_registry()
+        info.register(ProductSerializer, ProductOrderingScalarFunctionMultiFieldViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    def test_default_is_empty_rather_than_naming_either_field(self, api_client, settings):
+        test_data = ModelOrderingMultiFieldDefaultTestData()
+        user = test_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("product", "product")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["model_ordering"]["default"] == [], response_body(response)
+
+    def test_both_fields_of_the_term_are_reported_in_fields(self, api_client, settings):
+        test_data = ModelOrderingMultiFieldDefaultTestData()
+        user = test_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("product", "product")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # `ordering_fields` is empty, so these two entries exist only because the default ordering
+        # names them — each in its own right, which is exactly how `?o=` accepts them.
+        assert response.data["model_ordering"]["fields"] == [
+            {"name": "name", "type": "alpha"},
+            {"name": "formatted_name", "type": "alpha"},
+        ], response_body(response)
+
+    def test_neither_field_claims_a_default_direction(self, api_client, settings):
+        """`ascending` describes the reported default ordering. There isn't one here, so no field
+        carries it: a client can offer the sort without asserting the rows already arrive that way."""
+        test_data = ModelOrderingMultiFieldDefaultTestData()
+        user = test_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("product", "product")),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        for field in response.data["model_ordering"]["fields"]:
+            assert "ascending" not in field, response_body(response)
