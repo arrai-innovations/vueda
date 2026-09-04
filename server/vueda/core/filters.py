@@ -6,6 +6,7 @@ __all__ = (
     "TRIGRAM_WORD_SIMILAR_PREFIX",
     "BaseArrayFilter",
     "BaseArrayInFilter",
+    "FormattedNamePathFilterSetMixin",
     "IdInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
@@ -17,13 +18,16 @@ __all__ = (
 
 import operator
 import re
+from collections.abc import Iterable
 from functools import reduce
 
 from django import forms
+from django.contrib.admin.utils import NotRelationField
 from django.contrib.postgres.search import SearchQuery
 from django.contrib.postgres.search import SearchRank
 from django.contrib.postgres.search import SearchVector
 from django.contrib.postgres.search import TrigramSimilarity
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.db.models import F
 from django.db.models.constants import LOOKUP_SEP
@@ -37,6 +41,11 @@ from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
 
 from vueda.core.fields.form import BaseArrayField
+from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.ordering import NULLS_PLACEMENTS
+from vueda.core.ordering import ordering_pk_field_names
+from vueda.core.ordering import ordering_term_field_names
+from vueda.core.ordering import rewrite_ordering_term_field_names
 
 
 class BaseArrayFilter(rest_framework.Filter):
@@ -93,15 +102,57 @@ class NumberArrayFilter(BaseArrayInFilter, rest_framework.NumberFilter):
     pass
 
 
+class FormattedNamePathFilterSetMixin:
+    """
+    Points a filter declared against a related model's ``formatted_name`` at the column behind it.
+
+    A filter declares the path it queries as ``field_name``, and django-filter builds its lookup
+    straight from that (``field_name`` + ``lookup_expr``). ``customer__formatted_name`` names nothing
+    the database knows on a model that reaches its formatted name through
+    ``formatted_name_lookup_expression``: the annotation ``VuedaViewSet.get_queryset`` adds belongs to
+    the queryset being filtered, not to the tables it joins. So the declared path is rewritten to the
+    one behind it — ``customer__data__formatted_name`` — on this filterset's own copy of the filters.
+
+    The class-level declaration is untouched, and so is everything client-facing. The query parameter
+    a client sends is the filter's name on the filterset, not its ``field_name``, and the label a
+    filter generates for itself is taken from the declared path before the rewrite, so
+    ``model_filtering`` metadata describes the filter the way it was written.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for filter_ in self.filters.values():
+            declared_field_name = filter_.field_name
+
+            # A path the queryset already carries an annotation for needs no rewriting: that is how a
+            # model's own `formatted_name` is filtered, and the annotation is what metadata describes.
+            if declared_field_name in self.queryset.query.annotations:
+                continue
+
+            resolved = resolve_formatted_name_path(self.queryset.model, declared_field_name)
+            if resolved is None or resolved == declared_field_name:
+                continue
+
+            # `Filter.label` generates itself from `field_name` on first read and caches the result,
+            # so it has to be read here, while `field_name` is still the declared path. A filter that
+            # declared its own label just reports that, and reading it changes nothing.
+            declared_label = filter_.label
+
+            filter_.field_name = resolved
+            filter_.label = declared_label
+            filter_.vueda_declared_field_name = declared_field_name
+
+
 class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
-class VuedaFilterSet(IdInFilterSet):
+class VuedaFilterSet(FormattedNamePathFilterSetMixin, IdInFilterSet):
     pass
 
 
-class VuedaCompositePrimaryKeyFilterSet(rest_framework.FilterSet):
+class VuedaCompositePrimaryKeyFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
     """
     We can't have a default 'pk' filter.
     We would want filters for each field that combines to make the pk.
@@ -112,29 +163,60 @@ TRIGRAM_SIMILAR_PREFIX = "#"
 TRIGRAM_WORD_SIMILAR_PREFIX = "~"
 SEARCH_LOOKUP_PREFIX = "V:"
 
-NULLS_ORDERING_FLIP = {"first": "last", "last": "first"}
-
 
 class VuedaOrderingFilter(OrderingFilter):
     """
-    Extends DRF's `OrderingFilter` in two ways:
+    Extends DRF's `OrderingFilter` in three ways:
 
-    1. An explicit `?o=` request on a field can carry the same nulls-first/nulls-last placement as
-       that field's default ordering. `OrderingFilter` only applies nulls placement through a view's
-       default `ordering` (e.g. `ordering = [F("due_date").asc(nulls_first=True)]`) and loses it the
-       moment a client explicitly requests that same field via `?o=` — DRF passes the request through
-       as a plain field name string, which falls back to the database's default nulls placement.
+    1. Ordering by a field name can carry a nulls-first/nulls-last placement. `OrderingFilter` only
+       applies nulls placement through an expression in a view's default `ordering` (e.g.
+       `ordering = [F("due_date").asc(nulls_first=True)]`), and loses it the moment a client
+       explicitly requests that same field via `?o=` — DRF passes the request through as a plain
+       field name string, which falls back to the database's default nulls placement.
 
-       Declare `nulls_ordering` on the view as a dict of field name -> `"first"`/`"last"` to give
-       explicit `?o=` requests on that field the same nulls placement, regardless of sort direction.
-       To have the placement flip (first <-> last) when the field is requested in descending order
-       instead, list the field name in `nulls_ordering_flip` as well.
+       Declare `nulls_ordering` on the view as a dict of field name -> `"first"`/`"last"` to attach a
+       placement to the field itself, regardless of sort direction. To have the placement flip
+       (first <-> last) when the field is sorted descending instead, list the field name in
+       `nulls_ordering_flip` as well.
 
-    2. A field named in the view's default ordering (`ordering`, or the model's `Meta.ordering` when
-       the view doesn't declare one) is always a valid explicit `?o=` target, even when it isn't also
-       listed in `ordering_fields`. Without this, DRF would silently ignore an explicit request for a
-       default-only field and fall back to the default ordering, which is surprising: a field a client
-       can already see sorted by (in the default) should always be requestable directly.
+       The placement applies wherever that field is sorted by name — an explicit `?o=` request, and
+       equally a default `ordering` written as plain strings (`ordering = ["due_date"]`), since DRF
+       hands those to the backend as strings too. A default ordering term written as an expression is
+       left alone, because it already states its own placement or deliberately states none. So
+       `nulls_ordering` is the way to say "this field sorts nulls here" once, rather than repeating an
+       expression in `ordering` and still losing it on `?o=`.
+
+       A placement outside `"first"`/`"last"` is ignored at request time rather than raising, and the
+       `vueda_info.E007` system check reports it.
+
+    2. Every field named in the view's default ordering (`ordering`, or the model's `Meta.ordering`
+       when the view doesn't declare one) is always a valid explicit `?o=` target, even when it isn't
+       also listed in `ordering_fields`. Without this, DRF would silently ignore an explicit request
+       for a default-only field and fall back to the default ordering, which is surprising: a field a
+       client can already see sorted by (in the default) should always be requestable directly.
+
+       A default ordering term may be a plain field name, an `F(...).asc()`/`.desc()` expression, or
+       any other expression `order_by()` takes — including a scalar function such as `Lower("name")`
+       or `Concat("first_name", "last_name")`. Each field the term references becomes requestable on
+       its own, so a two-column function offers both. What such a request sorts by is the column
+       itself, not the function over it.
+
+       A `"pk"` term contributes both spellings: the alias, which Django's query machinery resolves,
+       and the field name(s) behind it — "id", or every column of a `CompositePrimaryKey`. The
+       expansion is what `model_ordering` advertises (metadata never hands a client the literal
+       `"pk"`, since it names no field the client can otherwise see), so both the name a
+       metadata-driven client sends and the one a reader of the viewset's source might send are
+       accepted. This applies wherever the alias is declared, `ordering_fields` included: DRF passes
+       an `ordering_fields` entry through verbatim, so `ordering_fields = ["pk"]` would otherwise
+       advertise "id" and then ignore `?o=id` for exactly the same reason `ordering = ["pk"]` did.
+
+    3. An ordering term that reaches a related model's `formatted_name` (`customer__formatted_name`)
+       is rewritten to the database path behind it before it reaches `order_by()`. Ordering by a
+       model's own `formatted_name` works because `VuedaViewSet.get_queryset` annotates the lookup
+       expression under that name, but the annotation belongs to the queryset being ordered, not to
+       the tables it joins, so the related form would raise `FieldError` without this. The rewrite
+       reaches inside an expression, so `Lower("customer__formatted_name")` still sorts case-
+       insensitively on the column behind the name.
     """
 
     def filter_queryset(self, request, queryset, view):
@@ -142,58 +224,151 @@ class VuedaOrderingFilter(OrderingFilter):
         if not ordering:
             return queryset
 
-        nulls_ordering = getattr(view, "nulls_ordering", None) or {}
-        nulls_ordering_flip = getattr(view, "nulls_ordering_flip", None) or ()
+        # A declaration that isn't a mapping has no field-to-placement pairs to read, so it is dropped
+        # rather than allowed to raise `AttributeError` from `.get()` and fail the request.
+        # `vueda_info.E007` reports it, which is where it can be fixed. An empty declaration of any
+        # type means the same thing as none at all.
+        nulls_ordering = getattr(view, "nulls_ordering", None)
+        if not isinstance(nulls_ordering, dict):
+            nulls_ordering = {}
 
+        nulls_ordering_flip = getattr(view, "nulls_ordering_flip", None) or ()
+        if isinstance(nulls_ordering_flip, str):
+            nulls_ordering_flip = (nulls_ordering_flip,)
+        elif not isinstance(nulls_ordering_flip, Iterable):
+            # Dropped for the same reason a non-mapping `nulls_ordering` is: a declaration with
+            # nothing to iterate has no field names to read, and letting it raise `TypeError` from
+            # the membership test below would fail the request. `vueda_info.E007` reports it.
+            nulls_ordering_flip = ()
+
+        # Nulls placement is declared against the client-facing name, so it has to be applied before
+        # any term is rewritten to the path behind that name.
         ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
+        ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
         return queryset.order_by(*ordering)
 
     def get_valid_fields(self, queryset, view, context=None):
-        valid_fields = super().get_valid_fields(queryset, view, context)
+        # `context` is passed straight to a serializer by the super call, so a caller that omits it
+        # has to get a mapping rather than `None`. Normalized here instead of relying on whatever
+        # default DRF's own signature happens to declare, which has changed between versions.
+        valid_fields = super().get_valid_fields(queryset, view, {} if context is None else context)
 
-        default_ordering = getattr(view, "ordering", None) or queryset.model._meta.ordering
-        if not default_ordering:
-            return valid_fields
-
-        if isinstance(default_ordering, str):
-            default_ordering = (default_ordering,)
-
-        valid_field_names = {name for name, _ in valid_fields}
+        model = queryset.model
+        # Read positionally rather than unpacked, the way DRF's own `remove_invalid_fields` reads
+        # these. An `ordering_fields` entry is passed through as-is when it isn't a plain string, so
+        # an entry carrying more than a (name, label) pair is DRF's to tolerate and not ours to
+        # reject with a `ValueError` from this line.
+        valid_field_names = {item[0] for item in valid_fields}
         added_fields = []
-        for term in default_ordering:
-            field_name = self._ordering_field_name(term)
+
+        def add(field_name):
             if field_name not in valid_field_names:
                 valid_field_names.add(field_name)
                 added_fields.append((field_name, field_name))
 
+        def add_pk_expansion(field_name):
+            """
+            Make the field name(s) behind a ``"pk"`` alias valid alongside the alias itself.
+
+            ``model_ordering`` reports the field(s) a ``"pk"`` alias stands for rather than the alias,
+            so the name a metadata-driven client actually sends has to be valid too. Without this,
+            declaring ``"pk"`` advertises "id" (or each column of a composite primary key) and then
+            silently ignores ``?o=id``, falling back to the default ordering.
+
+            Any name that isn't a ``"pk"`` path expands to itself and is already valid, so nothing is
+            added for it.
+            """
+            # An `ordering_fields` entry is passed through as-is when it isn't a plain string, so the
+            # name read off one isn't guaranteed to be a string either. Nothing but a string can hold
+            # the alias, and this method's job is to widen the valid set rather than to raise over an
+            # entry DRF itself tolerates.
+            if not isinstance(field_name, str):
+                return
+
+            try:
+                pk_field_names = ordering_pk_field_names(model, field_name)
+            except (FieldDoesNotExist, NotRelationField):
+                # Neither declaration is guaranteed to resolve; `vueda_info.E006` reports that.
+                # Leaving the name in place keeps this method's job to widening the valid set, not
+                # validating the declaration.
+                return
+
+            for pk_field_name in pk_field_names:
+                add(pk_field_name)
+
+        # `ordering_fields` may name the alias as readily as `ordering` does, and the metadata expands
+        # it in both places, so `?o=` has to accept the expansion in both places too. DRF passes an
+        # `ordering_fields` entry through verbatim, which is why the expansion has to happen here
+        # rather than being inherited from the super call. Iterated over a snapshot, since `add`
+        # writes to the same set.
+        for field_name in list(valid_field_names):
+            add_pk_expansion(field_name)
+
+        default_ordering = getattr(view, "ordering", None) or model._meta.ordering
+        if default_ordering:
+            if isinstance(default_ordering, str):
+                default_ordering = (default_ordering,)
+
+            for term in default_ordering:
+                # One term can name more than one field (`Concat("first_name", "last_name")`) or none
+                # at all (`"?"`, `Now()`), so each term contributes however many fields it references.
+                for field_name in ordering_term_field_names(term):
+                    # The alias itself stays valid, because Django's query machinery resolves it and a
+                    # client that reads a viewset's source may well send it.
+                    add(field_name)
+                    add_pk_expansion(field_name)
+
         return [*valid_fields, *added_fields]
 
     @staticmethod
-    def _ordering_field_name(term):
-        """Field name for an ordering term, whether a plain string or an `F(...).asc()`/`.desc()` expression."""
-        if isinstance(term, str):
-            return term[1:] if term.startswith("-") else term
+    def _resolve_formatted_name(term, queryset):
+        """
+        The ordering term with every ``formatted_name`` path in it rewritten to the path behind it.
 
-        expression = term.expression
-        if isinstance(expression, F):
-            return expression.name
+        A path the queryset already carries an annotation for is left alone: that is how a model's own
+        `formatted_name` is ordered, and the annotation is what `model_ordering` describes. Anything
+        else with no lookup expression behind it is left alone too, and fails or sorts on its own
+        merits the way it always has.
+        """
 
-        raise NotImplementedError("Only model ordering expressions of type F are allowed.")
+        def rewrite(field_name):
+            if field_name in queryset.query.annotations:
+                return None
+
+            return resolve_formatted_name_path(queryset.model, field_name)
+
+        return rewrite_ordering_term_field_names(term, rewrite)
 
     @staticmethod
     def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip):
+        """
+        The ordering term with the field's declared nulls placement applied, if it has one.
+
+        Only a term that arrives as a bare field-name string is rewritten. A term that is already an
+        expression states its own nulls placement — or deliberately states none — so it is left
+        alone, and a view that wants a placement it can express directly should write it that way
+        rather than through ``nulls_ordering``.
+
+        Both a `?o=` request and a default `ordering` written as plain strings reach this, so a
+        placement declared for a field applies wherever that field is sorted by name. That is the
+        point: the placement belongs to the field, not to one route to sorting on it.
+        """
         if not isinstance(term, str):
-            # Already an OrderBy/F expression, e.g. from a view's default `ordering`.
             return term
 
         descending = term.startswith("-")
-        field_name = term[1:] if descending else term
+        field_name = term.removeprefix("-")
         placement = nulls_ordering.get(field_name)
-        if placement is None:
+
+        # An unknown placement is ignored rather than allowed to fail the request: there is no
+        # `nulls_<placement>` keyword to pass, and a list endpoint returning rows in the database's
+        # default nulls order is a far better outcome than a 500. `vueda_info.E007` reports the
+        # declaration, which is where it can actually be fixed.
+        if placement not in NULLS_PLACEMENTS:
             return term
 
         if descending and field_name in nulls_ordering_flip:
-            placement = NULLS_ORDERING_FLIP[placement]
+            placement = NULLS_PLACEMENTS[placement]
 
         expression = F(field_name).desc if descending else F(field_name).asc
         return expression(**{f"nulls_{placement}": True})
@@ -223,6 +398,48 @@ class VuedaSearchFilterBackend(SearchFilter):
         super().__init__(*args, **kwargs)
         if "similarity_threshold" in kwargs:
             self.similarity_threshold = kwargs["similarity_threshold"]
+
+    @staticmethod
+    def _ordering_for_distinct(queryset):
+        """
+        The ordering already on the queryset, paired with the column names ``distinct()`` needs in
+        order to keep a ``DISTINCT ON`` matching it.
+
+        ``VuedaOrderingFilter`` runs before this backend and has already turned the client's ``?o=``
+        request into the terms the database will actually sort by: a related model's
+        ``formatted_name`` rewritten to the column behind it, and a field with a declared
+        ``nulls_ordering`` placement turned into an ``F(...).asc(nulls_first=True)`` expression.
+        Re-reading the raw query parameter here would throw both away -- ordering by a path the
+        database doesn't know, and dropping the placement -- so the terms are taken from the queryset
+        instead.
+
+        ``None`` when the ordering can't be paired with distinct columns, which leaves the caller to
+        order by search rank as it does for a request that asked for no ordering at all:
+
+        - The queryset carries no explicit ordering. A ``?o=`` naming nothing valid resolves to no
+          ordering at all on a view that declares no default, and there is nothing to re-apply.
+        - A term names no field (``"?"``) or more than one (``Concat("first_name", "last_name")``).
+          PostgreSQL requires the ``DISTINCT ON`` expressions to match the leftmost ``ORDER BY``
+          expressions, so every term needs a column to pair with; such a term has none.
+
+        :param queryset: The queryset as the ordering backend left it.
+        :type queryset: django.db.models.QuerySet
+        :return: ``(ordering_terms, distinct_columns)``, or ``None``.
+        :rtype: Optional[Tuple[List, List[str]]]
+        """
+        ordering = list(queryset.query.order_by)
+        if not ordering:
+            return None
+
+        distinct_columns = []
+        for term in ordering:
+            field_names = ordering_term_field_names(term)
+            if len(field_names) != 1:
+                return None
+
+            distinct_columns.append(field_names[0])
+
+        return ordering, distinct_columns
 
     def construct_search(self, field_name, queryset):
         """
@@ -348,14 +565,23 @@ class VuedaSearchFilterBackend(SearchFilter):
         # We can't use a base_queryset as drf does, because we would lose the ordering by ranking.
         mcd = self.must_call_distinct(queryset, search_fields)
 
-        ordering = request.query_params.get(api_settings.ORDERING_PARAM)
+        # Whether the client asked for an ordering, which is what decides between sorting by rank and
+        # sorting by the request. Read from the query parameter rather than from the queryset, because
+        # a view's own default `ordering` reaches the queryset the same way an explicit request does
+        # and must not outrank the search ranking -- that is why this backend runs after
+        # `VuedaOrderingFilter` (see DEFAULT_FILTER_BACKENDS).
+        ordering_requested = bool(request.query_params.get(api_settings.ORDERING_PARAM))
+
+        # What that request became, which is what has to be re-applied alongside `DISTINCT ON` below.
+        # `None` when there is nothing usable to re-apply, in which case the rank ordering is used.
+        applied_ordering = self._ordering_for_distinct(queryset) if ordering_requested else None
 
         # final combined rank and ordering
         if annotations:
             # sum every numeric annotation into combined_rank
             annotations["combined_rank"] = reduce(operator.add, [models.F(k) for k in annotations])
             if mcd:
-                if not ordering:
+                if applied_ordering is None:
                     queryset = (
                         queryset.annotate(**annotations)
                         .order_by("-combined_rank", "pk")
@@ -363,9 +589,7 @@ class VuedaSearchFilterBackend(SearchFilter):
                         .filter(combined_rank__gte=self.search_threshold)
                     )
                 else:
-                    # Get each item in ordering, so we can pass it into order by and distinct
-                    ordering_items = [x.strip() for x in ordering.split(",")]
-                    distinct_items = [x[1:] if x.startswith("-") else x for x in ordering_items]
+                    ordering_items, distinct_items = applied_ordering
                     queryset = (
                         queryset.annotate(**annotations)
                         .order_by(*ordering_items, "pk")
@@ -374,7 +598,7 @@ class VuedaSearchFilterBackend(SearchFilter):
                     )
             else:
                 queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
-            if not ordering and not mcd:
+            if not ordering_requested and not mcd:
                 queryset = queryset.order_by("-combined_rank")
 
         if mcd and not annotations:

@@ -18,6 +18,8 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.signals import class_prepared
 
+from vueda.core.formatted_name import FORMATTED_NAME
+from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.options import failed_sections
 from vueda.core.options import resolve_vueda_options
 
@@ -28,12 +30,103 @@ class BaseModelMeta:
     default_permissions = ("create", "read", "update", "delete", "list")
 
 
+def _names_own_formatted_name(term):
+    """Whether an ordering term names the model's own ``formatted_name``, in either direction.
+
+    A term reaching another model's formatted name (``owner__formatted_name``) is not one of these:
+    the annotation belongs to the queryset being ordered, not to the ones it joins.
+    """
+    return isinstance(term, str) and term.removeprefix("-") == FORMATTED_NAME
+
+
+class FormattedNameManager(models.Manager):
+    """
+    Default manager for ``FormattedNameBaseModel``, which annotates ``formatted_name`` onto every
+    queryset of a model that reaches its formatted name through
+    ``formatted_name_lookup_expression``.
+
+    A model with a ``formatted_name`` ``GeneratedField`` has that column already, and one that
+    computes the value in Python with ``get_formatted_name()`` has no database path to annotate; this
+    manager changes nothing for either (see ``formatted_name_annotation_path``). It only matters for
+    the third form, where ``formatted_name`` is a name for some other path — a column on this model,
+    or one reached through single-valued relations.
+
+    Annotating here rather than only in ``VuedaViewSet.get_queryset`` is what makes
+    ``formatted_name`` usable everywhere a queryset is, not just on a list request:
+    ``Meta.ordering = ["formatted_name"]`` compiles, a ``ModelChoiceFilter`` rendering its choices
+    sorts by it, and a management command, a reverse relation, ``dumpdata``, or the admin sees the
+    same value the API does. Without it, ordering declared on the model would raise ``FieldError``
+    on every queryset the viewset didn't build.
+
+    **Replacing the default manager.** Django uses the first manager declared on a model as its
+    default, so a model that declares its own ``objects`` shadows this one and loses the annotation.
+    Subclass this manager rather than ``models.Manager`` when a VUEDA model needs a manager of its
+    own::
+
+        class WidgetManager(FormattedNameManager):
+            def get_queryset(self):
+                return super().get_queryset().filter(archived=False)
+
+        class Widget(VuedaModel):
+            formatted_name = None
+            formatted_name_lookup_expression = "label"
+
+            objects = WidgetManager()
+
+    The same applies to a manager built with ``Manager.from_queryset()``: pass
+    ``FormattedNameManager`` as the base (``FormattedNameManager.from_queryset(WidgetQuerySet)``).
+    A manager declared on an abstract base shadows this one just as readily, and is the easier case
+    to miss, since the model that names a lookup expression can be several classes away from the one
+    that names the manager: that is why ``SimpleHistoryManager`` inherits from this manager rather
+    than from ``models.Manager``. ``VUEDAUserManager`` and ``SentItemManager`` sit on concrete models
+    that have a ``formatted_name`` column, so they have no annotation to lose. The
+    ``vueda_info.E009`` system check reports a model whose default manager doesn't provide the
+    annotation it needs, rather than leaving it to fail at query time.
+
+    **The base manager is not this manager.** Django builds ``Model._base_manager`` itself, as a
+    plain ``models.Manager``, unless ``Meta.base_manager_name`` names one — so it carries no
+    ``formatted_name`` annotation even on a model whose ``objects`` is this manager. That is
+    deliberate on Django's part: the base manager is what fetches related objects, precisely because
+    a default manager may filter them out, and Django doesn't use it when querying *on* a related
+    model.
+
+    A model with a ``Meta.ordering`` naming ``formatted_name`` is the one that has to care, since a
+    base-manager queryset carrying that ordering has no annotation to sort and raises ``FieldError``.
+    Anything reached through ``get()`` is safe, because ``get()`` clears ordering: ``refresh_from_db``
+    and dereferencing a foreign key both go that way, and so do ``select_related`` and
+    ``prefetch_related``, which order by nothing of the related model's own. What is *not* safe is a
+    base-manager queryset that gets evaluated as a whole — ``dumpdata --use-base-manager``, and the
+    related-object collection a cascade delete performs (``Collector.related_objects`` returns a plain
+    ``_base_manager`` queryset, which ``Collector.collect`` evaluates without clearing ordering). Set
+    ``Meta.base_manager_name = "objects"`` on a model that needs those paths to work, which makes
+    Django use this manager for them too. Ordering by the lookup expression's own path instead of by
+    ``formatted_name`` avoids the problem without touching the base manager.
+    """
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        annotation_path = formatted_name_annotation_path(self.model)
+        if annotation_path is not None:
+            queryset = queryset.annotate(**{FORMATTED_NAME: models.F(annotation_path)})
+
+        return queryset
+
+
 class FormattedNameBaseModel(models.Model):
+    """Shared base of every VUEDA model base, and the set that carries ``class Vueda`` policy.
+
+    ``VuedaModel`` and ``Lookup`` are siblings rather than parent and child, so feature policy keys
+    off this base to reach both.
+    """
+
     formatted_name = models.GeneratedField(
         expression=models.F("name"),
         output_field=models.CharField(),
         db_persist=True,
     )
+
+    objects = FormattedNameManager()
 
     class Meta(BaseModelMeta):
         abstract = True
