@@ -5868,7 +5868,10 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [],
+            "expected_ordering": {
+                "default": [],
+                "fields": [],
+            },
             "expected_permissions": [
                 {"codename": "create_invoiceline", "name": "Can create invoice line"},
                 {"codename": "delete_invoiceline", "name": "Can delete invoice line"},
@@ -7173,9 +7176,19 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": [],
+                # PackingBoxViewSet declares `ordering = [Lower("formatted_name").desc()]`. PackingBox
+                # has no formatted_name column of its own, so the field is resolved through
+                # `formatted_name_lookup_expression = "name"` to type it, but the client is told
+                # "formatted_name" — the name it sends back in `?o=` — not the lookup expression, and
+                # not the function wrapped around it.
+                "default": ["formatted_name"],
+                # "name" comes from `ordering_fields` and carries no direction, because it isn't part of
+                # the default ordering. "formatted_name" isn't in `ordering_fields` at all, but is still
+                # requestable as a default-ordering field, so it's added with its direction — descending,
+                # read off the term's `.desc()` rather than off a "-" prefix.
                 "fields": [
                     {"name": "name", "type": "alpha"},
+                    {"name": "formatted_name", "type": "alpha", "ascending": False},
                 ],
             },
             "expected_permissions": [
@@ -7627,16 +7640,22 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
+                # OrderItemAltCompositePKViewSet declares no `ordering`, so the model's own multi-field
+                # `Meta.ordering` is the default, in its declared order.
                 "default": ["order", "product", "quantity"],
                 # OrderItemAltCompositePKViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter
-                # defaults to any readable field on OrderItemAltCompositePKSerializer. "formatted_name" is
-                # excluded because the model sets it to `None` (using `formatted_name_lookup_expression`
-                # instead), and "available_actions" is excluded because it has no real model field behind it.
+                # defaults to any readable field on OrderItemAltCompositePKSerializer. "available_actions" is
+                # excluded because it has no real model field behind it. The serializer's "pk" field is
+                # reported as the fields the model's `CompositePrimaryKey` is built from ("order" and
+                # "product"), which are already listed, rather than as "pk" itself. "formatted_name" has no
+                # column on this model and is reported through
+                # `formatted_name_lookup_expression = "product__formatted_name"`: orderable on request, but
+                # carrying no `ascending` because it isn't part of the default ordering.
                 "fields": [
-                    {"name": "pk", "type": "alpha"},
                     {"name": "order", "type": "alpha", "ascending": True},
                     {"name": "product", "type": "alpha", "ascending": True},
                     {"name": "quantity", "type": "numeric", "ascending": True},
+                    {"name": "formatted_name", "type": "alpha"},
                 ],
             },
             "expected_permissions": [

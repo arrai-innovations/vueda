@@ -618,7 +618,10 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
         assert response.status_code == HTTPStatus.OK, response_body(response)
         # The viewset-backed sections have nothing to report without a ViewSet.
         assert response.data["model_actions"] == []
-        assert response.data["model_ordering"] == []
+        assert response.data["model_ordering"] == {
+            "default": [],
+            "fields": [],
+        }
         assert response.data["model_filtering"] == {}
         # The serializer-backed sections still resolve.
         assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]
