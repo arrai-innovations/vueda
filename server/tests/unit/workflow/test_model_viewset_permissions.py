@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.permissions import BasePermission
@@ -150,6 +151,30 @@ class TestWorkflowModelViewSetPermissions:
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert [result["id"] for result in response.data["results"]] == [customer_order.pk]
         assert another_order.pk not in {result["id"] for result in response.data["results"]}
+
+    def test_list_reads_permission_names_mapping_at_call_time(
+        self, api_client, user, permission_group, customer_order, workflow, content_type
+    ):
+        # apply_row_level_filter previously closed over PERMISSION_NAMES_MAPPING at import
+        # (vueda/core/viewsets/__init__.py), so overriding "list" left the workflow
+        # state-permission lookup pinned to the "list_customerorder" codename below regardless of
+        # what the override requested.
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="list_customerorder",
+        )
+        api_client.force_authenticate(user)
+
+        with override_settings(PERMISSION_NAMES_MAPPING={"list": "mutated_list"}):
+            response = api_client.get(reverse("store.customerorder-list"), format="json")
+
+        # The state grant above targets "list_customerorder"; once the override maps "list" to
+        # "mutated_list", apply_row_level_filter looks for a "mutated_list_customerorder" state
+        # permission instead, finds none, and admits no rows.
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["results"] == []
 
     def test_list_state_deny_filters_row_from_user_with_model_permission(
         self, api_client, user, permission_group, customer_order, another_order, workflow, content_type

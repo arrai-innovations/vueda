@@ -2,6 +2,10 @@ from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django.test import override_settings
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -226,6 +230,64 @@ class TestModelInfoFiltersetChoices:
         info.register_serializer(store_serializers.OrderItemSerializer)
         info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+
+    def test_filter_choices_reads_permission_names_mapping_at_call_time(self, api_client):
+        # ModelInfoFilterSetChoicesViewSet.get_queryset previously closed over
+        # PERMISSION_NAMES_MAPPING at import (vueda/info/viewsets.py), so overriding "read"/"list"
+        # left choices_permissions pinned to "read_product"/"list_tangibletype" regardless of what
+        # the override requested. Both permissions are settings-driven here (unlike the plain
+        # choices viewset, where the related model's "list" permission is hardcoded).
+        product_content_type = ContentType.objects.get_for_model(store_models.Product)
+        tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
+        stale_read_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type, codename="read_product", defaults={"name": "Can read product"}
+        )
+        stale_list_permission = Permission.objects.get(
+            content_type=tangible_type_content_type, codename="list_tangibletype"
+        )
+        mutated_read_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type,
+            codename="mutated_read_product",
+            defaults={"name": "Can mutated read product"},
+        )
+        mutated_list_permission, _ = Permission.objects.get_or_create(
+            content_type=tangible_type_content_type,
+            codename="mutated_list_tangibletype",
+            defaults={"name": "Can mutated list tangible type"},
+        )
+        stale_reader = get_user_model().objects.create_user(
+            email="filterset-choices-stale-reader@domain.invalid",
+            name="Filterset Choices Stale Reader",
+            password="password",
+        )
+        stale_reader.user_permissions.add(stale_read_permission, stale_list_permission)
+        mutated_reader = get_user_model().objects.create_user(
+            email="filterset-choices-mutated-reader@domain.invalid",
+            name="Filterset Choices Mutated Reader",
+            password="password",
+        )
+        mutated_reader.user_permissions.add(mutated_read_permission, mutated_list_permission)
+
+        self.register_viewsets()
+        choices_url = reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type"))
+
+        # Hit the endpoint once outside the override so any lazily-imported module involved is
+        # already loaded under the default setting, like a real app import at process startup.
+        api_client.force_authenticate(stale_reader)
+        baseline_response = api_client.get(choices_url, format="json")
+        assert baseline_response.status_code == HTTPStatus.OK, response_body(baseline_response)
+
+        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read", "list": "mutated_list"}):
+            api_client.force_authenticate(stale_reader)
+            stale_permission_response = api_client.get(choices_url, format="json")
+
+            api_client.force_authenticate(mutated_reader)
+            mutated_permission_response = api_client.get(choices_url, format="json")
+
+        # stale_reader holds the stale "read_product"/"list_tangibletype" permissions, which no
+        # longer satisfy the check once the override maps "read"/"list" to mutated names.
+        assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
+        assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
 
     @staticmethod
     def assert_choice_value_contract(response_data, expected_choices, context):
