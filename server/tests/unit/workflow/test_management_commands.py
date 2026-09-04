@@ -37,15 +37,6 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
     return stderr
 
 
-def strip_registered_info_from_stderr(stderr):
-    for msg in stderr.split("\n"):
-        if msg.startswith("INFO Registered") and " with <" in msg and "> and <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-        elif msg.startswith("INFO Registered") and " with <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-    return stderr
-
-
 class BaseAddedWorkflow:
     def continue_added_workflow_test(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
