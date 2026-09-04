@@ -43,11 +43,13 @@ vi.mock("vue-router", () => ({
 }));
 
 let objectsGridProps;
+let objectsGridSlots;
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
     props: ["fields", "rowAttrs", "tableBreakpoint", "objectsInOrder", "pkKey"],
     setup(props, { attrs, slots }) {
         objectsGridProps = props;
+        objectsGridSlots = slots;
         return () =>
             h(
                 "div",
@@ -167,6 +169,7 @@ let ViewHistoryList, vue, modelConfig, mockInstanceList;
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     objectsGridProps = undefined;
+    objectsGridSlots = undefined;
     modelConfig = vue.reactive({
         loading: vue.ref(false),
         info: {
@@ -398,10 +401,35 @@ describe("lib/views/ViewHistoryList.vue", () => {
             await vue.nextTick();
             const rows = objectsGridProps.objectsInOrder;
             expect(rows.map((row) => row.id)).toEqual(["store.Order:412", "store.OrderLine:9931"]);
-            expect(rows[0]).toMatchObject({ group_start: true, actor: UPDATE_ACTION.actor });
+            expect(rows[0]).toMatchObject({ group_start: true, actor: UPDATE_ACTION.actor, no_changes: false });
             expect(rows[0].changes).toHaveLength(2);
-            expect(rows[1]).toMatchObject({ group_start: false, model: "store.OrderLine", changes: [] });
+            expect(rows[1]).toMatchObject({
+                group_start: false,
+                model: "store.OrderLine",
+                changes: [],
+                no_changes: true,
+            });
             expect(rows[1]).not.toHaveProperty("actor");
+            wrapper.unmount();
+        });
+
+        scopedIt("names a card event that reports no difference in both value cells", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [UPDATE_ACTION];
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            wrapper.vm.handleIsTableUpdate(false);
+            await vue.nextTick();
+            // The card layout drops the table's Field column, so an event with nothing to stack would
+            // otherwise render two silent blank cells. Both sides say what happened instead.
+            const [, deletedRow] = objectsGridProps.objectsInOrder;
+            for (const side of ["old", "new"]) {
+                const cell = mount(
+                    defineComponent({ setup: () => () => objectsGridSlots[`field(${side})`]({ obj: deletedRow }) }),
+                );
+                expect(cell.text()).toBe("(deleted)");
+                expect(cell.find("[data-empty='true']").exists()).toBe(true);
+                cell.unmount();
+            }
             wrapper.unmount();
         });
 

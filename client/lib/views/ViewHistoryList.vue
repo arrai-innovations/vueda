@@ -252,7 +252,9 @@ const computedChangeRows = computed(() => {
         });
     });
 });
-// Card rows: one per event, keeping its change list so the old and new cells can stack it.
+// Card rows: one per event, keeping its change list so the old and new cells can stack it. An event
+// with no difference to stack carries `no_changes` instead, the way a table row does; the card has
+// no Field column to name it in, so both value cells say so themselves.
 const computedEventRows = computed(() => {
     return instanceList.state.objectsInOrder.flatMap((group, groupIndex) => {
         return (group.events ?? []).map((event, eventIndex) => ({
@@ -260,6 +262,7 @@ const computedEventRows = computed(() => {
             group_row: groupIndex,
             group_start: eventIndex === 0,
             event_start: true,
+            no_changes: !event.changes?.length,
             ...(eventIndex === 0 ? groupMeta(group) : {}),
             ...eventMeta(event),
             changes: event.changes ?? [],
@@ -487,17 +490,22 @@ const slots = useSlots();
                 <template v-for="side in ['old', 'new']" :key="side" #[`field(${side})`]="{ obj }">
                     <slot :name="`field(${side})`" v-bind="{ obj }">
                         <template v-if="!isTable">
-                            <span
-                                v-for="changed in obj.changes"
-                                :key="changed.field"
-                                :class="theme('diff')"
-                                :data-side="side"
-                                :data-empty="changeSide(changed[side]).empty ? 'true' : undefined"
-                                :data-missing="changeSide(changed[side]).missing ? 'true' : undefined"
-                            >
-                                <span :class="theme('diffField')">{{ changed.field }}</span>
-                                {{ changeSide(changed[side]).text }}
+                            <span v-if="obj.no_changes" :class="theme('diff')" :data-side="side" data-empty="true">
+                                {{ noChangeField(obj.type) }}
                             </span>
+                            <template v-else>
+                                <span
+                                    v-for="changed in obj.changes"
+                                    :key="changed.field"
+                                    :class="theme('diff')"
+                                    :data-side="side"
+                                    :data-empty="changeSide(changed[side]).empty ? 'true' : undefined"
+                                    :data-missing="changeSide(changed[side]).missing ? 'true' : undefined"
+                                >
+                                    <span :class="theme('diffField')">{{ changed.field }}</span>
+                                    {{ changeSide(changed[side]).text }}
+                                </span>
+                            </template>
                         </template>
                         <span
                             v-else-if="!obj.no_changes"
