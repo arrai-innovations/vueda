@@ -35,6 +35,7 @@ from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
+from vueda.history.apps import track_model
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
@@ -523,6 +524,20 @@ class ObjectState(SimpleHistoryModelMixin):
 
     def __str__(self):
         return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
+
+
+# ``Workflow`` subclasses ``Lookup``, so the ``class Vueda.History`` contributor already registered
+# it. The models below are plain ``models.Model`` subclasses, which that contributor never sees, so
+# they register directly. Every workflow record then lands in an event model carrying the same
+# context field, append-only behaviour, and mandatory exclusions as a policy-driven model.
+track_model(WorkflowPermission)
+track_model(State)
+track_model(StatePermission)
+track_model(InitialState)
+track_model(Transition)
+track_model(TransitionPermission)
+track_model(TransitionSource)
+track_model(ObjectState)
 
 
 def _permitted_transition_ids(
