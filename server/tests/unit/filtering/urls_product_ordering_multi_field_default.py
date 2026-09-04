@@ -1,24 +1,8 @@
-from django.urls import include
-from django.urls import path
-
 from tests.product.viewsets import ProductOrderingMultiFieldDefaultViewSet
-from vueda.core.routers import VuedaRouter
+from tests.unit.filtering.urlconf import viewset_urlpatterns
 
 
-product_router = VuedaRouter()
-product_router.register("products", ProductOrderingMultiFieldDefaultViewSet)
-
-urlpatterns = [
-    path(
-        "routes/",
-        include(
-            [
-                path("tests/product/", include(product_router.urls)),
-                path("", include("vueda.info.urls")),
-            ]
-        ),
-    )
-]
+urlpatterns = viewset_urlpatterns("product", "products", ProductOrderingMultiFieldDefaultViewSet)
 
 handler500 = "rest_framework.exceptions.server_error"
 handler400 = "rest_framework.exceptions.bad_request"

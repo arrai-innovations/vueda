@@ -1,8 +1,8 @@
-from tests.product.viewsets import ProductOrderingSourceFieldViewSet
+from tests.store.viewsets import CartRelatedFormattedNameFilterViewSet
 from tests.unit.filtering.urlconf import viewset_urlpatterns
 
 
-urlpatterns = viewset_urlpatterns("product", "products", ProductOrderingSourceFieldViewSet)
+urlpatterns = viewset_urlpatterns("store", "carts", CartRelatedFormattedNameFilterViewSet)
 
 handler500 = "rest_framework.exceptions.server_error"
 handler400 = "rest_framework.exceptions.bad_request"

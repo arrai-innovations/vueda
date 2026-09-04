@@ -1,24 +1,8 @@
-from django.urls import include
-from django.urls import path
-
 from tests.store.viewsets import CartOrderingFieldsViewSet
-from vueda.core.routers import VuedaRouter
+from tests.unit.filtering.urlconf import viewset_urlpatterns
 
 
-cart_router = VuedaRouter()
-cart_router.register("carts", CartOrderingFieldsViewSet)
-
-urlpatterns = [
-    path(
-        "routes/",
-        include(
-            [
-                path("tests/store/", include(cart_router.urls)),
-                path("", include("vueda.info.urls")),
-            ]
-        ),
-    )
-]
+urlpatterns = viewset_urlpatterns("store", "carts", CartOrderingFieldsViewSet)
 
 handler500 = "rest_framework.exceptions.server_error"
 handler400 = "rest_framework.exceptions.bad_request"
