@@ -39,6 +39,33 @@ def response_body(response):
         return response.content
 
 
+def cached_filterset_field_names(filterset_class):
+    """
+    The names of the filters on ``filterset_class`` itself that are holding a built form field.
+
+    ``django_filters.Filter.field`` caches the form field it builds on whichever filter it is read
+    from, and a filterset's own ``base_filters`` are shared by every request the process handles.
+    Value-derived filters (``AllValuesFilter`` and ``AllValuesMultipleFilter``) read their choices
+    out of the database while building that field, so a field cached there freezes those choices for
+    the life of the process: values added afterwards are rejected as invalid choices, and model-info
+    reports the stale set.
+
+    Read filters from a filterset instance, whose ``filters`` are per-request copies, rather than
+    from the ``get_filters()`` classmethod, and this stays empty.
+    """
+    return sorted(name for name, filter_obj in filterset_class.base_filters.items() if "_field" in filter_obj.__dict__)
+
+
+def clear_cached_filterset_fields(filterset_class):
+    """
+    Drop any form field cached on ``filterset_class``'s own filters, so a test starts from the state
+    a fresh process would be in rather than from whatever earlier tests left behind. See
+    ``cached_filterset_field_names`` for why those filters are shared.
+    """
+    for filter_obj in filterset_class.base_filters.values():
+        filter_obj.__dict__.pop("_field", None)
+
+
 pytest_plugins = ["celery.contrib.pytest"]
 
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.
