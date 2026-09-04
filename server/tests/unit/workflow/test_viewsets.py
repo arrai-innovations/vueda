@@ -18,6 +18,7 @@ from rest_framework.settings import api_settings
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from vueda.history.revision import object_revision
 from vueda.workflow.models import State
 from vueda.workflow.models import WorkflowPermission
 
@@ -162,7 +163,25 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["state"] == {"code": "new", "name": "New"}
-        assert "current_history_id" in response.data
+        assert response.data["object_state_revision"] == object_revision(customer_order.object_state)
+
+    def test_object_state_revision_names_the_event_not_the_row(
+        self, api_client, workflow_reader, workflow_user, customer_order
+    ):
+        """The revision must move when the state does, which the object state's own id never did."""
+        api_client.force_authenticate(workflow_reader)
+        object_state_url = reverse(
+            "workflow.workflow-object-state",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        before = api_client.get(object_state_url, format="json").data["object_state_revision"]
+        customer_order.apply_transition("pack_order", user=workflow_user)
+        after = api_client.get(object_state_url, format="json").data["object_state_revision"]
+
+        assert before.startswith("vueda_workflow.ObjectState:")
+        assert before != after
+        assert str(customer_order.object_state.pk) != before.split(":")[-1]
 
     def test_object_state_returns_403_without_object_read_permission(self, api_client, workflow_user, customer_order):
         api_client.force_authenticate(workflow_user)

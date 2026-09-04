@@ -36,6 +36,7 @@ from vueda.core.models import Lookup
 from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
 from vueda.history.apps import track_model
+from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
@@ -974,21 +975,21 @@ class HasWorkflowModelMixin(models.Model):
 
     def apply_checked_transition(
         self, transition: Transition, user: User | None = None, dry_run: bool = False
-    ) -> tuple[State, int | None]:
+    ) -> tuple[State, str | None]:
         """
         Write an already-authorized transition (as returned by ``check_transition``) without
         re-checking permissions or availability.
+
+        Returns the target state and the object state's new revision, which is ``None`` when the
+        object has no state row to record.
         """
         self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
         self.on_transition(transition, user, dry_run)
-        if hasattr(self.object_state, "history"):
-            # return the new latest history record id
-            return transition.target, self.object_state.history.latest().history_id
-        return transition.target, None
+        return transition.target, object_revision(self.object_state)
 
     def apply_transition(
         self, transition_code: str, user: User | None = None, dry_run: bool = False
-    ) -> tuple[State, int | None]:
+    ) -> tuple[State, str | None]:
         """
         Apply a transition to the object.
         """

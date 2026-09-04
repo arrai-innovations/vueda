@@ -14,6 +14,7 @@ __all__ = (
     "ObjectRevisionField",
     "annotate_object_revision",
     "is_tracked",
+    "object_revision",
 )
 
 from django.db.models import OuterRef
@@ -55,6 +56,30 @@ def annotate_object_revision(queryset):
     )
 
 
+def _revision_token(model, event_id):
+    """Format one revision as ``app_label.Model:event_id``, naming the tracked model."""
+    return f"{model._meta.concrete_model._meta.label}:{event_id}"
+
+
+def object_revision(instance):
+    """Return ``instance``'s newest event identifier, or ``None`` when it has none.
+
+    ``annotate_object_revision`` is the cheaper path for a queryset on its way through a serializer.
+    This one serves a caller holding one instance, such as a response reporting the revision of the
+    row it just wrote. It costs one query.
+    """
+    if instance is None:
+        return None
+    model = type(instance)._meta.concrete_model
+    event_model = getattr(model, "pgh_event_model", None)
+    if event_model is None:
+        return None
+    event_id = (
+        event_model.objects.filter(pgh_obj_id=instance.pk).order_by("-pgh_id").values_list("pgh_id", flat=True).first()
+    )
+    return None if event_id is None else _revision_token(model, event_id)
+
+
 @conditional_extend_schema_field_decorator({"type": "string", "nullable": True})
 class ObjectRevisionField(serializers.Field):
     """Publishes the annotated revision as ``app_label.Model:event_id``.
@@ -75,4 +100,4 @@ class ObjectRevisionField(serializers.Field):
         event_id = getattr(instance, REVISION_ANNOTATION, None)
         if event_id is None:
             return None
-        return f"{type(instance)._meta.concrete_model._meta.label}:{event_id}"
+        return _revision_token(type(instance), event_id)

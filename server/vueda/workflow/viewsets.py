@@ -19,6 +19,7 @@ from vueda.core.exceptions import gate_warnings
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
+from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
@@ -79,7 +80,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                             "name": serializers.CharField(),
                         },
                     ),
-                    "current_history_id": serializers.IntegerField(required=False),
+                    "object_state_revision": serializers.CharField(required=False),
                 },
             ),
             403: conditional_inline_serializer(
@@ -119,9 +120,9 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         response_data = {
             "state": {"code": state.code, "name": state.name},
         }
-        if hasattr(instance.object_state, "history"):
-            current_history_id = instance.object_state.history.latest().id
-            response_data["current_history_id"] = current_history_id
+        revision = object_revision(instance.object_state)
+        if revision is not None:
+            response_data["object_state_revision"] = revision
         return Response(response_data)
 
     @conditional_extend_schema_decorator(
@@ -290,7 +291,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             instance = locked_instance
 
         transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
-        state, current_history_id = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
+        state, object_state_revision = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
 
         data = {
             "new_state": {
@@ -301,6 +302,6 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 instance.available_transitions(request.user).order_by("name").values("code", "name")
             ),
         }
-        if current_history_id:
-            data["new_state"]["current_history_id"] = current_history_id
+        if object_state_revision:
+            data["new_state"]["object_state_revision"] = object_state_revision
         return data

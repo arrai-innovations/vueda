@@ -349,14 +349,14 @@ class WorkflowSerializer(
                                 ],
                                 "readonly": True,
                             },
-                            "current_history_id": {
-                                "type": "integer",
+                            "object_state_revision": {
+                                "type": "string",
                                 "readonly": True,
                             },
                         },
                         "required": [
                             "state",
-                            "current_history_id",
+                            "object_state_revision",
                         ],
                     }
 
@@ -369,7 +369,7 @@ class WorkflowSerializer(
                                     "code": "order_packed",
                                     "name": "Order Packed",
                                 },
-                                "current_history_id": "1234",
+                                "object_state_revision": "vueda_workflow.ObjectState:1234",
                             },
                         },
                         "GetObjectStateExample": {
@@ -601,7 +601,7 @@ class WorkflowSerializer(
                                 "new_state": {
                                     "code": "packed",
                                     "name": "Packed",
-                                    "current_history_id": 2,
+                                    "object_state_revision": "vueda_workflow.ObjectState:2",
                                 },
                                 "new_transitions": [
                                     {
@@ -626,7 +626,7 @@ class WorkflowSerializer(
                                     "new_state": {
                                         "code": "packed",
                                         "name": "Packed",
-                                        "current_history_id": 3,
+                                        "object_state_revision": "vueda_workflow.ObjectState:3",
                                     },
                                     "new_transitions": [
                                         {
@@ -643,7 +643,7 @@ class WorkflowSerializer(
                                     "new_state": {
                                         "code": "packed",
                                         "name": "Packed",
-                                        "current_history_id": 4,
+                                        "object_state_revision": "vueda_workflow.ObjectState:4",
                                     },
                                     "new_transitions": [
                                         {
