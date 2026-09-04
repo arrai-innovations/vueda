@@ -26,20 +26,9 @@ from vueda.core.filters import VuedaSearchFilterBackend
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Cart", "list"),
-            ("store", "Cart", "read"),
             ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
             ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("employee", "User", "list"),
-            ("employee", "User", "read"),
-        ],
-        "Customer": [  # Needed by create_test_data
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
         ],
     }
 
@@ -49,15 +38,15 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@domain.invalid": {  # Needed by create_test_data
+        # These two are needed by create_test_data, which attaches a customer to each of them.
+        # Nothing here authenticates as them, so they need no group of their own.
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
-            "groups": ["Customer"],
         },
-        "test_customer_2@domain.invalid": {  # Needed by create_test_data
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
-            "groups": ["Customer"],
         },
     }
 

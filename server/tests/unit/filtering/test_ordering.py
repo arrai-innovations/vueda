@@ -604,7 +604,6 @@ class CartOrderingTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
             ("store", "Cart", "list"),
-            ("store", "Cart", "read"),
         ],
     }
 

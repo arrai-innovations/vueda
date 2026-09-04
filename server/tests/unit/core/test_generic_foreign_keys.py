@@ -62,7 +62,6 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
     groups_to_create: ClassVar[dict] = {
         "Note Reader": [
             ("store", "Note", "list"),
-            ("store", "Note", "read"),
         ],
     }
 
@@ -242,7 +241,6 @@ class TestViewSetAnotherNoteContentObjectExpand(BaseTestAssertResponseMixin, Bas
     groups_to_create: ClassVar[dict] = {
         "Another Note Reader": [
             ("store", "Note", "list"),
-            ("store", "Note", "read"),
         ],
     }
 
@@ -329,7 +327,6 @@ class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, 
     groups_to_create: ClassVar[dict] = {
         "Static Omit Note Reader": [
             ("store", "Note", "list"),
-            ("store", "Note", "read"),
         ],
     }
 

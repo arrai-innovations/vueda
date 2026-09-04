@@ -484,7 +484,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
             ("timesheet", "Timesheet", "delete"),
-            ("timesheet", "Timesheet", "manage"),
         ],
     }
 
@@ -1202,7 +1201,6 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
             ("store", "DistributorProxy", "create"),
             ("store", "DistributorProxy", "update"),
             ("store", "DistributorProxy", "delete"),
-            ("store", "DistributorProxy", "manage"),
         ],
     }
 
