@@ -110,6 +110,7 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
             "recently_logged_in",
             "formatted_name",
             "available_actions",
+            "object_revision",
         )
 
     def test_as_another_user(self):
@@ -122,7 +123,15 @@ class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
         serializer = WhoIsSerializer(instance=another_user, data=get_data, context=context)
 
         fields = serializer.get_fields()
-        assert tuple(fields.keys()) == ("id", "email", "name", "totp_devices", "recently_logged_in", "formatted_name")
+        assert tuple(fields.keys()) == (
+            "id",
+            "email",
+            "name",
+            "totp_devices",
+            "recently_logged_in",
+            "formatted_name",
+            "object_revision",
+        )
 
 
 @pytest.mark.django_db

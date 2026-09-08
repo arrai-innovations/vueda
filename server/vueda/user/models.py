@@ -8,7 +8,6 @@ __all__ = (
     "GroupChange",
     "TOTPDevice",
     "VUEDAUserManager",
-    "VUEDAUserWithHistoryManager",
 )
 
 from urllib.parse import urljoin
@@ -65,23 +64,6 @@ class VUEDAUserManager(UserManager):
             raise ValueError("Superuser must have is_superuser=True.")
 
         return self._create_user(email, password, **extra_fields)
-
-
-class VUEDAUserWithHistoryManager(VUEDAUserManager):
-    """
-    Extends ``VUEDAUserManager`` to annotate each user with their most recent
-    ``simple-history`` record ID (``current_history_id``).
-    """
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.annotate(
-            current_history_id=models.Subquery(
-                queryset.filter(history_records__id=models.OuterRef("pk"))
-                .annotate(current_history_id=models.Max("history_records__history_id"))
-                .values("current_history_id")
-            )
-        )
 
 
 class AbstractVUEDAUserMeta(BaseModelMeta):
@@ -170,7 +152,7 @@ class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
     Use this as the base when you need a full change history on user records.
     """
 
-    objects = VUEDAUserWithHistoryManager()
+    objects = VUEDAUserManager()
 
     history = HistoricalRecords(related_name="history_records", inherit=True)
 

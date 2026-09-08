@@ -27,16 +27,6 @@ def assert_probe_succeeded(result):
     assert result.returncode == 0, result.stderr
 
 
-# Every configuration installs the history app, so its own modules load. The boundary that still
-# holds is that nothing in vueda.core reaches its API classes. Naming one module lets a new import
-# into another one pass unnoticed, so assert on all of them.
-ASSERT_NO_HISTORY_API_IMPORTS = """
-        history_api = ["vueda.history.serializers", "vueda.history.viewsets", "vueda.history.views"]
-        imported = [name for name in history_api if name in sys.modules]
-        assert imported == [], imported
-"""
-
-
 # Every configuration installs history, so the event models VUEDA ships are always part of the
 # graph. Workflow is optional, and VDQ requires it.
 SUPPORTED_APP_COMBINATIONS = (
@@ -263,43 +253,16 @@ def test_vdq_requires_workflow():
     assert_probe_succeeded(result)
 
 
-def test_core_api_classes_load_without_the_history_api():
-    result = run_optional_apps_probe(
-        """
-        import sys
-
-        import django
-
-        django.setup()
-
-        from vueda.core.serializers import VuedaSerializer
-        from vueda.core.viewsets import VuedaViewSet
-        from vueda.info.serializers import ModelInfoSerializer
-
-        assert issubclass(VuedaSerializer, object)
-        assert issubclass(VuedaViewSet, object)
-        assert ModelInfoSerializer is not None
-        """
-        + ASSERT_NO_HISTORY_API_IMPORTS,
-    )
-
-    assert_probe_succeeded(result)
-
-
-def test_the_history_api_classes_are_available():
+def test_the_history_api_is_part_of_the_core_viewset():
     result = run_optional_apps_probe(
         """
         import django
 
         django.setup()
 
-        from vueda.core.serializers import VuedaSerializer
         from vueda.core.viewsets import VuedaViewSet
-        from vueda.history.serializers import VuedaHistorySerializer
-        from vueda.history.viewsets import VuedaHistoryViewSet
 
-        assert issubclass(VuedaHistorySerializer, VuedaSerializer)
-        assert issubclass(VuedaHistoryViewSet, VuedaViewSet)
+        assert "history_list" in {action.__name__ for action in VuedaViewSet.get_extra_actions()}
         """
     )
 

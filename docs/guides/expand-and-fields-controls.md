@@ -46,7 +46,7 @@ class WidgetSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 ```
 
-Always merge the parent's `expandable_fields` at the end of the declaration. `VuedaSerializer.Meta.expandable_fields` (and `VuedaHistorySerializer.Meta.expandable_fields`) may include framework-level expansions (such as history entries) that should be preserved.
+Always merge the parent's `expandable_fields` at the end of the declaration, so any framework-level expansion `VuedaSerializer.Meta.expandable_fields` declares is preserved.
 
 The `expandable_fields` declaration is the canonical source for `model_expands` in the metadata response. The client reads this metadata to determine its default expand configuration.
 

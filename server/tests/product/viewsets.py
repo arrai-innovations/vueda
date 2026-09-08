@@ -1,10 +1,10 @@
 from tests.product.filtersets import ProductFilterSet
 from tests.product.models import Product
 from tests.product.serializers import ProductSerializer
-from vueda.history.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaViewSet
 
 
-class ProductViewSet(VuedaHistoryViewSet):
+class ProductViewSet(VuedaViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filterset_class = ProductFilterSet
