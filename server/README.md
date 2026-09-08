@@ -116,41 +116,11 @@ extended in your application, ensuring both control and adaptability.
   settings, like database, middleware, asgi vs wsgi, etc.
 - it's up to you to add `vueda`'s `urls` to your `urls.py`.
 - `VuedaHistoryMiddleware` names the acting user and the request behind every history event. VUEDA
-  inserts it into `MIDDLEWARE` after `AuthenticationMiddleware`, so a wsgi project adds nothing. The
-  `vueda_history.W001` and `vueda_history.W002` system checks report a project that drops it or
-  moves it ahead of `AuthenticationMiddleware`.
-
-    if using asgi, add it to your middleware stack as well, for example:
-
-    ```py
-    from asgi_cors_middleware import CorsASGIApp
-    from channels.auth import AuthMiddleware
-    from channels.sessions import CookieMiddleware
-    from channels.sessions import SessionMiddleware
-    from django.conf import settings
-    from vueda.history.middleware import VuedaHistoryMiddleware
-
-    def my_middlewares_stack(inner):
-        return CorsASGIApp(
-          CookieMiddleware(
-              SessionMiddleware(
-                  AuthMiddleware(
-                      VuedaHistoryMiddleware(
-                          # ...
-                          inner
-                      )
-                  )
-              )
-           ),
-           # use django-cors-header's settings for asgi-cors-middleware
-           origins=settings.CORS_ALLOWED_ORIGINS,
-           allow_headers=settings.CORS_ALLOW_HEADERS,
-           expose_headers=settings.CORS_EXPOSE_HEADERS,
-           allow_methods=settings.CORS_ALLOW_METHODS,
-           allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-           max_age=settings.CORS_PREFLIGHT_MAX_AGE,
-       )
-    ```
+  inserts it into `MIDDLEWARE` after `AuthenticationMiddleware`, so a project taking the defaults
+  adds nothing. It is an ordinary Django middleware and runs the same way under wsgi and asgi.
+  Do not wrap it in a Channels middleware stack. It takes a Django request rather than an ASGI
+  scope. The `vueda_history.W001` and `vueda_history.W002` system checks report a project that
+  drops it or moves it ahead of `AuthenticationMiddleware`.
 
 ### Permissions
 
