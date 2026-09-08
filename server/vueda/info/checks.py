@@ -8,11 +8,14 @@ from django.core.exceptions import FieldDoesNotExist
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.formatted_name import path_multiplies_rows
+from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
+from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.ordering import queryset_explicit_ordering
 
 
 def _is_property_on_model(model, attr_name):
@@ -523,6 +526,148 @@ def _validate_nulls_ordering(viewset):
     return errors
 
 
+def _comparable_ordering(model, ordering):
+    """
+    An ordering rendered as directional field paths that can be compared with another ordering's, or
+    ``None`` when a term in it has no single path to compare.
+
+    Two orderings sort the same way when they name the same paths, in the same sequence, each in the
+    same direction — so each term becomes its path with a ``-`` for descending, and the sequence is
+    compared as a whole. A path is resolved through ``formatted_name_lookup_expression`` first, since
+    a ``formatted_name`` and the column behind it are one sort under two names, and a declaration is
+    free to use either.
+
+    ``None`` is the answer for an ordering this can say nothing about, so a caller stays quiet rather
+    than guessing. A term reads no column at all (``"?"``, ``Now()``) or more than one
+    (``Concat("first_name", "last_name")``), and neither has a path that stands for the sort it
+    performs — the same terms ``model_ordering.default`` withholds, for the same reason.
+
+    Direction is part of the comparison because reversing it is the one difference that shows up in
+    every row of a response while looking like agreement in a diff: ``queued`` and ``-queued`` name
+    the same field and sort the opposite way.
+    """
+    if not ordering:
+        return []
+
+    # Both a viewset's `ordering` and a model's `Meta.ordering` may be a bare string rather than a
+    # list/tuple, which would otherwise be walked character by character.
+    if isinstance(ordering, str):
+        ordering = (ordering,)
+
+    comparable = []
+    for term in ordering:
+        for expanded in expand_ordering_pk(model, term):
+            field_names = ordering_term_field_names(expanded)
+            if len(field_names) != 1:
+                return None
+
+            field_name = field_names[0]
+            path = resolve_formatted_name_path(model, field_name) or field_name
+            prefix = "" if ordering_term_is_ascending(expanded) else "-"
+            comparable.append(f"{prefix}{path}")
+
+    return comparable
+
+
+def _format_ordering_terms(names):
+    """The comparable paths of an ordering, quoted for a check message."""
+    return ", ".join(f"'{name}'" for name in names)
+
+
+def _validate_queryset_ordering(model, viewset):
+    """
+    Report a viewset whose class-level ``queryset`` orders by something its declarations don't.
+
+    DRF's ``OrderingFilter`` reads a view's ``ordering`` and nothing else. When that isn't declared it
+    applies no ordering at all, so an ``order_by()`` on the viewset's queryset survives the filter
+    backends and orders the response — while ``model_ordering.default``, which reports ``ordering``
+    falling back to the model's ``Meta.ordering``, describes an ordering that request never applied.
+    The rows and the metadata disagree, and nothing in a passing test suite has to notice.
+
+    This reads the ``queryset`` class attribute only, never ``get_queryset()``. A class attribute is
+    a declaration, which is the kind of thing a check can hold to account: it is the same object on
+    every request, so what it orders by either matches the declared default or doesn't. An ordering
+    applied inside ``get_queryset()``, in a manager, or in a helper is deliberately out of scope —
+    calling ``get_queryset()`` here would run application code with no request behind it, and its
+    result can vary per request anyway, so a check could confirm nothing about it. What this cannot
+    see is left to the documentation (see the "Queryset Ordering" section of
+    ``docs/core-concepts/filtering-and-ordering-semantics.md``).
+
+    Three shapes get three messages, because the fix differs:
+
+    - ``ordering`` is declared and disagrees. The declaration wins on every list request, so the
+      metadata is accurate and the queryset's ordering is dead weight that reads as if it were in
+      force.
+    - ``ordering`` is absent and the model's ``Meta.ordering`` disagrees. The queryset's ordering is
+      what arrives and the model's is what gets reported.
+    - Neither is declared. The queryset's ordering is what arrives and the metadata reports no
+      default ordering at all.
+
+    An ordering either side of the comparison has no single path for — ``"?"``, a multi-column
+    expression — is not judged, since there is nothing to compare it against with any confidence.
+    """
+    if viewset is None:
+        return []
+
+    queryset = getattr(viewset, "queryset", None)
+    if queryset is None:
+        return []
+
+    queryset_names = _comparable_ordering(model, queryset_explicit_ordering(queryset))
+    if not queryset_names:
+        # Nothing declared on the queryset, or nothing there that can be compared.
+        return []
+
+    viewset_ordering = getattr(viewset, "ordering", None)
+    declared_ordering = viewset_ordering if viewset_ordering else model._meta.ordering
+    declared_names = _comparable_ordering(model, declared_ordering)
+    if declared_names is None or declared_names == queryset_names:
+        return []
+
+    queryset_terms = _format_ordering_terms(queryset_names)
+    declared_terms = _format_ordering_terms(declared_names)
+    move_it = (
+        f"Declare it as `ordering = [{queryset_terms}]` on {viewset.__name__} instead, so the "
+        "ordering DRF applies is the one `model_ordering.default` reports"
+    )
+
+    if viewset_ordering:
+        message = (
+            f"{viewset.__name__}.queryset orders by {queryset_terms}, which "
+            f"{viewset.__name__}.ordering ({declared_terms}) replaces on every list request."
+        )
+        hint = (
+            f"Remove the `order_by()` from the queryset, or make the two agree. DRF's ordering "
+            f"backend applies {viewset.__name__}.ordering, so the queryset's ordering reaches no "
+            "response and no metadata; leaving it in place reads as if it were the default order."
+        )
+    elif model._meta.ordering:
+        message = (
+            f"{viewset.__name__}.queryset orders by {queryset_terms}, but the default ordering "
+            f"reported for it comes from {model.__name__}.Meta.ordering ({declared_terms}), which "
+            "no list request here applies."
+        )
+        hint = (
+            f"{move_it}. DRF's ordering backend reads a view's `ordering` and nothing else, so with "
+            "none declared it applies no ordering and the queryset's own survives to the response — "
+            f"while `model_ordering.default` falls back to {model.__name__}.Meta.ordering and "
+            "describes a different order to every client. Dropping the `order_by()` is the other "
+            "answer, and reverses the list."
+        )
+    else:
+        message = (
+            f"{viewset.__name__}.queryset orders by {queryset_terms}, which neither "
+            f"{viewset.__name__}.ordering nor {model.__name__}.Meta.ordering declares."
+        )
+        hint = (
+            f"{move_it}. A list request arrives in the queryset's order, and DRF's ordering backend "
+            "never sees that ordering, so `model_ordering.default` reports no default ordering at "
+            "all and a client can't show which column the rows are sorted by."
+        )
+
+    return [Error(message, hint=hint, obj=viewset, id="vueda_info.E010")]
+
+
 def check_ordering_configuration(app_configs, **kwargs):
     from vueda.info.registration import get_all_registrations
 
@@ -533,6 +678,7 @@ def check_ordering_configuration(app_configs, **kwargs):
     for _key, registration in get_all_registrations().items():
         model = registration["serializer"].Meta.model
         errors.extend(_validate_ordering_declarations(model, registration["viewset"]))
+        errors.extend(_validate_queryset_ordering(model, registration["viewset"]))
         errors.extend(_validate_nulls_ordering(registration["viewset"]))
 
     return errors

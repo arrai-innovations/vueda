@@ -10,6 +10,7 @@ __all__ = (
     "ordering_pk_field_names",
     "ordering_term_field_names",
     "ordering_term_is_ascending",
+    "queryset_explicit_ordering",
     "rewrite_ordering_term_field_names",
 )
 
@@ -118,6 +119,52 @@ def ordering_term_field_names(term):
             names.append(expression.name)
 
     return names
+
+
+def queryset_explicit_ordering(queryset):
+    """
+    The ordering terms a queryset carries in its own right, as ``order_by()`` received them.
+
+    Django keeps an explicit ordering on the query itself. ``QuerySet.order_by`` clears whatever
+    ordering was there and appends its terms to ``Query.order_by`` (``Query.add_ordering``), and the
+    SQL compiler prefers those terms over the model's ``Meta.ordering``, which it reaches only for a
+    query that carries none of its own (``SQLCompiler._order_by_pairs``). So a non-empty result here
+    is an ordering that overrides the model's default, and an empty one leaves that default to apply.
+
+    Those two attributes are Django internals, which is the reason this lives in one function: the
+    compiler's precedence and the attributes behind it are verified against the Django versions VUEDA
+    supports in ``tests/unit/filtering/test_queryset_explicit_ordering.py``, rather than assumed at
+    each call site.
+
+    This reads a queryset, so it describes a declaration and not the ordering any particular list
+    request ends up with. A filter backend replaces the ordering it finds — DRF's ``OrderingFilter``
+    does exactly that whenever a view declares ``ordering`` or a client sends ``?o=`` — and a
+    ``get_queryset`` can order differently per request. The ``vueda_info.E010`` system check compares
+    what this reads off a viewset's class-level ``queryset`` against what that viewset declares as its
+    default ordering; neither it nor this claims to know a request's final order.
+
+    An ordering set by ``extra(order_by=...)`` reports nothing. That is raw SQL rather than ordering
+    terms, so it has no field paths to read, and reporting the terms it overrides would describe an
+    ordering the query doesn't use.
+
+    An ordering *removed* by a bare ``order_by()`` reports nothing either, which is a gap rather than
+    a judgement: that call clears the model's default ordering along with any explicit one, so the
+    rows arrive unordered while the metadata still reports the model's declaration. Nothing here
+    distinguishes a queryset that never ordered from one that deliberately stopped ordering.
+
+    :param queryset: The queryset to inspect.
+    :type queryset: django.db.models.QuerySet
+    :return: The explicit ordering terms, or an empty list when the queryset carries none.
+    :rtype: List[Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]]
+    """
+    query = getattr(queryset, "query", None)
+    if query is None:
+        return []
+
+    if getattr(query, "extra_order_by", ()):
+        return []
+
+    return list(getattr(query, "order_by", ()) or ())
 
 
 def ordering_term_is_ascending(term):

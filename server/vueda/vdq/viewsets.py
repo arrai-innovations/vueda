@@ -32,10 +32,16 @@ from vueda.workflow.views import HasWorkflowViewMixin
 
 
 class DefaultSendQueueViewSet(HasWorkflowViewMixin, VuedaReadOnlyViewSet):
-    queryset = QueueItem.objects.select_related("receiver").order_by("queued")
+    queryset = QueueItem.objects.select_related("receiver")
     serializer_class = QueueItemSerializer
     permission_classes = [ObjectPermissions]
     search_fields = ["receiver__name", "receiver__email", "result"]
+    # Oldest first: a send queue is worked from the front, so the item waiting longest reads first.
+    # Declared here rather than as an `order_by()` on the queryset above, because DRF's ordering
+    # backend reads a view's `ordering` and nothing else — an ordering carried only by the queryset
+    # still reaches the response, but `model_ordering.default` would report QueueItem.Meta.ordering
+    # ("-queued", "-last_updated") instead, which no list request here applies.
+    ordering = ["queued"]
     ordering_fields = ["queued", "last_updated"]
     filterset_class = SendQueueFilterSet
     permit_list_expands = ["anymail", "sender", "receiver", "sms"]
@@ -54,10 +60,13 @@ SendQueueViewSet = getattr(settings, "SEND_QUEUE_VIEWSET", DefaultSendQueueViewS
 
 
 class DefaultSentItemViewSet(HasWorkflowViewMixin, VuedaReadOnlyViewSet):
-    queryset = SentItem.objects.select_related("receiver").order_by("queued")
+    queryset = SentItem.objects.select_related("receiver")
     serializer_class = SentItemSerializer
     permission_classes = [QueueItemObjectPermission]
     search_fields = ["receiver__name", "receiver__email", "result"]
+    # Same order, and declared the same way, as the send queue this list is the tail of. See
+    # DefaultSendQueueViewSet.ordering.
+    ordering = ["queued"]
     ordering_fields = ["queued", "last_updated"]
     filterset_class = SentQueueFilterSet
     permit_list_expands = ["anymail", "sender", "receiver", "sms"]
