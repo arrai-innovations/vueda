@@ -73,6 +73,7 @@ from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.history.revision import annotate_object_revision
 from vueda.user.adapters import get_adapter
 from vueda.user.decorators import ensure_csrf_token
 from vueda.user.globals import APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT
@@ -106,7 +107,7 @@ class WhoIsView(RetrieveAPIView):
 
     def get_object(self):
         if self.request.user.pk:
-            return get_user_model().objects.get(pk=self.request.user.pk)
+            return annotate_object_revision(get_user_model().objects.filter(pk=self.request.user.pk)).get()
         return self.request.user
 
 

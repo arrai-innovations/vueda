@@ -6,14 +6,13 @@ from rest_framework import serializers
 from tests.employee.models import Employee
 from tests.employee.models import User
 from vueda.core.serializers import VuedaSerializer
-from vueda.history.serializers import VuedaHistorySerializer
 from vueda.user.serializers import GroupSerializer
 
 
-class EmployeeSerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class EmployeeSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = Employee
-        fields = ["id", "user", "employee_number"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "user", "employee_number"] + VuedaSerializer.Meta.fields
 
 
 class UserWithGroupsSerializer(VuedaSerializer):

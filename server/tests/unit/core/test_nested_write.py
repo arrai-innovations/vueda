@@ -64,9 +64,9 @@ class TestCreateIssueExpectedFailure:
 @pytest.mark.django_db
 class TestNestedWriteHistoryAnnotation(BaseTestUserMixin, BaseTestGroupMixin):
     """
-    Regression test for SimpleHistorySerializerMixin.return_annotated_instance: current_history_id
-    must be populated on instances created/updated through a writable-nested field (InvoiceLine
-    nested in InvoiceSerializer), not just when the serializer is the view's top-level serializer.
+    A row written through a writable-nested field must publish its revision, not just one written
+    through the view's own serializer. The write returns the instance it created, which carries no
+    annotation, so the serializer re-reads it.
     """
 
     groups_to_create: ClassVar[dict] = {
@@ -83,7 +83,7 @@ class TestNestedWriteHistoryAnnotation(BaseTestUserMixin, BaseTestGroupMixin):
         }
     }
 
-    def test_new_nested_invoice_line_has_current_history_id(self, api_client):
+    def test_new_nested_invoice_line_has_a_revision(self, api_client):
         user = self.users["invoice_updater@domain.invalid"]
         api_client.force_authenticate(user=user)
 
@@ -100,7 +100,7 @@ class TestNestedWriteHistoryAnnotation(BaseTestUserMixin, BaseTestGroupMixin):
         )
         assert response.status_code == status.HTTP_200_OK
         [line] = response.data["invoice_lines"]
-        assert line["current_history_id"] is not None
+        assert line["object_revision"] is not None
 
 
 @pytest.mark.django_db

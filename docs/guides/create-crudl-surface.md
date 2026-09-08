@@ -46,7 +46,7 @@ If you have a third-party model that cannot inherit `VuedaModel` but needs to pa
 
 ## Serializer Contract
 
-The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer` for standard models or `VuedaHistorySerializer` for models that use the audit history system.
+The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer`.
 
 `VuedaSerializer` declares `formatted_name` and `available_actions` as base fields. Both are read-only. The serializer's `Meta.fields` list must include all fields that should appear in the metadata surface; if a field exists on the Django model but is not listed in the serializer's `fields`, it will not appear in model-info and the client will not know it exists. See [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract) for the full mapping from serializer definitions to metadata sections.
 
@@ -75,7 +75,7 @@ The `NoExtraFieldsSerializerMixin` (which `VuedaSerializer` includes) rejects un
 
 ## ViewSet Contract
 
-The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet` for standard models or `VuedaHistoryViewSet` for models that include audit history. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
+The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet`. It carries the history endpoint for every model that records history, so no history-specific base class exists. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet

@@ -42,6 +42,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "formatted_name",
             "totp_devices",
             "recently_logged_in",
+            "object_revision",
         }
         assert response.data["email"] == "test_user+timesheet+reader@domain.invalid"
         assert response.data["formatted_name"] == response.data["email"]

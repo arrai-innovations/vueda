@@ -23,7 +23,7 @@ The objective is a write flow where:
 
 Before you begin:
 
-The parent serializer must inherit from `VuedaSerializer` or `VuedaHistorySerializer`, both of which include `FlexFieldsWriteableNestedSerializerMixin`. Serializers that do not use these bases will not participate in nested write handling.
+The parent serializer must inherit from `VuedaSerializer`, which includes `FlexFieldsWriteableNestedSerializerMixin`. Serializers that do not use this base will not participate in nested write handling.
 
 The model registration must include a viewset. Nested writes flow through standard `create`/`update` viewset actions.
 
@@ -151,7 +151,6 @@ After implementing nested writes, verify the following:
     - {@api py:module:vueda.core.serializers}
     - {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
-    - {@api py:class:vueda.history.serializers.VuedaHistorySerializer}
     - {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}
     - {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}
