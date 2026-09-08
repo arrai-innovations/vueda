@@ -20,6 +20,11 @@ import { useRouter } from "vue-router";
  * submit runs through `storeWorkflow.executeTransition` instead of the generic model-action
  * endpoint. `ViewActionRouter` resolves this as the final fallback for a recognized transition
  * code, after any `ViewAction{App}{Model}{Code}.vue` or `ViewAction{Code}.vue` project override.
+ *
+ * A transition confirmation submits no form values: `run-action` forwards only the dry-run and
+ * warning-acknowledgement arguments to `storeWorkflow.executeTransition`. A project supplying
+ * fields through the `extra-fields` slot renders and validates them, but their values never reach
+ * the request; forward them through a project-supplied override instead.
  */
 defineOptions({
     inheritAttrs: false,
@@ -88,7 +93,8 @@ const handleReturnClick = () => {
  * dry-run and warning-acknowledgement arguments `ActionForm` already threads through every other
  * model action.
  *
- * @param {{formValues?: object, dryRun?: boolean, acknowledgeWarnings?: string}} [options] - Run options from `ActionForm`.
+ * @param {{dryRun?: boolean, acknowledgeWarnings?: string}} [options] - Run options from `ActionForm`. `formValues`
+ *  is not in this signature: this view submits no form values (see the component doc block above).
  * @returns {Promise<any>} The transition execution result.
  */
 const runAction = ({ dryRun = false, acknowledgeWarnings } = {}) =>
