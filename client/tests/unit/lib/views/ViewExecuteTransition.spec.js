@@ -20,6 +20,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({
 
 vi.mock("@vueda/utils/case.js", () => ({
     memoizedStartCase: (v) => v.toUpperCase(),
+    getLowerTitle: (v) => v.toLowerCase(),
 }));
 
 const routerBack = vi.fn();
@@ -167,7 +168,7 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
     });
 
     describe("Transition display name", () => {
-        scopedIt("resolves action-verbose-name from the matching transition's display name", () => {
+        scopedIt("resolves action-verbose-name from the matching transition's display name, lower-cased", () => {
             mockedInject.mockReturnValueOnce({});
             workflowTransitions.transitions = [
                 { code: "approve", name: "Approve invoice" },
@@ -176,19 +177,21 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
             const wrapper = mount(ViewExecuteTransition, {
                 props: { app: "app", model: "invoice", action: "approve" },
             });
+            // Lower-cased for `useModelAction`'s confirm-prompt sentence contract ("Are you sure you
+            // want to {verb} the selected {model}?"); the page title keeps the cased display name.
             expect(wrapper.find('[data-qa="model-action-form"]').attributes("data-action-verbose-name")).toBe(
-                "Approve invoice",
+                "approve invoice",
             );
         });
 
-        scopedIt("falls back to a start-cased transition code when no transition matches yet", () => {
+        scopedIt("falls back to a lower-cased, start-cased transition code when no transition matches yet", () => {
             mockedInject.mockReturnValueOnce({});
             workflowTransitions.transitions = [{ code: "reject", name: "Reject invoice" }];
             const wrapper = mount(ViewExecuteTransition, {
                 props: { app: "app", model: "invoice", action: "approve" },
             });
             expect(wrapper.find('[data-qa="model-action-form"]').attributes("data-action-verbose-name")).toBe(
-                "APPROVE",
+                "approve",
             );
         });
     });
