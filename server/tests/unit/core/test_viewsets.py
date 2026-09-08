@@ -11,6 +11,9 @@ from django.db import connection
 from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -23,14 +26,18 @@ from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet import serializers as timesheet_serializers
 from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
 from tests.unit.info.test_model_info import VuedaTestData
+from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
 
 
@@ -107,6 +114,59 @@ def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_rena
     assert filter_new_prefetch_lookups(queryset, plan) == plan
 
 
+def expanded_serializer(serializer_class, expand):
+    """Build ``serializer_class`` with ``expand`` applied, the way a request's ``?e=`` applies it.
+
+    ``build_prefetch_plan`` reads ``serializer.fields``, and an expandable field only becomes a
+    nested serializer field once ``rest_flex_fields`` has processed the request, so an unexpanded
+    serializer yields an empty plan rather than the one under test.
+    """
+    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}))
+    serializer = serializer_class(context={"request": request})
+    ensure_flex_fields_applied(serializer)
+
+    return serializer
+
+
+def prefetch_for(prefetch_related, lookup):
+    for entry in prefetch_related:
+        if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
+            return entry
+
+    raise AssertionError(f"no Prefetch for {lookup!r} in {prefetch_related!r}")
+
+
+def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_queryset():
+    # OrderItem resolves formatted_name through formatted_name_lookup_expression and stores no
+    # column of its own, so the Prefetch queryset the plan builds has to carry the annotation.
+    # Without it VuedaListSerializer.to_representation re-annotates the queryset serving the
+    # prefetched relation, which clones it, drops the cached prefetch result, and costs one query
+    # per row. The rendered formatted_name stays correct either way, because _get_formatted_name
+    # resolves it per instance when the annotation is missing, so the value proves nothing here and
+    # the annotation's presence is what this asserts.
+    serializer = expanded_serializer(store_serializers.CustomerOrderSerializer, "order_items")
+
+    _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+
+    assert "formatted_name" in annotations
+
+
+def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
+    # TimesheetEntry.formatted_name is a stored GeneratedField, so the plan must leave it alone.
+    # Annotating every to-many prefetch unconditionally would satisfy the test above while shadowing
+    # a real column here, which is the case annotate_formatted_name's lookup-expression check exists
+    # to skip.
+    serializer = expanded_serializer(timesheet_serializers.TimesheetWithAliasedEntriesSerializer, "entries")
+
+    _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
+
+    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+
+    assert "formatted_name" not in annotations
+
+
 @pytest.mark.django_db
 class TestProductViewSet(BaseTestModelViewSet):
     model = Product
@@ -180,7 +240,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         return {
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local", "Fresh"],
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "id": instance.id,
             "name": "Apple",
         }
@@ -199,7 +259,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         return {
             "available_for_sale": True,
             "buzz_words": ["Organic", "Local"],
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "formatted_name": "Apple",
             "id": instance.id,
             "name": "Apple",
@@ -242,7 +302,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -264,72 +324,6 @@ class TestProductViewSet(BaseTestModelViewSet):
             f"supervisor message: {response.data['supervisor'][0]['message']}"
         )
 
-    def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
-        instance = page_data.first()
-
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry"}
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-        self.update_expected_retrieve_response(expected_retrieve_response, instance)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "first_history_entry" in response.data
-        assert "history" in response.data
-        # The first history record should be the same as the first_history_entry.
-        assert response.data["history"][0] == response.data["first_history_entry"]
-        # Remove history.  We will use first_history_entry for other asserts.
-        del response.data["history"]
-        first_history_entry = response.data.pop("first_history_entry")
-        # Remove the history fields, copying the history id as current history id,
-        # since that is supposed to be in the response.
-        for key in (
-            "history_id",
-            "history_date",
-            "history_change_reason",
-            "history_type",
-            "history_user",
-            "history_relation",
-        ):
-            if key == "history_id":
-                expected_retrieve_response["current_history_id"] = first_history_entry[key]
-                first_history_entry["current_history_id"] = first_history_entry[key]
-            del first_history_entry[key]
-        # Now these dictionaries are the same.
-        assert expected_retrieve_response == response.data
-        assert first_history_entry == expected_retrieve_response
-
-    def test_retrieve_with_history_first_and_last_expands(self, page_data, authenticated_client, update_arguments):
-        instance = page_data.first()
-
-        # Create a second history entry so first_history_entry and last_history_entry can be
-        # distinguished from each other (a freshly created instance only has one history entry).
-        update_response = authenticated_client.put(self.detail_url(instance.id), data=update_arguments, format="json")
-        assert update_response.status_code == HTTPStatus.OK, response_body(update_response)
-
-        detail_querystring = {
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
-        }
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "history" in response.data
-        assert "first_history_entry" in response.data
-        assert "last_history_entry" in response.data
-
-        history = response.data["history"]
-        assert len(history) == 2, f"history data: {history}"  # noqa: PLR2004
-
-        # history is ordered most-recent-first (history_date descending).
-        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
-        assert response.data["last_history_entry"] == history[0], (
-            f"last_history_entry should be the most recent history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] == history[-1], (
-            f"first_history_entry should be the oldest history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
-            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
-        )
-
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
         pks = list(page_data.values_list("pk", flat=True))
 
@@ -340,7 +334,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,second_history_entry"}
+        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
@@ -352,8 +346,7 @@ class TestProductViewSet(BaseTestModelViewSet):
             f"second_history_entry data: {response.data['second_history_entry'][0]}"
         )
         assert (
-            str(response.data["second_history_entry"][0]["message"])
-            == "Invalid expands. Permitted expands are first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all"
+            str(response.data["second_history_entry"][0]["message"]) == "Invalid expands. No expands are permitted."
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data
 
@@ -389,7 +382,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid expands. Permitted expands are distributor, distributor.first_history_entry, distributor.history, distributor.last_history_entry, first_history_entry, history, last_history_entry. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
 
@@ -419,7 +412,7 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_history_id, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.current_history_id, distributor.description, distributor.first_history_entry, distributor.formatted_name, distributor.history, distributor.id, distributor.last_history_entry, distributor.name, first_history_entry, formatted_name, future_sale_dates, history, id, internal_comments, last_history_entry, last_ordered, last_ten_order_betweens, name, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
 
@@ -468,14 +461,14 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "order_state",
             "shipping_method",
             "formatted_name",
-            "current_history_id",
+            "object_revision",
             "valid_transitions",
             "workflow_state_code",
             "workflow_state_name",
         } == frozenset(response.data.keys())
         assert isinstance(response.data["customer"], int)
         assert isinstance(response.data["order_items"], list)
-        assert {"id", "customer_order", "product_option", "quantity", "formatted_name"} == frozenset(
+        assert {"id", "customer_order", "product_option", "quantity", "formatted_name", "object_revision"} == frozenset(
             response.data["order_items"][0].keys()
         )
         assert isinstance(response.data["order_items"][0]["customer_order"], int)
@@ -491,6 +484,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
             "name",
             "sku",
             "quantity_available",
+            "object_revision",
         } == frozenset(response.data["order_items"][0]["product_option"])
         assert isinstance(response.data["order_items"][0]["product_option"]["product"], dict)
 
@@ -622,7 +616,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "employee": self.employee_1.id,
             "id": instance.id,
             "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
@@ -643,7 +637,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "id": instance.id,
             "employee": self.employee_1.id,
             "period_end": datetime.date(2024, 1, 15).strftime("%Y-%m-%d"),
@@ -676,7 +670,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -692,13 +686,13 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         response_info = {x: y for x, y in response.data.items() if x == "results"}
-        current_history_id = response_info["results"][0]["current_history_id"]
-        assert current_history_id is not None
+        object_revision = response_info["results"][0]["object_revision"]
+        assert object_revision is not None
         assert keys == set(response_info["results"][0].keys())
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -734,6 +728,9 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             "formatted_name": str(employee.employee_number),
             "id": employee.id,
             "user": employee.user_id,
+            # An expanded object carries no revision. Only the queryset the view builds is
+            # annotated, and a relation resolved through select_related is not.
+            "object_revision": None,
         }
         period_start = instance.period_start
         period_end = instance.period_end
@@ -755,7 +752,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
             str(response.data["guardian"][0]["message"])
-            == "Invalid expands. Permitted expands are employee, first_history_entry, foo, history, last_history_entry, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
+            == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
         ), f"guardian message: {response.data['guardian'][0]['message']}"
         assert "employee" not in response.data
 
@@ -1144,6 +1141,7 @@ class TestTimesheetWithToAttrPrefetchedEntriesViewSet(BaseTestAssertResponseMixi
 class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
+            ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
         ],
         "Customer Updater": [
@@ -1187,6 +1185,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "employee" relation
+                # must still be supplied even though the response won't include it.
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
             },
@@ -1194,9 +1195,166 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 200)
-        assert "period_start" in response.data
-        assert "period_end" in response.data
-        assert "employee" not in response.data
+        assert response.data == {"period_start": "2024-02-16", "period_end": "2024-02-25"}, response.data
+
+    def test_update_timesheet_with_field_param_excluding_required_field_fails_validation(self, api_client):
+        """A required relation ("employee") dropped by ?f= must still be required (issue #205):
+        ?f= shapes the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.put(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+            ),
+            data={
+                "period_start": datetime.date(2024, 2, 16),
+                "period_end": datetime.date(2024, 2, 25),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        # "serverStack" is debug-only noise the test settings attach to error responses; strip it
+        # before comparing so the assertion checks the whole error payload, not just one key.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start,period_end"),
+            ("OMIT_PARAM", "employee"),
+        ],
+    )
+    def test_create_timesheet_with_field_param_excluding_required_field_fails_validation(
+        self, api_client, param_name, requested
+    ):
+        """A required relation ("employee") dropped by ?f=/?om= must still be required on create
+        (issue #205): the parameters shape the response, not what the write validates."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post(
+            reverse(
+                "timesheet.timesheet-list",
+                query={settings.REST_FLEX_FIELDS[param_name]: requested},
+            ),
+            data={
+                "period_start": datetime.date(2024, 3, 1),
+                "period_end": datetime.date(2024, 3, 15),
+            },
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("This field is required.", code="required")]}, response.data
+        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
+
+    def test_partial_update_timesheet_with_field_param_does_not_bypass_validation(self, api_client):
+        """A PATCH still validates a field present in the body even when ?f= excludes it from the
+        response (issue #205): sparse fieldset narrows the response, not what gets validated."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start"},
+            ),
+            data={"employee": 999999},  # no employee with this pk
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "employee": [ErrorDetail('Invalid pk "999999" - object does not exist.', code="does_not_exist")]
+        }, response.data
+        t1.refresh_from_db()
+        assert t1.employee_id == e1.pk
+
+    @pytest.mark.parametrize(
+        "param_name,requested",
+        [
+            ("FIELDS_PARAM", "period_start"),
+            ("OMIT_PARAM", "employee"),
+            (None, None),
+        ],
+    )
+    def test_partial_update_timesheet_with_field_param_does_not_require_an_omitted_field(
+        self, api_client, param_name, requested
+    ):
+        """The complement of test_partial_update_timesheet_with_field_param_does_not_bypass_validation:
+        a PATCH that never sends "employee" at all still succeeds even though ?f=/?om= also
+        excludes "employee" from the response. Sparse-fieldset parameters shape the response only;
+        they do not make an absent field required on a partial update (issue #205). The
+        (None, None) case is the baseline this compares against: an ordinary PATCH with no
+        flex-fields query parameter at all succeeds the same way, which is what shows ?f=/?om= are
+        a genuine no-op here rather than coincidentally not breaking anything."""
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        e1 = Employee.objects.create(
+            user=user,
+            employee_number="abcd-1234",
+        )
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+
+        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query=query,
+            ),
+            data={"period_start": datetime.date(2024, 2, 16)},  # employee omitted entirely
+            format="json",
+        )
+
+        self.assert_response(response, 200)
+        # The write succeeds identically in all three cases, but the response narrows
+        # per-parameter exactly as it would on a read: ?f= restricts to the requested field,
+        # ?om= drops only "employee", and the no-param baseline includes it.
+        if param_name == "FIELDS_PARAM":
+            assert response.data == {"period_start": "2024-02-16"}, response.data
+        elif param_name == "OMIT_PARAM":
+            assert "employee" not in response.data, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        else:
+            assert response.data["employee"] == e1.pk, response.data
+            assert response.data["period_start"] == "2024-02-16", response.data
+        t1.refresh_from_db()
+        assert t1.period_start == datetime.date(2024, 2, 16)
+        assert t1.employee_id == e1.pk  # unchanged: never supplied, so the partial update left it alone
 
     def test_update_timesheet_with_non_existing_field(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -1219,6 +1377,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
             ),
             data={
+                "employee": e1.pk,
                 "period_start": datetime.date(2024, 2, 16),
                 "period_end": datetime.date(2024, 2, 25),
                 "une": "ssss",
@@ -1227,9 +1386,19 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
 
         self.assert_response(response, 400)
-        assert "period_end" in response.data
-        assert "employee" not in response.data
-        assert "une" in response.data
+        # ?f= no longer narrows the field set that validates the write, so "period_end" -- a real
+        # field left out of the requested subset -- validates normally instead of being rejected
+        # as an unknown field. The full-payload comparison confirms that: only "une" errors.
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            "une": [
+                ErrorDetail(
+                    "Invalid field.  Valid fields are available_actions, employee, "
+                    "formatted_name, id, object_revision, period_end, period_start, supervisor.",
+                    code="invalid",
+                )
+            ]
+        }, response.data
 
     def test_expand_with_existing_expands(self, api_client):
         user = self.users["test_my_user@domain.invalid"]
@@ -1399,6 +1568,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 },
             ),
             data={
+                # ?f= narrows the response, not validation, so the required "quantity" scalar
+                # must still be supplied even though the response won't include it.
+                "quantity": ci1.quantity,
                 "cart": cart.pk,
                 "product_option": {
                     "disabled": False,
@@ -1635,7 +1807,7 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def update_arguments(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "description": "Updated Description",
             "id": instance.id,
             "name": instance.name,
@@ -1645,7 +1817,7 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def expected_retrieve_response(self, page_data):
         instance = page_data.first()
         return {
-            "current_history_id": instance.current_history_id,
+            "object_revision": object_revision_of(instance),
             "description": instance.description,
             "id": instance.id,
             "name": instance.name,
@@ -1662,34 +1834,6 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
     def update_expected_update_response(self, expected_update_response, updated_instance):
         super().update_expected_update_response(expected_update_response, updated_instance)
         expected_update_response["formatted_name"] = expected_update_response["name"]
-
-    def test_retrieve_with_history_expand(self, page_data, authenticated_client, expected_retrieve_response):
-        instance = page_data.first()
-
-        detail_querystring = {
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "history,first_history_entry,last_history_entry"
-        }
-        response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
-
-        self.update_expected_retrieve_response(expected_retrieve_response, instance)
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert "first_history_entry" in response.data
-        assert "history" in response.data
-        assert "last_history_entry" in response.data
-
-        history = response.data["history"]
-        # history is ordered most-recent-first (history_date descending).
-        assert history[0]["history_id"] > history[1]["history_id"], f"history data: {history}"
-        assert response.data["last_history_entry"] == history[0], (
-            f"last_history_entry should be the most recent history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] == history[-1], (
-            f"first_history_entry should be the oldest history entry: {response.data}"
-        )
-        assert response.data["first_history_entry"] != response.data["last_history_entry"], (
-            f"first_history_entry and last_history_entry should differ after an update: {response.data}"
-        )
 
 
 @pytest.mark.django_db

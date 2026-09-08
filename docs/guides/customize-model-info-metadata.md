@@ -81,10 +81,6 @@ class SubmissionSerializer(VuedaSerializer):
 
 The generated `model_fields.submitted.display_choices` value is a list of `{"label": ..., "value": ...}` objects. These labels are display metadata only. They do not change serializer validation, model choices, or the editable widget selected by the client.
 
-::: info
-If your serializer inherits `VuedaHistorySerializer`, the same field also appears inside the `history`, `first_history_entry`, and `last_history_entry` expand descriptors in `model_expands`, since those embed the root model's own fields. `get_field_model_info` is applied there too, automatically, using the same override — you do not need to correct the field a second time for its appearance inside those three expands.
-:::
-
 ## Adding or Correcting an Expand Descriptor (`model_expands`)
 
 Override `get_expand_model_info` when a `Meta.expandable_fields` entry is backed by a `SerializerMethodField` rather than a real related serializer, so it has no model to derive field metadata from automatically. It receives the generated list of expand descriptors (one per `Meta.expandable_fields` entry) and must return a list in the same shape:

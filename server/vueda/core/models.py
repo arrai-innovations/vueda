@@ -201,7 +201,8 @@ def apply_vueda_feature_policy(sender, **kwargs):
         return
 
     unresolved = failed_sections(options.problems)
-    for name, section_options in options.items():
+    ordered = sorted(options.items(), key=lambda item: (item[1].section.contribute_order, item[0]))
+    for name, section_options in ordered:
         contribute = section_options.section.contribute
         if contribute is not None and name not in unresolved:
             contribute(sender, options)

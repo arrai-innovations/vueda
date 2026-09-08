@@ -484,7 +484,7 @@ class TestFormattedName:
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
         assert (
             "Cannot resolve keyword "
-            "'formatted_name' into field. Choices are: id, "
+            "'formatted_name' into field. Choices are: events, id, "
             "relatedobjectsaremissingdata, the_name_field"
         ) in response.data["serverStack"]
 
@@ -571,7 +571,12 @@ class TestModelInfoExcludeFieldsSerializerMixin:
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]
+        assert sorted(response.data["model_fields"].keys()) == [
+            "available_actions",
+            "formatted_name",
+            "id",
+            "object_revision",
+        ]
 
 
 @pytest.mark.django_db
@@ -621,7 +626,12 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
         assert response.data["model_ordering"] == []
         assert response.data["model_filtering"] == {}
         # The serializer-backed sections still resolve.
-        assert sorted(response.data["model_fields"].keys()) == ["available_actions", "formatted_name", "id"]
+        assert sorted(response.data["model_fields"].keys()) == [
+            "available_actions",
+            "formatted_name",
+            "id",
+            "object_revision",
+        ]
         assert response.data["model_expands"] == []
         assert sorted(perm["codename"] for perm in response.data["model_permissions"]) == [
             "create_noexpandablefieldsdata",

@@ -21,11 +21,11 @@ __all__ = (
 
 import warnings
 
+import pghistory
 from django.conf import settings
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
-from django.db.models import Q
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from rest_flex_fields import WILDCARD_VALUES
@@ -46,10 +46,17 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import annotate_formatted_name
+from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.history.actions import build_action_groups
+from vueda.history.queries import action_groups_for
+from vueda.history.queries import events_in_groups
+from vueda.history.revision import annotate_object_revision
+from vueda.history.revision import is_tracked
+from vueda.history.serializers.actions import HistoryActionGroupSerializer
 
 
 class WarningConfirmationMixin:
@@ -183,91 +190,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         Calls ``RowLevelPermissions.check_queryset`` and, when the model has a workflow,
         also annotates state permission info and calls ``check_queryset_workflow``.
         """
-        model = queryset.model
-        row_level_permissions = getattr(model, "RowLevelPermissions", None)
-
-        permission_name = perm_type
-        if perm_type in settings.PERMISSION_NAMES_MAPPING:
-            permission_name = settings.PERMISSION_NAMES_MAPPING[perm_type]
-
-        perm = f"{model._meta.app_label}.{permission_name}_{model._meta.model_name}"
-
-        if row_level_permissions is not None:
-            optional_q = row_level_permissions.check_queryset(
-                queryset,
-                perm,
-                self.request.user,
-                perm_type,
-            )
-            if isinstance(optional_q, Q):
-                queryset = queryset.filter(optional_q)
-            elif optional_q is False:
-                return queryset.none()
-            # else, optional_q is None or True, so we don't filter
-
-        # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
-        # Apply them even when the model does not define RowLevelPermissions.
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            from vueda.workflow.models import HasWorkflowModelMixin
-            from vueda.workflow.models import StatePermission
-            from vueda.workflow.models import Workflow
-
-            if issubclass(model, HasWorkflowModelMixin):
-                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-                if workflow:
-                    from django.contrib.contenttypes.models import ContentType
-                    from django.db.models import Exists
-                    from django.db.models import OuterRef
-
-                    codename = perm.rsplit(".", maxsplit=1)[-1]
-                    content_type = ContentType.objects.get_for_model(model)
-                    user = self.request.user
-
-                    state_denied = Exists(
-                        StatePermission.objects.filter(
-                            state=OuterRef("object_states_proxy__state"),
-                            state__workflow=workflow,
-                            permission__codename=codename,
-                            permission__content_type=content_type,
-                            group__in=user.groups.all(),
-                            grant_or_deny=False,
-                        )
-                    )
-                    state_granted = Exists(
-                        StatePermission.objects.filter(
-                            state=OuterRef("object_states_proxy__state"),
-                            state__workflow=workflow,
-                            permission__codename=codename,
-                            permission__content_type=content_type,
-                            group__in=user.groups.all(),
-                            grant_or_deny=True,
-                        )
-                    )
-                    queryset = queryset.annotate(
-                        _state_denied=state_denied,
-                        _state_granted=state_granted,
-                    )
-
-                    if user.has_perm(perm):
-                        queryset = queryset.filter(_state_denied=False)
-                    else:
-                        queryset = queryset.filter(_state_denied=False, _state_granted=True)
-
-                    if row_level_permissions is not None:
-                        workflow_q = row_level_permissions.check_queryset_workflow(
-                            queryset,
-                            perm,
-                            user,
-                            perm_type,
-                            "_state_denied",
-                            "_state_granted",
-                        )
-                        if isinstance(workflow_q, Q):
-                            queryset = queryset.filter(workflow_q)
-                        elif workflow_q is False:
-                            return queryset.none()
-
-        return queryset
+        return filter_rows_for_user(queryset, self.request.user, perm_type=perm_type)
 
     def get_column_info(self, queryset):
         """Return aggregated totals for any fields listed in ``column_totals``."""
@@ -524,7 +447,7 @@ def build_prefetch_plan(serializer, model):
             # queryset serving a prefetched relation clones it, discarding the cached prefetch
             # result and forcing one fresh query per row -- the exact regression this plan exists
             # to prevent.
-            related_queryset = annotate_formatted_name(related_model._default_manager.all())
+            related_queryset = annotate_object_revision(annotate_formatted_name(related_model._default_manager.all()))
             if child_select_related:
                 related_queryset = related_queryset.select_related(*child_select_related)
             if child_prefetch_related:
@@ -912,6 +835,48 @@ class VuedaViewSet(
 
     detail_args = ["pk"]
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Name what the request is doing inside the action the history middleware opened, so an
+        # event records "update" or "execute_transition" rather than only that a request happened.
+        # Called as a function rather than entered, this adds to an open action and does nothing
+        # outside one.
+        if self.action:
+            pghistory.context(action=self.action)
+
+    @classmethod
+    def get_extra_actions(cls):
+        """Drop the history endpoint for a model that records no history.
+
+        Every consumer of the extra actions reads this: the router that builds the routes, the
+        permitted-action list the client renders, and the model-info metadata. Gating here means an
+        opted-out model has no history route, no control, and no schema entry, rather than a route
+        that answers with an error.
+        """
+        extra_actions = super().get_extra_actions()
+        model = getattr(getattr(cls, "queryset", None), "model", None)
+        if model is None:
+            model = getattr(getattr(getattr(cls, "serializer_class", None), "Meta", None), "model", None)
+        if model is not None and not is_tracked(model):
+            extra_actions = [action for action in extra_actions if action.__name__ != "history_list"]
+        return extra_actions
+
+    @action(detail=True, methods=["get"])
+    def history_list(self, request, pk=None):
+        """Return this object's history as the user actions behind it.
+
+        A page is a page of actions. One action that wrote several rows stays whole, because the
+        grouping and the visibility filter both run in the database before the paginator sees
+        anything.
+        """
+        # get_object() authorizes the requested object, which is what makes its own events visible.
+        instance = self.get_object()
+        groups = action_groups_for(instance, request.user)
+        page = self.paginate_queryset(groups)
+        events = events_in_groups(instance, request.user, [group["group_key"] for group in page])
+        serializer = HistoryActionGroupSerializer(build_action_groups(instance, page, events), many=True)
+        return self.get_paginated_response(serializer.data)
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
@@ -1022,6 +987,7 @@ class VuedaViewSet(
         """
         queryset = super().get_queryset()
         queryset = annotate_formatted_name(queryset)
+        queryset = annotate_object_revision(queryset)
 
         if getattr(self, "action", None) in ("list", "retrieve"):
             serializer = self.get_serializer()

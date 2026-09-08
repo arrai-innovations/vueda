@@ -1,6 +1,7 @@
 """Coverage for the ``class Vueda`` model feature policy: resolution, inheritance, and checks."""
 
 import pytest
+from django.apps import apps
 from django.core.checks import Error
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import ImproperlyConfigured
@@ -21,12 +22,15 @@ from vueda.core.options import get_vueda_options
 
 
 @pytest.fixture
-def without_history_section(monkeypatch):
-    """Drop the History section registration, standing in for an installation without the app."""
+def without_workflow_section(monkeypatch):
+    """Drop the Workflow section registration, standing in for an installation without the app.
+
+    History is not a candidate: every supported configuration installs it.
+    """
     import vueda.core.features as features
 
     sections = dict(features._SECTIONS)
-    sections.pop("History")
+    sections.pop("Workflow")
     monkeypatch.setattr(features, "_SECTIONS", sections)
 
 
@@ -237,6 +241,12 @@ class TestContributors:
         assert "probe_note" not in [field.name for field in feature_models.ProbeProxy._meta.local_fields]
 
     def test_multi_table_children_receive_exact_policy_without_field_clashes(self):
+        """Model names here stay unique across the file.
+
+        History attaches a generated event model to the app's models module, and ``isolate_apps``
+        rolls back the app registry but not that module attribute. Reusing a model name in a second
+        test would collide with the event model the first test left behind.
+        """
         with isolate_apps("tests.features"):
 
             class EnabledParent(VuedaModel):
@@ -250,7 +260,7 @@ class TestContributors:
                 class Meta:
                     app_label = "features"
 
-            class DisabledChild(EnabledParent):
+            class DisabledMultiTableChild(EnabledParent):
                 class Vueda:
                     class Probe:
                         enabled = False
@@ -283,14 +293,14 @@ class TestContributors:
                     app_label = "features"
 
             assert EnabledParent.__dict__["probe_policy_label"] == "parent"
-            assert DisabledChild.__dict__["probe_policy_label"] is None
+            assert DisabledMultiTableChild.__dict__["probe_policy_label"] is None
             assert RelabelledChild.__dict__["probe_policy_label"] == "child"
             assert DisabledParent.__dict__["probe_policy_label"] is None
             assert EnabledChild.__dict__["probe_policy_label"] == "enabled-child"
-            assert "probe_note" not in [field.name for field in DisabledChild._meta.local_fields]
+            assert "probe_note" not in [field.name for field in DisabledMultiTableChild._meta.local_fields]
             assert "probe_note" not in [field.name for field in RelabelledChild._meta.local_fields]
             assert "probe_note" not in [field.name for field in EnabledChild._meta.local_fields]
-            assert not [error for error in DisabledChild.check() if error.id == "models.E006"]
+            assert not [error for error in DisabledMultiTableChild.check() if error.id == "models.E006"]
             assert not [error for error in RelabelledChild.check() if error.id == "models.E006"]
             assert not [error for error in EnabledChild.check() if error.id == "models.E006"]
 
@@ -317,15 +327,15 @@ class TestChecks:
         assert [error.id for error in errors] == ["vueda_core.E010"]
         assert "unknown feature section 'Telemetry'" in errors[0].msg
 
-    def test_a_known_section_reports_its_absent_app(self, without_history_section):
+    def test_a_known_section_reports_its_absent_app(self, without_workflow_section):
         with isolate_apps("tests.features"):
 
             class AbsentAppModel(VuedaModel):
                 name = models.CharField(max_length=255)
 
                 class Vueda:
-                    class History:
-                        enabled = False
+                    class Workflow:
+                        enabled = True
 
                 class Meta:
                     app_label = "features"
@@ -333,7 +343,7 @@ class TestChecks:
             errors = check_model_feature_declaration(AbsentAppModel)
 
         assert [error.id for error in errors] == ["vueda_core.E011"]
-        assert "'vueda.history' is not installed" in errors[0].msg
+        assert "'vueda.workflow' is not installed" in errors[0].msg
         assert "INSTALLED_APPS" in errors[0].hint
 
     def test_an_unknown_option_is_reported(self):
@@ -516,47 +526,83 @@ class TestFeatureRegistry:
         assert get_feature_sections()["Probe"] is PROBE_SECTION
 
 
-class TestTransitionalFeatureValidators:
-    """History and workflow integration still follows inheritance, so an explicit choice must match it.
+class TestHistoryPolicyValidation:
+    """A history policy that pghistory cannot honour must fail before it reaches registration."""
 
-    These validators, and the mixins they name, go away once the feature integrations derive from
-    this policy.
-    """
+    def test_a_composite_primary_key_is_reported_rather_than_raised(self):
+        """pghistory raises during model construction, which is too early for a system check to run."""
+        from tests.store.models import OrderItemCompositePK
+        from vueda.core.options import SectionOptions
+        from vueda.history.apps import HISTORY_SECTION
 
-    def test_history_opt_in_without_the_history_base_is_reported(self):
+        enabled = SectionOptions(HISTORY_SECTION, {"enabled": True, "exclude_fields": ()}, declared=["enabled"])
+        messages = HISTORY_SECTION.validate(OrderItemCompositePK, enabled)
+
+        assert len(messages) == 1
+        assert "composite primary key" in messages[0]
+
+    def test_an_opted_out_composite_primary_key_passes(self):
+        from tests.store.models import OrderItemCompositePK
+
+        assert check_model_feature_declaration(OrderItemCompositePK) == []
+        assert get_vueda_options(OrderItemCompositePK)["History"]["enabled"] is False
+
+    def test_excluding_an_unknown_field_is_reported(self):
         with isolate_apps("tests.features"):
 
-            class ClaimsHistory(VuedaModel):
+            class ExcludesNothing(VuedaModel):
                 name = models.CharField(max_length=255)
 
                 class Vueda:
                     class History:
-                        enabled = True
+                        exclude_fields = ("nope",)
 
                 class Meta:
                     app_label = "features"
 
-            errors = check_model_feature_declaration(ClaimsHistory)
+            errors = check_model_feature_declaration(ExcludesNothing)
 
         assert [error.id for error in errors] == ["vueda_core.E013"]
-        assert "does not subclass VuedaHistoryModel" in errors[0].hint
+        assert "does not have: ['nope']" in errors[0].hint
 
-    def test_history_opt_out_on_a_tracked_model_is_reported(self):
-        """Validate the section directly: building a tracked model here would also build a historical model."""
-        from tests.store.models import Customer
-        from vueda.core.options import SectionOptions
-        from vueda.history.apps import HISTORY_SECTION
+    def test_excluding_a_field_a_generated_field_reads_is_reported(self):
+        """formatted_name is generated from name, so dropping name would leave its expression short."""
+        with isolate_apps("tests.features"):
 
-        declared = SectionOptions(HISTORY_SECTION, {"enabled": False}, declared=["enabled"])
+            class ExcludesAGeneratedSource(VuedaModel):
+                name = models.CharField(max_length=255)
 
-        assert HISTORY_SECTION.validate(Customer, declared) == [
-            "Customer declares enabled = False but subclasses VuedaHistoryModel, which currently tracks "
-            "a model regardless of this policy. Stop subclassing VuedaHistoryModel as well."
-        ]
+                class Vueda:
+                    class History:
+                        exclude_fields = ("name",)
+
+                class Meta:
+                    app_label = "features"
+
+            errors = check_model_feature_declaration(ExcludesAGeneratedSource)
+
+        assert [error.id for error in errors] == ["vueda_core.E013"]
+        assert "formatted_name is a generated field reading ['name']" in errors[0].hint
+
+    def test_a_field_another_feature_contributes_is_tracked(self):
+        """History runs last, so an event model carries the fields earlier contributors added."""
+        tracked = [field.name for field in feature_models.ProbeTracked._meta.concrete_fields]
+        event_model = apps.get_model("features", "ProbeTrackedEvent")
+        event_fields = [field.name for field in event_model._meta.concrete_fields]
+
+        assert "probe_note" in tracked
+        assert "probe_note" in event_fields
 
     def test_an_undeclared_history_default_makes_no_claim(self):
         assert get_vueda_options(feature_models.PlainProbe)["History"]["enabled"] is True
         assert check_model_feature_declaration(feature_models.PlainProbe) == []
+
+
+class TestTransitionalFeatureValidators:
+    """Workflow integration still follows inheritance, so an explicit choice must match it.
+
+    This validator, and the mixin it names, goes away once workflow derives from this policy.
+    """
 
     def test_workflow_opt_in_without_the_workflow_mixin_is_reported(self):
         with isolate_apps("tests.features"):

@@ -13,21 +13,21 @@ This page explains the composition boundary and the observable failure surfaces 
 
 ## Boundary and Ownership
 
-All nested write behaviour in VUEDA flows through {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}. This mixin composes four concerns into a single inheritance chain: `UniqueFieldsMixin` (unique-together validation), `FlexFieldsSerializerMixin` (dynamic field inclusion/exclusion via `f`/`e` query parameters), `NestedCreateMixin`, and `NestedUpdateMixin` (nested relation create and update from `drf-writable-nested`). The standard VUEDA serializer bases (`VuedaSerializer` and `VuedaHistorySerializer`) both inherit from this mixin, so any serializer built on those bases participates in the nested write composition automatically.
+All nested write behaviour in VUEDA flows through {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}. This mixin composes four concerns into a single inheritance chain: `UniqueFieldsMixin` (unique-together validation), `FlexFieldsSerializerMixin` (dynamic field inclusion/exclusion via `f`/`e` query parameters), `NestedCreateMixin`, and `NestedUpdateMixin` (nested relation create and update from `drf-writable-nested`). The standard VUEDA serializer base, `VuedaSerializer`, inherits from this mixin, so any serializer built on it participates in the nested write composition automatically.
 
 The mixin is the single point where flex-field application, nested data propagation, reverse-relation extraction, and update sequencing are coordinated. Understanding its behaviour is necessary when debugging nested write failures, because the failure surface often involves the interaction between flex-field application and nested-write extraction rather than either concern in isolation.
 
 ## Flex + Nested Write Composition
 
-Flex-fields and nested writes operate on the same serializer field set but with different goals. Flex-`fields` control which fields are present during serialization and deserialization; they can add or remove fields based on `f` and `e` query parameters. Nested writes extract relation data from the incoming payload and delegate it to the child serializer `create`/`update` logic. The composition requires that the flex-field application happens before nested write extraction, so that the field set is stable when relation data is extracted.
+Flex-fields and nested writes operate on the same serializer field set but with different goals, and the mixin keeps them on opposite sides of validation. {@term Expand} (`e`) is a write-path concern: when a relation is named in `e`, the mixin swaps it for its nested serializer before deserialization. Sparse-fieldset selection (`f`/`om`) is a response-only concern: a write always validates against the serializer's full field set, and `f`/`om` narrow only the representation returned after `save()`; a required field they exclude from the response still validates fully if the body supplies it. Whether that field must be present in the body at all is a separate question, governed by the request method rather than by `f`/`om`: `create`/full `update` require it regardless of `f`/`om`, while a partial update leaves it optional under the normal partial-update rule, `f`/`om`-excluded or not. Nested writes extract relation data from the incoming payload and delegate it to the child serializer `create`/`update` logic.
 
-The mixin enforces this by performing flex-field application in `to_internal_value`, which runs before the nested write mixins' `create` and `update` methods. This ordering is not configurable; it is baked into the mixin chain's method resolution order.
+The mixin enforces the expand swap's ordering by performing it in `to_internal_value`, which runs before the nested write mixins' `create` and `update` methods. This ordering is not configurable; it is baked into the mixin chain's method resolution order. Sparse-fieldset narrowing runs later, in `to_representation`, which for a write happens after `save()`.
 
 ## View-Bound Flex Application
 
-Flex fields are applied only when the serializer is the view's top-level serializer class, and only once per serialization pass. The mixin tracks this with a `_flex_fields_rep_applied` flag. When `to_internal_value` runs, it checks whether the serializer is bound to the view (i.e., it is the root serializer, not a nested child) and whether flex fields have not already been applied. If both conditions are met, it applies flex fields; otherwise, it skips the application.
+Both the expand swap and sparse-fieldset narrowing are applied only when the serializer is the view's top-level serializer class -- never to a nested child, which already reflects whatever its parent decided for it. A nested child serializer will include whatever fields its class defines; it does not independently interpret `f`/`e`/`om` from the request's query parameters.
 
-This means nested serializers do not apply flex fields independently through this mixin. They receive the result of the root serializer’s flex-field application. A nested child serializer will include whatever fields are specified by the request's query parameters, or whatever fields its class defines if none are specified in the request's query parameters. Double-application of flex fields is treated as an error case, and nested serializers do not independently interpret `f`/`e` parameters.
+The expand swap, in `to_internal_value`, is naturally idempotent (it assigns dict entries rather than removing them), so it needs no double-application guard. Sparse-fieldset narrowing, in `to_representation`, does remove fields, so the mixin tracks it with a `_flex_fields_rep_applied` flag: the first `to_representation` call on an instance narrows the field set once and sets the flag, and a `ListSerializer` iterating many rows through the same child serializer instance skips reapplying it on every row.
 
 ## Nested Serializer Data Access
 
@@ -35,7 +35,7 @@ DRF does not automatically pass `initial_data` to nested serializer fields. VUED
 
 This propagation is necessary because some validation paths on nested serializers need access to the raw submitted payload, not just the output of `to_internal_value`. Without it, nested serializers that inspect `initial_data` for validation decisions would see stale or missing data.
 
-The propagation is conditional: only fields whose names are present in the incoming data receive `initial_data`. Fields that are absent from the payload (because the client omitted them, or because the flex-field application removed them) do not have `initial_data` set.
+The propagation is conditional: only fields whose names are present in the incoming data receive `initial_data`. Fields the client omitted from the payload do not have `initial_data` set, and neither does a relation left as a flat PK field because `e` did not name it -- a plain PK field is not a serializer instance, so the propagation loop's `isinstance` check skips it.
 
 ## Reverse Relation Write Filtering
 
@@ -67,7 +67,7 @@ This sequence has diverged from the default, due to a bug discovered in drf-writ
 
 **Readonly serializer payloads are silently dropped.** Reverse relation data targeting a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` field is excluded from nested write extraction. The request succeeds, but the nested data has no effect. Symptom: parent object saves correctly, child objects remain unchanged.
 
-**Double flex-field application is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate application (through incorrect serializer reuse or manual flag manipulation), flex fields will not be applied at all. Symptom: serializers behave as though no `f`/`e` parameters were passed.
+**Double application of sparse-fieldset narrowing is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate `to_representation` call (through incorrect serializer reuse or manual flag manipulation), `f`/`om`/`e` will not narrow the representation at all. Symptom: responses include every field regardless of `f`/`om`, as though those parameters were not passed. This does not affect write validation or the `e` expand swap, which do not consult this flag.
 
 **Unique validation timing in nested flows.** `UniqueFieldsMixin` is composed before the nested `create`/`update` mixins in the mixin chain. Unique-together validation runs at the serializer validation phase, before nested objects are persisted. For validation rules that depend on the final state of nested relations (e.g., uniqueness constraints that span parent and child), the validation may evaluate against stale database state.
 

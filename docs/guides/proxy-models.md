@@ -15,7 +15,7 @@ This guide assumes you already have a concrete model using `VuedaHistoryModel`. 
 
 ## How History Tracking Works for Proxy Models
 
-Django proxy models share the concrete parent's database table, so they share history records too. When you save a proxy instance, the save is recorded in the parent's historical table (for example, a proxy of `Distributor` writes to `HistoricalDistributor`). The `history`, `first_history_entry`, and `last_history_entry` expands all resolve to the parent's historical model.
+Django proxy models share the concrete parent's database table, so they share history records too. When you save a proxy instance, the save is recorded in the parent's historical table (for example, a proxy of `Distributor` writes to `HistoricalDistributor`). The `history-list` endpoint on a proxy returns the events recorded against the concrete model's row.
 
 This sharing is possible because VUEDA uses `ProxyAwareHistoricalRecords` in `VuedaHistoryModel` instead of vanilla `HistoricalRecords`. With the default `inherit=True` option, django-simple-history would create a separate `HistoricalXxxProxy` model for each proxy class and try to add a `history_records` reverse accessor to the proxy. Because the proxy inherits that accessor from the concrete parent, Django raises a reverse accessor clash at startup. `ProxyAwareHistoricalRecords` intercepts proxy models in `finalize()`, skips creating the duplicate historical model, and instead does three things:
 
@@ -77,24 +77,24 @@ Running this migration creates the `ContentType` record for the proxy model and 
 
 ## Defining the Serializer
 
-Use `VuedaHistorySerializer` and point `Meta.model` at the proxy class. The field list can be identical to the parent's serializer or a subset:
+Use `VuedaSerializer` and point `Meta.model` at the proxy class. The field list can be identical to the parent's serializer or a subset:
 
 ```python
-from vueda.history.serializers import VuedaHistorySerializer
+from vueda.core.serializers import VuedaSerializer
 from .models import DistributorProxy
 
 
-class DistributorProxySerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class DistributorProxySerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = DistributorProxy
         fields = [
             "id",
             "name",
             "description",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
 ```
 
-`VuedaHistorySerializer.Meta.fields` appends `formatted_name`, `available_actions`, `current_history_id`, and the history expandable fields.
+`VuedaSerializer.Meta.fields` appends `formatted_name`, `available_actions`, and `object_revision`.
 
 ## Defining the FilterSet
 
@@ -122,13 +122,13 @@ class DistributorProxyFilterSet(VuedaFilterSet):
 Point the viewset at the proxy model and proxy serializer. Override `get_allowed_extra_actions` if the proxy needs different action visibility than the parent:
 
 ```python
-from vueda.history.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaViewSet
 from .filtersets import DistributorProxyFilterSet
 from .models import DistributorProxy
 from .serializers import DistributorProxySerializer
 
 
-class DistributorProxyViewSet(VuedaHistoryViewSet):
+class DistributorProxyViewSet(VuedaViewSet):
     queryset = DistributorProxy.objects.all()
     serializer_class = DistributorProxySerializer
     filterset_class = DistributorProxyFilterSet
@@ -178,7 +178,7 @@ read_perm = Permission.objects.get(content_type=content_type, codename="read_dis
 ```
 
 ::: info
-History records do not have their own `ContentType`. The history expand (`first_history_entry`, `history`, `last_history_entry`) returns records from the parent's historical model. The `app_label` and `model` values in the expand metadata will reflect the parent's historical model name (for example `historicaldistributor`), not the proxy.
+Events do not have their own `ContentType`. The `history-list` endpoint on a proxy reads the concrete model's event table, and each event's `model` names the concrete model (for example `myapp.Distributor`), not the proxy.
 :::
 
 ## Relevant Implementation Surface
@@ -187,6 +187,6 @@ History records do not have their own `ContentType`. The history expand (`first_
     - {@api py:class:vueda.core.simple_history.ProxyAwareHistoricalRecords}
     - {@api py:class:vueda.history.models.VuedaHistoryModel}
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
-    - {@api py:class:vueda.history.serializers.VuedaHistorySerializer}
-    - {@api py:class:vueda.history.viewsets.VuedaHistoryViewSet}
+    - {@api py:class:vueda.core.serializers.VuedaSerializer}
+    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
     - {@api py:function:vueda.info.registration.register}

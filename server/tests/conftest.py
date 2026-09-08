@@ -23,6 +23,8 @@ from psycopg import connect
 from psycopg import sql
 from rest_framework.test import APIClient
 
+from tests.utils import object_revision_of
+
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
 
@@ -51,6 +53,44 @@ def api_client():
     Reuse the Django REST Framework API client for all tests intelligently (xdist will make a new one for each worker).
     """
     return APIClient()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def discard_orphaned_event_models():
+    """Drop event models that history registered for a model ``isolate_apps`` has since rolled back.
+
+    ``pghistory.track`` attaches the event model it generates to the tracked model's app ``models``
+    module and registers its triggers in the process-wide ``pgtrigger`` registry. ``isolate_apps``
+    restores the app registry when its block exits, but restores neither of those, so the generated
+    class and its trigger names outlive the model they track. A later test that reuses the model
+    name then fails, because pghistory refuses to overwrite an existing module attribute and
+    pgtrigger refuses a duplicate trigger name on a table.
+
+    Removing only the orphans keeps both protections intact for a real name collision.
+    """
+    yield
+
+    from django.apps import apps
+    from pgtrigger import registry as pgtrigger_registry
+
+    def is_orphaned(model):
+        app_models = apps.all_models.get(model._meta.app_label, {})
+        return app_models.get(model._meta.model_name) is not model
+
+    for app_config in apps.get_app_configs():
+        models_module = getattr(app_config, "models_module", None)
+        if models_module is None:
+            continue
+        registered = apps.all_models[app_config.label]
+        for name, value in list(vars(models_module).items()):
+            if not isinstance(value, type) or getattr(value, "pgh_tracked_model", None) is None:
+                continue
+            if registered.get(name.lower()) is not value:
+                delattr(models_module, name)
+
+    for uri, (model, _trigger) in list(pgtrigger_registry._registry.items()):
+        if is_orphaned(model):
+            pgtrigger_registry.delete(uri)
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -230,7 +270,7 @@ class BaseTestListModelViewSet:
 
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_list(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "current_history_id", "formatted_name"}.union(self.list_keys_arguments)
+        keys = {"id", "object_revision", "formatted_name"}.union(self.list_keys_arguments)
 
         # Do we have a workflow?
         if hasattr(self.model, "workflow"):
@@ -243,7 +283,7 @@ class BaseTestListModelViewSet:
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        # Get the index of the record we are trying to validate, so we know it has a current_history_id.
+        # Get the index of the record we are trying to validate, so we know it has a revision.
         # The only reason this worked before, was because there was no object
         # with a name alphabetically before 'Distributor A'.  There is now.
         response_info = response.json()
@@ -268,8 +308,8 @@ class BaseTestListModelViewSet:
         # If the index is still none, then we need the results to figure out why.
         assert index_of_page_data_arguments_item is not None, response_info["results"]
 
-        current_history_id = response_info["results"][index_of_page_data_arguments_item]["current_history_id"]
-        assert current_history_id is not None
+        object_revision = response_info["results"][index_of_page_data_arguments_item]["object_revision"]
+        assert object_revision is not None
         assert keys == set(response_info["results"][index_of_page_data_arguments_item].keys())
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
@@ -294,7 +334,7 @@ class BaseTestCreateModelViewSet:
     def update_expected_create_response(self, expected_create_response, new_instance):
         expected_create_response.update(
             {
-                "current_history_id": new_instance.history.latest().history_id,
+                "object_revision": object_revision_of(new_instance),
                 "id": new_instance.id,
             }
         )
@@ -377,7 +417,7 @@ class BaseTestUpdateModelViewSet:
         raise NotImplementedError
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
-        expected_update_response["current_history_id"] = updated_instance.history.latest().history_id
+        expected_update_response["object_revision"] = object_revision_of(updated_instance)
 
         # Do we have a workflow?
         if hasattr(updated_instance, "workflow") and "workflow_state_code" not in expected_update_response:

@@ -5,10 +5,10 @@ from tests.timesheet import filtersets
 from tests.timesheet import models
 from tests.timesheet import serializers
 from vueda.core import viewsets
-from vueda.history.viewsets import VuedaHistoryViewSet
+from vueda.core.viewsets import VuedaViewSet
 
 
-class TimesheetViewSet(VuedaHistoryViewSet):
+class TimesheetViewSet(VuedaViewSet):
     queryset = models.Timesheet.objects.all()
     serializer_class = serializers.TimesheetSerializer
     filterset_class = filtersets.TimesheetFilterSet
@@ -64,7 +64,7 @@ class TimesheetWithToAttrPrefetchedEntriesViewSet(viewsets.VuedaViewSet):
     permit_list_expands = ["entries"]
 
 
-class TimesheetEntryViewSet(VuedaHistoryViewSet):
+class TimesheetEntryViewSet(VuedaViewSet):
     queryset = models.TimesheetEntry.objects.all()
     serializer_class = serializers.TimesheetEntrySerializer
     column_totals = ["hours"]

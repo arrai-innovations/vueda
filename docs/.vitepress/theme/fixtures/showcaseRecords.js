@@ -389,68 +389,130 @@ function withServerFields(record, availableActions, validTransitions) {
 }
 
 /**
- * Revisions for the `ViewHistoryList` demos, in the shape the `history_list` action returns.
+ * Actions for the `ViewHistoryList` demos, in the shape the `history_list` action returns.
  * Newest first.
  *
  * Keys stay snake_case: record payloads are pushed through untouched and read by their server
- * names. `history_id` is the pk (`ViewHistoryList` sets `pkKey: "history_id"`), and a revision
- * with no `num_changes` renders as the creating revision rather than a list of field changes.
+ * names. One result is one action; `id` is the pk (`ViewHistoryList` sets `pkKey: "id"`), and it
+ * is the action's id, or the lone event's id for a write recorded outside any action. An event
+ * with no `changes` renders as its type (created or deleted) rather than as a list of field
+ * changes, and a referenced row arrives as `{ id, display, missing }`.
  *
  * @type {object[]}
  */
 export const CUSTOMER_HISTORY = [
     {
-        history_id: 5,
-        history_date: "2026-08-14T15:22:04Z",
-        history_type: "~",
-        history_user: "Mara Tani",
-        history_change_reason: "Upgraded after the Q3 review.",
-        history_relation: "customer",
-        num_changes: 2,
-        changes: [
-            { field: "tier", old: "standard", new: "enterprise" },
-            { field: "mrr", old: "12400.00", new: "18400.00" },
+        id: "0e7b2c9a-4d61-4f3e-9b8a-1c2d3e4f5a6b",
+        action_id: "0e7b2c9a-4d61-4f3e-9b8a-1c2d3e4f5a6b",
+        recorded_at: "2026-08-14T15:22:04Z",
+        kind: "request",
+        label: "update",
+        actor: { id: 3, display: "Mara Tani", missing: false },
+        events: [
+            {
+                id: "showcase.Customer:5",
+                model: "showcase.Customer",
+                object_id: "1",
+                relation: "self",
+                type: "updated",
+                recorded_at: "2026-08-14T15:22:04Z",
+                changes: [
+                    { field: "tier", old: "standard", new: "enterprise" },
+                    { field: "mrr", old: "12400.00", new: "18400.00" },
+                ],
+            },
+            {
+                id: "showcase.Contract:41",
+                model: "showcase.Contract",
+                object_id: "41",
+                relation: "related",
+                type: "created",
+                recorded_at: "2026-08-14T15:22:04Z",
+                changes: [],
+            },
         ],
     },
     {
-        history_id: 4,
-        history_date: "2026-06-02T11:08:41Z",
-        history_type: "~",
-        history_user: "Jordan Reyes",
-        history_change_reason: "",
-        history_relation: "customer",
-        num_changes: 1,
-        changes: [{ field: "owner", old: "jr", new: "mt" }],
+        id: "7f1a9d3c-2b5e-4a8f-8c7d-9e0f1a2b3c4d",
+        action_id: "7f1a9d3c-2b5e-4a8f-8c7d-9e0f1a2b3c4d",
+        recorded_at: "2026-06-02T11:08:41Z",
+        kind: "request",
+        label: "update",
+        actor: { id: 5, display: "Jordan Reyes", missing: false },
+        events: [
+            {
+                id: "showcase.Customer:4",
+                model: "showcase.Customer",
+                object_id: "1",
+                relation: "self",
+                type: "updated",
+                recorded_at: "2026-06-02T11:08:41Z",
+                changes: [
+                    {
+                        field: "owner",
+                        old: { id: 5, display: "Jordan Reyes", missing: false },
+                        new: { id: 3, display: "Mara Tani", missing: false },
+                    },
+                ],
+            },
+        ],
     },
     {
-        history_id: 3,
-        history_date: "2026-03-19T09:47:15Z",
-        history_type: "~",
-        history_user: "Mara Tani",
-        history_change_reason: "",
-        history_relation: "customer",
-        num_changes: 1,
-        changes: [{ field: "notes", old: "", new: "Renewal review each March." }],
+        id: "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+        action_id: "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+        recorded_at: "2026-03-19T09:47:15Z",
+        kind: "task",
+        label: "showcase.tasks.sync_notes",
+        actor: null,
+        events: [
+            {
+                id: "showcase.Customer:3",
+                model: "showcase.Customer",
+                object_id: "1",
+                relation: "self",
+                type: "updated",
+                recorded_at: "2026-03-19T09:47:15Z",
+                changes: [{ field: "notes", old: "", new: "Renewal review each March." }],
+            },
+        ],
     },
     {
-        history_id: 2,
-        history_date: "2025-11-27T17:31:52Z",
-        history_type: "restored",
-        history_user: "Priya Subramanian",
-        history_change_reason: "Restored from the archive at the client's request.",
-        history_relation: "customer",
-        num_changes: 0,
-        changes: [],
+        id: "a1b2c3d4-e5f6-4a7b-9c8d-0e1f2a3b4c5d",
+        action_id: "a1b2c3d4-e5f6-4a7b-9c8d-0e1f2a3b4c5d",
+        recorded_at: "2025-11-27T17:31:52Z",
+        kind: "request",
+        label: "update",
+        actor: { id: 9, display: null, missing: true },
+        events: [
+            {
+                id: "showcase.Customer:2",
+                model: "showcase.Customer",
+                object_id: "1",
+                relation: "self",
+                type: "updated",
+                recorded_at: "2025-11-27T17:31:52Z",
+                changes: [{ field: "archived", old: true, new: false }],
+            },
+        ],
     },
     {
-        history_id: 1,
-        history_date: "2025-11-04T13:12:00Z",
-        history_type: "+",
-        history_user: "Linnea Borg",
-        history_change_reason: "",
-        history_relation: "customer",
-        num_changes: 0,
-        changes: [],
+        id: "showcase.Customer:1",
+        action_id: null,
+        recorded_at: "2025-11-04T13:12:00Z",
+        kind: null,
+        label: null,
+        actor: null,
+        events: [
+            {
+                id: "showcase.Customer:1",
+                model: "showcase.Customer",
+                object_id: "1",
+                relation: "self",
+                type: "created",
+                recorded_at: "2025-11-04T13:12:00Z",
+                changes: [],
+            },
+        ],
     },
 ];
 
@@ -479,7 +541,7 @@ export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfig
  * @param {object} [options]
  * @param {string} [options.app] - App label the demo mounts under.
  * @param {object[]} [options.records] - Rows the list and detail endpoints serve.
- * @param {object[]} [options.history] - Entries the object-history endpoint serves.
+ * @param {object[]} [options.history] - Action groups the history endpoint serves.
  * @param {(context: import('./demoApi.js').DemoRequestContext) => any} [options.onDelete] -
  *   Overrides the delete response; default is 204 with the rows left untouched, since
  *   each demo remounts against the pristine fixture anyway.
@@ -530,7 +592,7 @@ export function customerScenario({
  * @param {string} options.app - App label, as it appears in the URL.
  * @param {string} options.model - Model name, as it appears in the URL.
  * @param {object[]} options.records - Rows to serve.
- * @param {object[]} [options.history] - Object-history entries to serve.
+ * @param {object[]} [options.history] - Action groups the history endpoint serves.
  * @param {Function} [options.onDelete] - Custom delete handler.
  * @param {object[]} [options.transitions] - Workflow transitions the model offers. An
  *   empty array is the answer for a model with no workflow, and is what keeps ViewList
@@ -631,7 +693,7 @@ export function modelRoutes({
             },
         },
         {
-            // `ViewHistoryList` reads its revisions from a detail action on the model, not from
+            // `ViewHistoryList` reads its action groups from a detail action on the model, not from
             // the `object-history` url: its target is `{ app, model, pk, action: "history_list" }`
             // (`client/lib/views/ViewHistoryList.vue`).
             method: "GET",

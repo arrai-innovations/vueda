@@ -51,6 +51,10 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Manage Groups and Generate Group Migrations](manage-groups.md): Add, rename, and remove groups through the permission overview UI, then capture those changes as a replayable migration.
 - [Use the Permissions and Workflow Overview](permissions-workflow-overview.md): Audit group and permission assignments across all registered models, and inspect what a specific user can access.
 
+## Model History
+
+- [Purge Model History Rows](purge-model-history.md): Delete event rows past their retention window through the append-only trigger.
+
 ## Async Work and Integrations
 
 - [Run Actions in the VUEDA Dispatch Queue (VDQ)](vdq-actions.md): Queue long-running work and report status.

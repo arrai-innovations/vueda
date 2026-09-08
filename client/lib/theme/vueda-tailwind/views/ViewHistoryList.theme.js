@@ -41,7 +41,12 @@ patchTheme({
                 "data-[empty=true]:italic data-[empty=true]:text-muted-foreground",
                 "data-[empty=true]:bg-transparent",
                 "data-[empty=true]:before:content-['·'] data-[empty=true]:before:text-muted-foreground",
+                "data-[missing=true]:italic data-[missing=true]:text-muted-foreground",
             ],
+        },
+        /** Field name shown inside a diff chip in the card layout, where the chips of one event stack in a single cell and the table's Field column is absent. Muted and non-mono so the value beside it stays the primary token. */
+        diffField: {
+            class: ["font-sans font-medium text-muted-foreground after:content-[':']"],
         },
         /** Empty-state card shown when the model has no recorded history. Card-toned with a soft border and 48 px vertical padding so the panel reads as a deliberate state, not an error; the icon / title / description trio inside provides the recovery messaging. */
         empty: {
@@ -81,9 +86,40 @@ patchTheme({
         },
         /** Actor-name fragment next to the avatar chip. Uses the supporting type token at 500 / foreground so the name reads as the primary value in the cell. */
         cellUserName: {
-            class: ["text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground"],
+            class: [
+                "text-[length:var(--vueda-text-supporting)] font-medium leading-tight text-foreground",
+                "data-[missing=true]:italic data-[missing=true]:font-normal data-[missing=true]:text-muted-foreground",
+            ],
         },
-        /** History-type pill ("Created", "Updated", "Deleted", "Restored") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive, restored = warning); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
+        /** Action-kind pill ("request", "task", "command", "system") in the Kind column. The vocabulary is open, so the base recipe is a neutral muted tag and `data-kind` adds a tone only for the values VUEDA defines; an unrecognized kind still renders as itself in the neutral recipe. */
+        kindPill: {
+            class: [
+                "inline-flex items-center rounded-full hairline px-2 py-0.5",
+                "text-[10.5px] font-semibold uppercase tracking-wide leading-none",
+                "bg-muted/40 text-muted-foreground",
+
+                // Data attribute states.
+                "data-[kind=request]:text-foreground",
+                "data-[kind=task]:[--vueda-hairline-color:color-mix(in_oklab,var(--info)_25%,transparent)]",
+                "data-[kind=task]:bg-[color-mix(in_oklab,var(--info)_8%,transparent)]",
+                "data-[kind=task]:text-info",
+                "data-[kind=command]:[--vueda-hairline-color:color-mix(in_oklab,var(--warning)_30%,transparent)]",
+                "data-[kind=command]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)]",
+                "data-[kind=command]:text-warning",
+            ],
+        },
+        /** Model cell naming the row an event wrote. `data-relation="self"` is the requested object and renders as plain foreground text; `data-relation="related"` is another row that references it and renders muted, with the object id beside it on {@api theme-key:ViewHistoryList.cellModelObject}. */
+        cellModel: {
+            class: [
+                "inline-flex items-baseline gap-1 text-[12px] leading-[1.3] text-foreground",
+                "data-[relation=related]:text-muted-foreground",
+            ],
+        },
+        /** Object id fragment after a related row's model name. Mono at 11 px so `#1204` reads as an identifier rather than prose. */
+        cellModelObject: {
+            class: ["font-mono text-[11px] text-muted-foreground"],
+        },
+        /** History-type pill ("Created", "Updated", "Deleted") rendered in the history-type column. `data-kind` selects the tonal recipe (created = success, updated = info, deleted = destructive); unknown values fall back to the raw display value via the slot fallback in the consumer, not this recipe. Small uppercase label with a 12 px leading icon so the pill reads as a category tag, not a button. */
         typePill: {
             class: [
                 "inline-flex items-center gap-1 rounded-full hairline px-2 py-0.5",
@@ -100,9 +136,6 @@ patchTheme({
                 "data-[kind=deleted]:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_25%,transparent)]",
                 "data-[kind=deleted]:bg-[color-mix(in_oklab,var(--destructive)_8%,transparent)]",
                 "data-[kind=deleted]:text-destructive",
-                "data-[kind=restored]:[--vueda-hairline-color:color-mix(in_oklab,var(--warning)_30%,transparent)]",
-                "data-[kind=restored]:bg-[color-mix(in_oklab,var(--warning)_10%,transparent)]",
-                "data-[kind=restored]:text-warning",
             ],
         },
         /** Meta strip above the grid: filter slot on the left, layout toggle on the right. Muted-10 wash and a bottom hairline so the strip reads as supporting chrome rather than its own band; kept light because the history view surfaces only a filter slot and a layout toggle, not a full control strip. */

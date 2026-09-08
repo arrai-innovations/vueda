@@ -39,6 +39,10 @@ from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
+from vueda.history.revision import REVISION_ANNOTATION
+from vueda.history.revision import ObjectRevisionField
+from vueda.history.revision import annotate_object_revision
+from vueda.history.revision import is_tracked
 from vueda.info.registration import get_serializer_for_model
 
 
@@ -160,16 +164,48 @@ class FlexFieldsWriteableNestedSerializerMixin(
 
         return super().apply_flex_fields(fields, flex_options)
 
-    def to_internal_value(self, data):
+    def to_representation(self, instance):
         """
-        We want to apply flex fields to the serializer fields, but only if the
-        serializer is being used in a view. We don't want to apply flex fields
-        to the serializer fields if the serializer is being used as a nested
-        serializer, because it should already have the flex fields applied.
-        Double applying flex fields to the serializer fields will cause an error.
+        ``?f=``/``?om=`` (``_flex_options_rep_only``, sourced from query params) narrow the
+        representation only. Applying them here, rather than in ``to_internal_value``, keeps a
+        write validating against the serializer's full field set while still narrowing the
+        response a write returns, since ``to_representation`` runs after ``save()``.
+
+        ``fields=``/``omit=`` passed as serializer kwargs (``_flex_options_base``) are a
+        different entry point: ``get_fields()`` applies them before either
+        ``to_internal_value`` or ``to_representation`` runs, so they narrow validation and
+        representation alike. That is unchanged and deliberate -- a caller constructing a
+        serializer with explicit kwargs is opting in to restricting both directions, unlike a
+        client shaping a response with a query parameter.
+
+        Delegates the view-bound check and the actual application to
+        ``ensure_flex_fields_applied``, the same helper a caller like
+        ``VuedaViewSet.get_queryset`` uses to resolve ``.fields`` before an instance is ever
+        serialized (for prefetch planning). Both call sites must agree on when application is
+        safe and on the ``_flex_fields_rep_applied`` double-application guard, so that logic
+        lives in one place rather than two copies that could drift.
         """
         if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
             ensure_flex_fields_applied(self)
+        return super().to_representation(instance)
+
+    def to_internal_value(self, data):
+        """
+        ``?e=`` (expand) names relations whose payload is a nested object rather than a flat
+        PK, so each expanded relation is swapped for its nested serializer here, before
+        deserialization, to accept that shape. See the nested-writable-inlines guide for the
+        query-param contract; this half of flex-field handling is independent of sparse-fieldset
+        narrowing and stays on the write path.
+
+        ``?f=``/``?om=`` are not applied here. They narrow the representation only, in
+        ``to_representation`` (via ``ensure_flex_fields_applied``), so a required field they
+        exclude still fails validation instead of silently losing its validator. Deserialization
+        must not call ``ensure_flex_fields_applied`` for this reason: that helper runs the full
+        ``apply_flex_fields``, sparse-fieldset removal included, which is exactly what would
+        drop the validator.
+        """
+        if "view" in self.context and isinstance(self, self.context["view"].get_serializer_class()):
+            self._expand_fields_for_write(self.fields, self._flex_options_rep_only)
 
         # Django REST Framework does not automatically pass `initial_data` to nested serializers.
         # Some nested serializers may need access to `initial_data` for validation,
@@ -179,6 +215,24 @@ class FlexFieldsWriteableNestedSerializerMixin(
             if isinstance(field, serializers.BaseSerializer) and field_name in initial_data:
                 field.initial_data = initial_data[field_name]
         return super().to_internal_value(data)
+
+    def _expand_fields_for_write(self, fields, flex_options):
+        """
+        Swap each ``?e=`` relation for its nested serializer, the expand half of
+        ``apply_flex_fields``, without its sparse-fieldset removal -- a write validates every
+        field regardless of ``?f=``/``?om=``, so removal has no place on this path. Nested
+        ``?f=``/``?om=`` selectors for the expanded relation (e.g. ``f=employee.name``) are not
+        passed down either, for the same reason: they must not narrow the nested serializer's
+        own validation. ``to_representation`` re-swaps the relation with a fresh nested
+        serializer that does carry them, for the response.
+        """
+        expand_fields, next_expand_fields = split_levels(flex_options["expand"])
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = self._expandable_fields.keys()
+
+        for name in expand_fields:
+            if name in self._expandable_fields:
+                fields[name] = self._make_expanded_field_serializer(name, next_expand_fields, {}, {})
 
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
@@ -563,10 +617,23 @@ class VuedaListSerializer(serializers.ListSerializer):
 
     def to_representation(self, data):
         child_model = getattr(getattr(self.child, "Meta", None), "model", None)
-        if child_model and hasattr(data, "annotate"):
-            existing = getattr(getattr(data, "query", None), "annotations", {})
-            if "formatted_name" not in existing:
-                data = annotate_formatted_name(data)
+        if child_model:
+            # A relation arrives as its manager. Resolve it the way the parent does, because a
+            # manager reports no annotations and no result cache, so every check below would say
+            # "not yet done" and annotate a prefetched relation into a fresh query per row.
+            if hasattr(data, "all"):
+                data = data.all()
+            if hasattr(data, "annotate"):
+                existing = getattr(getattr(data, "query", None), "annotations", {})
+                # Annotating a queryset that has already run clones it and discards the prefetch
+                # cache. A relation the project prefetched itself arrives that way, so leave it be;
+                # its rows publish no revision.
+                already_fetched = getattr(data, "_result_cache", None) is not None
+                if not already_fetched:
+                    if "formatted_name" not in existing:
+                        data = annotate_formatted_name(data)
+                    if REVISION_ANNOTATION not in existing:
+                        data = annotate_object_revision(data)
         return super().to_representation(data)
 
 
@@ -585,6 +652,40 @@ class VuedaSerializer(
 
     available_actions = AvailableActionsField()
     formatted_name = serializers.ReadOnlyField(style={"hidden": True})
+    object_revision = ObjectRevisionField()
+
+    def get_fields(self):
+        fields = super().get_fields()
+        model = getattr(getattr(self, "Meta", None), "model", None)
+        if model is not None and not is_tracked(model):
+            # An opted-out model publishes no revision, because it records nothing to revise.
+            fields.pop("object_revision", None)
+        return fields
+
+    def _reload_with_revision(self, instance):
+        """Re-read a written row so its revision annotation is present.
+
+        A create or update returns the instance the write produced, which carries no annotation.
+        The nested writable path reuses one serializer class for parent and child, so the view's
+        queryset may belong to a different model than the instance; fall back to the instance's own
+        manager in that case.
+        """
+        if not is_tracked(type(instance)):
+            return instance
+        model = type(instance)
+        view = self.context.get("view")
+        view_queryset = view.get_queryset() if view is not None else None
+        queryset = view_queryset if view_queryset is not None and view_queryset.model is model else None
+        if queryset is None:
+            queryset = annotate_object_revision(model._default_manager.all())
+        reloaded = queryset.filter(pk=instance.pk).first()
+        return reloaded if reloaded is not None else instance
+
+    def create(self, validated_data):
+        return self._reload_with_revision(super().create(validated_data))
+
+    def update(self, instance, validated_data):
+        return self._reload_with_revision(super().update(instance, validated_data))
 
     def get_warnings(self):
         """
@@ -620,7 +721,7 @@ class VuedaSerializer(
 
     class Meta:
         expandable_fields = {}
-        fields = ["formatted_name", "available_actions"]
+        fields = ["formatted_name", "available_actions", "object_revision"]
         list_serializer_class = VuedaListSerializer
 
 

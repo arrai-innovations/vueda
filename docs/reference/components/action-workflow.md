@@ -356,18 +356,19 @@ The current state is surfaced in a tinted strip below the title bar so there is 
 
 ## ViewHistoryList
 
-Audit trail for a single object. Each revision groups the fields it changed: the first row
-carries the metadata (revision, timestamp, reason, type, user) and a left stripe ties the
-sibling rows to it. A meta strip above the grid toggles between table and card layouts, and a
-pagination footer follows.
+Audit trail for a single object, presented as the actions that produced it. One action groups
+every event it wrote that touches this object, and each event lists its field changes. The first
+row of an action carries its metadata (when, who, kind, action name), the first row of each event
+names the model and event type, and a left stripe ties the rows of one action together. A meta
+strip above the grid toggles between table and card layouts, and a pagination footer follows.
 
-The demo below is the live component. The revisions come from the offline `history_list`
-endpoint, so the grouping, the diff cells, and the type pills are the framework's own output.
-Use the Table and Cards buttons to switch layouts.
+The demo below is the live component. The actions come from the offline `history_list` endpoint,
+so the grouping, the diff cells, and the pills are the framework's own output. Use the Table and
+Cards buttons to switch layouts.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1 · 5 revisions · live ViewHistoryList</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">model="customer" · pk=1 · 5 actions · live ViewHistoryList</header>
   <ModelDemo
     :view="() => import('@vueda/views/ViewHistoryList.vue')"
     :app="historyScenario.app"
@@ -379,9 +380,10 @@ Use the Table and Cards buttons to switch layouts.
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>columns: not the model's fields. `ViewHistoryList` builds them from the model info's <code>history</code> expand, then adds Field, Old, and New itself. The <code>fields</code> prop picks and orders from that set</span>
-    <span>revision grouping: one row per changed field, with <code>data-rev-start</code> on the first and <code>data-rev-child</code> on its siblings. {@api theme-key:ViewHistoryList} paints the stripe from those attributes, so the grouping survives a re-skin</span>
-    <span>type pills: the raw django-simple-history codes (<code>+</code>, <code>~</code>, <code>-</code>) and their spelled-out forms both map to a tone and an icon; an unknown value falls through and renders as itself</span>
+    <span>columns: not the model's fields. The history response defines them (when, who, kind, action, model, relation, type, field, old, new) and the view labels them itself. The <code>fields</code> prop picks and orders from that set</span>
+    <span>action grouping: one row per changed field, with <code>data-rev-start</code> on an action's first row, <code>data-rev-child</code> on the rest, and <code>data-event-start</code> on the first row of each event. {@api theme-key:ViewHistoryList} paints the stripe from those attributes, so the grouping survives a re-skin</span>
+    <span>pills: the event types <code>created</code>, <code>updated</code>, and <code>deleted</code> map to a tone and an icon; the action kinds <code>request</code>, <code>task</code>, and <code>command</code> map to a tone. An unknown value of either renders as itself</span>
+    <span>references: a field that points at another row shows that row's current name. A row that no longer exists, or a deleted acting user, renders as the client's own wording rather than a raw id, because the server publishes only the absence</span>
     <span>dates: an absolute timestamp plus a relative phrase, both from the stored ISO string through luxon</span>
     <span>layout: the meta strip's Table and Cards buttons pin a layout; left on auto it follows the <code>table-breakpoint</code> prop, so the same view reads as cards on a narrow viewport</span>
     <span>theme keys: {@api theme-key:ViewHistoryList}, {@api theme-key:ObjectsGrid} · source: <code>ViewHistoryList.vue</code></span>
@@ -389,7 +391,7 @@ Use the Table and Cards buttons to switch layouts.
 </VuedaDemo>
 </ClientOnly>
 
-A record with no revisions yet gets a dedicated empty state rather than an empty grid.
+A record with no history yet gets a dedicated empty state rather than an empty grid.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -441,4 +443,3 @@ The action banner, selected-objects panel, prompt block, and actions strip are a
 | Revision stripe          | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
 | Type pill (updated)      | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
 | Type pill (created)      | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Type pill (restored)     | `--warning` via `bg-warning/10`, `border-warning/25`, `text-warning`                         |
