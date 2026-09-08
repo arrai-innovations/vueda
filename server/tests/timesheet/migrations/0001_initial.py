@@ -4,7 +4,6 @@ import django.db.models.deletion
 import django.db.models.functions.comparison
 import django.db.models.functions.datetime
 import django.db.models.functions.text
-import simple_history.models
 from django.conf import settings
 from django.db import migrations
 from django.db import models
@@ -103,7 +102,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="TimesheetEntry",
@@ -225,7 +224,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="TimesheetData",

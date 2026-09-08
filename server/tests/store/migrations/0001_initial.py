@@ -3,7 +3,6 @@ import django.contrib.postgres.fields
 import django.contrib.postgres.fields.ranges
 import django.core.validators
 import django.db.models.deletion
-import simple_history.models
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.contrib.auth.management import create_permissions
@@ -215,7 +214,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="HistoricalDistributor",
@@ -261,7 +260,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="InventoryRecordReason",
@@ -363,7 +362,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="Product",
@@ -540,7 +539,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="ProductOption",
@@ -712,7 +711,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="CartItem",
@@ -1099,7 +1098,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="OrderItemPKOrderedCompositePK",
