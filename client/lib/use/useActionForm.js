@@ -39,7 +39,14 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * }) => Promise<boolean>} [onSubmissionWarningsRequireConfirmation] - Replaces the default handling of a
  *  confirmation-required response (HTTP 409): render the warnings and ask the user via the confirmation
  *  controller. Resolving `true` retries the action once with the warnings acknowledged.
- * @property {boolean} [readyToDryRun] - When true, triggers a dry-run validation pass.
+ * @property {boolean} [readyToDryRun] - When true, a dry-run validation pass can run right now. Carries no memory of
+ *  its own of what it last validated -- pair it with `dryRunTarget` for a caller whose readiness recomputes to `true`
+ *  for reasons other than a new target (e.g. `useModelAction`'s action-instance idle check), or the pre-flight would
+ *  never latch and would refire on every idle tick.
+ * @property {string} [dryRunTarget] - Identity of the current dry-run target. The dry-run watcher below latches on
+ *  this: it fires once per distinct value, then stays quiet until either `readyToDryRun` drops and comes back, or
+ *  this changes. Omit it for a caller with no target concept; the watcher then fires (at most) once, ever, the same
+ *  as if the target never changed.
  */
 
 /**
@@ -241,14 +248,21 @@ export function useActionForm(formContext, props) {
     onDeactivated(cancelInFlightAction);
     onUnmounted(cancelInFlightAction);
 
-    // Immediate because readiness is a state, not an event. A shell whose target pks come
-    // from a prop rather than a fetch (ModelActionForm reading `pk` when `fetchState` has
-    // not populated) evaluates `readyToDryRun` as true on the very first pass, so a
-    // change-only watch never sees an edge and the pre-flight silently never runs.
+    // Latches per `dryRunTarget` so a pre-flight cannot retrigger itself: `readyToDryRun` recomputes to `true`
+    // whenever its own dependencies settle (e.g. `useModelAction`'s action-instance idle check, which the dry run
+    // itself toggles), not only when the target actually changes. Recording the latch before `handleConfirm` even
+    // starts closes that race -- the instance flips to loading only after this returns, so nothing re-reads
+    // `readyToDryRun` in between.
+    //
+    // Immediate because readiness is a state, not an event. A shell whose target pks come from a prop rather than
+    // a fetch (ModelActionForm reading `pk` when `fetchState` has not populated) evaluates `readyToDryRun` as true
+    // on the very first pass, so a change-only watch never sees an edge and the pre-flight silently never runs.
+    let dryRunRanFor = null;
     watch(
-        () => props.readyToDryRun,
-        async (newVal) => {
-            if (newVal) {
+        () => [props.readyToDryRun, props.dryRunTarget],
+        async ([ready, target]) => {
+            if (ready && dryRunRanFor !== target) {
+                dryRunRanFor = target;
                 await handleConfirm(true);
             }
         },

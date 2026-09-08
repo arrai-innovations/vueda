@@ -96,6 +96,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /**
+     * Identity of the current dry-run target (e.g. `useModelAction`'s joined pks). The dry-run watcher
+     * latches on this, firing once per distinct value rather than every time `readyToDryRun` recomputes
+     * to `true`. Omit it for a caller with no target concept; the watcher then fires at most once, ever.
+     */
+    dryRunTarget: {
+        type: String,
+        default: undefined,
+    },
     /** When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty where modification is not a meaningful concept. */
     requireModified: {
         type: Boolean,
