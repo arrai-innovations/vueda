@@ -11,6 +11,7 @@ class AvailableTransitionField(serializers.ListField):
             "child": serializers.DictField(read_only=True),
             "read_only": True,
             "required": False,
+            "source": "*",
         }
         super().__init__(**kwargs)
 
