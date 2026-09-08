@@ -99,9 +99,13 @@ class SourceResolutionSerializer(VuedaSerializer):
     - through_non_relation resolves "formatted_name" (a real field) but can't continue past it,
       since a CharField/GeneratedField isn't a relation -- also partial progress, also reported,
       but through the NotRelationField branch of the walk rather than FieldDoesNotExist.
-    - typo's source doesn't exist at all, and has no dot -- zero progress, silently null, since a
-      source failing at its very first segment is at least as likely to be an intentional
-      @property/computed value as a mistake.
+    - typo's source doesn't exist at all, and has no dot -- but it's explicit, a developer's
+      deliberate claim about a path, so it is reported the same as bogus/through_non_relation
+      despite failing at the very first segment.
+    - implicit_typo sets no source= at all (defaults to its own field name, which is also not a
+      real field) -- reported the same as typo, since an implicit source gives no way to tell a
+      field-name typo from a deliberate computed field apart from the two explicit opt-outs
+      (field.source == "*", or a callable get_<field_name>() on the model).
     - computed is a SerializerMethodField, exercising its exclusion -- it is never model-backed
       and must never produce a warning.
     """
@@ -109,6 +113,7 @@ class SourceResolutionSerializer(VuedaSerializer):
     bogus = serializers.CharField(source="related.does_not_exist", read_only=True)
     through_non_relation = serializers.CharField(source="formatted_name.foo", read_only=True)
     typo = serializers.CharField(source="does_not_exist_at_all", read_only=True)
+    implicit_typo = serializers.CharField(read_only=True)
     computed = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
@@ -118,6 +123,7 @@ class SourceResolutionSerializer(VuedaSerializer):
             "bogus",
             "through_non_relation",
             "typo",
+            "implicit_typo",
             "computed",
         ] + VuedaSerializer.Meta.fields
 

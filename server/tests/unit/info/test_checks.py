@@ -182,12 +182,20 @@ class TestFieldSourceResolutionCheck:
     tests.unit.info.test_model_info instead: PackingBoxSerializer.label, CartSerializer.
     customer_relation, Customer/CartItem/OrderItem/InventoryRecord/OrderItemCompositePK's
     formatted_name, and CustomerSerializer.number_of_ordered_products. This class covers the
-    unresolvable cases, which have no natural home outside a deliberately misconfigured fixture,
-    plus the asymmetry between source= and <field>_lookup_expression: a source= failing at its
-    very first segment stays silent (it may legitimately point at a @property or other computed
-    value), but a lookup_expression failing the same way still warns, since it is fed straight to
-    models.F() for queryset annotation and to Django admin's lookup_field() and so has no
-    legitimate non-model-backed reading.
+    unresolvable cases, which have no natural home outside a deliberately misconfigured fixture.
+
+    source= and <field>_lookup_expression are both reported on any failure to resolve -- whether
+    field.source was set explicitly or left to DRF's default (equal to field_name), and whether the
+    walk fails on its first segment or partway through a relation. A field is only exempt from
+    resolution by one of two explicit opt-outs, never merely because its source was implicit:
+
+    - field.source == "*" (SerializerMethodField forces this; a plain Field that computes its own
+      value can set it explicitly the same way -- ObjectRevisionField, AvailableActionsField, and
+      AvailableTransitionField all do, since each overrides get_attribute() outright and never
+      reads source at runtime).
+    - A model defining a callable get_<field_name>(), mirroring the get_formatted_name() convention
+      FormattedNameBaseModel._get_formatted_name already reads this way (a model may opt out of a
+      generated column, e.g. formatted_name = None, in favor of a plain method).
     """
 
     def test_serializer_method_field_produces_no_warning(self):
@@ -200,8 +208,8 @@ class TestFieldSourceResolutionCheck:
         warnings = check_field_source_resolution(app_configs=None)
         assert all("computed" not in warning.msg for warning in warnings)
 
-    def test_default_source_field_that_is_not_model_backed_produces_no_warning(self):
-        """available_actions has no explicit source (defaults to its field name) and is not a model field; this is a normal computed field, not a misconfiguration, so it must not warn."""
+    def test_source_star_field_produces_no_warning(self):
+        """available_actions has field.source == "*" (AvailableActionsField sets this explicitly, since it overrides get_attribute() and never reads source at runtime); it is excluded from resolution entirely, the same as a SerializerMethodField, and must not warn."""
         from vueda.info.checks import check_field_source_resolution
 
         info.registration.get_empty_registry()
@@ -211,8 +219,38 @@ class TestFieldSourceResolutionCheck:
 
         assert all("available_actions" not in warning.msg for warning in warnings)
 
-    def test_single_segment_source_typo_reports_null_without_warning(self):
-        """typo = CharField(source="does_not_exist_at_all") has no dot, so it fails at its very first segment: null model types, but no warning, since that's just as likely to be an intentional @property/computed value as a mistake."""
+    def test_get_field_name_method_opt_out_produces_no_warning(self):
+        """ValidGetFormattedName has formatted_name = None (opting out of the generated column) and a plain get_formatted_name() method; the source= walk fails to resolve "formatted_name" as a model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn -- even though its source is implicit (defaults to its field name), just like available_actions."""
+        from vueda.info.checks import check_field_source_resolution
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.ValidGetFormattedNameSerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("formatted_name" not in warning.msg for warning in warnings)
+
+    def test_implicit_source_field_name_typo_reports_null_and_produces_system_check_warning(self):
+        """implicit_typo = CharField(read_only=True) sets no source= at all (defaults to its own field name, which does not exist on the model, and there is no get_implicit_typo() opt-out) -- it is reported the same as an explicit source= failure, since DRF's default gives no way to tell a field-name typo from a deliberate computed field apart from the two explicit opt-outs."""
+        from vueda.info.checks import check_field_source_resolution
+        from vueda.info.serializers import ModelInfoSerializer
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.SourceResolutionSerializer)
+
+        fields = ModelInfoSerializer().get_model_fields_data(err_serializers.SourceResolutionSerializer)
+        assert fields["implicit_typo"]["type_db"] is None
+        assert fields["implicit_typo"]["type_model"] is None
+
+        warnings = check_field_source_resolution(app_configs=None)
+        matches = [warning for warning in warnings if "implicit_typo" in warning.msg]
+
+        assert len(matches) == 1
+        assert matches[0].id == "vueda_info.W001"
+        assert "implicit_typo" in matches[0].hint
+
+    def test_single_segment_explicit_source_typo_reports_null_and_produces_system_check_warning(self):
+        """typo = CharField(source="does_not_exist_at_all") fails at its very first segment -- it is reported the same as a source failing partway."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -224,20 +262,31 @@ class TestFieldSourceResolutionCheck:
         assert fields["typo"]["type_model"] is None
 
         warnings = check_field_source_resolution(app_configs=None)
-        assert all("typo" not in warning.msg for warning in warnings)
+        matches = [warning for warning in warnings if ".typo " in warning.msg]
 
-    def test_real_property_backed_source_produces_no_warning(self):
-        """CustomerOrderSerializer.workflow_state_code/workflow_state_name source through HasWorkflowModelMixin.workflow_state, a real @property with no database column behind it. This is the actual production case the first-segment exemption exists to protect, not just a synthetic analog of it."""
+        assert len(matches) == 1
+        assert matches[0].id == "vueda_info.W001"
+        assert "does_not_exist_at_all" in matches[0].hint
+
+    def test_get_field_model_info_correction_silences_warning_and_object_revision_stays_silent(self):
+        """CustomerOrderSerializer.workflow_state_code/workflow_state_name source through HasWorkflowModelMixin.workflow_state, a real @property with no database column behind it -- unresolvable through source= alone, same as any other explicit source failure. But HasWorkflowSerializerMixin.get_field_model_info fills in their real type (State.code/State.name are both CharField), so the check consults that correction before deciding to warn and finds nothing left to report. object_revision, also unresolvable through source= alone, stays silent for a different reason: its source is "*" (ObjectRevisionField sets this explicitly, the same convention SerializerMethodField uses), so it is excluded from resolution entirely rather than evaluated as an explicit path."""
         from tests.store import serializers as store_serializers
         from vueda.info.checks import check_field_source_resolution
+        from vueda.info.serializers import ModelInfoSerializer
 
         info.registration.get_empty_registry()
         info.register_serializer(store_serializers.CustomerOrderSerializer)
+
+        fields = ModelInfoSerializer().get_model_fields_data(store_serializers.CustomerOrderSerializer)
+        fields = store_serializers.CustomerOrderSerializer().get_field_model_info(fields)
+        assert fields["workflow_state_code"]["type_db"] == "CharField"
+        assert fields["workflow_state_name"]["type_model"] == "CharField"
 
         warnings = check_field_source_resolution(app_configs=None)
 
         assert all("workflow_state_code" not in warning.msg for warning in warnings)
         assert all("workflow_state_name" not in warning.msg for warning in warnings)
+        assert all("object_revision" not in warning.msg for warning in warnings)
 
     def test_unresolvable_source_reports_null_and_produces_system_check_warning(self):
         """bogus = CharField(source="related.does_not_exist") resolves "related" but not "does_not_exist" -- partial progress. Reports null model types rather than raising, and is reported as a warning through the source= hint (offering get_field_model_info as one option), naming the serializer, field, and path."""
@@ -322,3 +371,88 @@ class TestFieldSourceResolutionCheck:
         assert "formatted_name" in warnings[0].msg
         assert "does_not_exist" in warnings[0].hint
         assert "get_field_model_info" not in warnings[0].hint
+
+
+@pytest.mark.django_db
+class TestFieldResolutionMechanics:
+    """Direct coverage of resolve_serializer_field_model_field's own walking rules (PR #228 review),
+    below the check/warning layer TestFieldSourceResolutionCheck covers. Reuses tests.store.models.
+    CustomerOrder, a real production model with both a real ForeignKey (customer, to Customer) and a
+    real DateTimeField (when), rather than adding new fixture models for these cases.
+    """
+
+    def test_dunder_in_source_is_not_reinterpreted_as_relation_traversal(self):
+        """source="customer__user" has no dot, so it names one literal attribute -- DRF's own getattr()
+        looks up "customer__user" as one attribute and fails, since no such attribute exists. The walk
+        this replaced used to split on "__" too, incorrectly resolving this as customer -> user and
+        reporting Customer.user's type for a source DRF itself can never traverse that way."""
+        from rest_framework import serializers as drf_serializers
+
+        from tests.store.models import CustomerOrder
+        from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+        field = drf_serializers.CharField(source="customer__user", read_only=True)
+        field.bind("fake", None)
+
+        model_field, unresolved_path = resolve_serializer_field_model_field(CustomerOrder, "fake", field)
+
+        assert model_field is None
+        assert unresolved_path == "customer__user"
+
+    def test_intermediate_attname_segment_is_not_traversed_as_a_relation(self):
+        """source="customer_id.user" resolves "customer_id" to the same ForeignKey field _meta.get_field
+        returns for "customer" (both a field's name and its attname resolve to the same field object,
+        a documented Django internals quirk), but DRF's real getattr() reads a raw scalar ID off
+        customer_id, not a traversable Customer instance -- so a further ".user" is never reachable at
+        runtime, and must not be treated as a successful relation traversal even though _meta.get_field
+        alone would allow it."""
+        from rest_framework import serializers as drf_serializers
+
+        from tests.store.models import CustomerOrder
+        from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+        field = drf_serializers.CharField(source="customer_id.user", read_only=True)
+        field.bind("fake", None)
+
+        model_field, unresolved_path = resolve_serializer_field_model_field(CustomerOrder, "fake", field)
+
+        assert model_field is None
+        assert unresolved_path == "customer_id.user"
+
+    def test_terminal_attname_still_resolves_to_its_field(self):
+        """source="customer_id" alone (no further segment after it) still resolves to the same
+        ForeignKey field "customer" would, since nothing needs to be read off of it afterward -- only
+        using an attname as an intermediate segment is unsafe, never as the terminal one."""
+        from rest_framework import serializers as drf_serializers
+
+        from tests.store.models import CustomerOrder
+        from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+        field = drf_serializers.CharField(source="customer_id", read_only=True)
+        field.bind("fake", None)
+
+        model_field, unresolved_path = resolve_serializer_field_model_field(CustomerOrder, "fake", field)
+
+        assert model_field is CustomerOrder._meta.get_field("customer")
+        assert unresolved_path is None
+
+    def test_lookup_expression_transform_resolves_through_django_query_expressions(self, monkeypatch):
+        """formatted_name_lookup_expression = "when__year" is a transform, not a relation --
+        F("when__year").resolve_expression() is what annotate_formatted_name actually feeds it to, and
+        Django accepts it, resolving to the IntegerField behind ExtractYear. A relation-only walk would
+        incorrectly reject this as broken even though both annotation and Django admin's lookup_field()
+        accept it."""
+        from django.db.models import IntegerField
+        from rest_framework import serializers as drf_serializers
+
+        from tests.store.models import CustomerOrder
+        from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+        monkeypatch.setattr(CustomerOrder, "formatted_name_lookup_expression", "when__year", raising=False)
+        field = drf_serializers.CharField(read_only=True)
+        field.bind("formatted_name", None)
+
+        model_field, unresolved_path = resolve_serializer_field_model_field(CustomerOrder, "formatted_name", field)
+
+        assert isinstance(model_field, IntegerField)
+        assert unresolved_path is None
