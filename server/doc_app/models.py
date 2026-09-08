@@ -1,6 +1,6 @@
-from vueda.user.models import AbstractVUEDAUserWithHistory
+from vueda.user.models import AbstractVUEDAUser
 
 
-class User(AbstractVUEDAUserWithHistory):
-    class Meta(AbstractVUEDAUserWithHistory.Meta):
+class User(AbstractVUEDAUser):
+    class Meta(AbstractVUEDAUser.Meta):
         default_related_name = "users"

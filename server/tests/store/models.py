@@ -13,17 +13,16 @@ from django.db.models.functions import Cast
 
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaModel
-from vueda.history.models import VuedaHistoryModel
 from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class Customer(VuedaHistoryModel):
+class Customer(VuedaModel):
     user = models.OneToOneField(get_user_model(), on_delete=models.PROTECT)
 
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         ordering = ["user__name"]
 
 
@@ -36,11 +35,11 @@ class CustomerData(models.Model):
         db_table = "customer_data"
 
 
-class Distributor(VuedaHistoryModel):
+class Distributor(VuedaModel):
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=1024)
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         pass
 
 
@@ -59,7 +58,7 @@ class SpecialCare(VuedaModel):
         pass
 
 
-class Product(VuedaHistoryModel):
+class Product(VuedaModel):
     distributor = models.ForeignKey(Distributor, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
     disabled = models.BooleanField(db_default=False)
@@ -85,7 +84,7 @@ class Product(VuedaHistoryModel):
         blank=True,
     )
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         ordering = ["name"]
         unique_together = [
             ["distributor", "name"],
@@ -96,7 +95,7 @@ class OptionType(Lookup):
     pass
 
 
-class ProductOption(VuedaHistoryModel):
+class ProductOption(VuedaModel):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     option_type = models.ForeignKey(OptionType, null=True, on_delete=models.PROTECT)
     name = models.CharField(max_length=255)
@@ -106,7 +105,7 @@ class ProductOption(VuedaHistoryModel):
     disabled = models.BooleanField(db_default=False)
     quantity_available = models.IntegerField(db_default=0)
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "product_options"
 
 
@@ -152,7 +151,7 @@ class OrderState(Lookup):
     pass
 
 
-class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
+class CustomerOrder(HasWorkflowModelMixin, VuedaModel):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -167,7 +166,7 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaHistoryModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
     def get_transition_warnings(self, transition, user=None):
@@ -301,12 +300,12 @@ class Invoice(VuedaModel):
         pass
 
 
-class InvoiceLine(VuedaHistoryModel):
+class InvoiceLine(VuedaModel):
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="invoice_lines")
     name = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         pass
 
 

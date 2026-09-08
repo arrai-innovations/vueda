@@ -5,10 +5,10 @@ from django.db.models.functions import Cast
 from django.db.models.functions import Concat
 from django.db.models.functions import Extract
 
-from vueda.history.models import VuedaHistoryModel
+from vueda.core.models import VuedaModel
 
 
-class Timesheet(VuedaHistoryModel):
+class Timesheet(VuedaModel):
     period_start = models.DateField()
     period_end = models.DateField()
     employee = models.ForeignKey("employee.Employee", on_delete=models.CASCADE)
@@ -19,7 +19,7 @@ class Timesheet(VuedaHistoryModel):
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "timesheets"
         ordering = ["period_start", "employee__employee_number"]
 
@@ -38,7 +38,7 @@ class TimesheetData(models.Model):
         db_table = "timesheet_data"
 
 
-class TimesheetEntry(VuedaHistoryModel):
+class TimesheetEntry(VuedaModel):
     timesheet = models.ForeignKey("Timesheet", on_delete=models.CASCADE)
     date = models.DateField()
     hours = models.DecimalField(max_digits=5, decimal_places=2)
@@ -58,6 +58,6 @@ class TimesheetEntry(VuedaHistoryModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "timesheet_entries"
         ordering = ["date"]

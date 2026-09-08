@@ -248,7 +248,6 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "django.contrib.auth.middleware.AuthenticationMiddleware",
             "django.contrib.messages.middleware.MessageMiddleware",
             "django.middleware.common.BrokenLinkEmailsMiddleware",
-            "simple_history.middleware.HistoryRequestMiddleware",
             "allauth.account.middleware.AccountMiddleware",
         ],
         "DJANGO_APPS": env.list(  # some env loaders don't do multiline lists, and the values here would be unwieldy
@@ -283,7 +282,6 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
                 "corsheaders",
                 "django_extensions",
                 "private_storage",
-                "simple_history",
                 "django_filters",
                 "generic_relations",
                 "phonenumber_field",
@@ -387,9 +385,6 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "CORS_PREFLIGHT_MAX_AGE": 86400,  # 24 hours
             "CORS_ALLOW_CREDENTIALS": True,
         },
-        **{  # django-simple-history settings
-            "SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD": True,
-        },
         **{  # our own settings regarding to `vueda update` cli.
             "DATABASE_BACKUP_DIR": env("DATABASE_BACKUP_DIR"),
             "PACKAGE_MANAGER": env("PACKAGE_MANAGER", default="auto"),  # auto, uv, pipenv
@@ -444,7 +439,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         return_dict["REST_FRAMEWORK"]["DEFAULT_SCHEMA_CLASS"] = "vueda.core.open_api.VuedaAutoSchema"
         return_dict["SPECTACULAR_SETTINGS"] = {
             "TITLE": "VUEDA API",
-            "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-simple-history), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
+            "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-pghistory), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
             "VERSION": "1.0.0",
             "TAGS": spectacular_tags,
             "COMPONENT_SPLIT_PATCH": False,
