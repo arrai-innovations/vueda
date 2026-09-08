@@ -23,7 +23,7 @@ The {@term Model Info} endpoint projects viewset declarations into structured me
 
 Ordering metadata (`model_ordering`) is an object with two keys: `default` and `fields`. `default` is a plain list of field names, in order, that DRF actually orders by when a request omits the `?o=` param — the viewset's own `ordering` when declared, otherwise the model's `Meta.ordering`. It's one or the other in full: a viewset's own `ordering` is never merged field-by-field with the model's `Meta.ordering`. `fields` is the set of fields a client's `?o=` param may reference, each carrying `name` and `type`. When no canonical viewset exists, `default` still reflects the model's own `Meta.ordering` — there's no viewset `ordering` to take precedence over it — and `fields` mirrors the fields those terms name, each carrying `ascending` where `default` names it. Without a viewset there's no `ordering_fields` declaration or serializer-derived default field set to draw from, so `fields` never grows beyond the fields the `Meta.ordering` reads. (A `Meta.ordering` holding a term that reads more than one column leaves `default` empty while still offering each of those columns in `fields`, without `ascending` — the same rule as everywhere else, described below.)
 
-A default ordering has to be declared, not applied. `default` reads a viewset's `ordering` attribute or a model's `Meta.ordering`, and nothing else. An `order_by()` call on the viewset's `queryset` attribute, or inside `get_queryset`, is not a supported way to set a default ordering and is not reported. Metadata is projected once from what the classes declare, while an `order_by()` in code can be called from more than one place, each call replacing the last rather than adding to it, and any of them may be conditional on the request or the user — there is no single value to read back and describe. Nothing warns you: the rows still arrive in the order the queryset asked for, while `default` reports the model's `Meta.ordering` instead, or is empty when the model declares none. Declare the order as `ordering` on the viewset (or as the model's `Meta.ordering`) and let DRF apply it. `VuedaOrderingFilter` calls `order_by()` with it on every `list` request that omits `?o=`, so the rows arrive the same way and the client is told what it is getting. `get_queryset` stays the right place for filtering, `select_related`, and annotations — just not for the default sort.
+A default ordering has to be declared, not applied. `default` reads a viewset's `ordering` attribute or a model's `Meta.ordering`, and nothing else. An `order_by()` call on the viewset's `queryset` attribute, or inside `get_queryset`, is not a supported way to set a default ordering and is not reported. Metadata is projected once from what the classes declare, while an `order_by()` in code can be called from more than one place, each call replacing the last rather than adding to it, and any of them may be conditional on the request or the user — there is no single value to read back and describe. The rows still arrive in the order the queryset asked for, while `default` reports the model's `Meta.ordering` instead, or is empty when the model declares none. The `vueda_info.E010` system check reports the one shape of this that is a declaration rather than a call — an `order_by()` on the viewset's `queryset` attribute — at `manage.py check` time; see [Queryset Ordering](#queryset-ordering) for what it covers and what it cannot. Declare the order as `ordering` on the viewset (or as the model's `Meta.ordering`) and let DRF apply it. `VuedaOrderingFilter` calls `order_by()` with it on every `list` request that omits `?o=`, so the rows arrive the same way and the client is told what it is getting. `get_queryset` stays the right place for filtering, `select_related`, and annotations — just not for the default sort.
 
 `fields` mirrors DRF's own `OrderingFilter` resolution for the viewset's `ordering_fields` setting:
 
@@ -96,6 +96,27 @@ class CartFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
 ```
 
 The mixin only rewrites what needs rewriting, so mixing it into a filterset that has no `formatted_name` filter changes nothing. A filter on a path the queryset already carries an annotation for — the model's own un-prefixed `formatted_name` — is left alone, since that annotation is both what the query resolves and what the metadata describes. So is a filter on any other path, and a related `formatted_name` with no column behind it to rewrite to (the two refused shapes above).
+
+## Queryset Ordering
+
+An `order_by()` on a viewset's `queryset` attribute is a real ordering that no declaration describes. DRF's `OrderingFilter` reads a view's `ordering` attribute and nothing else, so with none declared it applies no ordering at all and hands the queryset back as it found it — ordering included. The list arrives sorted the way the queryset asked, while `model_ordering.default` reports the viewset's `ordering` or the model's `Meta.ordering`, neither of which had any part in it.
+
+The `vueda_info.E010` system check reports that class-level declaration. It reads the `queryset` attribute only, and compares the terms it carries against the default ordering the metadata would report — the viewset's `ordering` when declared, otherwise the model's `Meta.ordering`. Three outcomes get three messages, because the fix differs:
+
+- **The viewset declares no `ordering` and the model's `Meta.ordering` disagrees.** The queryset's order is what a client receives and the model's is what the metadata describes. Declare the queryset's order as the viewset's `ordering`, or drop the `order_by()` and accept the model's order — which reverses the list if the two run opposite ways.
+- **The viewset declares no `ordering` and the model declares none either.** The rows arrive sorted and `default` is empty, so a client cannot show which column sorted them. Declare the order as the viewset's `ordering`.
+- **The viewset declares an `ordering` that disagrees.** Here the metadata is accurate, because DRF applies the view's `ordering` over whatever the queryset carried. What the check reports is a declaration that reaches nothing while reading like the list's sort order. Remove the `order_by()`, or make the two agree.
+
+Direction counts. `ordering = ["queued"]` against a queryset ordered by `-queued` names the same field and sorts every row the opposite way, so the check compares each term's direction rather than only its field name. A `"pk"` alias and the field behind it are treated as the same term, as are a `formatted_name` and the column its `formatted_name_lookup_expression` names, so spelling one sort two legitimate ways is not reported as a conflict.
+
+Four things the check cannot see, all of which leave the same mismatch:
+
+- **An ordering applied inside `get_queryset`**, in a manager, or in a helper the queryset passes through. The check never calls `get_queryset`: doing so would run application code with no request behind it, and the result can differ per request anyway, so nothing it returned would be a declaration to hold to account.
+- **An ordering that varies by request** — a different sort for a different user, role, or query parameter. Static metadata cannot describe it and a startup check cannot predict it.
+- **A viewset whose `filter_backends` omits the ordering backend.** The check assumes the backend is in effect, which is what makes a declared `ordering` authoritative. Without it, no `ordering` is ever applied and the queryset's order wins whatever either side declares.
+- **An ordering removed by a bare `order_by()`**, which clears the model's default ordering along with any explicit one. The rows then arrive unordered while `default` still reports the model's declaration.
+
+What the check proves is narrow and worth stating plainly: that a viewset's class-level declarations agree with each other. It says nothing about the order any particular request returns.
 
 ## Nulls Placement for Client-Requested Ordering
 
@@ -340,6 +361,7 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
 - {@api py:module:vueda.core.ordering}
 - {@api py:function:vueda.core.ordering.ordering_term_field_names}
+- {@api py:function:vueda.core.ordering.queryset_explicit_ordering}
 - {@api py:class:vueda.core.filters.FormattedNamePathFilterSetMixin}
 - {@api py:class:vueda.core.filters.VuedaFilterSet}
 - {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}
