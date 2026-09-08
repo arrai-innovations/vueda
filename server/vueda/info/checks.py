@@ -102,21 +102,71 @@ def check_formatted_name_configuration(app_configs, **kwargs):
     return errors
 
 
+class _CheckContextView:
+    """Minimal stand-in for a DRF view, so a canonical serializer that reads
+    ``self.context["view"]`` while building its fields (for example ``ExcludeFieldsSerializerMixin``,
+    which reads ``.action`` from it) can still be introspected outside of any request. This check
+    runs through ``manage.py check``, not a request, so there is no real view to supply here;
+    ``action = None`` matches none of the actions such a mixin special-cases, which is the least
+    surprising default -- no field gets excluded that a plain "list"/"retrieve" response wouldn't
+    also include.
+    """
+
+    action = None
+
+
+def _get_field_model_info_corrected_fields(serializer_class, serializer_instance):
+    """
+    Build the model_fields metadata dict a real /info/ request would see for this serializer,
+    including whatever get_field_model_info corrects -- so the check can tell a field the
+    developer has already described (its real type_db/type_model filled in) from one that is
+    still genuinely unresolved. Never raises: this feeds an advisory check, so a serializer this
+    cannot safely introspect just yields no corrections rather than blocking manage.py check.
+    """
+    from vueda.info.serializers import ModelInfoSerializer
+
+    try:
+        fields = ModelInfoSerializer().get_model_fields_data(serializer_class, context={"view": _CheckContextView()})
+        get_field_model_info = getattr(serializer_instance, "get_field_model_info", None)
+        if get_field_model_info is not None:
+            fields = get_field_model_info(fields)
+        return fields
+    except Exception:
+        return {}
+
+
 def _validate_field_source_resolution(serializer_class, model):
     from vueda.info.field_resolution import resolve_serializer_field_model_field
 
     warnings = []
-    serializer_instance = serializer_class()
-    for field_name, field in serializer_instance.get_fields().items():
+    try:
+        serializer_instance = serializer_class(context={"view": _CheckContextView()})
+        fields = serializer_instance.get_fields()
+    except Exception:
+        # Advisory only: a canonical serializer this check cannot safely introspect outside a
+        # request must not prevent manage.py check, or any other command, from completing.
+        return warnings
+
+    corrected_fields = None
+
+    for field_name, field in fields.items():
         _model_field, unresolved_path = resolve_serializer_field_model_field(model, field_name, field)
         if unresolved_path is None:
             continue
 
         # A lookup_expression is fed straight to models.F() for queryset annotation and to Django
         # admin's lookup_field(); neither can reach a @property or method, so it has no legitimate
-        # non-model-backed reading the way a field's source= does -- the hint below shouldn't offer
-        # get_field_model_info as if it might be one.
+        # non-model-backed reading the way a field's source= does -- get_field_model_info only
+        # corrects the metadata dict, it cannot fix what those runtime consumers will also break.
         is_lookup_expression = isinstance(getattr(model, f"{field_name}_lookup_expression", None), str)
+
+        if not is_lookup_expression:
+            if corrected_fields is None:
+                corrected_fields = _get_field_model_info_corrected_fields(serializer_class, serializer_instance)
+            corrected = corrected_fields.get(field_name) or {}
+            if corrected.get("type_db") is not None or corrected.get("type_model") is not None:
+                continue
+
         if is_lookup_expression:
             hint = (
                 f"'{unresolved_path}' did not resolve to a model field. formatted_name_lookup_expression is "
