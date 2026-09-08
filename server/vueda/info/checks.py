@@ -83,8 +83,7 @@ def _validate_default_manager(model):
 
     A manager declared on an abstract base counts as much as one declared on the model, and is the
     easier case to miss, since the model naming the lookup expression may be several classes away
-    from the one naming the manager — which is why ``SimpleHistoryManager`` inherits
-    ``FormattedNameManager``.
+    from the one naming the manager.
     """
     from vueda.core.models import FormattedNameManager
 

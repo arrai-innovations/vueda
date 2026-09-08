@@ -78,11 +78,10 @@ class FormattedNameManager(models.Manager):
     ``FormattedNameManager`` as the base (``FormattedNameManager.from_queryset(WidgetQuerySet)``).
     A manager declared on an abstract base shadows this one just as readily, and is the easier case
     to miss, since the model that names a lookup expression can be several classes away from the one
-    that names the manager: that is why ``SimpleHistoryManager`` inherits from this manager rather
-    than from ``models.Manager``. ``VUEDAUserManager`` and ``SentItemManager`` sit on concrete models
-    that have a ``formatted_name`` column, so they have no annotation to lose. The
-    ``vueda_info.E009`` system check reports a model whose default manager doesn't provide the
-    annotation it needs, rather than leaving it to fail at query time.
+    that names the manager. ``VUEDAUserManager`` and ``SentItemManager`` sit on concrete models that
+    have a ``formatted_name`` column, so they have no annotation to lose. The ``vueda_info.E009``
+    system check reports a model whose default manager doesn't provide the annotation it needs,
+    rather than leaving it to fail at query time.
 
     **The base manager is not this manager.** Django builds ``Model._base_manager`` itself, as a
     plain ``models.Manager``, unless ``Meta.base_manager_name`` names one — so it carries no

@@ -14,10 +14,9 @@ from tests.product.serializers import ProductRenamedFieldSerializer
 from tests.product.serializers import ProductSerializer
 from tests.product.serializers import ProductSourceFieldSerializer
 from vueda.core.viewsets import VuedaViewSet
-from vueda.history.viewsets import VuedaHistoryViewSet
 
 
-class ProductViewSet(VuedaHistoryViewSet):
+class ProductViewSet(VuedaViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filterset_class = ProductFilterSet

@@ -10,25 +10,24 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
-from vueda.history.serializers import VuedaHistorySerializer
 from vueda.user.serializers import UserSerializer
 from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
-class CustomerSerializer(VuedaHistorySerializer):
+class CustomerSerializer(VuedaSerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
     number_of_ordered_products = serializers.SerializerMethodField()
 
-    class Meta(VuedaHistorySerializer.Meta):
+    class Meta(VuedaSerializer.Meta):
         model = models.Customer
         fields = [
             "id",
             "user",
             "number_of_ordered_products",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "user": (
                 UserSerializer,
@@ -44,7 +43,7 @@ class CustomerSerializer(VuedaHistorySerializer):
             "dict_data": serializers.SerializerMethodField,
             "single_value": serializers.SerializerMethodField,
         }
-        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
     def get_number_of_ordered_products(self, obj):
         return 20
@@ -102,22 +101,22 @@ class CustomerDataSerializer(VuedaReadonlySerializer):
         fields = ["id", "customer"] + VuedaSerializer.Meta.fields
 
 
-class DistributorSerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class DistributorSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = models.Distributor
         fields = [
             "id",
             "name",
             "description",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
 
 
-class ProductSerializer(VuedaHistorySerializer):
+class ProductSerializer(VuedaSerializer):
     internal_comments = serializers.ListField(child=serializers.CharField(), required=False)
     current_sale_date = RangeField(required=False)  # This mimics the range field in integration, with no children.
     distributor = serializers.PrimaryKeyRelatedField(read_only=True)
 
-    class Meta(VuedaHistorySerializer.Meta):
+    class Meta(VuedaSerializer.Meta):
         model = models.Product
         fields = [
             "id",
@@ -134,14 +133,14 @@ class ProductSerializer(VuedaHistorySerializer):
             "reviews",
             "internal_comments",
             "last_ordered",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "distributor": (
                 DistributorSerializer,
                 {},
             )
         }
-        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
     def validate(self, data):
         data = super().validate(data)
@@ -173,8 +172,8 @@ class OptionTypeSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class ProductOptionSerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class ProductOptionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = models.ProductOption
         fields = [
             "id",
@@ -186,7 +185,7 @@ class ProductOptionSerializer(VuedaHistorySerializer):
             "price",
             "disabled",
             "quantity_available",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "option_type": (
                 OptionTypeSerializer,
@@ -211,7 +210,7 @@ class ProductOptionSerializer(VuedaHistorySerializer):
                 },
             ),
         }
-        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
 class CartSerializer(VuedaSerializer):
@@ -344,8 +343,8 @@ class OrderItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
-class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = models.CustomerOrder
         fields = (
             [
@@ -357,7 +356,7 @@ class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer
                 "order_state",
                 "shipping_method",
             ]
-            + VuedaHistorySerializer.Meta.fields
+            + VuedaSerializer.Meta.fields
             + HasWorkflowSerializerMixin.Meta.fields
         )
         expandable_fields = {
@@ -392,7 +391,7 @@ class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaHistorySerializer
                 },
             ),
         }
-        expandable_fields.update(VuedaHistorySerializer.Meta.expandable_fields)
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
 class InventoryRecordReasonSerializer(VuedaSerializer):
@@ -509,10 +508,10 @@ class PackingBoxSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class InvoiceLineSerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class InvoiceLineSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = models.InvoiceLine
-        fields = ["id", "name", "amount"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "name", "amount"] + VuedaSerializer.Meta.fields
 
 
 class InvoiceSerializer(VuedaSerializer):
@@ -633,14 +632,14 @@ class OrderItemPKOrderedCompositePKSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class DistributorProxySerializer(VuedaHistorySerializer):
-    class Meta(VuedaHistorySerializer.Meta):
+class DistributorProxySerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
         model = models.DistributorProxy
         fields = [
             "id",
             "name",
             "description",
-        ] + VuedaHistorySerializer.Meta.fields
+        ] + VuedaSerializer.Meta.fields
 
 
 class NoteSerializer(VuedaSerializer):

@@ -18,11 +18,10 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
-from vueda.history.viewsets import VuedaHistoryViewSet
 from vueda.workflow.views import HasWorkflowViewMixin
 
 
-class CustomerViewSet(VuedaHistoryViewSet):
+class CustomerViewSet(VuedaViewSet):
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerSerializer
     ordering_fields = ["user__email"]
@@ -47,7 +46,7 @@ class CustomerDataViewSet(VuedaReadOnlyViewSet):
     ordering_fields = ["formatted_name"]
 
 
-class DistributorViewSet(VuedaHistoryViewSet):
+class DistributorViewSet(VuedaViewSet):
     queryset = my_models.Distributor.objects.all()
     serializer_class = my_serializers.DistributorSerializer
     filterset_class = my_filtersets.DistributorFilterSet
@@ -78,7 +77,7 @@ class DistributorRankedDescriptionViewSet(DistributorViewSet):
     search_fields = ["V:description"]
 
 
-class ProductViewSet(VuedaHistoryViewSet):
+class ProductViewSet(VuedaViewSet):
     queryset = my_models.Product.objects.all()
     serializer_class = my_serializers.ProductSerializer
     filterset_class = my_filtersets.ProductFilterSet
@@ -90,7 +89,7 @@ class OptionTypeViewSet(VuedaViewSet):
     serializer_class = my_serializers.OptionTypeSerializer
 
 
-class ProductOptionViewSet(VuedaHistoryViewSet):
+class ProductOptionViewSet(VuedaViewSet):
     queryset = my_models.ProductOption.objects.all()
     serializer_class = my_serializers.ProductOptionSerializer
     filterset_class = my_filtersets.ProductOptionFilterSet
@@ -255,7 +254,7 @@ class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     ordering_fields = ["quantity", "cart__customer__formatted_name", "cart__formatted_name"]
 
 
-class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaHistoryViewSet):
+class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
     filterset_class = my_filtersets.CustomerOrderFilterSet
@@ -358,7 +357,7 @@ class OrderItemAltCompositePKViewSet(VuedaViewSet):
     serializer_class = my_serializers.OrderItemAltCompositePKSerializer
 
 
-class DistributorProxyViewSet(VuedaHistoryViewSet):
+class DistributorProxyViewSet(VuedaViewSet):
     queryset = my_models.DistributorProxy.objects.all()
     serializer_class = my_serializers.DistributorProxySerializer
     filterset_class = my_filtersets.DistributorProxyFilterSet

@@ -22,7 +22,7 @@ The objective is a model where:
 
 Before you begin:
 
-The model's viewset must inherit from `VuedaViewSet` or `VuedaHistoryViewSet`, both of which include `ListRowLevelViewSetMixin` in the inheritance chain. Custom viewsets that do not include this mixin will not apply queryset-level row filtering.
+The model's viewset must inherit from `VuedaViewSet`, which includes `ListRowLevelViewSetMixin` in the inheritance chain. Custom viewsets that do not include this mixin will not apply queryset-level row filtering.
 
 The API stack must use {@api py:class:vueda.core.permissions.ObjectPermissions} as the permission class, and the user model must include {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}. These are the default VUEDA settings; verify they are in place if using a custom configuration.
 
@@ -88,7 +88,7 @@ Keep the hook implementations focused. Queryset hooks must express logic as `Q` 
 
 ## Wire ViewSet `list` Filtering
 
-If the viewset inherits from `VuedaViewSet` or `VuedaHistoryViewSet`, queryset-level row filtering is already wired. The `list` method on `ListRowLevelViewSetMixin` calls `apply_row_level_filter` after DRF filter backends and before pagination.
+If the viewset inherits from `VuedaViewSet`, queryset-level row filtering is already wired. The `list` method on `ListRowLevelViewSetMixin` calls `apply_row_level_filter` after DRF filter backends and before pagination.
 
 The mixin deliberately does **not** apply row filtering in `get_queryset`. This is intentional: applying the filter in `get_queryset` would affect all viewset actions (retrieve, update, delete, custom actions), which may not be appropriate for every action. Row filtering in `list` targets list-specific visibility. Object-level access for other actions is handled by `check_instance` through the permission chain.
 
@@ -145,7 +145,7 @@ row-level filtering and column totals are tested separately in the current test 
 
 ## Troubleshooting and Known Gaps
 
-**List returns all rows despite `RowLevelPermissions` being defined.** Verify the viewset inherits from `VuedaViewSet` or `VuedaHistoryViewSet`. Custom viewsets that do not include `ListRowLevelViewSetMixin` will not call `apply_row_level_filter`.
+**List returns all rows despite `RowLevelPermissions` being defined.** Verify the viewset inherits from `VuedaViewSet`. Custom viewsets that do not include `ListRowLevelViewSetMixin` will not call `apply_row_level_filter`.
 
 **Retrieve returns `200` for objects that should be denied.** `check_instance` may be returning `None` (no opinion) instead of `False` (deny). Returning `None` defers to the baseline model permission, which may be `True`.
 

@@ -94,7 +94,7 @@ Build on `super().get_queryset()` rather than a fresh queryset, so the annotatio
 
 This only matters for models with a `formatted_name_lookup_expression` and no `formatted_name` column — the one strategy where the name has no column of its own. A model with the generated-field column, or one using `get_formatted_name()`, is unaffected either way.
 
-A manager declared on an abstract base shadows the default manager just as readily as one declared on the model, and is the easier case to miss, since the model that names the lookup expression can be several classes away from the one that names the manager. `SimpleHistoryManager` inherits `FormattedNameManager` for that reason: it is declared as `objects` on `SimpleHistoryModelMixin`, which sits closer in the MRO than `FormattedNameBaseModel`, so without inheriting it every `VuedaHistoryModel` subclass would lose the annotation. `VUEDAUserManager` and `SentItemManager` sit on models that have no annotation to lose.
+A manager declared on an abstract base shadows the default manager just as readily as one declared on the model, and is the easier case to miss, since the model that names the lookup expression can be several classes away from the one that names the manager. `VUEDAUserManager` and `SentItemManager` sit on models that have no annotation to lose.
 
 ::: warning
 A model that replaces its default manager without inheriting `FormattedNameManager` is back to the pre-manager behavior: evaluating a queryset from that manager raises `FieldError: Cannot resolve keyword 'formatted_name'`. Two checks report it at startup. The `models.E015` suppression above asks about the manager before withholding anything, so such a model keeps Django's own error on a `Meta.ordering` that names `formatted_name`, registered or not. `vueda_info.E009` reports the manager itself, for a registered model, with a hint aimed at fixing the manager.
@@ -140,7 +140,7 @@ To name a lookup-expression `formatted_name` in such a model's `Meta.ordering`, 
 
 ## Serializer Contract
 
-The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer` for standard models or `VuedaHistorySerializer` for models that use the audit history system.
+The {@term Canonical Serializer} defines the field schema that the metadata API exposes to the client. Every field the client can see, validate against, or submit comes from this serializer definition. Extend `VuedaSerializer`.
 
 `VuedaSerializer` declares `formatted_name` and `available_actions` as base fields. Both are read-only. The serializer's `Meta.fields` list must include all fields that should appear in the metadata surface; if a field exists on the Django model but is not listed in the serializer's `fields`, it will not appear in model-info and the client will not know it exists. See [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract) for the full mapping from serializer definitions to metadata sections.
 
@@ -169,7 +169,7 @@ The `NoExtraFieldsSerializerMixin` (which `VuedaSerializer` includes) rejects un
 
 ## ViewSet Contract
 
-The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet` for standard models or `VuedaHistoryViewSet` for models that include audit history. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
+The viewset defines the actions, filtering, ordering, and permission behavior for the model's API endpoints. Extend `VuedaViewSet`. It carries the history endpoint for every model that records history, so no history-specific base class exists. At minimum, set `queryset`, `serializer_class`, and the fields you want to support for ordering:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet

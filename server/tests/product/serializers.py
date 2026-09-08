@@ -5,15 +5,14 @@ from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.models import ProductModelOrderingPK
 from vueda.core.serializers import VuedaSerializer
-from vueda.history.serializers import VuedaHistorySerializer
 
 
-class ProductSerializer(VuedaHistorySerializer):
+class ProductSerializer(VuedaSerializer):
     buzz_words = serializers.ListField(child=serializers.CharField())
 
-    class Meta(VuedaHistorySerializer.Meta):
+    class Meta(VuedaSerializer.Meta):
         model = Product
-        fields = ["id", "name", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "name", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
 
 
 class ProductRenamedFieldSerializer(ProductSerializer):
@@ -23,7 +22,7 @@ class ProductRenamedFieldSerializer(ProductSerializer):
     title = serializers.CharField()
 
     class Meta(ProductSerializer.Meta):
-        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
 
 
 class ProductSourceFieldSerializer(ProductSerializer):
@@ -34,7 +33,7 @@ class ProductSourceFieldSerializer(ProductSerializer):
     title = serializers.CharField(source="name")
 
     class Meta(ProductSerializer.Meta):
-        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
 
 
 class ProductPropertyFieldSerializer(ProductSerializer):
@@ -44,7 +43,7 @@ class ProductPropertyFieldSerializer(ProductSerializer):
     title = serializers.CharField(source="computed_title")
 
     class Meta(ProductSerializer.Meta):
-        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaHistorySerializer.Meta.fields
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
 
 
 class ProductModelOrderingPKSerializer(VuedaSerializer):

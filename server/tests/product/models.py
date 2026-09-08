@@ -1,16 +1,45 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Reverse
 
+from vueda.core.models import FormattedNameManager
 from vueda.core.models import VuedaModel
 from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.history.models import VuedaHistoryModel
+
+
+class ProductManager(FormattedNameManager):
+    """Puts `reversed_name` on every Product queryset, before any viewset touches it.
+
+    A fixture for the one thing only a manager can demonstrate: `ordering_fields = "__all__"`
+    resolves against `queryset.query.annotations`, so it has to pick up an annotation the *model's*
+    default manager added as readily as one a viewset's `get_queryset` added. VUEDA carried such an
+    annotation of its own until `object_revision` replaced it and moved to
+    `VuedaViewSet.get_queryset`, which left nothing exercising the manager half of that behaviour.
+
+    Inherits `FormattedNameManager` rather than `models.Manager` because a VUEDA model that declares
+    its own `objects` shadows the default manager and takes the `formatted_name` annotation with it —
+    the mistake `vueda_info.E009` reports, and the reason the inheritance is documented on
+    `FormattedNameManager` itself.
+
+    `reverse()` reads one column and needs no join or subquery, so the annotation costs nothing on
+    the other Product tests it now rides along on. It also sorts the ordering fixtures into an order
+    nothing else in those tests produces — "Banana", "Apple", "Cherry", against `name`'s "Apple",
+    "Banana", "Cherry", `-name`'s reverse of that, and insertion order's "Cherry", "Apple",
+    "Banana" — so an assertion on that order can only be explained by the annotation.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(reversed_name=Reverse("name"))
 
 
 class Product(VuedaHistoryModel):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
     buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
+
+    objects = ProductManager()
 
     class Meta(VuedaHistoryModel.Meta):
         default_related_name = "products"

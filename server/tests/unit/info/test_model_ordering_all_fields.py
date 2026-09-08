@@ -65,7 +65,7 @@ class TestModelOrderingAllFieldsValue:
         assert field_names == expected_field_names, response_body(response)
         assert "__all__" not in field_names
 
-        # The two annotations come from different places, and both count.
+        # The annotations come from three different places, and all of them count.
         #
         # "title" is added by this viewset's own `get_queryset`. It is also the serializer's name for
         # Product.name, but it is advertised because of the annotation, not because the serializer
@@ -73,9 +73,14 @@ class TestModelOrderingAllFieldsValue:
         # TestOrderingFieldsAllValue.test_explicit_ordering_param_on_annotated_serializer_field_name_is_applied
         # covers, so metadata and request-time behaviour agree there.
         #
-        # "current_history_id" is added by `SimpleHistoryManager`, the default manager Product
-        # inherits through VuedaHistoryModel. It is on every Product queryset before any viewset
-        # touches it, so `"__all__"` picks it up too. A manager-added annotation is no different from
-        # a viewset-added one as far as `order_by()` is concerned.
-        assert {"title", "current_history_id"} <= field_names, response_body(response)
-        assert "current_history_id" not in {field.name for field in Product._meta.fields}
+        # "_object_revision" is added by `VuedaViewSet.get_queryset` for every tracked model, so it
+        # arrives without this viewset naming it.
+        #
+        # "reversed_name" is added by `ProductManager`, the model's own default manager. It is on
+        # every Product queryset before any viewset touches it, so `"__all__"` picks it up too. A
+        # manager-added annotation is no different from a viewset-added one as far as `order_by()` is
+        # concerned, and
+        # TestOrderingFieldsAllValue.test_explicit_ordering_param_on_a_manager_added_annotation_is_accepted
+        # proves the server honours the name this advertises.
+        assert {"title", "_object_revision", "reversed_name"} <= field_names, response_body(response)
+        assert not {"_object_revision", "reversed_name"} & {field.name for field in Product._meta.fields}

@@ -207,3 +207,18 @@ def use_test_router(router_class, url_path, registrations):
     finally:
         urlpatterns.pop()
         resolver._populated = False  # Modified url patterns, to force _populate to refresh the resolvers cached data.
+
+
+def object_revision_of(instance):
+    """The revision token the API publishes for ``instance``, or None when it has no events yet.
+
+    Mirrors ``vueda.history.revision``: the newest event id for the row, prefixed by the tracked
+    model's label so a client can compare it against an event identifier directly.
+    """
+    event_model = getattr(type(instance), "pgh_event_model", None)
+    if event_model is None:
+        return None
+    latest = event_model.objects.filter(pgh_obj_id=instance.pk).order_by("-pgh_id").first()
+    if latest is None:
+        return None
+    return f"{type(instance)._meta.concrete_model._meta.label}:{latest.pgh_id}"

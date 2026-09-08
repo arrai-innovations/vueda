@@ -148,6 +148,8 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
             "formatted_name": distributor.name,
             "app_label": "store",
             "model": "distributor",
+            # A generic relation is resolved per row, not through the annotated queryset.
+            "object_revision": None,
         }
         # carrying_weight, depth, height, width are omitted via model-targeted specifiers
         # _store__product__<field>.  description is not in this model so is unaffected.

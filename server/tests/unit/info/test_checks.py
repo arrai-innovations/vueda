@@ -243,10 +243,11 @@ class TestFormattedNameChecks:
     def test_a_manager_subclassing_formatted_name_manager_passes_system_check(self):
         """The documented way to keep the annotation while adding manager behaviour of your own.
 
-        `SimpleHistoryManager` is VUEDA's own instance of this: it sits on an abstract base closer in
-        the MRO than `FormattedNameBaseModel`, so it shadows the default manager for every
-        `VuedaHistoryModel` subclass and has to inherit `FormattedNameManager` to avoid taking the
-        annotation with it.
+        `tests.product.ProductManager` is one instance of it: it declares `objects` on the model
+        itself, which shadows the `FormattedNameManager` that `FormattedNameBaseModel` provides, so
+        it has to inherit that manager rather than `models.Manager` to avoid taking the annotation
+        with it. A manager declared on an abstract base closer in the MRO than
+        `FormattedNameBaseModel` shadows it the same way.
         """
         from django.db import models
 

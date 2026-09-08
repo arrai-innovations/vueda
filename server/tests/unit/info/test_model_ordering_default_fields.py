@@ -57,10 +57,13 @@ class TestModelOrderingDefaultFieldsValue:
         field_names = {field["name"] for field in fields}
 
         # "title" is only the serializer's name for Product.name; the metadata should list "name" (its
-        # source) instead. "available_actions" and "current_history_id" are readable serializer fields
+        # source) instead. "available_actions" and "object_revision" are readable serializer fields
         # with no real model field behind them, so they're excluded rather than crashing the endpoint.
+        # "reversed_name" is a queryset annotation `ProductManager` adds, which only `"__all__"`
+        # reaches — DRF's default resolves serializer fields, so it isn't offered here either.
         expected_field_names = {field.name for field in Product._meta.fields}
         assert field_names == expected_field_names, response_body(response)
         assert "title" not in field_names
         assert "available_actions" not in field_names
-        assert "current_history_id" not in field_names
+        assert "object_revision" not in field_names
+        assert "reversed_name" not in field_names

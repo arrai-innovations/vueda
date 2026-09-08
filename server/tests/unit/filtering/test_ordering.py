@@ -378,10 +378,9 @@ class TestOrderingFieldsAllValue:
     def test_explicit_ordering_param_on_a_manager_added_annotation_is_accepted(
         self, product_ordering_data, api_client, settings
     ):
-        """`current_history_id` is annotated by `SimpleHistoryManager`, the default manager Product
-        inherits through VuedaHistoryModel — not by this viewset's `get_queryset`. It is on every
-        Product queryset before any viewset touches it, so `"__all__"` picks it up the same way, and
-        `model_ordering.fields` advertises it (see
+        """`reversed_name` is annotated by `ProductManager`, the model's own default manager — not by
+        this viewset's `get_queryset`. It is on every Product queryset before any viewset touches it,
+        so `"__all__"` picks it up the same way, and `model_ordering.fields` advertises it (see
         tests/unit/info/test_model_ordering_all_fields.py). This proves the advertised name is one the
         server actually honours rather than rejecting or erroring on.
         """
@@ -392,16 +391,16 @@ class TestOrderingFieldsAllValue:
 
         response = api_client.get(
             reverse("product.product-list"),
-            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "current_history_id"},
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "reversed_name"},
             format="json",
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        # Every row has exactly one history record here, so history id order tracks insertion order —
-        # neither alphabetical nor reverse-alphabetical, so the ordering can't be explained by a
-        # silent fall back to the viewset's `ordering = ["-name"]` default.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Apple", "Banana"]
+        # Sorting "elppA", "ananaB" and "yrrehC" puts the rows in an order nothing else here
+        # produces: not alphabetical, not reverse-alphabetical, and not insertion order. So it can't
+        # be explained by a silent fall back to the viewset's `ordering = ["-name"]` default.
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Banana", "Apple", "Cherry"]
 
 
 @pytest.mark.django_db

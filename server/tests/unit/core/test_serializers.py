@@ -79,14 +79,8 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         assert valid_expands == {
             "customer",
             "customer.dict_data",
-            "customer.first_history_entry",
-            "customer.history",
-            "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
-            "first_history_entry",
-            "history",
-            "last_history_entry",
             "order_items",
             "order_items.customer_order",
             "order_items.product_option",
@@ -106,21 +100,15 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert valid_fields == {
             "available_actions",
-            "current_history_id",
+            "object_revision",
             "customer",
             "customer.dict_data",
-            "customer.first_history_entry",
             "customer.formatted_name",
-            "customer.history",
             "customer.id",
-            "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
-            "first_history_entry",
             "formatted_name",
-            "history",
             "id",
-            "last_history_entry",
             "order_items",
             "order_items.customer_order",
             "order_items.formatted_name",
@@ -159,27 +147,15 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         assert valid_expands == {
             "customer",
             "customer.dict_data",
-            "customer.first_history_entry",
-            "customer.history",
-            "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
             "customer.user.groups",
-            "first_history_entry",
-            "history",
-            "last_history_entry",
             "order_items",
             "order_items.customer_order",
             "order_items.customer_order.customer",
-            "order_items.customer_order.first_history_entry",
-            "order_items.customer_order.history",
-            "order_items.customer_order.last_history_entry",
             "order_items.customer_order.order_items",
             "order_items.customer_order.order_state",
             "order_items.product_option",
-            "order_items.product_option.first_history_entry",
-            "order_items.product_option.history",
-            "order_items.product_option.last_history_entry",
             "order_items.product_option.option_type",
             "order_items.product_option.product",
             "order_state",
@@ -204,32 +180,23 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert valid_fields == {
             "available_actions",
-            "current_history_id",
+            "object_revision",
             "customer",
             "customer.dict_data",
-            "customer.first_history_entry",
             "customer.formatted_name",
-            "customer.history",
             "customer.id",
-            "customer.last_history_entry",
             "customer.single_value",
             "customer.user",
             "customer.user.email",
             "customer.user.groups",
             "customer.user.id",
             "customer.user.name",
-            "first_history_entry",
             "formatted_name",
-            "history",
             "id",
-            "last_history_entry",
             "order_items",
             "order_items.customer_order",
             "order_items.customer_order.customer",
-            "order_items.customer_order.first_history_entry",
-            "order_items.customer_order.history",
             "order_items.customer_order.id",
-            "order_items.customer_order.last_history_entry",
             "order_items.customer_order.order_items",
             "order_items.customer_order.order_number",
             "order_items.customer_order.order_state",
@@ -238,11 +205,8 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_items.formatted_name",
             "order_items.product_option",
             "order_items.product_option.disabled",
-            "order_items.product_option.first_history_entry",
             "order_items.product_option.gtin",
-            "order_items.product_option.history",
             "order_items.product_option.id",
-            "order_items.product_option.last_history_entry",
             "order_items.product_option.name",
             "order_items.product_option.option_type",
             "order_items.product_option.price",
@@ -529,8 +493,8 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             assert e.detail == {
                 "invalid_field_name": [
                     ErrorDetail(
-                        "Invalid field.  Valid fields are available_actions, current_history_id, employee, "
-                        "formatted_name, id, period_end, period_start, supervisor.",
+                        "Invalid field.  Valid fields are available_actions, employee, "
+                        "formatted_name, id, object_revision, period_end, period_start, supervisor.",
                         code="invalid",
                     )
                 ]
@@ -977,7 +941,9 @@ class TestVuedaReadonlySerializer:
         serializer = store_serializers.CustomerDataSerializer(customer.data, context=self._context(customer.data))
 
         assert {field.read_only for field in serializer.fields.values()} == {True}
-        assert set(store_serializers.CustomerDataSerializer.Meta.read_only_fields) == set(serializer.fields.keys())
+        # An unmanaged model records no history, so it publishes no revision even though the
+        # declared field list names one. Every field it does publish must still be read only.
+        assert set(serializer.fields.keys()) <= set(store_serializers.CustomerDataSerializer.Meta.read_only_fields)
 
     def test_list_serializer_class_is_readonly_variant(self):
         assert store_serializers.CustomerDataSerializer.Meta.list_serializer_class is VuedaReadonlyListSerializer
