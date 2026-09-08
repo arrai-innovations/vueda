@@ -7,7 +7,7 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
-import { memoizedStartCase } from "@vueda/utils/case.js";
+import { getLowerTitle, memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import omit from "lodash-es/omit.js";
@@ -68,6 +68,11 @@ const transitionDisplayName = computed(() => transition.value?.name || memoizedS
 const actionTitleText = computed(() => {
     return props.title?.length > 0 ? props.title : `${transitionDisplayName.value} ${memoizedStartCase(props.model)}`;
 });
+// `useModelAction` consumes `action-verbose-name` as `actionVerboseNameLowerCase` and interpolates it
+// mid-sentence in the confirm prompt ("Are you sure you want to {verb} the selected {model}?"),
+// exactly as it does the default `getLowerTitle(props.action)` value this replaces. The page title
+// above keeps the cased `transitionDisplayName`; only the confirm-prompt copy needs the lower case.
+const transitionVerboseName = computed(() => getLowerTitle(transitionDisplayName.value));
 // Contribute the page title to the layout's PageTitle display.
 usePageTitle(() => ({ title: actionTitleText.value }));
 
@@ -111,7 +116,7 @@ const theme = useTheme("ViewExecuteTransition", props);
         </page-actions>
         <model-action-form
             :action="action"
-            :action-verbose-name="transitionDisplayName"
+            :action-verbose-name="transitionVerboseName"
             :app="app"
             :model="model"
             :pk="pk"
