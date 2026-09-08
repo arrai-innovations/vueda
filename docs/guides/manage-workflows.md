@@ -76,7 +76,7 @@ python manage.py makeworkflowmigrations myapp
 
 ### How Change Detection Works
 
-`makeworkflowmigrations` reads the `django-simple-history` records for every workflow model. It looks for history entries that were created after the last workflow migration was run, and compares those records against the changes already captured in previously created workflow migrations. Only the new, unrecorded changes are included in the migration that gets created.
+`makeworkflowmigrations` reads the pghistory events for every workflow model. It looks for events recorded after the last workflow migration ran, and compares them against the changes already captured in previously created workflow migrations. Only the new, unrecorded changes go into the migration it writes.
 
 Each change is stored with a type marker:
 

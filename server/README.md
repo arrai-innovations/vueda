@@ -43,7 +43,7 @@ library enhances Django's native authentication and permissions systems
 with default DRF classes and optimizes integration with [django-filter],
 [drf-flex-fields], and [drf-writable-nested]. It offers essential out-of-the-box
 functionalities such as custom workflow management, audit trails (with DRF
-support for [django-simple-history]), and row-level
+support for [django-pghistory]), and row-level
 permissions. Additionally, VUEDA Server provides DRF classes to expose Django
 model details to the frontend, filtered by user permissions. It is built with
 customization in mind, offering most features as base classes that can be
@@ -115,20 +115,12 @@ extended in your application, ensuring both control and adaptability.
 - it's up to you to add `vueda` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
   settings, like database, middleware, asgi vs wsgi, etc.
 - it's up to you to add `vueda`'s `urls` to your `urls.py`.
-- `HistoryRequestMiddleware` should be added to your `MIDDLEWARE` in `settings.py`, even if not otherwise
-  using `simple_history`.
+- `VuedaHistoryMiddleware` names the acting user and the request behind every history event. VUEDA
+  inserts it into `MIDDLEWARE` after `AuthenticationMiddleware`, so a wsgi project adds nothing. The
+  `vueda_history.W001` and `vueda_history.W002` system checks report a project that drops it or
+  moves it ahead of `AuthenticationMiddleware`.
 
-    example wsgi settings:
-
-    ```py
-    MIDDLEWARE = [
-        ...
-        'simple_history.middleware.HistoryRequestMiddleware',
-        ...
-    ]
-    ```
-
-    if using asgi, you should also add `HistoryRequestMiddleware` to your middleware stack, for example:
+    if using asgi, add it to your middleware stack as well, for example:
 
     ```py
     from asgi_cors_middleware import CorsASGIApp
@@ -136,14 +128,14 @@ extended in your application, ensuring both control and adaptability.
     from channels.sessions import CookieMiddleware
     from channels.sessions import SessionMiddleware
     from django.conf import settings
-    from simple_history.middleware import HistoryRequestMiddleware
+    from vueda.history.middleware import VuedaHistoryMiddleware
 
     def my_middlewares_stack(inner):
         return CorsASGIApp(
           CookieMiddleware(
               SessionMiddleware(
                   AuthMiddleware(
-                      HistoryRequestMiddleware(
+                      VuedaHistoryMiddleware(
                           # ...
                           inner
                       )
@@ -399,5 +391,5 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
-[django-simple-history]: https://github.com/jazzband/django-simple-history
+[django-pghistory]: https://github.com/AmbitionEng/django-pghistory
 [api-docs]: https://vueda.dev/v3/reference/api/
