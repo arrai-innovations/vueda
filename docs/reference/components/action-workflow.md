@@ -269,19 +269,17 @@ Every action view is `ModelActionForm` underneath, so the same slots and props r
 
 The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
 
-| Surface                  | Key tokens                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| Info banner              | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
-| Success banner           | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
-| Warning banner           | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
-| Destructive banner       | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
-| Prompt block             | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
-| Object list              | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
-| Actions strip            | `--border` (top hairline)                                                                    |
-| Transition card selected | `--primary` via `border-primary`, `bg-primary/5`                                             |
-| Current state strip      | `--muted` via `bg-muted/15`; state pill tone from the workflow state vocabulary              |
-| Diff old                 | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
-| Diff new                 | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Revision stripe          | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
-| Type pill (updated)      | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
-| Type pill (created)      | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Surface             | Key tokens                                                                                   |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| Info banner         | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
+| Success banner      | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
+| Warning banner      | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
+| Destructive banner  | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
+| Prompt block        | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
+| Object list         | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
+| Actions strip       | `--border` (top hairline)                                                                    |
+| Diff old            | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
+| Diff new            | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Revision stripe     | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
+| Type pill (updated) | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
+| Type pill (created) | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
