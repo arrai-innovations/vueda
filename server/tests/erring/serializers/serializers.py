@@ -44,6 +44,14 @@ class NoNameFieldSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class ModelOrderingQuerysetSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ModelOrderingQueryset
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.FormattedNameExpressionNotString

@@ -814,3 +814,158 @@ class TestNullsOrderingChecks:
         )
 
         assert check_ordering_configuration(app_configs=None) == []
+
+
+@pytest.mark.django_db
+class TestQuerysetOrderingChecks:
+    """`vueda_info.E010` covers an ordering declared on a viewset's class-level `queryset`.
+
+    DRF's ordering backend reads a view's `ordering` and nothing else, so an `order_by()` on the
+    queryset is an ordering the metadata never reports — and, with no `ordering` declared, the one a
+    list request actually returns. Nothing fails either way, which is why a check is the only signal.
+    """
+
+    def test_queryset_ordering_conflicting_with_model_ordering_system_check_error(self):
+        """ConflictingQuerysetOrderingViewSet orders its queryset ascending on a model whose
+        `Meta.ordering` is descending, and declares no `ordering` of its own. The queryset's order is
+        what the rows arrive in; the model's is what `model_ordering.default` reports."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.ConflictingQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ConflictingQuerysetOrderingViewSet.queryset orders by 'the_name_field', but the "
+                "default ordering reported for it comes from ModelOrderingQueryset.Meta.ordering "
+                "('-the_name_field'), which no list request here applies.",
+                hint=(
+                    "Declare it as `ordering = ['the_name_field']` on "
+                    "ConflictingQuerysetOrderingViewSet instead, so the ordering DRF applies is the "
+                    "one `model_ordering.default` reports. DRF's ordering backend reads a view's "
+                    "`ordering` and nothing else, so with none declared it applies no ordering and "
+                    "the queryset's own survives to the response — while `model_ordering.default` "
+                    "falls back to ModelOrderingQueryset.Meta.ordering and describes a different "
+                    "order to every client. Dropping the `order_by()` is the other answer, and "
+                    "reverses the list."
+                ),
+                obj=err_viewsets.ConflictingQuerysetOrderingViewSet,
+                id="vueda_info.E010",
+            )
+        ]
+
+    def test_queryset_ordering_declared_nowhere_else_system_check_error(self):
+        """UndeclaredQuerysetOrderingViewSet orders its queryset on a model that declares no
+        `Meta.ordering`, so there is no default ordering to report at all — the rows arrive sorted and
+        the metadata says nothing about the column that sorted them."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.UndeclaredQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "UndeclaredQuerysetOrderingViewSet.queryset orders by 'the_name_field', which neither "
+            "UndeclaredQuerysetOrderingViewSet.ordering nor ValidLookupExpression.Meta.ordering "
+            "declares."
+        )
+        assert "reports no default ordering at all" in errors[0].hint
+
+    def test_queryset_ordering_a_viewset_ordering_replaces_system_check_error(self):
+        """OverriddenQuerysetOrderingViewSet declares an `ordering` that reverses its queryset's.
+
+        The metadata is accurate here, because DRF applies the view's `ordering` over whatever the
+        queryset carried. What the check reports is the queryset's declaration, which reaches no
+        response and reads as if it set the list's order."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.OverriddenQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "OverriddenQuerysetOrderingViewSet.queryset orders by '-the_name_field', which "
+            "OverriddenQuerysetOrderingViewSet.ordering ('the_name_field') replaces on every list "
+            "request."
+        )
+        assert errors[0].hint.startswith("Remove the `order_by()` from the queryset")
+
+    def test_queryset_ordering_matching_the_viewset_ordering_passes_system_check(self):
+        """AgreeingQuerysetOrderingViewSet declares both, identically. Redundant, but it describes the
+        order the rows arrive in, so there is nothing to report."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.AgreeingQuerysetOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_queryset_ordering_matching_the_model_ordering_passes_system_check(self):
+        """ModelAgreeingQuerysetOrderingViewSet's queryset orders exactly as the model's
+        `Meta.ordering` does, so the reported default and the rows agree."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.ModelAgreeingQuerysetOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_queryset_ordering_on_the_column_behind_formatted_name_passes_system_check(self):
+        """FormattedNameQuerysetOrderingViewSet orders its queryset by the column
+        `formatted_name_lookup_expression` names, while declaring `ordering = ["formatted_name"]`.
+
+        One sort under two names, so both sides resolve to the same path instead of being reported as
+        a conflict between a name and its own column."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.FormattedNameQuerysetOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_queryset_ordering_on_the_pk_alias_passes_system_check(self):
+        """PKAliasQuerysetOrderingViewSet orders its queryset by the "pk" alias while declaring
+        `ordering` as the field the alias stands for. The alias expands the way the metadata expands
+        it, so the two are recognized as the same sort."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.PKAliasQuerysetOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_random_queryset_ordering_passes_system_check(self):
+        """RandomQuerysetOrderingViewSet orders its queryset randomly, which names no column.
+
+        There is nothing to compare against the declared default, so the check stays quiet rather than
+        guessing — the same terms `model_ordering.default` withholds."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.RandomQuerysetOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_a_viewset_whose_queryset_declares_no_ordering_passes_system_check(self):
+        """The ordinary case: a queryset with no `order_by()` of its own, leaving the default ordering
+        to the viewset's `ordering` — the one place DRF reads it from."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.ValidLookupExpressionOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []

@@ -251,3 +251,14 @@ class ProductOrderingUnreadableFieldsEntryViewSet(ProductOrderingViewSet):
     way and taking the metadata endpoint down with a declaration it only has to describe."""
 
     ordering_fields = ["name", 7]
+
+
+class ProductModelOrderingWhitelistViewSet(ProductViewSet):
+    """Declares `ordering_fields` and no `ordering`, so the default ordering is Product.Meta.ordering
+    ("name") — a field `ordering_fields` doesn't name.
+
+    Which declaration supplements the `?o=` whitelist is the question here. The model's is the
+    default ordering DRF applies, so the field it names has to be an explicit target too, and the
+    field `ordering_fields` names stays available alongside it."""
+
+    ordering_fields = ["available_for_sale"]

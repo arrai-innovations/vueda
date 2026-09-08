@@ -204,6 +204,28 @@ class FalseyFormattedNamesLookup(VuedaModel):
         return self.pk
 
 
+class ModelOrderingQueryset(VuedaModel):
+    """Declares a `Meta.ordering` for a viewset's class-level queryset to disagree with.
+
+    `vueda_info.E010` compares the two, and the conflict it exists to report needs a model that
+    declares an ordering of its own — no other model here does. Descending, so a viewset ordering the
+    same field ascending differs by direction alone, which is the shape the check has to catch.
+    """
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        ordering = ("-the_name_field",)
+        verbose_name = "Model ordering queryset"
+        verbose_name_plural = "Model ordering queryset"
+
+    def __str__(self):
+        return self.the_name_field
+
+
 class NonVuedaFormattedName(models.Model):
     """Plain model (no VuedaModel heritage) with formatted_name = None and no alternative configured."""
 

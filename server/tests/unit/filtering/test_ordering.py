@@ -213,6 +213,68 @@ class TestOrderingMultiFieldDefaultAllowsExplicitOrderingOnEachField:
 
 
 @pytest.mark.django_db
+class TestModelOrderingSupplementsTheOrderingFieldsWhitelist:
+    """ProductModelOrderingWhitelistViewSet declares `ordering_fields = ["available_for_sale"]` and no
+    `ordering`, so Product.Meta.ordering ("name") is the default ordering DRF applies.
+
+    A default ordering's fields are valid `?o=` targets whichever declaration the default came from,
+    so "name" is requestable here through the model's declaration alone — the same rule the
+    viewset-`ordering` scenarios above cover, applied to the other source. What `ordering_fields`
+    names is unaffected by that widening and stays requestable.
+    """
+
+    def test_default_order_is_the_model_ordering(self, product_ordering_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_model_ordering_whitelist"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(reverse("product.product-list"), format="json")
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+    def test_explicit_ordering_param_on_a_model_ordering_field_is_applied(
+        self, product_ordering_data, api_client, settings
+    ):
+        """ "name" isn't in `ordering_fields`, and the default ordering it belongs to is the model's
+        rather than the viewset's. It is still accepted, instead of being ignored in favour of the
+        default — a field a client can see the list sorted by should be requestable directly."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_model_ordering_whitelist"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-name"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+
+    def test_explicit_ordering_param_on_an_ordering_fields_entry_is_still_applied(
+        self, product_ordering_availability_data, api_client, settings
+    ):
+        """The half that widening must not cost: an explicitly whitelisted field keeps working
+        whether or not the default ordering names it."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_model_ordering_whitelist"
+
+        user = product_ordering_availability_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "available_for_sale"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["available_for_sale"] for x in response.data["results"]] == [False, True, True]
+
+
+@pytest.mark.django_db
 class TestOrderingScalarFunctionMultiFieldDefault:
     """ProductOrderingScalarFunctionMultiFieldViewSet's default `ordering` is one scalar-function term
     reading two columns, `Coalesce("name", "formatted_name")`, with an empty `ordering_fields`.

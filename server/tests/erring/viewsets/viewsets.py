@@ -232,3 +232,89 @@ class NullsOrderingFlipNotIterableViewSet(VuedaViewSet):
     serializer_class = my_serializers.ValidLookupExpressionSerializer
     nulls_ordering = {"the_name_field": "first"}
     nulls_ordering_flip = 1
+
+
+class ConflictingQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset one way while the model's `Meta.ordering` declares another,
+    and declares no `ordering` of its own.
+
+    The queryset's order is what a list request returns — DRF's ordering backend has no view
+    `ordering` to apply, so it leaves the queryset alone — while `model_ordering.default` falls back
+    to the model's declaration and reports the opposite direction. `vueda_info.E010` is the only
+    signal; nothing fails, and both halves look right read on their own."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.order_by("the_name_field")
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+
+class UndeclaredQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset on a model that declares no `Meta.ordering`, and declares no
+    `ordering` of its own.
+
+    The same mismatch in its other shape: rows arrive sorted and the metadata reports no default
+    ordering at all, so a client can't show which column sorted them."""
+
+    queryset = my_models.ValidLookupExpression.objects.order_by("the_name_field")
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+
+class OverriddenQuerysetOrderingViewSet(VuedaViewSet):
+    """Declares an `ordering` that reverses what its class-level queryset orders by.
+
+    Here the metadata is accurate — DRF applies the view's `ordering` over whatever the queryset
+    carried — so what the check reports is the dead declaration, which reads as if it set the list's
+    order and sets nothing."""
+
+    queryset = my_models.ValidLookupExpression.objects.order_by("-the_name_field")
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+
+class AgreeingQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset and declares the same `ordering`. Redundant, but it describes
+    the order the rows arrive in, so the check must stay quiet."""
+
+    queryset = my_models.ValidLookupExpression.objects.order_by("the_name_field")
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+
+class ModelAgreeingQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset exactly as the model's `Meta.ordering` does, declaring no
+    `ordering` of its own. Also redundant, also accurate, so also quiet."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.order_by("-the_name_field")
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+
+class FormattedNameQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset by the column behind `formatted_name` while declaring
+    `ordering` as `formatted_name` itself.
+
+    One sort under two names, since the model reaches the value through
+    `formatted_name_lookup_expression`, so the check has to resolve both sides to the same path
+    rather than report a conflict between a name and its own column."""
+
+    queryset = my_models.ValidLookupExpression.objects.order_by("the_name_field")
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["formatted_name"]
+
+
+class PKAliasQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset by the "pk" alias while declaring `ordering` as the field the
+    alias stands for. The same sort spelled two ways, so the check expands the alias the way the
+    metadata does instead of reporting it."""
+
+    queryset = my_models.ValidLookupExpression.objects.order_by("pk")
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["id"]
+
+
+class RandomQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset randomly, which names no column at all.
+
+    There is nothing to compare against the declared default, so the check says nothing rather than
+    guessing — the same terms `model_ordering.default` withholds."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.order_by("?")
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
