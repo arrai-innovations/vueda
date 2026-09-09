@@ -224,7 +224,7 @@ The permission overview screen at `/routes/vueda.user/permissions/overview/` let
 
 If you create a migration and then upgrade VUEDA, you can run `updategroupmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data is preserved.
 
-For full instructions, see [Manage Groups and Generate Group Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-groups.md).
+For full instructions, see [Manage Groups and Generate Group Migrations](https://vueda.dev/v3/guides/manage-groups.html).
 
 #### Workflow Management
 
@@ -232,13 +232,13 @@ The workflow overview screen at `/routes/vueda.workflow/overview/` lets you crea
 
 If you create a migration and then upgrade VUEDA, you can run `updateworkflowmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data and other variables are preserved.
 
-For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/manage-workflows.md).
+For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://vueda.dev/v3/guides/manage-workflows.html).
 
 #### Permissions and Workflow Overview
 
 The permissions and workflow overview at `/vueda.info/overview/` provides a read-only audit of which groups have which permissions and which workflow transitions they can trigger. Select a specific user to see exactly what that user can and cannot do. The page can be printed as a reference to share with clients or as a starting point when diagnosing access issues.
 
-For full instructions, see [Use the Permissions and Workflow Overview](https://github.com/arrai-innovations/vueda/blob/main/docs/guides/permissions-workflow-overview.md).
+For full instructions, see [Use the Permissions and Workflow Overview](https://vueda.dev/v3/guides/permissions-workflow-overview.html).
 
 ### Set up Dispatch Queue
 
@@ -400,4 +400,4 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
 [django-simple-history]: https://github.com/jazzband/django-simple-history
-[api-docs]: https://docs.arrai.dev/vueda-server/documentation/
+[api-docs]: https://vueda.dev/v3/reference/api/

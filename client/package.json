@@ -32,14 +32,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arrai-innovations/vueda-client.git"
+    "url": "git+https://github.com/arrai-innovations/vueda.git"
   },
   "author": "Arrai Innovations Inc. <developers@arrai.com>",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/arrai-innovations/vueda-client/issues"
+    "url": "https://github.com/arrai-innovations/vueda/issues"
   },
-  "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
+  "homepage": "https://vueda.dev/v3/",
   "devDependencies": {
     "@arrai-innovations/vue-sonner": "^2.0.11",
     "@rollup/plugin-strip": "^3.0.4",
