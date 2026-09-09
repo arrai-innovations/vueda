@@ -511,6 +511,15 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         with pytest.raises(DRFPermissionDenied):
             customer_order.check_workflow_permission(unauthorized_user)
 
+    def test_check_workflow_permission_ignores_unrelated_state_rules(self, customer_order, unauthorized_user):
+        # The workflow's own state rules say nothing about this caller, this codename, or this
+        # object's state, so their existence cannot stand in for the configured workflow
+        # permissions the caller does not hold.
+        assert StatePermission.objects.filter(state__workflow=customer_order.workflow).exists()
+
+        with pytest.raises(DRFPermissionDenied):
+            customer_order.check_workflow_permission(unauthorized_user)
+
     def test_has_perm_with_obj_state_grant_can_allow_without_baseline_permission(self, customer_order, workflow_user):
         StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
         workflow_group = Group.objects.get(name="Order Workflow Managers")

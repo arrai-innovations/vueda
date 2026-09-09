@@ -9,7 +9,6 @@ __all__ = (
     "WorkflowOverviewView",
     "WorkflowStateEditView",
     "WorkflowTransitionEditView",
-    "WorkflowView",
 )
 
 from django.contrib import messages
@@ -22,15 +21,12 @@ from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
-from rest_framework.generics import get_object_or_404
-from rest_framework.views import APIView
 from simple_history.models import HistoricalChanges
 
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
 from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 from vueda.workflow.mixins import WorkflowUrlsMixin
-from vueda.workflow.permissions import WorkflowObjectPermissions
 
 
 class HasWorkflowViewMixin:
@@ -43,34 +39,6 @@ class HasWorkflowViewMixin:
 
 
 HasWorkflowViewSetMixin = HasWorkflowViewMixin
-
-
-class WorkflowView(HasWorkflowViewMixin, APIView):
-    """
-    APIView helper for workflow-aware endpoints that operate on arbitrary models via app_label/model/object_id.
-    """
-
-    permission_classes = [WorkflowObjectPermissions]
-
-    def get_queryset(self):
-        # Local import to avoid app loading issues before Django setup completes.
-        from django.contrib.contenttypes.models import ContentType
-
-        app_label = self.kwargs.get("app_label")
-        model = self.kwargs.get("model")
-        content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
-        model_class = content_type.model_class()
-        return model_class.objects.all()
-
-    def get_object(self):
-        object_id = self.kwargs.get("object_id")
-        if object_id is None:
-            return None
-        return get_object_or_404(self.get_queryset(), pk=object_id)
-
-    def initial(self, request, *args, **kwargs):
-        super().initial(request, *args, **kwargs)
-        self.object = self.get_object()
 
 
 class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):

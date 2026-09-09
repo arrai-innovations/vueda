@@ -37,7 +37,7 @@ const urls = {
     workflowStates: "/workflow/states/",
     workflowObjectState: "/workflow/object-state/",
     workflowObjectTransitions: "/workflow/object-transitions/:app/:model/:pk/",
-    workflowObjectHistory: "/workflow/object-history/",
+    historyWorkflowStateHistory: "/history/workflow-state-history/:app/:model/:pk/",
 };
 vi.mock("@vueda/utils/urls.js", () => ({ getUrl: vi.fn((name) => urls[name] ?? `/unhandled/${name}/`) }));
 vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "http://host" }));
