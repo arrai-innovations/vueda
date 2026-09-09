@@ -39,14 +39,13 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * }) => Promise<boolean>} [onSubmissionWarningsRequireConfirmation] - Replaces the default handling of a
  *  confirmation-required response (HTTP 409): render the warnings and ask the user via the confirmation
  *  controller. Resolving `true` retries the action once with the warnings acknowledged.
- * @property {boolean} [readyToDryRun] - When true, a dry-run validation pass can run right now. Carries no memory of
- *  its own of what it last validated -- pair it with `dryRunTarget` for a caller whose readiness recomputes to `true`
- *  for reasons other than a new target (e.g. `useModelAction`'s action-instance idle check), or the pre-flight would
- *  never latch and would refire on every idle tick.
- * @property {string} [dryRunTarget] - Identity of the current dry-run target. The dry-run watcher below latches on
- *  this: it fires once per distinct value, then stays quiet until either `readyToDryRun` drops and comes back, or
- *  this changes. Omit it for a caller with no target concept; the watcher then fires (at most) once, ever, the same
- *  as if the target never changed.
+ * @property {boolean} [readyToDryRun] - When `true`, permits the first automatic dry-run validation pass and another
+ *  pass when `dryRunTarget` differs from the last run's target. Toggling readiness off and on does not repeat
+ *  validation for the same target.
+ * @property {string} [dryRunTarget] - Identity of the current dry-run target. A value different from the last run's
+ *  target permits another automatic validation pass once `readyToDryRun` is `true`, including when returning to a
+ *  previously validated target. Omit it for a caller with no target concept; automatic validation then runs at most
+ *  once per `useActionForm` instance, even if readiness toggles.
  */
 
 /**
