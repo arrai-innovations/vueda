@@ -780,7 +780,9 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
-            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
+            // An empty `?o=` chooses nothing, so the default applies and the param is dropped
+            // rather than filled in with it.
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
             // `?o=` is a present-but-empty ordering param, not a stored-preference lookup.
             expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
@@ -798,7 +800,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
-            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
 
             // a filter push replaces route.query without an `o` key
             route.query = { status: "active" };
@@ -806,8 +808,92 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
-            expect(route.query[ORDERING_PARAM]).toBe("-created_at");
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("does not send an untouched server default as an ordering param", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // The reader sees the default in the sort control, and the request leaves the
+            // ordering param off, so the server applies the ordering it reported rather than
+            // this reading that report back to it. The two are not always the same order: a
+            // ranked search sorts by relevance while the param is absent, and a default
+            // declared as `Lower("name")` sorts by the expression, not the bare column.
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt("sends the ordering param once the reader chooses a sort", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            await vue.nextTick();
+
+            expect(listProps.params[ORDERING_PARAM]).toEqual(["name"]);
+            expect(routerPush).toHaveBeenCalledWith({ query: { [ORDERING_PARAM]: "name" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("stops sending the ordering param when the reader resets to the default", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "name" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual(["name"]);
+
+            // Reset sort arrives as an empty sort, which resolves to the default: shown in the
+            // control, absent from the request.
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            expect(routerPush).toHaveBeenCalledWith({ query: {} });
+            wrapper.unmount();
+        });
+
+        scopedIt("leaves a ranked search unordered so the server can rank it", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [SEARCH_PARAM]: "test" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["name"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // `VuedaSearchFilterBackend` keeps its `-combined_rank` ordering only while the
+            // ordering param is absent, so sending the reported default here would replace
+            // relevance order with an alphabetical one.
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[SEARCH_PARAM]).toBe("test");
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
             wrapper.unmount();
         });
 

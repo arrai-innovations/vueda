@@ -209,9 +209,9 @@ const VIEW_NAME = "list";
 
 /**
  * @typedef {object} ViewListSortGroup
- * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater.
+ * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater. `state.sorted` is the sort in effect, for display: it holds `defaultSorted` while the reader has not chosen a sort. What the list request sends as its ordering param is the chosen sort alone, so an untouched default is shown without being sent.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
- * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Applied whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to, since a request without the ordering param is one the server sorts by its own default. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
+ * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Shown whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to. It is a report of what the server does on its own, so it is never sent back as an ordering param, and it stays out of the URL as well. Sending it would replace the ordering the server applies, which is not always the same order: a ranked search sorts by relevance while the param is absent, and a default declared as an expression (`Lower("name")`) sorts by that expression rather than by the bare column reported here. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
  * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
  * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
  * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
@@ -295,6 +295,23 @@ export function useViewList(options) {
         }
         return nextQuery;
     };
+    // A sort the reader chose travels; a server default they never touched does not.
+    // `sorting.state.sorted` always holds the sort in effect, so the chips and the Reset control
+    // still show the default. Only a chosen sort is written to the URL and sent as the ordering
+    // param. Sending an untouched default back would replace the ordering the server applies on
+    // its own, and the two are not always the same order: a ranked search sorts by relevance while
+    // the ordering param is absent, and a default declared as an expression (`Lower("name")`) sorts
+    // by that expression rather than by the bare column the metadata reports it under.
+    const sortIsChosen = ref(false);
+    // What the URL and the list request carry: the reader's sort, or nothing.
+    const sentSorted = computed(() => (sortIsChosen.value ? [...sorting.state.sorted] : []));
+    // Records a sort along with whether the reader chose it. An empty sort is never a choice: the
+    // list already arrives in the server's default order, so a sort that comes out empty means the
+    // default, which `defaultSorted` fills in here.
+    const applySort = (sanitized, { chosen }) => {
+        sortIsChosen.value = chosen && sanitized.length > 0;
+        assignReactiveObject(sorting.state.sorted, sanitized.length ? sanitized : defaultSorted.value);
+    };
     const sorting = reactive({
         state: {
             sortables: computed(() => modelConfig?.config?.sortables),
@@ -310,9 +327,8 @@ export function useViewList(options) {
             } else {
                 listPreferenceStore.clearSorting(preferenceArgs());
             }
-            const applied = sanitized.length ? sanitized : defaultSorted.value;
-            assignReactiveObject(sorting.state.sorted, applied);
-            const routeQuery = queryWithCurrentSort(route.query, applied);
+            applySort(sanitized, { chosen: true });
+            const routeQuery = queryWithCurrentSort(route.query, sentSorted.value);
             if (!isEqual(routeQuery, route.query)) {
                 router.push({ query: routeQuery });
             }
@@ -365,7 +381,7 @@ export function useViewList(options) {
         perPage: seededPerPage,
         search: "",
         params: {
-            [ORDERING_PARAM]: toRef(sorting.state, "sorted"),
+            [ORDERING_PARAM]: sentSorted,
             [FIELDS_PARAM]: calculatedListFields,
             [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
         },
@@ -726,11 +742,6 @@ export function useViewList(options) {
             if (modelConfigLoading !== false || !Array.isArray(sortables)) {
                 return;
             }
-            // An empty sort is not a distinct state from the default: with no `o` sent,
-            // the server already returns objects in its default order, so a sanitized
-            // sort that comes out empty is always read as "use the default" rather than
-            // tracked separately from it.
-            const applyDefaultWhenEmpty = (sanitized) => (sanitized.length ? sanitized : defaultSorted.value);
             if (!isInitialized.sort) {
                 isInitialized.sort = true;
                 const hasUrlSorting = Object.prototype.hasOwnProperty.call(route.query, ORDERING_PARAM);
@@ -742,16 +753,19 @@ export function useViewList(options) {
                     hasUrlSorting ? parseSortQuery(querySorting) : storedSorting || [],
                     sortables,
                 );
-                const restored = applyDefaultWhenEmpty(sanitized);
-                assignReactiveObject(sorting.state.sorted, restored);
+                // A sort read off the URL or out of the preference store is one the reader
+                // chose. One that sanitizes down to nothing is not: an empty sort is not a state
+                // distinct from the default, since a request without the ordering param is one
+                // the server sorts by its own default anyway.
+                applySort(sanitized, { chosen: true });
 
                 if (hasUrlSorting) {
-                    const canonicalQuery = queryWithCurrentSort(route.query, restored);
+                    const canonicalQuery = queryWithCurrentSort(route.query, sentSorted.value);
                     if (!isEqual(canonicalQuery, route.query)) {
                         router.replace({ query: canonicalQuery });
                     }
                 } else if (storedSorting) {
-                    // Re-save the sanitized (pre-default-collapse) value, not `restored`: if
+                    // Re-save the sanitized value rather than the sort that ends up applied: if
                     // sanitizing dropped every stored field (none are sortable any more), the
                     // stored preference should be cleared, not replaced with the default.
                     if (!isEqual(sanitized, storedSorting)) {
@@ -766,16 +780,16 @@ export function useViewList(options) {
                             ...listPreferenceStore.getFilters(preferenceArgs()),
                             ...route.query,
                         },
-                        restored,
+                        sentSorted.value,
                     );
                     if (!isEqual(canonicalQuery, route.query)) {
                         router.replace({ query: canonicalQuery });
                     }
                 } else {
-                    // The server-default fallback is still canonicalized into the URL, so a
-                    // copied link and the outgoing request both show the sort actually
-                    // applied. It is never written to the preference store: it isn't a choice.
-                    const canonicalQuery = queryWithCurrentSort(route.query, restored);
+                    // The server-default fallback reaches the sort chips but not the URL, and not
+                    // the request: leaving the ordering param off is what lets the server apply
+                    // the default it reported, rather than this reading that report back to it.
+                    const canonicalQuery = queryWithCurrentSort(route.query, sentSorted.value);
                     if (!isEqual(canonicalQuery, route.query)) {
                         router.replace({ query: canonicalQuery });
                     }
@@ -787,16 +801,14 @@ export function useViewList(options) {
             // one that sanitizes down to nothing) resolves to the default every time, so
             // there's nothing to remember between runs: this always re-derives from the
             // current URL and default alone.
-            const restored = applyDefaultWhenEmpty(sanitizeSortFields(parseSortQuery(querySorting), sortables));
-            if (!isEqual(restored, sorting.state.sorted)) {
-                assignReactiveObject(sorting.state.sorted, restored);
-            }
-            // Canonicalize whatever ended up applied, the way every branch of initialization does,
-            // so the URL always spells out the sort in effect — including a default that is only in
-            // play because the URL carried no `o` of its own. Nothing is written to the preference
-            // store here: arriving at a URL is not the same as choosing a sort, and `updateSorted`
-            // is what records a choice.
-            const canonicalQuery = queryWithCurrentSort(route.query, restored);
+            applySort(sanitizeSortFields(parseSortQuery(querySorting), sortables), { chosen: true });
+            // Canonicalize the sort that travels, the way every branch of initialization does, so
+            // the URL always spells out the sort the request carries. A URL that lost its ordering
+            // param falls back to the default, which the chips show and the request omits, so
+            // nothing is written back here. Nothing reaches the preference store either: arriving
+            // at a URL is not the same as choosing a sort, and `updateSorted` is what records a
+            // choice.
+            const canonicalQuery = queryWithCurrentSort(route.query, sentSorted.value);
             if (!isEqual(canonicalQuery, route.query)) {
                 router.replace({ query: canonicalQuery });
             }

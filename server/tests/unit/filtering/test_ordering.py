@@ -4,6 +4,8 @@ from typing import ClassVar
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -1034,6 +1036,89 @@ class TestOrderingParamOnLookupExpressionFormattedName:
 
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["name"] for x in response.data["results"]] == ["Small", "Medium", "Large"]
+
+
+@pytest.fixture
+def packing_box_mixed_case_ordering_data():
+    data = PackingBoxOrderingTestData()
+
+    def make_box(name):
+        return PackingBox.objects.create(name=name, depth=1, height=1, width=1, carrying_weight=1)
+
+    # Mixed case, because that is the only input the two orderings below disagree on: a database
+    # sorting the raw column groups by case before letter under a "C" collation, while `Lower()`
+    # ignores case. Created out of order so a passing assertion can't be explained by insertion order.
+    make_box("banana")
+    make_box("Apple")
+    make_box("cherry")
+    return data
+
+
+def packing_box_order_by_clauses(captured):
+    """The outermost ORDER BY clause of every captured query that reads the packing box table.
+
+    Split from the right: a serializer subquery carries an ORDER BY of its own, and the clause under
+    test is the one the list query ends with.
+    """
+    clauses = []
+    for query in captured.captured_queries:
+        sql = query["sql"]
+        if "store_packingbox" in sql and "ORDER BY" in sql:
+            clauses.append(sql.rsplit("ORDER BY", 1)[1])
+    return clauses
+
+
+@pytest.mark.django_db
+class TestExplicitOrderingParamDropsADefaultFunction:
+    """PackingBoxViewSet's default is `Lower("formatted_name").desc()`, and `model_ordering` reports
+    it as the field the function reads: "formatted_name", descending.
+
+    That report names a field, not the function over it, so a client that sends the reported default
+    back as `?o=-formatted_name` gets a different sort than the one it was told about: the database
+    orders by the raw column instead of by `Lower()` of it. Under a case-sensitive collation those
+    two orders differ, which is why the client shows an untouched default without sending it (see
+    `useViewList`).
+
+    These assertions read the ORDER BY clause rather than the row order, because whether the two
+    orders actually differ for given data depends on the database's collation, while which
+    expression the query sorts by does not.
+    """
+
+    def test_default_ordering_sorts_by_the_function(self, packing_box_mixed_case_ordering_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_packing_box_ordering"
+
+        user = packing_box_mixed_case_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        with CaptureQueriesContext(connection) as captured:
+            response = api_client.get(reverse("store.packingbox-list"), format="json")
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        clauses = packing_box_order_by_clauses(captured)
+        assert clauses, response_body(response)
+        assert all("LOWER(" in clause.upper() for clause in clauses), clauses
+
+    def test_explicit_ordering_param_sorts_by_the_column(
+        self, packing_box_mixed_case_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_packing_box_ordering"
+
+        user = packing_box_mixed_case_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        with CaptureQueriesContext(connection) as captured:
+            response = api_client.get(
+                reverse("store.packingbox-list"),
+                # What metadata reports as the default: the field name and the direction, with no
+                # way to spell the function the default actually sorts by.
+                data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-formatted_name"},
+                format="json",
+            )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        clauses = packing_box_order_by_clauses(captured)
+        assert clauses, response_body(response)
+        assert all("LOWER(" not in clause.upper() for clause in clauses), clauses
 
 
 @pytest.mark.django_db
