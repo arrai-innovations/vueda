@@ -18,7 +18,6 @@ def strtobool(value):
 
 class ProductFilterSet(VuedaFilterSet):
     distributor = rest_framework.AllValuesMultipleFilter(field_name="distributor__name")
-    distributor.model = my_models.Product
     name = rest_framework.CharFilter(field_name="name", label="Name", lookup_expr="exact")
     name_icontains = rest_framework.CharFilter(field_name="name", label="Name (contains)", lookup_expr="icontains")
     tangible_type = rest_framework.ModelChoiceFilter(
@@ -101,14 +100,10 @@ class CartFilterSet(VuedaFilterSet):
     product_name = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__product__name", label="Product name"
     )
-    # This can't be done in the init, because they were not designed to do that, even though they need the model.
-    product_name.model = my_models.Cart
 
     product_quantity = rest_framework.AllValuesMultipleFilter(
         field_name="cart_items__product_option__quantity_available", label="Product quantity"
     )
-    # This can't be done in the init, because they were not designed to do that, even though they need the model.
-    product_quantity.model = my_models.Cart
 
     class Meta:
         model = my_models.Cart
@@ -117,14 +112,30 @@ class CartFilterSet(VuedaFilterSet):
         ]
 
 
-class OrderItemFilterSet(VuedaFilterSet):
-    quantity = test_filters.CustomRangeFilter(field_name="quantity", label="Quantity")
+class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
+    """Filters against `customer__formatted_name`, which names no column of its own: Customer reaches
+    its formatted name through `formatted_name_lookup_expression = "data__formatted_name"`, and the
+    annotation `VuedaViewSet.get_queryset` adds belongs to the Cart queryset being filtered, not to the
+    Customer rows it joins.
+
+    `FormattedNamePathFilterSetMixin` points these at `customer__data__formatted_name` on the
+    filterset's own copy of the filters. The declared names stay as written, which is what the query
+    parameter and the `model_filtering` metadata are built from.
+
+    `customer_formatted_name` deliberately declares no label, so the label it generates is built from
+    the path as declared rather than the one the query ends up using.
+    """
+
+    customer_formatted_name = rest_framework.CharFilter(field_name="customer__formatted_name")
+    customer_formatted_name_icontains = rest_framework.CharFilter(
+        field_name="customer__formatted_name",
+        lookup_expr="icontains",
+        label="Customer name contains",
+    )
 
     class Meta:
-        model = my_models.OrderItem
-        fields = [
-            "quantity",
-        ]
+        model = my_models.Cart
+        fields = ["last_modified"]
 
 
 class InventoryRecordFilterSet(VuedaFilterSet):

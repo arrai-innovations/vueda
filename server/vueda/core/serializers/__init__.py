@@ -34,7 +34,7 @@ from rest_framework import serializers
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields.serializers import FileField as VuedaFileField
 from vueda.core.fields.serializers import ImageField as VuedaImageField
-from vueda.core.models import annotate_formatted_name
+from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField

@@ -13,11 +13,15 @@ from .serializers import ExpandableFieldsUnresolvableStringSerializer  # noqa: F
 from .serializers import ExpandableFieldsValidStringSerializer  # noqa: F401
 from .serializers import FalseyFormattedNamesLookupSerializer  # noqa: F401
 from .serializers import FormattedNameExpressionNotStringSerializer  # noqa: F401
+from .serializers import ModelOrderingQuerysetSerializer  # noqa: F401
+from .serializers import MultiValuedLookupExpressionSerializer  # noqa: F401
 from .serializers import NoExpandableFieldsDataSerializer  # noqa: F401
 from .serializers import NoNameFieldSerializer  # noqa: F401
 from .serializers import NonVuedaFormattedNameSerializer  # noqa: F401
+from .serializers import PlainManagerLookupExpressionSerializer  # noqa: F401
 from .serializers import PropertyFormattedNameSerializer  # noqa: F401
 from .serializers import RelatedObjectsAreMissingDataSerializer  # noqa: F401
+from .serializers import SingleValuedLookupExpressionSerializer  # noqa: F401
 from .serializers import UnregisteredExpandableChildSerializer  # noqa: F401
 from .serializers import UnregisteredNonVuedaExpandableFieldsNonDictOptionsSerializer  # noqa: F401
 from .serializers import ValidGetFormattedNameSerializer  # noqa: F401

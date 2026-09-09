@@ -4,7 +4,7 @@ import { defineComponent, h, nextTick, reactive } from "vue";
 
 const SortChipStub = defineComponent({
     name: "SortChipStub",
-    props: ["field", "index", "fieldDetails", "showOrdinal"],
+    props: ["field", "index", "fieldDetails", "showOrdinal", "removable"],
     emits: ["toggle", "remove"],
     setup(props, { emit }) {
         return () =>
@@ -15,6 +15,7 @@ const SortChipStub = defineComponent({
                     "data-field": props.field,
                     "data-index": props.index,
                     "data-show-ordinal": String(props.showOrdinal),
+                    "data-removable": String(props.removable),
                 },
                 [
                     h("button", { "data-qa": "stub-toggle", onClick: () => emit("toggle") }),
@@ -103,6 +104,21 @@ describe("lib/display/sort/SortGroup.vue", () => {
         expect(many.findAll('[data-qa="sort-chip"]')[0].attributes("data-show-ordinal")).toBe("true");
     });
 
+    scopedIt("marks chips removable only when more than one sort is active", async () => {
+        const single = mount(SortGroup, { props: { sorted: ["-updated"] } });
+        expect(single.find('[data-qa="sort-chip"]').attributes("data-removable")).toBe("false");
+
+        const many = mount(SortGroup, { props: { sorted: ["-updated", "mrr"] } });
+        for (const chip of many.findAll('[data-qa="sort-chip"]')) {
+            expect(chip.attributes("data-removable")).toBe("true");
+        }
+
+        // Removing down to one leaves the survivor non-removable.
+        await many.findAll('[data-qa="stub-remove"]')[0].trigger("click");
+        await many.setProps({ sorted: many.emitted("update:sorted").at(-1)[0] });
+        expect(many.find('[data-qa="sort-chip"]').attributes("data-removable")).toBe("false");
+    });
+
     scopedIt("toggles a field's direction in place, preserving the others", async () => {
         const wrapper = mount(SortGroup, { props: { sorted: ["-updated", "mrr"] } });
         await wrapper.findAll('[data-qa="stub-toggle"]')[0].trigger("click");
@@ -161,13 +177,40 @@ describe("lib/display/sort/SortGroup.vue", () => {
         expect(row().classes()).not.toContain("dragging");
     });
 
-    scopedIt("offers Clear sort only with more than one sort", async () => {
-        const single = mount(SortGroup, { props: { sorted: ["-updated"] } });
-        expect(single.find('[data-qa="sort-group-strip"]').exists()).toBe(true);
-        expect(single.find('[data-qa="sort-clear"]').exists()).toBe(false);
+    scopedIt("hides Reset sort when the active sort matches the default", () => {
+        const wrapper = mount(SortGroup, {
+            props: { sorted: ["-updated", "mrr"], defaultSorted: ["-updated", "mrr"] },
+        });
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+    });
 
-        const many = mount(SortGroup, { props: { sorted: ["-updated", "mrr"] } });
-        await many.get('[data-qa="sort-clear"]').trigger("click");
-        expect(many.emitted("update:sorted")[0][0]).toEqual([]);
+    scopedIt("emits an empty sort on Reset, rather than the default's concrete values", async () => {
+        // Emitting the default's literal values (instead of []) would let the host
+        // persist them as an explicit stored preference, pinning today's default
+        // forever instead of continuing to follow it. Emitting [] routes through
+        // the host's "empty sort is the default" handling, which applies the
+        // default without storing anything.
+        const wrapper = mount(SortGroup, {
+            props: { sorted: ["-updated", "mrr"], defaultSorted: ["mrr"] },
+        });
+        await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+        expect(wrapper.emitted("update:sorted")[0][0]).toEqual([]);
+    });
+
+    scopedIt("shows Reset sort when only the order differs from the default", () => {
+        // Same fields, different order and direction: not an exact match.
+        const wrapper = mount(SortGroup, {
+            props: { sorted: ["-updated", "mrr"], defaultSorted: ["mrr", "-updated"] },
+        });
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
+    });
+
+    scopedIt("keeps Reset sort reachable with no active chips when the default is non-empty", () => {
+        // The sort was cleared down to nothing (e.g. via a hand-edited URL), which
+        // still differs from a non-empty default, so the strip stays mounted.
+        const wrapper = mount(SortGroup, { props: { sorted: [], defaultSorted: ["mrr"] } });
+        expect(wrapper.find('[data-qa="sort-group-strip"]').exists()).toBe(true);
+        expect(wrapper.findAll('[data-qa="sort-chip"]')).toHaveLength(0);
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
     });
 });

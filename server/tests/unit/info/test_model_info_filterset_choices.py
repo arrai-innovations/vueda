@@ -5,7 +5,6 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -126,68 +125,69 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
     ),
 ]
 
+# The filterset choices endpoint checks "read" on the model under test, and also "list" on the
+# related model when the filter is queryset-backed. These are only those permissions, so each group
+# is the set its own test cases consult rather than a full CRUDL set for every store model.
+ADMIN_PERMISSIONS = (
+    ("store", "Cart", "read"),
+    ("store", "CustomerOrder", "read"),
+    ("store", "InventoryRecord", "read"),
+    ("store", "InventoryRecordReason", "list"),
+    ("store", "Product", "read"),
+    ("store", "ProductOption", "read"),
+    ("store", "SpecialCare", "list"),
+    ("store", "TangibleType", "list"),
+)
 
-class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create: ClassVar[dict] = {
-        "Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-            ("store", "Cart", "list"),
-            ("store", "Cart", "read"),
-            ("store", "CartItem", "list"),
-            ("store", "CartItem", "read"),
-            ("store", "Customer", "list"),
-            ("store", "Customer", "read"),
-            ("store", "CustomerOrder", "list"),
-            ("store", "CustomerOrder", "read"),
-            ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
-            ("store", "InventoryRecord", "list"),
-            ("store", "InventoryRecord", "read"),
-            ("store", "InventoryRecordReason", "list"),
-            ("store", "InventoryRecordReason", "read"),
-            ("store", "OptionType", "list"),
-            ("store", "OptionType", "read"),
-            ("store", "OrderItem", "list"),
-            ("store", "OrderItem", "read"),
-            ("store", "OrderState", "list"),
-            ("store", "OrderState", "read"),
-            ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("store", "ProductOption", "list"),
-            ("store", "ProductOption", "read"),
-            ("store", "SpecialCare", "list"),
-            ("store", "SpecialCare", "read"),
-            ("store", "TangibleType", "list"),
-            ("store", "TangibleType", "read"),
-        ],
-        "Customer": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-            ("store", "Cart", "read"),
-            ("store", "CartItem", "list"),
-            ("store", "CartItem", "read"),
-            ("store", "Customer", "read"),
-            ("store", "CustomerOrder", "read"),
-            ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
-            ("store", "OptionType", "list"),
-            ("store", "OptionType", "read"),
-            ("store", "OrderItem", "list"),
-            ("store", "OrderItem", "read"),
-            ("store", "OrderState", "list"),
-            ("store", "OrderState", "read"),
-            ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("store", "ProductOption", "list"),
-            ("store", "ProductOption", "read"),
-            ("store", "SpecialCare", "list"),
-            ("store", "SpecialCare", "read"),
-            ("store", "TangibleType", "list"),
-            ("store", "TangibleType", "read"),
-        ],
-    }
+# The customer has no inventory record permissions at all, which is what makes the two inventory
+# record cases in the customer test forbidden. The absent permissions are as much a part of this set
+# as the present ones.
+CUSTOMER_PERMISSIONS = (
+    ("store", "Cart", "read"),
+    ("store", "CustomerOrder", "read"),
+    ("store", "Product", "read"),
+    ("store", "ProductOption", "read"),
+    ("store", "SpecialCare", "list"),
+    ("store", "TangibleType", "list"),
+)
 
+# Every registration these tests need, as (serializer, viewset) pairs. The filterset comes off the
+# viewset, so every model under test here is registered with one.
+REGISTRATIONS = (
+    (store_serializers.CartSerializer, store_viewsets.CartViewSet),
+    (store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet),
+    (store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet),
+    (store_serializers.ProductSerializer, store_viewsets.ProductViewSet),
+    (store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet),
+)
+
+# The same registrations, keyed the way the parametrized cases and the choices route name a model.
+REGISTRATIONS_BY_MODEL = {
+    (serializer.Meta.model._meta.app_label, serializer.Meta.model._meta.model_name): (serializer, viewset)
+    for serializer, viewset in REGISTRATIONS
+}
+
+
+def register_model(app_label, model_name):
+    """
+    Register the model under test and nothing else.
+
+    The choices come from the filterset on the canonical viewset of the model named in the URL, so
+    the models behind its queryset-backed filters don't need registering; the related model is
+    reached through the filter's own queryset, and the permission on it is a plain Django permission
+    check. Registering the rest is work every parametrized case would pay for and no case would use.
+    """
+    info.registration.get_empty_registry()
+    info.register(*REGISTRATIONS_BY_MODEL[(app_label, model_name)])
+
+
+class AdminTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """The admin group only, so admin tests don't create the customer group as well."""
+
+    groups_to_create: ClassVar[dict] = {"Admin": ADMIN_PERMISSIONS}
+
+    # Both customers exist in every data class because they own the objects create_test_data()
+    # builds. Only the user a test authenticates as needs a group.
     users_to_create: ClassVar[dict] = {
         "test_admin@domain.invalid": {
             "name": "Test Admin",
@@ -197,12 +197,10 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
-            "groups": ["Customer"],
         },
         "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
-            "groups": ["Customer"],
         },
     }
 
@@ -210,28 +208,73 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
         create_test_data(self)
 
 
-@pytest.mark.django_db
-class TestModelInfoFiltersetChoices:
+class CustomerTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """The customer group only, so customer tests don't create the admin group as well."""
+
+    groups_to_create: ClassVar[dict] = {"Customer": CUSTOMER_PERMISSIONS}
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+        },
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+        "test_customer_2@domain.invalid": {
+            "name": "Test Customer 2",
+            "password": "testpass",
+        },
+    }
+
+    def __init__(self):
+        create_test_data(self)
+
+
+class InvalidFilterTestData(BaseTestUserMixin):
+    """
+    One user, no group, and none of the store objects.
+
+    The invalid-filter response is raised while the choices queryset is being built, before any
+    permission is checked and without reading a row, so neither the group nor the test data is
+    needed to reach it.
+    """
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+        },
+    }
+
+
+class BaseModelInfoFilterSetChoices:
+    """
+    Shared setup for the filterset choices tests. ``test_data_class`` names the group and users the
+    subclass needs, so each test creates one group instead of all of them.
+    """
+
+    test_data_class: ClassVar[type]
+    user_email: ClassVar[str]
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        """Leave an empty registry behind, whichever module runs next."""
+        yield
+        info.registration.get_empty_registry()
+
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return self.test_data_class()
 
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)
-        info.register(store_serializers.CartSerializer, store_viewsets.CartViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet)
-        info.register(store_serializers.InventoryRecordReasonSerializer, store_viewsets.InventoryRecordReasonViewSet)
-        info.register(store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
+    @pytest.fixture
+    def authenticated_client(self, api_client, test_data):
+        api_client.force_authenticate(user=test_data.users[self.user_email])
+        return api_client
 
-    def test_filter_choices_reads_permission_names_mapping_at_call_time(self, api_client):
+    def test_filter_choices_reads_permission_names_mapping_at_call_time(self, settings, api_client):
         # ModelInfoFilterSetChoicesViewSet.get_queryset previously closed over
         # PERMISSION_NAMES_MAPPING at import (vueda/info/viewsets.py), so overriding "read"/"list"
         # left choices_permissions pinned to "read_product"/"list_tangibletype" regardless of what
@@ -268,7 +311,7 @@ class TestModelInfoFiltersetChoices:
         )
         mutated_reader.user_permissions.add(mutated_read_permission, mutated_list_permission)
 
-        self.register_viewsets()
+        register_model("store", "product")
         choices_url = reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type"))
 
         # Hit the endpoint once outside the override so any lazily-imported module involved is
@@ -277,12 +320,13 @@ class TestModelInfoFiltersetChoices:
         baseline_response = api_client.get(choices_url, format="json")
         assert baseline_response.status_code == HTTPStatus.OK, response_body(baseline_response)
 
-        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read", "list": "mutated_list"}):
-            api_client.force_authenticate(stale_reader)
-            stale_permission_response = api_client.get(choices_url, format="json")
+        settings.PERMISSION_NAMES_MAPPING = {"read": "mutated_read", "list": "mutated_list"}
 
-            api_client.force_authenticate(mutated_reader)
-            mutated_permission_response = api_client.get(choices_url, format="json")
+        api_client.force_authenticate(stale_reader)
+        stale_permission_response = api_client.get(choices_url, format="json")
+
+        api_client.force_authenticate(mutated_reader)
+        mutated_permission_response = api_client.get(choices_url, format="json")
 
         # stale_reader holds the stale "read_product"/"list_tangibletype" permissions, which no
         # longer satisfy the check once the override maps "read"/"list" to mutated names.
@@ -309,6 +353,12 @@ class TestModelInfoFiltersetChoices:
                     f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
                 )
 
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesCustomer(BaseModelInfoFilterSetChoices):
+    test_data_class = CustomerTestData
+    user_email = "test_customer_1@domain.invalid"
+
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
@@ -316,19 +366,15 @@ class TestModelInfoFiltersetChoices:
     )
     def test_info_choices_filter_customer(
         self,
-        test_data,
-        api_client,
+        authenticated_client,
         app_label,
         model_name,
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_customer_1@domain.invalid"]
-        api_client.force_authenticate(user=user)
+        register_model(app_label, model_name)
 
-        self.register_viewsets()
-
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse(
                 "info.model_info_filterset_choices-list",
                 args=(
@@ -356,6 +402,12 @@ class TestModelInfoFiltersetChoices:
                 ), msg
                 self.assert_choice_value_contract(response.data, expected_choices, msg)
 
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesAdmin(BaseModelInfoFilterSetChoices):
+    test_data_class = AdminTestData
+    user_email = "test_admin@domain.invalid"
+
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
         DETAIL_CHOICES_FILTERING_PARAMETRIZE,  # pytest dumps the whole def, so move the parameterize details elsewhere
@@ -363,19 +415,15 @@ class TestModelInfoFiltersetChoices:
     )
     def test_info_choices_filter_admin(
         self,
-        test_data,
-        api_client,
+        authenticated_client,
         app_label,
         model_name,
         field_name,
         expected_choices,
     ):
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
+        register_model(app_label, model_name)
 
-        self.register_viewsets()
-
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse(
                 "info.model_info_filterset_choices-list",
                 args=(
@@ -396,10 +444,8 @@ class TestModelInfoFiltersetChoices:
         ), msg
         self.assert_choice_value_contract(response.data, expected_choices, msg)
 
-    def test_all_values_filter_choices_drop_blank_string_values(self, test_data, api_client):
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+    def test_all_values_filter_choices_drop_blank_string_values(self, authenticated_client, test_data):
+        register_model("store", "product")
 
         blank_distributor = store_models.Distributor.objects.create(name="", description="Blank distributor")
         store_models.Product.objects.create(
@@ -409,7 +455,7 @@ class TestModelInfoFiltersetChoices:
             tangible_type=test_data.tangible_type["physical"],
         )
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
             format="json",
         )
@@ -418,13 +464,18 @@ class TestModelInfoFiltersetChoices:
         assert "" not in {result["label"] for result in response.data["results"]}
         assert "" not in {result["value"] for result in response.data["results"]}
 
-    def test_info_choices_filter_list_invalid_field(self, test_data, api_client):
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
 
-        self.register_viewsets()
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesInvalidFilter(BaseModelInfoFilterSetChoices):
+    """The invalid-filter response, which is raised before permissions and before any row is read."""
 
-        response = api_client.get(
+    test_data_class = InvalidFilterTestData
+    user_email = "test_admin@domain.invalid"
+
+    def test_info_choices_filter_list_invalid_field(self, authenticated_client):
+        register_model("store", "product")
+
+        response = authenticated_client.get(
             reverse(
                 "info.model_info_filterset_choices-list",
                 args=(
@@ -444,25 +495,17 @@ class TestModelInfoFiltersetChoices:
 
 
 @pytest.mark.django_db
-class TestModelInfoFilterSetChoicesQueryParamFiltering:
+class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetChoices):
     """Tests that passing filterset query params to the choices endpoint narrows the returned choices."""
 
-    @pytest.fixture
-    def test_data(self):
-        return VuedaTestData()
+    test_data_class = AdminTestData
+    user_email = "test_admin@domain.invalid"
 
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-
-    def test_distributor_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+    def test_distributor_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
         """name_icontains=cookies matches only the two Tasty Treats products, so only that distributor appears."""
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+        register_model("store", "product")
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
             data={"name_icontains": "cookies"},
             format="json",
@@ -474,13 +517,11 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             f"Expected distributor choices filtered to cookie-product distributor only, got: {result_labels}"
         )
 
-    def test_distributor_choices_filtered_by_quantity_of_ten(self, test_data, api_client):
+    def test_distributor_choices_filtered_by_quantity_of_ten(self, authenticated_client):
         """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+        register_model("store", "product")
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "distributor")),
             data={"quantity": "10"},
             format="json",
@@ -492,17 +533,15 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
         )
 
-    def test_special_care_choices_filtered_by_name_icontains_cookies(self, test_data, api_client):
+    def test_special_care_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
         """name_icontains=cookies narrows special_care choices (queryset path) to only those used by cookie products.
 
         Cookie products use: fragile, perishable, temperature_controlled.
         Dangerous (paint products only) and Oversized (unused) should be absent.
         """
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+        register_model("store", "product")
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "special_care")),
             data={"name_icontains": "cookies"},
             format="json",
@@ -514,16 +553,14 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
-    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, test_data, api_client):
+    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, authenticated_client):
         """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
 
         All cookie products are Physical; Digital is not used by any product, so it should be absent.
         """
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+        register_model("store", "product")
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type")),
             data={"name_icontains": "cookies"},
             format="json",
@@ -535,18 +572,16 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering:
             f"Expected tangible_type choices filtered to cookie-product values only, got: {result_labels}"
         )
 
-    def test_condition_choices_filtered_by_ne(self, test_data, api_client):
+    def test_condition_choices_filtered_by_ne(self, authenticated_client):
         """Passing condition=ne filters static choices to those whose value contains 'ne'.
 
         'ne' is a substring of 'new' and 'like_new' but not 'refurbished' or 'used'.
         The ChoiceFilter blank placeholder ('---------', empty value) is dropped from the
         choices metadata, and the empty 'None' choice is no longer prepended by default.
         """
-        user = test_data.users["test_admin@domain.invalid"]
-        api_client.force_authenticate(user=user)
-        self.register_viewsets()
+        register_model("store", "product")
 
-        response = api_client.get(
+        response = authenticated_client.get(
             reverse("info.model_info_filterset_choices-list", args=("store", "product", "condition")),
             data={"condition": "ne"},
             format="json",

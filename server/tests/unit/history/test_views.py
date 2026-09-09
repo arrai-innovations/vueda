@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
@@ -85,12 +84,13 @@ class TestGetObjectHistoryView:
         baseline_response = api_client.get(history_url, format="json")
         assert baseline_response.status_code == status.HTTP_200_OK, response_body(baseline_response)
 
-        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read"}):
-            api_client.force_authenticate(stale_reader)
-            stale_permission_response = api_client.get(history_url, format="json")
+        settings.PERMISSION_NAMES_MAPPING = {"read": "mutated_read"}
 
-            api_client.force_authenticate(mutated_reader)
-            mutated_permission_response = api_client.get(history_url, format="json")
+        api_client.force_authenticate(stale_reader)
+        stale_permission_response = api_client.get(history_url, format="json")
+
+        api_client.force_authenticate(mutated_reader)
+        mutated_permission_response = api_client.get(history_url, format="json")
 
         # stale_reader holds the stale "read_customerorder" permission, which no longer satisfies
         # the check once the override maps "read" to "mutated_read".

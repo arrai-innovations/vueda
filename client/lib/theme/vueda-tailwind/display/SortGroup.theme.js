@@ -9,7 +9,7 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * SortGroup renders the active sort order as a chips strip plus a Clear sort
+     * SortGroup renders the active sort order as a chips strip plus a Reset sort
      * control. Only rendered when a sort is active.
      */
     SortGroup: {
@@ -39,7 +39,7 @@ patchTheme({
                 "text-muted-foreground leading-none",
             ],
         },
-        /** Clear-all control, pushed to the right edge of the chips strip. */
+        /** Reset-sort control, pushed to the right edge of the chips strip. */
         clear: {
             class: ["ml-auto text-xs"],
         },

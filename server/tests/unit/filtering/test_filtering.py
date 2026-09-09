@@ -1,3 +1,5 @@
+import datetime
+from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
@@ -6,7 +8,11 @@ from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import cached_filterset_field_names
+from tests.conftest import clear_cached_filterset_fields
 from tests.conftest import response_body
+from tests.store import filtersets as store_filtersets
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
@@ -20,20 +26,9 @@ from vueda.core.filters import VuedaSearchFilterBackend
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Cart", "list"),
-            ("store", "Cart", "read"),
             ("store", "Distributor", "list"),
-            ("store", "Distributor", "read"),
             ("store", "Product", "list"),
-            ("store", "Product", "read"),
-            ("employee", "User", "list"),
-            ("employee", "User", "read"),
-        ],
-        "Customer": [  # Needed by create_test_data
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
         ],
     }
 
@@ -43,15 +38,15 @@ class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
             "password": "testpass",
             "groups": ["Admin"],
         },
-        "test_customer_1@domain.invalid": {  # Needed by create_test_data
+        # These two are needed by create_test_data, which attaches a customer to each of them.
+        # Nothing here authenticates as them, so they need no group of their own.
+        "test_customer_1@domain.invalid": {
             "name": "Test Customer 1",
             "password": "testpass",
-            "groups": ["Customer"],
         },
-        "test_customer_2@domain.invalid": {  # Needed by create_test_data
+        "test_customer_2@domain.invalid": {
             "name": "Test Customer 2",
             "password": "testpass",
-            "groups": ["Customer"],
         },
     }
 
@@ -147,6 +142,70 @@ class TestModelInfoChoices:
 
         for err in response.data["product_quantity"]:
             assert str(err) == "Select a valid choice. 24 is not one of the available choices.", response_body(response)
+
+
+@pytest.mark.django_db
+class TestValueDerivedFilterChoicesStayFresh:
+    """
+    `AllValuesFilter` and `AllValuesMultipleFilter` read their choices out of the column each time
+    their form field is built, so the choices are only current while that field is built per request.
+
+    `Filter.field` caches the field it builds on the filter it is read from, and
+    `FilterSet.get_filters()` is a classmethod handing back the filter objects declared on the class
+    itself, which every request shares. Reading `.field` from there caches the choices of the first
+    request the process handles onto shared state, and every later request — including the real
+    filtering DRF does through `filterset.filters` copies, which are deep-copied from those same
+    class-level filters — reuses that stale snapshot. Read the filters from a filterset instance
+    instead.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @pytest.fixture(autouse=True)
+    def fresh_filterset_class(self):
+        """
+        Start from — and leave behind — the state a fresh process would be in, so these tests fail
+        on a regression regardless of which tests ran before them in this worker.
+        """
+        clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+        yield
+        clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+
+    def test_list_caches_no_form_field_on_the_filterset_class(self, test_data, api_client):
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+
+        response = api_client.get(reverse("store.product-list"), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert cached_filterset_field_names(store_filtersets.ProductFilterSet) == []
+
+    def test_values_added_after_a_list_request_are_still_filterable(self, test_data, api_client):
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+
+        response = api_client.get(reverse("store.product-list"), format="json")
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+
+        distributor = store_models.Distributor.objects.create(
+            name="Late Arrival Ltd.",
+            description="Added after the first list request of this process.",
+        )
+        store_models.Product.objects.create(
+            distributor=distributor,
+            name="Late Arrival Paint",
+            order_between=[1, 2],
+            tangible_type=test_data.tangible_type["physical"],
+        )
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={"distributor": "Late Arrival Ltd."},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["name"] for result in response.data["results"]] == ["Late Arrival Paint"]
 
 
 @pytest.mark.django_db
@@ -718,3 +777,229 @@ class TestM2MDistinctOrderByTiebreaker:
             f"with DISTINCT ON, but line ~272 overwrites the order_by and drops it. "
             f"query.order_by: {order_by}"
         )
+
+
+@pytest.mark.django_db
+class TestSearchDistinctKeepsTheResolvedOrdering:
+    """A searched list that has to deduplicate keeps the ordering `VuedaOrderingFilter` resolved.
+
+    `VuedaSearchFilterBackend` runs after `VuedaOrderingFilter` and, on the `DISTINCT ON` path it
+    takes when a search joins a multi-valued relation, re-applies the ordering itself so the distinct
+    columns match it. The terms for that have to come from the queryset the ordering filter already
+    built: a related model's `formatted_name` has been rewritten to the column behind it by then, and
+    a field with a declared `nulls_ordering` placement has become an
+    `F(...).asc(nulls_first=True)` expression. Re-reading the raw `?o=` value would order by
+    `customer__formatted_name`, which names no column on Cart, and would drop the placement.
+
+    Both carts `create_test_data` builds hold more than one cart item, so every one of these searches
+    matches a cart through several rows and the deduplication is what brings each back to one.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def register_viewsets():
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartM2MSearchOrderingViewSet)
+
+    # Matches two cart items in each cart: "Medium" and "Small" in the first, "Gentle Cinnamon" and
+    # "Sweet Sugar" in the second.
+    SEARCH_TERMS = "Small Medium Sugar Cinnamon"
+
+    def list_carts(self, api_client, settings, ordering):
+        return api_client.get(
+            reverse("store.cart-list"),
+            data={
+                settings.REST_FRAMEWORK["SEARCH_PARAM"]: self.SEARCH_TERMS,
+                settings.REST_FRAMEWORK["ORDERING_PARAM"]: ordering,
+            },
+            format="json",
+        )
+
+    def test_ordering_by_a_related_formatted_name_uses_the_column_behind_it(self, test_data, api_client, settings):
+        """Customer reaches its formatted name through
+        `formatted_name_lookup_expression = "data__formatted_name"`, so `customer__formatted_name`
+        names nothing the database knows. Ordering by the raw request here raised `FieldError`."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        self.register_viewsets()
+
+        response = self.list_carts(api_client, settings, "customer__formatted_name")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # One row per cart rather than one per matching cart item.
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        # `customer_data.formatted_name` is the customer's user email, so this is the order the
+        # rewritten path sorts by.
+        emails = [
+            store_models.Cart.objects.get(pk=result["id"]).customer.user.email for result in response.data["results"]
+        ]
+        assert emails == ["test_customer_1@domain.invalid", "test_customer_2@domain.invalid"]
+
+        response = self.list_carts(api_client, settings, "-customer__formatted_name")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        emails = [
+            store_models.Cart.objects.get(pk=result["id"]).customer.user.email for result in response.data["results"]
+        ]
+        assert emails == ["test_customer_2@domain.invalid", "test_customer_1@domain.invalid"]
+
+    def test_ordering_keeps_the_declared_nulls_placement(self, test_data, api_client, settings):
+        """`nulls_ordering = {"expected_delivery_time": "first"}` puts the cart with no delivery time
+        first. Ordering by the raw request here fell back to the database default, which for an
+        ascending sort is nulls last."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
+
+        # `create_test_data` leaves every cart's `expected_delivery_time` null, so one is given a
+        # value: with two nulls there would be no placement to observe.
+        first_cart = test_data.carts["test_customer_1@domain.invalid"]["cart"]
+        first_cart.expected_delivery_time = datetime.timedelta(hours=2)
+        first_cart.save()
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        self.register_viewsets()
+
+        response = self.list_carts(api_client, settings, "expected_delivery_time")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        # The null-valued cart leads, which is the placement the viewset declared rather than the
+        # ascending default.
+        assert response.data["results"][0]["id"] == test_data.carts["test_customer_2@domain.invalid"]["cart"].pk
+        assert response.data["results"][1]["id"] == first_cart.pk
+
+
+class CartRelatedFormattedNameTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Admin": [
+            ("store", "Cart", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Admin"],
+        },
+    }
+
+
+@pytest.fixture
+def cart_related_formatted_name_data():
+    from django.contrib.auth import get_user_model
+
+    data = CartRelatedFormattedNameTestData()
+
+    def make_cart(email):
+        user = get_user_model().objects.create(email=email, name=email, is_active=True)
+        customer = store_models.Customer.objects.create(user=user)
+        return store_models.Cart.objects.create(customer=customer)
+
+    # `customer_data.formatted_name` is the customer's user email, so these are the values the
+    # filters below match against.
+    make_cart("apple@domain.invalid")
+    make_cart("banana@domain.invalid")
+    make_cart("cherry@domain.invalid")
+    return data
+
+
+@pytest.mark.django_db
+class TestFilteringOnRelatedFormattedName:
+    """CartRelatedFormattedNameFilterSet declares filters against `customer__formatted_name`, the
+    formatted name of a related model rather than of the model being filtered.
+
+    Customer has no formatted_name column and reaches the value through
+    `formatted_name_lookup_expression = "data__formatted_name"`. django-filter builds its lookup
+    straight from a filter's `field_name`, and the annotation `VuedaViewSet.get_queryset` adds is on the
+    Cart queryset being filtered rather than on the Customer rows it joins, so the declared path would
+    raise `FieldError`. `FormattedNamePathFilterSetMixin` points the filter at
+    `customer__data__formatted_name` on the filterset instance instead.
+    """
+
+    def test_exact_filter_matches_the_related_lookup_column(
+        self, cart_related_formatted_name_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_related_formatted_name_filter"
+
+        user = cart_related_formatted_name_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={"customer_formatted_name": "banana@domain.invalid"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 1, response_body(response)
+        cart = store_models.Cart.objects.get(pk=response.data["results"][0]["id"])
+        assert cart.customer.user.email == "banana@domain.invalid"
+
+    def test_lookup_expression_filter_matches_the_related_lookup_column(
+        self, cart_related_formatted_name_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_related_formatted_name_filter"
+
+        user = cart_related_formatted_name_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        # The rewrite replaces `field_name` only; `lookup_expr` is appended to it afterwards by
+        # django-filter, so an icontains filter keeps working the same way.
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={"customer_formatted_name_icontains": "CHERRY"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 1, response_body(response)
+        cart = store_models.Cart.objects.get(pk=response.data["results"][0]["id"])
+        assert cart.customer.user.email == "cherry@domain.invalid"
+
+    def test_a_non_matching_value_filters_everything_out(self, cart_related_formatted_name_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_related_formatted_name_filter"
+
+        user = cart_related_formatted_name_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        # Proves the filter is actually reaching the column rather than being dropped: a filter that
+        # silently did nothing would return all three carts.
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={"customer_formatted_name": "nobody@domain.invalid"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 0, response_body(response)
+
+    def test_the_query_parameter_is_the_declared_name(self, cart_related_formatted_name_data, api_client, settings):
+        """The rewrite is server-side: the path behind the filter is not a query parameter the
+        namespace check accepts, so a client can only use the name as declared."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_related_formatted_name_filter"
+
+        user = cart_related_formatted_name_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={"customer__data__formatted_name": "banana@domain.invalid"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    def test_the_class_level_filters_keep_their_declared_field_name(self):
+        """The rewrite happens on the filterset instance's own copy of the filters. The declaration is
+        shared by every request the process handles, so rewriting it there would be a process-wide
+        mutation — and would leave nothing to generate the client-facing label from."""
+        filterset_class = store_filtersets.CartRelatedFormattedNameFilterSet
+
+        filterset_class(queryset=store_models.Cart.objects.all())
+
+        assert filterset_class.base_filters["customer_formatted_name"].field_name == "customer__formatted_name"
