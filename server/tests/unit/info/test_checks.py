@@ -1171,6 +1171,23 @@ class TestFieldSourceResolutionCheck:
         assert "does_not_exist" in warnings[0].hint
         assert "get_field_model_info" not in warnings[0].hint
 
+    def test_exclude_fields_serializer_registration_passes_manage_py_check(self):
+        """ExcludeFieldsSerializer inherits ExcludeFieldsSerializerMixin, whose get_extra_kwargs() reads
+        self.context["view"].action while get_fields() builds the serializer's fields.
+        check_field_source_resolution instantiates the serializer bare to call get_fields() on it, so
+        without a view in context this raised KeyError: 'view' -- not an advisory warning, but a crash
+        that took manage.py check down for every app, not just this registration. The other coverage of
+        this registration (tests.unit.core.test_checks.test_registered_with_a_view_passes_system_check)
+        only calls check_exclude_fields_serializer_usage directly, so it never exercised this path.
+        `databases=["default"]` keeps manage.py check's own model checks from opening a probe
+        connection to db_logging, which this test's registration has no reason to touch."""
+        from django.core.management import call_command
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ExcludeFieldsSerializer, err_viewsets.ExcludeFieldsViewSet)
+
+        call_command("check", databases=["default"])
+
 
 @pytest.mark.django_db
 class TestFieldResolutionMechanics:
