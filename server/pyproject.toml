@@ -64,7 +64,9 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "https://github.com/arrai-innovations/vueda-server/"
+documentation = "https://vueda.dev/v3/"
+issues = "https://github.com/arrai-innovations/vueda/issues"
+repository = "https://github.com/arrai-innovations/vueda/"
 
 [project.scripts]
 vueda = "vueda.__main__:main"
