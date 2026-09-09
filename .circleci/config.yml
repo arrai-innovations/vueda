@@ -6,6 +6,13 @@ orbs:
     continuation: circleci/continuation@1.0.0
     path-filtering: circleci/path-filtering@3.0.0
 
+parameters:
+    # Set through the CircleCI API by scripts/deploy_docs.py, to publish the
+    # documentation site without cutting a docs-v* tag.
+    deploy-docs:
+        type: boolean
+        default: false
+
 workflows:
     docs-publish-on-tag:
         jobs:
@@ -18,6 +25,17 @@ workflows:
                           only: /^docs-v.*/
                       branches:
                           ignore: /.*/
+    docs-deploy-on-demand:
+        when: << pipeline.parameters.deploy-docs >>
+        jobs:
+            # deploy-docs is set on the pipeline by the API trigger, and a
+            # trigger-time parameter already reaches the continuation config.
+            # Passing it here as well fails the continue step with
+            # "Conflicting pipeline parameters."
+            - continuation/continue:
+                  name: docs-deploy-on-demand
+                  configuration_path: .circleci/docs.yml
+                  parameters: '{"run-docs-workflows": true}'
     client-publish-on-tag:
         jobs:
             - continuation/continue:
@@ -41,6 +59,7 @@ workflows:
                       branches:
                           ignore: /.*/
     detect-code-changes:
+        unless: << pipeline.parameters.deploy-docs >>
         jobs:
             - path-filtering/filter:
                   name: detect-code-changes

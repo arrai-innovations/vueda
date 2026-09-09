@@ -8,6 +8,11 @@ parameters:
     run-docs-workflows:
         type: boolean
         default: false
+    # Set by the setup config when scripts/deploy_docs.py triggers a pipeline.
+    # Publishes the documentation site without cutting a docs-v* tag.
+    deploy-docs:
+        type: boolean
+        default: false
 
 executors:
     python311:
@@ -200,18 +205,35 @@ jobs:
                       mkdir -p docs/reference/api
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
+                  name: Resolve Documentation Major Version
+                  command: |
+                      # Publish per major line: docs-v3.x.y -> /v3/. Minor, patch, and
+                      # prerelease builds overwrite the major directory. An on-demand
+                      # deploy carries no tag, so read the client package version.
+                      if [ -n "${CIRCLE_TAG:-}" ]; then
+                          VERSION="${CIRCLE_TAG#docs-v}"
+                      else
+                          VERSION="$(node -p "require('./client/package.json').version")"
+                      fi
+                      MAJOR="${VERSION%%.*}"
+                      case "${MAJOR}" in
+                          "" | *[!0-9]*)
+                              echo "Refusing to publish: '${VERSION}' has no numeric major version."
+                              exit 1
+                              ;;
+                      esac
+                      echo "export DOCS_MAJOR=\"${MAJOR}\"" >> "$BASH_ENV"
+                      echo "Publishing documentation to /v${MAJOR}/."
+            - run:
                   name: Build VitePress Site
                   command: |
                       rm -rf docs/.vitepress/.temp docs/.vitepress/cache
-                      # Publish per major line: docs-v3.x.y -> /v3/. Minor/patch/prerelease overwrite the major dir.
-                      MAJOR="${CIRCLE_TAG#docs-v}"; MAJOR="${MAJOR%%.*}"
-                      cd docs && NODE_OPTIONS=--max-old-space-size=4096 VITEPRESS_BASE="/v${MAJOR}/" pnpm exec vitepress build
+                      cd docs && NODE_OPTIONS=--max-old-space-size=4096 VITEPRESS_BASE="/v${DOCS_MAJOR}/" pnpm exec vitepress build
             - run:
                   name: Stage Documentation for Deploy
                   command: |
-                      MAJOR="${CIRCLE_TAG#docs-v}"; MAJOR="${MAJOR%%.*}"
-                      mkdir -p -m 0750 "publish/v${MAJOR}/"
-                      cp -r site/* "publish/v${MAJOR}/"
+                      mkdir -p -m 0750 "publish/v${DOCS_MAJOR}/"
+                      cp -r site/* "publish/v${DOCS_MAJOR}/"
             # RETARGET FOR vueda.dev (ops): remote_folder "/" resolves server-side to the
             # SSH user's docroot. For /v<major>/ to serve at the domain root, this must
             # point at the vueda.dev docroot (new vhost + SSH user), not the current
@@ -228,6 +250,7 @@ jobs:
 
 workflows:
     docs-publish:
+        unless: << pipeline.parameters.deploy-docs >>
         jobs:
             - docs-tooling-test-js:
                   name: docs-tooling-test-js
@@ -272,3 +295,18 @@ workflows:
                           only: /^docs-v.*/
                       branches:
                           ignore: /.*/
+
+    # Triggered through the CircleCI API, not by a tag or a push. Runs on
+    # whichever branch the trigger names, so the deploy script guards against
+    # publishing a branch other than main by accident.
+    docs-deploy:
+        when: << pipeline.parameters.deploy-docs >>
+        jobs:
+            - docs-validate:
+                  name: docs-validate
+                  context: arrai-global
+            - docs-publish:
+                  name: docs-publish
+                  context: arrai-global
+                  requires:
+                      - docs-validate

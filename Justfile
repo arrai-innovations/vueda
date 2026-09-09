@@ -144,3 +144,9 @@ docs-preview-build:
   just docs-api
   just docs-rebuild
   just docs-preview
+
+# Publish the documentation site without cutting a docs-v* tag. Triggers the
+# docs-deploy workflow in CircleCI, which validates and then publishes to
+# /v<major>/. Needs a CircleCI API token (`circleci setup` or CIRCLECI_TOKEN).
+docs-deploy *args:
+  cd {{justfile_directory()}} && uv run --no-sync python scripts/deploy_docs.py {{args}}
