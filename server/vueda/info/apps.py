@@ -36,6 +36,7 @@ class InfoConfig(AppConfig):
         from django.contrib.contenttypes.models import ContentType
         from django.core.checks import register
 
+        from .checks import check_field_source_resolution
         from .checks import check_formatted_name_configuration
         from .checks import check_ordering_configuration
 
@@ -43,6 +44,7 @@ class InfoConfig(AppConfig):
         ContentType._meta.ordering = ["app_label", "model"]
         register(check_formatted_name_configuration)
         register(check_ordering_configuration)
+        register(check_field_source_resolution)
 
         # Patch Django built-in models with formatted_name support so they integrate
         # correctly with Vueda's formatted_name system without changes to core code.

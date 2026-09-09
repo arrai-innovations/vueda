@@ -216,12 +216,14 @@ class ProductOptionSerializer(VuedaSerializer):
 class CartSerializer(VuedaSerializer):
     formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
     cart_items = serializers.PrimaryKeyRelatedField(queryset=models.CartItem.objects.all(), many=True)
+    customer_relation = serializers.CharField(source="customer.user", read_only=True)
 
     class Meta(VuedaSerializer.Meta):
         model = models.Cart
         fields = [
             "id",
             "customer",
+            "customer_relation",
             "last_modified",
             "cart_items",
         ] + VuedaSerializer.Meta.fields
@@ -487,6 +489,9 @@ class InventoryRecordSerializer(VuedaSerializer):
 
 class PackingBoxSerializer(VuedaSerializer):
     name = serializers.CharField(read_only=True)
+    # An explicit source naming a real model field under a different serializer field name,
+    # resolved through field.source rather than through the serializer field name "label".
+    label = serializers.CharField(source="name", read_only=True)
     depth = serializers.DecimalField(12, 4, read_only=True)
     height = serializers.DecimalField(12, 4, read_only=True)
     width = serializers.DecimalField(12, 4, read_only=True)
@@ -499,6 +504,7 @@ class PackingBoxSerializer(VuedaSerializer):
         fields = [
             "id",
             "name",
+            "label",
             "depth",
             "height",
             "width",

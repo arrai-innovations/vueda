@@ -50,6 +50,7 @@ from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
+from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
 
@@ -275,21 +276,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         if model_field is None:
             return
 
-        child_field = None
-        if hasattr(model_field, "model"):
-            model = model_field.model
-
-            lookup_expression = f"{field_name}_lookup_expression"
-            if hasattr(model, lookup_expression):
-                lookup_expression = getattr(model, lookup_expression)
-                fields = get_fields_from_path(model_field.model, lookup_expression)
-                child_field = fields[-1]
-
         if hasattr(model_field, "field"):
             model_field = model_field.field
 
-        if child_field is None:
-            child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
+        child_field = model_field.base_field if many and hasattr(model_field, "base_field") else None
 
         # Get the field type.
         if hasattr(model_field, "related"):
@@ -366,18 +356,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 model_field = serializer.Meta.model._meta.get_field(field_name)
 
             else:
-                model_field = getattr(serializer.Meta.model, field_name, None)
-
-            lookup_expression = f"{field_name}_lookup_expression"
-            if hasattr(serializer.Meta.model, lookup_expression):
-                lookup_expression = getattr(serializer.Meta.model, lookup_expression)
-                lookup_field = getattr(serializer.Meta.model, lookup_expression.split("__")[0], None)
-                if lookup_field is not None:
-                    if hasattr(lookup_field, "related"):
-                        model_field = lookup_field.related
-
-                    else:
-                        model_field = lookup_field
+                model_field, _unresolved_path = resolve_serializer_field_model_field(
+                    serializer.Meta.model, field_name, field
+                )
 
             field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
             field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
@@ -989,14 +970,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
            that still carries a queryset (rare but valid).
         2. ``field.child_relation.queryset.model._meta``: read-only ManyRelatedField
            whose child carries a queryset.
-        3. ``model_field.field.related_model._meta``: no queryset available; derive from
-           the underlying Django model field descriptor (ForwardManyToOneDescriptor etc.).
+        3. ``model_field.related_model._meta`` (or ``model_field.field.related_model._meta`` when
+           ``model_field`` is still a descriptor rather than the resolved Field itself): no
+           queryset available; derive from the underlying Django model field.
 
         Returns ``None`` when no related model can be determined.
 
         :param field: A read-only DRF field.
         :type field: rest_framework.fields.Field
-        :param model_field: The model attribute retrieved via ``getattr(serializer.Meta.model, field_name, None)``.
+        :param model_field: The resolved model field, from ``resolve_serializer_field_model_field``.
         :return: The ``Options`` (_meta) of the related model, or ``None``.
         :rtype: Optional[django.db.models.options.Options]
         """
@@ -1010,9 +992,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             and field.child_relation.queryset is not None
         ):
             return field.child_relation.queryset.model._meta
-        # 3. Derive from the Django model field descriptor.
-        if model_field is not None and hasattr(model_field, "field") and hasattr(model_field.field, "related_model"):
-            related_model = model_field.field.related_model
+        # 3. Derive from the Django model field, unwrapping a descriptor if that's what we got.
+        if model_field is not None:
+            target = model_field.field if hasattr(model_field, "field") else model_field
+            related_model = getattr(target, "related_model", None)
             if related_model is not None:
                 return related_model._meta
         return None

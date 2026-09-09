@@ -27,6 +27,19 @@ class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
     class Meta:
         fields = ["workflow_state_code", "workflow_state_name", "valid_transitions"]
 
+    def get_field_model_info(self, fields):
+        """
+        workflow_state_code/workflow_state_name source through HasWorkflowModelMixin.workflow_state, a
+        @property with no model field of its own, so resolve_serializer_field_model_field can never
+        describe their type_db/type_model: State.code and State.name are always real CharFields.
+        """
+        fields = super().get_field_model_info(fields)
+        for field_name in ("workflow_state_code", "workflow_state_name"):
+            if field_name in fields:
+                fields[field_name]["type_db"] = "CharField"
+                fields[field_name]["type_model"] = "CharField"
+        return fields
+
 
 class StateSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):
     class Meta:

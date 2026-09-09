@@ -10,6 +10,10 @@ from .models import PlainManagerLookupExpression  # noqa: F401
 from .models import PropertyFormattedName  # noqa: F401
 from .models import RelatedObjectsAreMissingData  # noqa: F401
 from .models import SingleValuedLookupExpression  # noqa: F401
+from .models import SourceResolution  # noqa: F401
+from .models import SourceResolutionRelated  # noqa: F401
+from .models import UnresolvableLookupExpression  # noqa: F401
+from .models import UnresolvableLookupExpressionAtFirstSegment  # noqa: F401
 from .models import ValidGetFormattedName  # noqa: F401
 from .models import ValidLookupExpression  # noqa: F401
 from .workflow_mixins import MoSoVoWo  # noqa: F401
