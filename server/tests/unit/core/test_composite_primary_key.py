@@ -19,7 +19,6 @@ from tests.store.serializers import OrderItemCompositePKSerializer
 class VuedaCompositeKeyTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("store", "OrderCompositePK", "read"),
             ("store", "OrderItemCompositePK", "read"),
             ("store", "ProductCompositePK", "read"),

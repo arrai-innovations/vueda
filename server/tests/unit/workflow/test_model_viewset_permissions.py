@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.permissions import BasePermission
@@ -153,7 +152,7 @@ class TestWorkflowModelViewSetPermissions:
         assert another_order.pk not in {result["id"] for result in response.data["results"]}
 
     def test_list_reads_permission_names_mapping_at_call_time(
-        self, api_client, user, permission_group, customer_order, workflow, content_type
+        self, settings, api_client, user, permission_group, customer_order, workflow, content_type
     ):
         # apply_row_level_filter previously closed over PERMISSION_NAMES_MAPPING at import
         # (vueda/core/viewsets/__init__.py), so overriding "list" left the workflow
@@ -167,8 +166,8 @@ class TestWorkflowModelViewSetPermissions:
         )
         api_client.force_authenticate(user)
 
-        with override_settings(PERMISSION_NAMES_MAPPING={"list": "mutated_list"}):
-            response = api_client.get(reverse("store.customerorder-list"), format="json")
+        settings.PERMISSION_NAMES_MAPPING = {"list": "mutated_list"}
+        response = api_client.get(reverse("store.customerorder-list"), format="json")
 
         # The state grant above targets "list_customerorder"; once the override maps "list" to
         # "mutated_list", apply_row_level_filter looks for a "mutated_list_customerorder" state

@@ -40,6 +40,10 @@ class Migration(migrations.Migration):
                 "abstract": False,
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "products",
+                "permissions": [
+                    ("manage_product", "Can manage products"),
+                    ("purchase_product", "Can purchase products"),
+                ],
             },
         ),
         migrations.CreateModel(
@@ -93,5 +97,53 @@ class Migration(migrations.Migration):
                 "get_latest_by": ("history_date", "history_id"),
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+        migrations.CreateModel(
+            name="ProductModelOrderingPK",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "ordering": ["pk"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="ProductModelOrderingLookupFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("label", models.CharField(max_length=255)),
+            ],
+            options={
+                "ordering": ["formatted_name"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="ProductModelOrderingFormattedName",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+            ],
+            options={
+                "ordering": ["formatted_name"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
         ),
     ]

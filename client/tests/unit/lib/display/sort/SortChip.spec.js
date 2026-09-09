@@ -64,4 +64,14 @@ describe("lib/display/sort/SortChip.vue", () => {
         await wrapper.get('[data-qa="sort-chip-remove"]').trigger("click");
         expect(wrapper.emitted("remove")).toHaveLength(1);
     });
+
+    scopedIt("shows the remove control and its divider by default, hides both when removable is false", () => {
+        const shown = mount(SortChip, { props: { field: "mrr", index: 0 } });
+        expect(shown.find('[data-qa="sort-chip-remove"]').exists()).toBe(true);
+        expect(shown.find(".divider").exists()).toBe(true);
+
+        const hidden = mount(SortChip, { props: { field: "mrr", index: 0, removable: false } });
+        expect(hidden.find('[data-qa="sort-chip-remove"]').exists()).toBe(false);
+        expect(hidden.find(".divider").exists()).toBe(false);
+    });
 });

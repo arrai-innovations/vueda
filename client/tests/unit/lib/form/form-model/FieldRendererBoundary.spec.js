@@ -5,15 +5,24 @@ import { defineComponent, h, nextTick, reactive } from "vue";
 
 vi.mock("@sentry/vue", () => ({ captureException: vi.fn() }));
 
+const RouterLinkStub = defineComponent({
+    name: "RouterLink",
+    setup:
+        (_, { slots }) =>
+        () =>
+            h("a", slots.default?.()),
+});
+
 describe("lib/form/form-model/FieldRenderer.vue", () => {
-    let FieldRenderer;
+    let FieldRenderer, errorSpy;
 
     beforeEach(async () => {
+        errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
         FieldRenderer = (await import("@vueda/form/form-model/FieldRenderer.vue")).default;
     });
 
     afterEach(() => {
-        vi.clearAllMocks();
+        vi.restoreAllMocks();
     });
 
     const passThroughField = defineComponent({
@@ -51,6 +60,7 @@ describe("lib/form/form-model/FieldRenderer.vue", () => {
                         ["a", "b", "c"].map((name) => h(FieldRenderer, { key: name, formModelName: name, formModel })),
                     ),
             }),
+            { global: { components: { RouterLink: RouterLinkStub } } },
         );
 
     scopedIt("contains a throwing widget to its own field", async () => {
@@ -67,6 +77,7 @@ describe("lib/form/form-model/FieldRenderer.vue", () => {
         expect(diagnostic.exists()).toBe(true);
         expect(diagnostic.text()).toContain('rendering the "b" field');
         expect(diagnostic.text()).toContain("BoomWidget");
+        expect(errorSpy).toHaveBeenCalled();
     });
 
     scopedIt("reports a field whose widget name is not registered", async () => {
@@ -96,6 +107,7 @@ describe("lib/form/form-model/FieldRenderer.vue", () => {
         const diagnostic = wrapper.find('[data-qa="field-renderer-error"]');
         expect(diagnostic.exists()).toBe(true);
         expect(diagnostic.text()).toContain('rendering the "b" field');
+        expect(errorSpy).toHaveBeenCalled();
     });
 
     scopedIt("renders every field when none of them fail", async () => {
@@ -105,5 +117,6 @@ describe("lib/form/form-model/FieldRenderer.vue", () => {
 
         expect(wrapper.findAll('[data-qa="field"]')).toHaveLength(3);
         expect(wrapper.find('[data-qa="field-renderer-error"]').exists()).toBe(false);
+        expect(errorSpy).not.toHaveBeenCalled();
     });
 });

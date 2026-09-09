@@ -12,6 +12,8 @@ from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from tests.conftest import BaseTestAssertResponseMixin
@@ -24,16 +26,51 @@ from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet import serializers as timesheet_serializers
 from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
-from tests.unit.info.test_model_info import VuedaTestData
+from tests.unit.info.utils import create_test_data
 from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
+
+
+class StoreTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The store objects the flex-fields viewset tests below retrieve, and the customer who is allowed
+    to retrieve them. Only `read` is granted, because every test here is a GET of a single record:
+    `ObjectPermissions` maps that to `read_<model>`.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "CustomerOrder", "read"),
+            ("store", "Product", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+        # Needed by create_test_data, which attaches a customer to this user. Nothing
+        # authenticates as them, so they need no group of their own.
+        "test_customer_2@domain.invalid": {
+            "name": "Test Customer 2",
+            "password": "testpass",
+        },
+    }
+
+    def __init__(self):
+        create_test_data(self)
 
 
 def test_vueda_read_only_viewset_excludes_write_actions():
@@ -107,6 +144,59 @@ def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_rena
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
     assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
+def expanded_serializer(serializer_class, expand):
+    """Build ``serializer_class`` with ``expand`` applied, the way a request's ``?e=`` applies it.
+
+    ``build_prefetch_plan`` reads ``serializer.fields``, and an expandable field only becomes a
+    nested serializer field once ``rest_flex_fields`` has processed the request, so an unexpanded
+    serializer yields an empty plan rather than the one under test.
+    """
+    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}))
+    serializer = serializer_class(context={"request": request})
+    ensure_flex_fields_applied(serializer)
+
+    return serializer
+
+
+def prefetch_for(prefetch_related, lookup):
+    for entry in prefetch_related:
+        if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
+            return entry
+
+    raise AssertionError(f"no Prefetch for {lookup!r} in {prefetch_related!r}")
+
+
+def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_queryset():
+    # OrderItem resolves formatted_name through formatted_name_lookup_expression and stores no
+    # column of its own, so the Prefetch queryset the plan builds has to carry the annotation.
+    # Without it VuedaListSerializer.to_representation re-annotates the queryset serving the
+    # prefetched relation, which clones it, drops the cached prefetch result, and costs one query
+    # per row. The rendered formatted_name stays correct either way, because _get_formatted_name
+    # resolves it per instance when the annotation is missing, so the value proves nothing here and
+    # the annotation's presence is what this asserts.
+    serializer = expanded_serializer(store_serializers.CustomerOrderSerializer, "order_items")
+
+    _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+
+    assert "formatted_name" in annotations
+
+
+def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
+    # TimesheetEntry.formatted_name is a stored GeneratedField, so the plan must leave it alone.
+    # Annotating every to-many prefetch unconditionally would satisfy the test above while shadowing
+    # a real column here, which is the case annotate_formatted_name's lookup-expression check exists
+    # to skip.
+    serializer = expanded_serializer(timesheet_serializers.TimesheetWithAliasedEntriesSerializer, "entries")
+
+    _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
+
+    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+
+    assert "formatted_name" not in annotations
 
 
 @pytest.mark.django_db
@@ -297,7 +387,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 class TestStoreProductViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -363,7 +453,7 @@ class TestStoreProductViewSet:
 class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     @staticmethod
     def register_viewsets():
@@ -435,7 +525,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
 class TestStoreCustomerOrderViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_expand_exceeds_depth(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -481,7 +571,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
             ("timesheet", "Timesheet", "delete"),
-            ("timesheet", "Timesheet", "manage"),
         ],
     }
 
@@ -1707,7 +1796,6 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
             ("store", "DistributorProxy", "create"),
             ("store", "DistributorProxy", "update"),
             ("store", "DistributorProxy", "delete"),
-            ("store", "DistributorProxy", "manage"),
         ],
     }
 
@@ -1778,6 +1866,37 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = expected_update_response["name"]
 
 
+class NoExtraFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The distributor rows tests/store/migrations/0003_setup_lookup_test_data.py already inserted, plus a
+    customer who may both list and retrieve distributors and notes -- the two viewsets
+    TestNoExtraFieldsForViewSetMixin drives (one with a filterset_class, one without).
+
+    Nothing is created here: the tests below make their own Note rows, and the distributors come from
+    the migration, so this only needs to grant the permissions and hand back the lookup.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+    def __init__(self):
+        self.distributors = {obj.name: obj for obj in store_models.Distributor.objects.all()}
+
+
 @pytest.mark.django_db
 class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
     """
@@ -1787,7 +1906,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
 
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return NoExtraFieldsTestData()
 
     @pytest.fixture
     def authenticated_client(self, api_client, test_data):

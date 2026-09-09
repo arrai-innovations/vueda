@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.settings import api_settings
@@ -196,7 +195,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
     def test_object_state_reads_permission_names_mapping_at_call_time(
-        self, api_client, workflow_reader, customer_order
+        self, settings, api_client, workflow_reader, customer_order
     ):
         # object_state previously closed over PERMISSION_NAMES_MAPPING at import (vueda/workflow/
         # viewsets.py), so overriding the setting left the permission check pinned to
@@ -219,12 +218,13 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
         )
 
-        with override_settings(PERMISSION_NAMES_MAPPING={"read": "mutated_read"}):
-            api_client.force_authenticate(workflow_reader)
-            stale_permission_response = api_client.get(object_state_url, format="json")
+        settings.PERMISSION_NAMES_MAPPING = {"read": "mutated_read"}
 
-            api_client.force_authenticate(mutated_reader)
-            mutated_permission_response = api_client.get(object_state_url, format="json")
+        api_client.force_authenticate(workflow_reader)
+        stale_permission_response = api_client.get(object_state_url, format="json")
+
+        api_client.force_authenticate(mutated_reader)
+        mutated_permission_response = api_client.get(object_state_url, format="json")
 
         # workflow_reader holds the stale "read_customerorder" permission, which no longer
         # satisfies the check once the override maps "read" to "mutated_read".

@@ -44,6 +44,14 @@ class NoNameFieldSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class ModelOrderingQuerysetSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ModelOrderingQueryset
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.FormattedNameExpressionNotString
@@ -63,6 +71,30 @@ class ValidGetFormattedNameSerializer(VuedaSerializer):
 class ValidLookupExpressionSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.ValidLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class PlainManagerLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.PlainManagerLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MultiValuedLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MultiValuedLookupExpression
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SingleValuedLookupExpressionSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SingleValuedLookupExpression
         fields = [
             "id",
         ] + VuedaSerializer.Meta.fields

@@ -51,7 +51,7 @@ class OrderLine(VuedaModel):
 
 Because `OrderLine` has no `id` field, `formatted_name` must either use a lookup expression pointing to another field or implement `get_formatted_name()`. Setting `formatted_name = None` without providing one of these alternatives will cause list and retrieve endpoints to return `null` for `formatted_name`. The choice endpoint failure this would cause is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served.
 
-When `formatted_name_lookup_expression` is set, `VuedaViewSet` annotates the queryset with the expression in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints.
+When `formatted_name_lookup_expression` is set, `FormattedNameManager` — the default manager `FormattedNameBaseModel` provides — annotates every queryset the model builds with the expression, and `VuedaViewSet` does the same in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints, and it resolves outside a request too (see [Create a CRUDL Surface](create-crudl-surface#replacing-the-default-manager)).
 
 ## Defining the Serializer
 
@@ -74,6 +74,8 @@ class OrderLineSerializer(VuedaSerializer):
 ```
 
 The `pk` field is sent to and received from the client as a JSON string, for example `'["1", "42"]'`. The server converts this to a list, for example `[1, 42]`, automatically.
+
+`pk` is not offered to clients as something to sort by. `"pk"` is an alias Django's query machinery resolves, not a column, so `model_ordering` reports the fields the key is built from instead — `order` and `product` for `OrderLine`, one entry per column. This holds wherever the alias appears: the serializer's `pk` field, `ordering_fields = "__all__"`, and a `Meta.ordering` or viewset `ordering` of `["pk"]` all resolve the same way, and the literal `"pk"` never reaches the client. See [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics) for the full rule.
 
 ## URL Format for Composite PKs
 

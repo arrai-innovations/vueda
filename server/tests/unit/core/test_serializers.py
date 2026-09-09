@@ -18,7 +18,6 @@ from tests.store import viewsets as store_viewsets
 from tests.timesheet.models import Timesheet
 from tests.timesheet.serializers import TimesheetSerializer
 from tests.timesheet.serializers import TimesheetSerializerExclude
-from tests.unit.info.test_model_info import VuedaTestData
 from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda import info
@@ -30,9 +29,11 @@ from vueda.core.viewsets import get_recursive_expands_and_fields
 
 @pytest.mark.django_db
 class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
-    @pytest.fixture
-    def test_data(self):
-        return VuedaTestData()
+    """
+    The valid expands and fields for a serializer come from the serializer's own declarations, so
+    these tests need no rows of their own -- only a database for the serializer to build its fields
+    against.
+    """
 
     @staticmethod
     def register_viewsets():
@@ -44,7 +45,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
         info.register_serializer(store_serializers.OrderItemSerializer)
 
-    def test_limits_depth_to_default(self, settings, api_client, test_data):
+    def test_limits_depth_to_default(self, settings, api_client):
         settings.REST_FLEX_FIELDS = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
@@ -69,7 +70,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert actual_depth == 2  # noqa PLR2004
 
-    def test_valid_expands_and_fields_two_deep(self, api_client, test_data):
+    def test_valid_expands_and_fields_two_deep(self, api_client):
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 2
@@ -137,7 +138,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.~all",
         }
 
-    def test_valid_expands_and_fields_three_deep(self, api_client, test_data):
+    def test_valid_expands_and_fields_three_deep(self, api_client):
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 3
