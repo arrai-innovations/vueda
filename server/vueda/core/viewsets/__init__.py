@@ -44,8 +44,8 @@ from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
+from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
-from vueda.core.models import annotate_formatted_name
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
@@ -309,6 +309,47 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
+
+
+_FILTERSET_QUERY_PARAM_NAMES = {}
+
+
+def get_filterset_query_param_names(filterset_class, get_queryset):
+    """
+    The query parameter names a filterset accepts, including the suffixed names of multi-widget
+    filters and each filter's lookup expression form.
+
+    Read the filters from an instance rather than from ``filterset_class.get_filters()``. That
+    classmethod hands back the filter objects declared on the class itself, and ``Filter.field``
+    caches the form field it builds on whichever filter it is read from. Reading it off the class
+    would freeze the choices of value-derived filters (``AllValuesFilter`` and friends) at whatever
+    the first request handled by this process saw, so values added later would be rejected as
+    invalid choices for the rest of the process.
+
+    The names depend only on the filterset class, so they are built once per class. Instantiating a
+    filterset reads every filter's field, which is a query per value-derived filter, and this runs on
+    every list request. ``get_queryset`` is taken as a callable rather than a queryset for the same
+    reason: on the cached path nothing needs one, and building one is work of its own.
+    """
+    names = _FILTERSET_QUERY_PARAM_NAMES.get(filterset_class)
+    if names is not None:
+        return names
+
+    names = set()
+    for filter_name, filter_obj in filterset_class(queryset=get_queryset()).filters.items():
+        widget = filter_obj.field.widget
+        # If the filter has suffixes, then we need to use those with the filter name.
+        if hasattr(widget, "suffixes"):
+            for suffix in widget.suffixes:
+                names.add(f"{filter_name}_{suffix}")
+        else:
+            names.add(filter_name)
+        if hasattr(filter_obj, "lookup_expr"):
+            names.add(f"{filter_name}__{filter_obj.lookup_expr}")
+
+    names = frozenset(names)
+    _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names
+    return names
 
 
 def _resolve_relation_segment(model, segment):
@@ -646,17 +687,11 @@ class NoExtraFieldsForViewSetMixin:
         extra_allowed_fields = set(self.get_extra_allowed_fields())
         filterset_fields = set()
         if hasattr(self, "filterset_class"):
-            # get_fields() only gets fields from the meta, not declared fields on the filterset.
-            for filter_name, filter_obj in self.filterset_class.get_filters().items():
-                widget = filter_obj.field.widget
-                # If the filter has suffixes, then we need to use those with the filter name.
-                if hasattr(widget, "suffixes"):
-                    for suffix in widget.suffixes:
-                        filterset_fields.add(f"{filter_name}_{suffix}")
-                else:
-                    filterset_fields.add(filter_name)
-                if hasattr(filter_obj, "lookup_expr"):
-                    filterset_fields.add(f"{filter_name}__{filter_obj.lookup_expr}")
+            # Read the names from an instantiated filterset rather than from `get_filters()`, whose
+            # class-level filter objects cache `Filter.field` -- and with it the choices of a
+            # value-derived filter -- on a singleton shared by every request. See
+            # `get_filterset_query_param_names`.
+            filterset_fields = set(get_filterset_query_param_names(self.filterset_class, self.get_queryset))
 
         # A filterset's "valid filters" message names only its filter fields; pagination, ordering,
         # search, and flex-fields params are accepted but not filters, so they stay out of the message.
@@ -986,6 +1021,13 @@ class VuedaViewSet(
         that matters for ``prefetch_related`` specifically.
         """
         queryset = super().get_queryset()
+
+        # `FormattedNameManager` already annotates this for a model whose own querysets go through it,
+        # so this is usually a no-op that re-adds the same expression under the same alias. It stays
+        # because a viewset's `queryset`/`get_queryset` may come from a manager that doesn't inherit
+        # `FormattedNameManager`, and because a viewset may point at a model that isn't a
+        # `FormattedNameBaseModel` at all. Both go through `annotate_formatted_name`, so they can't
+        # disagree about what `formatted_name` means.
         queryset = annotate_formatted_name(queryset)
         queryset = annotate_object_revision(queryset)
 

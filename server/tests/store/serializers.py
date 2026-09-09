@@ -621,6 +621,17 @@ class OrderItemAltCompositePKSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class OrderItemPKOrderedCompositePKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderItemPKOrderedCompositePK
+        fields = [
+            "pk",
+            "order",
+            "product",
+            "quantity",
+        ] + VuedaSerializer.Meta.fields
+
+
 class DistributorProxySerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.DistributorProxy

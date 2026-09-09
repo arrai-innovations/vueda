@@ -104,7 +104,7 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
         settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
         append_installed_apps(settings, "tests.group_added")
 
-        with self.temporary_migration_module(app_label="group_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "group_added")
             if not succeeded:
@@ -150,7 +150,7 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
         settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
         append_installed_apps(settings, "tests.group_added")
 
-        with self.temporary_migration_module(app_label="group_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 0
 
@@ -182,7 +182,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
         settings.AUTH_USER_MODEL = "group_changed.GroupChangedUser"
         append_installed_apps(settings, "tests.group_changed")
 
-        with self.temporary_migration_module(app_label="group_changed") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_changed") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_changed").count() == 0
 
             succeeded, results = self.call_command("migrate", "group_changed")
@@ -261,7 +261,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
         settings.AUTH_USER_MODEL = "group_deleted.GroupDeletedUser"
         append_installed_apps(settings, "tests.group_deleted")
 
-        with self.temporary_migration_module(app_label="group_deleted") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_deleted") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_deleted").count() == 0
 
             succeeded, results = self.call_command("migrate", "group_deleted", "0003")
@@ -375,7 +375,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
         append_installed_apps(settings, "tests.group_updating")
 
-        with self.temporary_migration_module(app_label="group_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0002_group_permission_migrations_2026_06_29.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -499,7 +499,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
         append_installed_apps(settings, "tests.group_updating")
 
-        with self.temporary_migration_module(app_label="group_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0003_group_permission_migrations_2026_06_30.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -623,7 +623,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         err = io.StringIO()
         out = io.StringIO()
 
-        with self.temporary_migration_module(app_label="group_updating_bad_migrations") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="group_updating_bad_migrations") as migration_dir:
             with pytest.raises(SystemExit):
                 self.call_command("updategroupmigrations", stdout=out, stderr=err)
 
@@ -672,7 +672,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         settings.AUTH_USER_MODEL = "group_changes_syncing.GroupChangesSyncingUser"
         append_installed_apps(settings, "tests.group_changes_syncing")
 
-        with self.temporary_migration_module(app_label="group_changes_syncing"):
+        with self.temporary_migration_module(settings, app_label="group_changes_syncing"):
             assert GroupChange.objects.count() == 0
 
             succeeded, results = self.call_command("sync_group_changes")

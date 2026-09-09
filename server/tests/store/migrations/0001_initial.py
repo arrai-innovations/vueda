@@ -119,9 +119,7 @@ class Migration(migrations.Migration):
                     models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
                 ),
             ],
-            options={
-                "default_permissions": ("create", "read", "update", "delete", "list"),
-            },
+            options={"default_permissions": ("create", "read", "update", "delete", "list"), "ordering": ["user__name"]},
         ),
         migrations.CreateModel(
             name="Cart",
@@ -135,7 +133,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
-                "ordering": ["customer__user__name"],
+                "ordering": [models.OrderBy(models.F("expected_delivery_time"), nulls_first=True)],
             },
         ),
         migrations.CreateModel(
@@ -597,6 +595,7 @@ class Migration(migrations.Migration):
             options={
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "order_items",
+                "ordering": ["product_option__product__name"],
                 "verbose_name": "ORDER item",
                 "verbose_name_plural": "ORDER items",
             },
@@ -1101,5 +1100,30 @@ class Migration(migrations.Migration):
                 "get_latest_by": ("history_date", "history_id"),
             },
             bases=(simple_history.models.HistoricalChanges, models.Model),
+        ),
+        migrations.CreateModel(
+            name="OrderItemPKOrderedCompositePK",
+            fields=[
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "order_id", "product_id", blank=True, editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("quantity", models.IntegerField(db_default=0)),
+                ("order", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.ordercompositepk")),
+                (
+                    "product",
+                    models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="store.productcompositepk"),
+                ),
+            ],
+            options={
+                "verbose_name": "Order Items PK Ordered Composite PK",
+                "verbose_name_plural": "Order Items PK Ordered Composite PKs",
+                "ordering": ["pk"],
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_related_name": "order_items_pk_ordered_composite_pks",
+            },
         ),
     ]

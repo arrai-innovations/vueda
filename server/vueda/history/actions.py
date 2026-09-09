@@ -13,7 +13,7 @@ from collections import defaultdict
 from django.apps import apps
 from django.contrib.auth import get_user_model
 
-from vueda.core.models import annotate_formatted_name
+from vueda.core.formatted_name import annotate_formatted_name
 
 
 #: pghistory labels its triggers by operation. The response publishes readable names instead.

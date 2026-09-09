@@ -37,15 +37,6 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
     return stderr
 
 
-def strip_registered_info_from_stderr(stderr):
-    for msg in stderr.split("\n"):
-        if msg.startswith("INFO Registered") and " with <" in msg and "> and <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-        elif msg.startswith("INFO Registered") and " with <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-    return stderr
-
-
 class BaseAddedWorkflow:
     def continue_added_workflow_test(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
@@ -128,7 +119,7 @@ class BaseAddedWorkflow:
         ]
 
         data = convert_data_to_list_of_dicts_without_id_fields(
-            models.State.objects.filter(workflow_id=workflow_pk).values()
+            models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
         )
         assert data == [
             {
@@ -281,7 +272,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added"):
+        with self.temporary_migration_module(settings, app_label="workflow_added"):
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
 
@@ -323,7 +314,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_added")
             if not succeeded:
@@ -375,7 +366,7 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 0
 
@@ -406,7 +397,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
         }
         append_installed_apps(settings, "tests.workflow_changed")
 
-        with self.temporary_migration_module(app_label="workflow_changed") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_changed") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 0
 
@@ -481,7 +472,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -640,7 +631,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == [
                 {
@@ -772,7 +763,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
@@ -810,7 +801,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
         }
         append_installed_apps(settings, "tests.workflow_deleted")
 
-        with self.temporary_migration_module(app_label="workflow_deleted") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_deleted") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 0
 
@@ -885,7 +876,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -1062,7 +1053,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
@@ -1101,7 +1092,7 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
         }
         append_installed_apps(settings, "tests.workflow_multi")
 
-        with self.temporary_migration_module(app_label="workflow_multi") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_multi") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_multi")
             if not succeeded:
@@ -1210,7 +1201,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         }
         append_installed_apps(settings, "tests.workflow_duplicates")
 
-        with self.temporary_migration_module(app_label="workflow_duplicates") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_duplicates") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 0
 
@@ -1401,7 +1392,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         # we need to clear the cache or the second test will fail.
         ContentType.objects.clear_cache()
 
-        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
@@ -1484,7 +1475,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         # we need to clear the cache or the second test will fail.
         ContentType.objects.clear_cache()
 
-        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
@@ -1692,7 +1683,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -1894,7 +1885,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0003_workflow_migrations_2026_06_30.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -2101,7 +2092,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -2178,7 +2169,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         err = io.StringIO()
         out = io.StringIO()
 
-        with self.temporary_migration_module(app_label="workflow_updating_bad_migrations") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating_bad_migrations") as migration_dir:
             with pytest.raises(SystemExit):
                 self.call_command(
                     "updateworkflowmigrations", "workflow_updating_bad_migrations", stdout=out, stderr=err

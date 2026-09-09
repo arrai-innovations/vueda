@@ -30,7 +30,7 @@ from tests.timesheet import serializers as timesheet_serializers
 from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetViewSet
-from tests.unit.info.test_model_info import VuedaTestData
+from tests.unit.info.utils import create_test_data
 from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
@@ -39,6 +39,38 @@ from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
 from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
+
+
+class StoreTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The store objects the flex-fields viewset tests below retrieve, and the customer who is allowed
+    to retrieve them. Only `read` is granted, because every test here is a GET of a single record:
+    `ObjectPermissions` maps that to `read_<model>`.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "CustomerOrder", "read"),
+            ("store", "Product", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+        # Needed by create_test_data, which attaches a customer to this user. Nothing
+        # authenticates as them, so they need no group of their own.
+        "test_customer_2@domain.invalid": {
+            "name": "Test Customer 2",
+            "password": "testpass",
+        },
+    }
+
+    def __init__(self):
+        create_test_data(self)
 
 
 def test_vueda_read_only_viewset_excludes_write_actions():
@@ -355,7 +387,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 class TestStoreProductViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_retrieve_with_two_depth_invalid_expand(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -421,7 +453,7 @@ class TestStoreProductViewSet:
 class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     @staticmethod
     def register_viewsets():
@@ -493,7 +525,7 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
 class TestStoreCustomerOrderViewSet:
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return StoreTestData()
 
     def test_expand_exceeds_depth(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -539,7 +571,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
             ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
             ("timesheet", "Timesheet", "delete"),
-            ("timesheet", "Timesheet", "manage"),
         ],
     }
 
@@ -1765,7 +1796,6 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
             ("store", "DistributorProxy", "create"),
             ("store", "DistributorProxy", "update"),
             ("store", "DistributorProxy", "delete"),
-            ("store", "DistributorProxy", "manage"),
         ],
     }
 
@@ -1836,6 +1866,37 @@ class TestStoreDistributorProxyViewSet(BaseTestModelViewSet):
         expected_update_response["formatted_name"] = expected_update_response["name"]
 
 
+class NoExtraFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    The distributor rows tests/store/migrations/0003_setup_lookup_test_data.py already inserted, plus a
+    customer who may both list and retrieve distributors and notes -- the two viewsets
+    TestNoExtraFieldsForViewSetMixin drives (one with a filterset_class, one without).
+
+    Nothing is created here: the tests below make their own Note rows, and the distributors come from
+    the migration, so this only needs to grant the permissions and hand back the lookup.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer": [
+            ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
+            ("store", "Note", "list"),
+            ("store", "Note", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+            "groups": ["Customer"],
+        },
+    }
+
+    def __init__(self):
+        self.distributors = {obj.name: obj for obj in store_models.Distributor.objects.all()}
+
+
 @pytest.mark.django_db
 class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
     """
@@ -1845,7 +1906,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
 
     @pytest.fixture
     def test_data(self):
-        return VuedaTestData()
+        return NoExtraFieldsTestData()
 
     @pytest.fixture
     def authenticated_client(self, api_client, test_data):

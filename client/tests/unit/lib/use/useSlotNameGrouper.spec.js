@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { expectReadOnlyWarning, scopedIt } from "@tests/unit/utils.js";
 import { useSlotNameGrouper } from "@vueda/use/useSlotNameGrouper.js";
 import { h, ref } from "vue";
 
@@ -53,9 +53,12 @@ describe("lib/use/useSlotNameGrouper.js", () => {
         const groupedRef = result.grouped;
         const remainingRef = result.remaining;
 
-        // Vue will warn but not throw when modifying a readonly proxy
-        result.grouped = null;
-        result.remaining = [];
+        expectReadOnlyWarning(() => {
+            result.grouped = null;
+        }, "grouped");
+        expectReadOnlyWarning(() => {
+            result.remaining = [];
+        }, "remaining");
 
         expect(result.grouped).toBe(groupedRef);
         expect(result.remaining).toBe(remainingRef);

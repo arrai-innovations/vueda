@@ -1,4 +1,4 @@
-import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
+import { expectReadOnlyWarning, mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 const lifecycleMocks = mockLifecycle(vi);
@@ -64,8 +64,9 @@ describe("lib/use/useIsActive.js", () => {
         await flushPromises();
         expect(isActive.value).toBe(true);
 
-        // [Vue warn] is expected here, it is exactly what we are testing for.
-        isActive.value = false;
+        expectReadOnlyWarning(() => {
+            isActive.value = false;
+        }, "value");
         expect(isActive.value).toBe(true);
     });
 });
