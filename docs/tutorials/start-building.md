@@ -481,7 +481,9 @@ Without {@api py:function:vueda.info.registration.register}, the model's API end
 
 ### Register the App
 
-Add the new app to `INSTALLED_APPS`. The copier template's settings use {@api py:function:vueda.core.default_settings.get_defaults} from VUEDA, which sets up `INSTALLED_APPS` with VUEDA's required apps plus any apps listed in `LOCAL_APPS` from `config.toml` (the scaffolded `users` app is already registered there). You need to add your new app as well.
+Add the new app to `INSTALLED_APPS`. The copier template's settings use {@api py:function:vueda.core.default_settings.get_defaults} from VUEDA, which assembles `INSTALLED_APPS`. That list holds Django's own apps, the default `VUEDA_APPS` list, third-party apps, and any apps named in `LOCAL_APPS` in `config.toml`. The scaffolded `users` app is already there. You need to add your new app as well.
+
+The default `VUEDA_APPS` list installs every VUEDA app, and two of them are optional. [Django App Boundaries](../core-concepts/architecture-overview#django-app-boundaries) separates required infrastructure from optional feature apps and gives the combinations VUEDA tests.
 
 In `server/config/settings/base.py`, after the `locals().update(get_defaults(env))` line, add:
 

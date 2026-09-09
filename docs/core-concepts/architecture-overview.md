@@ -29,11 +29,64 @@ A module whose models do not extend the `vueda.core` base classes opts out of th
 
 ### Stateful lifecycle
 
-(`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. Workflow transitions are enforced server-side and reflected in metadata; available actions change based on the object's state. The dispatch queue (VDQ) delegates potentially long-running work, such as email and SMS delivery, to a worker process while maintaining state visibility through the same workflow mechanism.
+(`vueda.workflow`, `vueda.vdq`) encodes state machines and asynchronous dispatch workflows. The server enforces workflow transitions and reflects them in metadata; available actions change with the object's state. The dispatch queue (VDQ) hands long-running work, such as email and SMS delivery, to a worker process. The same workflow mechanism keeps the state of that work visible. Both apps are optional, and VDQ requires workflow. [Django App Boundaries](#django-app-boundaries) covers what each configuration supports.
 
 ### Cross-cutting concerns
 
-(`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; they are consumed by the layers above.
+(`vueda.user`, `vueda.history`) handle authentication, session management, TOTP two-factor authentication, and audit history. These cut across all domain modules but do not define the architectural shape; the layers above consume them. Every supported configuration installs both.
+
+## Django App Boundaries
+
+The server ships seven Django apps, and {@api py:function:vueda.core.default_settings.get_defaults} puts all seven in `VUEDA_APPS`. A project that sets the list itself chooses from the same seven. Installed by default is not the same as required.
+
+### Required infrastructure
+
+Every tested configuration installs `vueda.core`, `vueda.info`, `vueda.user`, `vueda.release`, and `vueda.history`.
+
+`get_defaults()` checks that `VUEDA_APPS` includes `vueda.history`. VUEDA ships event models and trigger operations in the migrations of every app that owns a tracked model. Each of those migrations depends on a `pghistory` node. Django imports every migration module of every installed app, so a configuration that omits `vueda.history` cannot load the migration graph. `get_defaults()` raises `ImproperlyConfigured` rather than letting `migrate` fail later on a missing node.
+
+The other four carry no such check, and no configuration test removes them. Treat them as required. VUEDA does not claim that an installation without them works.
+
+### Optional feature apps
+
+`vueda.workflow` and `vueda.vdq` are removable, and `server/tests/unit/core/test_optional_apps.py` protects that boundary. It runs each combination in its own process. Each probe checks that Django starts, that system checks report nothing, that URLs resolve, and that canonical registration still works. It also checks that no workflow or VDQ module reaches `sys.modules`.
+
+| Configuration                                              | Supported |
+| ---------------------------------------------------------- | --------- |
+| Required infrastructure alone                              | Yes       |
+| Required infrastructure and `vueda.workflow`               | Yes       |
+| Required infrastructure, `vueda.workflow`, and `vueda.vdq` | Yes       |
+| Required infrastructure and `vueda.vdq`                    | No        |
+
+VDQ depends on workflow, because a queue item's lifecycle is a workflow state machine. `vueda.vdq` raises `ImproperlyConfigured` from its `AppConfig.ready()` when workflow is absent. The dependency runs one way: workflow does not need VDQ.
+
+Workflow may read `vueda.history`, and history never imports workflow. `vueda.core` imports neither, so removing a feature app does not break the base classes.
+
+`vueda.user` works without VDQ. With VDQ installed, the user adapter queues a notification email or SMS as a {@term Queue Item (VDQ)} and a worker delivers it. Without VDQ, the adapter sends the same message inside the request, through Django's mail backend or the Twilio client. The templates and the message content do not change.
+
+### Installation is not model participation
+
+Installing a feature app makes the feature available. Each model then decides whether it takes part, and it declares that in `class Vueda`. [Model Feature Policy](./model-feature-policy) covers the declaration surface.
+
+History tracks every eligible model by default. A model opts out with `History.enabled = False`, and drops columns from its event model with `History.exclude_fields`.
+
+Workflow works the other way. `Workflow.enabled` defaults to `False`, so a model takes part only when it says so. A `Workflow` section in a project that omits `vueda.workflow` is a system-check error, not inert configuration.
+
+Workflow does not read that declaration yet. Participation still follows `HasWorkflowModelMixin`, so a declared `Workflow.enabled` must agree with the model's base classes and a system check reports a disagreement. [Model Feature Policy](./model-feature-policy) records where each feature stands.
+
+A project cannot change the history policy of a model VUEDA ships. That policy lives in VUEDA's own source, and the event models it produced are already in VUEDA's published migrations. A project's own tracked models gain event models in the project's migrations, which `makemigrations` writes.
+
+### Default-on history has a storage cost
+
+`vueda.vdq.QueueItem` is the case to plan for. It extends `VuedaModel`, so history tracks it. VDQ writes one queue item per outbound message and updates that row as delivery proceeds, so a busy queue produces event rows steadily. The `result` field holds provider output, including error text, and each update copies its current value into an event row.
+
+VUEDA ships no retention policy. Event rows accumulate until an integrator removes them, and the append-only trigger blocks an ordinary delete. [Purge Model History](../guides/purge-model-history) covers the supported path.
+
+### Installation is not authorization
+
+Leaving an app out changes what the client can see. A project without workflow exposes no workflow endpoints, so no model advertises a transition and the client renders no transition control. That describes the configuration, not a user's permissions.
+
+The client enforces neither fact. The server checks permissions on every request, whatever the metadata said, as [The Authorization Boundary](#the-authorization-boundary) describes.
 
 ## Client Responsibility Layers
 
