@@ -297,6 +297,12 @@ public-facing documentation baseline.
 - **`permitted_transitions` for models without a workflow**:
     - `WorkflowViewSet.permitted_transitions` no longer requires `vueda_workflow.read_workflow` when the requested `app_label/model` pair has no configured workflow. A user who can read that model now gets `200` with an empty transition list instead of `403`. `read_workflow` is still required whenever a workflow is configured for the model, and every other workflow endpoint is unchanged.
 
+- **Choices requests dispatched twice**:
+    - `ModelInfoChoicesBaseViewSet.dispatch` ran the whole request, discarded the response unless it was a `200`, and ran it again. Only the second run could deny. `get_queryset` set `choices_permissions` as a side effect, and `check_permissions` skips its body while that attribute is `None`. Both choices viewsets now resolve the addressed field and the permissions it requires in `resolve_choices()`, which runs before the permission check. One request is one dispatch.
+    - A denied request no longer builds the choices it will not return. `validate_queryset` also stopped reading `field.choices` to decide whether a field offers choices, because DRF evaluates the related queryset to answer that. An unauthorized request now reads no table belonging to the model it addressed.
+    - Measured on `GET model_info_choices/store/product/tangible_type/`, a successful field-choices response drops from 17 queries to 9. The filterset equivalent drops from 19 to 11.
+      _No integrator action. Response bodies, status codes, and the 404 naming the valid choice fields are unchanged. A project that subclasses `ModelInfoChoicesBaseViewSet` directly must implement `resolve_choices()`._
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary

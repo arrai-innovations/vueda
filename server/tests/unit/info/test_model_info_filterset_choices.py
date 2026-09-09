@@ -5,6 +5,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -16,6 +18,7 @@ from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from tests.unit.info.utils import idfn
 from vueda import info
+from vueda.info import viewsets as info_viewsets
 
 
 DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
@@ -402,6 +405,35 @@ class TestModelInfoFiltersetChoicesCustomer(BaseModelInfoFilterSetChoices):
                 ), msg
                 self.assert_choice_value_contract(response.data, expected_choices, msg)
 
+    def test_denied_filter_choices_request_does_not_read_the_addressed_models(self, authenticated_client, monkeypatch):
+        """
+        A denied request used to narrow and evaluate the whole choices queryset before anything
+        checked whether the user could see it. The customer may not list inventory records, so the
+        response is 403 and neither the record table nor the reason table is read.
+        """
+        register_model("store", "inventoryrecord")
+
+        handled = []
+        original_get_queryset = info_viewsets.ModelInfoFilterSetChoicesViewSet.get_queryset
+
+        def recording_get_queryset(self):
+            handled.append(self.choices_field)
+            return original_get_queryset(self)
+
+        monkeypatch.setattr(info_viewsets.ModelInfoFilterSetChoicesViewSet, "get_queryset", recording_get_queryset)
+
+        with CaptureQueriesContext(connection) as captured:
+            response = authenticated_client.get(
+                reverse("info.model_info_filterset_choices-list", args=("store", "inventoryrecord", "reason")),
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+        assert handled == [], "the handler ran for a request the user is not allowed to make"
+
+        read_tables = [query["sql"] for query in captured.captured_queries if "store_inventoryrecord" in query["sql"]]
+        assert read_tables == [], read_tables
+
 
 @pytest.mark.django_db
 class TestModelInfoFiltersetChoicesAdmin(BaseModelInfoFilterSetChoices):
@@ -463,6 +495,38 @@ class TestModelInfoFiltersetChoicesAdmin(BaseModelInfoFilterSetChoices):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert "" not in {result["label"] for result in response.data["results"]}
         assert "" not in {result["value"] for result in response.data["results"]}
+
+    def test_successful_filter_choices_response_runs_one_dispatch(
+        self, authenticated_client, django_assert_num_queries, monkeypatch
+    ):
+        """
+        The viewset used to answer a filter choices request by running the whole request twice,
+        because the first run populated choices_permissions as a side effect of get_queryset.
+        Resolution now happens before the handler, and one request is one dispatch.
+
+        The query count is exact so that a reintroduced second dispatch fails here. Send one
+        request before measuring: the first request for a user fills that user's permission cache.
+        """
+        register_model("store", "product")
+
+        url = reverse("info.model_info_filterset_choices-list", args=("store", "product", "tangible_type"))
+        warm_up_response = authenticated_client.get(url, format="json")
+        assert warm_up_response.status_code == HTTPStatus.OK, response_body(warm_up_response)
+
+        dispatched = []
+        original_initial = info_viewsets.ModelInfoChoicesBaseViewSet.initial
+
+        def counting_initial(self, request, *args, **kwargs):
+            dispatched.append(request)
+            return original_initial(self, request, *args, **kwargs)
+
+        monkeypatch.setattr(info_viewsets.ModelInfoChoicesBaseViewSet, "initial", counting_initial)
+
+        with django_assert_num_queries(11):
+            response = authenticated_client.get(url, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert len(dispatched) == 1
 
 
 @pytest.mark.django_db
