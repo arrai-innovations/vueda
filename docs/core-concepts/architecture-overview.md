@@ -72,6 +72,8 @@ History tracks every eligible model by default. A model opts out with `History.e
 
 Workflow works the other way. `Workflow.enabled` defaults to `False`, so a model takes part only when it says so. A `Workflow` section in a project that omits `vueda.workflow` is a system-check error, not inert configuration.
 
+Workflow does not read that declaration yet. Participation still follows `HasWorkflowModelMixin`, so a declared `Workflow.enabled` must agree with the model's base classes and a system check reports a disagreement. [Model Feature Policy](./model-feature-policy) records where each feature stands.
+
 A project cannot change the history policy of a model VUEDA ships. That policy lives in VUEDA's own source, and the event models it produced are already in VUEDA's published migrations. A project's own tracked models gain event models in the project's migrations, which `makemigrations` writes.
 
 ### Default-on history has a storage cost
