@@ -464,11 +464,11 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
   <DemoCard title="open panel anatomy" description=" (item state matrix, live)" class="lg:col-span-3">
     <div class="flex justify-center py-2 pb-64">
       <ClientOnly>
-        <DropdownMenu :open="true">
+        <DropdownMenu :open="true" :modal="false">
           <DropdownMenuTrigger as-child>
             <Button emphasis="outline">INV-2026-0418-A1</Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent class="w-56" force-mount side="bottom" align="center" :side-offset="6" :avoid-collisions="false" @escape-key-down.prevent @pointer-down-outside.prevent @focus-outside.prevent @interact-outside.prevent>
+          <DropdownMenuContent class="w-56" force-mount side="bottom" align="center" :side-offset="6" :avoid-collisions="false" @open-auto-focus.prevent @escape-key-down.prevent @pointer-down-outside.prevent @focus-outside.prevent @interact-outside.prevent>
             <DropdownMenuLabel>INV-2026-0418-A1</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
@@ -506,6 +506,7 @@ Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuIt
     </div>
     <template #footer>
       <span>every row is a real <code>DropdownMenuItem</code> in a real force-mounted panel, so this matrix cannot drift from <code>DropdownMenuItem.root</code></span>
+      <span>this always-open example uses <code>:modal="false"</code> and prevents opening autofocus so it leaves page scrolling, outside interaction, and focus available</span>
       <span>rows 2 and 5 sit in a <code>ForceState</code> wrapper; the others are at rest</span>
       <span>disabled and destructive are the real <code>disabled</code> and <code>variant</code> props, which set <code>data-disabled</code> and <code>data-variant</code> for the theme to key off</span>
       <span>highlight is <code>focus:bg-accent</code>, driven by real DOM focus, so only one row could be highlighted for real; the docs shim paints the rest</span>
