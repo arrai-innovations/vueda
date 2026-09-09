@@ -43,7 +43,7 @@ The server ships seven Django apps, and {@api py:function:vueda.core.default_set
 
 Every tested configuration installs `vueda.core`, `vueda.info`, `vueda.user`, `vueda.release`, and `vueda.history`.
 
-An explicit check enforces one of them. VUEDA ships event models and trigger operations in the migrations of every app that owns a tracked model. Each of those migrations depends on a `pghistory` node. Django imports every migration module of every installed app, so a configuration that omits `vueda.history` cannot load the migration graph. `get_defaults()` raises `ImproperlyConfigured` rather than letting `migrate` fail later on a missing node.
+`get_defaults()` checks that `VUEDA_APPS` includes `vueda.history`. VUEDA ships event models and trigger operations in the migrations of every app that owns a tracked model. Each of those migrations depends on a `pghistory` node. Django imports every migration module of every installed app, so a configuration that omits `vueda.history` cannot load the migration graph. `get_defaults()` raises `ImproperlyConfigured` rather than letting `migrate` fail later on a missing node.
 
 The other four carry no such check, and no configuration test removes them. Treat them as required. VUEDA does not claim that an installation without them works.
 
