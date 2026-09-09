@@ -29,19 +29,21 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import QuerySet
 from rest_framework.exceptions import PermissionDenied
-from simple_history.models import HistoricalRecords
 
+from vueda.core.audit import current_action_metadata
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
-from vueda.core.simple_history import SimpleHistoryModelMixin
 from vueda.core.utils import get_system_user
+from vueda.history.apps import track_model
+from vueda.history.revision import object_revision
+from vueda.history.snapshots import last_recorded
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
 User = get_user_model()
 
 
-class Workflow(SimpleHistoryModelMixin, Lookup):
+class Workflow(Lookup):
     """
     A workflow is a collection of states and transitions.
     """
@@ -80,7 +82,7 @@ class Workflow(SimpleHistoryModelMixin, Lookup):
             super().save(*args, **kwargs)
 
 
-class WorkflowPermission(SimpleHistoryModelMixin):
+class WorkflowPermission(models.Model):
     """
     The permissions that are required to get available transitions for a given object or execute a transition.
     """
@@ -102,14 +104,15 @@ class WorkflowPermission(SimpleHistoryModelMixin):
         ordering = ["historical_permission_codename"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_workflow = False
         try:
             workflow = self.workflow
         except ObjectDoesNotExist:
             deleted_workflow = True
             if self.workflow_id is not None:
-                workflow = Workflow.history.filter(id=self.workflow_id).latest()
+                workflow = last_recorded(Workflow, self.workflow_id)
             else:
                 workflow = None
 
@@ -147,7 +150,7 @@ class WorkflowPermission(SimpleHistoryModelMixin):
             super().save(*args, **kwargs)
 
 
-class State(SimpleHistoryModelMixin):
+class State(models.Model):
     """
     A particular condition an object of the workflow can have.
     """
@@ -169,7 +172,7 @@ class State(SimpleHistoryModelMixin):
         return f"name: {self.name}, code: {self.code}"
 
 
-class StatePermission(SimpleHistoryModelMixin):
+class StatePermission(models.Model):
     """
     The state of an object can grant additional or deny existing permissions at a row level.
     """
@@ -198,14 +201,15 @@ class StatePermission(SimpleHistoryModelMixin):
         ordering = ["historical_permission_codename"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_state = False
         try:
             state = self.state
         except ObjectDoesNotExist:
             deleted_state = True
             if self.state_id is not None:
-                state = State.history.filter(id=self.state_id).latest()
+                state = last_recorded(State, self.state_id)
             else:
                 state = None
 
@@ -244,7 +248,7 @@ class StatePermission(SimpleHistoryModelMixin):
             super().save(*args, **kwargs)
 
 
-class InitialState(SimpleHistoryModelMixin):
+class InitialState(models.Model):
     """
     The initial state of an object of the workflow.
     """
@@ -265,14 +269,15 @@ class InitialState(SimpleHistoryModelMixin):
         ordering = ["workflow__code", "state__code"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_workflow = False
         try:
             workflow = self.workflow
         except ObjectDoesNotExist:
             deleted_workflow = True
             if self.workflow_id is not None:
-                workflow = Workflow.history.filter(id=self.workflow_id).latest()
+                workflow = last_recorded(Workflow, self.workflow_id)
             else:
                 workflow = None
 
@@ -282,7 +287,7 @@ class InitialState(SimpleHistoryModelMixin):
         except ObjectDoesNotExist:
             deleted_state = True
             if self.state_id is not None:
-                state = State.history.filter(id=self.state_id).latest()
+                state = last_recorded(State, self.state_id)
             else:
                 state = None
 
@@ -292,7 +297,7 @@ class InitialState(SimpleHistoryModelMixin):
         )
 
 
-class Transition(SimpleHistoryModelMixin):
+class Transition(models.Model):
     """
     A transition is a change to a target state. Transitions can have multiple sources.
      Transitions can be executed by users.
@@ -317,21 +322,22 @@ class Transition(SimpleHistoryModelMixin):
         ordering = ["code"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_state = False
         try:
             state = self.target
         except ObjectDoesNotExist:
             deleted_state = True
             if self.target_id is not None:
-                state = State.history.filter(id=self.target_id).latest()
+                state = last_recorded(State, self.target_id)
             else:
                 state = None
 
         return f"name: {self.name}, code: {self.code}, {'deleted ' if deleted_state else ''}target: {state}"
 
 
-class TransitionPermission(SimpleHistoryModelMixin):
+class TransitionPermission(models.Model):
     """
     The permissions that are required to execute a transition.
     """
@@ -359,14 +365,15 @@ class TransitionPermission(SimpleHistoryModelMixin):
         ordering = ["historical_permission_codename"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_transition = False
         try:
             transition = self.transition
         except ObjectDoesNotExist:
             deleted_transition = True
             if self.transition_id is not None:
-                transition = Transition.history.filter(id=self.transition_id).latest()
+                transition = last_recorded(Transition, self.transition_id)
             else:
                 transition = None
 
@@ -402,7 +409,7 @@ class TransitionPermission(SimpleHistoryModelMixin):
             super().save(*args, **kwargs)
 
 
-class TransitionSource(SimpleHistoryModelMixin):
+class TransitionSource(models.Model):
     """
     A transition can have multiple sources.
     """
@@ -429,14 +436,15 @@ class TransitionSource(SimpleHistoryModelMixin):
         ordering = ["source__code", "transition__code"]
 
     def __str__(self):
-        # When debugging where an object has been deleted, get data from the history rather than blow up.
+        # When debugging where an object has been deleted, name it from its last recorded values
+        # rather than blow up.
         deleted_transition = False
         try:
             transition = self.transition
         except ObjectDoesNotExist:
             deleted_transition = True
             if self.transition_id is not None:
-                transition = Transition.history.filter(id=self.transition_id).latest()
+                transition = last_recorded(Transition, self.transition_id)
             else:
                 transition = None
 
@@ -446,7 +454,7 @@ class TransitionSource(SimpleHistoryModelMixin):
         except ObjectDoesNotExist:
             deleted_state = True
             if self.source_id is not None:
-                state = State.history.filter(id=self.source_id).latest()
+                state = last_recorded(State, self.source_id)
             else:
                 state = None
 
@@ -491,7 +499,7 @@ class ObjectStateProxy(models.Model):
         return f"workflow: {self.workflow}, object:{self.object}, state:{self.state}"
 
 
-class ObjectState(SimpleHistoryModelMixin):
+class ObjectState(models.Model):
     """
     A workflow object is a row in the database that represents an object that has a workflow and a state.
     """
@@ -523,6 +531,20 @@ class ObjectState(SimpleHistoryModelMixin):
 
     def __str__(self):
         return f"workflow: {self.workflow}, object:{self.object_id}, state:{self.state}"
+
+
+# ``Workflow`` subclasses ``Lookup``, so the ``class Vueda.History`` contributor already registered
+# it. The models below are plain ``models.Model`` subclasses, which that contributor never sees, so
+# they register directly. Every workflow record then lands in an event model carrying the same
+# context field, append-only behaviour, and mandatory exclusions as a policy-driven model.
+track_model(WorkflowPermission)
+track_model(State)
+track_model(StatePermission)
+track_model(InitialState)
+track_model(Transition)
+track_model(TransitionPermission)
+track_model(TransitionSource)
+track_model(ObjectState)
 
 
 def _permitted_transition_ids(
@@ -927,8 +949,8 @@ class HasWorkflowModelMixin(models.Model):
 
         Performs the same permission and ``allow_transition`` checks as ``apply_transition``
         (raising the same exceptions), and resolves the effective ``user`` (falling back to the
-        request user from history context, then the system user, exactly as ``apply_transition``
-        does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
+        acting user the history middleware records on the action, then the system user, exactly as
+        ``apply_transition`` does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
         before writing should call this first, then ``apply_checked_transition``.
         """
         # One cache per call, so the second check under the row lock re-reads the state the lock protects.
@@ -936,11 +958,11 @@ class HasWorkflowModelMixin(models.Model):
             self.check_workflow_permission(user)
             transition: Transition = self.get_transition(transition_code)
             if user is None:
-                # this assumes we are using HistoryRequestMiddleware, which populates the request in the history context
-                request = getattr(HistoricalRecords.context, "request", None)
-                if request:
-                    user = request.user
-                else:
+                # History middleware records the acting user on the request's action, which is where
+                # a caller that was given no user of its own finds one.
+                acting_user_id = current_action_metadata().get("user")
+                user = User.objects.filter(pk=acting_user_id).first() if acting_user_id else None
+                if user is None:
                     user = get_system_user()
             if not self.check_transition_permission(transition, user):
                 raise PermissionDenied(
@@ -959,21 +981,21 @@ class HasWorkflowModelMixin(models.Model):
 
     def apply_checked_transition(
         self, transition: Transition, user: User | None = None, dry_run: bool = False
-    ) -> tuple[State, int | None]:
+    ) -> tuple[State, str | None]:
         """
         Write an already-authorized transition (as returned by ``check_transition``) without
         re-checking permissions or availability.
+
+        Returns the target state and the object state's new revision, which is ``None`` when the
+        object has no state row to record.
         """
         self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
         self.on_transition(transition, user, dry_run)
-        if hasattr(self.object_state, "history"):
-            # return the new latest history record id
-            return transition.target, self.object_state.history.latest().history_id
-        return transition.target, None
+        return transition.target, object_revision(self.object_state)
 
     def apply_transition(
         self, transition_code: str, user: User | None = None, dry_run: bool = False
-    ) -> tuple[State, int | None]:
+    ) -> tuple[State, str | None]:
         """
         Apply a transition to the object.
         """

@@ -75,11 +75,10 @@ class DynamicObjectView(APIView):
 
 
 class ObjectHistoryRecordSerializer(serializers.Serializer):
-    history_id = serializers.IntegerField()
-    state__code = serializers.CharField(allow_null=True)
-    history_change_reason = serializers.CharField(allow_null=True)
-    history_date = serializers.DateTimeField()
-    history_user = serializers.IntegerField(allow_null=True)
+    id = serializers.CharField()
+    state = serializers.CharField(allow_null=True)
+    recorded_at = serializers.DateTimeField()
+    actor = serializers.IntegerField(allow_null=True)
 
 
 class GetObjectHistoryView(DynamicObjectView):
@@ -117,7 +116,7 @@ class GetObjectHistoryView(DynamicObjectView):
         app_label = kwargs["app_label"]
         model = kwargs["model"]
         object_state = getattr(self.object, "object_state", None)
-        if object_state is None or not hasattr(object_state, "history"):
+        if object_state is None:
             return Response(
                 data={"detail": "Object does not have a history."},
                 exception=Exception("Object does not have a history."),
@@ -135,10 +134,21 @@ class GetObjectHistoryView(DynamicObjectView):
                 exception=PermissionDenied(err_msg),
                 status=drf_status.HTTP_403_FORBIDDEN,
             )
+        from vueda.workflow.models import State
+
+        event_model = type(object_state).pgh_event_model
+        events = event_model.objects.filter(pgh_obj_id=object_state.pk).order_by("pgh_id")
+        # A state an event names may since have been deleted, so the codes come from a lookup rather
+        # than from following each event's foreign key.
+        state_codes = dict(State.objects.values_list("pk", "code"))
         return Response(
-            list(
-                object_state.history.values(
-                    "history_id", "state__code", "history_change_reason", "history_date", "history_user"
-                )
-            )
+            [
+                {
+                    "id": f"{type(object_state)._meta.label}:{event.pgh_id}",
+                    "state": state_codes.get(event.state_id),
+                    "recorded_at": event.pgh_created_at,
+                    "actor": (event.pgh_context.metadata or {}).get("user") if event.pgh_context_id else None,
+                }
+                for event in events.select_related("pgh_context")
+            ]
         )
