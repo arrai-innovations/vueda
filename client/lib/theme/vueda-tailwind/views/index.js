@@ -13,6 +13,7 @@ import "./ViewActivate.theme.js";
 import "./ViewCreate.theme.js";
 import "./ViewDeactivate.theme.js";
 import "./ViewDestroy.theme.js";
+import "./ViewExecuteTransition.theme.js";
 import "./ViewHistoryList.theme.js";
 import "./ViewList.theme.js";
 import "./ViewLoading.theme.js";
@@ -22,7 +23,6 @@ import "./ViewRecoveryCodes.theme.js";
 import "./ViewSetupDevice.theme.js";
 import "./ViewTwoFactorAuth.theme.js";
 import "./ViewUpdate.theme.js";
-import "./ViewWorkflowTransition.theme.js";
 import "./_ActionBannerPrimitives.theme.js";
 
 export default {
@@ -59,7 +59,7 @@ export default {
     ViewTwoFactorAuth: {},
     ViewSetupDevice: {},
     // ---------- Workflow transitions ----------
-    ViewWorkflowTransition: {},
+    ViewExecuteTransition: {},
     // ---------- Recovery codes ----------
     ViewRecoveryCodes: {},
 };

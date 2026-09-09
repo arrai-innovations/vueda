@@ -242,7 +242,10 @@ describe("lib/use/useModelAction.js", () => {
             expect(modelAction.state.readyToDryRun.value).toBe(true);
         });
 
-        scopedIt("latches per target so a pre-flight cannot retrigger itself", async () => {
+        scopedIt("carries no latch of its own: stays true across a dry-run call for the same target", async () => {
+            // The per-target latch lives in `useActionForm`, keyed off `dryRunTarget` below -- `readyToDryRun`
+            // only reports whether a dry run could run right now, so it recomputes to `true` again as soon as
+            // the (stubbed, always-idle) action instance settles back down after the call.
             const fetchState = createFetchState([{ id: 4 }]);
             const modelAction = await withSetup(() =>
                 useModelAction(reactive({ app: "app", model: "person", action: "archive", fetchState })),
@@ -250,10 +253,6 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(modelAction.state.readyToDryRun.value).toBe(true);
             await modelAction.runAction({ dryRun: true });
-            expect(modelAction.state.readyToDryRun.value).toBe(false);
-
-            // A new selection is a new target, so it validates again.
-            fetchState.objectsInOrder = [{ id: 5 }];
             expect(modelAction.state.readyToDryRun.value).toBe(true);
         });
 
@@ -264,6 +263,19 @@ describe("lib/use/useModelAction.js", () => {
                 ),
             );
             expect(modelAction.state.readyToDryRun.value).toBe(false);
+        });
+    });
+
+    describe("dryRunTarget", () => {
+        scopedIt("identifies the current target and changes when the selection changes", async () => {
+            const fetchState = createFetchState([{ id: 4 }, { id: 7 }]);
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", fetchState })),
+            );
+
+            expect(modelAction.state.dryRunTarget.value).toBe("4,7");
+            fetchState.objectsInOrder = [{ id: 5 }];
+            expect(modelAction.state.dryRunTarget.value).toBe("5");
         });
     });
 

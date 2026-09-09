@@ -58,14 +58,19 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('vue').ComputedRef<string>} bannerTitle - Banner title.
  * @property {import('vue').ComputedRef<string>} bannerDescription - Banner description.
  * @property {import('vue').ComputedRef<string>} bannerIconName - Icon name for the current tone.
- * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request.
+ * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request right now
+ *  (a target is present, dry-run is enabled, and the action instance is idle). Carries no per-target memory of its
+ *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
+ * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the current target (joined pks), for a
+ *  consumer to key its own "already dry-ran this one" bookkeeping off of.
  */
 
 /**
  * @typedef {object} ModelActionContext
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {ModelActionRawState} state - Reactive action state.
- * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered crud handlers.
+ * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
+ *  crud handlers.
  * @property {(result: any) => Promise<void>} redirectTo - Redirects after success or cancel.
  */
 
@@ -182,10 +187,11 @@ export function useModelAction(props) {
         }
     });
 
-    // Dry-run readiness waits for both a target and an idle action instance. It also latches per target because the
-    // dry run itself toggles instance loading; without the latch the readiness watcher would retrigger.
+    // Dry-run readiness waits for both a target and an idle action instance. It carries no per-target memory of its
+    // own -- the dry run itself toggles instance loading, so without a latch somewhere the readiness watcher would
+    // retrigger for the same target. `dryRunTarget` gives a consumer (`useActionForm`'s dry-run watcher) an identity
+    // to latch against instead.
     const dryRunTarget = computed(() => pksAsString.value.join(","));
-    const dryRunRanFor = ref(null);
     const readyToDryRun = computed(
         () =>
             !!(
@@ -194,8 +200,7 @@ export function useModelAction(props) {
                 props.action &&
                 props.enableDryRun !== false &&
                 pks.value.length > 0 &&
-                !actionInstance.value?.state?.loading &&
-                dryRunRanFor.value !== dryRunTarget.value
+                !actionInstance.value?.state?.loading
             ),
     );
 
@@ -252,10 +257,7 @@ export function useModelAction(props) {
             dryRun,
             acknowledgeWarnings,
         };
-        if (dryRun) {
-            // Drop readiness before the instance reports loading, so the watcher cannot start a duplicate dry run.
-            dryRunRanFor.value = dryRunTarget.value;
-        } else {
+        if (!dryRun) {
             lastRunPks.value = runPks;
         }
 
@@ -301,6 +303,7 @@ export function useModelAction(props) {
             bannerDescription,
             bannerIconName,
             readyToDryRun,
+            dryRunTarget,
         },
         runAction,
         redirectTo,

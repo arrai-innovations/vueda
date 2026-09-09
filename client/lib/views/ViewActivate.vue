@@ -23,7 +23,7 @@ import { useRouter } from "vue-router";
  * a PATCH request to the activate endpoint when the user confirms. Contributes its title to the
  * layout's PageTitle display via usePageTitle and teleports its "Go Back" action into the title
  * action zone via PageActions, matching sibling action-router views (ViewAction,
- * ViewWorkflowTransition, ViewHistoryList).
+ * ViewExecuteTransition, ViewHistoryList).
  */
 defineOptions({
     inheritAttrs: false,
