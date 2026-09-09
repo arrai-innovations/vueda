@@ -33,7 +33,6 @@ from django.db.models import Case
 from django.db.models import IntegerField
 from django.db.models import When
 from django.utils.translation import gettext_lazy as _
-from simple_history.models import HistoricalChanges
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields import form as core_form
@@ -54,8 +53,7 @@ def _workflow_content_type_queryset():
         if content_type.model_class() is None
         or content_type.model_class() is not None
         and (
-            issubclass(content_type.model_class(), HistoricalChanges)
-            or issubclass(content_type.model_class(), CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT)
+            issubclass(content_type.model_class(), CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT)
             or hasattr(content_type.model_class(), "pgh_tracked_model")
             or content_type.model_class()._meta.abstract
         )
@@ -118,17 +116,12 @@ class RemoveHistoricalPermissionsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # A history record is not something a project grants permission on, whichever backend wrote
-        # it. pghistory marks its event models with ``pgh_tracked_model``. The simple-history test
-        # goes when the last model recording that way does.
+        # A history record is not something a project grants permission on. pghistory marks its
+        # event models with ``pgh_tracked_model``.
         excluded_ids = [
             content_type.pk
             for content_type in ContentType.objects.all()
-            if content_type.model_class() is not None
-            and (
-                issubclass(content_type.model_class(), HistoricalChanges)
-                or hasattr(content_type.model_class(), "pgh_tracked_model")
-            )
+            if content_type.model_class() is not None and hasattr(content_type.model_class(), "pgh_tracked_model")
         ]
         self.fields["permission"].queryset = Permission.objects.exclude(content_type_id__in=excluded_ids).order_by(
             "content_type__app_label", "content_type__model", "codename"

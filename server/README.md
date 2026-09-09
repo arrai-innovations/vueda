@@ -43,7 +43,7 @@ library enhances Django's native authentication and permissions systems
 with default DRF classes and optimizes integration with [django-filter],
 [drf-flex-fields], and [drf-writable-nested]. It offers essential out-of-the-box
 functionalities such as custom workflow management, audit trails (with DRF
-support for [django-simple-history]), and row-level
+support for [django-pghistory]), and row-level
 permissions. Additionally, VUEDA Server provides DRF classes to expose Django
 model details to the frontend, filtered by user permissions. It is built with
 customization in mind, offering most features as base classes that can be
@@ -115,50 +115,12 @@ extended in your application, ensuring both control and adaptability.
 - it's up to you to add `vueda` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
   settings, like database, middleware, asgi vs wsgi, etc.
 - it's up to you to add `vueda`'s `urls` to your `urls.py`.
-- `HistoryRequestMiddleware` should be added to your `MIDDLEWARE` in `settings.py`, even if not otherwise
-  using `simple_history`.
-
-    example wsgi settings:
-
-    ```py
-    MIDDLEWARE = [
-        ...
-        'simple_history.middleware.HistoryRequestMiddleware',
-        ...
-    ]
-    ```
-
-    if using asgi, you should also add `HistoryRequestMiddleware` to your middleware stack, for example:
-
-    ```py
-    from asgi_cors_middleware import CorsASGIApp
-    from channels.auth import AuthMiddleware
-    from channels.sessions import CookieMiddleware
-    from channels.sessions import SessionMiddleware
-    from django.conf import settings
-    from simple_history.middleware import HistoryRequestMiddleware
-
-    def my_middlewares_stack(inner):
-        return CorsASGIApp(
-          CookieMiddleware(
-              SessionMiddleware(
-                  AuthMiddleware(
-                      HistoryRequestMiddleware(
-                          # ...
-                          inner
-                      )
-                  )
-              )
-           ),
-           # use django-cors-header's settings for asgi-cors-middleware
-           origins=settings.CORS_ALLOWED_ORIGINS,
-           allow_headers=settings.CORS_ALLOW_HEADERS,
-           expose_headers=settings.CORS_EXPOSE_HEADERS,
-           allow_methods=settings.CORS_ALLOW_METHODS,
-           allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-           max_age=settings.CORS_PREFLIGHT_MAX_AGE,
-       )
-    ```
+- `VuedaHistoryMiddleware` names the acting user and the request behind every history event. VUEDA
+  inserts it into `MIDDLEWARE` after `AuthenticationMiddleware`, so a project taking the defaults
+  adds nothing. It is an ordinary Django middleware and runs the same way under wsgi and asgi.
+  Do not wrap it in a Channels middleware stack. It takes a Django request rather than an ASGI
+  scope. The `vueda_history.W001` and `vueda_history.W002` system checks report a project that
+  drops it or moves it ahead of `AuthenticationMiddleware`.
 
 ### Permissions
 
@@ -399,5 +361,5 @@ Coverage will be generated in circleci, but you can do so locally if you don't w
 [django-filter]: https://github.com/carltongibson/django-filter
 [drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
 [drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
-[django-simple-history]: https://github.com/jazzband/django-simple-history
+[django-pghistory]: https://github.com/AmbitionEng/django-pghistory
 [api-docs]: https://vueda.dev/v3/reference/api/

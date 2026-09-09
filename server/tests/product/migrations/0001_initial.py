@@ -2,7 +2,6 @@
 
 import django.contrib.postgres.fields
 import django.db.models.deletion
-import simple_history.models
 from django.conf import settings
 from django.db import migrations
 from django.db import models
@@ -96,7 +95,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="ProductModelOrderingPK",

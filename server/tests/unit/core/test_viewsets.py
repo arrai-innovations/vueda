@@ -107,7 +107,7 @@ def test_filter_new_prefetch_lookups_drops_a_prefetch_object_duplicate():
 
 def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
     queryset = Timesheet.objects.prefetch_related("timesheet_entries")
-    other_lookup = Prefetch("history", queryset=Timesheet.history.model.objects.all())
+    other_lookup = Prefetch("events", queryset=Timesheet.pgh_event_model.objects.all())
 
     assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
 

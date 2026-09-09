@@ -23,7 +23,7 @@ __all__ = ("server_info_view",)
 A one-to-three sentence docstring is enough. It becomes the overview paragraph on the rendered class or function page.
 
 ```python
-class Workflow(SimpleHistoryModelMixin, Lookup):
+class Workflow(Lookup):
     """A workflow is a collection of states and transitions."""
 ```
 
