@@ -72,14 +72,14 @@ django.http.response.Http404: Unable to find the content type "store.pets"."""
 
 INFO_CHOICES_INVALID_FIELD = f"""
 Traceback (most recent call last):
-  File "{SITE_PACKAGES_PATH}/rest_framework/views.py", line 506, in dispatch
-    response = handler(request, *args, **kwargs)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "{SITE_PACKAGES_PATH}/rest_framework/mixins.py", line 38, in list
-    queryset = self.filter_queryset(self.get_queryset())
-                                    ^^^^^^^^^^^^^^^^^^^
-  File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 227, in get_queryset
+  File "{SITE_PACKAGES_PATH}/rest_framework/views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "{SITE_PACKAGES_PATH}/rest_framework/views.py", line 415, in initial
+    self.check_permissions(request)
+  File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 153, in check_permissions
+    self.resolve_choices()
+  File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 251, in resolve_choices
     self.validate_queryset(serializer, fields)
-  File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 192, in validate_queryset
+  File "{VUEDA_SERVER_PATH}/vueda/info/viewsets.py", line 228, in validate_queryset
     raise VuedaValidationError(
 vueda.core.exceptions.VuedaValidationError: ["Invalid field \'tangible_type\'. Valid fields with choices are user."]"""

@@ -129,7 +129,7 @@ The completed-history view of a VDQ queue record used for sent-item listing and 
 
 ## Serializer-Only Registration
 
-Registration via `register_serializer(...)` without a viewset, which exposes metadata discovery but no action/filter/ordering contract.
+Registration via `register_serializer(...)` without a viewset, which exposes metadata discovery but no action/filter contract. Ordering is the exception: `model_ordering` still reflects the model's own `Meta.ordering`, since that comes from the model rather than the viewset.
 
 ## Transition
 

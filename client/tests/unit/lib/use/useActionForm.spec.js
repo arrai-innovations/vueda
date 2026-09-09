@@ -281,6 +281,58 @@ describe("lib/use/useActionForm.js", () => {
         });
     });
 
+    describe("Dry-run pre-flight latching", () => {
+        scopedIt("fires once per dryRunTarget and does not refire while readyToDryRun merely toggles", async () => {
+            const formContext = createFormContext();
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const props = reactive({ runAction, readyToDryRun: false, dryRunTarget: "4" });
+            await withSetup(() => useActionForm(formContext, props));
+            await flushPromises();
+            expect(runAction).not.toHaveBeenCalled();
+
+            props.readyToDryRun = true;
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+            expect(runAction).toHaveBeenLastCalledWith(expect.objectContaining({ dryRun: true }));
+
+            // The dry run itself can toggle readiness off and back on for the same target (e.g. an
+            // action-instance loading flip); the latch must not mistake that for a new target.
+            props.readyToDryRun = false;
+            await flushPromises();
+            props.readyToDryRun = true;
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("fires again when dryRunTarget changes while readyToDryRun stays true", async () => {
+            const formContext = createFormContext();
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const props = reactive({ runAction, readyToDryRun: true, dryRunTarget: "4" });
+            await withSetup(() => useActionForm(formContext, props));
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+
+            props.dryRunTarget = "9";
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(2);
+        });
+
+        scopedIt("fires at most once, ever, when the caller supplies no dryRunTarget", async () => {
+            const formContext = createFormContext();
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const props = reactive({ runAction, readyToDryRun: true });
+            await withSetup(() => useActionForm(formContext, props));
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+
+            props.readyToDryRun = false;
+            await flushPromises();
+            props.readyToDryRun = true;
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("Teardown", () => {
         scopedIt("ignores a run that settles after the shell tore down", async () => {
             const formContext = createFormContext();

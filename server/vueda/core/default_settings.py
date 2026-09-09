@@ -326,8 +326,9 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "SEARCH_PARAM": "s",
             "DEFAULT_FILTER_BACKENDS": (
                 # "rest_framework.filters.SearchFilter",
-                "rest_framework.filters.OrderingFilter",
-                # VuedaSearchFilterBackend needs to be after OrderingFilter, or ranked results will get reordered.
+                "vueda.core.filters.VuedaOrderingFilter",
+                # VuedaSearchFilterBackend needs to be after VuedaOrderingFilter, or ranked results will get
+                # reordered.
                 "vueda.core.filters.VuedaSearchFilterBackend",
                 "django_filters.rest_framework.DjangoFilterBackend",
             ),

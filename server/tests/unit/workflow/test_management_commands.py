@@ -3,8 +3,10 @@ import datetime
 import io
 import os
 import time
+from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db.migrations.recorder import MigrationRecorder
 
@@ -12,8 +14,10 @@ from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import info_registry_clear_with_appended_apps
+from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
+from vueda.workflow.models import WorkflowEvent
 
 
 def convert_data_to_list_of_dicts_without_id_fields(queryset):
@@ -37,20 +41,22 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
     return stderr
 
 
-def strip_registered_info_from_stderr(stderr):
-    for msg in stderr.split("\n"):
-        if msg.startswith("INFO Registered") and " with <" in msg and "> and <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-        elif msg.startswith("INFO Registered") and " with <" in msg:
-            stderr = stderr.replace(msg + "\n", "")
-    return stderr
-
-
 class BaseAddedWorkflow:
     def continue_added_workflow_test(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
         assert results, "No results were captured when makeworkflowmigrations was called."
         self.reload_module(results, migration_dir)
+
+        # The migration writes through the workflow triggers, so it has to depend on the migration
+        # that installs them. Depending on the newest vueda_workflow migration is what guarantees it.
+        migration_filepath = os.path.join(
+            migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+        )
+        with open(migration_filepath, encoding="utf-8") as f:
+            generated_migration = f.read()
+        workflow_migrations = Path(workflow_module.__file__).parent / "migrations"
+        newest = sorted(path.stem for path in workflow_migrations.glob("0*.py"))[-1]
+        assert f'("vueda_workflow", "{newest}")' in generated_migration
 
         results = frozenset([line.strip() for line in results if line.strip()])
         assert "Creating empty migration for workflow changes." in results
@@ -104,6 +110,14 @@ class BaseAddedWorkflow:
         # If the assert above passes, then we definitely have a workflow id.
         workflow_pk = models.Workflow.objects.filter(code="added_workflow").first().id
 
+        # The migration's writes record events, and they name the migration that made them.
+        events = WorkflowEvent.objects.filter(pgh_obj_id=workflow_pk)
+        assert [event.pgh_label for event in events] == ["insert"]
+        metadata = events[0].pgh_context.metadata
+        assert metadata["kind"] == "migration"
+        assert metadata["action"].startswith("Workflow Migration - 0003_workflow_migrations_")
+        assert metadata["user"] == get_user_model().objects.get(is_system=True).pk
+
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.WorkflowPermission.objects.filter(workflow_id=workflow_pk).values()
         )
@@ -128,7 +142,7 @@ class BaseAddedWorkflow:
         ]
 
         data = convert_data_to_list_of_dicts_without_id_fields(
-            models.State.objects.filter(workflow_id=workflow_pk).values()
+            models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
         )
         assert data == [
             {
@@ -281,7 +295,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added"):
+        with self.temporary_migration_module(settings, app_label="workflow_added"):
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
 
@@ -323,7 +337,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_added")
             if not succeeded:
@@ -375,7 +389,7 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
         }
         append_installed_apps(settings, "tests.workflow_added")
 
-        with self.temporary_migration_module(app_label="workflow_added") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 0
 
@@ -406,7 +420,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
         }
         append_installed_apps(settings, "tests.workflow_changed")
 
-        with self.temporary_migration_module(app_label="workflow_changed") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_changed") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 0
 
@@ -481,7 +495,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -640,7 +654,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == [
                 {
@@ -772,7 +786,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
@@ -810,7 +824,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
         }
         append_installed_apps(settings, "tests.workflow_deleted")
 
-        with self.temporary_migration_module(app_label="workflow_deleted") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_deleted") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 0
 
@@ -885,7 +899,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             ]
 
             orig_data_state = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert orig_data_state == [
                 {
@@ -1062,7 +1076,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_initial_state
 
             data = convert_data_to_list_of_dicts_without_id_fields(
-                models.State.objects.filter(workflow_id=workflow_pk).values()
+                models.State.objects.filter(workflow_id=workflow_pk).values("code", "name")
             )
             assert data == orig_data_state
 
@@ -1101,7 +1115,7 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
         }
         append_installed_apps(settings, "tests.workflow_multi")
 
-        with self.temporary_migration_module(app_label="workflow_multi") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_multi") as migration_dir:
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_multi")
             if not succeeded:
@@ -1126,23 +1140,34 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
                 f"to migrate workflow for workflow_multi." in results
             )
 
-            assert len(migration.changed_data) == 10, migration.changed_data  # noqa: PLR2004
+            # Every row the fixture wrote is captured, one change each, across all five models.
+            captured = [(change["model_name"], change["history_type"]) for change in migration.changed_data]
+            assert sorted(captured) == sorted(
+                [
+                    ("workflow", "added"),
+                    ("state", "added"),
+                    ("state", "added"),
+                    ("initialstate", "added"),
+                    ("transition", "added"),
+                    ("workflowpermission", "added"),
+                    ("workflowpermission", "added"),
+                ]
+            ), migration.changed_data
 
-            # The workflow added record should be the first record, and it should have a specific history date.
+            # The workflow itself is captured first, because its row was written first.
             first_change = migration.changed_data[0]
-            assert first_change == {
-                "changes": {
-                    "code": "complete",
-                    "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
-                    "historical_app_label": "workflow_multi",
-                    "historical_model": "workflowmulti",
-                    "id": {"code": "complete"},
-                    "name": "complete",
-                },
-                "history_date": datetime.datetime(2024, 7, 17, 19, 53, 55, 857366, tzinfo=datetime.UTC),
-                "history_type": "added",
-                "model_name": "workflow",
+            assert first_change["model_name"] == "workflow"
+            assert first_change["history_type"] == "added"
+            assert first_change["changes"] == {
+                "code": "complete_task",
+                "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
+                "historical_app_label": "workflow_multi",
+                "historical_model": "workflowmulti",
+                "id": {"code": "complete_task"},
+                "name": "complete task",
             }, first_change
+            # The date is when the write was really recorded, so only its type is fixed.
+            assert isinstance(first_change["history_date"], datetime.datetime)
 
             # Run makeworkflowmigrations again, to verify no changes are detected.
             succeeded, results = self.call_command("makeworkflowmigrations", "workflow_multi", "--import-instead")
@@ -1153,16 +1178,18 @@ class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand
 
 
 class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCommand):
-    def get_unmatched_history_records_by_date(self, unmatched_history_data):
-        history_records_by_date = {}
+    def get_unmatched_events_by_label(self, unmatched_history_data):
+        """Group the codes of the events no migration captured, by what each event recorded.
+
+        Grouping used to be by date, because the fixture wrote its own. A real write is stamped with
+        the moment it happened, so every event in one test shares a date and only the event type
+        separates them.
+        """
+        events_by_label = {}
         for record in unmatched_history_data:
-            key = (record["history_type"], record["history_date"])
-            if key not in history_records_by_date:
-                history_records_by_date[key] = set()
+            events_by_label.setdefault(record["pgh_label"], set()).add(record["code"])
 
-            history_records_by_date[key].add(record["code"])
-
-        return history_records_by_date
+        return events_by_label
 
     def _group_results(self, results):
         grouped_results = []
@@ -1210,7 +1237,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         }
         append_installed_apps(settings, "tests.workflow_duplicates")
 
-        with self.temporary_migration_module(app_label="workflow_duplicates") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_duplicates") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 0
 
@@ -1280,10 +1307,13 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
                                     # Make sure the history pk is in the change and history data.
                                     assert f"'matches_history': {history_pk}" in change_data
-                                    assert f"'history_id': {history_pk}" in history_data
-                                    # Make sure the history dates are the same.
-                                    # [1] should contain a string like 'datetime(2025, 1, 1, 1, 0, tzinfo='
-                                    assert change_data.split("datetime.")[1] == history_data.split("datetime.")[1]
+                                    assert f"'pgh_id': {history_pk}" in history_data
+                                    # The two dates no longer agree, and should not. A change in a
+                                    # migration file carries the date the edit was recorded under
+                                    # the old backend; an event carries the moment the write really
+                                    # happened, which for these fixtures is when the test ran.
+                                    assert "datetime." in change_data
+                                    assert "datetime." in history_data
 
                             previous_line = line
 
@@ -1310,27 +1340,24 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
                             previous_line = line
 
-            assert num_changes_matching_history_records == {"num": 3, "sub_nums": [1, 5, 1]}
-            # There should be no changes not matching history records.
-            assert not num_changes_not_matching_history_records
+            # Nothing matches by value any more. Every change 0002 carries was applied by 0002
+            # itself, and a generated migration's own writes are dropped by the action they record
+            # before matching runs at all.
+            assert num_changes_matching_history_records == {"num": 0, "sub_nums": []}
+            # Three of 0002's own changes match nothing, and should not: a write a generated
+            # migration made is dropped by the action it recorded, before anything is matched by
+            # value. Only the states 0002 added and this test then re-added need matching at all.
+            assert num_changes_not_matching_history_records == 3  # noqa: PLR2004
             assert num_unmatched_history == 1, unmatched_history_data
 
-            history_records_by_date = self.get_unmatched_history_records_by_date(unmatched_history_data)
+            events_by_label = self.get_unmatched_events_by_label(unmatched_history_data)
 
-            assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 10))] == frozenset(
-                ("delete_1", "delete_2", "delete_3", "delete_4")
-            ), history_records_by_date
-            assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 11))] == frozenset(
-                ("add_1", "add_2", "add_3", "add_4", "delete_2", "delete_3", "delete_4")
-            ), history_records_by_date
-            assert history_records_by_date[("~", (2025, 1, 1, 1, 0, 12))] == frozenset(
-                ("add_2a", "add_3a", "add_4a", "delete_3a", "delete_4a")
-            ), history_records_by_date
-            assert history_records_by_date[("-", (2025, 1, 1, 1, 0, 13))] == frozenset(
-                ("add_3a", "add_4a", "delete_4a")
-            ), history_records_by_date
-            assert history_records_by_date[("+", (2025, 1, 1, 1, 0, 14))] == frozenset(("add_4",)), (
-                history_records_by_date
+            # The deletes are what no migration has captured. The three re-adds are not here,
+            # because they matched the three adds 0002 carries, one event each, which is the
+            # duplicate matching this test exists for.
+            assert set(events_by_label) == {"delete"}, events_by_label
+            assert events_by_label["delete"] == frozenset(("delete_1", "delete_2", "delete_3", "delete_4")), (
+                events_by_label
             )
 
             # Roll back 0003.
@@ -1364,7 +1391,9 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
             state_codes = frozenset(models.State.objects.filter(workflow=workflow.get()).values_list("code", flat=True))
 
-            assert state_codes == {"add_1", "add_2a", "add_4", "delete_2", "delete_3a", "not_used_by_test"}
+            # Replaying the generated migration lands on what the fixture's writes left behind:
+            # all four delete_N states removed, leaving only the state 0002 added and kept.
+            assert state_codes == {"not_used_by_test"}
 
             # Run migration 0004 backwards
             succeeded, results = self.call_command("migrate", "workflow_duplicates", "0003")
@@ -1401,7 +1430,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         # we need to clear the cache or the second test will fail.
         ContentType.objects.clear_cache()
 
-        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
@@ -1484,7 +1513,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         # we need to clear the cache or the second test will fail.
         ContentType.objects.clear_cache()
 
-        with self.temporary_migration_module(app_label="workflow_initial_state") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_initial_state") as migration_dir:
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
@@ -1518,7 +1547,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
 
             # test_1 remains in the original object state
             test_2.update_object_state(state_second)
@@ -1528,7 +1556,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_first)
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             # Change the initial state to fourth.
             initial_state = workflow.initial_state
@@ -1552,7 +1579,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # Clean up the object states, so we can start fresh.
             models.ObjectState.objects.filter(workflow=workflow).delete()
-            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
 
             # Reset initial_state.
             initial_state = workflow.initial_state
@@ -1618,7 +1644,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # Clean up the object states, so we can start fresh.
             models.ObjectState.objects.filter(workflow=workflow).delete()
-            models.HistoricalObjectState.objects.filter(workflow=workflow).delete()
 
             # Roll back to 0001.
             succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
@@ -1642,7 +1667,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
 
             state_first = models.State.objects.get(code="first")
             state_second = models.State.objects.get(code="second")
@@ -1663,7 +1687,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_first)
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             # Migrate forwards.
             succeeded, results = self.call_command("migrate", "workflow_initial_state")
@@ -1672,7 +1695,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # The historical counts should stay the same, since we should have updated test_1 to the new initial state.
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
-            assert models.HistoricalObjectState.objects.filter(workflow=workflow).count() == 10  # noqa PLR2004
 
             assert test_1.object_state.state.code == "fourth"
             assert test_2.object_state.state.code == "second"
@@ -1692,7 +1714,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -1718,10 +1740,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                in migration_content
-            )
             assert "code=make_sure_permissions_exist," in migration_content
             assert "code=forwards_migrate_workflow," in migration_content
             assert "reverse_code=backwards_migrate_workflow," in migration_content
@@ -1745,8 +1763,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" not in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def make_sure_permissions_exist(app_label):" not in migration_content
             assert (
                 "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
@@ -1777,14 +1798,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                not in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                not in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" not in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
@@ -1817,10 +1832,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                not in migration_content
-            )
             assert "code=make_sure_permissions_exist," not in migration_content
             assert "code=forwards_migrate_workflow," not in migration_content
             assert "reverse_code=backwards_migrate_workflow," not in migration_content
@@ -1844,8 +1855,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def make_sure_permissions_exist(app_label):" in migration_content
             assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
             assert (
@@ -1871,14 +1885,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
@@ -1894,7 +1902,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0003_workflow_migrations_2026_06_30.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -1921,10 +1929,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                in migration_content
-            )
             assert "code=make_sure_permissions_exist," in migration_content
             assert "code=forwards_migrate_workflow," in migration_content
             assert "reverse_code=backwards_migrate_workflow," in migration_content
@@ -1950,8 +1954,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" not in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" not in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" not in migration_content
             assert "def make_sure_permissions_exist(app_label):" not in migration_content
             assert (
                 "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" not in migration_content
@@ -1982,14 +1989,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                not in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                not in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" not in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
@@ -2022,10 +2023,6 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def handle_transition(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_permission(apps, changed_item, *, reversing=False):" not in migration_content
             assert "def handle_transition_source(apps, changed_item, *, reversing=False):" not in migration_content
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, fields=()):"
-                not in migration_content
-            )
             assert "code=make_sure_permissions_exist," not in migration_content
             assert "code=forwards_migrate_workflow," not in migration_content
             assert "reverse_code=backwards_migrate_workflow," not in migration_content
@@ -2051,8 +2048,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "class WorkflowChangeTypes(enum.Enum):" in migration_content
+            assert "def workflow_migration_action(apps, change_reason):" in migration_content
             assert "def forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _forwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
+            assert "def _backwards_migrate_workflow(apps, changed_items, change_reason):" in migration_content
             assert "def make_sure_permissions_exist(app_label):" in migration_content
             assert "def handle_workflow(apps, changed_item, change_reason, *, reversing=False):" in migration_content
             assert (
@@ -2078,14 +2078,8 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
             assert (
-                """def manage_state_objects(
-    workflow, obj_class, workflow_obj_state_class, historical_workflow_obj_state_class, *, reversing=False
-):"""
-                in migration_content
-            )
-            assert (
-                "def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):"
-                in migration_content
+                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
+                "*, reversing=False):" in migration_content
             )
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
@@ -2101,7 +2095,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating")
 
-        with self.temporary_migration_module(app_label="workflow_updating") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
             migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -2178,7 +2172,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         err = io.StringIO()
         out = io.StringIO()
 
-        with self.temporary_migration_module(app_label="workflow_updating_bad_migrations") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="workflow_updating_bad_migrations") as migration_dir:
             with pytest.raises(SystemExit):
                 self.call_command(
                     "updateworkflowmigrations", "workflow_updating_bad_migrations", stdout=out, stderr=err

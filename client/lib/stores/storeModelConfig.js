@@ -6,6 +6,7 @@ import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
+import { formatSortField } from "@vueda/utils/sortedFields.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import merge from "lodash-es/merge.js";
@@ -137,6 +138,22 @@ const getDefaultFromModelInfo = (modelInfo) => {
     const canUpdate = actionNames.includes("update");
     const canRetrieve = actionNames.includes("retrieve");
     const canList = actionNames.includes("list");
+    const orderingFields = modelInfo.ordering?.fields || [];
+    const orderingFieldsByName = Object.fromEntries(orderingFields.map((o) => [o.name, o]));
+    // The server always sends a boolean `ascending` for every field named in `default`
+    // (it's the only place that flag is meaningful). A missing one is a server contract
+    // bug; log it and assume ascending rather than failing the whole config build over it.
+    const defaultSorted = (modelInfo.ordering?.default || []).map((name) => {
+        const field = orderingFieldsByName[name];
+        if (typeof field?.ascending !== "boolean") {
+            console.error(
+                `storeModelConfig.getDefaultFromModelInfo: default sort "${name}" has no matching ` +
+                    `ordering.fields entry with a boolean "ascending" flag; assuming ascending`,
+            );
+            return formatSortField(name, false);
+        }
+        return formatSortField(name, field.ascending === false);
+    });
     return [
         {
             verboseName: modelInfo.verbose_name,
@@ -148,13 +165,13 @@ const getDefaultFromModelInfo = (modelInfo) => {
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering || {}),
-            sortables: (modelInfo.ordering || []).map((o) => o.name),
-            sorted: [], // todo: the server has default field(s) being sorted on, we should get that
+            sortables: orderingFields.map((o) => o.name),
+            sorted: defaultSorted,
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),
             filterableDetails: cloneDeep(modelInfo.filtering || {}),
-            sortablesDetails: cloneDeep(modelInfo.ordering || []),
+            sortablesDetails: cloneDeep(orderingFields),
             formProps: {},
             allowColumnHiding: false,
             showTotalRecordNum: true,

@@ -63,7 +63,7 @@ The normalization is asymmetric by design. It maps UI route names to canonical s
 
 In the guard, matching is a simple inclusion check: the normalized action name must appear in the computed allowlist. The allowlist is a flat array of strings: model-info action names (optionally filtered) and workflow transition codes. If the normalized action is present, the guard passes. If not, navigation is redirected. The guard does not distinguish between CRUDL actions and workflow transitions; both are just strings in the same list.
 
-In `ViewActionRouter`, matching is more granular because the resolver must select the correct component type. After normalization, the resolver checks the `actions` array for an action whose `name` matches, and separately checks the `transitions` array for a transition whose `code` matches. This distinction matters because CRUDL actions and workflow transitions route to different component types; a matched transition routes to `ViewWorkflowTransition`, while a matched CRUDL action routes through the `crudComponents` registry.
+In `ViewActionRouter`, matching is more granular because the resolver must select the correct component type. After normalization, the resolver checks the `actions` array for an action whose `name` matches, and separately checks the `transitions` array for a transition whose `code` matches. This distinction matters because a matched CRUDL action can route through the `crudComponents` registry while a matched transition cannot; both still fall through the same naming-convention and terminal-fallback chain described below, ending at `ViewExecuteTransition` for a transition and `ViewAction` for everything else.
 
 The guard and the resolver can theoretically disagree if the metadata changes between guard evaluation and component rendering (for example, if a reactive store update occurs mid-navigation). In practice, both consume the same underlying store data, so disagreement is rare. But it is architecturally possible for the guard to permit navigation to an action that the resolver then cannot match, in which case `ViewActionNotFound` renders.
 
@@ -73,19 +73,17 @@ The guard and the resolver can theoretically disagree if the metadata changes be
 
 **Loading state takes precedence.** If model-config is still loading, the resolver renders `ViewLoading`. No metadata matching occurs until loading completes.
 
-**The reserved `transition` action is handled specially.** If the normalized action name is literally `"transition"`, the resolver renders `ViewWorkflowTransition` regardless of what the metadata contains. This is a reserved name that bypasses the normal matching logic.
-
 **Missing metadata produces a not-found view.** If the actions array and transitions array are both absent (null or undefined), the resolver renders `ViewActionNotFound`. This covers the case where metadata fetch succeeded, but the model has no actions or transitions, typically a serializer-only registration that should not have been navigated to.
 
 **Unknown actions and transitions produce a not-found view.** If actions or transitions exist but the current action matches neither an action `name` nor a transition `code`, the resolver renders `ViewActionNotFound`.
 
-**Built-in CRUDL components are checked next.** If the action was matched in metadata and the raw action string (not the normalized name) is a key in the `crudComponents` registry, that component is loaded. The default registry maps `list`, `create`, `update`, `read`, `destroy`, `activate`, `deactivate`, and `history-list` to their corresponding built-in view components. Projects can extend or override this registry using `setCrudComponents`, which merges custom entries into the existing map.
+**Built-in CRUDL components are checked next, for a CRUDL action match.** If the current action matched a CRUDL action `name` (not a transition `code`) and the raw action string (not the normalized name) is a key in the `crudComponents` registry, that component is loaded. The default registry maps `list`, `create`, `update`, `read`, `destroy`, `activate`, `deactivate`, and `history-list` to their corresponding built-in view components. Projects can extend or override the registry using `setCrudComponents`, which merges custom entries into the existing map.
 
-**Project-specific action views are resolved by naming convention.** If the action is not in the `crudComponents` registry, the resolver attempts dynamic imports following a two-tier naming convention. First, it tries a model-specific component: `@/views/ViewAction{App}{Model}{Action}.vue`. If that import fails, it falls back to an action-generic component: `@/views/ViewAction{Action}.vue`. App, model, and action names are converted to PascalCase for the import path.
+**Project-specific action views are resolved by naming convention.** If the action is not in the `crudComponents` registry, the resolver attempts dynamic imports following a two-tier naming convention, for both CRUDL actions and transition codes alike. First, it tries a model-specific component: `@/views/ViewAction{App}{Model}{Action}.vue`. If that import fails, it falls back to an action-generic component: `@/views/ViewAction{Action}.vue`. App, model, and action names (or the transition code) are converted to PascalCase for the import path.
 
-**`ViewAction` is the terminal fallback.** If both dynamic imports fail, the resolver renders `ViewAction`, a generic action view component. This ensures the resolution chain always terminates with a rendered component; there is no path through the logic that produces no output.
+**The terminal fallback depends on whether the match was a transition.** If both dynamic imports fail, the resolver renders `ViewExecuteTransition` when the current action matched a transition `code`, or `ViewAction` when it matched a CRUDL action `name`. `ViewExecuteTransition` composes `ModelActionForm` with a `run-action` that submits through `storeWorkflow.executeTransition` (carrying `transition_code`) instead of the generic model-action endpoint `ViewAction` uses. This ensures the resolution chain always terminates with a rendered component; there is no path through the logic that produces no output.
 
-The resolution order means that the `crudComponents` registry takes priority over project-specific naming-convention imports. A project that registers a custom component in `crudComponents` for an action name that also has a `ViewAction{Action}.vue` file will see the registry entry win. This is by design: `setCrudComponents` is the explicit override mechanism, and naming-convention discovery is the implicit fallback.
+The resolution order means that the `crudComponents` registry takes priority over project-specific naming-convention imports, and a project-specific naming-convention import takes priority over either terminal fallback. A project that registers a custom component in `crudComponents` for an action name that also has a `ViewAction{Action}.vue` file will see the registry entry win. This is by design: `setCrudComponents` is the explicit override mechanism, and naming-convention discovery is the implicit fallback ahead of the framework's own terminal views.
 
 ## Failure Modes
 
@@ -115,7 +113,7 @@ The resolution order means that the `crudComponents` registry takes priority ove
 - {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}
 - {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
 - {@api vue:component:ViewActionRouter}
-- {@api vue:component:ViewWorkflowTransition}
+- {@api vue:component:ViewExecuteTransition}
 - {@api vue:component:ViewAction}
 - {@api vue:component:ViewActionNotFound}
 - {@api vue:component:ViewLoading}

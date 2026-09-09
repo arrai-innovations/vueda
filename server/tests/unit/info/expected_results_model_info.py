@@ -212,9 +212,12 @@ EXPECTED_RESULTS = [
                     ],
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": ["name"],
+                "fields": [
+                    {"name": "name", "type": "alpha", "ascending": True},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_distributor", "name": "Can create distributor"},
                 {"codename": "delete_distributor", "name": "Can delete distributor"},
@@ -386,12 +389,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "code", "type": "alpha"},
-                {"name": "formatted_name", "type": "alpha"},
-                {"name": "id", "type": "numeric"},
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                # OptionTypeViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter defaults to
+                # any readable field on OptionTypeSerializer. "available_actions" is excluded because it
+                # has no real model field behind it.
+                "fields": [
+                    {"name": "id", "type": "numeric"},
+                    {"name": "code", "type": "alpha"},
+                    {"name": "name", "type": "alpha"},
+                    {"name": "formatted_name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_optiontype", "name": "Can create option type"},
                 {"codename": "delete_optiontype", "name": "Can delete option type"},
@@ -598,9 +607,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "user__email", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": ["user__name"],
+                "fields": [
+                    {"name": "user__email", "type": "alpha"},
+                    {"name": "user__name", "type": "alpha", "ascending": True},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_customer", "name": "Can create customer"},
                 {"codename": "delete_customer", "name": "Can delete customer"},
@@ -1052,10 +1065,14 @@ EXPECTED_RESULTS = [
                     "type_filter": "TimeField",
                 },
             },
-            "expected_ordering": [
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "last_modified", "type": "datetime"},
-            ],
+            "expected_ordering": {
+                "default": ["expected_delivery_time"],
+                "fields": [
+                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "last_modified", "type": "datetime"},
+                    {"name": "expected_delivery_time", "type": "numeric", "ascending": True},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_cart", "name": "Can create cart"},
                 {"codename": "delete_cart", "name": "Can delete cart"},
@@ -1493,12 +1510,15 @@ EXPECTED_RESULTS = [
                     "type_filter": "ChoiceField",
                 },
             },
-            "expected_ordering": [
-                {"name": "order_number", "type": "numeric"},
-                {"name": "customer__user__email", "type": "alpha"},
-                {"name": "when", "type": "datetime"},
-                {"name": "order_state", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "order_number", "type": "numeric"},
+                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "when", "type": "datetime"},
+                    {"name": "order_state", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_customerorder", "name": "Can create customer order"},
                 {"codename": "delete_customerorder", "name": "Can delete customer order"},
@@ -1667,9 +1687,12 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_inventoryrecordreason", "name": "Can create inventory entry reason"},
                 {"codename": "delete_inventoryrecordreason", "name": "Can delete inventory entry reason"},
@@ -2122,7 +2145,11 @@ EXPECTED_RESULTS = [
                     "filterset_name": "ProductFilterSet",
                     "hidden": False,
                     "input_type": "select",
-                    "label": "Distributor name",
+                    # Title cased, because `ProductFilterSet.distributor` declares no label of its own
+                    # and the filters on the class are never bound to a model, so the label is the one
+                    # `get_model_filtering_label` generates rather than the one django-filter's own
+                    # `Filter.label` property would.
+                    "label": "Distributor Name",
                     "lookup_exprs": ["exact"],
                     "model": "product",
                     "null_label": None,
@@ -2257,11 +2284,14 @@ EXPECTED_RESULTS = [
                     "type_filter": "ModelChoiceField",
                 },
             },
-            "expected_ordering": [
-                {"name": "distributor__name", "type": "alpha"},
-                {"name": "name", "type": "alpha"},
-                {"name": "disabled", "type": "boolean"},
-            ],
+            "expected_ordering": {
+                "default": ["name"],
+                "fields": [
+                    {"name": "distributor__name", "type": "alpha"},
+                    {"name": "name", "type": "alpha", "ascending": True},
+                    {"name": "disabled", "type": "boolean"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_product", "name": "Can create product"},
                 {"codename": "delete_product", "name": "Can delete product"},
@@ -2777,13 +2807,16 @@ EXPECTED_RESULTS = [
                     "type_filter": "CharField",
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-                {"name": "option_type", "type": "alpha"},
-                {"name": "sku", "type": "alpha"},
-                {"name": "gtin", "type": "alpha"},
-                {"name": "price", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "name", "type": "alpha"},
+                    {"name": "option_type", "type": "alpha"},
+                    {"name": "sku", "type": "alpha"},
+                    {"name": "gtin", "type": "alpha"},
+                    {"name": "price", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_productoption", "name": "Can create product option"},
                 {"codename": "delete_productoption", "name": "Can delete product option"},
@@ -3074,7 +3107,12 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [],
+            "expected_ordering": {
+                "default": ["product_option__product__name"],
+                "fields": [
+                    {"name": "product_option__product__name", "type": "alpha", "ascending": True},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitem", "name": "Can create ORDER item"},
                 {"codename": "delete_orderitem", "name": "Can delete ORDER item"},
@@ -3135,7 +3173,10 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [],
+            "expected_ordering": {
+                "default": [],
+                "fields": [],
+            },
             "expected_permissions": [
                 {"codename": "create_invoiceline", "name": "Can create invoice line"},
                 {"codename": "delete_invoiceline", "name": "Can delete invoice line"},
@@ -3932,11 +3973,14 @@ EXPECTED_RESULTS = [
                     "type_filter": "DateTimeRangeField",
                 },
             },
-            "expected_ordering": [
-                {"name": "when", "type": "datetime"},
-                {"name": "reason", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "when", "type": "datetime"},
+                    {"name": "reason", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_inventoryrecord", "name": "Can create inventory entry"},
                 {"codename": "delete_inventoryrecord", "name": "Can delete inventory entry"},
@@ -4277,10 +4321,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "product_option__name", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "product_option__name", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_cartitem", "name": "Can create cart item"},
                 {"codename": "delete_cartitem", "name": "Can delete cart item"},
@@ -4526,9 +4573,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                # PackingBoxViewSet declares `ordering = [Lower("formatted_name").desc()]`. PackingBox
+                # has no formatted_name column of its own, so the field is resolved through
+                # `formatted_name_lookup_expression = "name"` to type it, but the client is told
+                # "formatted_name" — the name it sends back in `?o=` — not the lookup expression, and
+                # not the function wrapped around it.
+                "default": ["formatted_name"],
+                # "name" comes from `ordering_fields` and carries no direction, because it isn't part of
+                # the default ordering. "formatted_name" isn't in `ordering_fields` at all, but is still
+                # requestable as a default-ordering field, so it's added with its direction — descending,
+                # read off the term's `.desc()` rather than off a "-" prefix.
+                "fields": [
+                    {"name": "name", "type": "alpha"},
+                    {"name": "formatted_name", "type": "alpha", "ascending": False},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_packingbox", "name": "Can create Packing Box"},
                 {"codename": "delete_packingbox", "name": "Can delete Packing Box"},
@@ -4805,11 +4865,14 @@ EXPECTED_RESULTS = [
                     "type_model": "IntegerField",
                 },
             },
-            "expected_ordering": [
-                {"name": "order", "type": "alpha"},
-                {"name": "product", "type": "alpha"},
-                {"name": "quantity", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "order", "type": "alpha"},
+                    {"name": "product", "type": "alpha"},
+                    {"name": "quantity", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitemcompositepk", "name": "Can create Order Items Composite PK"},
                 {"codename": "list_orderitemcompositepk", "name": "Can list Order Items Composite PK"},
@@ -4974,8 +5037,25 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            # No expected ordering, to prevent a blow up due to no objects of this kind existing.
-            "expected_ordering": [],
+            "expected_ordering": {
+                # OrderItemAltCompositePKViewSet declares no `ordering`, so the model's own multi-field
+                # `Meta.ordering` is the default, in its declared order.
+                "default": ["order", "product", "quantity"],
+                # OrderItemAltCompositePKViewSet doesn't declare `ordering_fields`, so DRF's OrderingFilter
+                # defaults to any readable field on OrderItemAltCompositePKSerializer. "available_actions" is
+                # excluded because it has no real model field behind it. The serializer's "pk" field is
+                # reported as the fields the model's `CompositePrimaryKey` is built from ("order" and
+                # "product"), which are already listed, rather than as "pk" itself. "formatted_name" has no
+                # column on this model and is reported through
+                # `formatted_name_lookup_expression = "product__formatted_name"`: orderable on request, but
+                # carrying no `ascending` because it isn't part of the default ordering.
+                "fields": [
+                    {"name": "order", "type": "alpha", "ascending": True},
+                    {"name": "product", "type": "alpha", "ascending": True},
+                    {"name": "quantity", "type": "numeric", "ascending": True},
+                    {"name": "formatted_name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_orderitemaltcompositepk", "name": "Can create Order Items Alt Composite PK"},
                 {"codename": "list_orderitemaltcompositepk", "name": "Can list Order Items Alt Composite PK"},
@@ -5228,10 +5308,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "order_date", "type": "datetime"},
-                {"name": "order_number", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": ["order_number"],
+                "fields": [
+                    {"name": "order_number", "type": "numeric", "ascending": True},
+                    {"name": "order_date", "type": "datetime"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_ordercompositepk", "name": "Can create order composite pk"},
                 {"codename": "list_ordercompositepk", "name": "Can list order composite pk"},
@@ -5451,9 +5534,12 @@ EXPECTED_RESULTS = [
                     ],
                 },
             },
-            "expected_ordering": [
-                {"name": "name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": ["name"],
+                "fields": [
+                    {"name": "name", "type": "alpha", "ascending": True},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_distributorproxy", "name": "Can create distributor proxy"},
                 {"codename": "delete_distributorproxy", "name": "Can delete distributor proxy"},
@@ -5647,10 +5733,13 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "content_type", "type": "alpha"},
-                {"name": "object_id", "type": "numeric"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "content_type", "type": "alpha"},
+                    {"name": "object_id", "type": "numeric"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "create_note", "name": "Can create note"},
                 {"codename": "delete_note", "name": "Can delete note"},
@@ -5753,9 +5842,12 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {},
-            "expected_ordering": [
-                {"name": "formatted_name", "type": "alpha"},
-            ],
+            "expected_ordering": {
+                "default": [],
+                "fields": [
+                    {"name": "formatted_name", "type": "alpha"},
+                ],
+            },
             "expected_permissions": [
                 {"codename": "list_customerdata", "name": "Can list customer data"},
                 {"codename": "read_customerdata", "name": "Can read customer data"},

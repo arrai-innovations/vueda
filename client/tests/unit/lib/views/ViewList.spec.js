@@ -55,6 +55,7 @@ vi.mock("@vueda/router/getCrud.js", () => ({
 const createListPreferenceStoreMock = () => ({
     init: vi.fn(),
     setSorting: vi.fn(),
+    clearSorting: vi.fn(),
     getSorting: vi.fn(),
     setFilters: vi.fn(),
     getFilters: vi.fn(),
@@ -314,6 +315,7 @@ const resetListPreferenceStoreMock = () => {
     storeListPreferenceMock.mockImplementation(() => listPreferenceStoreMock);
     listPreferenceStoreMock.init.mockReset();
     listPreferenceStoreMock.setSorting.mockReset();
+    listPreferenceStoreMock.clearSorting.mockReset();
     listPreferenceStoreMock.getSorting.mockReset();
     listPreferenceStoreMock.setFilters.mockReset();
     listPreferenceStoreMock.getFilters.mockReset();
@@ -747,6 +749,182 @@ describe("lib/views/ViewList.vue", () => {
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
+
+        scopedIt("applies the server default sort when there is no URL sort and no stored preference", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            // The store is genuinely consulted and comes back empty (as opposed to the
+            // lookup being skipped); the resulting default sort must still never be
+            // written back as if it were the user's preference.
+            expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("applies the server default sort when the URL ordering param is explicitly empty", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            // An empty `?o=` chooses nothing, so the default applies and the param is dropped
+            // rather than filled in with it.
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
+            // `?o=` is a present-but-empty ordering param, not a stored-preference lookup.
+            expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps the server default sort when an unrelated query parameter changes", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
+
+            // a filter push replaces route.query without an `o` key
+            route.query = { status: "active" };
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("does not send an untouched server default as an ordering param", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // The reader sees the default in the sort control, and the request leaves the
+            // ordering param off, so the server applies the ordering it reported rather than
+            // this reading that report back to it. The two are not always the same order: a
+            // ranked search sorts by relevance while the param is absent, and a default
+            // declared as `Lower("name")` sorts by the expression, not the bare column.
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt("sends the ordering param once the reader chooses a sort", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(null);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            await vue.nextTick();
+
+            expect(listProps.params[ORDERING_PARAM]).toEqual(["name"]);
+            expect(routerPush).toHaveBeenCalledWith({ query: { [ORDERING_PARAM]: "name" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("stops sending the ordering param when the reader resets to the default", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "name" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[ORDERING_PARAM]).toEqual(["name"]);
+
+            // Reset sort arrives as an empty sort, which resolves to the default: shown in the
+            // control, absent from the request.
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            expect(routerPush).toHaveBeenCalledWith({ query: {} });
+            wrapper.unmount();
+        });
+
+        scopedIt("leaves a ranked search unordered so the server can rank it", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [SEARCH_PARAM]: "test" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["name"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // `VuedaSearchFilterBackend` keeps its `-combined_rank` ordering only while the
+            // ordering param is absent, so sending the reported default here would replace
+            // relevance order with an alphabetical one.
+            const listProps = mockedUseList.mock.calls.at(-1)[0].props;
+            expect(listProps.params[SEARCH_PARAM]).toBe("test");
+            expect(listProps.params[ORDERING_PARAM]).toEqual([]);
+            expect(route.query[ORDERING_PARAM]).toBeUndefined();
+            wrapper.unmount();
+        });
+
+        scopedIt("prefers a stored sort preference over the server default", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            listPreferenceStoreMock.getSorting.mockReturnValue(["name"]);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("prefers an explicit URL sort over the server default", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "name" };
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+            expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
     });
 
     describe("Filter and search synchronization", () => {
@@ -819,7 +997,7 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("removes sorting from the URL when Clear sort is used", async () => {
+        scopedIt("removes sorting from the URL when the sort is cleared to empty", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { [ORDERING_PARAM]: "-name", status: "active" };
             modelConfig.config.sortables = ["name"];
@@ -829,7 +1007,8 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
             await vue.nextTick();
 
-            expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, []);
+            expect(listPreferenceStoreMock.clearSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             expect(routerPush).toHaveBeenCalledWith({ query: { status: "active" } });
             wrapper.unmount();
         });
@@ -846,6 +1025,70 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(wrapper.find('[data-qa="sort-control"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "shows Reset sort only when the active sort differs from the server default, and restores it on click",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                modelConfig.config.sortables = ["name", "created_at"];
+                modelConfig.config.sorted = ["-created_at"];
+                route.query = { [ORDERING_PARAM]: "name" };
+
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                await vue.nextTick();
+
+                expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
+
+                await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
+                expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("does not persist a preference when Reset sort is clicked", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            modelConfig.config.sorted = ["-created_at"];
+            route.query = { [ORDERING_PARAM]: "name" };
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+            await vue.nextTick();
+
+            // Reset clears any stored preference rather than pinning today's default as
+            // an explicit one, so a later server default change is still followed on the
+            // next visit instead of being stuck on whatever the default was at reset time.
+            expect(listPreferenceStoreMock.clearSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
+            expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("hides a sort chip's remove control once removing it would leave nothing sorted", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["name", "created_at"];
+            route.query = { [ORDERING_PARAM]: "name,created_at" };
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findAll('[data-qa="sort-chip-remove"]')).toHaveLength(2);
+
+            await wrapper.findAll('[data-qa="sort-chip-remove"]')[0].trigger("click");
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.findAll('[data-qa="sort-chip"]')).toHaveLength(1);
+            expect(wrapper.find('[data-qa="sort-chip-remove"]').exists()).toBe(false);
             wrapper.unmount();
         });
     });

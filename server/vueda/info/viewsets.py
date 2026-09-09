@@ -12,7 +12,6 @@ __all__ = (
 
 import collections
 import operator
-from http import HTTPStatus
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -108,6 +107,8 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
     def __init__(self, *args, **kwargs):
         self.choices_field = self.choices_serializer_instance = None
         self.choices_queryset_model = self.choices_permissions = None
+        self.choices_content_types = None
+        self.choices_resolved = False
 
         super().__init__(*args, **kwargs)
 
@@ -119,6 +120,17 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
     @cached_property
     def canonical(self):
         return get_registration(self.content_type_instance.pk)
+
+    def resolve_choices(self):
+        """
+        Resolve the addressed field, the permissions it requires, and the state that
+        ``get_queryset`` needs to build the choices.
+
+        DRF calls ``check_permissions`` before it calls the handler, so resolution cannot wait
+        for ``get_queryset``. Subclasses store their resolved state on the instance, raise
+        ``Http404`` for a field the model does not offer, and tolerate repeat calls.
+        """
+        raise NotImplementedError
 
     def check_permissions(self, request):
         """
@@ -134,9 +146,12 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
             and 'list' on the related model.
 
         If choices_permissions is None:
-            This happens when there is an issue which we need to raise as a validation error, so you
-            don't get back a permission issue when the real issue is an incorrect field name.
+            The field carries choices but is neither a model field nor a relation, so there is no
+            model to check against. An unknown field name never reaches this check, because
+            resolve_choices raises Http404 for it first.
         """
+        self.resolve_choices()
+
         if self.choices_permissions is not None:
             for permission in self.choices_permissions:
                 if not request.user.has_perm(permission):
@@ -150,11 +165,6 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
         self.choices_app_label = app_label
         self.choices_model = model
         self.choices_field = field
-
-        results = super().dispatch(request, *args, **kwargs)
-
-        if results.status_code != HTTPStatus.OK:
-            return results
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -196,8 +206,19 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
     serializer_class = ModelInfoChoicesSerializer
 
+    def has_choices(self, field):
+        """
+        Report whether a serializer field offers choices, without materializing them.
+
+        ``RelatedField.choices`` and ``ManyRelatedField.choices`` are properties that read the
+        related queryset, so a plain ``hasattr`` on the instance reads the related table. Testing
+        the class answers the same question for every DRF field without a query. The instance test
+        stays for a field that assigns ``choices`` in ``__init__`` instead of declaring a property.
+        """
+        return hasattr(type(field), "choices") or hasattr(field, "choices")
+
     def validate_queryset(self, serializer, fields):
-        if self.choices_field not in fields or not hasattr(fields[self.choices_field], "choices"):
+        if self.choices_field not in fields or not self.has_choices(fields[self.choices_field]):
             valid_fieldnames = []
             for field_name, field in fields.items():
                 if hasattr(field, "choices") and field.choices:
@@ -214,21 +235,22 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                     f"No choice fields found on {serializer.Meta.model._meta.label}."
                 )
 
-    def get_queryset(self):
-        """
-        Returns a queryset if the field is a relation.
-        Return a list if the field is not a relation.
-        """
-        content_types = self.get_content_type_instance()
+    def resolve_choices(self):
+        if self.choices_resolved:
+            return
+
+        self.choices_resolved = True
+        self.choices_content_types = self.get_content_type_instance()
+
         if self.content_type_instance is None:
-            return content_types
+            return
 
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
         fields = serializer().get_fields()
 
         self.validate_queryset(serializer, fields)
 
-        field = fields[self.choices_field]
+        self.choices_field_instance = fields[self.choices_field]
         field_info = get_field_info(serializer.Meta.model)
 
         permission_read_name = "read"
@@ -252,6 +274,18 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                 f"_{related_field_info.related_model._meta.model_name}",
             )
             self.choices_queryset_model = related_field_info.related_model._meta.model
+
+    def get_queryset(self):
+        """
+        Returns a queryset if the field is a relation.
+        Return a list if the field is not a relation.
+        """
+        self.resolve_choices()
+
+        if self.content_type_instance is None:
+            return self.choices_content_types
+
+        field = self.choices_field_instance
 
         if hasattr(field, "child_relation"):
             queryset = field.child_relation.queryset
@@ -382,14 +416,15 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             else:
                 raise Http404(f"Invalid filter '{self.choices_field}'. No filters found on {filterset_instance}.")
 
-    def get_queryset(self):
-        """
-        Returns a queryset if the field is a relation.
-        Return a list if the field is not a relation.
-        """
-        content_types = self.get_content_type_instance()
+    def resolve_choices(self):
+        if self.choices_resolved:
+            return
+
+        self.choices_resolved = True
+        self.choices_content_types = self.get_content_type_instance()
+
         if self.content_type_instance is None:
-            return content_types
+            return
 
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
         model_class = serializer.Meta.model
@@ -405,6 +440,9 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.validate_queryset(filterset_instance, filter_mapping)
 
         filtr = filter_mapping[self.choices_field]
+        self.choices_filterset_class = filterset_class
+        self.choices_filter = filtr
+        self.choices_model_class = model_class
 
         permission_read_name = "read"
         if "read" in settings.PERMISSION_NAMES_MAPPING:
@@ -414,10 +452,42 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if "list" in settings.PERMISSION_NAMES_MAPPING:
             permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
 
+        if hasattr(filtr, "queryset"):
+            # ModelChoiceFilter / ModelMultipleChoiceFilter (queryset-based).
+            related_qs = filtr.get_queryset(self.request)
+            related_model = related_qs.model
+            related_meta = related_model._meta
+
+            self.choices_related_queryset = related_qs
+            self.choices_permissions = (
+                f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
+                f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}",
+            )
+            self.choices_queryset_model = related_model
+
+        else:
+            # AllValuesFilter, AllValuesMultipleFilter, and the static choice filters all read
+            # their values from the model this filterset belongs to.
+            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
+            self.choices_queryset_model = model_class
+
+    def get_queryset(self):
+        """
+        Returns a queryset if the field is a relation.
+        Return a list if the field is not a relation.
+        """
+        self.resolve_choices()
+
+        if self.content_type_instance is None:
+            return self.choices_content_types
+
+        filtr = self.choices_filter
+        model_class = self.choices_model_class
+
         # Build a queryset narrowed by all OTHER active filters (exclude this field's param).
         other_params = self.request.query_params.copy()
         other_params.pop(self.choices_field, None)
-        narrowing_filterset = filterset_class(
+        narrowing_filterset = self.choices_filterset_class(
             queryset=model_class.objects.all(),
             data=other_params,
             request=self.request,
@@ -426,18 +496,10 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         if hasattr(filtr, "queryset"):
             # ModelChoiceFilter / ModelMultipleChoiceFilter (queryset-based).
-            related_qs = filtr.get_queryset(self.request)
-            related_model = related_qs.model
-            related_meta = related_model._meta
+            related_model = self.choices_queryset_model
 
             used_pks = narrowed_qs.values_list(filtr.field_name, flat=True).distinct()
-            related_qs = related_qs.filter(pk__in=used_pks)
-
-            self.choices_permissions = (
-                f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
-                f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}",
-            )
-            self.choices_queryset_model = related_model
+            related_qs = self.choices_related_queryset.filter(pk__in=used_pks)
 
             if callable(getattr(related_model, "get_formatted_name", None)):
                 choices = [
@@ -456,18 +518,12 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         elif isinstance(filtr, (AllValuesFilter, AllValuesMultipleFilter)):
             # Dynamic choices: distinct field values present in the (narrowed) main queryset.
-            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
-            self.choices_queryset_model = model_class
-
             distinct_values = narrowed_qs.values_list(filtr.field_name, flat=True).distinct().order_by(filtr.field_name)
             choices = [(str(value), str(value)) for value in distinct_values if value not in EMPTY_VALUES]
             return FilterChoicesQueryset(choices, model_class)
 
         else:
             # Static choices: ChoiceFilter, TypedChoiceFilter, BooleanFilter, etc.
-            self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
-            self.choices_queryset_model = model_class
-
             # Django-filter choice fields carry blank placeholders for native select
             # rendering. For filter metadata, "no filter" is the absence of a query
             # parameter, so omit empty values before the client renders options.

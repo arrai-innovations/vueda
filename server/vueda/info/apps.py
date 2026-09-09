@@ -38,10 +38,12 @@ class InfoConfig(AppConfig):
 
         from .checks import check_field_source_resolution
         from .checks import check_formatted_name_configuration
+        from .checks import check_ordering_configuration
 
         # Add a default ordering to content types, to remove a warning.
         ContentType._meta.ordering = ["app_label", "model"]
         register(check_formatted_name_configuration)
+        register(check_ordering_configuration)
         register(check_field_source_resolution)
 
         # Patch Django built-in models with formatted_name support so they integrate

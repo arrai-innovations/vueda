@@ -1,7 +1,7 @@
 import { useListInstance } from "@arrai-innovations/reactive-helpers";
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FormContextSymbol, LookupContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import { createPinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
@@ -41,12 +41,15 @@ const toastMock = {
 vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
+const RouterLinkStub = { name: "RouterLink", template: "<a><slot /></a>" };
 vi.mock("vue-router", () => ({
     // LinkModelView, reached through WidgetReadOnly, checks hasRoute before resolving.
     useRouter: () => ({ push: routerPush, hasRoute: () => false, resolve: () => ({ href: "#" }) }),
     useRoute: () => ({ query: {} }),
-    RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+    RouterLink: RouterLinkStub,
 }));
+
+const lookupContext = { requestObject: vi.fn(() => Promise.resolve({})) };
 
 let ViewDestroy;
 let mockedFetch;
@@ -103,6 +106,10 @@ function mountRealStack({ props = {} } = {}) {
     return mount(ViewDestroy, {
         props: { app: "showcase", model: "customer", pk: ["4", "11"], ...props },
         attachTo: document.body,
+        global: {
+            components: { RouterLink: RouterLinkStub },
+            provide: { [LookupContextSymbol]: lookupContext },
+        },
     });
 }
 
@@ -169,7 +176,13 @@ describe("lib/**/*.vue", () => {
             }));
             const wrapper = mount(ViewDestroy, {
                 props: { app: "showcase", model: "customer", pk: "4" },
-                global: { provide: { [FormContextSymbol]: hostContext } },
+                global: {
+                    components: { RouterLink: RouterLinkStub },
+                    provide: {
+                        [FormContextSymbol]: hostContext,
+                        [LookupContextSymbol]: lookupContext,
+                    },
+                },
             });
 
             // A host-provided context must keep serving the fields below it, so the

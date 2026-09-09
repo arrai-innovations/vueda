@@ -37,14 +37,14 @@ class BaseSpectacularExcludeFieldsTest(BaseTestMigrations, BaseTestCallCommand):
 
 @pytest.mark.django_db
 class TestSpectacularExcludeFieldsSerializerMixin(BaseSpectacularExcludeFieldsTest):
-    def test_registered_with_a_view_generates_schema(self, monkeypatch):
+    def test_registered_with_a_view_generates_schema(self, monkeypatch, settings):
         """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly -- the only valid use.
 
         get_schema_fields() re-instantiates self.__class__() to describe this serializer's own fields;
         it passes self.context along (see VuedaExpandableFieldsSerializerMixin.get_schema_fields) so that
         re-instantiation carries the view the properly-registered root already has, instead of being bare.
         """
-        with self.temporary_migration_module(app_label="erring") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="erring") as migration_dir:
             schema_path = os.path.join(os.path.dirname(migration_dir), "schema.json")
 
             succeeded, results = self.generate_schema(
@@ -54,13 +54,13 @@ class TestSpectacularExcludeFieldsSerializerMixin(BaseSpectacularExcludeFieldsTe
             assert succeeded, results
             assert os.path.exists(schema_path)
 
-    def test_used_as_a_nested_field_raises(self, monkeypatch):
+    def test_used_as_a_nested_field_raises(self, monkeypatch, settings):
         """ExcludeFieldsAsNestedFieldSerializer nests ExcludeFieldsSerializer as a declared field, like
         store.InvoiceSerializer nests InvoiceLineSerializer. The nested instance is still unbound (no
         parent, so no context) when drf_writable_nested's UniqueFieldsMixin.get_fields() inspects its
         validators, so ExcludeFieldsSerializerMixin.get_extra_kwargs() raises KeyError: 'view'.
         """
-        with self.temporary_migration_module(app_label="erring") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="erring") as migration_dir:
             schema_path = os.path.join(os.path.dirname(migration_dir), "schema.json")
 
             with pytest.raises(KeyError, match="view"):
@@ -71,14 +71,14 @@ class TestSpectacularExcludeFieldsSerializerMixin(BaseSpectacularExcludeFieldsTe
                     err_viewsets.ExcludeFieldsAsNestedFieldViewSet,
                 )
 
-    def test_used_as_an_expandable_field_raises(self, monkeypatch):
+    def test_used_as_an_expandable_field_raises(self, monkeypatch, settings):
         """ExcludeFieldsAsExpandableFieldSerializer only reaches ExcludeFieldsSerializer through
         expandable_fields, like store.CustomerSerializer expanding UserSerializer.
         generate_expand_model_info() instantiates the expand target bare (no context) to build its
         /info/-style field metadata, so ExcludeFieldsSerializerMixin.get_extra_kwargs() raises
         KeyError: 'view'.
         """
-        with self.temporary_migration_module(app_label="erring") as migration_dir:
+        with self.temporary_migration_module(settings, app_label="erring") as migration_dir:
             schema_path = os.path.join(os.path.dirname(migration_dir), "schema.json")
 
             with pytest.raises(KeyError, match="view"):

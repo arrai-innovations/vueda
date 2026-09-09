@@ -11,7 +11,8 @@ import { computed, reactive, toRef } from "vue";
  * ordinal (shown only when `showOrdinal` is set) doubles as the drag handle for
  * reordering within the host strip. The label segment shows the field's human
  * label and a direction glyph; clicking it toggles ascending/descending. The
- * trailing segment removes the field from the sort. This is the sort-side
+ * trailing segment removes the field from the sort, and is present only when
+ * `removable` is set. This is the sort-side
  * counterpart to {@api vue:component:FilterChip}: neutral-tinted, since ordering
  * is not a predicate and the accent is reserved for filters, actions, and selection.
  */
@@ -41,6 +42,17 @@ const props = defineProps({
      * The host strip ({@api vue:component:SortGroup}) passes `false` for a lone chip.
      */
     showOrdinal: {
+        type: Boolean,
+        default: true,
+    },
+    /**
+     * Show the remove ("x") control. The host strip
+     * ({@api vue:component:SortGroup}) passes `false` for a lone chip, so the
+     * last active sort field can't be removed from the chip itself — clearing it
+     * would leave the strip with no chips to read the sort from, while the server
+     * would still sort by its own default. Reset sort is the way back instead.
+     */
+    removable: {
         type: Boolean,
         default: true,
     },
@@ -105,21 +117,23 @@ const icon = useIcons("SortChip", props);
             />
             <span v-else :class="theme('direction')" aria-hidden="true">{{ descending ? "↓" : "↑" }}</span>
         </button>
-        <span :class="theme('divider')" aria-hidden="true" />
-        <button
-            type="button"
-            :class="theme('remove')"
-            :aria-label="`Remove sort: ${label}`"
-            data-qa="sort-chip-remove"
-            @click="emit('remove')"
-        >
-            <component
-                :is="icon('close').component"
-                v-if="icon('close')"
-                v-bind="icon('close').props"
-                aria-hidden="true"
-            />
-            <span v-else aria-hidden="true">&times;</span>
-        </button>
+        <template v-if="removable">
+            <span :class="theme('divider')" aria-hidden="true" />
+            <button
+                type="button"
+                :class="theme('remove')"
+                :aria-label="`Remove sort: ${label}`"
+                data-qa="sort-chip-remove"
+                @click="emit('remove')"
+            >
+                <component
+                    :is="icon('close').component"
+                    v-if="icon('close')"
+                    v-bind="icon('close').props"
+                    aria-hidden="true"
+                />
+                <span v-else aria-hidden="true">&times;</span>
+            </button>
+        </template>
     </span>
 </template>

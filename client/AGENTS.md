@@ -21,7 +21,7 @@ To get started:
 
     ```bash
     just test-client
-    just test-client tests/unit/lib/views/ViewWorkflowTransition.spec.js
+    just test-client tests/unit/lib/views/ViewActionRouter.spec.js
     ```
 
 - View coverage: `just coverage-client` (accepts extra vitest args)

@@ -19,7 +19,7 @@ describe("lib/stores/storeModelInfo.js", () => {
         model_fields: { id: { pk: true, type_db: "AutoField" }, title: { type_db: label } },
         model_actions: [],
         model_expands: [],
-        model_ordering: [],
+        model_ordering: { default: [], fields: [] },
         model_filtering: {},
         model_permissions: [],
     });
@@ -62,7 +62,7 @@ describe("lib/stores/storeModelInfo.js", () => {
             },
             model_actions: [],
             model_expands: [],
-            model_ordering: [],
+            model_ordering: { default: [], fields: [] },
             model_filtering: {},
             model_permissions: [],
         };
@@ -102,7 +102,7 @@ describe("lib/stores/storeModelInfo.js", () => {
                     },
                 },
             ],
-            model_ordering: [],
+            model_ordering: { default: [], fields: [] },
             model_filtering: {},
             model_permissions: [],
         };
@@ -133,7 +133,7 @@ describe("lib/stores/storeModelInfo.js", () => {
             },
             model_actions: [],
             model_expands: [],
-            model_ordering: [],
+            model_ordering: { default: [], fields: [] },
             model_filtering: {},
             model_permissions: [],
         };

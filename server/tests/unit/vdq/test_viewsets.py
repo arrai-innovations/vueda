@@ -8,8 +8,13 @@ from django.urls import reverse
 from rest_framework import status
 
 from tests.conftest import response_body
+from vueda import info
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
+from vueda.vdq.serializers import QueueItemSerializer
+from vueda.vdq.serializers import SentItemSerializer
+from vueda.vdq.viewsets import SendQueueViewSet
+from vueda.vdq.viewsets import SentItemViewSet
 
 
 @pytest.mark.django_db(transaction=True)
@@ -215,6 +220,134 @@ def test_sent_item_viewset_resend_bulk(monkeypatch, api_client, sender, receiver
     original_ids = {item.pk for item in sent_items}
     for queue_item in scheduled:
         assert queue_item.pk not in original_ids
+
+
+@pytest.fixture
+def queue_ordering_client(api_client):
+    user = get_user_model().objects.create_superuser(email="queue-sorter@domain.invalid", password="password123")
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.fixture
+def queued_items(sender, receiver):
+    """Three queue items, oldest first. `queued` is `auto_now_add`, so creation order is queued order."""
+    return [QueueItem.objects.create(sender=sender, receiver=receiver, method="email") for _ in range(3)]
+
+
+@pytest.fixture
+def sent_items(sender, receiver):
+    """Three sent items, oldest first. Each is transitioned to a done state so the SentItem manager
+    includes it."""
+    items = []
+    for _ in range(3):
+        queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+        queue_item.fast_transition("send")
+        queue_item.fast_transition("await")
+        queue_item.fast_transition("succeed")
+        items.append(SentItem.objects.get(pk=queue_item.pk))
+
+    return items
+
+
+@pytest.mark.django_db
+class TestSendQueueOrdering:
+    """DefaultSendQueueViewSet declares `ordering = ["queued"]`, against
+    QueueItem.Meta.ordering = ("-queued", "-last_updated").
+
+    The viewset's declaration is what DRF applies and what `model_ordering.default` reports, so the
+    rows arrive oldest first — the order a send queue is worked in — rather than in the model's
+    newest-first order.
+    """
+
+    def test_list_without_an_ordering_param_arrives_oldest_first(self, queued_items, queue_ordering_client):
+        response = queue_ordering_client.get(reverse("vueda_vdq.queueitem-list"), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [item["id"] for item in response.data["results"]] == [item.pk for item in queued_items]
+
+    def test_list_with_the_reported_default_ordering_param_arrives_the_same_way(
+        self, queued_items, queue_ordering_client, settings
+    ):
+        """The request a metadata-driven client generates from `model_ordering.default`. It has to
+        return what the client would have got by sending nothing at all, which is the whole point of
+        declaring the ordering where DRF reads it."""
+        response = queue_ordering_client.get(
+            reverse("vueda_vdq.queueitem-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "queued"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [item["id"] for item in response.data["results"]] == [item.pk for item in queued_items]
+
+    def test_explicit_descending_ordering_param_reverses_the_list(self, queued_items, queue_ordering_client, settings):
+        """`queued` is offered through `ordering_fields` as well, so a client can still ask for
+        newest first."""
+        response = queue_ordering_client.get(
+            reverse("vueda_vdq.queueitem-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-queued"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [item["id"] for item in response.data["results"]] == [item.pk for item in reversed(queued_items)]
+
+
+@pytest.mark.django_db
+class TestSentItemOrdering:
+    """DefaultSentItemViewSet declares the same `ordering = ["queued"]` as the queue this list is the
+    tail of, against the same model-level ordering."""
+
+    def test_list_without_an_ordering_param_arrives_oldest_first(self, sent_items, queue_ordering_client):
+        response = queue_ordering_client.get(reverse("sentitem-list"), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [item["id"] for item in response.data["results"]] == [item.pk for item in sent_items]
+
+    def test_list_with_the_reported_default_ordering_param_arrives_the_same_way(
+        self, sent_items, queue_ordering_client, settings
+    ):
+        response = queue_ordering_client.get(
+            reverse("sentitem-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "queued"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [item["id"] for item in response.data["results"]] == [item.pk for item in sent_items]
+
+
+@pytest.mark.django_db
+class TestQueueOrderingMetadata:
+    """`model_ordering.default` for both queue endpoints, which has to name the ordering their lists
+    actually apply rather than the model's `Meta.ordering`."""
+
+    @pytest.fixture(autouse=True)
+    def register_queue_viewsets(self):
+        info.registration.get_empty_registry()
+        info.register(QueueItemSerializer, SendQueueViewSet)
+        info.register(SentItemSerializer, SentItemViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.mark.parametrize("model_name", ["queueitem", "sentitem"])
+    def test_default_ordering_is_the_one_the_list_applies(self, model_name, queue_ordering_client, settings):
+        response = queue_ordering_client.get(
+            reverse("info.model_info-detail", args=("vueda_vdq", model_name)),
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        model_ordering = response.data["model_ordering"]
+
+        assert model_ordering["default"] == ["queued"], response_body(response)
+        fields = {field["name"]: field for field in model_ordering["fields"]}
+        assert fields["queued"]["ascending"] is True, response_body(response)
+        # `last_updated` is offered through `ordering_fields` without being part of the default
+        # ordering, so it carries no direction.
+        assert "ascending" not in fields["last_updated"], response_body(response)
 
 
 @pytest.mark.django_db
