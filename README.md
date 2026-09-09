@@ -4,7 +4,7 @@
 
 **Server:** [![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![server pytest status][] ![server coverage status][] ![ruff status][] ![server pysentry status][]
 
-**Client:** [![code style: prettier][]][prettier] ![eslint][] ![pnpm-audit status][]
+**Client:** [![code style: prettier][]][prettier] ![client tests][] [![client coverage status][]][client coverage] ![eslint][] ![pnpm-audit status][]
 
 Package READMEs:
 
@@ -103,5 +103,8 @@ We use tag prefixes to publish packages independently:
 [server coverage status]: https://vueda.dev/artifacts/main/server-coverage.svg
 [ruff status]: https://vueda.dev/artifacts/main/ruff.svg
 [server pysentry status]: https://vueda.dev/artifacts/main/server-pysentry.svg
+[client tests]: https://vueda.dev/artifacts/main/client-test.svg
+[client coverage status]: https://vueda.dev/artifacts/main/client-test.coverage.svg
+[client coverage]: https://vueda.dev/artifacts/main/coverage_client-test/
 [eslint]: https://vueda.dev/artifacts/main/eslint.svg
 [pnpm-audit status]: https://vueda.dev/artifacts/main/pnpm-audit.svg
