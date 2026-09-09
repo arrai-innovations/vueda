@@ -949,8 +949,8 @@ class HasWorkflowModelMixin(models.Model):
 
         Performs the same permission and ``allow_transition`` checks as ``apply_transition``
         (raising the same exceptions), and resolves the effective ``user`` (falling back to the
-        request user from history context, then the system user, exactly as ``apply_transition``
-        does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
+        acting user the history middleware records on the action, then the system user, exactly as
+        ``apply_transition`` does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
         before writing should call this first, then ``apply_checked_transition``.
         """
         # One cache per call, so the second check under the row lock re-reads the state the lock protects.
