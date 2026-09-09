@@ -139,7 +139,7 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, inject, reactive, ref, toRef, unref, watch } from "vue";
+import { computed, effectScope, inject, markRaw, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -600,15 +600,19 @@ export function useViewList(options) {
     // Resolve a type-aware column adapter (and its props) for each display
     // field. ViewList injects these as default `field(<col>)` slot content so
     // columns render through their adapter unless a consumer overrides the slot.
-    const columnComponents = computed(() =>
-        resolveColumns({
+    const columnComponents = computed(() => {
+        const resolvedColumns = resolveColumns({
             fields: calculatedDisplayFields.value,
             propComponents: unref(options.columnComponents),
             propProps: unref(options.columnProps),
             configComponents: modelConfig.config?.columnComponents,
             configProps: modelConfig.config?.columnProps,
-        }),
-    );
+        });
+        for (const resolved of Object.values(resolvedColumns)) {
+            resolved.component = markRaw(toRaw(resolved.component));
+        }
+        return resolvedColumns;
+    });
     // Slot names ViewList injects defaults for; excluded from the generic
     // consumer-slot forward loop so an injected default and a forwarded
     // consumer slot never double-render the same column.

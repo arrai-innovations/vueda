@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
 import flushPromises from "flush-promises";
 
@@ -23,7 +23,7 @@ describe("lib/use/useFieldRenderer.js", () => {
         vi.clearAllMocks();
     });
 
-    scopedIt("computes props and slot names without field context", () => {
+    scopedIt("computes props and slot names without field context", async () => {
         const props = vue.reactive({
             formModelName: "foo",
             themeOverride: { b: 2 },
@@ -38,7 +38,7 @@ describe("lib/use/useFieldRenderer.js", () => {
         });
         const attrs = { id: "id1", class: "cls", other: "attr" };
         const slots = { custom: () => {}, default: () => {}, [`field(foo)`]: () => {} };
-        const result = useFieldRenderer(props, attrs, slots);
+        const result = await withSetup(() => useFieldRenderer(props, attrs, slots));
 
         expect(result.fieldSlotName.value).toBe("field(foo)");
         expect(result.widgetSlotName.value).toBe("widget(foo)");
@@ -51,7 +51,7 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3, b: 2 });
     });
 
-    scopedIt("reports a component resolution failure as field error state", () => {
+    scopedIt("reports a component resolution failure as field error state", async () => {
         const props = vue.reactive({
             formModelName: "foo",
             formModel: {
@@ -65,7 +65,7 @@ describe("lib/use/useFieldRenderer.js", () => {
             },
             objectGridFieldSlotProps: {},
         });
-        const result = useFieldRenderer(props, {}, {});
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}));
 
         expect(result.errored.value).toBe(true);
         expect(result.error.value.message).toContain('No widget component named "WidgetNope"');
@@ -75,7 +75,7 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetComponent.value).toBeNull();
     });
 
-    scopedIt("reports no error and names the widget when resolution succeeds", () => {
+    scopedIt("reports no error and names the widget when resolution succeeds", async () => {
         const props = vue.reactive({
             formModelName: "foo",
             formModel: {
@@ -87,7 +87,7 @@ describe("lib/use/useFieldRenderer.js", () => {
             },
             objectGridFieldSlotProps: {},
         });
-        const result = useFieldRenderer(props, {}, {});
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}));
 
         expect(result.errored.value).toBe(false);
         expect(result.error.value).toBeNull();
@@ -107,7 +107,7 @@ describe("lib/use/useFieldRenderer.js", () => {
             },
             objectGridFieldSlotProps: { rowIndex: 2, value: "v" },
         });
-        const result = useFieldRenderer(props, {}, {}, fieldSetContext);
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}, fieldSetContext));
         expect(result.fieldValuePath.value).toBe("items[2].name");
 
         props.objectGridFieldSlotProps.rowIndex = 3;
