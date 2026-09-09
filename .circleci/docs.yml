@@ -234,18 +234,22 @@ jobs:
                   command: |
                       mkdir -p -m 0750 "publish/v${DOCS_MAJOR}/"
                       cp -r site/* "publish/v${DOCS_MAJOR}/"
-            # RETARGET FOR vueda.dev (ops): remote_folder "/" resolves server-side to the
-            # SSH user's docroot. For /v<major>/ to serve at the domain root, this must
-            # point at the vueda.dev docroot (new vhost + SSH user), not the current
-            # docs.arrai.dev/vueda/documentation base. delete:false is required so a new
-            # major build does not wipe sibling majors; stale files within a rebuilt major
-            # dir are a separate concern (clean the major dir server-side before deploy, or
-            # switch to a per-major rsync with --delete).
+            # The orb builds the destination as "<host>:/<remote_folder>", so
+            # remote_folder carries no leading slash. It resolves server-side to the
+            # SSH user's docroot, the directory served at the vueda.dev root, so
+            # v<major>/ is published as vueda.dev/v<major>/.
+            #
+            # Transferring the major directory itself confines --delete to that
+            # directory, which drops files removed from the documentation without
+            # touching sibling majors or anything else in the docroot.
+            #
+            # The orb skips the transfer without failing when folder does not exist.
+            # The step above guarantees DOCS_MAJOR, so the path always resolves.
             - utils/rsync_folder:
                   when: on_success
-                  folder: ~/project/publish/
-                  remote_folder: /
-                  delete: false
+                  folder: ~/project/publish/v${DOCS_MAJOR}/
+                  remote_folder: v${DOCS_MAJOR}/
+                  delete: true
                   host: tools.arrai.dev
 
 workflows:
