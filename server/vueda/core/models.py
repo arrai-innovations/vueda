@@ -46,11 +46,13 @@ class FormattedNameManager(models.Manager):
     queryset of a model that reaches its formatted name through
     ``formatted_name_lookup_expression``.
 
-    A model with a ``formatted_name`` ``GeneratedField`` has that column already, and one that
-    computes the value in Python with ``get_formatted_name()`` has no database path to annotate; this
-    manager changes nothing for either (see ``formatted_name_annotation_path``). It only matters for
-    the third form, where ``formatted_name`` is a name for some other path — a column on this model,
-    or one reached through single-valued relations.
+    A model with a ``formatted_name`` ``GeneratedField`` has that column already, so this manager
+    annotates nothing for it (see ``formatted_name_annotation_path``). One that computes the value in
+    Python with ``get_formatted_name()`` has no database path to annotate either, but may still
+    declare ``formatted_name_select_related``, which this manager applies the same as
+    ``annotate_formatted_name`` does everywhere else. The annotation itself only matters for the third
+    form, where ``formatted_name`` is a name for some other path — a column on this model, or one
+    reached through single-valued relations.
 
     Annotating here rather than only in ``VuedaViewSet.get_queryset`` is what makes
     ``formatted_name`` usable everywhere a queryset is, not just on a list request:

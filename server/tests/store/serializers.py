@@ -292,6 +292,44 @@ class CartItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
+class CartFormattedNameMethodSerializer(VuedaSerializer):
+    """Cart resolves formatted_name through get_formatted_name() (self.customer.user.email), so per
+    the documented get_formatted_name() serializer contract, formatted_name must be declared
+    explicitly as a SerializerMethodField. CartSerializer's own formatted_name field is unrelated --
+    it is sourced from "data.formatted_name", which Cart has no "data" relation to resolve, so it
+    never actually renders get_formatted_name()'s value. This is a separate, minimal serializer
+    dedicated to exercising formatted_name_select_related's bulk query-count fix across the three
+    call sites annotate_formatted_name shares.
+    """
+
+    formatted_name = serializers.SerializerMethodField()
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Cart
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+
+
+class CustomerWithCartsSerializer(VuedaSerializer):
+    """A minimal Customer serializer expanding its reverse `cart_set` relation onto
+    CartFormattedNameMethodSerializer, so a request can exercise the get_formatted_name()
+    formatted_name_select_related fix both through a list's Prefetch queryset (build_prefetch_plan)
+    and through the plain related-manager path VuedaListSerializer.to_representation falls back to
+    for a freshly saved instance (a PATCH/PUT response, which bypasses the viewset queryset and its
+    prefetch plan entirely).
+    """
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id", "cart_set"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart_set": (
+                CartFormattedNameMethodSerializer,
+                {"many": True},
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
 class OrderStateSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.OrderState

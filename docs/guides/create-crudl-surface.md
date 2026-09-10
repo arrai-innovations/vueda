@@ -38,7 +38,23 @@ VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the
 
 **Null field with a Python method.** Set `formatted_name = None` on the model and implement a `get_formatted_name()` method for runtime computation. This is the most flexible option but requires explicit wiring in the serializer (covered in the next section). Choice endpoints resolve labels using a priority order: `get_formatted_name()` method, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices.
 
-Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`; pointing `formatted_name_lookup_expression` through a relation that can match more than one row triggers `vueda_info.E008`; and declaring a `formatted_name_lookup_expression` on a model whose default manager isn't a `FormattedNameManager` triggers `vueda_info.E009`.
+A `get_formatted_name()` that traverses a relation — `self.customer.user.email`, say — costs one extra query per row per relation traversed whenever `formatted_name` is resolved in bulk, unless the model also declares `formatted_name_select_related` as a tuple of relation paths, the same paths it would pass to `queryset.select_related()` itself:
+
+```python
+class Cart(VuedaModel):
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+
+    formatted_name = None
+    formatted_name_select_related = ("customer__user",)
+
+    def get_formatted_name(self):
+        if self.customer and self.customer.user:
+            return self.customer.user.email
+```
+
+`annotate_formatted_name` — the helper `FormattedNameManager.get_queryset`, `VuedaViewSet.get_queryset`, `VuedaListSerializer.to_representation`, and the prefetch-plan builder all share — applies this `select_related` the same way it applies a `formatted_name_lookup_expression` annotation, so every bulk path that resolves `formatted_name` joins the declared relations in the same query instead of resolving them per row. A model with no `formatted_name_select_related` is unaffected; declaring it is only worthwhile when `get_formatted_name()` actually reaches through a relation.
+
+Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`; pointing `formatted_name_lookup_expression` through a relation that can match more than one row triggers `vueda_info.E008`; declaring a `formatted_name_lookup_expression` on a model whose default manager isn't a `FormattedNameManager` triggers `vueda_info.E009`; and declaring both `formatted_name_lookup_expression` and `formatted_name_select_related` triggers `vueda_info.E011`, since `formatted_name_select_related` only has an effect alongside `get_formatted_name()`.
 
 **Ordering by `formatted_name`.** The first three strategies are sortable in the database, so `formatted_name` may be named as a plain field name in a viewset's `ordering` or `ordering_fields`, or in the model's own `Meta.ordering`, and clients may request it with `?o=formatted_name`. A generated field is sorted as its own column; a lookup expression is sorted through the annotation `VuedaViewSet.get_queryset` already adds. Either way, model-info metadata reports the field as `formatted_name` — the lookup expression behind it stays a server-side detail.
 

@@ -254,6 +254,28 @@ class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     ordering_fields = ["quantity", "cart__customer__formatted_name", "cart__formatted_name"]
 
 
+class CartFormattedNameMethodViewSet(VuedaViewSet):
+    """Serves CartFormattedNameMethodSerializer directly, so a plain list request exercises
+    VuedaViewSet.get_queryset's own annotate_formatted_name call with a get_formatted_name() model
+    declaring formatted_name_select_related."""
+
+    queryset = my_models.Cart.objects.all()
+    serializer_class = my_serializers.CartFormattedNameMethodSerializer
+
+
+class CustomerWithCartsViewSet(VuedaViewSet):
+    """Serves CustomerWithCartsSerializer, expanding `cart_set` -- a to-many relation onto Cart, whose
+    formatted_name is computed by get_formatted_name(). A list/retrieve request routes that expand's
+    queryset through build_prefetch_plan's Prefetch queryset; an update response (which never calls
+    get_queryset's prefetch plan) reaches the same relation as a plain, unfetched manager, which is
+    VuedaListSerializer.to_representation's own call to annotate_formatted_name to cover."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerWithCartsSerializer
+    permit_list_expands = ["cart_set"]
+    permit_retrieve_expands = ["cart_set"]
+
+
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
