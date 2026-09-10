@@ -218,6 +218,18 @@ class CartRelatedFormattedNameFilterViewSet(CartViewSet):
     filterset_class = my_filtersets.CartRelatedFormattedNameFilterSet
 
 
+class CartEmptyFilterSetViewSet(CartViewSet):
+    """Serves Cart with permission checks that build no queryset and a filterset that accepts nothing.
+
+    `ObjectPermissions` calls `get_queryset` from `initial()`, before `list()` runs, so a request
+    carrying an over-deep `?e=` fails there whichever names the filterset parameter-name cache holds.
+    Authenticating only lets `list()` reach its own validation, where the order between rejecting an
+    unrecognized parameter and building the serializer is what a test can see."""
+
+    filterset_class = my_filtersets.EmptyCartFilterSet
+    permission_classes = [permissions.IsAuthenticated]
+
+
 class CartM2MSearchOrderingViewSet(CartOrderingFieldsViewSet):
     """Searches across a reverse foreign key while offering orderings only `VuedaOrderingFilter` can
     resolve, so the two backends have to agree on the terms.

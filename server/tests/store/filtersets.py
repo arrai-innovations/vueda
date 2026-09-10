@@ -112,6 +112,19 @@ class CartFilterSet(VuedaFilterSet):
         ]
 
 
+class EmptyCartFilterSet(rest_framework.FilterSet):
+    """Accepts no query parameter at all, so every parameter a request sends is unrecognized.
+
+    ``VuedaFilterSet`` would contribute an ``id`` filter, so this derives from django-filter's own
+    ``FilterSet`` to leave the accepted set empty. That makes the rejection a list request produces
+    depend on nothing but the parameter it was sent.
+    """
+
+    class Meta:
+        model = my_models.Cart
+        fields = []
+
+
 class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
     """Filters against `customer__formatted_name`, which names no column of its own: Customer reaches
     its formatted name through `formatted_name_lookup_expression = "data__formatted_name"`, and the
