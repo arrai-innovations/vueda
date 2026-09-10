@@ -236,6 +236,17 @@ class CartM2MSearchOrderingViewSet(CartOrderingFieldsViewSet):
     ordering_fields = [*CartOrderingFieldsViewSet.ordering_fields, "customer__formatted_name"]
 
 
+class CartM2MSearchRelationOrderingViewSet(CartM2MSearchOrderingViewSet):
+    """Offers a plain relation name on a searched list that deduplicates.
+
+    `Customer` declares `ordering = ["user__name"]`, so Django replaces an `order_by("customer")` with
+    the related model's own ordering over the joined table, while `distinct("customer")` trims the
+    join back to `store_cart.customer_id`. The two cannot match, so the ordering has no column to
+    pair with and such a request sorts by rank."""
+
+    ordering_fields = [*CartM2MSearchOrderingViewSet.ordering_fields, "customer"]
+
+
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
@@ -281,6 +292,29 @@ class ProductM2MSearchViewSet(ProductViewSet):
     # `?o=formatted_name` is a field DRF rejects: `remove_invalid_fields` drops it, the request falls
     # back to a default ordering the viewset doesn't declare, and nothing sorts by it.
     ordering_fields = [*ProductViewSet.ordering_fields, "formatted_name"]
+
+
+class ProductM2MSearchFunctionOrderingViewSet(ProductM2MSearchViewSet):
+    """Declares a default ordering that reads one column without being that column.
+
+    `Lower("name")` compiles to `LOWER("name")` while `distinct("name")` compiles to the column, so
+    the ordering has no column to pair with on a searched list that deduplicates and such a request
+    sorts by rank. Reached through the default rather than through `?o=`, because a `?o=` value is a
+    plain field name and never carries the function: a nonempty `?o=` that DRF rejects leaves this
+    default in place while still asking the search backend for explicit-order handling."""
+
+    ordering = [Lower("name")]
+
+
+class ProductM2MSearchRelationOrderingViewSet(ProductM2MSearchViewSet):
+    """Offers a plain relation name whose related model declares no ordering of its own.
+
+    The counterpart to `CartM2MSearchRelationOrderingViewSet`: `Distributor` declares no
+    `Meta.ordering`, so Django leaves an `order_by("distributor")` on the local foreign key column
+    and `distinct("distributor")` reaches the same column. The two match, so this ordering pairs and
+    the request sorts by it rather than by rank."""
+
+    ordering_fields = [*ProductM2MSearchViewSet.ordering_fields, "distributor"]
 
 
 class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
