@@ -69,7 +69,7 @@ Queryset-based choice resolution assumes a `formatted_name` lookup path on the r
 
 The client fetches model-info once per `app.model` key and caches the result in `storeModelInfo`. Filtering and ordering metadata are part of this cached payload and are normalized alongside other model-info fields: nested objects are camelCased, and the overall structure is flattened for consistent client access.
 
-`storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for `list` requests. Filter configuration is consumed by `useFilter` and `useFilterForm`, which build the filter UI from the cached `modelInfo.filtering` entries. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
+`storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for `list` requests. Filter configuration is consumed by `useFilterables`, which merges the cached `modelInfo.filtering` entries with any caller-supplied overrides into a resolved filterable field list and per-field details; `useViewList` is the sole owner of this resolution for `ViewList`, passing the result down as plain props rather than letting `FilterGroup` recompute it. `useFilter` and `useFilterForm` then build the filter UI from that already-resolved list: `useFilter` resolves each field's component and widget, and `useFilterForm` translates a field's value to and from its URL query-parameter representation. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
 
 Cached model-info errors are sticky. A failed model-info fetch for a given `app.model` key rejects immediately on subsequent attempts without re-fetching. This means that a transient server error during initial model-info load can render the model's filter and sort controls permanently unavailable until the store is reset or the page is reloaded.
 
@@ -117,8 +117,10 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
 - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
 - {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices}
+- {@api js:module:@arrai-innovations/vueda/use/useFilterables}
 - {@api js:module:@arrai-innovations/vueda/use/useFilter}
 - {@api js:module:@arrai-innovations/vueda/use/useFilterForm}
+- {@api js:module:@arrai-innovations/vueda/use/useViewList}
 - {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#ORDERING_PARAM}
 - {@api js:property:@arrai-innovations/vueda/utils/constants#SEARCH_PARAM}

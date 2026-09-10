@@ -216,12 +216,48 @@ export function getFilterQueryValue(filterName, filterDetails, query) {
 }
 
 /**
+ * Reduce an active-filter list to the flat query-param object the URL and list
+ * request carry. Handles suffix-derived keys (a range filter writes one entry
+ * per suffix) and raw-object values (a choice widget's `{ value, label }`
+ * shape collapses to its `value`).
+ *
+ * @param {{field: string, param: string|string[], value: any, isValueRawObject?: boolean}[]} filters - The active filter list.
+ * @returns {{[key: string]: any}} The flat query-param object.
+ */
+export function filtersToParams(filters) {
+    const desiredParams = {};
+    for (const filter of filters) {
+        let filterValue = filter.value;
+        if (filter.isValueRawObject) {
+            Array.isArray(filterValue)
+                ? (filterValue = filterValue.map((value) => value.value))
+                : (filterValue = filterValue.value);
+        }
+        if (Array.isArray(filter.param)) {
+            filter.param.forEach((p) => {
+                if (isObject(filter.value)) {
+                    const parts = p.split("_");
+                    const key = parts[parts.length - 1];
+                    desiredParams[p] = filterValue[key] ?? "";
+                } else {
+                    desiredParams[p] = filterValue;
+                }
+            });
+        } else {
+            desiredParams[`${filter.param}`] = filterValue;
+        }
+    }
+    return desiredParams;
+}
+
+/**
  * Build an active-filter object from a URL query, or `null` when the field has
  * no value in the query. The returned shape matches what the filter form
  * applies (`{ field, expression, param, value, range }`), so feeding it through
- * `FilterGroup`'s `addedFilters`→params watch round-trips back to the same
- * query. Array filters coerce a single query value to a one-element array, and
- * range filters keep the `{ [suffix]: value }` object shape.
+ * `filtersToParams` and then `useViewList`'s addedFilters→params watch
+ * round-trips back to the same query. Array filters coerce a single query
+ * value to a one-element array, and range filters keep the `{ [suffix]: value }`
+ * object shape.
  *
  * @param {string} filterName - The filter field name.
  * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filterDetails - The filter configuration.

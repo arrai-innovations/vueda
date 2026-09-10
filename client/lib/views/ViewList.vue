@@ -30,6 +30,7 @@ import { getCRUDName } from "@vueda/utils/case.js";
 import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
+import { useRoute } from "vue-router";
 
 /**
  * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
@@ -148,7 +149,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination, filter } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -162,10 +163,10 @@ const icon = useIcons("ViewList", props);
 const filterTriggerZone = ref(null);
 
 // The shared constraints band hosts both the filter chips and the sort chips.
-// `hasFilters` drives band visibility and the divider; it reads the applied
-// filter params (the chip-bearing source) rather than threading a count. Each
-// group owns its own clear control.
-const hasFilters = computed(() => Object.keys(list.listState.filterArgs || {}).length > 0);
+// `hasFilters` drives band visibility and the divider; it reads the active
+// filter list directly rather than threading a count. Each group owns its own
+// clear control.
+const hasFilters = computed(() => (filter.state.addedFilters?.length || 0) > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
@@ -200,17 +201,30 @@ const themedSearchSlotProps = computed(() => ({
 }));
 
 const emit = defineEmits([
+    /** Emitted once on mount with a live ref to the selected primary keys (`actions.selectedObjects`). */
     "selected",
+    /** Emitted once on mount with a live ref to the active sort order (`sort.sorting.state.sorted`). */
     "sorted",
+    /** Emitted once on mount with a live ref to the raw fetched objects (`list.instanceList.state.objects`). */
     "objects",
+    /** Emitted once on mount with a live ref to the current object ordering (`list.instanceList.state.order`). */
     "order",
+    /** Emitted once on mount with a live ref to the combined loading state (`list.loading`). */
     "loading",
+    /** Emitted once on mount with a live ref to the fetched related objects. */
     "related-objects",
+    /** Emitted once on mount with a live ref to the fetched calculated objects. */
     "calculated-objects",
-    "filter-change",
+    /** Emitted once on mount with a live ref to the active-filter list (`filter.state.addedFilters`). */
+    "filtered",
+    /** Emitted once on mount with a live ref to the current route query. */
     "query-change",
+    /** Forwarded from FilterGroup when a filter form popover should close. */
     "hide-filter-form",
 ]);
+
+const route = useRoute();
+
 onMounted(() => {
     emit(
         "objects",
@@ -223,6 +237,14 @@ onMounted(() => {
     emit(
         "sorted",
         toRef(() => sort.sorting.state.sorted),
+    );
+    emit(
+        "filtered",
+        toRef(() => filter.state.addedFilters),
+    );
+    emit(
+        "query-change",
+        toRef(() => route.query),
     );
     emit("selected", readonly(toRef(actions, "selectedObjects")));
     emit("loading", list.loading);
@@ -323,19 +345,18 @@ onMounted(() => {
             <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts">
                 <template #filters>
                     <filter-group
-                        v-model="list.listState.filterArgs"
+                        v-model="filter.state.addedFilters"
                         hosted
                         :app="props.app"
                         :model="props.model"
                         :view="'list'"
                         :error="list.instanceList.state.error"
                         :errored="list.instanceList.state.errored"
-                        :filterable-details="props.filterableDetails"
-                        :filterables="props.filterables"
+                        :filterables="filter.filterables"
+                        :filterable-details="filter.filterableDetails"
+                        :valid-filterables="filter.validFilterables"
                         :trigger-target="filterTriggerZone"
-                        @filter-change="emit('filter-change', $event)"
                         @hide-filter-form="emit('hide-filter-form', $event)"
-                        @query-change="emit('query-change', $event)"
                     >
                         <template v-for="(_, slot) in slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
