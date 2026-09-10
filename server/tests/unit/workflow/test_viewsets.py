@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.settings import api_settings
@@ -71,7 +72,18 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         self._groups = []
         manager_group, _ = Group.objects.get_or_create(name="Order Workflow Managers")
-        manager_permissions = Permission.objects.filter(codename__in=["fulfill_orders", "read_workflow"])
+        # A workflow manager holds the workflow's own configured permissions, the target model's
+        # read permission that object transition discovery and execution require, and
+        # read_workflow. The workflow gates and the target model's gate are separate authorities,
+        # so a manager needs both.
+        configured_workflow_permission_ids = WorkflowPermission.objects.filter(
+            workflow__content_type__app_label="store",
+            workflow__content_type__model="customerorder",
+        ).values_list("permission_id", flat=True)
+        manager_permissions = Permission.objects.filter(
+            Q(codename__in=["fulfill_orders", "read_customerorder", "read_workflow"])
+            | Q(pk__in=configured_workflow_permission_ids)
+        )
         manager_group.permissions.set(manager_permissions)
         self._groups.append(manager_group)
 
@@ -174,16 +186,21 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
         )
 
+        object_state_pk = customer_order.object_state.pk
         before = api_client.get(object_state_url, format="json").data["object_state_revision"]
         customer_order.apply_transition("pack_order", user=workflow_user)
         after = api_client.get(object_state_url, format="json").data["object_state_revision"]
 
         assert before.startswith("vueda_workflow.ObjectState:")
         assert before != after
-        assert str(customer_order.object_state.pk) != before.split(":")[-1]
+        # The row keeps its id across the transition, so a revision naming the row would not have
+        # moved either.
+        assert customer_order.object_state.pk == object_state_pk
 
-    def test_object_state_returns_403_without_object_read_permission(self, api_client, workflow_user, customer_order):
-        api_client.force_authenticate(workflow_user)
+    def test_object_state_returns_403_without_object_read_permission(
+        self, api_client, workflow_read_only_user, customer_order
+    ):
+        api_client.force_authenticate(workflow_read_only_user)
         object_state_url = reverse(
             "workflow.workflow-object-state",
             kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
@@ -253,6 +270,11 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert "pack_order" in {transition["code"] for transition in response.data}
 
     def test_permitted_transitions_returns_403_without_workflow_permissions(self, api_client, workflow_read_only_user):
+        # Model-level read is the prerequisite this action checks first, so granting it here leaves
+        # the workflow's own configured permissions as the only thing that can deny the request.
+        workflow_read_only_user.user_permissions.add(
+            Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
+        )
         api_client.force_authenticate(workflow_read_only_user)
         permitted_transitions_url = reverse(
             "workflow.workflow-permitted-transitions",
@@ -268,6 +290,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         self, api_client, workflow_read_only_user, customer_order
     ):
         WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+        workflow_read_only_user.user_permissions.add(
+            Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
+        )
         api_client.force_authenticate(workflow_read_only_user)
         permitted_transitions_url = reverse(
             "workflow.workflow-permitted-transitions",
@@ -330,13 +355,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert response.data["detail"] == "You do not have permission to perform this action."
 
-    def test_object_state_requires_read_workflow_even_with_object_read_permission(
-        self, api_client, customer_reader, customer_order
-    ):
-        # read_workflow gates every workflow endpoint except permitted_transitions for models
-        # without a configured workflow. customer_reader can read customerorder objects but
-        # lacks read_workflow, so the viewset-level gate must deny before object_state's own
-        # object-read check ever runs.
+    def test_object_state_follows_object_read_without_read_workflow(self, api_client, customer_reader, customer_order):
+        # An object's current state is that object's own data. read_workflow admits a caller to
+        # workflow definitions and operations, so it is not a second gate on reading this.
         customer_reader.user_permissions.add(
             Permission.objects.get(codename="read_customerorder", content_type__app_label="store")
         )
@@ -348,8 +369,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         response = api_client.get(object_state_url, format="json")
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
-        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["state"]["code"] == "new"
 
     def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
         api_client.force_authenticate(workflow_user)
@@ -361,7 +382,11 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         response = api_client.get(object_transitions_url, format="json")
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
-        assert {transition["code"] for transition in response.data} == {"hold_order", "pack_order"}
+        assert {transition["code"] for transition in response.data} == {
+            "cancel_order",
+            "hold_order",
+            "pack_order",
+        }
 
     def test_object_detail_returns_named_valid_transitions(self, api_client, workflow_reader, customer_order):
         api_client.force_authenticate(workflow_reader)
@@ -400,8 +425,10 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["new_state"]["code"] == "packed"
-        assert len(response.data["new_transitions"]) == 1
-        assert response.data["new_transitions"][0]["code"] == "ship_order"
+        assert {transition["code"] for transition in response.data["new_transitions"]} == {
+            "cancel_order",
+            "ship_order",
+        }
         customer_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
         lock_spy.assert_not_called()

@@ -4,13 +4,13 @@ __all__ = ("urlpatterns",)
 
 from django.urls import path
 
-from vueda.history.views import GetObjectHistoryView
+from vueda.history.views import WorkflowStateHistoryView
 
 
 urlpatterns = [
     path(
-        "object-history/<app_label>/<model>/<int:object_id>/",
-        GetObjectHistoryView.as_view(),
-        name="get-object-history",
+        "workflow-state-history/<app_label>/<model>/<int:object_id>/",
+        WorkflowStateHistoryView.as_view(),
+        name="workflow-state-history",
     ),
 ]
