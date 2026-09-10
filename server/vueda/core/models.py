@@ -15,6 +15,7 @@ __all__ = (
 import django
 from django.contrib.admin.utils import lookup_field
 from django.contrib.postgres.fields import ArrayField
+from django.core import checks
 from django.db import models
 from django.db.models.signals import class_prepared
 
@@ -23,6 +24,7 @@ from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.options import failed_sections
 from vueda.core.options import resolve_vueda_options
+from vueda.core.ordering import ordering_term_field_names
 
 
 class BaseModelMeta:
@@ -32,12 +34,19 @@ class BaseModelMeta:
 
 
 def _names_own_formatted_name(term):
-    """Whether an ordering term names the model's own ``formatted_name``, in either direction.
+    """Whether an ordering term names the model's own ``formatted_name``.
 
     A term reaching another model's formatted name (``owner__formatted_name``) is not one of these:
     the annotation belongs to the queryset being ordered, not to the ones it joins.
+
+    ``ordering_term_field_names`` reads the paths out of a term whatever shape it takes, so a plain
+    name, a ``-`` prefixed one, an ``F("formatted_name").asc()``, and a ``Lower("formatted_name")``
+    all count. Django's own ``models.E015`` only reads the plain strings (it skips every non-string
+    term), so widening the predicate here changes nothing about what is withheld from it. It matters
+    for the base-manager check below, where every one of those shapes compiles the same unresolvable
+    ordering into a base-manager queryset.
     """
-    return isinstance(term, str) and term.removeprefix("-") == FORMATTED_NAME
+    return any(name == FORMATTED_NAME for name in ordering_term_field_names(term))
 
 
 class FormattedNameManager(models.Manager):
@@ -100,7 +109,9 @@ class FormattedNameManager(models.Manager):
     ``_base_manager`` queryset, which ``Collector.collect`` evaluates without clearing ordering). Set
     ``Meta.base_manager_name = "objects"`` on a model that needs those paths to work, which makes
     Django use this manager for them too. Ordering by the lookup expression's own path instead of by
-    ``formatted_name`` avoids the problem without touching the base manager.
+    ``formatted_name`` avoids the problem without touching the base manager. The
+    ``vueda_core.E017`` system check reports a model that ordered by ``formatted_name`` and did
+    neither, so the failure surfaces at startup rather than on a delete.
     """
 
     def get_queryset(self):
@@ -177,8 +188,10 @@ class FormattedNameBaseModel(models.Model):
 
         ``Model._base_manager`` is the one path the manager doesn't cover, since Django builds that
         one itself as a plain ``models.Manager``. Evaluating a base-manager queryset that keeps this
-        ordering raises ``FieldError``; see the note at the end of ``FormattedNameManager`` for which
-        callers reach it and why almost none do.
+        ordering raises ``FieldError``, so withholding the term without asking about that manager
+        too would hide a second failure behind the first: ``_formatted_name_base_manager_errors``
+        reports it as ``vueda_core.E017``. See the note at the end of ``FormattedNameManager`` for
+        which callers reach such a queryset and why almost none do.
 
         Only that term is withheld, and only on a model that has a lookup expression to reach it
         through. Every other term is still Django's to check, including a ``formatted_name`` on a
@@ -205,9 +218,78 @@ class FormattedNameBaseModel(models.Model):
         # thread, and the original list is back before this returns.
         cls._meta.ordering = remaining
         try:
-            return super()._check_ordering()
+            errors = super()._check_ordering()
         finally:
             cls._meta.ordering = ordering
+
+        return errors + cls._formatted_name_base_manager_errors()
+
+    @classmethod
+    def _formatted_name_base_manager_errors(cls):
+        """
+        Report a base manager that cannot resolve the ``formatted_name`` the model orders by.
+
+        Called only from the branch of ``_check_ordering`` that withholds a term from
+        ``models.E015``, so the model is known to reach ``formatted_name`` through a lookup
+        expression, to order by it, and to have a default manager that annotates it. That is the
+        whole configuration this reports: the annotation the ordering needs arrives from the default
+        manager, and ``Model._base_manager`` is not it.
+
+        Django builds the base manager itself, as a plain ``models.Manager``, unless
+        ``Meta.base_manager_name`` names one — so it carries no annotation, and a base-manager
+        queryset built on a model with this ordering raises ``FieldError`` the moment it compiles.
+        Almost nothing evaluates such a queryset whole: ``get()`` clears ordering, which covers
+        ``refresh_from_db`` and dereferencing a foreign key, and ``select_related`` and
+        ``prefetch_related`` order by nothing of the related model's own. Two paths do.
+        ``dumpdata --use-base-manager`` is one. The other is a cascade delete:
+        ``Collector.related_objects`` hands back a plain ``_base_manager`` queryset, and
+        ``Collector.collect`` evaluates it whenever ``can_fast_delete`` said no — which a related
+        model with cascading children of its own, a parent link, or a delete signal receiver all say.
+        Deleting the parent then fails with a ``FieldError`` naming a field nobody wrote.
+
+        ``_base_manager`` is read rather than ``Meta.base_manager_name``, because Django resolves
+        that name up the MRO before falling back to a manager of its own: a base manager an abstract
+        parent selected counts as much as one this model names. ``isinstance`` accepts any subclass,
+        so a project's own manager passes as long as it inherits ``FormattedNameManager``.
+        """
+        try:
+            base_manager = cls._base_manager
+        except ValueError:
+            # `Meta.base_manager_name` naming a manager the model doesn't have raises here. That
+            # declaration is broken whatever the ordering says, and reporting it as an ordering
+            # problem would point at the wrong line.
+            return []
+
+        if isinstance(base_manager, FormattedNameManager):
+            return []
+
+        # "_base_manager" is the name Django gives the manager it builds when no declaration named
+        # one, so it is what distinguishes the fallback from a manager the model actually selected.
+        if base_manager.name == "_base_manager":
+            selected = "declares no Meta.base_manager_name, so Django builds a plain models.Manager for it"
+        else:
+            selected = (
+                f"selects {base_manager.name} as its base manager, which is a "
+                f"{type(base_manager).__name__} and does not inherit FormattedNameManager"
+            )
+
+        return [
+            checks.Error(
+                f"{cls.__name__}.Meta.ordering sorts by the formatted_name annotation, but the model {selected}.",
+                hint=(
+                    "Meta.ordering is compiled into every queryset of the model, including the ones "
+                    "Model._base_manager builds, and only FormattedNameManager annotates "
+                    "`formatted_name` onto them. A cascade delete that cannot take Django's "
+                    "fast-delete path evaluates such a queryset and raises FieldError, as does "
+                    "`dumpdata --use-base-manager`. Set `Meta.base_manager_name` to a manager that "
+                    'inherits FormattedNameManager (`"objects"` on a model that kept VUEDA\'s), or '
+                    "order by the path `formatted_name_lookup_expression` names instead of by "
+                    "`formatted_name`."
+                ),
+                obj=cls,
+                id="vueda_core.E017",
+            )
+        ]
 
 
 class Lookup(FormattedNameBaseModel):
