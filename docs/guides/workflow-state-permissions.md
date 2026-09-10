@@ -151,15 +151,17 @@ Verify the warning-confirmation gate: when a model overrides `get_transition_war
 
 **`execute_transition`** returns `400` for all execution failures (permission denied, invalid transition, lock failure), in validation-style format rather than HTTP authorization-style. It returns `409` instead when `get_transition_warnings` reports unacknowledged warnings; that check runs after the `400` checks and before any write, so blocking failures still take precedence over the warning gate.
 
-All workflow endpoints require `vueda_workflow.read_workflow` at the viewset permission-check phase. This check runs before any object-specific or transition-specific logic. Test that users without this base permission receive a `403` response on all workflow endpoints.
+Workflow definitions, transition discovery, and transition execution require `vueda_workflow.read_workflow` at the viewset permission-check phase. This check runs before any transition-specific logic. Test that a user without this permission receives a `403` from those endpoints.
 
-`permitted_transitions` is the one exception: when the target model has no configured workflow, the viewset skips the `read_workflow` gate and falls through to the target model's own `read` permission check, so the endpoint can report "no transitions" to any user who can read the model. This exception does not apply once a workflow is configured for the model; `read_workflow` is required from that point on.
+Current object state and workflow state history are the exception in the other direction: they report the target object's own data, so they require that object's `read` permission and not `read_workflow`. Test that a user who can read an object, and holds no workflow permission at all, still reads its state and state history.
+
+`permitted_transitions` skips the gate in one further case: when the target model has no configured workflow, the viewset falls through to the target model's own `read` permission check, so the endpoint can report "no transitions" to any user who can read the model. That case does not apply once a workflow is configured for the model; `read_workflow` is required from that point on.
 
 ## Known Limitations and Gaps
 
 **State-permission lookup uses `.first()` across matching groups.** When multiple groups produce overlapping rules for the same permission and state, the query returns the first match. The deny-wins rule operates across the matched set, but the evaluation order within the query is database-dependent for equal-priority rows.
 
-**State-permission data activates the model-scope bypass.** Adding state-permission rows for a workflow causes `ObjectPermissions.has_permission` (or `WorkflowObjectPermissions.has_permission`) to return `True` at model scope, deferring decisions to object scope. This can change which HTTP status code a denied request receives (`403` becomes `404`).
+**A matching state grant defers a model-scope denial.** A state rule defers `ObjectPermissions.has_permission` or `WorkflowObjectPermissions.has_permission` only when it grants, matches the caller's groups, the requested codename, the model content type, and the workflow, and only for an action that reaches a per-object decision. Deferring can change which status code a denied request receives (`403` becomes `404` on a model viewset). Adding an unrelated state rule changes no decision.
 
 **Transitions without `TransitionPermission` rows are invisible.** They do not appear in `permitted_transitions` and cannot be executed through the API. If a transition should be system-only, this is correct behaviour. If it should be user-executable, add `TransitionPermission` entries.
 

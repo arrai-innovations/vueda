@@ -69,6 +69,28 @@ def clear_cached_filterset_fields(filterset_class):
         filter_obj.__dict__.pop("_field", None)
 
 
+def use_plain_base_manager(model, monkeypatch):
+    """
+    Stand Django's own fallback base manager in front of ``model`` for the duration of one test.
+
+    This is what ``Model._base_manager`` is on a model that selected none: a plain
+    ``models.Manager``, auto-created, named "_base_manager". Everything that reads a base manager
+    reads ``_meta.base_manager`` — ``FormattedNameBaseModel._check_ordering`` and
+    ``Collector.related_objects`` both — so replacing the cached value there exercises the same path
+    a missing ``Meta.base_manager_name`` produces.
+
+    Patched rather than declared because a fixture model whose real base manager couldn't resolve its
+    own ``Meta.ordering`` would report ``vueda_core.E017`` for every ``manage.py check`` the project
+    runs.
+    """
+    plain = models.Manager()
+    plain.name = "_base_manager"
+    plain.model = model
+    plain.auto_created = True
+
+    monkeypatch.setitem(model._meta.__dict__, "base_manager", plain)
+
+
 pytest_plugins = ["celery.contrib.pytest"]
 
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.

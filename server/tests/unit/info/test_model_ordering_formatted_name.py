@@ -3,11 +3,14 @@ from typing import ClassVar
 
 import pytest
 from django.db import models
+from django.db.models.functions import Lower
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from tests.conftest import use_plain_base_manager
+from tests.product.models import ProductCascadeOrderedByFormattedName
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.serializers import ProductModelOrderingFormattedNameSerializer
@@ -28,6 +31,7 @@ from tests.store.viewsets import CartOrderingRelatedFormattedNameViewSet
 from tests.store.viewsets import CustomerOrderingFormattedNameViewSet
 from tests.store.viewsets import CustomerViewSet
 from vueda import info
+from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.models import FormattedNameManager
 
 
@@ -80,6 +84,39 @@ def use_default_manager(model, manager, monkeypatch):
     """
     manager.model = model
     monkeypatch.setattr(model._meta, "default_manager", manager)
+
+
+def clear_own_base_manager_name(model, monkeypatch):
+    """Take away the model's own ``Meta.base_manager_name``, leaving Django to resolve one up the MRO.
+
+    What a model inheriting the option from an abstract base looks like from below: nothing on this
+    ``_meta`` names a manager, so whatever comes back was found by the walk Django does instead.
+    """
+    # Cached first so the patch has the real value to put back. Django caches `_meta.base_manager` on
+    # first access, and a test that got there first would otherwise leave its own behind.
+    assert model._base_manager is not None
+
+    monkeypatch.setattr(model._meta, "base_manager_name", None)
+    monkeypatch.delitem(model._meta.__dict__, "base_manager")
+
+
+def use_base_manager(model, manager, monkeypatch):
+    """Select ``manager`` as ``model``'s base manager for the duration of one test.
+
+    Named "objects" because that is what a model selecting one writes, and the reported message reads
+    the name back.
+    """
+    manager.name = "objects"
+    manager.model = model
+
+    monkeypatch.setitem(model._meta.__dict__, "base_manager", manager)
+
+
+def base_manager_check_errors(model, ordering, monkeypatch):
+    """The `vueda_core.E017` errors a model's checks report for a given `Meta.ordering`."""
+    monkeypatch.setattr(model._meta, "ordering", ordering)
+
+    return [error for error in model.check() if error.id == "vueda_core.E017"]
 
 
 @pytest.mark.django_db
@@ -478,6 +515,203 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         ordering_check_errors(ProductModelOrderingLookupFormattedName, declared, monkeypatch)
 
         assert ProductModelOrderingLookupFormattedName._meta.ordering == declared
+
+
+class TestFormattedNameBaseManagerSystemChecks:
+    """`vueda_core.E017` covers the one queryset `FormattedNameManager` never reaches.
+
+    Withholding a `formatted_name` term from `models.E015` says the annotation will be there, and on
+    every queryset the model itself builds it is. `Model._base_manager` is the exception: Django
+    builds that one as a plain `models.Manager` unless `Meta.base_manager_name` names another, so a
+    base-manager queryset carries the ordering with nothing to sort and raises `FieldError` as soon
+    as it compiles. A cascade delete that can't take Django's fast-delete path evaluates exactly such
+    a queryset, so the failure lands on a delete rather than anywhere near the declaration.
+
+    These pin the check to that configuration and to the two fixes for it.
+    """
+
+    def test_a_model_whose_base_manager_cannot_annotate_is_reported(self, monkeypatch):
+        use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert [error.msg for error in errors] == [
+            "ProductModelOrderingLookupFormattedName.Meta.ordering needs the formatted_name annotation to "
+            "compile, but the model names no Meta.base_manager_name, so Django builds a plain models.Manager "
+            "that adds none."
+        ]
+
+    def test_the_hint_names_both_fixes(self, monkeypatch):
+        """A developer reading this has to be able to act on it without going to the source. Both
+        accepted answers are named, because neither is right for every model: selecting the annotating
+        manager keeps the ordering, and ordering by the lookup expression's own path keeps the base
+        manager Django built."""
+        use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert "Meta.base_manager_name" in errors[0].hint
+        assert "formatted_name_lookup_expression" in errors[0].hint
+
+    def test_a_selected_base_manager_passes(self):
+        """The fix the fixture model declares. Nothing is patched here: this is the model as the rest
+        of the suite uses it, so a regression that broke the accepted configuration would show up as
+        this test failing rather than as noise everywhere."""
+        assert ProductModelOrderingLookupFormattedName.check() == []
+
+    def test_an_inherited_base_manager_passes(self, monkeypatch):
+        """`Meta.base_manager_name` is an ordinary Meta option, so a model inheriting it from an
+        abstract base has selected a manager as surely as one that wrote the line. Reading
+        `Model._base_manager` is what makes that work: Django resolves the name up the MRO before
+        falling back to a manager of its own."""
+        clear_own_base_manager_name(ProductCascadeOrderedByFormattedName, monkeypatch)
+
+        assert ProductCascadeOrderedByFormattedName._meta.base_manager_name is None
+        assert isinstance(ProductCascadeOrderedByFormattedName._base_manager, FormattedNameManager)
+        assert ProductCascadeOrderedByFormattedName.check() == []
+
+    def test_a_base_manager_subclass_passes(self, monkeypatch):
+        """A project that needs a base manager of its own is told to subclass `FormattedNameManager`,
+        so subclassing has to pass."""
+
+        class ArchivedAwareManager(FormattedNameManager):
+            pass
+
+        use_base_manager(ProductModelOrderingLookupFormattedName, ArchivedAwareManager(), monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_a_manager_that_annotates_without_inheriting_passes(self, monkeypatch):
+        """The requirement is the annotation, not one class. A manager that reaches the same result
+        its own way builds a queryset the ordering compiles against, so the model is not in the
+        state this reports, and saying otherwise would send a developer to fix working code."""
+
+        class IndependentlyAnnotatingManager(models.Manager):
+            def get_queryset(self):
+                return super().get_queryset().annotate(**{FORMATTED_NAME: models.F("label")})
+
+        use_base_manager(ProductModelOrderingLookupFormattedName, IndependentlyAnnotatingManager(), monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_a_subclass_that_drops_the_annotation_is_reported(self, monkeypatch):
+        """The other half of the same rule, and the one that would let the failure through. Inheriting
+        `FormattedNameManager` proves nothing on its own: a `get_queryset` that builds a fresh queryset
+        rather than narrowing `super()`'s loses the annotation, and the cascade delete fails exactly as
+        it does with the manager Django builds."""
+
+        class LosesTheAnnotationManager(FormattedNameManager):
+            def get_queryset(self):
+                return models.Manager.get_queryset(self)
+
+        use_base_manager(ProductModelOrderingLookupFormattedName, LosesTheAnnotationManager(), monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert len(errors) == 1
+
+    def test_ordering_by_the_lookup_expression_path_passes(self, monkeypatch):
+        """The other fix. `label` is a real column, so the base manager Django built resolves the
+        ordering without help and there is nothing to report."""
+        use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["label"], monkeypatch)
+
+        assert errors == []
+
+    def test_an_unregistered_model_is_reported(self, monkeypatch):
+        """Why this lives on the model rather than beside `vueda_info.E009`. `Meta.ordering` applies to
+        every queryset of a model whether or not anything registered it, and a cascade delete reaches
+        a model no serializer or viewset has ever named. `ProductCascadeOrderedByFormattedName` is one
+        of those.
+        """
+        from vueda.info.registration import get_all_registrations
+
+        registered_models = {registration["serializer"].Meta.model for registration in get_all_registrations().values()}
+        assert ProductCascadeOrderedByFormattedName not in registered_models
+
+        use_plain_base_manager(ProductCascadeOrderedByFormattedName, monkeypatch)
+
+        errors = [error for error in ProductCascadeOrderedByFormattedName.check() if error.id == "vueda_core.E017"]
+
+        assert len(errors) == 1
+        assert errors[0].obj is ProductCascadeOrderedByFormattedName
+
+    @pytest.mark.parametrize(
+        "term",
+        [
+            pytest.param("formatted_name", id="plain-name"),
+            pytest.param("-formatted_name", id="descending"),
+            pytest.param(models.F("formatted_name").asc(), id="ordering-expression"),
+            pytest.param(Lower("formatted_name"), id="scalar-function"),
+            pytest.param(
+                models.Case(models.When(formatted_name="Apple", then=models.Value(0)), default=models.Value(1)),
+                id="conditional-expression",
+            ),
+        ],
+    )
+    def test_every_term_shape_that_names_formatted_name_is_reported(self, term, monkeypatch):
+        """`order_by()` takes more than a string, and `Meta.ordering` is handed to `order_by()`. Each
+        of these compiles the same unresolvable sort into a base-manager queryset, so each has to be
+        reported.
+
+        Django's own `models.E015` reads only the plain strings — it skips every non-string term — so
+        the three expression shapes are reported by nothing else at all. The conditional is why this
+        check compiles the ordering rather than reading its terms: `formatted_name` appears only
+        inside a `When` condition, which no walk of the term's field references reports.
+        """
+        use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, [term], monkeypatch)
+
+        assert len(errors) == 1
+
+    def test_a_term_django_already_rejects_is_left_at_one_message(self, monkeypatch):
+        """`order_item__formatted_name` reaches OrderItem, which has no such column, so `models.E015`
+        reports the term. The base-manager queryset does fail on it, but pointing at the base manager
+        would send a developer to fix a manager when the term itself is what is wrong."""
+        use_plain_base_manager(InventoryRecord, monkeypatch)
+        monkeypatch.setattr(InventoryRecord._meta, "ordering", ["order_item__formatted_name"])
+
+        errors = InventoryRecord.check()
+
+        assert [error.id for error in errors] == ["models.E015"]
+
+    def test_a_model_whose_default_manager_does_not_annotate_is_left_to_django(self, monkeypatch):
+        """Nothing is withheld from `models.E015` in this state, so the ordering is already reported
+        with an answer of its own. Adding a base-manager error on top would name a second manager to
+        fix while the first one is still the reason nothing resolves."""
+        use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
+        use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_a_model_with_a_formatted_name_column_is_not_reported(self, monkeypatch):
+        """A `GeneratedField` column is a real field on the table, so every manager resolves it and
+        there is no annotation for a base manager to be missing."""
+        use_plain_base_manager(ProductModelOrderingFormattedName, monkeypatch)
+
+        errors = base_manager_check_errors(ProductModelOrderingFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_a_base_manager_name_that_names_nothing_is_not_reported_here(self, monkeypatch):
+        """Django raises `ValueError` for a `Meta.base_manager_name` no manager answers to. That
+        declaration is broken whatever the ordering says, and reporting it as an ordering problem
+        would point at the wrong line."""
+        assert ProductModelOrderingLookupFormattedName._base_manager is not None
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "base_manager_name", "no_such_manager")
+        monkeypatch.delitem(ProductModelOrderingLookupFormattedName._meta.__dict__, "base_manager")
+
+        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
 
 
 @pytest.mark.django_db

@@ -105,6 +105,11 @@ class ProductModelOrderingLookupFormattedName(VuedaModel):
 
     `label` rather than `name` is the source column, so a test asserting rows came back in
     formatted_name order can't be explained by ordering on a field that merely shares the name.
+
+    `base_manager_name = "objects"` points Django's base manager at `FormattedNameManager` too.
+    Without it the base manager is a plain `models.Manager` carrying no annotation, and any
+    base-manager queryset built on this model raises `FieldError` the moment the ordering compiles.
+    `vueda_core.E017` reports a model in that position.
     """
 
     label = models.CharField(max_length=255)
@@ -119,6 +124,7 @@ class ProductModelOrderingLookupFormattedName(VuedaModel):
 
     class Meta(VuedaModel.Meta):
         ordering = ["formatted_name"]
+        base_manager_name = "objects"
 
     def __str__(self):
         return self.label
@@ -161,6 +167,97 @@ class ProductModelOrderingPK(VuedaModel):
 
     class Meta(VuedaModel.Meta):
         ordering = ["pk"]
+
+    def __str__(self):
+        return self.name
+
+
+class ProductCascadeOwner(VuedaModel):
+    """Parent of the cascade-delete regression fixture. Deleting one of these collects the
+    `ProductCascadeOrderedByFormattedName` rows pointing at it, which is where a base manager that
+    can't resolve `Meta.ordering` fails."""
+
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A cascade fixture; history would add an event table and triggers it never exercises."
+
+    def __str__(self):
+        return self.name
+
+
+class AnnotatingBaseManagerModel(VuedaModel):
+    """Abstract base that selects the annotating manager as the base manager for its subclasses.
+
+    `Meta.base_manager_name` is an ordinary Meta option, so a concrete model whose `Meta` inherits
+    this one is selecting `objects` as readily as if it had written the line itself. That is the
+    inheritance `vueda_core.E017` has to honour: it reads `Model._base_manager`, which Django
+    resolves from the inherited option, rather than looking for a literal declaration on the model.
+    """
+
+    class Meta(VuedaModel.Meta):
+        abstract = True
+        base_manager_name = "objects"
+
+
+class ProductCascadeOrderedByFormattedName(AnnotatingBaseManagerModel):
+    """The model a cascade delete collects: no formatted_name column, the value reached through
+    `formatted_name_lookup_expression`, and `Meta.ordering` naming the annotation.
+
+    `Collector.related_objects` builds its queryset from `_base_manager`, and `Collector.collect`
+    evaluates it whenever `can_fast_delete` returned False. That queryset carries this
+    `Meta.ordering`, so the base manager has to be able to resolve `formatted_name` or the delete
+    raises `FieldError`. The `base_manager_name` inherited from `AnnotatingBaseManagerModel.Meta` is
+    what supplies it; `vueda_core.E017` reports the same model without it.
+
+    Nothing registers this model with a serializer or a viewset, so it is also what shows the check
+    reaching a model VUEDA's registry has never heard of.
+
+    `label` rather than `name` is the source column, for the same reason
+    `ProductModelOrderingLookupFormattedName` uses it: an assertion about formatted_name order can't
+    be explained by a field that merely shares the name.
+    """
+
+    owner = models.ForeignKey(ProductCascadeOwner, on_delete=models.CASCADE, related_name="ordered_rows")
+    label = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "label"
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A cascade fixture; history would add an event table and triggers it never exercises."
+
+    class Meta(AnnotatingBaseManagerModel.Meta):
+        ordering = ["formatted_name"]
+
+    def __str__(self):
+        return self.label
+
+
+class ProductCascadeOrderedNote(VuedaModel):
+    """What keeps the cascade off Django's fast-delete path.
+
+    `Collector.can_fast_delete` refuses a model that anything else cascades from, so this foreign key
+    is the whole reason for the model: without it Django deletes the
+    `ProductCascadeOrderedByFormattedName` rows with a single query that never evaluates the
+    collected queryset, and the ordering never compiles. A delete signal receiver would do the same
+    job, but a receiver connected at import time is global to the suite while a table nothing else
+    touches is inert.
+    """
+
+    ordered_row = models.ForeignKey(
+        ProductCascadeOrderedByFormattedName, on_delete=models.CASCADE, related_name="notes"
+    )
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A cascade fixture; history would add an event table and triggers it never exercises."
 
     def __str__(self):
         return self.name
