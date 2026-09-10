@@ -55,6 +55,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 ROOT_URLCONF = "tests.root_urls"
 SECRET_KEY = "test_secret_key"
 
+# Tests authenticate with `force_authenticate` or `check_password`, never by verifying a slow hash.
+# The project default (scrypt) costs ~150ms per call, which dominated setup in every test class
+# that builds users. Override it here rather than in `vueda.core.default_settings`, which ships.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 # Settings needed to see the permissions and workflows views.
 CACHES = {
     "default": {

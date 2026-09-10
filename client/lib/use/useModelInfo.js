@@ -72,7 +72,7 @@ export function useModelInfo(app, model, isActive) {
                 fields: {},
                 actions: [],
                 expand: [],
-                ordering: [],
+                ordering: { default: [], fields: [] },
                 filtering: {},
                 permissions: [],
             }),

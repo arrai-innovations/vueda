@@ -27,6 +27,19 @@ class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
     class Meta:
         fields = ["workflow_state_code", "workflow_state_name", "valid_transitions"]
 
+    def get_field_model_info(self, fields):
+        """
+        workflow_state_code/workflow_state_name source through HasWorkflowModelMixin.workflow_state, a
+        @property with no model field of its own, so resolve_serializer_field_model_field can never
+        describe their type_db/type_model: State.code and State.name are always real CharFields.
+        """
+        fields = super().get_field_model_info(fields)
+        for field_name in ("workflow_state_code", "workflow_state_name"):
+            if field_name in fields:
+                fields[field_name]["type_db"] = "CharField"
+                fields[field_name]["type_model"] = "CharField"
+        return fields
+
 
 class StateSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):
     class Meta:
@@ -349,14 +362,14 @@ class WorkflowSerializer(
                                 ],
                                 "readonly": True,
                             },
-                            "current_history_id": {
-                                "type": "integer",
+                            "object_state_revision": {
+                                "type": "string",
                                 "readonly": True,
                             },
                         },
                         "required": [
                             "state",
-                            "current_history_id",
+                            "object_state_revision",
                         ],
                     }
 
@@ -369,7 +382,7 @@ class WorkflowSerializer(
                                     "code": "order_packed",
                                     "name": "Order Packed",
                                 },
-                                "current_history_id": "1234",
+                                "object_state_revision": "vueda_workflow.ObjectState:1234",
                             },
                         },
                         "GetObjectStateExample": {
@@ -601,7 +614,7 @@ class WorkflowSerializer(
                                 "new_state": {
                                     "code": "packed",
                                     "name": "Packed",
-                                    "current_history_id": 2,
+                                    "object_state_revision": "vueda_workflow.ObjectState:2",
                                 },
                                 "new_transitions": [
                                     {
@@ -626,7 +639,7 @@ class WorkflowSerializer(
                                     "new_state": {
                                         "code": "packed",
                                         "name": "Packed",
-                                        "current_history_id": 3,
+                                        "object_state_revision": "vueda_workflow.ObjectState:3",
                                     },
                                     "new_transitions": [
                                         {
@@ -643,7 +656,7 @@ class WorkflowSerializer(
                                     "new_state": {
                                         "code": "packed",
                                         "name": "Packed",
-                                        "current_history_id": 4,
+                                        "object_state_revision": "vueda_workflow.ObjectState:4",
                                     },
                                     "new_transitions": [
                                         {

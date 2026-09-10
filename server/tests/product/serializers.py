@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
 from tests.product.models import Product
+from tests.product.models import ProductModelOrderingFormattedName
+from tests.product.models import ProductModelOrderingLookupFormattedName
+from tests.product.models import ProductModelOrderingPK
 from vueda.core.serializers import VuedaSerializer
 
 
@@ -10,3 +13,52 @@ class ProductSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = Product
         fields = ["id", "name", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
+
+
+class ProductRenamedFieldSerializer(ProductSerializer):
+    """Exposes Product.name under the serializer field name `title`, so tests can tell whether ordering
+    resolves against the model's own field names or the serializer's."""
+
+    title = serializers.CharField()
+
+    class Meta(ProductSerializer.Meta):
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
+
+
+class ProductSourceFieldSerializer(ProductSerializer):
+    """Exposes Product.name under the serializer field name `title` via an explicit `source="name"`,
+    with no matching queryset annotation, so tests can tell whether ordering resolves against a
+    serializer field's exposed name or its underlying source."""
+
+    title = serializers.CharField(source="name")
+
+    class Meta(ProductSerializer.Meta):
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
+
+
+class ProductPropertyFieldSerializer(ProductSerializer):
+    """Exposes the Product.computed_title model property under the serializer field name `title`, so
+    tests can tell whether ordering resolves against a serializer field sourced from a model property."""
+
+    title = serializers.CharField(source="computed_title")
+
+    class Meta(ProductSerializer.Meta):
+        fields = ["id", "title", "available_for_sale", "buzz_words"] + VuedaSerializer.Meta.fields
+
+
+class ProductModelOrderingPKSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingPK
+        fields = ["id", "name"] + VuedaSerializer.Meta.fields
+
+
+class ProductModelOrderingFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingFormattedName
+        fields = ["id", "name"] + VuedaSerializer.Meta.fields
+
+
+class ProductModelOrderingLookupFormattedNameSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingLookupFormattedName
+        fields = ["id"] + VuedaSerializer.Meta.fields

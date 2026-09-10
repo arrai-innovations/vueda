@@ -22,7 +22,7 @@
   },
   "scripts": {
     "test": "npx --no-install vitest run",
-    "coverage": "npm test -- run --coverage",
+    "coverage": "npm test -- --coverage",
     "lint": "pnpm -C .. exec eslint --no-warn-ignored --cache client",
     "format": "pnpm -C .. exec prettier --check client",
     "eslint": "pnpm -C .. exec eslint --no-warn-ignored --cache --fix client",
@@ -32,14 +32,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arrai-innovations/vueda-client.git"
+    "url": "git+https://github.com/arrai-innovations/vueda.git"
   },
   "author": "Arrai Innovations Inc. <developers@arrai.com>",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/arrai-innovations/vueda-client/issues"
+    "url": "https://github.com/arrai-innovations/vueda/issues"
   },
-  "homepage": "https://github.com/arrai-innovations/vueda-client#readme",
+  "homepage": "https://vueda.dev/v3/",
   "devDependencies": {
     "@arrai-innovations/vue-sonner": "^2.0.11",
     "@rollup/plugin-strip": "^3.0.4",
@@ -48,8 +48,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.1",
-    "@vitest/coverage-istanbul": "^3.1.2",
-    "@vitest/coverage-v8": "^3.0.8",
+    "@vitest/coverage-istanbul": "^3.2.7",
     "@vue/test-utils": "^2.4.6",
     "del-cli": "^6.0.0",
     "flush-promises": "^1.0.2",
@@ -62,7 +61,7 @@
     "typescript": "^5.9.3",
     "vite": "^6.3.3",
     "vite-plugin-circular-dependency": "^0.2.1",
-    "vitest": "^3.1.2",
+    "vitest": "^3.2.7",
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {

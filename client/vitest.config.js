@@ -1,9 +1,14 @@
 import viteConfig from "./vite.config.js";
 import { defineConfig, mergeConfig } from "vitest/config";
 
-export default defineConfig((configEnv) =>
-    mergeConfig(
-        viteConfig(configEnv),
+export default defineConfig((configEnv) => {
+    const testViteConfig = viteConfig(configEnv);
+    // Unit tests need Vue SFC transforms, but not Tailwind generation or the
+    // Rollup-only circular dependency check from the development/build config.
+    testViteConfig.plugins = testViteConfig.plugins.flat().filter((plugin) => plugin?.name === "vite:vue");
+
+    return mergeConfig(
+        testViteConfig,
         defineConfig({
             test: {
                 watch: false,
@@ -24,5 +29,5 @@ export default defineConfig((configEnv) =>
                 setupFiles: ["tests/unit/vitest-setup.js"],
             },
         }),
-    ),
-);
+    );
+});

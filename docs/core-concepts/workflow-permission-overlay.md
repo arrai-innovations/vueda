@@ -45,7 +45,7 @@ Create requests do not defer. A new object has no current workflow state, so sta
 
 This deferral belongs to `ObjectPermissions` alone. `HasWorkflowViewMixin` does not suppress permission failures from authentication, composite permission expressions, or other application permission classes. A matching state grant can make `ObjectPermissions` pass while another permission class still denies the complete request.
 
-`WorkflowObjectPermissions`, used by the separate workflow endpoint surface, retains its broader model-scope bypass when any state-permission row exists for the target workflow. Workflow endpoints add their own workflow, object, and transition checks; this behavior is separate from model viewsets using `ObjectPermissions`.
+The workflow endpoint surface follows the same deferral rule. {@api py:class:vueda.core.permissions.DynamicObjectPermissions} and the `WorkflowObjectPermissions` class built on it defer a model-scope denial only for an action that decides against each concrete object it touches, and only when a state grant matches the caller's groups, the requested codename, the model content type, and the workflow. An unrelated state rule admits nothing. Both classes call the same {@api py:function:vueda.core.permissions.has_matching_state_grant} rule that `ObjectPermissions` calls, so the workflow surface and model viewsets share one answer.
 
 Deferral can change the failure shape. Without a matching state grant, a user missing a model permission sees `403` at model scope. When a matching grant defers an object action, denial for the eventual object's state commonly becomes `404`, hiding the object's existence. A state-granted list returns `200` with only effectively authorized rows and may be empty when no current rows match the grant.
 
@@ -61,15 +61,33 @@ Transition execution requires passing three distinct gates, each checked indepen
 
 Permission check failures at the transition level surface differently depending on the endpoint. {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions} returns `403` when the user lacks workflow-level permission. `execute_transition` converts `PermissionDenied` and `InvalidTransitionError` into `400` validation-style responses rather than HTTP-level authorization rejections. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400`.
 
-The viewset-level gate for all workflow endpoints is `vueda_workflow.read_workflow`. This check runs during `check_permissions`, before any object-specific or transition-specific logic. A user who lacks this permission sees `403` on all workflow endpoints, object state, permitted transitions, and execute transition, regardless of their other permissions.
+## Which Gate Each Workflow Endpoint Applies
 
-`permitted_transitions` skips this gate for an `app_label/model` pair with no configured workflow: it falls through to the target model's own `read` permission check instead, and returns `200` with an empty transition list once that check passes. The gate applies as described above as soon as a workflow is configured for the model.
+`vueda_workflow.read_workflow` admits a caller to workflow definitions and operations. It does not grant access to concrete object data. The target model's own `read` permission controls current state and workflow state history, and stays a prerequisite for object-specific transition operations.
+
+| Endpoint                                      | Target-model gate                      | Global workflow gate           | Configured workflow and transition gates                                                                                |
+| --------------------------------------------- | -------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Workflow list and detail                      | None                                   | `vueda_workflow.read_workflow` | None                                                                                                                    |
+| Current object state                          | Object-level `read_*`                  | None                           | None                                                                                                                    |
+| Workflow state history                        | Object-level `read_*`                  | None                           | None                                                                                                                    |
+| Permitted transitions, no configured workflow | Model-level `read_*`                   | None                           | Returns `[]` with no further checks                                                                                     |
+| Permitted transitions, configured workflow    | Model-level `read_*`                   | `vueda_workflow.read_workflow` | Configured workflow permissions at model scope, then transitions filtered by their own permissions                      |
+| Object transitions                            | Object-level `read_*`                  | `vueda_workflow.read_workflow` | Configured workflow permissions against the object, transition permissions against the object, and a valid source state |
+| Execute transition, detail or bulk            | Object-level `read_*` for every object | `vueda_workflow.read_workflow` | The same three, against every object                                                                                    |
+
+Transition execution does not require the target model's `update_*` permission. Workflow and transition permissions authorize the state-machine mutation; `update_*` authorizes the separate capability to edit ordinary model fields. To restrict execution from a particular state, target the relevant workflow or transition permission codename.
+
+GET and HEAD apply the same read checks, including state grants and denies.
+
+Model-level transition discovery has no concrete object and so cannot read a state. State grants therefore never admit `permitted_transitions`.
+
+Transition execution rechecks object permissions after acquiring the row lock, so a state change since the initial check cannot bypass object read or an additional permission class. A bulk execute request reports an object the caller cannot read with the `404` a missing id produces, wording included, and rolls back the entire batch. The response never says which of the submitted ids exist.
 
 ## Client {@term Action Namespace} Overlay
 
 On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
 
-This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUDL actions and transition codes. `ViewActionRouter` resolves transition codes to `ViewWorkflowTransition`, while standard CRUDL codes resolve to their built-in view components.
+This means a transition with code `approve` is admissible in the same way that `update` or `destroy` is admissible; the route guard checks membership in the combined set without distinguishing between CRUDL actions and transition codes. `ViewActionRouter` resolves a transition code with no project-supplied override to `ViewExecuteTransition`, while standard CRUDL codes resolve to their built-in view components. A project can still override either: `ViewAction{App}{Model}{Code}.vue` and `ViewAction{Code}.vue` take priority over `ViewExecuteTransition` for a matching transition code, the same way they take priority over `ViewAction` for a CRUDL action.
 
 The guard requires that every transition object have a valid `code` property. The server enforces `code` as a required, non-blank field, so this invariant holds in normal operation. The guard throws (`requireModelInfo: workflow transition is missing a string code`) as a defensive check against data integrity violations rather than silently treating the transition as unavailable. If this error surfaces, the cause is a data integrity violation or a server-side bug, not an expected runtime condition. The error bypasses the guard's normal redirect/toast path and surfaces as an unhandled exception in the navigation flow.
 
@@ -85,6 +103,8 @@ The workflow store caches both successful transition lists and fetch errors per 
 
 **Transition is absent from `permitted_transitions` despite existing in the workflow.** Symptom: expected transition never appears for any user. Cause: the transition has no `TransitionPermission` rows. Transitions without permission rows are excluded, not default-allowed.
 
+**An object endpoint returns `403` while the workflow list returns `200`.** Symptom: the caller reads workflow definitions but cannot read one object's state or history. Cause: `read_workflow` admits the caller to the definitions only. Object state and workflow state history follow the target object's own `read` permission.
+
 **`permitted_transitions` returns `403`.** Symptom: no transitions are available for the model. Cause: for a model with a configured workflow, the user lacks `vueda_workflow.read_workflow`, or no `WorkflowPermission` rows exist for the workflow's content type and the user's groups. For a model with no configured workflow, the cause is instead the user lacking `read` permission for that model; a readable model with no workflow returns `200` with an empty list, not `403`.
 
 **Transition execution returns `400` validation error.** Multiple possible causes: the transition is not valid from the object's current state (`InvalidTransitionError`), the user lacks transition-level permission (`PermissionDenied`), or the row lock cannot be acquired. Check the error message to distinguish between these cases.
@@ -96,6 +116,9 @@ The workflow store caches both successful transition lists and fetch errors per 
 ## Relevant Implementation Surface
 
 - {@api py:function:vueda.core.permissions.ObjectPermissions.has_permission}
+- {@api py:function:vueda.core.permissions.has_matching_state_grant}
+- {@api py:class:vueda.core.permissions.DynamicObjectPermissions}
+- {@api py:class:vueda.core.views.DynamicObjectView}
 - {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
 - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}
@@ -107,4 +130,6 @@ The workflow store caches both successful transition lists and fetch errors per 
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
+- {@api py:function:vueda.history.views.WorkflowStateHistoryView.get}
+- {@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}
 - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}

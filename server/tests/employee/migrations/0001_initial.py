@@ -4,7 +4,6 @@ import django.contrib.postgres.indexes
 import django.db.models.deletion
 import django.db.models.functions.comparison
 import django.utils.timezone
-import simple_history.models
 from django.conf import settings
 from django.contrib.postgres.operations import CreateCollation
 from django.contrib.postgres.operations import TrigramExtension
@@ -173,7 +172,7 @@ class Migration(migrations.Migration):
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
             },
-            bases=(simple_history.models.HistoricalChanges, models.Model),
+            bases=(models.Model,),
         ),
         TrigramExtension(),
         migrations.AddIndex(

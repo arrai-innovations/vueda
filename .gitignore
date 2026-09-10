@@ -27,6 +27,7 @@ site/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 docs/.vitepress/.temp/
+docs/.vitepress/config.mjs.timestamp-*
 docs/api/
 docs/reference/api/
 docs/reference/theming/tokens/

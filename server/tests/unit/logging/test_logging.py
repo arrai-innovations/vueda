@@ -58,8 +58,6 @@ def log_to_db(settings):
 class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("logging", "LogRecords", "create"),
             ("logging", "LogRecords", "read"),
             ("logging", "LogRecords", "update"),

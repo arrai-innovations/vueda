@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.test import override_settings
 from django.urls import reverse
 
 from tests.conftest import response_body
@@ -203,27 +202,28 @@ def test_twilio_webhook_fetches_twilio_message_for_error_code(monkeypatch, api_c
 
 
 @pytest.mark.django_db
-def test_private_attachment_view_returns_file(api_client, sender, receiver, tmp_path):
-    with override_settings(MEDIA_ROOT=tmp_path):
-        queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-        detail = AnyMailQueueItem.objects.create(queue_item=queue_item, subject="Subject", text="Body", html="")
-        attachment = AnyMailQueueItemAttachment.objects.create(
-            attachment=ContentFile(b"attachment-data", name="doc.txt"),
-            filename="doc.txt",
-            mimetype="text/plain",
-            content_id_string="cid",
-        )
-        detail.attachments.add(attachment)
+def test_private_attachment_view_returns_file(settings, api_client, sender, receiver, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
 
-        user = get_user_model().objects.create_user(email="user@domain.invalid", password="pass", name="User")
-        api_client.force_authenticate(user=user)
+    queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    detail = AnyMailQueueItem.objects.create(queue_item=queue_item, subject="Subject", text="Body", html="")
+    attachment = AnyMailQueueItemAttachment.objects.create(
+        attachment=ContentFile(b"attachment-data", name="doc.txt"),
+        filename="doc.txt",
+        mimetype="text/plain",
+        content_id_string="cid",
+    )
+    detail.attachments.add(attachment)
 
-        response = api_client.get(reverse("private_attachment", kwargs={"pk": attachment.pk}))
+    user = get_user_model().objects.create_user(email="user@domain.invalid", password="pass", name="User")
+    api_client.force_authenticate(user=user)
 
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response["Content-Type"] == "text/plain"
-        content = b"".join(response.streaming_content)
-        assert content == b"attachment-data"
+    response = api_client.get(reverse("private_attachment", kwargs={"pk": attachment.pk}))
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response["Content-Type"] == "text/plain"
+    content = b"".join(response.streaming_content)
+    assert content == b"attachment-data"
 
 
 @pytest.mark.django_db

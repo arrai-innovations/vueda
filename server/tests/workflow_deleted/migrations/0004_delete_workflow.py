@@ -11,55 +11,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicaltransitionsource
-                (
-                    id,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    source_id,
-                    transition_id,
-                    ignored
-                )
-                SELECT
-                    T.id,
-                    '2024-05-15 20:00:01',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    T.id,
-                    USER_SYSTEM.id,
-                    T.source_id,
-                    T.transition_id,
-                    T.ignored
-                FROM
-                    vueda_workflow_transitionsource T,
-                    USER_SYSTEM
-                WHERE
-                    transition_id IN (
-                        SELECT
-                            WT.id
-                        FROM
-                            vueda_workflow_transition WT
-                        JOIN
-                            vueda_workflow_workflow W ON WT.workflow_id = W.id
-                        WHERE
-                            W.code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="""
                 DELETE FROM
                     vueda_workflow_transitionsource
                 WHERE
@@ -187,59 +138,6 @@ class Migration(migrations.Migration):
                         ),
                         FALSE
                     );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicaltransitionpermission
-                (
-                    id,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    permission_id,
-                    historical_permission_codename,
-                    historical_permission_content_type_app_label,
-                    historical_permission_content_type_model_name,
-                    transition_id
-                )
-                SELECT
-                    T.id,
-                    '2024-05-15 20:00:02',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    T.id,
-                    USER_SYSTEM.id,
-                    T.permission_id,
-                    T.historical_permission_codename,
-                    T.historical_permission_content_type_app_label,
-                    T.historical_permission_content_type_model_name,
-                    T.transition_id
-                FROM
-                    vueda_workflow_transitionpermission T,
-                    USER_SYSTEM
-                WHERE
-                    transition_id IN (
-                        SELECT
-                            WT.id
-                        FROM
-                            vueda_workflow_transition WT
-                        JOIN
-                            vueda_workflow_workflow W ON WT.workflow_id = W.id
-                        WHERE
-                            W.code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""
@@ -384,55 +282,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicaltransition
-                (
-                    id,
-                    code,
-                    name,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    target_id,
-                    workflow_id
-                )
-                SELECT
-                    T.id,
-                    T.code,
-                    T.name,
-                    '2024-05-15 20:00:03',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    T.id,
-                    USER_SYSTEM.id,
-                    T.target_id,
-                    T.workflow_id
-                FROM
-                    vueda_workflow_transition T,
-                    USER_SYSTEM
-                WHERE
-                    workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            vueda_workflow_workflow
-                        WHERE
-                            code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="""
                 DELETE FROM
                     vueda_workflow_transition
                 WHERE
@@ -538,83 +387,6 @@ class Migration(migrations.Migration):
                                 )
                         )
                     );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicalstatepermission
-                (
-                    id,
-                    grant_or_deny,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    group_id,
-                    history_relation_id,
-                    history_user_id,
-                    permission_id,
-                    historical_permission_codename,
-                    historical_permission_content_type_app_label,
-                    historical_permission_content_type_model_name,
-                    historical_group_name,
-                    state_id
-                )
-                SELECT
-                    S.id,
-                    S.grant_or_deny,
-                    '2024-05-15 20:00:04',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    S.group_id,
-                    S.id,
-                    USER_SYSTEM.id,
-                    S.permission_id,
-                    S.historical_permission_codename,
-                    S.historical_permission_content_type_app_label,
-                    S.historical_permission_content_type_model_name,
-                    S.historical_group_name,
-                    S.state_id
-                FROM
-                    vueda_workflow_statepermission S,
-                    USER_SYSTEM
-                WHERE
-                    S.state_id IN (
-                        SELECT
-                            WS.id
-                        FROM
-                            vueda_workflow_state WS
-                        JOIN
-                            vueda_workflow_workflow W ON WS.workflow_id = W.id
-                        WHERE
-                            W.code = 'deleted_workflow'
-                    )
-                    AND
-                    S.permission_id IN (
-                        SELECT
-                            id
-                        FROM
-                            auth_permission
-                        WHERE
-                            codename IN ('can_do_something', 'can_do_something_else', 'update_workflowdeleted')
-                            AND content_type_id = (
-                                SELECT
-                                    id
-                                FROM
-                                    django_content_type
-                                WHERE
-                                    app_label = 'workflow_deleted'
-                                    AND model = 'workflowdeleted'
-                            )
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""
@@ -788,51 +560,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicalinitialstate
-                (
-                    id,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    state_id,
-                    workflow_id
-                )
-                SELECT
-                    I.id,
-                    '2024-05-15 20:00:05',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    I.id,
-                    USER_SYSTEM.id,
-                    I.state_id,
-                    I.workflow_id
-                FROM
-                    vueda_workflow_initialstate I,
-                    USER_SYSTEM
-                WHERE
-                    I.workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            vueda_workflow_workflow
-                        WHERE
-                            code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="""
                 DELETE FROM
                     vueda_workflow_initialstate
                 WHERE
@@ -878,53 +605,6 @@ class Migration(migrations.Migration):
                                 )
                         )
                     );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicalstate
-                (
-                    id,
-                    code,
-                    name,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    workflow_id
-                )
-                SELECT
-                    S.id,
-                    S.code,
-                    S.name,
-                    '2024-05-15 20:00:06',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    S.id,
-                    USER_SYSTEM.id,
-                    S.workflow_id
-                FROM
-                    vueda_workflow_state S,
-                    USER_SYSTEM
-                WHERE
-                    S.workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            vueda_workflow_workflow
-                        WHERE
-                            code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""
@@ -984,57 +664,6 @@ class Migration(migrations.Migration):
                                 code = 'deleted_workflow'
                         )
                     );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicalworkflowpermission
-                (
-                    id,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    history_relation_id,
-                    history_user_id,
-                    permission_id,
-                    historical_permission_codename,
-                    historical_permission_content_type_app_label,
-                    historical_permission_content_type_model_name,
-                    workflow_id
-                )
-                SELECT
-                    W.id,
-                    '2024-05-15 20:00:07',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    W.id,
-                    USER_SYSTEM.id,
-                    W.permission_id,
-                    W.historical_permission_codename,
-                    W.historical_permission_content_type_app_label,
-                    W.historical_permission_content_type_model_name,
-                    W.workflow_id
-                FROM
-                    vueda_workflow_workflowpermission W,
-                    USER_SYSTEM
-                WHERE
-                    workflow_id IN (
-                        SELECT
-                            id
-                        FROM
-                            vueda_workflow_workflow
-                        WHERE
-                            code = 'deleted_workflow'
-                    );""",
-            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""
@@ -1202,50 +831,6 @@ class Migration(migrations.Migration):
                     (
                         'WorkflowDeletedWorker'
                     );""",
-        ),
-        migrations.RunSQL(
-            sql="""
-                WITH USER_SYSTEM AS (
-                    SELECT
-                        id
-                    FROM
-                        employee_user
-                    WHERE
-                        is_system = TRUE
-                )
-                INSERT INTO
-                    vueda_workflow_historicalworkflow
-                (
-                    id,
-                    code,
-                    name,
-                    historical_app_label,
-                    historical_model,
-                    history_date,
-                    history_change_reason,
-                    history_type,
-                    content_type_id,
-                    history_relation_id,
-                    history_user_id
-                )
-                SELECT
-                    W.id,
-                    W.code,
-                    W.name,
-                    'workflow_deleted',
-                    'workflowdeleted',
-                    '2024-05-15 20:00:08',
-                    'Migration - 0004_delete_workflow',
-                    '-',
-                    W.content_type_id,
-                    W.id,
-                    USER_SYSTEM.id
-                FROM
-                    vueda_workflow_workflow W,
-                    USER_SYSTEM
-                WHERE
-                    W.code = 'deleted_workflow';""",
-            reverse_sql=migrations.RunSQL.noop,
         ),
         migrations.RunSQL(
             sql="""

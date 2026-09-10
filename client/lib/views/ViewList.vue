@@ -368,6 +368,7 @@ onMounted(() => {
                         v-if="sort.canShowSorter"
                         hosted
                         :sorted="sort.sorting.state.sorted"
+                        :default-sorted="sort.defaultSorted"
                         :field-details="modelConfig.config?.fieldDetails || {}"
                         @update:sorted="sort.sorting.updateSorted"
                     >

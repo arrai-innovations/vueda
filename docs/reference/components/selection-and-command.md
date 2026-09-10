@@ -64,11 +64,12 @@ brief: values (color, dimension, duration) belong in
 [CSS tokens](../theming/tokens.md); compositions (class arrangements,
 state recipes) belong in [theme keys](../theming/keys.md).
 
-Every cell below is a live component, open panels included. The open-content and
-open-list cells force-mount a real panel with its side pinned, so each one lands
-in the reserved space beneath its trigger instead of following a pointer. Because
-those panels are positioned by floating-ui they cannot sit in normal grid flow,
-which is why they get their own reserved column rather than a grid cell.
+Every cell below is a live component, open panels included. Open the Select
+anatomy panel with its trigger; it locks page scrolling while open and releases
+it when dismissed. The Combobox open-list cells force-mount real panels in
+reserved space beneath their triggers. Because those panels are positioned by
+floating-ui they cannot sit in normal grid flow, which is why they get their
+own reserved column rather than a grid cell.
 
 ## Select: state matrix
 
@@ -197,15 +198,15 @@ Token surface: {@api css-token:border} (trigger stroke),
       <span>no lg variant on SelectTrigger</span>
     </template>
   </DemoCard>
-  <DemoCard title="open content anatomy" description=" (groups, labels, separator, indicator, selected, disabled, live)" class="sm:col-span-2">
-    <div class="flex flex-col items-start pb-72">
-      <StateLabel>content panel, force-mounted open</StateLabel>
+  <DemoCard title="content anatomy" description=" (groups, labels, separator, indicator, selected, disabled, live)" class="sm:col-span-2">
+    <div class="flex flex-col items-start">
+      <StateLabel>click to open the content panel</StateLabel>
       <ClientOnly>
-        <Select default-value="net30" :open="true">
-          <SelectTrigger class="w-52" @escape-key-down.prevent>
+        <Select default-value="net30">
+          <SelectTrigger class="w-52">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent force-mount side="bottom" align="start" :side-offset="6" :avoid-collisions="false" @escape-key-down.prevent @pointer-down-outside.prevent>
+          <SelectContent side="bottom" align="start" :side-offset="6">
             <SelectGroup>
               <SelectLabel>Standard</SelectLabel>
               <SelectItem value="net30">Net 30</SelectItem>
@@ -227,7 +228,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       <span>the check indicator is <code>SelectItem</code>'s own <code>SelectItemIndicator</code>, driven by <code>data-state=checked</code> on the selected value</span>
       <span>"Contract terms" carries the real <code>disabled</code> prop, which sets the <code>data-disabled</code> the theme keys off</span>
       <span>highlight is <code>focus:bg-accent</code>; hover or arrow-key through the rows to see it, since only one row can hold focus at a time</span>
-      <span>side and collision avoidance are pinned so the panel lands in the card's reserved space; the trigger stays live but cannot close it</span>
+      <span>select an enabled item, press Escape, or click outside to close the panel and restore page scrolling</span>
     </template>
   </DemoCard>
 </VuedaDemo>

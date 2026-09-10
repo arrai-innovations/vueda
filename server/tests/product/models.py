@@ -1,19 +1,49 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Reverse
 
+from vueda.core.models import FormattedNameManager
+from vueda.core.models import VuedaModel
 from vueda.core.permissions import BaseRowLevelPermissions
-from vueda.history.models import VuedaHistoryModel
 
 
-class Product(VuedaHistoryModel):
+class ProductManager(FormattedNameManager):
+    """Puts `reversed_name` on every Product queryset, before any viewset touches it.
+
+    A fixture for the one thing only a manager can demonstrate: `ordering_fields = "__all__"`
+    resolves against `queryset.query.annotations`, so it has to pick up an annotation the *model's*
+    default manager added as readily as one a viewset's `get_queryset` added. VUEDA carried such an
+    annotation of its own until `object_revision` replaced it and moved to
+    `VuedaViewSet.get_queryset`, which left nothing exercising the manager half of that behaviour.
+
+    Inherits `FormattedNameManager` rather than `models.Manager` because a VUEDA model that declares
+    its own `objects` shadows the default manager and takes the `formatted_name` annotation with it —
+    the mistake `vueda_info.E009` reports, and the reason the inheritance is documented on
+    `FormattedNameManager` itself.
+
+    `reverse()` reads one column and needs no join or subquery, so the annotation costs nothing on
+    the other Product tests it now rides along on. It also sorts the ordering fixtures into an order
+    nothing else in those tests produces — "Banana", "Apple", "Cherry", against `name`'s "Apple",
+    "Banana", "Cherry", `-name`'s reverse of that, and insertion order's "Cherry", "Apple",
+    "Banana" — so an assertion on that order can only be explained by the annotation.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(reversed_name=Reverse("name"))
+
+
+class Product(VuedaModel):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
     buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
 
-    class Meta(VuedaHistoryModel.Meta):
+    objects = ProductManager()
+
+    class Meta(VuedaModel.Meta):
         default_related_name = "products"
         ordering = ["name"]
+        permissions = [("manage_product", "Can manage products"), ("purchase_product", "Can purchase products")]
 
     class RowLevelPermissions(BaseRowLevelPermissions):
         @classmethod
@@ -51,6 +81,86 @@ class Product(VuedaHistoryModel):
                 return True
 
             return False
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def computed_title(self):
+        """A plain Python property (no underlying column), so ordering tests can prove DRF excludes
+        serializer fields sourced from model properties when resolving default ordering fields."""
+        return self.name
+
+
+class ProductModelOrderingLookupFormattedName(VuedaModel):
+    """Declares formatted_name as the model's own default ordering, on a model that has no
+    formatted_name column and reaches the value through `formatted_name_lookup_expression` instead.
+    `FormattedNameManager` annotates that expression onto every queryset the model builds under the
+    name `formatted_name`, so the database sorts the annotation — which is what lets a `Meta.ordering`
+    naming it work on any queryset, not just the ones a viewset builds.
+
+    Declared as the plain string "formatted_name", which is what `FormattedNameBaseModel._check_ordering`
+    makes possible: Django's `models.E015` resolves `Meta.ordering` names against the model's own
+    fields, where the annotation doesn't exist yet, and would reject it.
+
+    `label` rather than `name` is the source column, so a test asserting rows came back in
+    formatted_name order can't be explained by ordering on a field that merely shares the name.
+    """
+
+    label = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "label"
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["formatted_name"]
+
+    def __str__(self):
+        return self.label
+
+
+class ProductModelOrderingFormattedName(VuedaModel):
+    """Declares formatted_name as the model's own `Meta.ordering`.
+
+    VuedaModel gives it a `formatted_name` generated-field column, so Django resolves the term like
+    any other field and no check has to make room for it — unlike
+    ProductModelOrderingLookupFormattedName, which declares the same ordering over an annotation.
+    The third strategy, a `get_formatted_name()` method, still can't be named here: nothing gives the
+    database a value to sort, so `models.E015` rejects it and `vueda_info.E005` says why.
+    """
+
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["formatted_name"]
+
+    def __str__(self):
+        return self.name
+
+
+class ProductModelOrderingPK(VuedaModel):
+    """Declares the "pk" alias as the model's own `Meta.ordering`, so ordering tests have a model
+    Django itself loaded that way rather than one with a patched `Meta.ordering`."""
+
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
+    class Meta(VuedaModel.Meta):
+        ordering = ["pk"]
 
     def __str__(self):
         return self.name

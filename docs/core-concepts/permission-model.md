@@ -70,7 +70,7 @@ Transition execution is a separate authorization surface from CRUDL operations. 
 
 Transitions without transition-permission rows are not permitted (no default-allow path).
 
-Workflow endpoints impose an additional viewset-level gate: the `vueda_workflow.read_workflow` permission must be present before any workflow endpoint (object state, permitted transitions, execute transition) processes. This check runs at the viewset `check_permissions` phase, before object-specific authorization.
+Workflow endpoints impose an additional viewset-level gate: `vueda_workflow.read_workflow` admits a caller to workflow definitions, transition discovery, and transition execution. It is not a gate on concrete object data. Current object state and workflow state history follow the target object's own `read` permission and do not require it. This check runs at the viewset `check_permissions` phase, before object-specific authorization. See [Workflow as a Permission Overlay](./workflow-permission-overlay) for the gate each endpoint applies.
 
 `permitted_transitions` gates on `read_workflow` only when a workflow is configured for the requested `app_label/model` pair. A model with no configured workflow skips that gate and falls through to the target model's own `read` permission check, so the endpoint returns `200` with an empty transition list for any user who can read the model, without requiring `read_workflow`. A denial for a model with a configured workflow is unaffected by this exception.
 
@@ -88,7 +88,7 @@ Permission denials surface as different HTTP status codes, depending on the laye
 
 **Bulk delete with mixed eligibility produces `400`.** When a bulk-`delete` request includes PKs that are partially filtered out by row-level or object-level checks, the entire operation fails. No rows are deleted. The response is a `400` with validation errors keyed by PK, using the message `"Object with pk=... does not exist."`; the same message used for genuinely missing PKs, which hides the distinction between "does not exist" and "exists but not permitted."
 
-**Workflow endpoint denial produces `403` before object checks.** If the user lacks `vueda_workflow.read_workflow`, all workflow endpoints return `403` before any object-specific logic runs. This can mask the actual authorization outcome; the user might have object-level permissions, but the viewset-level gate prevents the evaluation from reaching the point where those permissions would be evaluated. `permitted_transitions` for a model with no configured workflow is the exception: it never reaches the `read_workflow` gate, so a `403` from that request reflects the target model's `read` permission instead.
+**Workflow endpoint denial produces `403` before object checks.** If the user lacks `vueda_workflow.read_workflow`, workflow definitions, transition discovery, and transition execution return `403` before any object-specific logic runs. This can mask the actual authorization outcome; the user might have object-level permissions, but the viewset-level gate prevents the evaluation from reaching the point where those permissions would be evaluated. Two requests never reach this gate: current object state and workflow state history report the target object's own data, so a `403` from either reflects that object's `read` permission. `permitted_transitions` for a model with no configured workflow also skips the gate, so its `403` reflects the target model's `read` permission instead.
 
 **Transition execution failures produce `400`.** When `apply_transition` raises `PermissionDenied` or `InvalidTransitionError`, the viewset converts it to a `400` validation-style response rather than a `403`. Transition failure is communicated as a validation outcome, not as an HTTP-level authorization rejection. Lock acquisition failures (when `select_for_update(skip_locked=True)` cannot acquire the row lock) also surface as `400` with the message `"This object cannot be updated right now. Please try again."`.
 
@@ -109,6 +109,8 @@ Permission denials surface as different HTTP status codes, depending on the laye
 - {@api py:function:vueda.core.viewsets.VuedaViewSet.apply_object_permission_filter}
 - {@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}
 - {@api py:module:vueda.workflow.permissions}
+- {@api py:class:vueda.core.permissions.DynamicObjectPermissions}
+- {@api py:function:vueda.core.permissions.has_matching_state_grant}
 - {@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}
 - {@api py:function:vueda.workflow.permissions.WorkflowObjectPermissions.has_permission}
 - {@api py:module:vueda.workflow.views}

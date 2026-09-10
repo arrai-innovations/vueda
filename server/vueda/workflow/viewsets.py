@@ -2,7 +2,6 @@
 
 __all__ = ("WorkflowViewSet",)
 
-from django.conf import settings
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
@@ -19,6 +18,7 @@ from vueda.core.exceptions import gate_warnings
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
+from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import HasWorkflowModelMixin
@@ -32,6 +32,18 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     filterset_class = WorkflowFilterSet
     permit_list_expands = ["states", "transitions"]
     permission_classes = [WorkflowObjectPermissions]
+
+    # Actions that address a target model's data, and so carry that model's own permission gate.
+    # The remaining actions describe workflow definitions and carry only the read_workflow gate.
+    target_model_permission_actions = frozenset(
+        ("execute_transition", "object_state", "object_transitions", "permitted_transitions")
+    )
+    # Actions that reach a per-object decision, which is what lets a matching state grant settle a
+    # model-level denial. permitted_transitions is absent because model-scope discovery has no
+    # object whose state could be read.
+    object_permission_actions = frozenset(("execute_transition", "object_state", "object_transitions"))
+    # Actions that do not require vueda_workflow.read_workflow.
+    workflow_gate_exempt_actions = frozenset(("object_state", "permitted_transitions"))
 
     # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api docs generation.
     def get_queryset(self):
@@ -48,10 +60,27 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         )
 
     def get_object(self):
+        """Return the target object, checking its permissions, or the workflow the request names."""
         if "object_id" in self.request_kwargs:
-            return get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
+            instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
+            self.check_object_permissions(self.request, instance)
+            return instance
         elif "app_label" in self.request_kwargs:
             return self.get_workflow()
+
+    def resolves_object(self) -> bool:
+        """Whether this action decides authorization against each concrete object it touches."""
+        return self.action in self.object_permission_actions
+
+    def check_object_permissions(self, request, obj):
+        """Check all object permissions, hiding unreadable objects in bulk transition requests."""
+        try:
+            super().check_object_permissions(request, obj)
+        except (PermissionDenied, Http404):
+            if self.action != "execute_transition" or self.kwargs.get("object_id") is not None:
+                raise
+            # Use the same response as a missing id, including when rechecking under the lock.
+            get_object_or_404(obj.__class__.objects.none(), pk=obj.pk)
 
     def dispatch(self, request, *args, **kwargs):
         self.request_kwargs = kwargs
@@ -59,10 +88,13 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def check_permissions(self, request):
         # permitted_transitions decides its own read_workflow requirement, once it has resolved
-        # whether a workflow exists for the target model (see permitted_transitions below). Every
-        # other action always requires read_workflow, at minimum, before the model's own
-        # read/create/update/delete permission is checked below.
-        if self.action != "permitted_transitions" and not request.user.has_perm("vueda_workflow.read_workflow"):
+        # whether a workflow exists for the target model (see permitted_transitions below).
+        # object_state reports the target object's own current state, so the target model's read
+        # permission is the whole gate. Every other action requires read_workflow before the
+        # target model's own permission is checked below.
+        if self.action not in self.workflow_gate_exempt_actions and not request.user.has_perm(
+            "vueda_workflow.read_workflow"
+        ):
             raise PermissionDenied("You do not have permission to perform this action.")
         return super().check_permissions(request)
 
@@ -79,7 +111,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                             "name": serializers.CharField(),
                         },
                     ),
-                    "current_history_id": serializers.IntegerField(required=False),
+                    "object_state_revision": serializers.CharField(required=False),
                 },
             ),
             403: conditional_inline_serializer(
@@ -94,7 +126,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     )
     @action(detail=True, methods=["get"], url_path=r"object-state/(?P<object_id>[^/.]+)")
     def object_state(self, request, app_label, model, object_id):
-        user = request.user
+        # get_object has already checked this object's read permission, so reaching here means the
+        # caller may read the object whose state this reports.
         instance = self.get_object()
         if not isinstance(instance, HasWorkflowModelMixin):
             return Response(
@@ -103,25 +136,13 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 status=drf_status.HTTP_404_NOT_FOUND,
             )
 
-        permission_read_name = "read"
-        if "read" in settings.PERMISSION_NAMES_MAPPING:
-            permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
-
-        if not user.has_perm(f"{app_label}.{permission_read_name}_{model.replace('_', '')}", obj=instance):
-            err_msg = "You do not have permission to perform this action."
-            return Response(
-                data={"detail": err_msg},
-                exception=PermissionDenied(err_msg),
-                status=drf_status.HTTP_403_FORBIDDEN,
-            )
-
         state = instance.workflow_state
         response_data = {
             "state": {"code": state.code, "name": state.name},
         }
-        if hasattr(instance.object_state, "history"):
-            current_history_id = instance.object_state.history.latest().id
-            response_data["current_history_id"] = current_history_id
+        revision = object_revision(instance.object_state)
+        if revision is not None:
+            response_data["object_state_revision"] = revision
         return Response(response_data)
 
     @conditional_extend_schema_decorator(
@@ -199,7 +220,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     )
     @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
     def object_transitions(self, request, app_label, model, object_id):
+        # get_object has checked this object's read permission. The workflow's configured
+        # permissions are then checked against that object, so a permission backend that scopes a
+        # workflow permission to particular objects decides here rather than at model scope.
         instance = self.get_object()
+        instance.check_workflow_permission(request.user, obj=instance)
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
     @conditional_extend_schema_decorator(
@@ -234,7 +259,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             # of what the request sent.
             id_instances = [
                 (str(instance.pk), instance)
-                for instance in (get_object_or_404(model_class, pk=object_id) for object_id in object_ids)
+                for instance in (self._get_readable_object(model_class, object_id) for object_id in object_ids)
             ]
 
             # Warnings are collected across every instance before any write, so a bulk transition
@@ -267,6 +292,18 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError(errors)
             return Response(response_data)
 
+    def _get_readable_object(self, model_class, object_id):
+        """
+        Resolve one object of a bulk request, or raise ``Http404``.
+
+        An object the caller cannot read raises the 404 a missing id raises, so a bulk request
+        never reports which of its ids exist. Every configured permission class decides, so a
+        permission the viewset adds beyond the workflow gates stays authoritative here too.
+        """
+        instance = get_object_or_404(model_class, pk=object_id)
+        self.check_object_permissions(self.request, instance)
+        return instance
+
     @staticmethod
     def _check_transition_for_instance(instance, transition_code, request):
         """
@@ -289,8 +326,11 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 raise VuedaValidationError("This object cannot be updated right now. Please try again.")
             instance = locked_instance
 
+        # The object's state may have changed since preflight. Recheck read and any additional
+        # permission classes against the instance we will write, while holding its row lock.
+        self.check_object_permissions(request, instance)
         transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
-        state, current_history_id = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
+        state, object_state_revision = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
 
         data = {
             "new_state": {
@@ -301,6 +341,6 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 instance.available_transitions(request.user).order_by("name").values("code", "name")
             ),
         }
-        if current_history_id:
-            data["new_state"]["current_history_id"] = current_history_id
+        if object_state_revision:
+            data["new_state"]["object_state_revision"] = object_state_revision
         return data

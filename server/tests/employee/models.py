@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import F
 from django.db.models.functions import Cast
 
-from vueda.history.models import VuedaHistoryModel
+from vueda.core.models import VuedaModel
 from vueda.user.models import AbstractVUEDAUser
 
 
@@ -11,7 +11,7 @@ class User(AbstractVUEDAUser):
         default_related_name = "users"
 
 
-class Employee(VuedaHistoryModel):
+class Employee(VuedaModel):
     user = models.ForeignKey("User", on_delete=models.CASCADE)
     employee_number = models.CharField(max_length=255)
 
@@ -21,5 +21,5 @@ class Employee(VuedaHistoryModel):
         db_persist=True,
     )
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "employees"

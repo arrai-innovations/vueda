@@ -1,4 +1,4 @@
-import { mockLifecycle, scopedIt } from "@tests/unit/utils.js";
+import { expectReadOnlyWarning, mockLifecycle, scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 
 const { mockedOnUnmounted, unmountedFunctions, clearUnmounted } = mockLifecycle(vi);
@@ -81,8 +81,9 @@ describe("lib/use/usePrinting.js", () => {
             removeEventListener: vi.fn(),
         });
         const printingRef = usePrinting();
-        // [Vue warn] is expected here, it's exactly what we want to test
-        printingRef.value = true;
+        expectReadOnlyWarning(() => {
+            printingRef.value = true;
+        }, "value");
         expect(printingRef.value).toBe(false);
     });
 });

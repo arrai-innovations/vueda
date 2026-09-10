@@ -8,11 +8,11 @@ from django.contrib.auth.models import Permission
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
-from simple_history.models import HistoricalRecords
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from vueda.core.audit import audited_action
 from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import ObjectState
@@ -125,16 +125,34 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         assert not customer_order.fast_available_transitions().exists()
         assert customer_order.should_ignore_transition_from_state(cancel_transition)
 
-    def test_apply_transition_fails_with_request_context(self, customer_order, workflow_user, monkeypatch):
+    def test_check_transition_resolves_the_acting_user_from_the_open_action(self, customer_order, workflow_user):
+        """A caller that passes no user gets the one the open action records.
+
+        History middleware records the acting user on a request's action, and ``audited_action``
+        records one the same way outside a request. That is where ``check_transition`` looks before
+        falling back to the system user, so the resolved user can only be this one by that route.
+        """
+        with audited_action("pack an order", kind="task", user=workflow_user.pk):
+            transition, resolved_user = customer_order.check_transition("pack_order")
+
+        assert transition.code == "pack_order"
+        assert resolved_user == workflow_user
+
+    def test_apply_transition_rejects_an_unavailable_transition_under_an_action(self, customer_order, workflow_user):
+        """An acting user read off the action reaches the same availability check as one passed in.
+
+        Naming a user this way does not make a transition available that was not: the order is
+        already cancelled, so cancelling it again is still refused.
+        """
         cancelled_state = State.objects.get(code="cancelled", workflow__code="order_fulfillment")
         object_state = customer_order.object_state
         object_state.state = cancelled_state
         object_state.save()
 
-        mock_request = Mock(user=workflow_user)
-        monkeypatch.setattr(HistoricalRecords.context, "request", mock_request, raising=False)
-
-        with pytest.raises(InvalidTransitionError):
+        with (
+            audited_action("cancel an order", kind="task", user=workflow_user.pk),
+            pytest.raises(InvalidTransitionError),
+        ):
             customer_order.apply_transition("cancel_order")
 
     def test_fast_transition_handles_ignored_state(self, customer_order):
@@ -491,6 +509,15 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
 
     def test_check_workflow_permission_denied(self, customer_order, unauthorized_user):
         StatePermission.objects.filter(state__workflow=customer_order.workflow).delete()
+
+        with pytest.raises(DRFPermissionDenied):
+            customer_order.check_workflow_permission(unauthorized_user)
+
+    def test_check_workflow_permission_ignores_unrelated_state_rules(self, customer_order, unauthorized_user):
+        # The workflow's own state rules say nothing about this caller, this codename, or this
+        # object's state, so their existence cannot stand in for the configured workflow
+        # permissions the caller does not hold.
+        assert StatePermission.objects.filter(state__workflow=customer_order.workflow).exists()
 
         with pytest.raises(DRFPermissionDenied):
             customer_order.check_workflow_permission(unauthorized_user)

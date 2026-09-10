@@ -1,4 +1,6 @@
 from dateutil.relativedelta import relativedelta
+from django.db.models import F
+from django.db.models.functions import Lower
 from django.http import Http404
 from django.utils.timezone import now
 from rest_framework import permissions
@@ -27,6 +29,15 @@ class CustomerViewSet(VuedaViewSet):
     def get_allowed_extra_actions(self, request, *, instance=None):
         # Make 'current' and 'history-list' not allowed for admin or customer.
         return frozenset()
+
+
+class CustomerOrderingFormattedNameViewSet(CustomerViewSet):
+    """`ordering` names formatted_name on a model that has no formatted_name column of its own and
+    reaches it through `formatted_name_lookup_expression` ("data__formatted_name"), which
+    VuedaViewSet.get_queryset annotates so the database can sort by it. Proves the model-info
+    metadata resolves the lookup expression while still reporting the field as "formatted_name"."""
+
+    ordering = ["formatted_name"]
 
 
 class CustomerDataViewSet(VuedaReadOnlyViewSet):
@@ -93,6 +104,7 @@ class CartViewSet(VuedaViewSet):
     permit_list_expands = ["cart_items", "customer"]
     permit_retrieve_expands = ["cart_items", "customer"]
     ordering_fields = ["customer__user__email", "last_modified"]
+    ordering = [F("expected_delivery_time").asc(nulls_first=True)]
 
     @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
     def dry_run_outer(self, request):
@@ -140,10 +152,106 @@ class CartViewSet(VuedaViewSet):
         return Response(abandoned_carts.count())
 
 
+class CartOrderingFieldsViewSet(CartViewSet):
+    """Adds `expected_delivery_time` to `ordering_fields` — the same field name `ordering` already sorts
+    by via `F("expected_delivery_time").asc(nulls_first=True)` — and declares `nulls_ordering` so an
+    explicit `?o=` request on that field keeps nulls-first placement instead of falling back to the
+    database's default (plain ascending order puts nulls last)."""
+
+    ordering_fields = [*CartViewSet.ordering_fields, "expected_delivery_time"]
+    nulls_ordering = {"expected_delivery_time": "first"}
+
+
+class CartOrderingFieldsNullsFlipViewSet(CartOrderingFieldsViewSet):
+    """Adds `expected_delivery_time` to `nulls_ordering_flip`, so requesting that field in descending
+    order flips its nulls placement from first to last, instead of keeping nulls first regardless of
+    sort direction."""
+
+    nulls_ordering_flip = ("expected_delivery_time",)
+
+
+class CartOrderingFormattedNameViewSet(CartViewSet):
+    """Orders by formatted_name on a model that computes it with a `get_formatted_name()` method, so
+    there is no column or annotation for the database to sort by. Deliberately invalid: the
+    `vueda_info.E005` system check reports it, and the model-info metadata neither advertises the
+    field nor reports a default ordering built on it."""
+
+    ordering = ["formatted_name"]
+    ordering_fields = [*CartViewSet.ordering_fields, "formatted_name"]
+
+
+class CartOrderingRelatedFormattedNameViewSet(CartViewSet):
+    """Orders by `customer__formatted_name` — the formatted name of a *related* model rather than this
+    one. Customer has no formatted_name column and reaches the value through
+    `formatted_name_lookup_expression = "data__formatted_name"`, and the annotation
+    `VuedaViewSet.get_queryset` adds belongs to the Cart queryset being ordered, not to the Customer
+    rows it joins.
+
+    `VuedaOrderingFilter` rewrites the term to `customer__data__formatted_name` before it reaches
+    `order_by()`, so the database sorts by the column while the client sends and is told the declared
+    name.
+
+    The term is a scalar function over the path rather than the bare path, so the rewrite has to reach
+    inside the expression instead of replacing it. `Lower` is used un-wrapped by any `.asc()`/`.desc()`
+    — which `order_by()` accepts, sorting ascending — so this also covers a term that carries no
+    direction of its own. `customer__formatted_name` is deliberately left out of `ordering_fields`:
+    the only thing making it a valid explicit `?o=` target is that the default ordering names it from
+    inside the function, so `ordering_fields` is left as CartViewSet declared it."""
+
+    ordering = [Lower("customer__formatted_name")]
+
+
+class CartOrderingMultiValuedFormattedNameViewSet(CartViewSet):
+    """Offers formatted_name across a reverse foreign key (`cart_items__formatted_name`).
+
+    CartItem does have a lookup expression to follow, but following it would join a row per cart item
+    and silently multiply the rows a list request returns. The path is deliberately left unresolved:
+    not advertised in `model_ordering`, and reported by the `vueda_info.E006` system check."""
+
+    ordering_fields = [*CartViewSet.ordering_fields, "cart_items__formatted_name"]
+
+
+class CartRelatedFormattedNameFilterViewSet(CartViewSet):
+    """Swaps in a filterset whose filters query a related model's formatted_name, so the same path
+    rewriting can be exercised on the filtering side."""
+
+    filterset_class = my_filtersets.CartRelatedFormattedNameFilterSet
+
+
+class CartM2MSearchOrderingViewSet(CartOrderingFieldsViewSet):
+    """Searches across a reverse foreign key while offering orderings only `VuedaOrderingFilter` can
+    resolve, so the two backends have to agree on the terms.
+
+    A search field reaching through `cart_items` joins a row per cart item, so
+    `VuedaSearchFilterBackend` takes its `DISTINCT ON` path — the one that re-applies the ordering
+    itself, alongside the distinct columns that have to match it. Both orderings offered here mean
+    something different before and after `VuedaOrderingFilter` has run:
+    `customer__formatted_name` is only a real path once it has been rewritten to
+    `customer__data__formatted_name`, and `expected_delivery_time` only keeps the nulls-first
+    placement `nulls_ordering` declares for it as the expression that filter builds. Re-deriving
+    either from the raw `?o=` value in the search backend would order by a column the database
+    doesn't have, or silently drop the placement."""
+
+    search_fields = ["V:cart_items__product_option__name"]
+    ordering_fields = [*CartOrderingFieldsViewSet.ordering_fields, "customer__formatted_name"]
+
+
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
     ordering_fields = ["product_option__name", "quantity"]
+
+
+class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
+    """Offers formatted_name across two relations: one that can be followed and one that can't.
+
+    `cart__customer__formatted_name` reaches Customer, which has a lookup expression, so the path is
+    rewritten to `cart__customer__data__formatted_name` and works over any number of hops.
+    `cart__formatted_name` reaches Cart, which computes its formatted name with `get_formatted_name()`
+    and so has no column to rewrite to. Deliberately mixed: the first is advertised and orderable, the
+    second is left out of `model_ordering` and reported by the `vueda_info.E006` system check."""
+
+    ordering_fields = ["quantity", "cart__customer__formatted_name", "cart__formatted_name"]
 
 
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
@@ -168,6 +276,11 @@ class InventoryRecordViewSet(VuedaViewSet):
 
 class ProductM2MSearchViewSet(ProductViewSet):
     search_fields = ["V:special_care__field_that_contains_the_name"]
+    # `formatted_name` is added because a test orders by it. `ProductViewSet` declares an explicit
+    # `ordering_fields`, and Product's `Meta.ordering` names only "name", so without this entry
+    # `?o=formatted_name` is a field DRF rejects: `remove_invalid_fields` drops it, the request falls
+    # back to a default ordering the viewset doesn't declare, and nothing sorts by it.
+    ordering_fields = [*ProductViewSet.ordering_fields, "formatted_name"]
 
 
 class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
@@ -180,6 +293,15 @@ class PackingBoxViewSet(VuedaViewSet):
     queryset = my_models.PackingBox.objects.all()
     serializer_class = my_serializers.PackingBoxSerializer
     ordering_fields = ["name"]
+    # PackingBox has no formatted_name column and reaches it through
+    # `formatted_name_lookup_expression = "name"`, so this shows what a client receives for a default
+    # ordering on a formatted_name that lives behind a lookup expression.
+    #
+    # Declared as a scalar function with an explicit direction, which `order_by()` accepts alongside
+    # plain field names and `F(...)` expressions: `model_ordering` reports the field the function
+    # reads ("formatted_name") and the direction the term sorts in, and `VuedaOrderingFilter` makes
+    # that field an explicit `?o=` target even though `ordering_fields` only names "name".
+    ordering = [Lower("formatted_name").desc()]
 
 
 class InvoiceViewSet(VuedaViewSet):
@@ -211,6 +333,23 @@ class OrderItemCompositePKViewSet(VuedaViewSet):
     @action(detail=False, methods=["post"], permission_classes=(), bulk=True)
     def test_action(self, request):
         return Response(status=204)
+
+
+class OrderItemCompositePKOrderingPKViewSet(OrderItemCompositePKViewSet):
+    """Sets `ordering` to the "pk" alias on a model whose primary key is a `CompositePrimaryKey`, to
+    prove the alias expands to every field the key is built from instead of reaching the client as
+    "pk", which names no field a client could order by."""
+
+    ordering = ["pk"]
+
+
+class OrderItemPKOrderedCompositePKViewSet(VuedaViewSet):
+    """Declares no `ordering` of its own, so OrderItemPKOrderedCompositePK.Meta.ordering — the "pk"
+    alias on a `CompositePrimaryKey` — is the default ordering DRF applies."""
+
+    queryset = my_models.OrderItemPKOrderedCompositePK.objects.all()
+    serializer_class = my_serializers.OrderItemPKOrderedCompositePKSerializer
+    ordering_fields = ["order", "product", "quantity"]
 
 
 class OrderItemAltCompositePKViewSet(VuedaViewSet):

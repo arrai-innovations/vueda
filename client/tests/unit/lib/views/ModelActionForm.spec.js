@@ -15,7 +15,15 @@ let actionFormBulk = false;
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
-    props: ["fetchState", "runAction", "redirectTo", "actionSuccessSummary", "actionErrorSummary", "readyToDryRun"],
+    props: [
+        "fetchState",
+        "runAction",
+        "redirectTo",
+        "actionSuccessSummary",
+        "actionErrorSummary",
+        "readyToDryRun",
+        "dryRunTarget",
+    ],
     setup(props, { slots }) {
         return () =>
             h(
@@ -321,6 +329,11 @@ describe("lib/views/ModelActionForm.vue", () => {
             const { wrapper } = mountModelActionForm({ enableDryRun: false });
             const stub = wrapper.getComponent(ActionFormStub);
             expect(stub.props("readyToDryRun")).toBe(false);
+        });
+
+        scopedIt("forwards a dryRunTarget identity built from the selected pks", () => {
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] } });
+            expect(wrapper.getComponent(ActionFormStub).props("dryRunTarget")).toBe("1,2");
         });
     });
 

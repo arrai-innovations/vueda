@@ -6,7 +6,8 @@ import { defineComponent, h, reactive, ref } from "vue";
 
 const assignReactiveObject = vi.fn();
 const mockedUseObject = vi.fn();
-vi.mock("@arrai-innovations/reactive-helpers", () => ({
+vi.mock("@arrai-innovations/reactive-helpers", async (importOriginal) => ({
+    ...(await importOriginal()),
     assignReactiveObject,
     loadingCombine: (a, b) => a || b,
     useObject: mockedUseObject,

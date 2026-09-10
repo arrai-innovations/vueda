@@ -85,7 +85,10 @@ export const deviceModelInfo = {
     },
     actions: [],
     expand: [],
-    ordering: [],
+    // No list surface here — ViewSetupDevice reads this metadata for its method choices only — so
+    // the server offers nothing to order by and sorts by nothing in particular. Still the object
+    // shape `model_ordering` always has, rather than a bare array.
+    ordering: { default: [], fields: [] },
     filtering: {},
     permissions: [],
 };

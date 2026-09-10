@@ -1,3 +1,3 @@
-"""Audit trail integration using django-simple-history."""
+"""Audit trail integration using django-pghistory."""
 
 __all__ = ()

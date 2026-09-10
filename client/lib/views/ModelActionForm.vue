@@ -181,6 +181,7 @@ const {
     bannerDescription: computedBannerDescription,
     bannerIconName,
     readyToDryRun: dryRun,
+    dryRunTarget,
 } = modelAction.state;
 const redirectTo = modelAction.redirectTo;
 const defaultRunAction = modelAction.runAction;
@@ -216,6 +217,7 @@ const resolveWarningGroups = (warnings, bulk) => {
         :redirect-to="redirectTo"
         :run-action="defaultRunAction"
         :ready-to-dry-run="dryRun"
+        :dry-run-target="dryRunTarget"
         v-bind="$attrs"
         :action-error-summary="actionErrorSummaryComputed"
         :action-success-summary="actionSuccessSummaryComputed"
