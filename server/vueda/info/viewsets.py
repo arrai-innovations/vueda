@@ -31,6 +31,7 @@ from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
+from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.registration import get_registration
@@ -291,7 +292,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             queryset = field.child_relation.queryset
             if callable(getattr(queryset.model, "get_formatted_name", None)):
                 choices = []
-                for instance in queryset.filter(pk__in=field.choices.keys()):
+                for instance in annotate_formatted_name(queryset).filter(pk__in=field.choices.keys()):
                     choices.append(
                         {
                             "label": instance.get_formatted_name(),
@@ -315,7 +316,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                 key_field = field.slug_field
                 if callable(getattr(queryset.model, "get_formatted_name", None)):
                     choices = []
-                    for instance in queryset:
+                    for instance in annotate_formatted_name(queryset):
                         choices.append(
                             {
                                 "label": instance.get_formatted_name(),
@@ -337,7 +338,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             else:
                 if callable(getattr(queryset.model, "get_formatted_name", None)):
                     choices = []
-                    for instance in queryset.filter(pk__in=field.choices.keys()):
+                    for instance in annotate_formatted_name(queryset).filter(pk__in=field.choices.keys()):
                         choices.append(
                             {
                                 "label": instance.get_formatted_name(),
@@ -503,7 +504,8 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
             if callable(getattr(related_model, "get_formatted_name", None)):
                 choices = [
-                    {"label": instance.get_formatted_name(), "value": str(instance.pk)} for instance in related_qs
+                    {"label": instance.get_formatted_name(), "value": str(instance.pk)}
+                    for instance in annotate_formatted_name(related_qs)
                 ]
                 return ChoicesQueryset(sorted(choices, key=lambda c: c["label"]), self.choices_queryset_model)
 

@@ -112,6 +112,22 @@ class CartFilterSet(VuedaFilterSet):
         ]
 
 
+class CartItemCartBaseManagerChoiceFilterSet(VuedaFilterSet):
+    """The `cart` filter's queryset is built from `Cart._base_manager` rather than `Cart.objects`
+    (`FormattedNameManager`), so a query-count test against this filterset's choices isolates
+    `ModelInfoFilterSetChoicesViewSet.get_queryset`'s own `annotate_formatted_name` call:
+    `FormattedNameManager` never gets a chance to apply `formatted_name_select_related` first the
+    way it would through `Cart.objects.all()`, so a flat query count can only be that resolver's own
+    doing.
+    """
+
+    cart = rest_framework.ModelChoiceFilter(queryset=my_models.Cart._base_manager.all())
+
+    class Meta:
+        model = my_models.CartItem
+        fields = ["cart"]
+
+
 class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
     """Filters against `customer__formatted_name`, which names no column of its own: Customer reaches
     its formatted name through `formatted_name_lookup_expression = "data__formatted_name"`, and the

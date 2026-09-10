@@ -242,6 +242,13 @@ class CartItemViewSet(VuedaViewSet):
     ordering_fields = ["product_option__name", "quantity"]
 
 
+class CartItemCartBaseManagerChoiceFilterViewSet(CartItemViewSet):
+    """Swaps in CartItemCartBaseManagerChoiceFilterSet, whose `cart` filter's queryset bypasses
+    FormattedNameManager -- see that filterset for why."""
+
+    filterset_class = my_filtersets.CartItemCartBaseManagerChoiceFilterSet
+
+
 class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     """Offers formatted_name across two relations: one that can be followed and one that can't.
 

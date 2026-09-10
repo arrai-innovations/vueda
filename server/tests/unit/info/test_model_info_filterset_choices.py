@@ -656,3 +656,92 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         assert result_labels == frozenset({"New", "Like New"}), (
             f"Expected only choices containing 'ne', got: {result_labels}"
         )
+
+
+class CartItemCartChoiceTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Admin": [
+            ("store", "CartItem", "read"),
+            ("store", "Cart", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Admin"],
+        },
+    }
+
+
+@pytest.mark.django_db
+def test_filterset_choices_query_count_does_not_grow_with_row_count_for_get_formatted_name(api_client):
+    """ModelInfoFilterSetChoicesViewSet.get_queryset's own annotate_formatted_name call, on the
+    ModelChoiceFilter branch that resolves a get_formatted_name() model's choices.
+
+    Cart resolves formatted_name through get_formatted_name() (self.customer.user.email) and
+    declares formatted_name_select_related = ("customer__user",). CartItemCartBaseManagerChoiceFilterSet
+    declares its `cart` filter's queryset against Cart._base_manager rather than Cart.objects
+    (FormattedNameManager), so FormattedNameManager never gets a chance to apply that select_related
+    first the way it would through Cart.objects.all() -- a flat query count here can only be this
+    resolver's own doing.
+    """
+    info.registration.get_empty_registry()
+    try:
+        info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemCartBaseManagerChoiceFilterViewSet)
+
+        test_data = CartItemCartChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+
+        distributor = store_models.Distributor.objects.create(name="Distributor", description="Distributor")
+        product = store_models.Product.objects.create(
+            distributor=distributor,
+            name="Product",
+            tangible_type=store_models.TangibleType.objects.get(code="physical"),
+            order_between=(1, 10),
+        )
+        product_option = store_models.ProductOption.objects.create(
+            product=product,
+            option_type=store_models.OptionType.objects.get(code="size"),
+            name="Option",
+            sku="cart-item-choice-sku",
+            gtin="9999999999991",
+            price="9.99",
+        )
+
+        url = reverse("info.model_info_filterset_choices-list", args=("store", "cartitem", "cart"))
+
+        # Send one request before measuring: the first request for a user fills that user's
+        # permission cache, which would otherwise show up as a one-time cost on whichever row count
+        # happens to run first rather than as a per-row cost.
+        warm_up_response = api_client.get(url, format="json")
+        assert warm_up_response.status_code == HTTPStatus.OK, response_body(warm_up_response)
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.CartItem.objects.all().delete()
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+
+            expected = {}
+            for i in range(row_count):
+                user = get_user_model().objects.create(
+                    email=f"cart-owner-{row_count}-{i}@domain.invalid", name=f"Cart Owner {i}", is_active=True
+                )
+                customer = store_models.Customer.objects.create(user=user)
+                cart = store_models.Cart.objects.create(customer=customer)
+                store_models.CartItem.objects.create(cart=cart, product_option=product_option, quantity=1)
+                expected[str(cart.pk)] = user.email
+
+            with CaptureQueriesContext(connection) as captured:
+                response = api_client.get(url, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {result["value"]: result["label"] for result in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"filterset choices query count grows with row count: {counts}"
+    finally:
+        info.registration.get_empty_registry()
