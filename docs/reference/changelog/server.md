@@ -335,6 +335,11 @@ public-facing documentation baseline.
     - Measured on `GET model_info_choices/store/product/tangible_type/`, a successful field-choices response drops from 17 queries to 9. The filterset equivalent drops from 19 to 11.
       _No integrator action. Response bodies, status codes, and the 404 naming the valid choice fields are unchanged. A project that subclasses `ModelInfoChoicesBaseViewSet` directly must implement `resolve_choices()`._
 
+- **Serializer system checks missed metadata-only registrations**:
+    - Both serializer system checks now seed discovery from two sources: the serializers routed through the resolved URL conf, and every serializer in the `vueda.info` registry. Registrations made with `register()` and with `register_serializer()` both count. `check_expandable_fields_configuration` and `check_exclude_fields_serializer_usage` walk one shared graph from that seed, following declared nested serializer fields and `Meta.expandable_fields`. A serializer registered for metadata alone has no route of its own, so nothing in the old URL-conf walk reached it. `manage.py check` passed a malformed `expandable_fields` entry, or a nested `ExcludeFieldsSerializerMixin` child, through to the first `/info/` request. The checks walk a serializer found through both a route and a registration once, and report each fault once.
+    - `_unwrap_expandable_field()` no longer indexes an empty tuple. An `expandable_fields` entry written as `()` crashed `check_exclude_fields_serializer_usage` with `IndexError` instead of letting the check finish. The entry now resolves to no child, so traversal passes over it and `check_expandable_fields_configuration` reports it as `vueda_core.E002`.
+      _A project that registers a serializer for metadata alone may see new `vueda_core.E001` to `vueda_core.E008` errors from `manage.py check`. Each one names a configuration fault that would otherwise surface as a request-time failure._
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary

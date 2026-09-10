@@ -23,9 +23,16 @@ def _resolve_lazy_serializer_string(lazy_path):
 
 
 def _unwrap_expandable_field(field_data):
-    """Split an ``expandable_fields`` value into ``(field_serializer, expand_options)``."""
+    """Split an ``expandable_fields`` value into ``(field_serializer, expand_options)``.
+
+    An empty tuple carries no serializer, so it unwraps to ``None``. ``_validate_expandable_field``
+    reports it as a malformed entry before it reaches here; graph traversal skips it.
+    """
     if isinstance(field_data, tuple):
-        return field_data[0], field_data[1] if len(field_data) > 1 else {}
+        return (
+            field_data[0] if field_data else None,
+            field_data[1] if len(field_data) > 1 else {},
+        )
     return field_data, {}
 
 
@@ -119,56 +126,11 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
     return errors, field_serializer
 
 
-def _get_routed_serializer_classes():
-    """Return the serializer classes used by ViewSets registered with a router, anywhere in the URL conf.
-
-    Walking the resolved URL conf (rather than vueda.info's registry) means this check covers any DRF
-    ViewSet with a router route, not just ones registered with VUEDA's meta-info system -- the
-    expandable_fields format being validated comes from rest_flex_fields, not VUEDA.
-    """
-    from django.urls import URLPattern
-    from django.urls import URLResolver
-    from django.urls import get_resolver
-
-    def walk(patterns, seen_viewsets):
-        serializer_classes = []
-        for pattern in patterns:
-            if isinstance(pattern, URLPattern):
-                viewset_class = getattr(pattern.callback, "cls", None)
-                if viewset_class is None or viewset_class in seen_viewsets:
-                    continue
-                seen_viewsets.add(viewset_class)
-                serializer_class = getattr(viewset_class, "serializer_class", None)
-                if serializer_class is not None:
-                    serializer_classes.append(serializer_class)
-            elif isinstance(pattern, URLResolver):
-                serializer_classes.extend(walk(pattern.url_patterns, seen_viewsets))
-        return serializer_classes
-
-    return walk(get_resolver().url_patterns, set())
-
-
-def check_expandable_fields_configuration(app_configs, **kwargs):
-    errors = []
-    checked_serializers = set()
-    pending = _get_routed_serializer_classes()
-
-    while pending:
-        serializer_class = pending.pop()
-        if serializer_class in checked_serializers:
-            continue
-        checked_serializers.add(serializer_class)
-
-        meta = getattr(serializer_class, "Meta", None)
-        expandable_fields = getattr(meta, "expandable_fields", {}) if meta else {}
-
-        for field_name, field_data in expandable_fields.items():
-            field_errors, resolved_serializer = _validate_expandable_field(serializer_class, field_name, field_data)
-            errors.extend(field_errors)
-            if resolved_serializer is not None and resolved_serializer not in checked_serializers:
-                pending.append(resolved_serializer)
-
-    return errors
+def _iter_expandable_fields(serializer_class):
+    """Yield ``(field_name, field_data)`` for each ``Meta.expandable_fields`` entry of ``serializer_class``."""
+    meta = getattr(serializer_class, "Meta", None)
+    expandable_fields = getattr(meta, "expandable_fields", {}) if meta else {}
+    yield from expandable_fields.items()
 
 
 def _iter_nested_serializer_fields(serializer_class):
@@ -201,6 +163,95 @@ def _resolve_expandable_field_serializer_class(field_data):
     return field_serializer
 
 
+def _get_routed_serializer_classes():
+    """Return the serializer classes used by ViewSets registered with a router, anywhere in the URL conf.
+
+    Walking the resolved URL conf (rather than vueda.info's registry) means this covers any DRF ViewSet
+    with a router route, not just ones registered with VUEDA's meta-info system -- the expandable_fields
+    format being validated comes from rest_flex_fields, not VUEDA.
+    """
+    from django.urls import URLPattern
+    from django.urls import URLResolver
+    from django.urls import get_resolver
+
+    def walk(patterns, seen_viewsets):
+        serializer_classes = []
+        for pattern in patterns:
+            if isinstance(pattern, URLPattern):
+                viewset_class = getattr(pattern.callback, "cls", None)
+                if viewset_class is None or viewset_class in seen_viewsets:
+                    continue
+                seen_viewsets.add(viewset_class)
+                serializer_class = getattr(viewset_class, "serializer_class", None)
+                if serializer_class is not None:
+                    serializer_classes.append(serializer_class)
+            elif isinstance(pattern, URLResolver):
+                serializer_classes.extend(walk(pattern.url_patterns, seen_viewsets))
+        return serializer_classes
+
+    return walk(get_resolver().url_patterns, set())
+
+
+def _get_registered_serializer_classes():
+    """Return the canonical serializer classes held in vueda.info's registry.
+
+    Covers registrations made through both ``register()`` and ``register_serializer()``. A serializer
+    registered for metadata alone has no route of its own, so walking the URL conf never reaches it.
+    """
+    from vueda.info.registration import get_all_registrations
+
+    return [registration["serializer"] for registration in get_all_registrations().values()]
+
+
+def _get_seed_serializer_classes():
+    """Return the serializer classes graph traversal starts from.
+
+    The seed is the union of routed ViewSet serializers and vueda.info registrations, routed ones first,
+    with duplicates dropped. A serializer that is both routed and registered appears once.
+    """
+    return list(dict.fromkeys([*_get_routed_serializer_classes(), *_get_registered_serializer_classes()]))
+
+
+def _iter_serializer_graph():
+    """Yield every serializer class reachable from the seed, once each.
+
+    Traversal follows declared nested serializer fields and ``Meta.expandable_fields`` entries. Both
+    serializer system checks walk this one graph, so they cover the same serializers and cannot drift
+    apart on discovery.
+    """
+    seen = set()
+    pending = _get_seed_serializer_classes()
+
+    while pending:
+        serializer_class = pending.pop()
+        if serializer_class in seen:
+            continue
+        seen.add(serializer_class)
+
+        yield serializer_class
+
+        for _field_name, child_serializer_class in _iter_nested_serializer_fields(serializer_class):
+            if child_serializer_class not in seen:
+                pending.append(child_serializer_class)
+
+        for _field_name, field_data in _iter_expandable_fields(serializer_class):
+            child_serializer_class = _resolve_expandable_field_serializer_class(field_data)
+            if child_serializer_class is not None and child_serializer_class not in seen:
+                pending.append(child_serializer_class)
+
+
+def check_expandable_fields_configuration(app_configs, **kwargs):
+    """Validate every ``Meta.expandable_fields`` entry in the discovered serializer graph."""
+    errors = []
+
+    for serializer_class in _iter_serializer_graph():
+        for field_name, field_data in _iter_expandable_fields(serializer_class):
+            field_errors, _resolved_serializer = _validate_expandable_field(serializer_class, field_name, field_data)
+            errors.extend(field_errors)
+
+    return errors
+
+
 def check_exclude_fields_serializer_usage(app_configs, **kwargs):
     """
     ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` reads ``self.context["view"].action``. A view is only
@@ -213,15 +264,8 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
     from vueda.info.registration import get_all_registrations
 
     errors = []
-    checked_serializers = set()
-    pending = list(_get_routed_serializer_classes())
 
-    while pending:
-        serializer_class = pending.pop()
-        if serializer_class in checked_serializers:
-            continue
-        checked_serializers.add(serializer_class)
-
+    for serializer_class in _iter_serializer_graph():
         for field_name, child_serializer_class in _iter_nested_serializer_fields(serializer_class):
             if issubclass(child_serializer_class, ExcludeFieldsSerializerMixin):
                 errors.append(
@@ -237,13 +281,8 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         id="vueda_core.E007",
                     )
                 )
-            if child_serializer_class not in checked_serializers:
-                pending.append(child_serializer_class)
 
-        meta = getattr(serializer_class, "Meta", None)
-        expandable_fields = getattr(meta, "expandable_fields", {}) if meta else {}
-
-        for field_name, field_data in expandable_fields.items():
+        for field_name, field_data in _iter_expandable_fields(serializer_class):
             child_serializer_class = _resolve_expandable_field_serializer_class(field_data)
             if child_serializer_class is None:
                 continue
@@ -263,8 +302,6 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         id="vueda_core.E008",
                     )
                 )
-            if child_serializer_class not in checked_serializers:
-                pending.append(child_serializer_class)
 
     for _key, registration in get_all_registrations().items():
         if registration["viewset"] is not None:
