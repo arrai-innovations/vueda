@@ -24,7 +24,7 @@ Before you begin:
 
 Celery must be configured and running. VDQ uses `delay_on_commit` for task scheduling, which requires a working Celery broker and Django database transaction support.
 
-The `vueda.vdq` app must be in `INSTALLED_APPS`. The VDQ workflow must be applied through migrations (the workflow state machine for `QueueItem` is defined in VDQ's migration files).
+The `vueda.vdq` app must be in `VUEDA_APPS`, and `vueda.workflow` with it. VDQ is optional, so only an application that uses the features in this guide needs it. A configuration that installs VDQ without workflow raises `ImproperlyConfigured` at startup. [Django App Boundaries](../core-concepts/architecture-overview#django-app-boundaries) covers the supported combinations. Apply the VDQ workflow through migrations; VDQ's migration files define the `QueueItem` state machine.
 
 For email: Anymail must be configured with a valid provider backend. For SMS: Twilio credentials (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`) must be set.
 

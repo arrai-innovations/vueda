@@ -149,9 +149,11 @@ class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
         object_state.state = cancelled_state
         object_state.save()
 
-        with audited_action("cancel an order", kind="task", user=workflow_user.pk):
-            with pytest.raises(InvalidTransitionError):
-                customer_order.apply_transition("cancel_order")
+        with (
+            audited_action("cancel an order", kind="task", user=workflow_user.pk),
+            pytest.raises(InvalidTransitionError),
+        ):
+            customer_order.apply_transition("cancel_order")
 
     def test_fast_transition_handles_ignored_state(self, customer_order):
         cancelled_state = State.objects.get(code="cancelled", workflow__code="order_fulfillment")

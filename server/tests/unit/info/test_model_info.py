@@ -230,23 +230,17 @@ def register_all_models():
 
 def register_model(app_label, model_name):
     """
-    Register the model under test, plus the model it proxies when it is a proxy model.
+    Register the model under test and nothing else.
 
     The detail response for a model is built from that model's own registration, so registering the
-    rest is work every parametrized case would pay for and no case would use. The one exception is
-    the history expands: SimpleHistorySerializerMixin.get_expandable_fields() looks up its canonical
-    serializer through ContentType.objects.get_for_model(), which resolves a proxy model to the
-    content type of the model it proxies, so that registration has to be there too.
+    rest is work every parametrized case would pay for and no case would use. A proxy model needed
+    its concrete model registered too, because the history expands resolved their canonical
+    serializer through the content type, which resolves a proxy to the model it proxies. Those
+    expands went with django-simple-history.
     """
     info.registration.get_empty_registry()
 
-    serializer, viewset = REGISTRATIONS_BY_MODEL[(app_label, model_name)]
-    meta = serializer.Meta.model._meta
-    if meta.proxy:
-        concrete_meta = meta.concrete_model._meta
-        apply_registration(*REGISTRATIONS_BY_MODEL[(concrete_meta.app_label, concrete_meta.model_name)])
-
-    apply_registration(serializer, viewset)
+    apply_registration(*REGISTRATIONS_BY_MODEL[(app_label, model_name)])
 
 
 class AdminTestData(BaseTestUserMixin, BaseTestGroupMixin):

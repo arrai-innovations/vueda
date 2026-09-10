@@ -33,6 +33,8 @@ Every model built on a VUEDA model base carries feature policy: `VuedaModel`, `L
 
 A model that is not built on a VUEDA base has no policy. Declaring `class Vueda` on one is a system-check error rather than a silent no-op.
 
+A model VUEDA ships carries the policy VUEDA declared for it, and a project cannot change that policy. History reads it while Django builds the model, and VUEDA's published migrations already hold the event models it produced. A project's own models are the other case. Their policy is the project's to write, and `makemigrations` writes the resulting event models and triggers into the project's own migrations.
+
 ## Sections and Options
 
 A section is a nested class named after a feature, and its attributes are that feature's options. Each installed feature app registers the sections it owns. The registration defines each option's default, accepted types, validation, inheritance behaviour, and effect on migration generation.
@@ -110,7 +112,7 @@ History triggers attach to the shared database table, and workflow resolves a pr
 
 ## Feature Apps That Are Not Installed
 
-Installing a feature app makes its feature available. The owning section then decides whether a given model participates. Every supported configuration installs `vueda.history`, so history tracks eligible models by default unless they opt out. `vueda.workflow` is optional, and a model must explicitly opt in even where it is installed.
+Installing a feature app makes its feature available. The owning section then decides whether a given model participates. Every supported configuration installs `vueda.history`, so history tracks eligible models by default unless they opt out. `vueda.workflow` is optional, and a model must explicitly opt in even where a project installs it. [Django App Boundaries](./architecture-overview#django-app-boundaries) covers which apps a configuration may omit.
 
 Declaring a section whose feature app is absent is a system-check error naming the app to install. A model that declares a `Workflow` section in a project without `vueda.workflow` reports that error. A section name no installed app owns is a separate error listing the sections that are available. System checks report both cases.
 

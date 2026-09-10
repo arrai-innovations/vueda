@@ -6,7 +6,6 @@ from django.db.models.functions import Reverse
 from vueda.core.models import FormattedNameManager
 from vueda.core.models import VuedaModel
 from vueda.core.permissions import BaseRowLevelPermissions
-from vueda.history.models import VuedaHistoryModel
 
 
 class ProductManager(FormattedNameManager):
@@ -34,14 +33,14 @@ class ProductManager(FormattedNameManager):
         return super().get_queryset().annotate(reversed_name=Reverse("name"))
 
 
-class Product(VuedaHistoryModel):
+class Product(VuedaModel):
     name = models.CharField(max_length=255)
     available_for_sale = models.BooleanField(db_default=True)
     buzz_words = ArrayField(models.CharField(max_length=255, blank=True), null=True)
 
     objects = ProductManager()
 
-    class Meta(VuedaHistoryModel.Meta):
+    class Meta(VuedaModel.Meta):
         default_related_name = "products"
         ordering = ["name"]
         permissions = [("manage_product", "Can manage products"), ("purchase_product", "Can purchase products")]

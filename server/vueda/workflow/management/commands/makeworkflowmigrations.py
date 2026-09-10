@@ -825,9 +825,8 @@ class RecordChange:
 class RecordDelta:
     """What differs between two events, and the two events themselves.
 
-    django-simple-history built this through ``diff_against``. A pghistory event model holds the
-    tracked row's own columns and nothing that compares them, so the comparison lives here. The
-    shape is unchanged, because everything downstream reads ``changes``, ``old_record``, and
+    A pghistory event model holds the tracked row's own columns and nothing that compares them, so
+    the comparison lives here. Everything downstream reads ``changes``, ``old_record``, and
     ``new_record``.
     """
 
@@ -1671,7 +1670,7 @@ class Command(BaseCommand):
                     old = {"app_label": ct.app_label, "model": ct.model}
 
             case "workflow_id":
-                # Because there is no transaction number in simple history:
+                # Because an event record carries no transaction number:
                 # If the workflow was deleted, then the history record we
                 # want will be the first history record after the date we have.
                 # If the workflow wasn't deleted, then the history record we
@@ -1723,7 +1722,7 @@ class Command(BaseCommand):
                             new = {"name": history_diff.old_record.historical_group_name}
 
             case "state_id":
-                # Because there is no transaction number in simple history:
+                # Because an event record carries no transaction number:
                 # If the workflow or state was deleted, then the history record we
                 # want will be the first history record after the date we have.
                 # If the workflow or state wasn't deleted, then the history record we

@@ -7,24 +7,20 @@ status: draft
 
 # Expose a Proxy Model as a Separate CRUDL Surface
 
-This guide covers creating a Django proxy model on top of a `VuedaHistoryModel` and wiring it as a fully independent CRUDL surface with its own serializer, viewset, filterset, permissions, and model-info registration.
+This guide covers creating a Django proxy model on top of a `VuedaModel` and wiring it as a fully independent CRUDL surface with its own serializer, viewset, filterset, permissions, and model-info registration.
 
 A proxy model shares the underlying database table with its concrete parent but has its own `ContentType`, its own permission codenames, and its own Python class. Use one when you need to expose the same data to different audiences under different access controls, or when you want a subset view of a model's rows with distinct API routing, without duplicating the database table.
 
-This guide assumes you already have a concrete model using `VuedaHistoryModel`. If you have not set up the base model yet, see [Create a CRUDL Surface for a New Model](./create-crudl-surface).
+This guide assumes you already have a concrete model using `VuedaModel`. If you have not set up the base model yet, see [Create a CRUDL Surface for a New Model](./create-crudl-surface).
 
 ## How History Tracking Works for Proxy Models
 
-Django proxy models share the concrete parent's database table, so they share history records too. When you save a proxy instance, the save is recorded in the parent's historical table (for example, a proxy of `Distributor` writes to `HistoricalDistributor`). The `history-list` endpoint on a proxy returns the events recorded against the concrete model's row.
+Django proxy models share the concrete parent's database table, so they share history too. VUEDA records history with pghistory triggers, and a trigger fires on the shared table. Saving through a proxy of `Distributor` writes the same `DistributorEvent` row that saving through `Distributor` writes. The `history-list` endpoint on a proxy returns the events recorded against the concrete model's row.
 
-This sharing is possible because VUEDA uses `ProxyAwareHistoricalRecords` in `VuedaHistoryModel` instead of vanilla `HistoricalRecords`. With the default `inherit=True` option, django-simple-history would create a separate `HistoricalXxxProxy` model for each proxy class and try to add a `history_records` reverse accessor to the proxy. Because the proxy inherits that accessor from the concrete parent, Django raises a reverse accessor clash at startup. `ProxyAwareHistoricalRecords` intercepts proxy models in `finalize()`, skips creating the duplicate historical model, and instead does three things:
-
-1. **Connects save and delete signals** so that saves and deletions on proxy instances are recorded in the parent's existing historical table.
-2. **Sets `proxy_class.history` to the parent's history descriptor** using `setattr`. Without this, calling `proxy_instance.history.all()` or `proxy_instance.history.values()` returns no results because the inherited descriptor has no association with the proxy model.
-3. **Sets `proxy_class._meta.simple_history_manager_attribute`** so that django-simple-history's pre-delete field reloading and utility functions can locate the history manager by name on the proxy.
+A proxy gets no event model of its own. Django sends `class_prepared` for a proxy, but VUEDA's feature-policy dispatcher returns before the contributors run. A second `pghistory.track` call against the same table would build a duplicate event table and a duplicate set of triggers.
 
 ::: warning
-Do not assign `history = HistoricalRecords(...)` or `history = None` directly on a proxy model class. Assigning `None` or any non-descriptor value has no effect (the parent's history descriptor is inherited via the MRO). Assigning a new `HistoricalRecords` instance will conflict with the parent's inherited registration and raise `MultipleRegistrationsError` at startup.
+Declare the `History` section of `class Vueda` on the concrete model, not on the proxy. A proxy takes the concrete model's policy, so excluding a field or disabling history has to happen there.
 :::
 
 ## Defining the Proxy Model
@@ -184,8 +180,8 @@ Events do not have their own `ContentType`. The `history-list` endpoint on a pro
 ## Relevant Implementation Surface
 
 - Python:
-    - {@api py:class:vueda.core.simple_history.ProxyAwareHistoricalRecords}
-    - {@api py:class:vueda.history.models.VuedaHistoryModel}
+    - {@api py:class:vueda.core.models.VuedaModel}
+    - {@api py:function:vueda.history.apps.track_model}
     - {@api py:class:vueda.core.filters.VuedaFilterSet}
     - {@api py:class:vueda.core.serializers.VuedaSerializer}
     - {@api py:class:vueda.core.viewsets.VuedaViewSet}

@@ -4,7 +4,6 @@ __all__ = (
     "TWO_FACTOR_AUTHENTICATION_OPTIONS",
     "AbstractVUEDAUser",
     "AbstractVUEDAUserMeta",
-    "AbstractVUEDAUserWithHistory",
     "GroupChange",
     "TOTPDevice",
     "VUEDAUserManager",
@@ -23,7 +22,6 @@ from django.db.models import F
 from django.utils import timezone
 from hashids import Hashids
 from phonenumber_field.modelfields import PhoneNumberField
-from simple_history.models import HistoricalRecords
 
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.models import BaseModelMeta
@@ -144,20 +142,6 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, FormattedNameBas
             + "?token="
             + token_generator.make_token(self)
         )
-
-
-class AbstractVUEDAUserWithHistory(AbstractVUEDAUser):
-    """
-    Extends ``AbstractVUEDAUser`` with a ``simple-history`` audit trail.
-    Use this as the base when you need a full change history on user records.
-    """
-
-    objects = VUEDAUserManager()
-
-    history = HistoricalRecords(related_name="history_records", inherit=True)
-
-    class Meta(AbstractVUEDAUserMeta):
-        abstract = True
 
 
 class GroupChange(models.Model):
