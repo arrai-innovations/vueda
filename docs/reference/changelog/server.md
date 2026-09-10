@@ -335,6 +335,10 @@ public-facing documentation baseline.
     - Measured on `GET model_info_choices/store/product/tangible_type/`, a successful field-choices response drops from 17 queries to 9. The filterset equivalent drops from 19 to 11.
       _No integrator action. Response bodies, status codes, and the 404 naming the valid choice fields are unchanged. A project that subclasses `ModelInfoChoicesBaseViewSet` directly must implement `resolve_choices()`._
 
+- **List validation answered by cache state**:
+    - A list request carrying both an unrecognized query parameter and an over-deep `?e=` now reports the unrecognized parameter, whatever the process has already cached. Discovering the parameter names a viewset's filterset accepts built the view's queryset, and `VuedaViewSet.get_queryset` constructs a serializer that rejects the expansion. Which of the two errors came back therefore depended on whether an earlier successful request had cached those names. A filterset that names its model in `Meta` is now read from that model's own default queryset, and one that takes its model from a supplied queryset still gets the view's.
+      _No integrator action. This is visible only on a viewset whose permission checks build no queryset. The default `ObjectPermissions` builds one before the handler runs, so such a request still reports the expansion depth._
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary
