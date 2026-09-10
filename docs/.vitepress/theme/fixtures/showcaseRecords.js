@@ -694,7 +694,7 @@ export function modelRoutes({
         },
         {
             // `ViewHistoryList` reads its action groups from a detail action on the model, not from
-            // the `object-history` url: its target is `{ app, model, pk, action: "history_list" }`
+            // the `workflow-state-history` url: its target is `{ app, model, pk, action: "history_list" }`
             // (`client/lib/views/ViewHistoryList.vue`).
             method: "GET",
             path: new RegExp(`^/routes/${scope}/(?<pk>[^/]+)/history_list/$`),

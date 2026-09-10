@@ -41,7 +41,7 @@ The default mapping translates Django's vocabulary to CRUDL:
 
 `list` is an additional permission not part of the mapping; it is generated directly as `list_*`. VUEDA's base model meta declares `list` in `default_permissions` for VUEDA models. Additionally, `patch_django` patches `Options.__init__` to inject `list` into `default_permissions` for any Django model that does not already declare it, including third-party models. This means every model in the project — including Django's own `auth.Permission`, `auth.Group`, and `contenttypes.ContentType` — has a `list_*` permission row after migration.
 
-If your project needs to use the opposite mapping direction (such as mapping VUEDA names back to Django names for compatibility with third-party apps that expect `add`, `change`, or `view`), set `PERMISSION_NAMES_MAPPING` to match that need. Be aware that reverse mappings activate a code path in `patch_django` that rewrites the `perms_map` on `ObjectPermissions` and `WorkflowObjectPermissions`. This ensures HTTP-method-to-codename resolution stays consistent with the mapping, but it also means the `perms_map` at runtime may differ from what the source code declares. Validate explicitly if you use a non-default mapping.
+If your project needs to use the opposite mapping direction (such as mapping VUEDA names back to Django names for compatibility with third-party apps that expect `add`, `change`, or `view`), set `PERMISSION_NAMES_MAPPING` to match that need. Be aware that reverse mappings activate a code path in `patch_django` that rewrites the `perms_map` on `ObjectPermissions`. This ensures HTTP-method-to-codename resolution stays consistent with the mapping, but it also means the `perms_map` at runtime may differ from what the source code declares. `DynamicObjectPermissions`, and the `WorkflowObjectPermissions` class built on it, need no rewrite: they name the CRUDL action and resolve it through the mapping when the check runs. Validate explicitly if you use a non-default mapping.
 
 The mapping must be decided before Django generates permission rows. Once `migrate` runs, the codenames in `auth_permission` are set. Changing the mapping after initial migration does not automatically update existing permission rows or group assignments.
 
@@ -49,7 +49,7 @@ The mapping must be decided before Django generates permission rows. Once `migra
 
 The `patch_django` module applies the mapping by monkey-patching two Django internals: `auth.get_permission_codename` (used at runtime to resolve codenames) and `management._get_builtin_permissions` (used during migration to generate permission rows). Both patched functions read `PERMISSION_NAMES_MAPPING` from settings at call time, not at import time; the value is cached and the cache clears on Django's `setting_changed` signal, so a mapping change made after `patch_django` is imported — including `override_settings(PERMISSION_NAMES_MAPPING=...)` in tests — still reaches codename resolution and permission-row generation.
 
-`patch_django` also decides, once at import time, whether `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` need a reverse-mapping rewrite. That decision is not re-evaluated later, so if you use a reverse mapping, `PERMISSION_NAMES_MAPPING` must still be finalized in settings before the patch module is imported.
+`patch_django` also decides, once at import time, whether `ObjectPermissions.perms_map` needs a reverse-mapping rewrite. That decision is not re-evaluated later, so if you use a reverse mapping, `PERMISSION_NAMES_MAPPING` must still be finalized in settings before the patch module is imported.
 
 If you started from a VUEDA project template, the patch import is already in your base settings:
 
@@ -61,7 +61,7 @@ from vueda.core import patch_django  # noqa F401
 
 If you are setting up a project manually, place this import in your base settings module after `PERMISSION_NAMES_MAPPING` is defined. The import must execute at every runtime entry point that generates or uses permissions: the server process, the test runner, and the migration environment.
 
-Import order matters for the reverse-mapping `perms_map` rewrite, since that decision is made once at `patch_django` import time. If you override `PERMISSION_NAMES_MAPPING` in an environment-specific settings file (for example, `local.py` importing from `base.py` via `from config.settings.base import *`) after the base module's patch import, `ObjectPermissions.perms_map` and `WorkflowObjectPermissions.perms_map` keep whichever rewrite the base mapping selected. Finalize the reverse mapping before the first `patch_django` import. Codename resolution itself (`get_permission_codename`, `get_builtin_permissions`) and the runtime paths that read `PERMISSION_NAMES_MAPPING` directly — row-level filtering, model-info metadata, workflow state checks, and object history access — are not affected by this ordering, since all of them read the current setting value at call time.
+Import order matters for the reverse-mapping `perms_map` rewrite, since that decision is made once at `patch_django` import time. If you override `PERMISSION_NAMES_MAPPING` in an environment-specific settings file (for example, `local.py` importing from `base.py` via `from config.settings.base import *`) after the base module's patch import, `ObjectPermissions.perms_map` keeps whichever rewrite the base mapping selected. Finalize the reverse mapping before the first `patch_django` import. Codename resolution itself (`get_permission_codename`, `get_builtin_permissions`) and the runtime paths that read `PERMISSION_NAMES_MAPPING` directly (row-level filtering, model-info metadata, workflow state checks, the dynamic-model permission classes, and workflow state history access) are not affected by this ordering, since all of them read the current setting value at call time.
 
 `patch_django` is not auto-imported by `vueda.core`. An explicit import is required. If the import is missing, no monkey-patch is applied: Django generates `add_*/change_*/view_*` codenames, but runtime checks look for `create_*/update_*/read_*` codenames, and every permission check fails.
 
@@ -112,7 +112,7 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
 
 **Permissions work in the server but fail in tests.** The test settings module does not import `patch_django`, or imports it before `PERMISSION_NAMES_MAPPING` is defined. Verify that the test settings follow the same import order as the server settings.
 
-**`perms_map` at runtime does not match the source code.** If a reverse mapping is active, `patch_django` rewrites `perms_map` entries on `ObjectPermissions` and `WorkflowObjectPermissions` at import time. The runtime `perms_map` reflects the patched values, not the values declared in the class definition. Inspect the runtime value with a debugger or print statement if the behaviour does not match expectations.
+**`perms_map` at runtime does not match the source code.** If a reverse mapping is active, `patch_django` rewrites `perms_map` entries on `ObjectPermissions` at import time. The runtime `perms_map` reflects the patched values, not the values declared in the class definition. Inspect the runtime value with a debugger or print statement if the behaviour does not match expectations.
 
 **Changing the mapping after initial migration has no effect on existing permissions.** `PERMISSION_NAMES_MAPPING` affects codename generation during migration and codename resolution at runtime. Changing the mapping updates both sides, but existing `auth_permission` rows retain their original codenames. If you need to change the mapping on an existing project, the permission rows and any group assignments must be updated to match.
 
@@ -131,11 +131,11 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
     - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
     - {@api py:function:vueda.info.viewsets.ModelInfoChoicesViewSet.get_queryset}
     - {@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.get_queryset}
-    - {@api py:function:vueda.history.views.GetObjectHistoryView.get}
+    - {@api py:function:vueda.history.views.WorkflowStateHistoryView.get}
     - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}
-    - {@api py:property:vueda.workflow.permissions.WorkflowObjectPermissions.perms_map}
+    - {@api py:function:vueda.core.permissions.DynamicObjectPermissions.get_required_permissions}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
-    - {@api rest:endpoint:GET:/object-history/{app_label}/{model}/{object_id}/}
+    - {@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}

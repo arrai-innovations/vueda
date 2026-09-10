@@ -3,8 +3,10 @@
 __all__ = (
     "DEFAULT",
     "BaseRowLevelPermissions",
+    "DynamicObjectPermissions",
     "ObjectPermissions",
     "filter_rows_for_user",
+    "has_matching_state_grant",
     "has_row_dependent_authorization",
 )
 
@@ -12,6 +14,46 @@ from django.conf import settings
 from django.db.models import Q
 from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
+
+from vueda.core.installed_apps import workflow_is_installed
+
+
+def has_matching_state_grant(model, user, required_permissions) -> bool:
+    """
+    Whether a workflow state of ``model`` grants ``user`` any of ``required_permissions``.
+
+    This is the one model-scope deferral rule. A model-level denial stands unless a state rule
+    matches the caller's groups, a requested codename, the model's content type, and the model's
+    own workflow, and that rule grants rather than denies.
+
+    The answer says only that an object's state can still admit the request. It does not say that
+    any particular object does. Call it only from a path that goes on to make that per-object
+    decision, and let the object decision, including a matching deny, settle the request.
+    """
+    if not workflow_is_installed() or not user.is_authenticated:
+        return False
+
+    from django.contrib.contenttypes.models import ContentType
+
+    from vueda.workflow.models import HasWorkflowModelMixin
+    from vueda.workflow.models import StatePermission
+    from vueda.workflow.models import Workflow
+
+    if not issubclass(model, HasWorkflowModelMixin):
+        return False
+
+    workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
+    if workflow is None:
+        return False
+
+    codenames = [permission.rsplit(".", maxsplit=1)[-1] for permission in required_permissions]
+    return StatePermission.objects.filter(
+        state__workflow=workflow,
+        group__in=user.groups.all(),
+        permission__codename__in=codenames,
+        permission__content_type=ContentType.objects.get_for_model(model),
+        grant_or_deny=True,
+    ).exists()
 
 
 class ObjectPermissions(DjangoObjectPermissions):
@@ -52,36 +94,11 @@ class ObjectPermissions(DjangoObjectPermissions):
         """
         self.view_action = getattr(view, "action", None)
         model_permission = super().has_permission(request, view)
-        if model_permission or not request.user.is_authenticated or not self._has_later_permission_decision(view):
+        if model_permission or not self._has_later_permission_decision(view):
             return model_permission
 
-        # this is only going to work if workflow is installed
-        if "vueda.workflow" in settings.INSTALLED_APPS:
-            from django.contrib.contenttypes.models import ContentType
-
-            from vueda.workflow.models import HasWorkflowModelMixin
-            from vueda.workflow.models import StatePermission
-            from vueda.workflow.models import Workflow
-
-            queryset = view.get_queryset()
-            model = queryset.model
-            if issubclass(model, HasWorkflowModelMixin):
-                workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-                codenames = [
-                    perm.rsplit(".", maxsplit=1)[-1] for perm in self.get_required_permissions(request.method, model)
-                ]
-                if (
-                    workflow
-                    and StatePermission.objects.filter(
-                        state__workflow=workflow,
-                        group__in=request.user.groups.all(),
-                        permission__codename__in=codenames,
-                        permission__content_type=ContentType.objects.get_for_model(model),
-                        grant_or_deny=True,
-                    ).exists()
-                ):
-                    return True
-        return model_permission
+        model = view.get_queryset().model
+        return has_matching_state_grant(model, request.user, self.get_required_permissions(request.method, model))
 
     def has_object_permission(self, request, view, obj) -> bool:
         """Records the current view action then delegates to DjangoObjectPermissions."""
@@ -106,6 +123,84 @@ class ObjectPermissions(DjangoObjectPermissions):
         Allow dynamic permissions based on the view action, for callables in perms_map, for object permissions.
         """
         return self.get_required_permissions(method, model_cls)
+
+
+class DynamicObjectPermissions(DjangoObjectPermissions):
+    """
+    CRUDL permissions for endpoints that select their model from ``app_label`` and ``model``.
+
+    ``crudl_perms_map`` names the CRUDL action for each HTTP method, and
+    ``get_required_permissions`` resolves that action through ``PERMISSION_NAMES_MAPPING`` when
+    the check runs. An installation that renames an action is therefore honoured without patching
+    this class at import.
+
+    ``PATCH`` requires read rather than update. These endpoints do not edit ordinary model fields.
+    They act on data the target object owns, and each endpoint applies its own further gates.
+    """
+
+    crudl_perms_map = {
+        "GET": ["read"],
+        "OPTIONS": [],
+        "HEAD": ["read"],
+        "POST": ["create"],
+        "PUT": ["update"],
+        "PATCH": ["read"],
+        "DELETE": ["delete"],
+    }
+
+    def _queryset(self, view):
+        """Return a queryset for the model named by the request."""
+        # Local imports, so this module can be imported before the app registry is ready, and
+        # before rest_framework.generics finishes importing this module's default permission class.
+        from django.contrib.contenttypes.models import ContentType
+        from rest_framework.generics import get_object_or_404
+
+        app_label = view.kwargs.get("app_label") or view.request.GET.get("app_label")
+        model = view.kwargs.get("model") or view.request.GET.get("model")
+        content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
+        return content_type.model_class().objects.all()
+
+    def get_required_permissions(self, method, model_cls) -> list[str]:
+        """Return the permissions ``method`` needs on ``model_cls``, named as this installation names them."""
+        # Local import, so importing this module does not depend on patch_django finishing first.
+        from vueda.core.patch_django import get_permission_names_mapping
+
+        if method not in self.crudl_perms_map:
+            raise exceptions.MethodNotAllowed(method)
+
+        mapping = get_permission_names_mapping()
+        return [
+            f"{model_cls._meta.app_label}.{mapping.get(action, action)}_{model_cls._meta.model_name}"
+            for action in self.crudl_perms_map[method]
+        ]
+
+    def get_required_object_permissions(self, method, model_cls) -> list[str]:
+        """Object permissions match the model permissions the same method requires."""
+        return self.get_required_permissions(method, model_cls)
+
+    def has_permission(self, request, view) -> bool:
+        """
+        Defer a model-level denial only when the view resolves a concrete object.
+
+        A view says so through ``resolves_object``. Its ``get_object`` then checks that object,
+        which is where a matching state grant or deny settles the request.
+        """
+        model_permission = super().has_permission(request, view)
+        if model_permission or not getattr(view, "resolves_object", lambda: False)():
+            return model_permission
+
+        model = self._queryset(view).model
+        return has_matching_state_grant(model, request.user, self.get_required_permissions(request.method, model))
+
+    def has_object_permission(self, request, view, obj) -> bool:
+        """
+        Report a failed object check as a denial rather than as a missing object.
+
+        These endpoints address an object the caller already named in the URL, so DRF's
+        safe-method 404 would hide the reason without hiding the object.
+        """
+        model_cls = self._queryset(view).model
+        return request.user.has_perms(self.get_required_object_permissions(request.method, model_cls), obj)
 
 
 DEFAULT = object()

@@ -192,8 +192,15 @@ const objectTransitionsUrl = (result) => {
         .replace(":pk", result.pk);
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
-const objectHistoriesUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowObjectHistory")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.pk}/`;
+const objectHistoriesUrl = (result) => {
+    const routeTemplate = getUrl("historyWorkflowStateHistory");
+    // Replace placeholders with actual values from the result object
+    const urlWithVariables = routeTemplate
+        .replace(":app", memoizedSnakeCase(result.app))
+        .replace(":model", memoizedSnakeCase(result.model))
+        .replace(":pk", result.pk);
+    return `${httpOrHttpsHostname}${urlWithVariables}`;
+};
 const executeTransitionUrl = (result) => {
     const routeTemplate = getUrl("workflowExecuteTransition");
     // Replace placeholders with actual values from the result object
