@@ -6,6 +6,7 @@ from .viewsets import AnnotatedOrderingViewSet  # noqa: F401
 from .viewsets import BadNullsOrderingPlacementViewSet  # noqa: F401
 from .viewsets import ConflictingQuerysetOrderingViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsBadTupleLengthViewSet  # noqa: F401
+from .viewsets import ExpandableFieldsEmptyTupleViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsListViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsNestedInvalidViewSet  # noqa: F401
 from .viewsets import ExpandableFieldsNonDictOptionsViewSet  # noqa: F401
