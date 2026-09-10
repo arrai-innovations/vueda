@@ -183,7 +183,7 @@ describe("lib/router/guards.js", () => {
         expect(result).toEqual({ name: "nf" });
     });
 
-    scopedIt("requireModelInfo abandons the navigation when the authenticated user changed", async () => {
+    scopedIt("requireModelInfo cancels the navigation when the authenticated user changed", async () => {
         fetchWorkflowTransition.mockResolvedValue([]);
         fetchModelInfo.mockRejectedValue(new AuthScopeInvalidatedError("storeModelInfo.fetchModelInfo", "a.b"));
         const router = { resolve: vi.fn((r) => r) };
@@ -192,7 +192,9 @@ describe("lib/router/guards.js", () => {
 
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
 
-        expect(result).toBeUndefined();
+        // `false` is the only return Vue Router reads as a refusal; see the navigation this produces
+        // in tests/unit/lib/router/identityRouteRecheck.spec.js
+        expect(result).toBe(false);
         expect(toastMock.error).not.toHaveBeenCalled();
         expect(router.resolve).not.toHaveBeenCalled();
     });
