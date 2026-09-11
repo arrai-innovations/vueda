@@ -154,7 +154,7 @@ jobs:
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js validate-sources
     docs-publish:
         executor: python311-node
-        resource_class: medium
+        resource_class: large
         circleci_ip_ranges: true
         steps:
             - checkout
