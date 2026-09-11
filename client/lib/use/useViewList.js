@@ -138,7 +138,6 @@ import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } f
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -299,7 +298,6 @@ export function useViewList(options) {
     const route = useRoute();
     const restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const filterQueryFrom = (query) => omit(query, [SEARCH_PARAM, ORDERING_PARAM]);
     const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
@@ -343,11 +341,11 @@ export function useViewList(options) {
             } else {
                 listPreferenceStore.clearSorting(preferenceArgs());
             }
+            // Route synchronization happens in the combined sort+filter writer below, keyed off
+            // `sentSorted` (which this call updates via `applySort`): a route push here, computed
+            // independently against `route.query`, is what let a same-tick filter change and sort
+            // change each push a query still carrying the other's stale value.
             applySort(sanitized, { chosen: true });
-            const routeQuery = queryWithCurrentSort(route.query, sentSorted.value);
-            if (!isEqual(routeQuery, route.query)) {
-                router.push({ query: routeQuery });
-            }
         },
     });
 
@@ -437,38 +435,54 @@ export function useViewList(options) {
     });
 
     const addedFilters = ref([]);
+    // A fresh plain object every recomputation, driven by whatever `addedFilters` fields the
+    // reader has touched. Reusing it as a watch source (rather than the deep-watched `addedFilters`
+    // ref itself) means the watcher below gets genuinely distinct old/new snapshots to compare,
+    // without a manual `cloneDeep`.
+    const filterParams = computed(() => filtersToParams(addedFilters.value));
 
-    // The single deep watcher from rich filters to list parameters, URL state, and preferences.
-    watch(
-        () => cloneDeep(addedFilters.value),
-        (newAddedFilters, oldAddedFilters) => {
-            if (route.params?.action !== VIEW_NAME) {
-                return;
-            }
-            const newFilterParams = filtersToParams(newAddedFilters);
-            if (!isEqual(newFilterParams, filtersToParams(oldAddedFilters || []))) {
-                listState.currentPage = 1;
-            }
+    // The single writer for the two constraints useViewList owns end-to-end -- the chosen sort and
+    // the active filters -- to list parameters, URL state, and saved filter preferences. Both are
+    // read here from their own reactive state (`sentSorted`, `filterParams`) rather than each being
+    // pushed independently against `route.query`: since Vue batches synchronous reactive changes
+    // into one flush, a sort clear and a filter clear landing in the same tick are combined into
+    // exactly one push instead of two writes racing to patch the same not-yet-applied query.
+    watch([sentSorted, filterParams], ([newSorted, newFilterParams], oldValues) => {
+        const [, oldFilterParams] = oldValues || [];
+        // Filter-derived effects -- the saved "filters" preference, the reset to page 1, and
+        // this change's contribution to `listState.params`/the URL -- apply only while this is
+        // the active list view, matching this composable's original filter-write behavior: a
+        // `ViewList` instance kept mounted off-screen (e.g. mid route transition) must not
+        // touch the live route or preferences on a stray filter mutation. A sort change has
+        // always pushed regardless of the active view, so it is never gated here.
+        const onListView = route.params?.action === VIEW_NAME;
+        const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
+        if (filtersChanged) {
+            listState.currentPage = 1;
+        }
+        if (onListView) {
             assignReactiveObject(listState.params, newFilterParams, [
                 ...Object.keys(options.params || {}),
                 ...alwaysParamsKeys,
                 SEARCH_PARAM,
             ]);
-            const filterQuery = filterQueryFrom(route.query);
-            if (!isEqual(newFilterParams, filterQuery)) {
-                const routeQuery = {
-                    ...(route.query[SEARCH_PARAM] ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
-                    ...(route.query[ORDERING_PARAM] !== undefined
-                        ? { [ORDERING_PARAM]: route.query[ORDERING_PARAM] }
-                        : {}),
-                    ...newFilterParams,
-                };
-                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-                router.push({ query: routeQuery });
+        }
+        // Start from the current route so keys neither sort nor filters own (search, or any
+        // foreign query param) pass through untouched; only replace each domain's own keys.
+        const routeQuery = queryWithCurrentSort(route.query, newSorted);
+        if (onListView) {
+            for (const key of Object.keys(oldFilterParams || {})) {
+                delete routeQuery[key];
             }
-        },
-        { deep: true },
-    );
+            Object.assign(routeQuery, newFilterParams);
+        }
+        if (!isEqual(routeQuery, route.query)) {
+            if (filtersChanged) {
+                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
+            }
+            router.push({ query: routeQuery });
+        }
+    });
 
     // Rebuild the active-filter list from the URL on load and whenever the query changes externally
     // (e.g. browser navigation). Guarded so filters already applied in-memory, which carry richer
