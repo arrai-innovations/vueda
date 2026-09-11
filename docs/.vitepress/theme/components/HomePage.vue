@@ -138,6 +138,7 @@ import { withBase } from "vitepress";
             <a :href="withBase('/reference/')">Reference</a>
         </nav>
         <p class="project-credit">
+            <span class="project-name">VUEDA: Vue.js User Experience for Django Administration.</span>
             <a href="https://github.com/arrai-innovations/vueda/blob/main/server/LICENSE">BSD 3-Clause license</a>
             <span aria-hidden="true">·</span>
             Built by <a href="https://arrai.com">Arrai Innovations</a>
@@ -386,6 +387,10 @@ h3 {
 }
 .project-credit span {
     margin: 0 8px;
+}
+.project-credit .project-name {
+    display: block;
+    margin: 0 0 8px;
 }
 a:focus-visible {
     outline: 2px solid var(--vp-c-brand-1);

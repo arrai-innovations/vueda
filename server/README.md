@@ -1,365 +1,152 @@
 # VUEDA Server
 
-<!--prettier-ignore-start-->
-<!--TOC-->
+<a href="https://vueda.dev">
+    <img src="https://vueda.dev/v3/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
+</a>
 
-- [VUEDA Server](#vueda-server)
-  - [About](#about)
-  - [Usage](#usage)
-    - [Install (pipenv)](#install-pipenv)
-    - [Install (uv)](#install-uv)
-    - [Setup](#setup)
-    - [Permissions](#permissions)
-    - [Permission Names](#permission-names)
-      - [Names Mapping (Important)](#names-mapping-important)
-        - [Names Mapping For New Projects (default)](#names-mapping-for-new-projects-default)
-        - [Names Mapping For Existing Django Projects](#names-mapping-for-existing-django-projects)
-    - [Developer Tools](#developer-tools)
-      - [Group Management](#group-management)
-      - [Workflow Management](#workflow-management)
-      - [Permissions and Workflow Overview](#permissions-and-workflow-overview)
-    - [Set up Dispatch Queue](#set-up-dispatch-queue)
-      - [start celery worker:](#start-celery-worker)
-  - [Development](#development)
-    - [Environment](#environment)
-    - [Hooks](#hooks)
-    - [API Documentation Generation](#api-documentation-generation)
-    - [Documentation Annotations](#documentation-annotations)
-    - [Updating](#updating)
-    - [Tagging Releases](#tagging-releases)
-  - [Testing](#testing)
-    - [Setup](#setup-1)
-    - [Running Tests](#running-tests)
-    - [Generating Coverage Locally](#generating-coverage-locally)
+[vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Server changelog](https://vueda.dev/v3/reference/changelog/server.html)
 
-<!--TOC-->
-<!--prettier-ignore-end-->
+VUEDA Server provides the Django REST framework backend for VUEDA, a framework
+for building business applications with Django and Vue. It extends your models,
+serializers, and viewsets with permissions, audit history, and metadata that
+[VUEDA Client](https://github.com/arrai-innovations/vueda/tree/main/client) uses to
+build forms, lists, detail screens, and routes. Metadata describes the models'
+fields, actions, and permissions.
 
-## About
+The Python package is `vueda`.
 
-VUEDA Server, the counterpart to [VUEDA Client](../client/README.md), is designed for projects that
-integrate Vue.js frontends with Django REST Framework backends. This server
-library enhances Django's native authentication and permissions systems
-with default DRF classes and optimizes integration with [django-filter],
-[drf-flex-fields], and [drf-writable-nested]. It offers essential out-of-the-box
-functionalities such as custom workflow management, audit trails (with DRF
-support for [django-pghistory]), and row-level
-permissions. Additionally, VUEDA Server provides DRF classes to expose Django
-model details to the frontend, filtered by user permissions. It is built with
-customization in mind, offering most features as base classes that can be
-extended in your application, ensuring both control and adaptability.
+## What it provides
 
-## Usage
+- **Django and REST framework base classes:** models, serializers, viewsets,
+  filters, and routers with shared conventions for application APIs.
+- **Model metadata:** field definitions, actions, filtering, ordering, and
+  permissions for the Vue client.
+- **Server authorization:** model and object permissions, including row-level
+  filtering for lists.
+- **Audit history:** track model changes and inspect the user actions behind them.
+- **Authentication and account support:** Django authentication integration,
+  account management, and multi-factor authentication.
+- **Optional workflows:** states, transitions, and permissions for business
+  processes, plus queued email and SMS delivery through the dispatch app.
 
-### Install (pipenv)
+Your application extends VUEDA's base classes to implement its business rules.
+The server enforces authorization independently of what the client displays.
 
-1. Start a `pipenv` `Pipfile` for your project.
-    ```console
-    [MyVuedaServer]$ pipenv shell
-    (MyVuedaServer)[MyVuedaServer]$
-    ```
-2. If not already setup, add `PIP_EXTRA_INDEX_URL` to your environment (`~/.bashrc`, `~/.bash_profile`, etc.):
-    ```shell
-    export PIP_EXTRA_INDEX_URL=https://you:password@pypi.arrai.dev
-    ```
-3. Add our private pypi index into the `Pipfile` created by the last step.
-    ```toml
-    [[source]]
-    url = "${PIP_EXTRA_INDEX_URL}"
-    verify_ssl = true
-    name = "arrai"
-    ```
-4. Add `vueda` into your project's dependencies.
-    ```toml
-    [packages]
-    vueda = { version = ">=1.0.0,<2.0.0", index = "arrai" }
-    ```
-5. Install packages.
-    ```console
-    (MyVuedaServer)[MyVuedaServer]$ pipenv install
-    ```
+## Get started
 
-### Install (uv)
+VUEDA requires PostgreSQL. This version supports Python 3.11 to 3.14 and Django
+5.2 to 6.1, subject to the dependency constraints in the package metadata.
 
-1. Start a new `pyproject.toml` for your project.
-    ```console
-    [MyVuedaServer]$ uv init --bare
-    ```
-2. Unless already set up, add `UV_INDEX_ARRAI_USERNAME` and `UV_INDEX_ARRAI_PASSWORD` to your environment. These
-   are your credentials for the private PyPI server that hosts the release builds of `vueda`.
-3. Add the private PyPI index to the `pyproject.toml` file.
-    ```toml
-    [[tool.uv.index]]
-    name = "arrai"
-    url = "https://pypi.arrai.dev/simple/"
-    explicit = true
-    ```
-4. Specify the private PyPI index as the source of the `vueda` package in the `pyproject.toml` file.
-    ```toml
-    [tool.uv.sources]
-    vueda = { index = "arrai" }
-    ```
-5. Add `vueda` to your project's dependencies.
-    ```console
-    [MyVuedaServer]$ uv add vueda
-    ```
-6. Install the packages.
-    ```console
-    [MyVuedaServer]$ uv sync
-    ```
+For a new application, follow
+[Start Building](https://vueda.dev/v3/tutorials/start-building.html). The starter
+templates configure the Django and Vue projects, and the tutorial adds an
+inventory model from end to end.
 
-### Setup
+To add the server to an existing project, first configure
+[package registry access](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access),
+then install with uv:
 
-<!-- #todo: document -->
+```console
+uv add --prerelease allow vueda
+```
 
-- it's up to you to add `vueda` to your `INSTALLED_APPS` in `settings.py`, as well as any standard Django
-  settings, like database, middleware, asgi vs wsgi, etc.
-- it's up to you to add `vueda`'s `urls` to your `urls.py`.
-- `VuedaHistoryMiddleware` names the acting user and the request behind every history event. VUEDA
-  inserts it into `MIDDLEWARE` after `AuthenticationMiddleware`, so a project taking the defaults
-  adds nothing. It is an ordinary Django middleware and runs the same way under wsgi and asgi.
-  Do not wrap it in a Channels middleware stack. It takes a Django request rather than an ASGI
-  scope. The `vueda_history.W001` and `vueda_history.W002` system checks report a project that
-  drops it or moves it ahead of `AuthenticationMiddleware`.
+The v3 series is currently a prerelease. Use the documentation for the major
+version installed in your application.
 
-### Permissions
+Installation is followed by Django settings, user-model, URL, and client setup.
+Use the [architecture overview](https://vueda.dev/v3/core-concepts/architecture-overview.html)
+to understand the required apps and conventions, and the tutorial for a complete
+starting configuration.
 
-In order for a logged in user to be able to hit the server and ask for model info, the user will need to have the following permissions (codenames):
+## Define a model and its API
 
-For new projects:
-
-- `list_contenttype`
-- `read_contenttype`
-
-For existing django projects:
-
-- `view_contenttype`
-
-### Permission Names
-
-Django uses permission names like `view`, `add`, and `change`.
-Rest Framework uses permission names like `read`, `create`, and `update`.
-
-In order to have everything work as we expect, we need to modify the permission code names when django creates them, so permissions are created with the correct names.
-
-When adding vueda to handle part or all of an existing django site, then we need to do the mapping in the reverse order. VUEDA will look for `list_object` or `read_object`, and we want to look at the permission called `view_object` in these cases.
-
-In order to accomplish this, there is a setting that exists which needs to be created and possibly modified, before patching django. In order to patch django, so that it works the same when running tests, migrations, or the server, we need to add the import that patches django after the permission mapping has been imported into the settings, or after it has been modified.
-
-#### Names Mapping (Important)
-
-Because we can only patch django when some code in the project runs, and we need to have the permission names mapping loaded and/or adjusted before django creates any permission names, we must add the following import into the settings file.
-This must be added after the default settings have been added into the settings (`locals().update(get_defaults(env))`), or after you have made changes to this permission. The bottom of the settings is fine.
+In an application already configured for VUEDA, the model, serializer, and
+viewset follow familiar Django and REST framework patterns.
 
 ```python
-from vueda.core import patch_django  # noqa F401
-```
+# models.py
+from django.db import models
+from vueda.core.models import BaseModelMeta, VuedaModel
 
-##### Names Mapping For New Projects (default)
+
+class Product(VuedaModel):
+    name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=64, unique=True)
+    description = models.TextField(blank=True)
+
+    class Meta(BaseModelMeta):
+        ordering = ["name", "id"]
+```
 
 ```python
-PERMISSION_NAMES_MAPPING = {
-    "add": "create",
-    "change": "update",
-    "view": "read",
-},
-```
+# serializers.py
+from vueda.core.serializers import VuedaSerializer
+from .models import Product
 
-##### Names Mapping For Existing Django Projects
+
+class ProductSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = Product
+        fields = [*VuedaSerializer.Meta.fields, "id", "name", "sku", "description"]
+```
 
 ```python
-PERMISSION_NAMES_MAPPING = {
-    "create": "add",
-    "list": "view",
-    "read": "view",
-    "update": "change",
-}
+# viewsets.py
+from vueda.core.viewsets import VuedaViewSet
+from .models import Product
+from .serializers import ProductSerializer
+
+
+class ProductViewSet(VuedaViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
 ```
 
-### Developer Tools
+To make this API discoverable by the client, register the serializer and viewset
+in your app's `AppConfig.ready()` and expose the viewset through a `VuedaRouter`.
+Apply migrations and assign permissions before accessing the model. The
+[model API guide](https://vueda.dev/v3/guides/create-crudl-surface.html) covers
+registration, URL wiring, filtering, and verification.
 
-VUEDA includes browser-based management tools and matching management commands to help developers track and migrate changes to group permissions and workflows without having to manually create migrations.
+## Configure application behavior
 
-#### Group Management
+- [Permission names](https://vueda.dev/v3/guides/permission-name-mapping.html):
+  choose the Django/VUEDA mapping and configure the required `patch_django` import.
+- [Row-level permissions](https://vueda.dev/v3/guides/implement-row-level-permissions.html):
+  control access to individual records.
+- [Group management](https://vueda.dev/v3/guides/manage-groups.html) and
+  [workflow management](https://vueda.dev/v3/guides/manage-workflows.html):
+  configure groups and workflows in the browser and generate migrations to carry
+  those changes between environments.
+- [Permissions and workflow overview](https://vueda.dev/v3/guides/permissions-workflow-overview.html):
+  inspect access for groups and individual users.
+- [Configuration reference](https://vueda.dev/v3/reference/configuration.html):
+  settings and environment variables.
 
-The permission overview screen at `/routes/vueda.user/permissions/overview/` lets you view, add, rename, and remove groups for any permission in the project. When you are ready to roll those changes out to other environments, run `makegroupmigrations` to produce a migration with the changes.
+### Optional email and SMS dispatch
 
-If you create a migration and then upgrade VUEDA, you can run `updategroupmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data is preserved.
+The VUEDA Dispatch Queue (`vueda.vdq`) tracks outbound messages through workflow
+states. It requires `vueda.workflow`, a Celery worker, and a message broker
+configured through `CELERY_BROKER_URL`. Set `VDQ_URL` for attachment links.
 
-For full instructions, see [Manage Groups and Generate Group Migrations](https://vueda.dev/v3/guides/manage-groups.html).
-
-#### Workflow Management
-
-The workflow overview screen at `/routes/vueda.workflow/overview/` lets you create and configure workflows with states, transitions, and permissions. When you are ready to roll those changes out to other environments, run `makeworkflowmigrations` to produce a migration with the changes.
-
-If you create a migration and then upgrade VUEDA, you can run `updateworkflowmigrations` to update the imports and function implementations embedded in the migration before it is deployed anywhere. Changed data and other variables are preserved.
-
-For full instructions, see [Manage Workflows and Generate Workflow Migrations](https://vueda.dev/v3/guides/manage-workflows.html).
-
-#### Permissions and Workflow Overview
-
-The permissions and workflow overview at `/vueda.info/overview/` provides a read-only audit of which groups have which permissions and which workflow transitions they can trigger. Select a specific user to see exactly what that user can and cannot do. The page can be printed as a reference to share with clients or as a starting point when diagnosing access issues.
-
-For full instructions, see [Use the Permissions and Workflow Overview](https://vueda.dev/v3/guides/permissions-workflow-overview.html).
-
-### Set up Dispatch Queue
-
-VDQ (`vueda.vdq`) is optional — only follow this section if your project needs
-queued, asynchronous email/SMS dispatch. VDQ requires `vueda.workflow` to be
-installed, since every queue item is tracked through a workflow state machine.
-
-The dispatch queue uses celery to run tasks.
-Celery can be used with a number of different [backends](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html).
-You will need to select the backend you want to you and then configure the `CELERY_BROKER_URL` in your environment, for example:
-
-```text
-CELERY_BROKER_URL=redis://localhost:6379/3
-```
-
-For email sending, you need to have the following environment variables set (via env vars or your config loader):
-
-```text
-ANYMAIL_MAILGUN_API_KEY=
-ANYMAIL_MAILGUN_API_URL=
-ANYMAIL_WEBHOOK_SECRET=
-ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY=
-```
-
-For SMS sending, you need to have the following environment variables set (via env vars or your config loader):
-
-```text
-TWILIO_ACCOUNT_SID=""
-TWILIO_AUTH_TOKEN=""
-TWILIO_WEBHOOK_URL=""
-```
-
-you would also need to set `VDQ_URL` in your settings.py file for the attachment url to work properly.
-
-#### start celery worker:
+With your project's Django settings selected, start the worker and periodic
+scheduler with:
 
 ```console
-[project-server]$ DJANGO_SETTINGS_MODULE=[path/to/settings/file] celery -A vueda.vdq.celery:app worker -l info  -B --statedb=[path/to/worker/state/file]
+celery -A vueda.vdq.celery:app worker -l info -B
 ```
 
-## Development
+See the [dispatch model](https://vueda.dev/v3/core-concepts/vdq-and-background-work.html),
+[email guide](https://vueda.dev/v3/guides/vdq-email-anymail.html), and
+[SMS guide](https://vueda.dev/v3/guides/vdq-sms-twilio.html) for provider setup,
+delivery tracking, and retries.
 
-First, clone the repository:
+## Contributing
 
-```console
-$ git clone https://github.com/arrai-innovations/vueda.git
-```
+Development setup, PostgreSQL test configuration, and test commands live in the
+[monorepo README](https://github.com/arrai-innovations/vueda#develop-vueda).
+Read the [contribution guide](https://github.com/arrai-innovations/vueda/blob/main/CONTRIBUTING.md)
+or [report an issue](https://github.com/arrai-innovations/vueda/issues).
 
-or
-
-```console
-$ git clone git@github.com:arrai-innovations/vueda.git
-```
-
-```console
-$ cd vueda
-[vueda]$ cd server
-[server]$
-```
-
-### Environment
-
-Install packages:
-
-```console
-[server]$ uv sync
-```
-
-### Hooks
-
-Setup pre-commit hooks:
-
-```console
-[server]$ uv tool install pre-commit --with pre-commit-uv
-[server]$ pre-commit install
-pre-commit installed at .git/hooks/pre-commit
-pre-commit installed at .git/hooks/commit-msg
-```
-
-### API Documentation Generation
-
-API documentation is generated automatically as part of the CI process when tags are pushed. The versioned documentation is made available on the [documentation server][api-docs].
-
-To manually generate the documentation, make sure dev packages are installed and call the following two commands:
-
-```console
-[server]$ uv python manage.py spectacular --color --file schema.yml
-[server]$ npx -y @redocly/cli build-docs schema.yml
-```
-
-The first command will generate the `schema.yml` file.
-The second command will install the code if needed and generate a `redoc-static.html` file from the `schema.yml` file.
-If you would like, you can get json by clicking the download button when viewing the html.
-
-### Documentation Annotations
-
-Rendered Python API references and the REST reference are generated by the `docs-tooling/` package, which reads docstrings from `server/vueda/` and the OpenAPI document produced by `manage.py spectacular`. When adding or updating modules, classes, viewsets, serializers, or model fields, follow the annotation conventions in the authoritative contract:
-
-- [Server annotation contract](../docs-tooling/briefings/server-annotations.md)
-
-### Updating
-
-In development, pull new changes from the git repo and update your environment with:
-
-```console
-[server]$ git pull --ff-only
-[server]$ uv sync
-```
-
-### Tagging Releases
-
-Git tags are used to indicate to CircleCI that a commit is considered a release. You can make git tags like this:
-
-```console
-[server]$ git tag v1.0.1
-[server]$ git push --tags
-```
-
-Tags will have GitHub releases created and be published to our pypi index.
-
-## Testing
-
-### Setup
-
-You'll need a database role that can make databases, if a vueda role doesn't already exist. You can create a role like this:
-
-```console
-[server]$ createuser --username postgres --pwprompt --createdb vueda
-# or
-[server]$ createuser -U postgres -P -d vueda
-```
-
-And you'll then need to put the connection details in your local config (e.g. `.env.local` or TOML), like this:
-
-```console
-DATABASE_URL="postgresql://vueda:password@/vueda"
-```
-
-Depending on your local postgres setup, you may need to add a `pg_hba.conf` entry for the `vueda` user, or you may not need to provide a password in the connection string.
-
-### Running Tests
-
-```console
-[server]$ uv run pytest
-```
-
-### Generating Coverage Locally
-
-Coverage will be generated in circleci, but you can do so locally if you don't want to commit & push.
-
-```console
-[server]$ uv run pytest --cov-config=.coveragerc
-[server]$ uv run coverage combine
-[server]$ uv run coverage html
-[server]$ open htmlcov/index.html
-```
-
-[django-filter]: https://github.com/carltongibson/django-filter
-[drf-flex-fields]: https://github.com/rsinger86/drf-flex-fields
-[drf-writable-nested]: https://github.com/beda-software/drf-writable-nested
-[django-pghistory]: https://github.com/AmbitionEng/django-pghistory
-[api-docs]: https://vueda.dev/v3/reference/api/
+Built by [Arrai Innovations](https://arrai.com), under the
+[BSD 3-Clause license](https://github.com/arrai-innovations/vueda/blob/main/server/LICENSE).
