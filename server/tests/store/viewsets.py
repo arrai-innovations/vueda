@@ -283,6 +283,30 @@ class CustomerWithCartsViewSet(VuedaViewSet):
     permit_retrieve_expands = ["cart_set"]
 
 
+class CartItemCartBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartBaseManagerSerializer
+
+
+class CartItemCartSlugBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartSlugBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartSlugBaseManagerSerializer
+
+
+class CustomerCartsBaseManagerViewSet(VuedaViewSet):
+    """Serves CustomerCartsBaseManagerSerializer -- see that serializer for why its `carts` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerCartsBaseManagerSerializer
+
+
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
