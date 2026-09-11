@@ -3,9 +3,64 @@
  * @description Generates Vue Router route records for CRUD views with configurable auth and group guards.
  */
 import { requireAuth, requireGroups, requireModelInfo } from "@vueda/router/guards.js";
+import { storeUser } from "@vueda/stores/storeUser.js";
+import { watch } from "vue";
+
+/**
+ * Run the generated routes' guard chain against the route the application is already on.
+ *
+ * Vue Router runs `beforeEnter` when a navigation enters a route record, and a change of
+ * authenticated user is not a navigation. Nothing else rechecks the view on screen, so this reruns
+ * the same checks in the same order and acts on the first one that denies the route.
+ *
+ * @param {import('vue-router').Router} router
+ * @param {((to: import('vue-router').RouteLocationNormalized) => any)[]} beforeEnter
+ * @param {Set<string>} generatedRouteNames
+ * @param {import('@vueda/stores/storeUser.js').UserStore} userStore
+ * @returns {Promise<void>}
+ */
+async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, userStore) {
+    const to = router.currentRoute.value;
+    if (!generatedRouteNames.has(to.name)) {
+        // the application is on one of its own routes rather than a generated one, and these
+        // checks have nothing to say about it
+        return;
+    }
+    const generation = userStore.identityGeneration;
+    for (const check of beforeEnter) {
+        const result = await check(to);
+        if (userStore.identityGeneration !== generation) {
+            // another user change landed while this check was resolving, so this answer describes a
+            // user who is already gone. The recheck that change triggered decides instead.
+            return;
+        }
+        if (router.currentRoute.value.fullPath !== to.fullPath) {
+            // the application navigated while this check was resolving, and that navigation ran the
+            // same chain on entry. Redirecting now would override a newer decision.
+            return;
+        }
+        if (result === false) {
+            // the check could not answer for the current user
+            return;
+        }
+        if (result === true || result === undefined) {
+            continue;
+        }
+        // `replace` rather than `push`, so the back button does not return to a route this user has
+        // just been denied
+        await router.replace(result);
+        return;
+    }
+}
 
 /**
  * Generate CRUD routes for a given app and model.
+ *
+ * Call this once during application setup and register the two records it returns. Besides building
+ * them, it starts watching for a change of authenticated user. When one happens while the
+ * application sits on one of these routes, it reruns the same guard chain against that route and
+ * redirects if the new user may not use it. The guard chain otherwise runs only on route entry, so
+ * without this the previous user's view stays on screen at a URL the new user cannot use.
  *
  * @param {object} params - The parameters.
  * @param {object} params.component - The component to use for the routes.
@@ -112,6 +167,20 @@ export function makeCRUDRoutes({
         routeNonDetail.path = `/${pathPrefix}${routeNonDetail.path}`;
         routeDetail.path = `/${pathPrefix}${routeDetail.path}`;
     }
+
+    const generatedRouteNames = new Set([routeDetail.name, routeNonDetail.name]);
+    const userStore = storeUser(pinia);
+    // The application registers these records once, so this watch is the only place that can notice a
+    // user change on its behalf. It lives as long as the store it watches, which is the lifetime of
+    // the application that called this.
+    watch(
+        () => userStore.identityGeneration,
+        () => {
+            // `identityGeneration` is incremented after the authorization-dependent caches are
+            // dropped, so the checks below refetch metadata for the user who is authenticated now.
+            recheckCurrentRoute(router, beforeEnter, generatedRouteNames, userStore);
+        },
+    );
 
     return [routeDetail, routeNonDetail];
 }
