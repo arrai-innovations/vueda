@@ -276,9 +276,17 @@ class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
 class CartFormattedNameMethodViewSet(VuedaViewSet):
     """Serves CartFormattedNameMethodSerializer directly, so a plain list request exercises
     VuedaViewSet.get_queryset's own annotate_formatted_name call with a get_formatted_name() model
-    declaring formatted_name_select_related."""
+    declaring formatted_name_select_related.
 
-    queryset = my_models.Cart.objects.all()
+    ``queryset`` is built from ``Cart._base_manager`` rather than ``Cart.objects``
+    (``FormattedNameManager``), which already applies ``formatted_name_select_related`` to every
+    queryset it builds -- using it here would make a query-count test pass whether or not
+    ``VuedaViewSet.get_queryset``'s own call did anything. ``_base_manager`` is a plain
+    ``models.Manager`` Django provides for every model, so a queryset built from it carries no
+    ``select_related`` of its own to begin with.
+    """
+
+    queryset = my_models.Cart._base_manager.all()
     serializer_class = my_serializers.CartFormattedNameMethodSerializer
 
 
