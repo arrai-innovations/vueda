@@ -836,6 +836,7 @@ export default defineConfig({
     ],
     themeConfig: {
         logo: "/assets/logo-cube-solid.svg",
+        search: { provider: "local" },
         outline: "deep",
         breadcrumbs: { routes: breadcrumbRoutes },
         vueda: packageVersions,
