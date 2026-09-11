@@ -24,6 +24,20 @@ def preprocessing_hooks(endpoints):
         if path.startswith("/routes/tests/"):
             continue
 
+        # DRF's schema discovery drops the optional object id from this workflow route.
+        # OpenAPI needs separate bulk and single-object paths, each with required path
+        # parameters. Expand only the schema endpoints, leaving runtime routing alone.
+        optional_object_id = r"(?:/(?P<object_id>[^/.]+))?"
+        if (
+            getattr(callback, "actions", {}).get(method.lower()) == "execute_transition"
+            and optional_object_id in path_regex
+        ):
+            filtered_endpoints.append((path, path_regex.replace(optional_object_id, ""), method, callback))
+            object_path = path.rstrip("/") + "/{object_id}" + ("/" if path.endswith("/") else "")
+            object_regex = path_regex.replace(optional_object_id, r"/(?P<object_id>[^/.]+)")
+            filtered_endpoints.append((object_path, object_regex, method, callback))
+            continue
+
         filtered_endpoints.append((path, path_regex, method, callback))
 
     return filtered_endpoints
@@ -162,31 +176,29 @@ def postprocess_schema_components(result, generator, **kwargs):  # noqa C901
                         del method["parameters"][index_to_delete]
 
                 case "vueda.workflow_workflows_execute_transition_partial_update":
-                    method["summary"] = "Execute object transition"
-                    method["description"] = "Execute an available transition for an object."
+                    is_object_transition = any(
+                        parameter["name"] == "object_id" and parameter["in"] == "path"
+                        for parameter in method["parameters"]
+                    )
+                    if is_object_transition:
+                        method["operationId"] = "vueda.workflow_workflows_execute_object_transition_partial_update"
+                        method["summary"] = "Execute object transition"
+                        method["description"] = "Execute an available transition for an object."
+                    else:
+                        method["summary"] = "Execute bulk transition"
+                        method["description"] = "Execute an available transition for multiple objects."
 
                     # Remove the expand query param, as it doesn't make sense for this.
                     indexes_to_delete = set()
                     for index, parameter in enumerate(method["parameters"]):
                         match parameter["name"]:
-                            # Add some additional information for object_id.
+                            case "object_id":
+                                parameter["schema"]["example"] = "1234"
+                                parameter["schema"]["title"] = "object pk"
                             case ExpandParam.setting:
                                 indexes_to_delete.add(index)
 
                     for index_to_delete in sorted(indexes_to_delete, reverse=True):
                         del method["parameters"][index_to_delete]
-
-                    method["parameters"].append(
-                        {
-                            "in": "path",
-                            "name": "object_id",
-                            "schema": {
-                                "type": "string",
-                                "example": "1234",
-                                "title": "object pk",
-                            },
-                            "required": False,
-                        }
-                    )
 
     return result
