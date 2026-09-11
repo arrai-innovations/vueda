@@ -320,7 +320,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                         choices.append(
                             {
                                 "label": instance.get_formatted_name(),
-                                "value": instance.key_field,
+                                "value": str(getattr(instance, key_field)),
                             }
                         )
 
