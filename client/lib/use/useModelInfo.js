@@ -8,7 +8,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
-import { reactive, readonly, ref, toRef, watch } from "vue";
+import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 /**
  * The raw instance of a useModelInfo object.
@@ -55,6 +55,10 @@ export function useModelInfo(app, model, isActive) {
         app,
         model,
         lastFetchKey: null,
+        lastIdentityGeneration: userStore.identityGeneration,
+        // Set when the authenticated user changes while a fetch is in flight. That fetch is abandoned
+        // and writes nothing, so the one that settles starts another under the new user.
+        refetchOnSettle: false,
     });
     const returnObject = reactive(
         /** @type {UseModelInfoRaw} */ {
@@ -79,6 +83,41 @@ export function useModelInfo(app, model, isActive) {
         },
     );
 
+    // Fetch for whatever app and model this instance holds now. The arguments are read here rather
+    // than passed in, so a refetch queued by a change of user asks for the current pair.
+    const fetchInfo = () => {
+        const app = internalState.app;
+        const model = internalState.model;
+        if (!unref(isActive) || !app || !model) {
+            return; // the watch starts a fetch when that changes again
+        }
+        loadingError.clearError();
+        loadingError.setLoading();
+        const args = { app, model };
+        modelInfoStore
+            .fetchModelInfo(args)
+            .then(() => {
+                // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
+                //  reactivity issues not working when the key is not there initially
+                returnObject.info = toRef(modelInfoStore.infos, getAppModelDotName(args));
+            })
+            .catch((e) => {
+                if (e instanceof AuthScopeInvalidatedError) {
+                    // the authenticated user changed mid-fetch, so this response was discarded; the
+                    // refetch below asks again under the new user
+                    return;
+                }
+                loadingError.setError(e);
+            })
+            .finally(() => {
+                loadingError.clearLoading();
+                if (internalState.refetchOnSettle) {
+                    internalState.refetchOnSettle = false;
+                    fetchInfo();
+                }
+            });
+    };
+
     // update originalInfo when app, model, isActive, or the authenticated user changes
     watch(
         [
@@ -88,7 +127,9 @@ export function useModelInfo(app, model, isActive) {
             // the store drops its cache when the authenticated user changes, so refetch under the new one
             () => userStore.identityGeneration,
         ],
-        ([newActive, app, model]) => {
+        ([newActive, app, model, identityGeneration]) => {
+            const identityChanged = identityGeneration !== internalState.lastIdentityGeneration;
+            internalState.lastIdentityGeneration = identityGeneration;
             if (!newActive) {
                 return; // we'll pick up again when the component is active
             }
@@ -99,28 +140,16 @@ export function useModelInfo(app, model, isActive) {
             // we don't need to check if app and model have changed, vue does that checking for us
             //  on immutable primitive values
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
-            if (app && model && !returnObject.loading) {
-                loadingError.clearError();
-                loadingError.setLoading();
-                const args = { app, model };
-                modelInfoStore
-                    .fetchModelInfo(args)
-                    .then(() => {
-                        // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
-                        //  reactivity issues not working when the key is not there initially
-                        returnObject.info = toRef(modelInfoStore.infos, getAppModelDotName(args));
-                    })
-                    .catch((e) => {
-                        if (e instanceof AuthScopeInvalidatedError) {
-                            // the authenticated user changed mid-fetch; the identity watch refetches
-                            return;
-                        }
-                        loadingError.setError(e);
-                    })
-                    .finally(() => {
-                        loadingError.clearLoading();
-                    });
+            if (returnObject.loading) {
+                // The guard keeps a second fetch off one already running for the same arguments. A
+                // change of user is the other case: that fetch is authorized for the previous user, so
+                // queue a replacement instead of dropping this instance's only chance to load.
+                if (identityChanged) {
+                    internalState.refetchOnSettle = true;
+                }
+                return;
             }
+            fetchInfo();
         },
         { immediate: true },
     );

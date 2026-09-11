@@ -86,6 +86,50 @@ export function useModelChoices(fields, isActive) {
 
     const newFieldWatch = (fieldName) => {
         internalState.loadingErrors[fieldName] = es.run(() => useLoadingError());
+        // Each field has its own request and its own loading state, so it tracks the user it last
+        // fetched for on its own.
+        let lastIdentityGeneration = userStore.identityGeneration;
+        // Set when the authenticated user changes while this field's fetch is in flight. That fetch is
+        // abandoned and writes nothing, so it starts another under the new user as it settles.
+        let refetchOnSettle = false;
+
+        // Fetch for whatever this field holds now. The options are read here rather than passed in, so
+        // a refetch queued by a change of user asks for the current ones.
+        const fetchFieldChoices = async () => {
+            const field = internalState.fields[fieldName];
+            const app = unref(field?.app);
+            const model = unref(field?.model);
+            const isFilter = unref(field?.isFilter);
+            if (!unref(isActive) || !unref(field?.intendToFetch)) {
+                return; // the watch starts a fetch when that changes again
+            }
+            const fieldLoadingError = internalState.loadingErrors[fieldName];
+            fieldLoadingError.clearError();
+            fieldLoadingError.setLoading();
+            try {
+                modelChoicesStore.initializeChoice(app, model, isFilter);
+                const choiceProps = isFilter ? modelChoicesStore.filterChoices : modelChoicesStore.choices;
+                const key = getAppModelDotName({ app, model });
+                const fetchFn = isFilter
+                    ? modelChoicesStore.fetchFilterChoices.bind(modelChoicesStore)
+                    : modelChoicesStore.fetchChoices.bind(modelChoicesStore);
+                await limit(() => fetchFn(app, model, fieldName));
+                returnObject.choices[fieldName] = toRef(choiceProps[key], fieldName);
+            } catch (e) {
+                if (!(e instanceof AuthScopeInvalidatedError)) {
+                    fieldLoadingError.setError(e);
+                }
+                // an AuthScopeInvalidatedError means the authenticated user changed mid-fetch and this
+                // response was discarded; the refetch below asks again under the new user
+            } finally {
+                fieldLoadingError.clearLoading();
+            }
+            if (refetchOnSettle) {
+                refetchOnSettle = false;
+                await fetchFieldChoices();
+            }
+        };
+
         stopWatches[fieldName] = es.run(() =>
             watch(
                 [
@@ -98,35 +142,24 @@ export function useModelChoices(fields, isActive) {
                     // the new one
                     () => userStore.identityGeneration,
                 ],
-                async ([app, model, intendToFetch, isFilter, isActive]) => {
+                async ([app, model, intendToFetch, isFilter, isActive, identityGeneration]) => {
+                    const identityChanged = identityGeneration !== lastIdentityGeneration;
+                    lastIdentityGeneration = identityGeneration;
                     if (!isActive) {
                         return; // we'll pick up again when the component is active
                     }
                     if (intendToFetch) {
-                        const myLE = internalState.loadingErrors[fieldName];
-                        if (!myLE?.loading) {
-                            myLE.clearError();
-                            myLE.setLoading();
-                            try {
-                                modelChoicesStore.initializeChoice(app, model, isFilter);
-                                const choiceProps = isFilter
-                                    ? modelChoicesStore.filterChoices
-                                    : modelChoicesStore.choices;
-                                const key = getAppModelDotName({ app, model });
-                                const fetchFn = isFilter
-                                    ? modelChoicesStore.fetchFilterChoices.bind(modelChoicesStore)
-                                    : modelChoicesStore.fetchChoices.bind(modelChoicesStore);
-                                await limit(() => fetchFn(app, model, fieldName));
-                                returnObject.choices[fieldName] = toRef(choiceProps[key], fieldName);
-                            } catch (e) {
-                                if (!(e instanceof AuthScopeInvalidatedError)) {
-                                    // the authenticated user changed mid-fetch; the identity watch refetches
-                                    myLE.setError(e);
-                                }
-                            } finally {
-                                myLE.clearLoading();
+                        if (internalState.loadingErrors[fieldName]?.loading) {
+                            // The guard keeps a second fetch off one already running for the same
+                            // arguments. A change of user is the other case: that fetch is authorized
+                            // for the previous user, so queue a replacement instead of dropping this
+                            // field's only chance to load.
+                            if (identityChanged) {
+                                refetchOnSettle = true;
                             }
+                            return;
                         }
+                        await fetchFieldChoices();
                     }
                 },
                 { immediate: true },

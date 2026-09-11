@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
-import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
+import { effectScope, isReactive, reactive, ref, unref } from "vue";
 
 const modelInfoStoreFnMocks = {
     storeModelInfo: vi.fn(() => modelInfoStoreMock),
@@ -25,10 +25,15 @@ const mockedUseLoadingErrorInstance = {
     errored: ref(false),
     clearError: vi.fn(),
     setError: vi.fn(),
-    setLoading: vi.fn(),
-    clearLoading: vi.fn(),
+    // the composable guards on `loading`, so the mock has to move it the way the real helper does
+    setLoading: vi.fn(() => {
+        mockedUseLoadingErrorInstance.loading.value = true;
+    }),
+    clearLoading: vi.fn(() => {
+        mockedUseLoadingErrorInstance.loading.value = false;
+    }),
 };
-const mockedUseLoadingError = vi.fn(() => readonly(mockedUseLoadingErrorInstance));
+const mockedUseLoadingError = vi.fn(() => mockedUseLoadingErrorInstance);
 
 vi.mock("@arrai-innovations/reactive-helpers", async () => {
     const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
@@ -51,17 +56,28 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
 describe("lib/use/useModelInfo.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
-    let caseJs, key, useModelInfo, es;
+    let caseJs, errorsJs, key, useModelInfo, es;
 
     beforeEach(async () => {
         es = effectScope();
+        mockedUseLoadingErrorInstance.loading.value = false;
+        // mockReset also drops queued mockImplementationOnce entries, which clearAllMocks leaves
+        // behind: one left over from a test that fetched fewer times than it queued would otherwise
+        // answer the next test's first fetch. The default keeps the mount fetch resolving for tests
+        // that set their own implementation after mounting.
+        modelInfoStoreMock.fetchModelInfo.mockReset();
+        modelInfoStoreMock.fetchModelInfo.mockResolvedValue({});
         useModelInfo = (await import("@vueda/use/useModelInfo.js")).useModelInfo;
         caseJs = await import("@vueda/utils/case.js");
+        // imported here rather than at the top, because a static import pulls in the mocked
+        // reactive-helpers module before the mock factory's variables exist
+        errorsJs = await import("@vueda/utils/errors.js");
         key = caseJs.getAppModelDotName({ app: unref(app), model: unref(model) });
     });
 
     afterEach(() => {
         vi.clearAllMocks();
+        mockedUseLoadingErrorInstance.loading.value = false;
         modelInfoStoreMock.infos = reactive({});
         modelInfoStoreFnMocks.storeModelInfo.mockReturnValue(modelInfoStoreMock);
         app.value = "myApp";
@@ -206,6 +222,66 @@ describe("lib/use/useModelInfo.js", () => {
         await flushPromises();
 
         expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(2);
+    });
+
+    scopedIt("refetches when the authenticated user changes while a fetch is in flight", async () => {
+        let rejectFirstFetch;
+        modelInfoStoreMock.fetchModelInfo
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        rejectFirstFetch = reject;
+                    }),
+            )
+            .mockImplementationOnce(() => Promise.resolve({}));
+
+        let result;
+        es.run(() => {
+            result = useModelInfo(app, model);
+        });
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+        expect(result.loading).toBe(true);
+
+        // the user changes with the first request still in flight, so the guard skips the fetch
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+
+        // the store abandons that request rather than caching a response fetched for the previous user
+        const newUserInfo = { label: "authorized for the new user" };
+        modelInfoStoreMock.infos[key] = newUserInfo;
+        rejectFirstFetch(new errorsJs.AuthScopeInvalidatedError("storeModelInfo.fetchModelInfo", key));
+        await flushPromises();
+
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(2);
+        expect(result.info).toEqual(newUserInfo);
+        expect(result.loading).toBe(false);
+        expect(mockedUseLoadingErrorInstance.setError).not.toHaveBeenCalled();
+    });
+
+    scopedIt("does not stack a second fetch when only the model changes", async () => {
+        let resolveFirstFetch;
+        modelInfoStoreMock.fetchModelInfo.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirstFetch = resolve;
+                }),
+        );
+
+        es.run(() => {
+            useModelInfo(app, model);
+        });
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+
+        model.value = "otherModel";
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+
+        resolveFirstFetch({});
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
     });
 
     scopedIt("does not fetch and clears info if model is falsey", async () => {

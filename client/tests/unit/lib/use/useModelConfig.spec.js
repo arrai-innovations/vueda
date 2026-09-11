@@ -59,10 +59,13 @@ vi.mock("@vueda/utils/actionMap.js", () => ({
 }));
 
 describe("lib/use/useModelConfig.js", () => {
-    let useModelConfig;
+    let useModelConfig, errorsJs;
 
     beforeEach(async () => {
         useModelConfig = (await import("@vueda/use/useModelConfig.js")).useModelConfig;
+        // imported here rather than at the top, because a static import pulls in the mocked
+        // reactive-helpers module before the mock factory's variables exist
+        errorsJs = await import("@vueda/utils/errors.js");
         mockStore.builtConfigs = reactive({});
     });
 
@@ -207,6 +210,40 @@ describe("lib/use/useModelConfig.js", () => {
         await vi.waitUntil(() => !result.loading);
 
         expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
+    });
+    scopedIt("rebuilds when the authenticated user changes while a build is in flight", async () => {
+        const app = ref("blog");
+        const model = ref("article");
+        const key = getAppModelDotName({ app: "blog", model: "article" });
+
+        let rejectFirstBuild;
+        mockStore.getConfig
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        rejectFirstBuild = reject;
+                    }),
+            )
+            .mockImplementationOnce(async () => {
+                mockStore.builtConfigs[key] = { fields: ["authorized for the new user"] };
+            });
+
+        const result = useModelConfig(app, model);
+        await flushPromises();
+        expect(mockStore.getConfig).toHaveBeenCalledTimes(1);
+
+        // this composable has no loading guard, so the change of user starts the rebuild right away
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+        expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
+
+        // the store abandons the first build rather than caching one derived from the previous user's
+        // permissions
+        rejectFirstBuild(new errorsJs.AuthScopeInvalidatedError("storeModelConfig.getConfig", key));
+        await flushPromises();
+
+        expect(result.config.fields).toEqual(["authorized for the new user"]);
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
     });
     scopedIt("includes modelInfo.info from useModelInfo", async () => {
         const app = ref("blog");

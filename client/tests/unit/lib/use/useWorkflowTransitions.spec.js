@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
-import { effectScope, isReactive, reactive, readonly, ref, unref } from "vue";
+import { effectScope, isReactive, reactive, ref, unref } from "vue";
 
 const workflowStoreFnMocks = {
     getUsingVuedaWorkflow: vi.fn(() => true),
@@ -26,10 +26,15 @@ const mockedUseLoadingErrorInstance = {
     errored: ref(false),
     clearError: vi.fn(),
     setError: vi.fn(),
-    setLoading: vi.fn(),
-    clearLoading: vi.fn(),
+    // the composable guards on `loading`, so the mock has to move it the way the real helper does
+    setLoading: vi.fn(() => {
+        mockedUseLoadingErrorInstance.loading.value = true;
+    }),
+    clearLoading: vi.fn(() => {
+        mockedUseLoadingErrorInstance.loading.value = false;
+    }),
 };
-const mockedUseLoadingError = vi.fn(() => readonly(mockedUseLoadingErrorInstance));
+const mockedUseLoadingError = vi.fn(() => mockedUseLoadingErrorInstance);
 
 vi.mock("@arrai-innovations/reactive-helpers", async () => {
     const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
@@ -51,10 +56,19 @@ vi.mock("@vueda/use/useIsActive.js", () => ({
 describe("lib/use/useWorkflowTransitions.js", () => {
     const app = ref("myApp");
     const model = ref("myModel");
-    let useWorkflowTransitions, caseJs, getAppModelDotName;
+    let useWorkflowTransitions, caseJs, errorsJs, getAppModelDotName;
     beforeEach(async () => {
+        mockedUseLoadingErrorInstance.loading.value = false;
+        // mockReset also drops queued mockImplementationOnce entries, which clearAllMocks leaves
+        // behind: one left over from a test that fetched fewer times than it queued would otherwise
+        // answer the next test's first fetch
+        workflowStoreMock.fetchWorkflowTransition.mockReset();
+        workflowStoreMock.fetchWorkflowTransition.mockResolvedValue([]);
         useWorkflowTransitions = (await import("@vueda/use/useWorkflowTransitions.js")).useWorkflowTransitions;
         caseJs = await import("@vueda/utils/case.js");
+        // imported here rather than at the top, because a static import pulls in the mocked
+        // reactive-helpers module before the mock factory's variables exist
+        errorsJs = await import("@vueda/utils/errors.js");
         getAppModelDotName = caseJs.getAppModelDotName;
     });
     afterEach(() => {
@@ -64,6 +78,7 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         app.value = "myApp";
         model.value = "myModel";
         userStoreMock.identityGeneration = 0;
+        mockedUseLoadingErrorInstance.loading.value = false;
     });
 
     scopedIt("returns inert state when getUsingVuedaWorkflow is false", () => {
@@ -143,6 +158,72 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         workflowStoreMock.workflowTransitions[key] = [{ code: "two", name: "Two" }];
         await flushPromises();
         expect(result.transitions).toEqual([{ code: "two", name: "Two" }]);
+        es.stop();
+    });
+
+    scopedIt("refetches when the authenticated user changes while a fetch is in flight", async () => {
+        const key = getAppModelDotName({ app: unref(app), model: unref(model) });
+        let rejectFirstFetch;
+        workflowStoreMock.fetchWorkflowTransition
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        rejectFirstFetch = reject;
+                    }),
+            )
+            .mockImplementationOnce(() => Promise.resolve([]));
+
+        const es = effectScope();
+        let result;
+        es.run(() => {
+            result = useWorkflowTransitions(app, model);
+        });
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
+        expect(result.loading).toBe(true);
+
+        // the user changes with the first request still in flight, so the guard skips the fetch
+        userStoreMock.identityGeneration = 1;
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
+
+        // the store abandons that request rather than caching transitions fetched for the previous user
+        rejectFirstFetch(new errorsJs.AuthScopeInvalidatedError("storeWorkflow.fetchWorkflowTransition", key));
+        await flushPromises();
+
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(2);
+        expect(result.loading).toBe(false);
+        expect(mockedUseLoadingErrorInstance.setError).not.toHaveBeenCalled();
+
+        workflowStoreMock.workflowTransitions[key] = [{ code: "two", name: "Two" }];
+        await flushPromises();
+        expect(result.transitions).toEqual([{ code: "two", name: "Two" }]);
+        es.stop();
+    });
+
+    scopedIt("does not stack a second fetch when only the model changes", async () => {
+        let resolveFirstFetch;
+        workflowStoreMock.fetchWorkflowTransition.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirstFetch = resolve;
+                }),
+        );
+
+        const es = effectScope();
+        es.run(() => {
+            useWorkflowTransitions(app, model);
+        });
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
+
+        model.value = "otherModel";
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
+
+        resolveFirstFetch([]);
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
         es.stop();
     });
 
