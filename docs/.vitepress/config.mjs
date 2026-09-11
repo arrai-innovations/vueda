@@ -840,7 +840,7 @@ export default defineConfig({
         breadcrumbs: { routes: breadcrumbRoutes },
         vueda: packageVersions,
         nav: [
-            { text: "About", link: "/" },
+            { text: "Home", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },
