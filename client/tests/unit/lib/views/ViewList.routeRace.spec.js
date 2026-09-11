@@ -364,7 +364,10 @@ afterEach(() => {
 
 describe("lib/views/ViewList.vue", () => {
     describe("Route write race (real router)", () => {
-        scopedIt("keeps a cleared sort and a cleared filter both cleared when their route writes overlap", async () => {
+        scopedIt.each([
+            ["sort", "filter"],
+            ["filter", "sort"],
+        ])("keeps a cleared sort and a cleared filter both cleared when %s clears before %s", async (first, second) => {
             const wrapper = mount(ViewList, {
                 props: { app: "app", model: "model" },
                 global: { plugins: [router] },
@@ -376,11 +379,18 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
             expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
 
+            const clearSort = () => wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
+            const clearFilter = () =>
+                wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            const clearers = { sort: clearSort, filter: clearFilter };
+
             // Clear the sort and the filter without awaiting in between, so both writers
             // compute their next `router.push` off the same not-yet-settled `route.query`,
-            // the way two nearly-simultaneous UI interactions would in a browser.
-            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
-            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            // the way two nearly-simultaneous UI interactions would in a browser. Both
+            // orders must clear both constraints: whichever writer runs second still reads
+            // the route query from before either write landed.
+            clearers[first]();
+            clearers[second]();
 
             await flushPromises();
             await nextTick();
