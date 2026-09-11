@@ -78,12 +78,13 @@ const ErrorDisplayStub = defineComponent({
 });
 const FilterGroupStub = defineComponent({
     name: "FilterGroupStub",
-    emits: ["filter-change", "query-change", "hide-filter-form"],
-    setup(_, { slots, attrs }) {
+    props: ["modelValue", "filterables", "filterableDetails", "validFilterables"],
+    emits: ["hide-filter-form"],
+    setup(_, { slots }) {
         return () =>
             h(
                 "div",
-                { "data-qa": "filter-group", ...attrs },
+                { "data-qa": "filter-group" },
                 Object.keys(slots).map((n) => h("div", { "data-slot": n }, slots[n] ? slots[n]() : null)),
             );
     },
@@ -359,6 +360,15 @@ beforeEach(async () => {
             actionDetails: {},
             fetchFields: [],
             sortables: [],
+            // Named to avoid colliding with the `status`/`filter` query keys other tests in this
+            // file use incidentally (e.g. to prove sort/search sync preserves unrelated params).
+            filterables: ["category", "id", "created"],
+            filterableDetails: {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                // Server-hidden: an auto-injected deep-link filter with no editable widget.
+                id: { typeFilter: "DecimalInField", hidden: true },
+                created: { typeFilter: "DateRangeField", suffixes: ["after", "before"], label: "Created" },
+            },
         },
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
@@ -964,7 +974,7 @@ describe("lib/views/ViewList.vue", () => {
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
 
-            wrapper.vm.list.listState.filterArgs.status = "active";
+            wrapper.vm.filter.state.addedFilters.push({ field: "status", param: "status", value: "active" });
             await vue.nextTick();
 
             expect(listPreferenceStoreMock.setFilters).toHaveBeenCalledWith(
@@ -974,6 +984,213 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name", status: "active" },
             });
+            wrapper.unmount();
+        });
+    });
+
+    describe("Rich filter state and restoration", () => {
+        scopedIt("resolves filterables/filterableDetails/validFilterables and passes them to FilterGroup", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const filterGroupProps = wrapper.findComponent(FilterGroupStub).props();
+            expect(filterGroupProps.filterables).toEqual(["category", "id", "created"]);
+            expect(filterGroupProps.filterableDetails).toEqual(modelConfig.config.filterableDetails);
+            // The hidden `id` filter is excluded from the presentable/valid list.
+            expect(filterGroupProps.validFilterables).toEqual(["category", "created"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("restores an active filter from the URL query on load", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { category: "widgets" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({
+                field: "category",
+                param: "category",
+                value: "widgets",
+                range: false,
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("restores a range filter's suffixed query params as one filter entry", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { created_after: "2024-01-01", created_before: "2024-02-01" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({
+                field: "created",
+                param: ["created_after", "created_before"],
+                value: { after: "2024-01-01", before: "2024-02-01" },
+                range: true,
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("does not restore a server-hidden filter from the URL", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt("re-restores when the route query changes externally (e.g. browser navigation)", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+
+            route.query = { category: "archived" };
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "category", value: "archived" });
+            wrapper.unmount();
+        });
+
+        scopedIt("resets to the first page when the active filters change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            wrapper.vm.list.listState.currentPage = 3;
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.currentPage).toBe(1);
+            wrapper.unmount();
+        });
+
+        scopedIt("clears filter params from the route and request params once removed", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { category: "widgets" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+
+            routerPush.mockClear();
+            listPreferenceStoreMock.setFilters.mockClear();
+            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.category).toBeUndefined();
+            expect(routerPush).toHaveBeenCalledWith({ query: {} });
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenCalledWith({ app: "app", model: "model" }, {});
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves options.params and active filters across each other's updates", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", params: { id: "1,2" } } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+            // Adding a filter must not drop the `params` prop's own key.
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+            // Changing the `params` prop must not drop the active filter's key.
+            await wrapper.setProps({ params: { id: "3,4" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBe("3,4");
+            expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+
+            // Clearing the filter must not drop the `params` prop's key.
+            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.category).toBeUndefined();
+            expect(wrapper.vm.list.listState.params.id).toBe("3,4");
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps a rich choice value in memory once the route round-trips its serialized form", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const richFilter = {
+                field: "category",
+                param: "category",
+                value: { value: "widgets", label: "Widgets" },
+                isValueRawObject: true,
+            };
+            wrapper.vm.filter.state.addedFilters.push(richFilter);
+            await vue.nextTick();
+
+            // The raw value serialized into the URL...
+            expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets" } });
+            // ...but restoring from that round-tripped route.query does not flatten the richer
+            // in-memory filter: the {value, label} object and isValueRawObject flag survive,
+            // because the restore guard compares serialized forms rather than overwriting on any
+            // route.query change.
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toEqual(richFilter);
+            wrapper.unmount();
+        });
+
+        scopedIt("does not push filter changes while navigated away from the list action", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "detail" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(routerPush).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("emits filtered once on mount as a live ref reflecting later addedFilters changes", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.emitted("filtered")).toHaveLength(1);
+            const filtered = wrapper.emitted("filtered")[0][0];
+            expect(filtered.value).toEqual([]);
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            // Same emission, live ref now reflects the change -- not a second emit.
+            expect(wrapper.emitted("filtered")).toHaveLength(1);
+            expect(filtered.value).toEqual([{ field: "category", param: "category", value: "widgets" }]);
+            wrapper.unmount();
+        });
+
+        scopedIt("emits query-change once on mount as a live ref reflecting later route changes", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.emitted("query-change")).toHaveLength(1);
+            const queryChange = wrapper.emitted("query-change")[0][0];
+            expect(queryChange.value).toEqual({});
+
+            route.query = { category: "widgets" };
+            await vue.nextTick();
+
+            // Same emission, live ref now reflects the change -- not a second emit.
+            expect(wrapper.emitted("query-change")).toHaveLength(1);
+            expect(queryChange.value).toEqual({ category: "widgets" });
             wrapper.unmount();
         });
     });
