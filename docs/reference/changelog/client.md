@@ -14,6 +14,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## vNext (unreleased)
 
+- **The workflow state history URL key is renamed (`utils/urls`, `stores/storeWorkflow`)**:
+    - `historyObjectHistory` becomes `historyWorkflowStateHistory`, and its template becomes `/routes/history/workflow-state-history/:app/:model/:pk/`, matching the server route rename. The endpoint returns the history of the target object's workflow state, not the target model's audit log.
+    - `storeWorkflow` read this URL under the key `workflowObjectHistory`, which no URL table defined. The lookup returned `undefined` unless a project registered that key itself. The store now reads `historyWorkflowStateHistory` and substitutes `:app`, `:model`, and `:pk` the way the other workflow URL builders do.
+      _Rename any `setUrl("historyObjectHistory", ...)` or `setUrl("workflowObjectHistory", ...)` call to `setUrl("historyWorkflowStateHistory", ...)`, and give it a template carrying `:app`, `:model`, and `:pk` placeholders._
+
 - **`ViewHistoryList` presents an object's history as the actions behind it (`ViewHistoryList`)**:
     - The server's `history_list` action now returns action groups rather than one django-simple-history record per row. `ViewHistoryList` renders that shape: one table row per field change, with the action's metadata (when, who, kind, action name) on its first row and each event's model and type on the event's first row. The card layout shows one card per event with its changes stacked in the Old and New cells. An event that reports no field difference (a create, a delete, or an update that changed no tracked value) renders as its type: in the Field column for a table row, and in both value cells for a card, which has no Field column.
     - The columns come from the history response and the view labels them itself; it no longer reads a `history` expand from model info. The `fields` prop picks and orders from `recorded_at`, `actor`, `kind`, `label`, `model`, `relation`, `type`, `field`, `old`, and `new`. The default omits `relation`, because the model cell already marks a related row and shows its object id.

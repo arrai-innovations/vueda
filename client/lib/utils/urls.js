@@ -11,7 +11,7 @@ const defaultUrls = {
     changePassword: "/routes/vueda.user/change_password/",
     checkReauthentication: "/routes/vueda.user/totpdevice/check_reauthentication/",
     getTOTPCode: "/routes/vueda.user/totp_code/",
-    historyObjectHistory: "/routes/history/object-history/:app/:model/:pk/",
+    historyWorkflowStateHistory: "/routes/history/workflow-state-history/:app/:model/:pk/",
     infoModelInfo: "/routes/vueda.info/model_info/",
     infoModelInfoChoices: "/routes/vueda.info/model_info_choices/",
     infoModelInfoFilterChoices: "/routes/vueda.info/model_info_filter_choices/",

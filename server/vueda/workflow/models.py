@@ -776,9 +776,17 @@ class HasWorkflowModelMixin(models.Model):
         return transitions.filter(pk__in=permitted_ids)
 
     @classmethod
-    def check_workflow_permission(cls, user: User | None = None) -> bool:
+    def check_workflow_permission(cls, user: User | None = None, obj: models.Model | None = None) -> bool:
         """
-        user as None means superuser, pass django's AnonymousUser if you want to check for anonymous user.
+        Whether ``user`` holds the workflow's configured permissions.
+
+        ``user`` as None means programmatic use; pass Django's AnonymousUser to check an anonymous
+        request. ``obj`` scopes the check to one object, so an object permission backend decides
+        the configured workflow permissions the way it decides the target model's own.
+
+        A state rule is not a substitute for a configured workflow permission. State rules apply
+        where a concrete object supplies the state, which is the object permission decision this
+        check passes ``obj`` to, not a reason to skip the check.
         """
         # programmatic use
         if user is None:
@@ -790,11 +798,8 @@ class HasWorkflowModelMixin(models.Model):
                 workflow=workflow,
             ).values_list("permission__content_type__app_label", "permission__codename")
         ]
-        # workflow state permissions are inherently row level, so skip the generic check if we have state permissions
-        if StatePermission.objects.filter(state__workflow=workflow).exists():
-            return True
         # not even superuser can get a workflow without permissions
-        if workflow_permissions and user.has_perms(workflow_permissions):
+        if workflow_permissions and user.has_perms(workflow_permissions, obj=obj):
             return True
         raise PermissionDenied(f"User {user.get_username()!r} does not have permission for workflow {workflow.code!r}.")
 
@@ -955,7 +960,7 @@ class HasWorkflowModelMixin(models.Model):
         """
         # One cache per call, so the second check under the row lock re-reads the state the lock protects.
         with self.cached_workflow_state():
-            self.check_workflow_permission(user)
+            self.check_workflow_permission(user, obj=self)
             transition: Transition = self.get_transition(transition_code)
             if user is None:
                 # History middleware records the acting user on the request's action, which is where

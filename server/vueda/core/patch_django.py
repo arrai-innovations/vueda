@@ -109,11 +109,14 @@ def _patched_options_init(self, meta, app_label=None):
 _Options.__init__ = _patched_options_init
 
 
-# We also need to patch the perms_map in vueda\core\permissions.py and
-# vueda\workflow\permissions.py, if the permissions are not set to the default.
-# This selects which further patches apply, so it must run at import time, before
-# permissions are created. Unlike get_permission_codename and get_builtin_permissions
+# We also need to patch the perms_map in vueda\core\permissions.py, if the permissions are not
+# set to the default. This selects which further patches apply, so it must run at import time,
+# before permissions are created. Unlike get_permission_codename and get_builtin_permissions
 # above, this decision does not move to call time; it reads the setting once here.
+#
+# DynamicObjectPermissions, and the workflow class built on it, are absent here on purpose. They
+# name a CRUDL action rather than a codename and resolve it through get_permission_names_mapping
+# when the check runs, so they follow a renamed action without being patched.
 permission_names_mapping = settings.PERMISSION_NAMES_MAPPING
 
 if (
@@ -126,22 +129,12 @@ if (
 ):
     from vueda.core.permissions import ObjectPermissions
 
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        from vueda.workflow.permissions import WorkflowObjectPermissions
-
 if "add" not in permission_names_mapping and "add" in permission_names_mapping.values():
     ObjectPermissions.perms_map["POST"] = ["%(app_label)s.add_%(model_name)s"]
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        WorkflowObjectPermissions.perms_map["POST"] = ["%(app_label)s.add_%(model_name)s"]
 
 if "change" not in permission_names_mapping and "change" in permission_names_mapping.values():
     ObjectPermissions.perms_map["PUT"] = ["%(app_label)s.change_%(model_name)s"]
     ObjectPermissions.perms_map["PATCH"] = ["%(app_label)s.change_%(model_name)s"]
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        WorkflowObjectPermissions.perms_map["PUT"] = ["%(app_label)s.change_%(model_name)s"]
-        WorkflowObjectPermissions.perms_map["PATCH"] = ["%(app_label)s.change_%(model_name)s"]
 
 if "view" not in permission_names_mapping and "view" in permission_names_mapping.values():
     ObjectPermissions.perms_map["GET"] = ["%(app_label)s.view_%(model_name)s"]
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        WorkflowObjectPermissions.perms_map["GET"] = ["%(app_label)s.view_%(model_name)s"]

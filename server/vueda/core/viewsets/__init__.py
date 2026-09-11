@@ -20,6 +20,7 @@ __all__ = (
 )
 
 import warnings
+import weakref
 
 import pghistory
 from django.conf import settings
@@ -311,7 +312,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
 
-_FILTERSET_QUERY_PARAM_NAMES = {}
+# Keyed weakly so a filterset class built at runtime (one composed per view, or per test) is
+# collectable once its last other reference goes away. A class declared in a module is referenced by
+# that module and lives as long as the process either way.
+_FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 
 
 def get_filterset_query_param_names(filterset_class, get_queryset):
@@ -328,15 +332,30 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
 
     The names depend only on the filterset class, so they are built once per class. Instantiating a
     filterset reads every filter's field, which is a query per value-derived filter, and this runs on
-    every list request. ``get_queryset`` is taken as a callable rather than a queryset for the same
-    reason: on the cached path nothing needs one, and building one is work of its own.
+    every list request.
+
+    A filterset that names its model in ``Meta`` is instantiated without a queryset, which leaves it
+    to build the default one for that model. Passing the view's queryset instead would make this
+    depend on what ``get_queryset`` does, and ``VuedaViewSet.get_queryset`` builds a serializer that
+    rejects an over-deep ``?e=``. Discovery would then report that error on a cache miss and the
+    unrecognized parameter on a cache hit, so the same request would fail two different ways
+    depending on what an earlier request left behind. Only the filter names are read here, so the
+    queryset the filterset ends up filtering does not matter.
+
+    A filterset whose ``Meta`` names no model takes its model from the queryset it is given, so that
+    one still gets the view's. ``get_queryset`` is a callable rather than a queryset because the
+    cached path and the model-backed path never call it.
     """
     names = _FILTERSET_QUERY_PARAM_NAMES.get(filterset_class)
     if names is not None:
         return names
 
+    # `BaseFilterSet.__init__` defaults a missing queryset to `Meta.model`'s, and every filter reads
+    # its model from the queryset the filterset holds.
+    queryset = None if filterset_class._meta.model is not None else get_queryset()
+
     names = set()
-    for filter_name, filter_obj in filterset_class(queryset=get_queryset()).filters.items():
+    for filter_name, filter_obj in filterset_class(queryset=queryset).filters.items():
         widget = filter_obj.field.widget
         # If the filter has suffixes, then we need to use those with the filter name.
         if hasattr(widget, "suffixes"):

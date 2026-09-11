@@ -4,6 +4,7 @@ from .exclude_fields import ExcludeFieldsSerializer  # noqa: F401
 from .serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
 from .serializers import BothFormattedNameSelectRelatedConfiguredSerializer  # noqa: F401
 from .serializers import ExpandableFieldsBadTupleLengthSerializer  # noqa: F401
+from .serializers import ExpandableFieldsEmptyTupleSerializer  # noqa: F401
 from .serializers import ExpandableFieldsListSerializer  # noqa: F401
 from .serializers import ExpandableFieldsNestedInvalidSerializer  # noqa: F401
 from .serializers import ExpandableFieldsNonDictOptionsSerializer  # noqa: F401

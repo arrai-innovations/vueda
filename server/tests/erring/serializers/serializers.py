@@ -216,6 +216,18 @@ class ExpandableFieldsBadTupleLengthSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
+class ExpandableFieldsEmptyTupleSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NoExpandableFieldsData
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "no_name": (),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
 class ExpandableFieldsUnresolvableStringSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.NoExpandableFieldsData

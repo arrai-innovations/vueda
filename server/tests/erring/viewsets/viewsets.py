@@ -29,6 +29,11 @@ class ExpandableFieldsBadTupleLengthViewSet(VuedaViewSet):
     serializer_class = my_serializers.ExpandableFieldsBadTupleLengthSerializer
 
 
+class ExpandableFieldsEmptyTupleViewSet(VuedaViewSet):
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExpandableFieldsEmptyTupleSerializer
+
+
 class ExpandableFieldsUnresolvableStringViewSet(VuedaViewSet):
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExpandableFieldsUnresolvableStringSerializer

@@ -2,54 +2,23 @@
 
 __all__ = ("WorkflowObjectPermissions",)
 
-from rest_framework.generics import get_object_or_404
-
-from vueda.core.permissions import DjangoObjectPermissions
-from vueda.workflow.models import HasWorkflowModelMixin
+from vueda.core.permissions import DynamicObjectPermissions
 
 
-class WorkflowObjectPermissions(DjangoObjectPermissions):
+class WorkflowObjectPermissions(DynamicObjectPermissions):
     """
-    For use with inheritors of WorkflowView, where the content type to have permissions checked for is dynamic.
-    Assumes that the view arguments include app_label, model, and object_id.
+    Target-model permissions for workflow endpoints that address a target model's data.
+
+    The view names its target model through ``app_label`` and ``model``, and lists the actions
+    that carry a target-model gate in ``target_model_permission_actions``.
+
+    Workflow definition endpoints describe the workflow itself rather than any object under it.
+    They carry the ``vueda_workflow.read_workflow`` gate the viewset applies, and no target-model
+    gate, so a target-model permission neither admits nor denies them.
     """
 
-    perms_map = {
-        "GET": ["%(app_label)s.read_%(model_name)s"],
-        "OPTIONS": [],
-        "HEAD": [],
-        "POST": ["%(app_label)s.create_%(model_name)s"],
-        "PUT": ["%(app_label)s.update_%(model_name)s"],
-        "PATCH": ["%(app_label)s.read_%(model_name)s"],
-        "DELETE": ["%(app_label)s.delete_%(model_name)s"],
-    }
-
-    def _queryset(self, view):
-        """
-        Get a queryset for the model in question.
-        """
-        # Local import, so we can modify the perms_map before the apps are ready.
-        from django.contrib.contenttypes.models import ContentType
-
-        app_label = view.kwargs.get("app_label") or view.request.GET.get("app_label")
-        model = view.kwargs.get("model") or view.request.GET.get("model")
-        content_type = get_object_or_404(ContentType, app_label=app_label, model=model.replace("_", ""))
-        model_class = content_type.model_class()
-        return model_class.objects.all()
-
-    def has_permission(self, request, view):
-        """
-        Bypasses model-level permissions check for models with workflow state permissions,
-        delegating the decision to object-level permissions if applicable.
-        """
-        # Local import, so we can modify the perms_map before the apps are ready.
-        from vueda.workflow.models import StatePermission
-        from vueda.workflow.models import Workflow
-
-        model = self._queryset(view).model
-
-        if issubclass(model, HasWorkflowModelMixin):
-            workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-            if StatePermission.objects.filter(state__workflow=workflow).exists():
-                return True
+    def has_permission(self, request, view) -> bool:
+        """Apply the target-model gate only to the actions that address target-model data."""
+        if getattr(view, "action", None) not in getattr(view, "target_model_permission_actions", ()):
+            return bool(request.user and (request.user.is_authenticated or not self.authenticated_users_only))
         return super().has_permission(request, view)
