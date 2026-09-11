@@ -817,6 +817,11 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
+    // Build output goes to /static/ so that /assets/ holds only the verbatim
+    // copies from docs/public/assets. Hashed files can then be served with
+    // Cache-Control: immutable by directory, and the unhashed logos we link
+    // from npm and PyPI keep stable /assets/ URLs.
+    assetsDir: "static",
     metaChunk: true,
     buildConcurrency:
         Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
@@ -836,11 +841,12 @@ export default defineConfig({
     ],
     themeConfig: {
         logo: "/assets/logo-cube-solid.svg",
+        search: { provider: "local" },
         outline: "deep",
         breadcrumbs: { routes: breadcrumbRoutes },
         vueda: packageVersions,
         nav: [
-            { text: "About", link: "/" },
+            { text: "Home", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },

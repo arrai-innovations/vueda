@@ -1,110 +1,147 @@
-# VUEDA Monorepo
+# VUEDA
 
-![VUEDA Logo - Vue.js User Experience for Django Admin](docs/public/assets/logo-text-solid.svg)
+<a href="https://vueda.dev">
+    <img src="docs/public/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
+</a>
 
-**Server:** [![code style: ruff][]][ruff] [![code style: prettier][]][prettier] ![server pytest status][] ![server coverage status][] ![ruff status][] ![server pysentry status][]
+**Build business applications with Django and Vue.**
 
-**Client:** [![code style: prettier][]][prettier] ![client tests][] [![client coverage status][]][client coverage] ![eslint][] ![pnpm-audit status][]
+[vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Changelog](https://vueda.dev/v3/reference/changelog/)
 
-Package READMEs:
+VUEDA turns your Django models, serializers, and viewsets into Vue forms, lists,
+and detail screens. Add workflows, enforce permissions on the server, and track
+changes, with control over your application's views and appearance.
 
-- [Server](./server/README.md)
-- [Client](./client/README.md)
-- [Copier Templates](./templates/README.md)
+[![Widget Warehouse inventory application built with VUEDA](docs/public/assets/homepage-list-preview.png)](https://vueda.dev)
 
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or pull
-request.
+_Widget Warehouse, an example VUEDA application._
 
-<!--prettier-ignore-start-->
-<!--TOC-->
+## What you can build
 
-- [VUEDA Monorepo](#vueda-monorepo)
-  - [About](#about)
-  - [Repository Layout](#repository-layout)
-  - [Getting Started](#getting-started)
-  - [Checks and Tests](#checks-and-tests)
-  - [Release Tags](#release-tags)
+VUEDA is for Django teams building custom business applications: inventory
+systems, approval processes, and tools for managing business records.
 
-<!--TOC-->
-<!--prettier-ignore-end-->
+- **Forms and views from server definitions.** Generate routes, forms, lists,
+  and detail screens from information the server provides about your models.
+- **Workflows and business actions.** Define states, transitions, and the
+  permissions needed to move records through a process.
+- **Access control and audit history.** Enforce model and object permissions on
+  the server and inspect the changes made to records.
+- **An interface you can customize.** Configure fields and columns, supply
+  custom Vue views and widgets, and adapt the theme to your application.
 
-## About
+## How it works
 
-VUEDA is a two‑part system that pairs a Django REST Framework backend with a Vue.js
-component library. The server package (`vueda`) provides DRF views, serializers,
-workflow, and permission helpers. The client package (`@arrai-innovations/vueda`)
-provides Vue components, composables, and routing helpers that consume the API
-and render forms, lists, and detail views dynamically.
+The [server package](server/README.md) extends Django REST framework with base
+classes for models, serializers, and viewsets. Registering them exposes metadata:
+information about fields, actions, and permissions. The
+[client package](client/README.md) uses that metadata to build application screens.
 
-## Repository Layout
+Once the application is connected, standard model screens need no separate
+per-model frontend code. You write the business logic and customize the screens
+where your application needs something different. The server remains responsible
+for authorization; hiding a control in the client does not grant or deny access.
 
-```text
-/
-  server/       # Django + DRF package (vueda on PyPI)
-  client/       # Vue 3 component library (@arrai-innovations/vueda on npm)
-  templates/    # Copier starter templates for integrator repos
-  docs/         # VitePress documentation site
-  docs-tooling/ # Internal tooling for API doc extraction and rendering
-```
+VUEDA uses Django REST framework, PostgreSQL, and Vue 3. See the
+[architecture overview](https://vueda.dev/v3/core-concepts/architecture-overview.html)
+for the framework's conventions and extension points.
 
-## Getting Started
+## Start an application
 
-Install pnpm, which is required by just.
+Follow [Start Building](https://vueda.dev/v3/tutorials/start-building.html) to
+scaffold a project, connect the Django server and Vue client, and expose an
+inventory model from end to end. The [Copier templates](templates/README.md)
+provide the starting project structure.
+
+The v3 series is currently a prerelease. Follow the tutorial's
+[package registry setup](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access)
+before installing packages.
+
+| Package                                      | Role                                                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| [vueda](server/README.md)                    | Django models, REST APIs, metadata, permissions, workflows, and history |
+| [@arrai-innovations/vueda](client/README.md) | Vue components, forms, views, routing, and themes                       |
+
+## Develop VUEDA
+
+These instructions set up the framework repository. To build your own
+application, use the tutorial above.
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/),
+[pnpm](https://pnpm.io/installation), and
+[just](https://github.com/casey/just#installation). The starter projects use
+Python 3.11+ and Node.js 22+; server tests also need PostgreSQL.
 
 ```console
-npm install -g pnpm@latest-10
-```
-
-[Install just via one of the various methods.](https://github.com/casey/just?tab=readme-ov-file#installation)
-
-```console
+git clone https://github.com/arrai-innovations/vueda.git
+cd vueda
 just bootstrap
 ```
 
-## Checks and Tests
+Bootstrap installs both workspaces and the Lefthook Git hooks.
 
-Read‑only checks:
+| Command                                 | Purpose                                        |
+| --------------------------------------- | ---------------------------------------------- |
+| `just check`                            | Run lint and formatting checks                 |
+| `just fix`                              | Apply lint and formatting fixes                |
+| `just test`                             | Run all package tests                          |
+| `just test-client` / `just test-server` | Run one package's tests                        |
+| `just coverage`                         | Collect test coverage                          |
+| `just docs`                             | Generate API documentation and start VitePress |
 
-```console
-just check
-```
-
-Auto‑fixing:
-
-```console
-just fix
-```
-
-Tests:
+Test commands accept runner arguments, with paths relative to the package:
 
 ```console
-just test
+just test-client tests/unit/lib/views/ViewActionRouter.spec.js
+just test-server -k test_login
 ```
 
-## Versions
+### Server test database
 
-When a major version number change occurs, you will need to update the dependency information in:
+Use a PostgreSQL role that can create test databases. For example, create a local
+role with a password:
 
-- templates/integrator-monorepo-dx/server/pyproject.toml.jinja
-- templates/integrator-monorepo/server/pyproject.toml.jinja
+```console
+createuser --username postgres --pwprompt --createdb vueda
+```
 
-## Release Tags
+Put your connection details in `server/config.local.toml`, which overrides
+`server/config.toml`:
 
-We use tag prefixes to publish packages independently:
+```toml
+DATABASE_URL = "postgresql://vueda:your-password@localhost/vueda"
+```
 
-- `server-vX.Y.Z` publishes `vueda` (PyPI)
-- `client-vX.Y.Z` publishes `@arrai-innovations/vueda` (npm)
+Some tests also use `TEST_POSTGRES_DB`, the connection string for the PostgreSQL
+maintenance database. Set it in the same file if the default local `postgres`
+connection does not work in your environment.
 
-[code style: ruff]: https://img.shields.io/badge/code%20style-ruff-000000.svg?style=for-the-badge
-[ruff]: https://docs.astral.sh/ruff/formatter/#style-guide
-[code style: prettier]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=for-the-badge
-[prettier]: https://github.com/prettier/prettier
-[server pytest status]: https://vueda.dev/artifacts/main/server-pytest.svg
-[server coverage status]: https://vueda.dev/artifacts/main/server-coverage.svg
-[ruff status]: https://vueda.dev/artifacts/main/ruff.svg
-[server pysentry status]: https://vueda.dev/artifacts/main/server-pysentry.svg
-[client tests]: https://vueda.dev/artifacts/main/client-test.svg
-[client coverage status]: https://vueda.dev/artifacts/main/client-test.coverage.svg
-[client coverage]: https://vueda.dev/artifacts/main/coverage_client-test/
-[eslint]: https://vueda.dev/artifacts/main/eslint.svg
-[pnpm-audit status]: https://vueda.dev/artifacts/main/pnpm-audit.svg
+### Repository layout
+
+| Directory                               | Contents                      |
+| --------------------------------------- | ----------------------------- |
+| [server/](server/README.md)             | Django server package         |
+| [client/](client/README.md)             | Vue client package            |
+| [templates/](templates/README.md)       | Application starter templates |
+| [docs/](docs/README.md)                 | VitePress documentation       |
+| [docs-tooling/](docs-tooling/README.md) | API documentation generation  |
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+Documentation annotation conventions live in the
+[client contract](docs-tooling/briefings/client-annotations.md) and
+[server contract](docs-tooling/briefings/server-annotations.md).
+
+### Releases
+
+Packages are published independently using `server-vX.Y.Z` and `client-vX.Y.Z`
+tags. When changing the server's major version, update the dependency constraints
+in both starter templates' `server/pyproject.toml.jinja` files.
+
+**Server:** ![Tests](https://vueda.dev/artifacts/main/server-pytest.svg) ![Coverage](https://vueda.dev/artifacts/main/server-coverage.svg)
+
+**Client:** ![Tests](https://vueda.dev/artifacts/main/client-test.svg) [![Coverage](https://vueda.dev/artifacts/main/client-test.coverage.svg)](https://vueda.dev/artifacts/main/coverage_client-test/)
+
+## License
+
+Built by [Arrai Innovations](https://arrai.com). Both the [server](server/LICENSE)
+and [client](client/LICENSE) are released under the BSD 3-Clause license.
