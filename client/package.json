@@ -48,7 +48,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.1",
-    "@vitest/coverage-istanbul": "^3.2.7",
+    "@vitest/coverage-istanbul": "^4.1.11",
     "@vue/test-utils": "^2.4.6",
     "del-cli": "^6.0.0",
     "flush-promises": "^1.0.2",
@@ -61,7 +61,7 @@
     "typescript": "^5.9.3",
     "vite": "^6.3.3",
     "vite-plugin-circular-dependency": "^0.2.1",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.11",
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {
