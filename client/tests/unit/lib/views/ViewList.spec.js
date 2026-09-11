@@ -1092,6 +1092,33 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("preserves options.params and active filters across each other's updates", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", params: { id: "1,2" } } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+            // Adding a filter must not drop the `params` prop's own key.
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+            // Changing the `params` prop must not drop the active filter's key.
+            await wrapper.setProps({ params: { id: "3,4" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBe("3,4");
+            expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+
+            // Clearing the filter must not drop the `params` prop's key.
+            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.category).toBeUndefined();
+            expect(wrapper.vm.list.listState.params.id).toBe("3,4");
+            wrapper.unmount();
+        });
+
         scopedIt("keeps a rich choice value in memory once the route round-trips its serialized form", async () => {
             mockedInject.mockReturnValueOnce({});
             route.params = { action: "list" };
