@@ -36,6 +36,14 @@ class BothFormattedNameConfiguredSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class BothFormattedNameSelectRelatedConfiguredSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.BothFormattedNameSelectRelatedConfigured
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class NoNameFieldSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.NoNameField

@@ -3,6 +3,7 @@
 __all__ = (
     "FORMATTED_NAME",
     "FORMATTED_NAME_LOOKUP_EXPRESSION",
+    "FORMATTED_NAME_SELECT_RELATED",
     "annotate_formatted_name",
     "formatted_name_annotation_path",
     "path_multiplies_rows",
@@ -22,6 +23,10 @@ FORMATTED_NAME = "formatted_name"
 
 #: The model attribute naming the database path a model's ``formatted_name`` comes from.
 FORMATTED_NAME_LOOKUP_EXPRESSION = "formatted_name_lookup_expression"
+
+#: The model attribute naming the relation paths a ``get_formatted_name()`` method needs
+#: ``select_related`` onto every bulk queryset, so resolving it per row costs no extra query.
+FORMATTED_NAME_SELECT_RELATED = "formatted_name_select_related"
 
 
 def formatted_name_annotation_path(model):
@@ -70,30 +75,45 @@ def formatted_name_annotation_path(model):
 
 def annotate_formatted_name(queryset):
     """
-    Annotate ``formatted_name`` on ``queryset`` when its model has a path to annotate, and return it
-    unchanged when it does not.
+    Annotate ``formatted_name`` on ``queryset`` when its model has a path to annotate, apply
+    ``formatted_name_select_related`` when its model declares one, and return ``queryset`` unchanged
+    when neither applies.
 
     Shared by ``FormattedNameManager.get_queryset`` (every queryset the model itself builds),
     ``VuedaViewSet.get_queryset`` (the root queryset DRF builds),
     ``VuedaListSerializer.to_representation`` (a "many" expand fetched through a related manager), and
     the prefetch-plan builder in ``vueda.core.viewsets`` (a "many" expand's ``Prefetch`` queryset), so
-    all four agree on when ``formatted_name`` needs the annotation rather than each re-deriving it.
+    all four agree on when ``formatted_name`` needs the annotation or the ``select_related`` rather
+    than each re-deriving it.
 
-    ``formatted_name_annotation_path`` is the rule, so a model this declines to annotate is the same
-    model ``VuedaOrderingFilter`` and ``FormattedNamePathFilterSetMixin`` rewrite instead of leaving
-    on a column — see that function for the two shapes that need no annotation and would raise if
-    annotated anyway.
+    ``formatted_name_annotation_path`` is the rule for the annotation half, so a model this declines
+    to annotate is the same model ``VuedaOrderingFilter`` and ``FormattedNamePathFilterSetMixin``
+    rewrite instead of leaving on a column — see that function for the two shapes that need no
+    annotation and would raise if annotated anyway.
+
+    The ``select_related`` half is independent of the annotation: a model resolving
+    ``formatted_name`` through ``get_formatted_name()`` has no database path to annotate at all, but
+    may still declare ``formatted_name_select_related`` as a tuple of relation paths — the same paths
+    it would pass to ``queryset.select_related()`` itself — so the relations that method traverses
+    are joined in the same query instead of one extra query per row per relation.
 
     :param queryset: The queryset to annotate.
     :type queryset: django.db.models.QuerySet
-    :return: The annotated queryset, or ``queryset`` itself when there is nothing to annotate.
+    :return: The queryset with whichever of the annotation and the ``select_related`` its model
+        declares applied, or ``queryset`` itself when it declares neither.
     :rtype: django.db.models.QuerySet
     """
-    annotation_path = formatted_name_annotation_path(queryset.model)
-    if annotation_path is None:
-        return queryset
+    model = queryset.model
 
-    return queryset.annotate(**{FORMATTED_NAME: F(annotation_path)})
+    annotation_path = formatted_name_annotation_path(model)
+    if annotation_path is not None:
+        queryset = queryset.annotate(**{FORMATTED_NAME: F(annotation_path)})
+
+    select_related = getattr(model, FORMATTED_NAME_SELECT_RELATED, None)
+    if select_related:
+        queryset = queryset.select_related(*select_related)
+
+    return queryset
 
 
 def path_multiplies_rows(fields):

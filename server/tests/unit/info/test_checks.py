@@ -62,6 +62,34 @@ class TestFormattedNameChecks:
             )
         ]
 
+    def test_both_lookup_expression_and_select_related_system_check_error(self):
+        """BothFormattedNameSelectRelatedConfigured has both a lookup expression and
+        formatted_name_select_related; check must flag it as E011, since select_related only has an
+        effect alongside get_formatted_name()."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.BothFormattedNameSelectRelatedConfiguredSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "BothFormattedNameSelectRelatedConfigured defines both formatted_name_lookup_expression "
+                "and formatted_name_select_related.",
+                hint=(
+                    "formatted_name_select_related only has an effect alongside a get_formatted_name() "
+                    "method: formatted_name_lookup_expression resolves entirely through a database "
+                    "annotation, so there is no per-instance computation for select_related to prepare "
+                    "relations for. Remove whichever one the model doesn't use."
+                ),
+                obj=err_models.BothFormattedNameSelectRelatedConfigured,
+                id="vueda_info.E011",
+            )
+        ]
+
     def test_formatted_name_expression_not_string(self):
         """FormattedNameExpressionNotString has a lookup expression that is not a string; check must flag it."""
         from django.core.checks import Error

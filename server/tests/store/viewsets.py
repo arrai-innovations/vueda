@@ -254,6 +254,13 @@ class CartItemViewSet(VuedaViewSet):
     ordering_fields = ["product_option__name", "quantity"]
 
 
+class CartItemCartBaseManagerChoiceFilterViewSet(CartItemViewSet):
+    """Swaps in CartItemCartBaseManagerChoiceFilterSet, whose `cart` filter's queryset bypasses
+    FormattedNameManager -- see that filterset for why."""
+
+    filterset_class = my_filtersets.CartItemCartBaseManagerChoiceFilterSet
+
+
 class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     """Offers formatted_name across two relations: one that can be followed and one that can't.
 
@@ -264,6 +271,60 @@ class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     second is left out of `model_ordering` and reported by the `vueda_info.E006` system check."""
 
     ordering_fields = ["quantity", "cart__customer__formatted_name", "cart__formatted_name"]
+
+
+class CartFormattedNameMethodViewSet(VuedaViewSet):
+    """Serves CartFormattedNameMethodSerializer directly, so a plain list request exercises
+    VuedaViewSet.get_queryset's own annotate_formatted_name call with a get_formatted_name() model
+    declaring formatted_name_select_related.
+
+    ``queryset`` is built from ``Cart._base_manager`` rather than ``Cart.objects``
+    (``FormattedNameManager``), which already applies ``formatted_name_select_related`` to every
+    queryset it builds -- using it here would make a query-count test pass whether or not
+    ``VuedaViewSet.get_queryset``'s own call did anything. ``_base_manager`` is a plain
+    ``models.Manager`` Django provides for every model, so a queryset built from it carries no
+    ``select_related`` of its own to begin with.
+    """
+
+    queryset = my_models.Cart._base_manager.all()
+    serializer_class = my_serializers.CartFormattedNameMethodSerializer
+
+
+class CustomerWithCartsViewSet(VuedaViewSet):
+    """Serves CustomerWithCartsSerializer, expanding `cart_set` -- a to-many relation onto Cart, whose
+    formatted_name is computed by get_formatted_name(). A list/retrieve request routes that expand's
+    queryset through build_prefetch_plan's Prefetch queryset; an update response (which never calls
+    get_queryset's prefetch plan) reaches the same relation as a plain, unfetched manager, which is
+    VuedaListSerializer.to_representation's own call to annotate_formatted_name to cover."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerWithCartsSerializer
+    permit_list_expands = ["cart_set"]
+    permit_retrieve_expands = ["cart_set"]
+
+
+class CartItemCartBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartBaseManagerSerializer
+
+
+class CartItemCartSlugBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartSlugBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartSlugBaseManagerSerializer
+
+
+class CustomerCartsBaseManagerViewSet(VuedaViewSet):
+    """Serves CustomerCartsBaseManagerSerializer -- see that serializer for why its `carts` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerCartsBaseManagerSerializer
 
 
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
