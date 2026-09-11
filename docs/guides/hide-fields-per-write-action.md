@@ -105,7 +105,7 @@ All three misuse cases surface at the same two points: `manage.py spectacular` (
 | `vueda_core.E008` | Reachable only through another serializer's `expandable_fields` |
 | `vueda_core.E009` | Registered with `register_serializer()` (no viewset)            |
 
-The check walks every ViewSet reachable from the resolved URL conf, plus every `register_serializer()` registration, so it covers serializers that use `ExcludeFieldsSerializerMixin` anywhere in the app, not just ones you remember to test manually. Run `manage.py check` (CI should already do this) after adding or moving a serializer that uses this mixin.
+The check starts from every ViewSet reachable through the resolved URL conf and every serializer in the `vueda.info` registry, whether it was added with `register()` or `register_serializer()`. From each of those it follows declared nested serializer fields and `Meta.expandable_fields`. So it covers serializers that use `ExcludeFieldsSerializerMixin` anywhere in the app, not just ones you remember to test manually. Run `manage.py check` (CI should already do this) after adding or moving a serializer that uses this mixin.
 
 ## Fields Stay Visible in Model Info and Schema Metadata
 

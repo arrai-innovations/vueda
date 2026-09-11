@@ -292,6 +292,90 @@ class CartItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
+class CartFormattedNameMethodSerializer(VuedaSerializer):
+    """Cart resolves formatted_name through get_formatted_name() (self.customer.user.email), so per
+    the documented get_formatted_name() serializer contract, formatted_name must be declared
+    explicitly as a SerializerMethodField. CartSerializer's own formatted_name field is unrelated --
+    it is sourced from "data.formatted_name", which Cart has no "data" relation to resolve, so it
+    never actually renders get_formatted_name()'s value. This is a separate, minimal serializer
+    dedicated to exercising formatted_name_select_related's bulk query-count fix across the three
+    call sites annotate_formatted_name shares.
+    """
+
+    formatted_name = serializers.SerializerMethodField()
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Cart
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+
+
+class CustomerWithCartsSerializer(VuedaSerializer):
+    """A minimal Customer serializer expanding its reverse `cart_set` relation onto
+    CartFormattedNameMethodSerializer, so a request can exercise the get_formatted_name()
+    formatted_name_select_related fix both through a list's Prefetch queryset (build_prefetch_plan)
+    and through the plain related-manager path VuedaListSerializer.to_representation falls back to
+    for a freshly saved instance (a PATCH/PUT response, which bypasses the viewset queryset and its
+    prefetch plan entirely).
+    """
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id", "cart_set"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart_set": (
+                CartFormattedNameMethodSerializer,
+                {"many": True},
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CartItemCartBaseManagerSerializer(VuedaSerializer):
+    """`cart`'s queryset is built from `Cart._base_manager` rather than `Cart.objects`
+    (`FormattedNameManager`), so a query-count test against this field's choices isolates
+    `ModelInfoChoicesViewSet.get_queryset`'s own `annotate_formatted_name` call: `FormattedNameManager`
+    never gets a chance to apply `formatted_name_select_related` first the way it would through
+    `Cart.objects.all()`, so a flat query count can only be that resolver's own doing.
+
+    Exercises the plain (non-`slug_field`) `hasattr(field, "queryset")` branch of
+    `ModelInfoChoicesViewSet.get_queryset`.
+    """
+
+    cart = serializers.PrimaryKeyRelatedField(queryset=models.Cart._base_manager.all())
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CartItem
+        fields = ["id", "cart"]
+
+
+class CartItemCartSlugBaseManagerSerializer(VuedaSerializer):
+    """Same isolation as CartItemCartBaseManagerSerializer, but through a `SlugRelatedField` (slugged
+    on `pk`, since Cart has no other unique-ish field to slug on) instead of a plain
+    `PrimaryKeyRelatedField`. Exercises the `slug_field` branch of `ModelInfoChoicesViewSet.get_queryset`."""
+
+    cart = serializers.SlugRelatedField(slug_field="pk", queryset=models.Cart._base_manager.all())
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CartItem
+        fields = ["id", "cart"]
+
+
+class CustomerCartsBaseManagerSerializer(VuedaSerializer):
+    """`carts`'s queryset is built from `Cart._base_manager` rather than `Cart.objects`
+    (`FormattedNameManager`), for the same isolation reason as CartItemCartBaseManagerSerializer.
+
+    Exercises the `hasattr(field, "child_relation")` (`ManyRelatedField`) branch of
+    `ModelInfoChoicesViewSet.get_queryset` -- the one to-many relation reaching a get_formatted_name()
+    model (Cart) that exists in these fixtures.
+    """
+
+    carts = serializers.PrimaryKeyRelatedField(many=True, source="cart_set", queryset=models.Cart._base_manager.all())
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id", "carts"]
+
+
 class OrderStateSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.OrderState

@@ -69,6 +69,54 @@ def clear_cached_filterset_fields(filterset_class):
         filter_obj.__dict__.pop("_field", None)
 
 
+def use_plain_base_manager(model, monkeypatch):
+    """
+    Stand Django's own fallback base manager in front of ``model`` for the duration of one test.
+
+    This is what ``Model._base_manager`` is on a model that selected none: a plain
+    ``models.Manager``, auto-created, named "_base_manager". Everything that reads a base manager
+    reads ``_meta.base_manager`` — ``FormattedNameBaseModel._check_ordering`` and
+    ``Collector.related_objects`` both — so replacing the cached value there exercises the same path
+    a missing ``Meta.base_manager_name`` produces.
+
+    Patched rather than declared because a fixture model whose real base manager couldn't resolve its
+    own ``Meta.ordering`` would report ``vueda_core.E017`` for every ``manage.py check`` the project
+    runs.
+    """
+    plain = models.Manager()
+    plain.name = "_base_manager"
+    plain.model = model
+    plain.auto_created = True
+
+    monkeypatch.setitem(model._meta.__dict__, "base_manager", plain)
+
+
+def use_plain_default_manager(model, monkeypatch):
+    """
+    Stand a plain ``models.Manager`` in front of ``model`` as its default manager for the duration of
+    one test, in place of whichever manager (typically ``FormattedNameManager``) it actually declares.
+
+    ``Model._default_manager`` reads ``_meta.default_manager``, a ``cached_property``, so replacing
+    the cached value here is what a caller reading ``model._default_manager`` sees — including
+    ``build_prefetch_plan``, which builds a to-many expand's ``Prefetch`` queryset from exactly that
+    manager. A model whose own default manager already prepares ``formatted_name`` (annotates a
+    lookup expression, applies ``formatted_name_select_related``, or both) would make every queryset
+    built from it look prepared whether or not the code under test did anything -- this is how a test
+    starts from a queryset that manager has not already prepared, so a missing call downstream still
+    shows up as unprepared rather than being masked by the manager.
+
+    Patched rather than declared because a fixture model whose real default manager did not prepare
+    ``formatted_name`` would carry that gap into every other test that touches it, rather than only
+    the one that wants it.
+    """
+    plain = models.Manager()
+    plain.name = "_default_manager"
+    plain.model = model
+    plain.auto_created = True
+
+    monkeypatch.setitem(model._meta.__dict__, "default_manager", plain)
+
+
 pytest_plugins = ["celery.contrib.pytest"]
 
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.

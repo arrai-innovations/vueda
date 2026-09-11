@@ -1,4 +1,5 @@
 from .models import BothFormattedNameConfigured  # noqa: F401
+from .models import BothFormattedNameSelectRelatedConfigured  # noqa: F401
 from .models import FalseyFormattedNamesLookup  # noqa: F401
 from .models import FormattedNameExpressionNotString  # noqa: F401
 from .models import ModelOrderingQueryset  # noqa: F401

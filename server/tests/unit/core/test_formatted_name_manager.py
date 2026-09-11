@@ -13,7 +13,12 @@ startup error for a `FieldError` on any queryset a viewset didn't build — see
 import pytest
 from django.core.exceptions import FieldError
 from django.db import models
+from django.db.models.deletion import Collector
 
+from tests.conftest import use_plain_base_manager
+from tests.product.models import ProductCascadeOrderedByFormattedName
+from tests.product.models import ProductCascadeOrderedNote
+from tests.product.models import ProductCascadeOwner
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from vueda.core.formatted_name import formatted_name_annotation_path
@@ -150,3 +155,61 @@ class TestInheritingTheManager:
         assert "formatted_name" not in queryset.query.annotations
         with pytest.raises(FieldError, match="Cannot resolve keyword 'formatted_name'"):
             list(queryset)
+
+
+@pytest.mark.django_db
+class TestCascadeDeleteThroughTheBaseManager:
+    """The one path `FormattedNameManager` does not reach, and the failure `vueda_core.E017` prevents.
+
+    `Collector.related_objects` builds its queryset from `related_model._base_manager`, and
+    `Collector.collect` evaluates it whenever `can_fast_delete` said no. That queryset carries the
+    related model's `Meta.ordering`, so a model ordering by a `formatted_name` its base manager
+    cannot annotate raises `FieldError` on a delete of its parent — a query nobody in the calling
+    code wrote, naming a field that isn't on the table.
+
+    `ProductCascadeOwner` -> `ProductCascadeOrderedByFormattedName` -> `ProductCascadeOrderedNote` is
+    the shape that reaches it. The note table is what keeps the middle model off the fast-delete
+    path; without it Django deletes those rows with one statement and never compiles the ordering.
+    """
+
+    @pytest.fixture
+    def cascade_rows(self):
+        owner = ProductCascadeOwner.objects.create(name="Owner")
+        for label in ("Cherry", "Apple", "Banana"):
+            row = ProductCascadeOrderedByFormattedName.objects.create(owner=owner, label=label)
+            ProductCascadeOrderedNote.objects.create(ordered_row=row, name=f"note for {label}")
+
+        return owner
+
+    def test_the_collected_model_cannot_be_fast_deleted(self):
+        """The fixture's own precondition. If Django could fast-delete these rows the collector would
+        never evaluate the queryset, and the test below would pass whatever the base manager was."""
+        collector = Collector(using="default")
+
+        assert collector.can_fast_delete(ProductCascadeOrderedByFormattedName) is False
+
+    def test_the_cascade_delete_succeeds(self, cascade_rows):
+        """With `Meta.base_manager_name` selecting the annotating manager, the collected queryset
+        resolves its own ordering and the delete goes through to the notes."""
+        cascade_rows.delete()
+
+        assert ProductCascadeOrderedByFormattedName.objects.count() == 0
+        assert ProductCascadeOrderedNote.objects.count() == 0
+
+    def test_a_plain_base_manager_makes_the_cascade_raise(self, cascade_rows, monkeypatch):
+        """The regression itself. Nothing about the delete mentions `formatted_name`, and neither does
+        the model's own table — the ordering is compiled into a queryset the collector built."""
+        use_plain_base_manager(ProductCascadeOrderedByFormattedName, monkeypatch)
+
+        with pytest.raises(FieldError, match="Cannot resolve keyword 'formatted_name'"):
+            cascade_rows.delete()
+
+    def test_the_check_reports_what_the_delete_would_have_hit(self, monkeypatch):
+        """Same model, same patched base manager, at startup instead of on a delete. This is the whole
+        point of the check: the configuration is visible from `manage.py check`, so nobody has to
+        reach it through a cascade to find out."""
+        use_plain_base_manager(ProductCascadeOrderedByFormattedName, monkeypatch)
+
+        errors = [error for error in ProductCascadeOrderedByFormattedName.check() if error.id == "vueda_core.E017"]
+
+        assert len(errors) == 1

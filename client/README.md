@@ -1,214 +1,98 @@
 # VUEDA Client
 
-<!--prettier-ignore-start-->
-<!--TOC-->
+<a href="https://vueda.dev">
+    <img src="https://vueda.dev/v3/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
+</a>
 
-- [VUEDA Client](#vueda-client)
-  - [About](#about)
-  - [Install](#install)
-  - [Usage](#usage)
-    - [JSDocs](#jsdocs)
-    - [Forms](#forms)
-    - [CRUD Operation Views](#crud-operation-views)
-    - [Dynamic Routing](#dynamic-routing)
-    - [Authentication](#authentication)
-    - [Navigation](#navigation)
-    - [Permissions](#permissions)
-    - [Theming](#theming)
-    - [Customization](#customization)
-  - [Development](#development)
-    - [Environment](#environment)
-    - [Running Locally](#running-locally)
-    - [Testing](#testing)
-      - [Running Tests](#running-tests)
-      - [Writing Tests](#writing-tests)
-      - [Coverage](#coverage)
-    - [Documentation Annotations](#documentation-annotations)
-    - [Reporting Bugs](#reporting-bugs)
-    - [Getting my changes into the main branch](#getting-my-changes-into-the-main-branch)
-    - [Making a Release](#making-a-release)
-    - [Changelog](#changelog)
+[vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Client changelog](https://vueda.dev/v3/reference/changelog/client.html)
 
-<!--TOC-->
-<!--prettier-ignore-end-->
+VUEDA Client is the Vue 3 frontend library for VUEDA, a framework for building
+business applications with Django and Vue. It turns metadata from
+[VUEDA Server](https://github.com/arrai-innovations/vueda/tree/main/server) into
+forms, lists, detail screens, and routes. Metadata describes the models' fields,
+actions, and permissions.
 
-## About
+The npm package is `@arrai-innovations/vueda`.
 
-VUEDA Client is a Vue 3 component library that consumes the API provided by
-[VUEDA Server](../server/README.md). It provides components and composables for
-form handling, CRUD views, and dynamic routing, driven by server-supplied model
-and field metadata. It also includes authentication, navigation, permission
-management, and theming support.
+## What it provides
 
-## Install
+- **Application views:** lists with filtering and pagination, create and edit
+  forms, detail views, business actions, and audit history.
+- **Forms and inputs:** field and widget components, validation, choice loading,
+  and form state management.
+- **Routing and navigation:** routes derived from server metadata, action view
+  resolution, and navigation components.
+- **Authentication:** sign-in, account, and multi-factor authentication views.
+- **Customization:** model configuration, custom Vue views and widgets, and a
+  default Tailwind CSS theme with light and dark modes.
 
-1.  ```console
-    $ npm install @arrai-innovations/vueda
-    ```
+[Explore the components](https://vueda.dev/v3/reference/components/) to see the
+interface and available controls. The server enforces permissions on every
+request; the client's visible actions and route guards describe UI behavior.
 
-2.  (optional) Strip test attributes from production builds, by installing the `rollup-plugin-strip` plugin and adding it to your `vite.config.js`:
+## Get started
 
-    ```console
-    $ npm install --save-dev rollup-plugin-strip
-    ```
+For a new application, follow
+[Start Building](https://vueda.dev/v3/tutorials/start-building.html). It scaffolds
+both packages and walks through a working inventory application.
 
-    ```js
-    ...
-    import strip from 'rollup-plugin-strip';
-    ...
-    export default defineConfig({
-        ...
-        build: {
-            ...
-            rollupOptions: {
-                ...
-                plugins: [
-                    ...
-                    strip({
-                        // Remove attributes with the "data-qa" prefix
-                        pattern: /data-qa-.*/g,
-                        // Remove console.log statements
-                        functions: ["console.log"],
-                    }),
-                ],
-            },
-        },
-    });
-    ```
-
-## Usage
-
-### JSDocs
-
-[View the JSDocs](./docs.md)
-
-### Forms
-
-### CRUD Operation Views
-
-### Dynamic Routing
-
-### Authentication
-
-### Navigation
-
-### Permissions
-
-### Theming
-
-### Customization
-
-## Development
-
-### Environment
-
-Clone the repository and install the dependencies:
+To add the client to an existing project, first configure
+[package registry access](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access),
+then install:
 
 ```console
-$ git clone https://github.com/arrai-innovations/vueda.git
-$ cd vueda
-[vueda]$ cd client
-[client]$ npm install --include=dev
+npm install @arrai-innovations/vueda
 ```
 
-Install with dev dependencies so local linting and test tooling are available.
+The v3 series is currently a prerelease. Use the documentation for the major
+version installed in your application.
 
-### Running Locally
+### Integration requirements
 
-As a library, VUEDA Client is not intended to be run as a standalone application.
-It is designed to be integrated into a Vue.js project, where it will be served by the Django backend.
-However, you can use the example server & client to run the library locally.
+The supported setup uses Vue 3, Vite, Pinia, Vue Router, and a VUEDA Server API.
+The package ships Vue and JavaScript source. Configure `@vueda` as an alias to
+`@arrai-innovations/vueda/lib` so imports resolve to that source directory.
 
-<!-- todo: test these instructions when the examples exist -->
+Application setup includes registering the theme, data adapters, plugins, and
+routes. The default theme also requires Tailwind CSS and its Vite plugin.
+Follow the [client setup walkthrough](https://vueda.dev/v3/tutorials/start-building.html#vueda-client)
+and [plugin prerequisites](https://vueda.dev/v3/guides/client-plugin-prerequisites.html)
+for the complete configuration.
 
-1. Clone `vueda-example-client`:
-    ```console
-    $ git clone https://github.com/arrai-innovations/vueda-example-client.git
-    ```
-2. Install the dependencies:
+## Customize a model's views
 
-    ```console
-    $ cd vueda-example-client
-    [vueda-example-client]$ npm install
-    ```
+After the application is connected and Pinia is installed, configure a registered
+model without writing a replacement view. For example, choose the columns shown
+in the inventory product list:
 
-3. Clone `vueda-example-server`:
-    ```console
-    $ git clone https://github.com/arrai-innovations/vueda-example-server.git
-    ```
-4. Install the dependencies:
-    ```console
-    $ cd vueda-example-server
-    [vueda-example-server]$ npm install
-    [vueda-example-server]$ pipenv install
-    ```
-5. Use the local version of VUEDA Client in the example client:
-    ```console
-    [vueda-example-client]$ npm link ../vueda/client
-    ```
-6. Use the local version of VUEDA Server in the example server:
-    ```console
-    [vueda-example-server]$ pipenv run pip install -e ../vueda/server
-    ```
-7. Run the server:
-    ```console
-    [vueda-example-server]$ pipenv run ./guincorn.sh
-    ```
-8. Run the client:
-    ```console
-    [vueda-example-client]$ npm run dev
-    ```
+```javascript
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
-### Testing
+const modelConfig = storeModelConfig();
 
-#### Running Tests
-
-```console
-$ npm run test
+modelConfig.setConfig({ app: "inventory", model: "product" }, null, {
+    list: { displayFields: ["name", "sku", "description"] },
+});
 ```
 
-#### Writing Tests
+This assumes the server exposes those fields on `inventory.product`. Other views
+keep their existing configuration.
 
-VUEDA Client has unit tests for its components and composables. These tests are written using the [@testing-library/vue] library. The tests are located in the `tests` directory. The tests run using [vitest].
+- [Configure views](https://vueda.dev/v3/guides/configure-crud-views.html): fields,
+  columns, sorting, and action-specific options.
+- [Customize appearance](https://vueda.dev/v3/guides/customize-vueda-appearance.html):
+  theme tokens and component overrides.
+- [Use a custom field widget](https://vueda.dev/v3/guides/custom-field-widget-rendering.html):
+  replace a field's input while keeping the form behavior.
+- [Build authentication views](https://vueda.dev/v3/guides/build-auth-views.html):
+  sign-in and account flows.
 
-#### Coverage
+## Contributing
 
-```console
-$ npm run coverage
-```
+Development setup, checks, and test commands live in the
+[monorepo README](https://github.com/arrai-innovations/vueda#develop-vueda).
+Read the [contribution guide](https://github.com/arrai-innovations/vueda/blob/main/CONTRIBUTING.md)
+or [report an issue](https://github.com/arrai-innovations/vueda/issues).
 
-### Documentation Annotations
-
-Rendered API references, theme key pages, and the docs site are generated by the `docs-tooling/` package, which extracts content from `client/lib/` source files. When adding or updating components, props, slots, theme keys, or CSS tokens, follow the annotation conventions in the authoritative contract:
-
-- [Client annotation contract](../docs-tooling/briefings/client-annotations.md)
-
-### Reporting Bugs
-
-Report any bugs you find in the issues section of this repository, and tag them with the `bug` label. Please include a description of the bug, the steps to reproduce it, and the expected and actual results.
-
-### Getting my changes into the main branch
-
-Make a pull request with your changes, a description of the changes, and tests. The pull request will be reviewed and, if accepted, merged into the main branch.
-
-If you want your changes OK'd before making a pull request, you can create an issue with a description of the changes and tag using the `change-request` label.
-
-### Making a Release
-
-1. Change the version number in `package.json`.
-2. Install dependencies with `npm install`, which will update the version in `package-lock.json`.
-3. Commit the changes to `package.json` and `package-lock.json`.
-4. Merge the changes into the `main` branch.
-5. On the `main` branch, with the latest changes, create a new tag and push to GitHub.
-    ```console
-    $ git tag v1.0.0
-    $ git push --tags
-    ```
-6. The circleci will publish a new version to NPM and create a release on GitHub.
-
-### Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for a complete list of changes by version.
-
-[@testing-library/vue]: https://github.com/testing-library/vue-testing-library
-[vitest]: https://github.com/vitest-dev/vitest
+Built by [Arrai Innovations](https://arrai.com), under the
+[BSD 3-Clause license](https://github.com/arrai-innovations/vueda/blob/main/client/LICENSE).

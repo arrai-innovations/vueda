@@ -17,6 +17,7 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from vueda import info
+from vueda.core import viewsets as core_viewsets
 from vueda.core.filters import SEARCH_LOOKUP_PREFIX
 from vueda.core.filters import TRIGRAM_SIMILAR_PREFIX
 from vueda.core.filters import TRIGRAM_WORD_SIMILAR_PREFIX
@@ -166,12 +167,17 @@ class TestValueDerivedFilterChoicesStayFresh:
     @pytest.fixture(autouse=True)
     def fresh_filterset_class(self):
         """
-        Start from — and leave behind — the state a fresh process would be in, so these tests fail
-        on a regression regardless of which tests ran before them in this worker.
+        Start from, and leave behind, the state a fresh process would be in, so these tests fail on a
+        regression regardless of which tests ran before them in this worker.
+
+        The parameter-name cache is cleared alongside the filters: a populated cache would skip the
+        filterset instantiation these tests are here to watch.
         """
         clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+        core_viewsets._FILTERSET_QUERY_PARAM_NAMES.clear()
         yield
         clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+        core_viewsets._FILTERSET_QUERY_PARAM_NAMES.clear()
 
     def test_list_caches_no_form_field_on_the_filterset_class(self, test_data, api_client):
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
