@@ -109,8 +109,8 @@ importers:
   client:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^24.1.0
-        version: 24.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^25.0.0
+        version: 25.0.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(vue@3.5.27(typescript@5.9.3))
       '@codemirror/lang-json':
         specifier: ^6.0.2
         version: 6.0.2
@@ -284,8 +284,8 @@ importers:
   docs:
     dependencies:
       '@arrai-innovations/reactive-helpers':
-        specifier: ^24.1.0
-        version: 24.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        specifier: ^25.0.0
+        version: 25.0.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(vue@3.5.27(typescript@5.9.3))
       '@arrai-innovations/vue-sonner':
         specifier: ^2.0.11
         version: 2.0.11
@@ -475,8 +475,8 @@ packages:
   '@arrai-innovations/commitlint-config@2.1.0':
     resolution: {integrity: sha512-+sgs7R5aV7TcVZrw9297OEIcTANSCGOlzFCkAmfLlgtxK1UIm6lIFBEtB3hzat6qzmy4pzVe1rgSKP7r3dquyQ==}
 
-  '@arrai-innovations/reactive-helpers@24.1.0':
-    resolution: {integrity: sha512-9jLjYw2vRgcgDyhVDkfdXy4SSPvbOCJmI0GkboIz/OTo4LVjO2O/xR4LXlbcnoz0fGmqMEv2i7JhZPUz5dTKWg==}
+  '@arrai-innovations/reactive-helpers@25.0.0':
+    resolution: {integrity: sha512-WHcynykOJ17U6Pi1U+54gfAUOJe7hvGU0ddQgw3AfKYeUf+QpsBTcDpNXP35zk/MjVt8Fz4vTAffdFP5Brr/+w==}
     engines: {node: '>=22'}
     peerDependencies:
       '@vueuse/core': ^14.0.0
@@ -5597,9 +5597,6 @@ packages:
   vue-component-type-helpers@2.2.12:
     resolution: {integrity: sha512-YbGqHZ5/eW4SnkPNR44mKVc6ZKQoRs/Rux1sxC6rdwXb4qpbOSYfDr9DsTHolOTGmIKgM9j141mZbBeg05R1pw==}
 
-  vue-deepunref@1.0.1:
-    resolution: {integrity: sha512-cZNaEBvG1O0RtdcxLf1icqOe6UhrAPzsByyhJ85nRSA/PnGh0VKoI9+T8S5mcoI3pgz0T6ci2PCn2zy4PATRjg==}
-
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
     engines: {node: '>=12'}
@@ -5953,7 +5950,7 @@ snapshots:
     dependencies:
       '@commitlint/config-conventional': 19.8.1
 
-  '@arrai-innovations/reactive-helpers@24.1.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/reactive-helpers@25.0.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@jcoreio/async-throttle': 1.7.0
       '@vueuse/core': 14.3.0(vue@3.5.27(typescript@5.9.3))
@@ -5961,9 +5958,6 @@ snapshots:
       flexsearch: 0.7.21
       lodash-es: 4.18.1
       vue: 3.5.27(typescript@5.9.3)
-      vue-deepunref: 1.0.1(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
 
   '@arrai-innovations/vitepress-theme@1.0.2(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.32.0)(postcss@8.5.25)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
@@ -11740,12 +11734,6 @@ snapshots:
   void-elements@3.1.0: {}
 
   vue-component-type-helpers@2.2.12: {}
-
-  vue-deepunref@1.0.1(typescript@5.9.3):
-    dependencies:
-      vue: 3.5.27(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
 
   vue-demi@0.14.10(vue@3.5.27(typescript@5.9.3)):
     dependencies:
