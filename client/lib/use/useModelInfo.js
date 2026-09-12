@@ -130,6 +130,11 @@ export function useModelInfo(app, model, isActive) {
         ([newActive, app, model, identityGeneration]) => {
             const identityChanged = identityGeneration !== internalState.lastIdentityGeneration;
             internalState.lastIdentityGeneration = identityGeneration;
+            if (identityChanged && returnObject.loading) {
+                // Queue the replacement even while inactive. Reactivation can happen before the
+                // abandoned request settles, when the loading guard still prevents a fetch.
+                internalState.refetchOnSettle = true;
+            }
             if (!newActive) {
                 return; // we'll pick up again when the component is active
             }
@@ -141,12 +146,6 @@ export function useModelInfo(app, model, isActive) {
             //  on immutable primitive values
             // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
             if (returnObject.loading) {
-                // The guard keeps a second fetch off one already running for the same arguments. A
-                // change of user is the other case: that fetch is authorized for the previous user, so
-                // queue a replacement instead of dropping this instance's only chance to load.
-                if (identityChanged) {
-                    internalState.refetchOnSettle = true;
-                }
                 return;
             }
             fetchInfo();

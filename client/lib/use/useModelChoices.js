@@ -145,18 +145,16 @@ export function useModelChoices(fields, isActive) {
                 async ([app, model, intendToFetch, isFilter, isActive, identityGeneration]) => {
                     const identityChanged = identityGeneration !== lastIdentityGeneration;
                     lastIdentityGeneration = identityGeneration;
+                    if (identityChanged && internalState.loadingErrors[fieldName]?.loading) {
+                        // Queue the replacement even while inactive. Reactivation can happen before
+                        // the abandoned request settles, when the loading guard still prevents a fetch.
+                        refetchOnSettle = true;
+                    }
                     if (!isActive) {
                         return; // we'll pick up again when the component is active
                     }
                     if (intendToFetch) {
                         if (internalState.loadingErrors[fieldName]?.loading) {
-                            // The guard keeps a second fetch off one already running for the same
-                            // arguments. A change of user is the other case: that fetch is authorized
-                            // for the previous user, so queue a replacement instead of dropping this
-                            // field's only chance to load.
-                            if (identityChanged) {
-                                refetchOnSettle = true;
-                            }
                             return;
                         }
                         await fetchFieldChoices();
