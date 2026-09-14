@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
     lintinator: arrai/lintinator@2.1.1
+    pypi: arrai/pypi@3.1.0
     pysentry: arrai/pysentry@1.0.0
     pytest: arrai/pytest@11.0.0
     utils: arrai/utils@1.23.3
@@ -338,8 +339,19 @@ workflows:
                           only: /^server-v.*/
                       branches:
                           ignore: /.*/
-            # Public PyPI releases are manual until trusted publishing is available.
-            # Release tags run the test matrix, version check, and wheel build.
+            - pypi/upload_release:
+                  name: server-publish
+                  context: arrai-public-package-publishing
+                  twine_username: __token__
+                  twine_repository_url: https://upload.pypi.org/legacy/
+                  cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+                  requires:
+                      - server-build
+                  filters:
+                      tags:
+                          only: /^server-v.*/
+                      branches:
+                          ignore: /.*/
 
     server-lint:
         jobs:
