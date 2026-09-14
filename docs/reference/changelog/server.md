@@ -17,7 +17,15 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## v3.0.0a1 (unreleased)
+## v3.0.0a1.post1 (unreleased)
+
+### Fixes
+
+- **Server wheel contents**:
+    - Removes stale files from the published `3.0.0a1` wheel, including deleted history modules that caused Django startup to fail with `ModuleNotFoundError: No module named 'simple_history'`. The framework source is unchanged apart from the version number.
+      _Upgrade to `3.0.0a1.post1` or later. No additional dependency or migration is required for this packaging correction._
+
+## v3.0.0a1 (2026-09-14)
 
 ### Breaking Changes
 
