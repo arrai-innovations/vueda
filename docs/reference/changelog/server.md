@@ -255,6 +255,9 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **OpenAPI validation**:
+    - Generated schemas describe bulk and single-object transition execution as separate paths. The bulk path no longer declares an optional `object_id` path parameter, which made the document invalid; the single-object path declares the required identifier. Handwritten model-info and workflow response schemas use the valid `readOnly` keyword. Runtime URLs and behavior are unchanged.
+
 - **`ordering_fields = None` in model-info metadata**:
     - A viewset that spells out `ordering_fields = None` no longer turns every `model_info` request for its model into a 500. `None` is `OrderingFilter`'s own class default and DRF reads it as "not declared" — `get_valid_fields` falls through to `get_default_valid_fields` — so `model_ordering.fields` now reports the serializer-derived fields, the same as for a viewset that omits the attribute. Previously the metadata treated the attribute as present and tried to iterate `None`, raising `TypeError`.
       _`ordering_fields = []` remains the declaration that offers nothing, subject to the default-ordering fields `VuedaOrderingFilter` always accepts._

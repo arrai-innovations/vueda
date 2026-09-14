@@ -70,6 +70,8 @@ Module-private helpers (single leading underscore) and dunders without docstring
 
 The REST reference is generated from the OpenAPI document that `manage.py spectacular` emits. The normalizer reads each operation's `summary`, `description`, `parameters`, `requestBody`, `responses`, and `components.schemas`. To make an endpoint or schema render with useful content, route every annotation through the `conditional_*` wrappers in `vueda/core/open_api.py` so the source still parses when `drf-spectacular` is uninstalled (it is a dev-only dependency).
 
+REST extraction runs `manage.py spectacular --validate` under `doc_settings`. A document that fails OpenAPI validation stops extraction and the local and CI docs workflows that call it. Generation warnings alone do not fail this check. Path parameters must be required; the workflow transition route's optional object id is represented as separate bulk and single-object schema paths by `preprocessing_hooks` in `vueda/core/spectacular_hooks.py`.
+
 ### Endpoint summary and description
 
 `@conditional_extend_schema_decorator(summary=..., description=...)` on an `@api_view` function or a `@action` method drives:
