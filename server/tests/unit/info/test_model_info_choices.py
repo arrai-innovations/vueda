@@ -504,3 +504,158 @@ class TestModelInfoChoicesInvalidField(BaseModelInfoChoices):
 
         assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == "Invalid field 'named'. No choice fields found on store.Distributor."
+
+
+class BaseManagerChoiceTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """A superuser, so these tests aren't tangled up in exactly which permissions
+    ModelInfoChoicesViewSet.resolve_choices computes for a field -- which model-introspected name a
+    field's choices are checked against is not what any of these tests are about."""
+
+    groups_to_create: ClassVar[dict] = {}
+
+    users_to_create: ClassVar[dict] = {
+        "test_super_user@domain.invalid": {
+            "name": "Test Super User",
+            "password": "testpass",
+            "is_superuser": True,
+            "groups": [],
+        },
+    }
+
+
+def _make_carts(row_count):
+    """`row_count` Carts, each with its own Customer and User, keyed by (str) pk -> owner email --
+    the shape Cart.get_formatted_name() (self.customer.user.email) renders and a choices response's
+    "value"/"label" pair uses.
+
+    A field's choices come from its own queryset in full (see the three tests below), not from any
+    particular addressed row, so nothing here needs a CartItem or a Customer "under test" -- only the
+    Cart rows themselves.
+    """
+    carts = {}
+    for i in range(row_count):
+        user = get_user_model().objects.create(
+            email=f"cart-owner-{row_count}-{i}@domain.invalid", name=f"Cart Owner {i}", is_active=True
+        )
+        customer = store_models.Customer.objects.create(user=user)
+        cart = store_models.Cart.objects.create(customer=customer)
+        carts[str(cart.pk)] = user.email
+    return carts
+
+
+@pytest.mark.django_db
+def test_field_choices_query_count_does_not_grow_with_row_count_for_the_plain_queryset_branch(api_client):
+    """ModelInfoChoicesViewSet.get_queryset's own annotate_formatted_name call, on the plain
+    (non-`slug_field`) `hasattr(field, "queryset")` branch.
+
+    CartItemCartBaseManagerSerializer's `cart` field builds its queryset from `Cart._base_manager`
+    rather than `Cart.objects` (`FormattedNameManager`), so FormattedNameManager never gets a chance
+    to apply `formatted_name_select_related` first the way it would through `Cart.objects.all()` --
+    a flat query count here can only be this resolver's own doing.
+    """
+    info.registration.get_empty_registry()
+    try:
+        info.register(
+            store_serializers.CartItemCartBaseManagerSerializer, store_viewsets.CartItemCartBaseManagerViewSet
+        )
+
+        test_data = BaseManagerChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_super_user@domain.invalid"])
+
+        url = reverse("info.model_info_choices-list", args=("store", "cartitem", "cart"))
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = _make_carts(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = api_client.get(url, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {result["value"]: result["label"] for result in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"field choices query count grows with row count: {counts}"
+    finally:
+        info.registration.get_empty_registry()
+
+
+@pytest.mark.django_db
+def test_field_choices_query_count_does_not_grow_with_row_count_for_the_slug_field_branch(api_client):
+    """ModelInfoChoicesViewSet.get_queryset's own annotate_formatted_name call, on the `slug_field`
+    (`SlugRelatedField`) branch -- also covers the fix to that branch's "value", which previously read
+    the literal attribute `instance.key_field` instead of `getattr(instance, key_field)` and so raised
+    AttributeError the moment anything exercised it (nothing did, until now).
+
+    CartItemCartSlugBaseManagerSerializer's `cart` field builds its queryset from `Cart._base_manager`
+    for the same isolation reason as the plain-queryset-branch test above.
+    """
+    info.registration.get_empty_registry()
+    try:
+        info.register(
+            store_serializers.CartItemCartSlugBaseManagerSerializer, store_viewsets.CartItemCartSlugBaseManagerViewSet
+        )
+
+        test_data = BaseManagerChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_super_user@domain.invalid"])
+
+        url = reverse("info.model_info_choices-list", args=("store", "cartitem", "cart"))
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = _make_carts(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = api_client.get(url, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {result["value"]: result["label"] for result in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"field choices query count grows with row count: {counts}"
+    finally:
+        info.registration.get_empty_registry()
+
+
+@pytest.mark.django_db
+def test_field_choices_query_count_does_not_grow_with_row_count_for_the_child_relation_branch(api_client):
+    """ModelInfoChoicesViewSet.get_queryset's own annotate_formatted_name call, on the
+    `hasattr(field, "child_relation")` (`ManyRelatedField`) branch.
+
+    CustomerCartsBaseManagerSerializer's `carts` field (source="cart_set") builds its queryset from
+    `Cart._base_manager` for the same isolation reason as the other two tests above.
+    """
+    info.registration.get_empty_registry()
+    try:
+        info.register(
+            store_serializers.CustomerCartsBaseManagerSerializer, store_viewsets.CustomerCartsBaseManagerViewSet
+        )
+
+        test_data = BaseManagerChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_super_user@domain.invalid"])
+
+        url = reverse("info.model_info_choices-list", args=("store", "customer", "carts"))
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = _make_carts(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = api_client.get(url, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {result["value"]: result["label"] for result in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"field choices query count grows with row count: {counts}"
+    finally:
+        info.registration.get_empty_registry()

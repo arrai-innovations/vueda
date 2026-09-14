@@ -50,12 +50,13 @@ describe("lib/use/useFilterForm.js", () => {
 });
 
 describe("lib/use/useFilterForm.js · query helpers", () => {
-    let getFilterParams, getFilterQueryValue, buildFilterFromQuery;
+    let getFilterParams, getFilterQueryValue, buildFilterFromQuery, filtersToParams;
     beforeEach(async () => {
         const mod = await import("@vueda/use/useFilterForm.js");
         getFilterParams = mod.getFilterParams;
         getFilterQueryValue = mod.getFilterQueryValue;
         buildFilterFromQuery = mod.buildFilterFromQuery;
+        filtersToParams = mod.filtersToParams;
     });
     afterEach(() => {
         vi.resetModules();
@@ -106,5 +107,67 @@ describe("lib/use/useFilterForm.js · query helpers", () => {
         expect(buildFilterFromQuery("name", { typeFilter: "CharField" }, { name: "" })).toBeNull();
         expect(buildFilterFromQuery("created", { typeFilter: "RangeField", suffixes: ["min", "max"] }, {})).toBeNull();
         expect(buildFilterFromQuery("x", { typeFilter: "Bogus" }, { x: "1" })).toBeNull();
+    });
+
+    scopedIt("filtersToParams writes a bare-param filter to its param key", () => {
+        expect(filtersToParams([{ field: "name", param: "name", value: "acme" }])).toEqual({ name: "acme" });
+    });
+
+    scopedIt("filtersToParams accumulates multiple filters into one object", () => {
+        expect(
+            filtersToParams([
+                { field: "name", param: "name", value: "acme" },
+                { field: "status", param: "status", value: "active" },
+            ]),
+        ).toEqual({ name: "acme", status: "active" });
+    });
+
+    scopedIt("filtersToParams returns an empty object for an empty filter list", () => {
+        expect(filtersToParams([])).toEqual({});
+    });
+
+    scopedIt("filtersToParams splits a suffixed-param (range) filter's object value across each key", () => {
+        expect(
+            filtersToParams([
+                { field: "created", param: ["created_min", "created_max"], value: { min: "1", max: "2" } },
+            ]),
+        ).toEqual({ created_min: "1", created_max: "2" });
+    });
+
+    scopedIt("filtersToParams defaults a missing suffix key to an empty string", () => {
+        expect(
+            filtersToParams([{ field: "created", param: ["created_min", "created_max"], value: { min: "1" } }]),
+        ).toEqual({ created_min: "1", created_max: "" });
+    });
+
+    scopedIt("filtersToParams writes the same value to every suffix key when the value isn't an object", () => {
+        expect(filtersToParams([{ field: "created", param: ["created_min", "created_max"], value: "1" }])).toEqual({
+            created_min: "1",
+            created_max: "1",
+        });
+    });
+
+    scopedIt("filtersToParams unwraps a raw-object choice value to its .value", () => {
+        expect(
+            filtersToParams([
+                { field: "owner", param: "owner", value: { value: "42", label: "Someone" }, isValueRawObject: true },
+            ]),
+        ).toEqual({ owner: "42" });
+    });
+
+    scopedIt("filtersToParams unwraps each item of a raw-object array value to its .value", () => {
+        expect(
+            filtersToParams([
+                {
+                    field: "tags",
+                    param: "tags",
+                    value: [
+                        { value: "a", label: "A" },
+                        { value: "b", label: "B" },
+                    ],
+                    isValueRawObject: true,
+                },
+            ]),
+        ).toEqual({ tags: ["a", "b"] });
     });
 });

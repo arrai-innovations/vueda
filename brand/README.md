@@ -33,6 +33,39 @@ The wordmark is set in Galano Grotesque SemiBold; the licence forbids
 web embedding, so live brand type ships as pre-rendered SVG paths
 rather than a webfont.
 
+## Social card
+
+`docs/public/assets/social-card.png` is the link-preview card for the
+documentation site. The Open Graph and Twitter card tags built in
+`docs/.vitepress/config.mjs` point at it. It is 1200x630 because that is
+what the crawlers expect, and PNG because they ignore SVG.
+
+It composes existing brand material rather than new artwork, and it
+follows the dark-background treatment in `Arrai-Brand-Standards.pdf`: the
+mark keeps the brand blue (`#0077f7`) and the wordmark is knocked out in
+white, over the brand dark blue (`#001c30`) with a faint radial. The two
+lines of live type are IBM Plex Sans. No Galano glyph is set as type, so
+the licence position above is unchanged.
+
+To regenerate it, knock the two wordmark paths out in white, render the
+lockup, and compose the card with ImageMagick. Those two paths are the
+ones carrying `aria-label` in `logo-text-solid.svg`; every other path
+belongs to the mark. IBM Plex Sans ships as woff2 in
+`@fontsource-variable`, so instance a static TTF first with
+`fonttools varLib.instancer`.
+
+```bash
+magick -background none lockup-white-wordmark.svg -resize 820x lockup.png
+magick -size 1200x630 xc:'#001c30' \
+  \( -size 1200x630 radial-gradient:'#04355a'-'#001c30' \) -composite \
+  lockup.png -gravity center -geometry +0-50 -composite \
+  -font Plex-400.ttf -pointsize 32 -fill '#b9c7d6' -gravity center \
+  -annotate +0+110 'Integrator guide, changelog, and reference' \
+  -font Plex-600.ttf -pointsize 26 -fill '#ffffff' -gravity south \
+  -annotate +0+48 'vueda.dev' \
+  -depth 8 -strip docs/public/assets/social-card.png
+```
+
 ## Typography
 
 Identity-level font choices, stable across themes:

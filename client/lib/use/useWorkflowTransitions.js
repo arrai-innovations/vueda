@@ -8,7 +8,7 @@ import { getUsingVuedaWorkflow, storeWorkflow } from "@vueda/stores/storeWorkflo
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
-import { reactive, readonly, ref, toRef, watch } from "vue";
+import { reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 /**
  * @typedef {object} WorkflowTransitionsRawState
@@ -59,6 +59,9 @@ export function useWorkflowTransitions(app, model, isActive) {
         lastSetKey: ref(null),
         lastFetchedKey: ref(null),
         lastIdentityGeneration: ref(userStore.identityGeneration),
+        // Set when the authenticated user changes while a fetch is in flight. That fetch is abandoned
+        // and writes nothing, so the one that settles starts another under the new user.
+        refetchOnSettle: ref(false),
         workflowTransitions: toRef(workflowStore, "workflowTransitions"),
     });
     const returnObject = reactive(
@@ -70,6 +73,39 @@ export function useWorkflowTransitions(app, model, isActive) {
             transitions: [],
         },
     );
+    // Fetch for whatever app and model this instance holds now. The arguments are read here rather
+    // than passed in, so a refetch queued by a change of user asks for the current pair.
+    const fetchTransitions = () => {
+        const app = internalState.app;
+        const model = internalState.model;
+        if (!unref(isActive) || !app || !model) {
+            return; // the watch starts a fetch when that changes again
+        }
+        const key = getAppModelDotName({ app, model });
+        loadingError.clearError();
+        loadingError.setLoading();
+        workflowStore
+            .fetchWorkflowTransition(app, model)
+            .then(() => {
+                internalState.lastFetchedKey = key;
+            })
+            .catch((e) => {
+                if (e instanceof AuthScopeInvalidatedError) {
+                    // the authenticated user changed mid-fetch, so this response was discarded; the
+                    // refetch below asks again under the new user
+                    return;
+                }
+                loadingError.setError(e);
+            })
+            .finally(() => {
+                loadingError.clearLoading();
+                if (internalState.refetchOnSettle) {
+                    internalState.refetchOnSettle = false;
+                    fetchTransitions();
+                }
+            });
+    };
+
     watch(
         [
             isActive,
@@ -85,6 +121,13 @@ export function useWorkflowTransitions(app, model, isActive) {
                 internalState.lastIdentityGeneration = identityGeneration;
                 internalState.lastFetchedKey = null;
                 internalState.lastSetKey = null;
+                if (returnObject.loading) {
+                    // The guard below keeps a second fetch off one already running for the same
+                    // arguments. A change of user is the other case: that fetch is authorized for the
+                    // previous user, so queue a replacement instead of dropping this instance's only
+                    // chance to load.
+                    internalState.refetchOnSettle = true;
+                }
             }
             if (!isActive) {
                 return;
@@ -94,23 +137,7 @@ export function useWorkflowTransitions(app, model, isActive) {
             }
             const key = getAppModelDotName({ app, model });
             if (internalState.lastFetchedKey !== key && !returnObject.loading) {
-                loadingError.clearError();
-                loadingError.setLoading();
-                workflowStore
-                    .fetchWorkflowTransition(app, model)
-                    .then(() => {
-                        internalState.lastFetchedKey = key;
-                    })
-                    .catch((e) => {
-                        if (e instanceof AuthScopeInvalidatedError) {
-                            // the authenticated user changed mid-fetch; the identity watch refetches
-                            return;
-                        }
-                        loadingError.setError(e);
-                    })
-                    .finally(() => {
-                        loadingError.clearLoading();
-                    });
+                fetchTransitions();
             }
         },
         { immediate: true },

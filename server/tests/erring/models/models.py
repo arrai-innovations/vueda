@@ -63,6 +63,21 @@ class BothFormattedNameConfigured(VuedaModel):
         return self.the_name_field
 
 
+class BothFormattedNameSelectRelatedConfigured(VuedaModel):
+    the_name_field = models.CharField(max_length=255)
+    formatted_name = None
+    formatted_name_lookup_expression = "the_name_field"
+    formatted_name_select_related = ("the_name_field",)
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Both formatted name select related configured"
+        verbose_name_plural = "Both formatted name select related configured"
+
+    def __str__(self):
+        return self.the_name_field
+
+
 class FormattedNameExpressionNotString(VuedaModel):
     the_name_field = models.CharField(max_length=255)
     formatted_name = None

@@ -31,9 +31,21 @@ This two-route design means that one URL schema supports both single-object and 
 
 **{@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} is the central gating function.** It loads the model-info, model-config, and workflow transition stores for the target `{app, model}` via `waitForModelStoreLoad`, then computes an allowlist of permitted action names. If the route's action, after normalization, is present in that allowlist, navigation proceeds. If not, the guard displays an "Action Not Found" error toast and returns a redirect to `actionRedirect`. If the model-info fetch itself fails with a `ModelInfoError` (the typed error surface for missing or unregistered models), the guard emits a "Model Not Found" error toast and redirects. Any other exception type is rethrown, aborting navigation entirely.
 
+If the authenticated user changes while the guard is fetching, it returns `false`. Vue Router cancels that navigation, because the metadata that arrived describes the user it replaced.
+
 `requireGroups` checks group membership. If the logged-in user is a superuser or belongs to at least one of the required groups, navigation proceeds. Otherwise, a permission-denied toast is displayed, and navigation is redirected.
 
-The guard chain is the enforcement point for all metadata-driven access control on the client. No view component renders unless `requireModelInfo` has confirmed that the requested action exists in the computed allowlist. This is what the [Architecture Overview](./architecture-overview) describes as the "routing and gating" client responsibility layer; route entry is blocked until the contract is satisfied.
+The guard chain is where the client applies metadata-driven access rules. Entry into either generated record runs it, and no view mounts until `requireModelInfo` finds the requested action in the computed allowlist. This is what the [Architecture Overview](./architecture-overview) describes as the "routing and gating" client responsibility layer; route entry is blocked until the contract is satisfied.
+
+These checks decide what the client shows. They do not enforce authorization. The server checks every request on its own, so a route the client admits still returns only what that request may see.
+
+## Rechecking After the Authenticated User Changes
+
+**A change of authenticated user reruns the guard chain against the route on screen.** Vue Router calls `beforeEnter` when a navigation enters a route record. A change of user is not a navigation, so the chain would otherwise never see it. `makeCRUDRoutes` watches `identityGeneration` on {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} and runs the same checks, in the same order, against the current route.
+
+A route the new user may still use keeps its URL, and the recheck adds no history entry. A route they may not use gives way to the destination configured for the check that denied it. The recheck uses `replace` rather than `push`, so the back button does not return to it. These checks describe only the two generated records, so a route the application registered itself never moves.
+
+Two races end the recheck without a redirect. If the user changes again while a check is pending, the recheck that second change triggers decides instead. If the application navigates while a check is pending, that navigation ran the chain on entry, and an older answer does not override it.
 
 ## Metadata and Allowlist Inputs
 

@@ -6,11 +6,13 @@ from typing import TypedDict
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
@@ -21,6 +23,7 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestModelViewSet
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from tests.conftest import use_plain_default_manager
 from tests.employee.models import Employee
 from tests.product.models import Product
 from tests.store import models as store_models
@@ -34,6 +37,8 @@ from tests.unit.info.utils import create_test_data
 from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.serializers import VuedaListSerializer
+from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
@@ -197,6 +202,201 @@ def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
     annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
 
     assert "formatted_name" not in annotations
+
+
+def test_build_prefetch_plan_applies_select_related_for_a_get_formatted_name_to_many_prefetch_queryset(monkeypatch):
+    # Cart resolves formatted_name through get_formatted_name() (self.customer.user.email) and
+    # declares formatted_name_select_related = ("customer__user",). The plan's Prefetch queryset has
+    # to select_related it, or resolving formatted_name for a prefetched cart costs two extra queries
+    # per row (customer, then user) instead of one join in the list query. Cart has no
+    # formatted_name_lookup_expression, so it is not the annotation the two tests above cover.
+    #
+    # build_prefetch_plan builds that queryset from `related_model._default_manager`, which is
+    # Cart.objects (FormattedNameManager) unless patched -- and that manager already applies
+    # formatted_name_select_related to every queryset it builds, which would make the assertion
+    # below pass whether or not build_prefetch_plan's own annotate_formatted_name call did anything.
+    # use_plain_default_manager stands a plain manager in its place, so a queryset built from
+    # `_default_manager` carries no select_related to begin with.
+    use_plain_default_manager(store_models.Cart, monkeypatch)
+
+    serializer = expanded_serializer(store_serializers.CustomerWithCartsSerializer, "cart_set")
+
+    _, prefetch_related = build_prefetch_plan(serializer, store_models.Customer)
+
+    select_related = prefetch_for(prefetch_related, "cart_set").queryset.query.select_related
+
+    assert select_related == {"customer": {"user": {}}}
+
+
+class CartFormattedNameSelectRelatedTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {}
+
+    users_to_create: ClassVar[dict] = {
+        "test_super_user@domain.invalid": {
+            "name": "Test Super User",
+            "password": "testpass",
+            "is_superuser": True,
+            "groups": [],
+        },
+    }
+
+
+@pytest.fixture
+def cart_formatted_name_select_related_data():
+    return CartFormattedNameSelectRelatedTestData()
+
+
+@pytest.mark.django_db
+class TestCartFormattedNameSelectRelatedQueryCount:
+    """Cart resolves formatted_name through get_formatted_name() (self.customer.user.email) and
+    declares formatted_name_select_related = ("customer__user",). annotate_formatted_name applies
+    that select_related wherever it applies, so resolving formatted_name for every row costs no
+    extra query beyond the request's own, however many rows are returned.
+
+    Covers two of annotate_formatted_name's three bulk call sites: VuedaViewSet.get_queryset (a
+    plain Cart list) and the prefetch-plan builder's Prefetch queryset (a to-many `cart_set` expand
+    on Customer, which routes list/retrieve through build_prefetch_plan). See
+    test_list_serializer_applies_select_related_for_an_unfetched_manager_relation for the third,
+    VuedaListSerializer.to_representation's own call, which needs carts fetched independently of
+    their customer's own related manager to isolate. The rendered formatted_name is asserted in both
+    tests below too, since a flat query count alone wouldn't tell a working select_related apart from
+    formatted_name silently resolving to nothing.
+    """
+
+    @pytest.fixture(autouse=True)
+    def authenticated_client(self, api_client, cart_formatted_name_select_related_data):
+        user = cart_formatted_name_select_related_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    def test_list_query_count_does_not_grow_with_row_count(self, authenticated_client, settings):
+        """VuedaViewSet.get_queryset's own annotate_formatted_name call."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_cart_formatted_name_select_related"
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = {}
+            for i in range(row_count):
+                user = get_user_model().objects.create(
+                    email=f"cart-owner-{row_count}-{i}@domain.invalid", name=f"Cart Owner {i}", is_active=True
+                )
+                customer = store_models.Customer.objects.create(user=user)
+                cart = store_models.Cart.objects.create(customer=customer)
+                expected[cart.pk] = user.email
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.cart-list"), format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == row_count
+            actual = {row["id"]: row["formatted_name"] for row in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"Cart list query count grows with row count: {counts}"
+
+    def test_list_with_to_many_expand_query_count_does_not_grow_with_row_count(
+        self, authenticated_client, settings, monkeypatch
+    ):
+        """The prefetch-plan builder's Prefetch queryset (vueda.core.viewsets.build_prefetch_plan).
+
+        Cart's own default manager (FormattedNameManager) already applies
+        formatted_name_select_related to every queryset it builds, including the one
+        build_prefetch_plan reads through `related_model._default_manager` to build the Prefetch
+        queryset -- so leaving it in place would make this pass whether or not build_prefetch_plan's
+        own annotate_formatted_name call did anything. use_plain_default_manager stands a plain
+        manager in its place for the duration of this test.
+        """
+        use_plain_default_manager(store_models.Cart, monkeypatch)
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_with_carts"
+        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "cart_set"}
+
+        counts = {}
+        for customer_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = {}
+            for i in range(customer_count):
+                user = get_user_model().objects.create(
+                    email=f"cart-owner-{customer_count}-{i}@domain.invalid", name=f"Cart Owner {i}", is_active=True
+                )
+                customer = store_models.Customer.objects.create(user=user)
+                store_models.Cart.objects.create(customer=customer)
+                expected[customer.pk] = user.email
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.customer-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert len(response.data["results"]) == customer_count
+            actual = {row["id"]: row["cart_set"][0]["formatted_name"] for row in response.data["results"]}
+            assert actual == expected
+            counts[customer_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to-many expand query count grows with row count: {counts}"
+
+
+@pytest.mark.django_db
+def test_list_serializer_applies_select_related_for_an_unfetched_manager_relation():
+    """VuedaListSerializer.to_representation's own annotate_formatted_name call.
+
+    A freshly saved instance's to-many expand reaches its relation through a plain, unfetched
+    manager -- the response of a PATCH/PUT that expands a to-many relation, which never runs
+    get_queryset's prefetch plan (that only applies to list/retrieve) -- the "arrives as its
+    manager" case documented on VuedaListSerializer.
+
+    Each cart below belongs to its own customer/user pair rather than a single shared customer's own
+    `cart_set`: Django's reverse-FK related manager sets the very same parent instance it was built
+    from onto every fetched row's forward accessor, which would make a shared-customer scenario look
+    query-flat regardless of formatted_name_select_related, since every row's `.customer` (and so
+    `.customer.user`) would already be the one Python object already in memory. Feeding a plain
+    queryset straight to the list serializer, as done here, keeps that Django optimization out of the
+    picture.
+
+    The queryset itself is built from `Cart._base_manager` rather than `Cart.objects`
+    (`FormattedNameManager`), which already applies `formatted_name_select_related` to every queryset
+    it builds; using it here would make a flat query count pass whether or not
+    `VuedaListSerializer.to_representation`'s own call did anything. `_base_manager` is a plain
+    `models.Manager` Django provides for every model, so a queryset built from it carries no
+    `select_related` of its own to begin with, and a flat count here can only be
+    `to_representation`'s own doing.
+    """
+
+    class _CartFormattedNameSerializer(VuedaSerializer):
+        formatted_name = serializers.SerializerMethodField()
+
+        class Meta(VuedaSerializer.Meta):
+            model = store_models.Cart
+            fields = ["id", "customer", "formatted_name", "object_revision"]
+
+    list_serializer = VuedaListSerializer(child=_CartFormattedNameSerializer())
+
+    counts = {}
+    for row_count in (2, 10):
+        store_models.Cart.objects.all().delete()
+        store_models.Customer.objects.all().delete()
+        expected = {}
+        cart_ids = []
+        for i in range(row_count):
+            user = get_user_model().objects.create(
+                email=f"cart-owner-{row_count}-{i}@domain.invalid", name=f"Cart Owner {i}", is_active=True
+            )
+            customer = store_models.Customer.objects.create(user=user)
+            cart = store_models.Cart.objects.create(customer=customer)
+            cart_ids.append(cart.pk)
+            expected[cart.pk] = user.email
+
+        queryset = store_models.Cart._base_manager.filter(pk__in=cart_ids)
+
+        with CaptureQueriesContext(connection) as captured:
+            data = list_serializer.to_representation(queryset)
+
+        assert {row["id"]: row["formatted_name"] for row in data} == expected
+        counts[row_count] = len(captured)
+
+    assert len(set(counts.values())) == 1, f"list serializer query count grows with row count: {counts}"
 
 
 @pytest.mark.django_db

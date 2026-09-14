@@ -248,10 +248,28 @@ class CartM2MSearchOrderingViewSet(CartOrderingFieldsViewSet):
     ordering_fields = [*CartOrderingFieldsViewSet.ordering_fields, "customer__formatted_name"]
 
 
+class CartM2MSearchRelationOrderingViewSet(CartM2MSearchOrderingViewSet):
+    """Offers a plain relation name on a searched list that deduplicates.
+
+    `Customer` declares `ordering = ["user__name"]`, so Django replaces an `order_by("customer")` with
+    the related model's own ordering over the joined table, while `distinct("customer")` trims the
+    join back to `store_cart.customer_id`. The two cannot match, so the ordering has no column to
+    pair with and such a request sorts by rank."""
+
+    ordering_fields = [*CartM2MSearchOrderingViewSet.ordering_fields, "customer"]
+
+
 class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
     ordering_fields = ["product_option__name", "quantity"]
+
+
+class CartItemCartBaseManagerChoiceFilterViewSet(CartItemViewSet):
+    """Swaps in CartItemCartBaseManagerChoiceFilterSet, whose `cart` filter's queryset bypasses
+    FormattedNameManager -- see that filterset for why."""
+
+    filterset_class = my_filtersets.CartItemCartBaseManagerChoiceFilterSet
 
 
 class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
@@ -264,6 +282,60 @@ class CartItemOrderingRelatedFormattedNameViewSet(CartItemViewSet):
     second is left out of `model_ordering` and reported by the `vueda_info.E006` system check."""
 
     ordering_fields = ["quantity", "cart__customer__formatted_name", "cart__formatted_name"]
+
+
+class CartFormattedNameMethodViewSet(VuedaViewSet):
+    """Serves CartFormattedNameMethodSerializer directly, so a plain list request exercises
+    VuedaViewSet.get_queryset's own annotate_formatted_name call with a get_formatted_name() model
+    declaring formatted_name_select_related.
+
+    ``queryset`` is built from ``Cart._base_manager`` rather than ``Cart.objects``
+    (``FormattedNameManager``), which already applies ``formatted_name_select_related`` to every
+    queryset it builds -- using it here would make a query-count test pass whether or not
+    ``VuedaViewSet.get_queryset``'s own call did anything. ``_base_manager`` is a plain
+    ``models.Manager`` Django provides for every model, so a queryset built from it carries no
+    ``select_related`` of its own to begin with.
+    """
+
+    queryset = my_models.Cart._base_manager.all()
+    serializer_class = my_serializers.CartFormattedNameMethodSerializer
+
+
+class CustomerWithCartsViewSet(VuedaViewSet):
+    """Serves CustomerWithCartsSerializer, expanding `cart_set` -- a to-many relation onto Cart, whose
+    formatted_name is computed by get_formatted_name(). A list/retrieve request routes that expand's
+    queryset through build_prefetch_plan's Prefetch queryset; an update response (which never calls
+    get_queryset's prefetch plan) reaches the same relation as a plain, unfetched manager, which is
+    VuedaListSerializer.to_representation's own call to annotate_formatted_name to cover."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerWithCartsSerializer
+    permit_list_expands = ["cart_set"]
+    permit_retrieve_expands = ["cart_set"]
+
+
+class CartItemCartBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartBaseManagerSerializer
+
+
+class CartItemCartSlugBaseManagerViewSet(VuedaViewSet):
+    """Serves CartItemCartSlugBaseManagerSerializer -- see that serializer for why its `cart` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.CartItem.objects.all()
+    serializer_class = my_serializers.CartItemCartSlugBaseManagerSerializer
+
+
+class CustomerCartsBaseManagerViewSet(VuedaViewSet):
+    """Serves CustomerCartsBaseManagerSerializer -- see that serializer for why its `carts` field's
+    queryset is built from `Cart._base_manager`."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerCartsBaseManagerSerializer
 
 
 class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
@@ -293,6 +365,29 @@ class ProductM2MSearchViewSet(ProductViewSet):
     # `?o=formatted_name` is a field DRF rejects: `remove_invalid_fields` drops it, the request falls
     # back to a default ordering the viewset doesn't declare, and nothing sorts by it.
     ordering_fields = [*ProductViewSet.ordering_fields, "formatted_name"]
+
+
+class ProductM2MSearchFunctionOrderingViewSet(ProductM2MSearchViewSet):
+    """Declares a default ordering that reads one column without being that column.
+
+    `Lower("name")` compiles to `LOWER("name")` while `distinct("name")` compiles to the column, so
+    the ordering has no column to pair with on a searched list that deduplicates and such a request
+    sorts by rank. Reached through the default rather than through `?o=`, because a `?o=` value is a
+    plain field name and never carries the function: a nonempty `?o=` that DRF rejects leaves this
+    default in place while still asking the search backend for explicit-order handling."""
+
+    ordering = [Lower("name")]
+
+
+class ProductM2MSearchRelationOrderingViewSet(ProductM2MSearchViewSet):
+    """Offers a plain relation name whose related model declares no ordering of its own.
+
+    The counterpart to `CartM2MSearchRelationOrderingViewSet`: `Distributor` declares no
+    `Meta.ordering`, so Django leaves an `order_by("distributor")` on the local foreign key column
+    and `distinct("distributor")` reaches the same column. The two match, so this ordering pairs and
+    the request sorts by it rather than by rank."""
+
+    ordering_fields = [*ProductM2MSearchViewSet.ordering_fields, "distributor"]
 
 
 class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):

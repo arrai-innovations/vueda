@@ -60,8 +60,8 @@ const getFieldProps = (field) => {
  * @property {string} app - The app name to load form configuration for
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
- * @property {string[]} filterables - The filters to display, either passed in or from config.
- * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The merged filterableDetails, either passed in, from config or from server info.
+ * @property {string[]} filterables - The resolved filterable field names, as given by the caller.
+ * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The resolved per-field filter details, as given by the caller; looked up by field name via `FilterModelSymbol`-injecting descendants (e.g. `FieldRenderer`).
  * @property {{[filterName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject.
  * @property {{[filterName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} fieldProps - The field props to use, either passed in or as a result of fieldObject.
  * @property {{[filterName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject.
@@ -74,7 +74,6 @@ const getFieldProps = (field) => {
 
 /**
  * @typedef {object} UseFilterRawOverridableProps
- * @property {string[]|undefined} filterables - The filters to display, if different from the default
  * @property {{[filterName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use for the filter, if different from the default, by field path
  * @property {{[filterName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use for the filter, if different from the default, by field path
  * @property {{[filterName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use for the filter, if different from the default, by field path
@@ -86,11 +85,16 @@ const getFieldProps = (field) => {
  * @property {string} app - The app name to load form configuration for
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
- * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}|undefiend} filterableDetails - The filter details to use, if different from the default
+ * @property {string[]} filterables - Already-resolved filterable field names (e.g. from `useViewList`'s `filter.filterables`). Used as-is; this composable does not compute or merge them itself.
+ * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Already-resolved per-field filter details (e.g. from `useViewList`'s `filter.filterableDetails`).
  */
 
 /**
- * This composable creates a reactive state for a filter form model, including the filterable fields and their details.
+ * Resolves each filterable field's form component and widget from the already-resolved
+ * `filterables`/`filterableDetails` given via props, and provides the resulting state as
+ * the `FilterModelSymbol` context for descendant components (e.g. `FilterFieldForm`,
+ * `FilterChip`). Does not fetch, merge, or hold its own copy of the filterable field list
+ * or details — see {@link useFilterables} for that.
  *
  * @param {import('vue').Reactive<UseFilterRawProps>} props - The reactive arguments.
  * @returns {UseFilterState} The reactive state.
@@ -101,8 +105,11 @@ export function useFilter(props) {
             app: toRef(props, "app"),
             model: toRef(props, "model"),
             view: toRef(props, "view"),
-            filterables: [],
-            filterableDetails: {},
+            // Plain pass-through refs, not a computed merge: FilterModelSymbol injectors
+            // (e.g. FilterForm, via useFieldRenderer) look up a field's detail by name from
+            // this shared context, so it must still expose the props it was given as-is.
+            filterables: toRef(props, "filterables"),
+            filterableDetails: toRef(props, "filterableDetails"),
             fieldComponents: shallowReactive({}),
             fieldProps: {},
             widgetComponents: shallowReactive({}),
@@ -111,19 +118,20 @@ export function useFilter(props) {
     );
 
     const {
-        setUpWatch,
         assignStateObjectsIfChanged,
         setFieldComponent,
         setFieldComponentProps,
         setWidgetComponent,
         setWidgetComponentProps,
     } = buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps);
-    setUpWatch("filterables", "filterableDetails");
 
+    // `filterables`/`filterableDetails` are owned and computed entirely by the caller; this
+    // composable only resolves field/widget components from them, and never merges or holds
+    // its own copy of the filterable field list or details.
     watch(
         [toRef(state, "filterables"), toRef(state, "filterableDetails")],
         ([filterables, filterableDetails]) => {
-            if (Object.keys(filterableDetails || {}).length && filterables.length) {
+            if (Object.keys(filterableDetails || {}).length && filterables?.length) {
                 const fieldComponents = {};
                 const fieldProps = {};
                 const widgetComponents = {};

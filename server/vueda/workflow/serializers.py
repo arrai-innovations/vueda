@@ -346,12 +346,12 @@ class WorkflowSerializer(
                                             "code": {
                                                 "type": "string",
                                                 "maxLength": 255,
-                                                "readonly": True,
+                                                "readOnly": True,
                                             },
                                             "name": {
                                                 "type": "string",
                                                 "maxLength": 255,
-                                                "readonly": True,
+                                                "readOnly": True,
                                             },
                                         },
                                         "required": [
@@ -360,11 +360,11 @@ class WorkflowSerializer(
                                         ],
                                     },
                                 ],
-                                "readonly": True,
+                                "readOnly": True,
                             },
                             "object_state_revision": {
                                 "type": "string",
-                                "readonly": True,
+                                "readOnly": True,
                             },
                         },
                         "required": [
