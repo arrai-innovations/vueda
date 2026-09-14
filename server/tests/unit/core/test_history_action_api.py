@@ -11,6 +11,7 @@ from typing import ClassVar
 
 import pgtrigger
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -607,3 +608,178 @@ class TestOptedOutModels:
         reverse("store.orderitemcompositepk-detail", kwargs={"pk": "1,1"})  # the model is routed
         with pytest.raises(NoReverseMatch):
             reverse("store.orderitemcompositepk-history-list", kwargs={"pk": "1,1"})
+
+
+@pytest.mark.django_db
+class TestHistoryActionObjectAvailability(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    An object's own ``available_actions`` follows read authorization for ``history-list``,
+    independently of whichever action produced the response carrying that object. Reproduces
+    #280 at the per-object discovery path: a write response must not let the write's own
+    permission stand in for read.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Distributor Updater": [
+            ("store", "Distributor", "update"),
+        ],
+        "Distributor Update Reader": [
+            ("store", "Distributor", "update"),
+            ("store", "Distributor", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "updater@domain.invalid": {
+            "name": "Updater",
+            "password": "testpass",
+            "groups": ["Distributor Updater"],
+        },
+        "update_reader@domain.invalid": {
+            "name": "Update Reader",
+            "password": "testpass",
+            "groups": ["Distributor Update Reader"],
+        },
+    }
+
+    @pytest.fixture
+    def distributor(self):
+        return store_models.Distributor.objects.create(name="Widget Co.", description="Fine widgets.")
+
+    def patch_description(self, client, distributor):
+        response = client.patch(
+            reverse(
+                "store.distributor-detail",
+                kwargs={"pk": distributor.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+            ),
+            data={"description": "Fine widgets, updated."},
+            format="json",
+        )
+        self.assert_response(response, HTTPStatus.OK)
+        return response.data
+
+    def test_update_permission_alone_does_not_grant_history_access(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["updater@domain.invalid"])
+
+        data = self.patch_description(api_client, distributor)
+
+        assert "history-list" not in data["available_actions"]
+
+    def test_read_permission_grants_history_access_on_a_write_response(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["update_reader@domain.invalid"])
+
+        data = self.patch_description(api_client, distributor)
+
+        assert "history-list" in data["available_actions"]
+
+    def test_direct_history_request_denied_without_read_permission(self, api_client, distributor):
+        """Endpoint enforcement is unchanged by this fix -- only its advertisement was wrong."""
+        api_client.force_authenticate(user=self.users["updater@domain.invalid"])
+
+        response = api_client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_direct_history_request_succeeds_with_read_permission(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["update_reader@domain.invalid"])
+
+        response = api_client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
+
+        self.assert_response(response, HTTPStatus.OK)
+
+
+@pytest.mark.django_db
+class TestHistoryActionObjectAvailabilityUnderWorkflowState(
+    BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin
+):
+    """
+    An object's own workflow state overrides its model-level read permission for
+    ``history-list`` availability, the same as it overrides read for any other purpose.
+    Reproduces #280's object-level-restriction acceptance criterion: model-level permission
+    alone must not decide a specific object's ``history-list`` availability when that object's
+    current state says otherwise.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Order Reader": [
+            ("store", "CustomerOrder", "read"),
+            ("store", "CustomerOrder", "list"),
+        ],
+        "Order Non Reader": [],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "reader@domain.invalid": {
+            "name": "Reader",
+            "password": "testpass",
+            "groups": ["Order Reader"],
+        },
+        "non_reader@domain.invalid": {
+            "name": "Non Reader",
+            "password": "testpass",
+            "groups": ["Order Non Reader"],
+        },
+        "the_customer@domain.invalid": {"name": "The Customer", "password": "testpass", "groups": []},
+    }
+
+    @pytest.fixture
+    def order(self):
+        customer = store_models.Customer.objects.create(user=self.users["the_customer@domain.invalid"])
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        return store_models.CustomerOrder.objects.create(
+            order_number=1001, customer=customer, order_state=order_state, shipping_method="free"
+        )
+
+    def available_actions(self, client, order):
+        response = client.get(
+            reverse(
+                "store.customerorder-detail",
+                kwargs={"pk": order.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+            ),
+        )
+        self.assert_response(response, HTTPStatus.OK)
+        return response.data["available_actions"]
+
+    def test_a_state_denial_overrides_model_level_read(self, api_client, order):
+        """
+        A state-denied object is unreadable outright -- its own detail response 404s, the same as
+        any other state-denied read. Its row-level availability is instead observed through a list
+        response, which does not 404 a single denied row the way a detail retrieve does.
+        """
+        StatePermission.objects.create(
+            state=order.object_state.state,
+            permission=Permission.objects.get(codename="read_customerorder", content_type__app_label="store"),
+            group=Group.objects.get(name="Order Reader"),
+            grant_or_deny=False,
+        )
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        detail_response = api_client.get(reverse("store.customerorder-detail", kwargs={"pk": order.pk}))
+        self.assert_response(detail_response, HTTPStatus.NOT_FOUND)
+
+        list_response = api_client.get(
+            reverse(
+                "store.customerorder-list",
+                query={
+                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions",
+                    settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
+                },
+            ),
+        )
+        self.assert_response(list_response, HTTPStatus.OK)
+        row = next(row for row in list_response.data["results"] if row["id"] == order.pk)
+
+        assert "history-list" not in row["available_actions"]
+
+    def test_a_state_grant_overrides_a_model_level_denial(self, api_client, order):
+        StatePermission.objects.create(
+            state=order.object_state.state,
+            permission=Permission.objects.get(codename="read_customerorder", content_type__app_label="store"),
+            group=Group.objects.get(name="Order Non Reader"),
+            grant_or_deny=True,
+        )
+        api_client.force_authenticate(user=self.users["non_reader@domain.invalid"])
+
+        assert "history-list" in self.available_actions(api_client, order)
