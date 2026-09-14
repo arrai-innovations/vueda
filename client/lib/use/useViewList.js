@@ -441,48 +441,68 @@ export function useViewList(options) {
     // without a manual `cloneDeep`.
     const filterParams = computed(() => filtersToParams(addedFilters.value));
 
-    // The single writer for the two constraints useViewList owns end-to-end -- the chosen sort and
-    // the active filters -- to list parameters, URL state, and saved filter preferences. Both are
-    // read here from their own reactive state (`sentSorted`, `filterParams`) rather than each being
-    // pushed independently against `route.query`: since Vue batches synchronous reactive changes
-    // into one flush, a sort clear and a filter clear landing in the same tick are combined into
-    // exactly one push instead of two writes racing to patch the same not-yet-applied query.
-    watch([sentSorted, filterParams], ([newSorted, newFilterParams], oldValues) => {
-        const [, oldFilterParams] = oldValues || [];
-        // Filter-derived effects -- the saved "filters" preference, the reset to page 1, and
-        // this change's contribution to `listState.params`/the URL -- apply only while this is
-        // the active list view, matching this composable's original filter-write behavior: a
-        // `ViewList` instance kept mounted off-screen (e.g. mid route transition) must not
-        // touch the live route or preferences on a stray filter mutation. A sort change has
-        // always pushed regardless of the active view, so it is never gated here.
-        const onListView = route.params?.action === VIEW_NAME;
-        const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
-        if (filtersChanged) {
-            listState.currentPage = 1;
-        }
-        if (onListView) {
-            assignReactiveObject(listState.params, newFilterParams, [
-                ...Object.keys(options.params || {}),
-                ...alwaysParamsKeys,
-                SEARCH_PARAM,
-            ]);
-        }
-        // Start from the current route so keys neither sort nor filters own (search, or any
-        // foreign query param) pass through untouched; only replace each domain's own keys.
-        const routeQuery = queryWithCurrentSort(route.query, newSorted);
-        if (onListView) {
-            for (const key of Object.keys(oldFilterParams || {})) {
-                delete routeQuery[key];
-            }
-            Object.assign(routeQuery, newFilterParams);
-        }
-        if (!isEqual(routeQuery, route.query)) {
+    // The single writer for the three constraints useViewList owns end-to-end -- the chosen sort,
+    // the active filters, and the search term -- to list parameters, URL state, and saved filter
+    // preferences. All three are read here from their own reactive state (`sentSorted`,
+    // `filterParams`, `listState.search`) rather than each being pushed independently against
+    // `route.query`: since Vue batches synchronous reactive changes into one flush, e.g. a sort
+    // clear and a filter clear landing in the same tick are combined into exactly one push instead
+    // of separate writes racing to patch the same not-yet-applied query.
+    watch(
+        [sentSorted, filterParams, toRef(listState, "search")],
+        ([newSorted, newFilterParams, newSearch], oldValues) => {
+            const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
+            // Filter-derived effects -- the reset to page 1 and this change's contribution to
+            // `listState.params` -- apply only while this is the active list view, matching this
+            // composable's original filter-write behavior: a `ViewList` instance kept mounted
+            // off-screen (e.g. mid route transition) must not touch the live route or preferences
+            // on a stray filter mutation. Sort and search changes have always pushed regardless of
+            // the active view, so neither is gated here.
+            const onListView = route.params?.action === VIEW_NAME;
+            const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
+            const searchChanged = !isEqual(newSearch, oldSearch);
             if (filtersChanged) {
-                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
+                listState.currentPage = 1;
             }
-            router.push({ query: routeQuery });
-        }
-    });
+            if (onListView) {
+                assignReactiveObject(listState.params, newFilterParams, [
+                    ...Object.keys(options.params || {}),
+                    ...alwaysParamsKeys,
+                    SEARCH_PARAM,
+                ]);
+            }
+            // Start from the current route so keys none of sort/filters/search own (any foreign
+            // query param) pass through untouched. Each domain deletes only the key(s) it
+            // previously wrote, then sets whatever it currently owns -- a sort with nothing
+            // chosen yet (e.g. while restoration is still waiting on model metadata) is
+            // therefore indistinguishable from a foreign key and never gets touched.
+            const routeQuery = { ...route.query };
+            if (oldSorted?.length) {
+                delete routeQuery[ORDERING_PARAM];
+            }
+            const sortValue = formatSortQuery(newSorted);
+            if (sortValue) {
+                routeQuery[ORDERING_PARAM] = sortValue;
+            }
+            if (newSearch) {
+                routeQuery[SEARCH_PARAM] = newSearch;
+            } else {
+                delete routeQuery[SEARCH_PARAM];
+            }
+            if (onListView) {
+                for (const key of Object.keys(oldFilterParams || {})) {
+                    delete routeQuery[key];
+                }
+                Object.assign(routeQuery, newFilterParams);
+            }
+            if (!isEqual(routeQuery, route.query)) {
+                if (filtersChanged || searchChanged) {
+                    listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
+                }
+                router.push({ query: routeQuery });
+            }
+        },
+    );
 
     // Rebuild the active-filter list from the URL on load and whenever the query changes externally
     // (e.g. browser navigation). Guarded so filters already applied in-memory, which carry richer
@@ -550,6 +570,8 @@ export function useViewList(options) {
             listState.params[PAGE_SIZE_PARAM] = newPerPage;
         }
     });
+    // Pagination bookkeeping only -- route synchronization for `search` happens in the combined
+    // sort+filter+search writer above, keyed off `listState.search` directly.
     watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
         instanceList.clearList({ keepPagination: true });
         if (newPage <= 1 || newPage > instanceList.state.paginateInfo?.totalPages) {
@@ -564,16 +586,8 @@ export function useViewList(options) {
         }
         if (!newSearch) {
             delete listState.params[SEARCH_PARAM];
-            const routeQuery = omit(route.query, [SEARCH_PARAM]);
-            listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-            router.push({ query: routeQuery });
         } else {
             listState.params[SEARCH_PARAM] = newSearch;
-            const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
-            if (!isEqual(routeQuery, route.query)) {
-                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-                router.push({ query: routeQuery });
-            }
         }
     });
     watch(
