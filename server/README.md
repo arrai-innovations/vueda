@@ -4,6 +4,8 @@
     <img src="https://vueda.dev/v3/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
 </a>
 
+[![PyPI](https://img.shields.io/pypi/v/vueda)](https://pypi.org/project/vueda/)
+
 [vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Server changelog](https://vueda.dev/v3/reference/changelog/server.html)
 
 VUEDA Server provides the Django REST framework backend for VUEDA, a framework
@@ -13,7 +15,7 @@ serializers, and viewsets with permissions, audit history, and metadata that
 build forms, lists, detail screens, and routes. Metadata describes the models'
 fields, actions, and permissions.
 
-The Python package is `vueda`.
+The Python package is [vueda on PyPI](https://pypi.org/project/vueda/).
 
 ## What it provides
 

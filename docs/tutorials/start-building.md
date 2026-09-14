@@ -36,34 +36,9 @@ This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like s
 
 ### Package Registry Access
 
-<!-- todo: remove this section when public -->
+VUEDA is available from [public PyPI](https://pypi.org/project/vueda/) and [public npm](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha). No registry credentials are needed.
 
-Before proceeding, configure credentials for the private package registries.
-
-**Python (private PyPI):**
-
-```console
-export UV_INDEX_ARRAI_USERNAME=your-username
-export UV_INDEX_ARRAI_PASSWORD=your-password
-```
-
-**Node (npm):**
-
-```console
-export NPM_TOKEN=your-npm-token
-```
-
-You can also store the npm token in `~/.npmrc`:
-
-```ini
-//registry.npmjs.org/:_authToken=${NPM_TOKEN}
-```
-
-::: tip
-Add these environment variables to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist them across sessions.
-
-You could also use a tool like [direnv](https://direnv.net/) to manage environment variables on a per-project basis.
-:::
+The v3 series is currently a prerelease. The templates select the v3 packages. When adding VUEDA to an existing project, use `uv add --prerelease allow vueda` for the server and `pnpm add @arrai-innovations/vueda@alpha` for the client. npm's `latest` tag still points to v1, so select `alpha` explicitly for v3.
 
 ## Scaffold a New Project
 

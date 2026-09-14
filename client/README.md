@@ -4,6 +4,8 @@
     <img src="https://vueda.dev/v3/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
 </a>
 
+[![npm alpha](https://img.shields.io/npm/v/@arrai-innovations/vueda/alpha)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha)
+
 [vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Client changelog](https://vueda.dev/v3/reference/changelog/client.html)
 
 VUEDA Client is the Vue 3 frontend library for VUEDA, a framework for building
@@ -12,7 +14,7 @@ business applications with Django and Vue. It turns metadata from
 forms, lists, detail screens, and routes. Metadata describes the models' fields,
 actions, and permissions.
 
-The npm package is `@arrai-innovations/vueda`.
+The npm package is [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha).
 
 ## What it provides
 
