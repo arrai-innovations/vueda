@@ -872,6 +872,7 @@ export default defineConfig({
         };
     },
     themeConfig: {
+        siteTitle: "vueda",
         logo: "/assets/logo-cube-solid.svg",
         search: { provider: "local" },
         outline: "deep",
