@@ -42,9 +42,7 @@ For a new application, follow
 templates configure the Django and Vue projects, and the tutorial adds an
 inventory model from end to end.
 
-To add the server to an existing project, first configure
-[package registry access](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access),
-then install with uv:
+To add the server to an existing project, install from public PyPI with uv:
 
 ```console
 uv add --prerelease allow vueda

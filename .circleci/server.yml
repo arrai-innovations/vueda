@@ -1,9 +1,7 @@
 version: 2.1
 
 orbs:
-    github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
-    pypi: arrai/pypi@3.1.0
     pysentry: arrai/pysentry@1.0.0
     pytest: arrai/pytest@11.0.0
     utils: arrai/utils@1.23.3
@@ -340,27 +338,8 @@ workflows:
                           only: /^server-v.*/
                       branches:
                           ignore: /.*/
-            - github/create_release:
-                  name: server-release-on-github
-                  context: arrai-global
-                  requires:
-                      - server-build
-                  filters:
-                      tags:
-                          only: /^server-v.*/
-                      branches:
-                          ignore: /.*/
-            - pypi/upload_release:
-                  name: server-publish
-                  context: arrai-private-package-publishing
-                  cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
-                  requires:
-                      - server-build
-                  filters:
-                      tags:
-                          only: /^server-v.*/
-                      branches:
-                          ignore: /.*/
+            # Public PyPI releases are manual until trusted publishing is available.
+            # Release tags run the test matrix, version check, and wheel build.
 
     server-lint:
         jobs:
