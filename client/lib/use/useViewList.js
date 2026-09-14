@@ -451,7 +451,7 @@ export function useViewList(options) {
     watch(
         [sentSorted, filterParams, toRef(listState, "search")],
         ([newSorted, newFilterParams, newSearch], oldValues) => {
-            const [, oldFilterParams, oldSearch] = oldValues || [];
+            const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
             // Filter-derived effects -- the reset to page 1 and this change's contribution to
             // `listState.params` -- apply only while this is the active list view, matching this
             // composable's original filter-write behavior: a `ViewList` instance kept mounted
@@ -472,8 +472,18 @@ export function useViewList(options) {
                 ]);
             }
             // Start from the current route so keys none of sort/filters/search own (any foreign
-            // query param) pass through untouched; only replace each domain's own keys.
-            const routeQuery = queryWithCurrentSort(route.query, newSorted);
+            // query param) pass through untouched. Each domain deletes only the key(s) it
+            // previously wrote, then sets whatever it currently owns -- a sort with nothing
+            // chosen yet (e.g. while restoration is still waiting on model metadata) is
+            // therefore indistinguishable from a foreign key and never gets touched.
+            const routeQuery = { ...route.query };
+            if (oldSorted?.length) {
+                delete routeQuery[ORDERING_PARAM];
+            }
+            const sortValue = formatSortQuery(newSorted);
+            if (sortValue) {
+                routeQuery[ORDERING_PARAM] = sortValue;
+            }
             if (newSearch) {
                 routeQuery[SEARCH_PARAM] = newSearch;
             } else {

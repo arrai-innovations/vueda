@@ -634,5 +634,86 @@ describe("lib/views/ViewList.vue", () => {
             expect(freshWrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("abc");
             freshWrapper.unmount();
         });
+
+        scopedIt(
+            "restores the URL's chosen sort after model metadata loads following the initial search restoration",
+            async () => {
+                modelConfig.loading = true;
+                modelConfig.config.sortables = [];
+                await router.push(`/app/model/list?${ORDERING_PARAM}=name&${SEARCH_PARAM}=abc`);
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+
+                // Search restoration reads the URL immediately, independent of model metadata,
+                // and triggers the combined sort+filter+search writer while the sort has not
+                // been restored yet. The chosen sort must still be in the URL once metadata
+                // finishes loading and the sort-restoration watcher runs.
+                await flushPromises();
+                await nextTick();
+
+                // `SortControl` doesn't render yet -- `sort.canShowSorter` needs sortables from
+                // the still-loading metadata -- so the URL itself is the only thing to check here.
+                expect(wrapper.vm.list.listState.search).toBe("abc");
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+
+                modelConfig.config.sortables = ["name", "created_at"];
+                modelConfig.loading = false;
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+                expect(router.currentRoute.value.query[SEARCH_PARAM]).toBe("abc");
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("abc");
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt(
+            "restores the URL's chosen filter after model metadata loads following the initial search restoration",
+            async () => {
+                // Unlike sort, the filter writer only deletes route-query keys it previously owned
+                // (from `oldFilterParams`) and only assigns keys it currently knows about
+                // (`newFilterParams`). While model metadata is still loading, `filterParams` stays
+                // empty both before and after the search-triggered write below, so there is nothing
+                // for it to delete or overwrite: `category` passes through as a foreign key, the
+                // way any query param neither sort, filter, nor search owns yet would.
+                modelConfig.loading = true;
+                modelConfig.config.filterables = [];
+                modelConfig.config.filterableDetails = {};
+                await router.push(`/app/model/list?category=widgets&${SEARCH_PARAM}=abc`);
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+
+                await flushPromises();
+                await nextTick();
+
+                expect(wrapper.vm.list.listState.search).toBe("abc");
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+                expect(router.currentRoute.value.query.category).toBe("widgets");
+
+                modelConfig.config.filterables = ["category"];
+                modelConfig.config.filterableDetails = { category: { typeFilter: "ChoiceField", label: "Category" } };
+                modelConfig.loading = false;
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                expect(router.currentRoute.value.query.category).toBe("widgets");
+                expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+                expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "category", value: "widgets" });
+                wrapper.unmount();
+            },
+        );
     });
 });
