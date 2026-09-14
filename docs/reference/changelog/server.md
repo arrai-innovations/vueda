@@ -17,7 +17,7 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## vNext (unreleased)
+## v3.0.0a1 (unreleased)
 
 ### Breaking Changes
 

@@ -1,13 +1,13 @@
 {
   "name": "@arrai-innovations/vueda",
-  "version": "3.0.0-alpha.1",
+  "version": "3.0.0-alpha.2",
   "publishConfig": {
-    "tag": "latest",
-    "registry": "https://npm.arrai.dev/"
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
   },
   "description": "Vue 3 component library for VUEDA Server. Provides components and composables for form handling, CRUD views, and dynamic routing, driven by server-supplied model and field metadata. Includes authentication, navigation, permission management, and theming support.",
   "main": "index.js",
-  "types": "types/index.d.ts",
   "type": "module",
   "files": [
     "lib",
@@ -27,7 +27,7 @@
     "format": "pnpm -C .. exec prettier --check client",
     "eslint": "pnpm -C .. exec eslint --no-warn-ignored --cache --fix client",
     "prettier": "pnpm -C .. exec prettier --write client",
-    "build:types": "tsc",
+    "build:types": "del-cli types && tsc",
     "prepublishOnly": "npm run build:types"
   },
   "repository": {

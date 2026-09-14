@@ -36,12 +36,11 @@ For a new application, follow
 [Start Building](https://vueda.dev/v3/tutorials/start-building.html). It scaffolds
 both packages and walks through a working inventory application.
 
-To add the client to an existing project, first configure
-[package registry access](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access),
-then install:
+To add the client to an existing project, install the alpha from public npm.
+No registry credentials are needed:
 
 ```console
-npm install @arrai-innovations/vueda
+npm install @arrai-innovations/vueda@alpha --registry=https://registry.npmjs.org/
 ```
 
 The v3 series is currently a prerelease. Use the documentation for the major

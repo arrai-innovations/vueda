@@ -12,7 +12,11 @@ Integrator-facing changes for the `@arrai-innovations/vueda` npm package.
 Use this page for changes that affect client package consumers: public Vue components, composables, routes,
 stores, theme behavior, build integration, dependency expectations, and migration notes.
 
-## vNext (unreleased)
+## v3.0.0-alpha.2 (unreleased)
+
+- **Public npm distribution**:
+    - The client package publishes to public npm with the `alpha` dist-tag.
+      _Install `@arrai-innovations/vueda@alpha` to select the alpha channel._
 
 - **A change of authenticated user rechecks the route on screen (`makeCRUDRoutes`, `requireModelInfo`)**:
     - The checks `makeCRUDRoutes` attaches run through `beforeEnter`, which Vue Router calls only when a navigation enters a route record. A change of authenticated user is not a navigation, so the previous user's view stayed on screen at its own URL. The stores dropped their caches and the composables refetched, which left `ViewActionNotFound` in place of the redirect the checks would have produced on entry. `makeCRUDRoutes` now watches `identityGeneration` and reruns the same checks, in the same order, against the route the application is on. A route the new user may still use keeps its URL and adds no history entry. A route they may not use gives way to the destination configured for the check that denied it: `authRedirect`, `actionRedirect`, or `groupsRedirect`.
