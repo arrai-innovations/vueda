@@ -18,6 +18,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - The client package publishes to public npm with the `alpha` dist-tag.
       _Install `@arrai-innovations/vueda@alpha` to select the alpha channel._
 
+- **`ViewList` renders its grid flush again (`ViewList`, `ViewList.objectsGrid`)**:
+    - When the default theme moved `ObjectsGrid.root` from a `border` to the `hairline` inset box-shadow, the `border-0` in `ViewList.objectsGrid` stopped removing the grid's edge. The list grid drew a four-sided frame inside the page, doubling the sidebar edge and the constraints band's bottom rule. `ViewList.objectsGrid` now uses `!shadow-none` instead.
+    - The default `before-list` slot content no longer leaves an empty 8px strip above the grid when there is no form message to show.
+      _No action required. An application that patched `ViewList.objectsGrid` or `ObjectsGrid.root` to hide that frame can remove the workaround._
+
 - **A change of authenticated user rechecks the route on screen (`makeCRUDRoutes`, `requireModelInfo`)**:
     - The checks `makeCRUDRoutes` attaches run through `beforeEnter`, which Vue Router calls only when a navigation enters a route record. A change of authenticated user is not a navigation, so the previous user's view stayed on screen at its own URL. The stores dropped their caches and the composables refetched, which left `ViewActionNotFound` in place of the redirect the checks would have produced on entry. `makeCRUDRoutes` now watches `identityGeneration` and reruns the same checks, in the same order, against the route the application is on. A route the new user may still use keeps its URL and adds no history entry. A route they may not use gives way to the destination configured for the check that denied it: `authRedirect`, `actionRedirect`, or `groupsRedirect`.
     - `requireModelInfo` now returns `false` when the authenticated user changes while it is fetching metadata, which cancels that navigation. It returned `undefined` before, which Vue Router reads as approval, so a navigation checked against the previous user's metadata completed.

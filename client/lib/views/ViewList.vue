@@ -386,7 +386,9 @@ onMounted(() => {
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
         <slot name="before-list">
-            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
+            <!-- FormMessage renders only a comment when it has nothing to show; empty:hidden keeps the
+                 padding from leaving an 8px strip between the constraints band and the grid. -->
+            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2 empty:hidden">
                 <form-message type="error" />
                 <form-message type="message" />
             </div>
