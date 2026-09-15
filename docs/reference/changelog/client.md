@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Sort-chip hover follows the visible controls (`SortChip`)**:
+    - The label's hover fill now rounds its right edge when the remove control is hidden. A single active sort therefore has a fully rounded hover fill instead of a square right edge.
+
 - **Sign-in uses the primary button tone (`ViewSignIn`)**:
     - The default Sign In action now uses the primary fill instead of the neutral fill, distinguishing it from the surrounding form surfaces. It retains the disabled treatment while a sign-in attempt is loading.
 
