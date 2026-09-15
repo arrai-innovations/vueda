@@ -334,10 +334,66 @@ const buildApiIndex = () => {
 const apiIndex = timeSync("config:api-index", buildApiIndex);
 const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
 
+const escapeAttribute = (value) =>
+    String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 const apiLinkPlugin = (md, options = {}) => {
     const resolve = options.resolve;
     const strict = options.strict !== false;
     const softbreakSpacer = " ";
+
+    // Demo blocks (`<VuedaDemo>` and friends) are HTML blocks, whose content
+    // markdown-it emits raw and never runs an inline rule over. A reference written
+    // in a demo caption therefore reached the page as literal `{@api ...}` braces.
+    // Resolve those on the raw token content instead, with the same strict-mode
+    // contract as the inline rule.
+    const resolveInHtml = (src, env) => {
+        let out = "";
+        let index = 0;
+        while (index < src.length) {
+            const start = src.indexOf("{@api", index);
+            if (start === -1) {
+                out += src.slice(index);
+                break;
+            }
+            out += src.slice(index, start);
+            const parsed = parseApiRef(src, start);
+            if (!parsed) {
+                out += "{@api";
+                index = start + "{@api".length;
+                continue;
+            }
+            const { raw, rawId, length } = parsed;
+            const entry = resolve ? resolve(rawId) : null;
+            if (!entry) {
+                const hint = env?.relativePath || env?.path || "unknown file";
+                const message = `Unknown API id "${rawId}" in ${hint}`;
+                if (strict) {
+                    throw new Error(message);
+                }
+                out += raw;
+            } else {
+                out += `<a href="${escapeAttribute(entry.href)}">${escapeAttribute(entry.title || rawId)}</a>`;
+            }
+            index = start + length;
+        }
+        return out;
+    };
+
+    md.core.ruler.push("vueda-api-link-html", (state) => {
+        for (const token of state.tokens) {
+            if (token.type === "html_block") {
+                token.content = resolveInHtml(token.content, state.env);
+            }
+            if (token.children) {
+                for (const child of token.children) {
+                    if (child.type === "html_inline") {
+                        child.content = resolveInHtml(child.content, state.env);
+                    }
+                }
+            }
+        }
+    });
 
     md.inline.ruler.before("emphasis", "vueda-api-link", (state, silent) => {
         const { pos } = state;
