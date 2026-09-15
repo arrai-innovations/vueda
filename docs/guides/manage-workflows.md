@@ -174,6 +174,8 @@ The following are preserved exactly as written in each migration file:
 
 Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
 
+`changed_data` is the exception. It is rewritten in the form `makeworkflowmigrations` writes it, so a comment or deliberate formatting inside that list is not kept, even though the changes it records are. Write a note about a change outside the list, where it is preserved along with the rest of your code.
+
 That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
 
 ### Command Options
