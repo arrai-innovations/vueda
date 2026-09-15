@@ -204,6 +204,13 @@ in `base.css § Typography`.
   webfont; `--vueda-font-brand` is a Plex 600 fallback stack only. Live
   brand type ships as pre-rendered SVG paths in `brand/`.
 
+VUEDA does not bundle fonts, for the same reason it does not bundle icons
+(§ 11). The consuming app usually loads fonts for its own chrome, so a
+bundled copy would download them twice. The stacks name the families; the
+app loads them or overrides `--vueda-font-sans` / `--vueda-font-mono`.
+Integrator guidance lives in `docs/guides/customize-vueda-appearance.md`
+(Load or replace the fonts).
+
 ### 3.1 Scale
 
 A 7-step scale tighter than shadcn defaults. Body is 13px. The tokens

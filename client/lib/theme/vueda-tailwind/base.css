@@ -568,9 +568,9 @@
     /* Font stacks. Galano Grotesque licence forbids web embedding; brand
      * stack is a Plex 600 fallback only — live brand type ships as SVG paths. */
     --vueda-font-sans:
-        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack — IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. */
+        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack: IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. The theme ships no font files: the application loads IBM Plex Sans at those weights, or overrides this stack with a family it loads. An unloaded family falls back to a system font silently. */
     --vueda-font-mono:
-        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack — JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. */
+        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack: JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. The theme ships no font files: the application loads JetBrains Mono, or overrides this stack with a family it loads. */
     --vueda-font-brand:
         "Galano Grotesque", "IBM Plex Sans", sans-serif; /* brand display stack — Galano Grotesque with a Plex 600 fallback. Licence forbids web embedding, so live brand type ships as pre-rendered SVG paths in the repo-root `brand/` folder; this stack is the runtime fallback only. */
 
