@@ -465,6 +465,13 @@ Two LCD artifacts drive the choice:
   red / blue chromatic fringing. A wider hairline forces Skia to
   distribute colour across adjacent subpixels.
 
+Saturated edges (validation red, VUEDA blue) fringe far more than neutral
+ones. A saturated colour drives one subpixel channel hard; a grey drives all
+three evenly. Saturated edges also smear when a GPU sends YCbCr 4:2:2 or 4:2:0
+instead of full RGB. That output is common on 4K office monitors over HDMI.
+VUEDA targets business desktops where that setup is ordinary, so the hairline
+scale stays a deliberate workaround.
+
 The scale is smooth (steps of 0.25px) and the three tokens
 (`--vueda-hairline-width`, `--vueda-focus-ring-width`,
 `--vueda-focus-ring-offset`) move in lockstep, so the visual proportions
@@ -548,6 +555,12 @@ Surfaces that pair a coloured edge with a `box-shadow` ring (the
 `ModelActionForm` / `ViewDestroy` tone cards, the workflow-transition
 option) keep a `border-hairline` real edge so the ring keeps its own
 `box-shadow`.
+
+`tests/unit/lib/theme/hairlineBorderGuard.spec.js` enforces these
+exceptions. It fails on a raw `border` / `border-t` / `border-b` / etc. width
+utility in a theme slot or a component template. A slot with `rounded-full`,
+`border-dashed`, or a `border-*-transparent` spacer is exempt automatically.
+Any other exception needs an allowlist entry with its reason.
 
 ## 8. Cross-cutting attributes
 

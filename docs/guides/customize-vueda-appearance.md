@@ -193,6 +193,12 @@ To confirm the fonts loaded, run `document.fonts.check('600 16px "IBM Plex Sans"
 
 **Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
 
+**Drawing app chrome with a plain `border`.** VUEDA's edges step from 2px at a device pixel ratio of 1 down to 1px at a ratio of 2. That scale avoids colour fringing on common office displays. A Tailwind `border` or `border-b` stays at 1px, so a header drawn with it looks thinner than the VUEDA surfaces beside it. Use the matching utilities from `base.css` instead:
+
+- `border-b-hairline` (or `-t`, `-l`, `-r`, `-x`, `-y`) for one edge.
+- `border-hairline` for four real border sides.
+- `hairline hairline-border` for a four-sided edge on an element with no other box-shadow.
+
 **Naming a font the page never loads.** The token stacks name families; they do not load them. A stack whose first family has no loaded face falls back to a system font without any warning. Load the fonts or override the stacks, as in [Load or replace the fonts](#load-or-replace-the-fonts).
 
 **Forgetting that `composes` uses replace semantics.** Declaring `composes` on an override does not append to the default's compose list; it replaces it entirely. If you intend to extend the default's composition, write the full new list.

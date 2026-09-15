@@ -151,29 +151,41 @@
 /* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
  * these when `hairline` (4-sided inset box-shadow) can't be used because only
  * some sides should be stroked, e.g. a joined segmented control. Pair with a
- * `border-*` color utility; border-style is already `solid` from Tailwind's
- * preflight. */
+ * `border-*` color utility. Each utility also sets its border style, the way
+ * Tailwind's own `border-*` width utilities do, so it paints even where
+ * preflight is absent (e.g. portal content styled by a utilities-only sheet).
+ * `--tw-border-style` keeps `border-dashed` composable; the `solid` fallback
+ * covers a stylesheet that never registered that property. */
 @utility border-t-hairline {
+    border-top-style: var(--tw-border-style, solid);
     border-top-width: var(--vueda-hairline-width);
 }
 @utility border-b-hairline {
+    border-bottom-style: var(--tw-border-style, solid);
     border-bottom-width: var(--vueda-hairline-width);
 }
 @utility border-l-hairline {
+    border-left-style: var(--tw-border-style, solid);
     border-left-width: var(--vueda-hairline-width);
 }
 @utility border-r-hairline {
+    border-right-style: var(--tw-border-style, solid);
     border-right-width: var(--vueda-hairline-width);
 }
 @utility border-y-hairline {
+    border-top-style: var(--tw-border-style, solid);
+    border-bottom-style: var(--tw-border-style, solid);
     border-top-width: var(--vueda-hairline-width);
     border-bottom-width: var(--vueda-hairline-width);
 }
 @utility border-x-hairline {
+    border-left-style: var(--tw-border-style, solid);
+    border-right-style: var(--tw-border-style, solid);
     border-left-width: var(--vueda-hairline-width);
     border-right-width: var(--vueda-hairline-width);
 }
 @utility border-hairline {
+    border-style: var(--tw-border-style, solid);
     border-width: var(--vueda-hairline-width);
 }
 
