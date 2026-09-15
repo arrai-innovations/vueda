@@ -4,6 +4,8 @@
  */
 import "./WidgetCheckbox.theme.js";
 import "./WidgetCombobox.theme.js";
+import "./WidgetDateField.theme.js";
+import "./WidgetDateRangeField.theme.js";
 import "./WidgetDuration.theme.js";
 import "./WidgetFile.theme.js";
 import "./WidgetGenericAutoComplete.theme.js";
@@ -20,6 +22,9 @@ export default {
     WidgetCheckbox: {},
     WidgetCombobox: {},
     WidgetDuration: {},
+    // ---------- Date and time widgets ----------
+    WidgetDateField: {},
+    WidgetDateRangeField: {},
     // ---------- File and media widgets ----------
     WidgetFile: {},
     // ---------- Autocomplete widgets ----------
