@@ -298,7 +298,7 @@ export function useViewList(options) {
     const route = useRoute();
     const restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...Object.keys(hiddenFilterParams.value)]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);

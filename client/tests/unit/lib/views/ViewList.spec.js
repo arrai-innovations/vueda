@@ -1069,6 +1069,29 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("applies a server-hidden filter's URL value once model metadata loads after mount", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const filterables = modelConfig.config.filterables;
+            const filterableDetails = modelConfig.config.filterableDetails;
+            modelConfig.loading = true;
+            modelConfig.config.filterables = [];
+            modelConfig.config.filterableDetails = {};
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+
+            modelConfig.loading = false;
+            modelConfig.config.filterables = filterables;
+            modelConfig.config.filterableDetails = filterableDetails;
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            wrapper.unmount();
+        });
+
         scopedIt("preserves a server-hidden filter's request param through a visible filter change", async () => {
             mockedInject.mockReturnValueOnce({});
             route.params = { action: "list" };
@@ -1081,6 +1104,23 @@ describe("lib/views/ViewList.vue", () => {
 
             expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
             expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", category: "widgets" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("excludes a server-hidden filter's value from the saved filter preference", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets" },
+            );
             wrapper.unmount();
         });
 
