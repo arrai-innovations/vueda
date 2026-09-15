@@ -136,9 +136,10 @@ an empty field and a populated one look different.
 
 ## Unmapped fallback
 
-When a field's type pair has no widget, the form renders a diagnostic in place
-of the control rather than dropping the field, so a missing mapping is visible on
-the form instead of silently absent.
+When a field's type pair has no widget, the form renders a diagnostic in place of
+the control rather than dropping the field. The diagnostic names the field, so a
+missing mapping is visible on the form instead of silently absent. The same
+fallback appears when a configured widget name does not resolve.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -150,6 +151,7 @@ the form instead of silently absent.
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>Server IP: <code>IPAddressField</code> / <code>IPAddressField</code> selects {@api vue:component:WidgetUnmapped}</span>
     <span>an application maps the type to a widget of its own through the model config, or overrides the field with a <code>widget(fieldName)</code> slot</span>
+    <span>theme key: {@api theme-key:WidgetUnmapped}</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>

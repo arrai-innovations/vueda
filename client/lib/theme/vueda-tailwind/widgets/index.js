@@ -17,6 +17,7 @@ import "./WidgetPreviewableTemplate.theme.js";
 import "./WidgetReadOnly.theme.js";
 import "./WidgetTemplateLegend.theme.js";
 import "./WidgetTimeRangeField.theme.js";
+import "./WidgetUnmapped.theme.js";
 
 export default {
     // ---------- Selection widgets ----------
@@ -27,6 +28,8 @@ export default {
     WidgetDateField: {},
     WidgetDateRangeField: {},
     WidgetTimeRangeField: {},
+    // ---------- Fallback ----------
+    WidgetUnmapped: {},
     // ---------- File and media widgets ----------
     WidgetFile: {},
     // ---------- Autocomplete widgets ----------
