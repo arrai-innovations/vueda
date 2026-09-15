@@ -2,14 +2,14 @@
 <!-- Shared 100-unit canvas: artwork top 3.93, height 83.71, horizontal centre 46.14. -->
 <svg width="500" height="500" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 <g transform="translate(-8.934556 -9.286029) scale(0.832608)">
-<path d="m52.398 91.281-5e-6 -31.75 13.748 7.9375 43.536-25.135v14.552l-43.536 25.135-1.1457-0.66146v17.198z" fill="none"/>
-<path d="m52.398 58.208c1.1457-0.66146 43.536-25.135 43.536-25.135l13.748 7.9375v15.875l-43.536 25.135-1.1457-0.66146v17.198l-12.602-7.276z" fill="none"/>
-<path d="m52.398 91.281-2e-6 -33.073 43.536-25.135 13.748 7.9375v15.875l-29.788 17.198-3e-6 17.198-13.748 7.9375z" fill="#0077f7"/>
-<path d="m79.894 93.927-3e-6 14.552-13.748 7.9375-28.642-16.536-2e-6 -31.75 12.602 7.276 3e-6 17.198 16.04 9.2604z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
-<path d="m50.106 72.76v-15.875l13.748-7.9375-27.496-15.875-13.748 7.9375v15.875z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
-<path d="m82.185 75.406v31.75l27.496-15.875v-31.75z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
-<path d="m51.252 39.026c3.437-1.9844 14.894-8.599 14.894-8.599s14.894 8.599 14.894 8.599c0 3e-6 12.602-7.276 12.602-7.276l-27.496-15.875-27.496 15.875z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
-<path d="m53.543 40.349c3.437-1.9844 12.602-7.276 12.602-7.276l12.602 7.276-12.602 7.276z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
-<path d="m22.61 59.531 12.602 7.276-1e-6 31.75-12.602-7.276z" fill="#0077f7"/>
+
+
+<path d="M 53.005247 90.930419 L 53.005245 58.558598 L 96.541244 33.423598 L 109.681998 41.010500 L 109.681998 56.184313 L 79.286751 73.732905 L 79.286748 90.930908 L 66.146005 98.517804 Z" fill="#0077f7"/>
+<path d="M 79.286753 94.978814 L 79.286750 108.829598 L 66.145997 116.416500 L 38.111244 100.231084 L 38.111242 69.182299 L 49.498748 75.757088 L 49.498751 92.955100 L 66.146012 102.566091 Z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
+<path d="M 49.498753 71.708212 L 49.498753 56.534408 L 62.639517 48.947500 L 35.750758 33.423095 L 22.610000 41.010000 L 22.610000 56.183810 Z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
+<path d="M 82.792247 75.756592 L 82.792247 106.805402 L 109.681000 91.281000 L 109.681000 60.232190 Z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
+<path d="M 51.252006 38.324810 L 66.146000 29.725813 L 81.039994 38.324810 L 93.034762 31.399407 L 66.146000 15.875000 L 39.257238 31.399407 Z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
+<path d="M 54.757464 40.349000 L 66.145000 33.774194 L 77.532536 40.349000 L 66.145000 46.923806 Z" fill="#0077f7" stop-color="#000000" style="-inkscape-stroke:none;font-variation-settings:normal"/>
+<path d="M 22.610000 60.232194 L 34.604753 67.157588 L 34.604752 98.206395 L 22.609999 91.281000 Z" fill="#0077f7"/>
 </g>
 </svg>
