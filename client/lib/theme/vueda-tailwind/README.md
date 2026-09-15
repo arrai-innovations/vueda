@@ -514,7 +514,7 @@ that need only one painted edge (toolbar bottom hairline, sidebar
 separator, table head bottom). They consume `--vueda-hairline-width` so
 their thickness DPR-tracks with the canon edge. The 4-sided
 `border-hairline` is the same tool for elements that must keep a real
-`border` (see § 7.5) but should still DPR-track rather than sit at a raw
+`border` (see § 7.6) but should still DPR-track rather than sit at a raw
 1px.
 
 For a filled element that _is_ the rule rather than an edge of another box
@@ -536,7 +536,30 @@ Popover, HoverCard, the dropdown / context / menubar menus, the
 combobox / select lists, and the toast surface use `overlay-hairline`;
 Dialog, Sheet, and AlertDialog add `overlay-hairline-elevated`.
 
-### 7.5 When a real `border` is still correct
+### 7.5 Editable fields: `field-line`
+
+Editable fields (Input, Textarea, NativeSelect, SelectTrigger, InputGroup,
+DateField, DateRangeField, TimeField, TagsInput, NumberFieldInput, and the
+WidgetCombobox trigger) follow Carbon rather than the button shell. At rest a
+field is a `bg-field` fill on a bottom-only `field-line`, the "write on this
+line" cue from paper forms, so it cannot be mistaken for an outline button.
+
+- **Rest:** `field-line bg-field`, square `rounded-vueda-field` corners.
+- **Hover:** `hover:bg-field-hover`, a fill step; the line does not change.
+- **Focus and invalid:** the four-sided `hairline` returns alongside the ring
+  (`focus-visible:hairline focus-visible:hairline-ring
+focus-visible:focus-ring-shadow`), so those states keep a full edge.
+- **Read-only:** no fill and a `--border` line (`hairline-border`), so a
+  read-only field reads like the read view's display rows rather than an
+  editable field. Read view rows must keep that subtle line, never
+  `--field-line`.
+
+`field-line` writes the same `--vueda-hairline-shadow` and box-shadow pair as
+`hairline`, so `focus-ring-shadow` and the `hairline-*` colour utilities compose
+with it. Do not apply `read-only:` to a `<select>` or `<button>` trigger: the
+`:read-only` pseudo-class matches every non-editable element.
+
+### 7.6 When a real `border` is still correct
 
 The edge-as-box-shadow rule has principled exceptions, where a real
 `border` (or the DPR-tracked `border-hairline` / `border-*-hairline`) is

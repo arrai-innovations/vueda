@@ -150,9 +150,9 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input aria-invalid="true" placeholder="required" /></div>
     </div>
     <template #footer>
-      <span>border <code>--input</code></span>
-      <span>focus outline <code>--ring</code></span>
-      <span>invalid border <code>--destructive</code></span>
+      <span>rest: <code>--field</code> fill, bottom line <code>--field-line</code></span>
+      <span>focus: full edge and outline <code>--ring</code></span>
+      <span>invalid: full edge <code>--destructive</code></span>
       <span>invalid outline <code>--destructive</code></span>
     </template>
   </DemoCard>
@@ -166,7 +166,7 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input disabled value="Archived" /></div>
     </div>
     <template #footer>
-      <span>readonly fill <code>--muted</code>/50</span>
+      <span>readonly: no fill, <code>--border</code> bottom line</span>
       <span>disabled opacity 50</span>
       <span>disabled has no pointer events</span>
     </template>

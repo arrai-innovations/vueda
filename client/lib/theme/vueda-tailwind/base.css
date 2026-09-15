@@ -25,7 +25,8 @@
  * and primary buttons. Never 700; never italics for UI.
  *
  * RADIUS: near-flat. 2px controls, 4px cards, 2px modals, fully round
- * pills (badges, tags, avatars). Everything else is deliberately square.
+ * pills (badges, tags, avatars). Editable fields and everything else are
+ * deliberately square.
  *
  * SHADOWS: borders do the work. Elevation only when a surface
  * overlays another (popover, overlay). Cards use a 1px border, not
@@ -123,6 +124,19 @@
 }
 @utility hairline-border-strong {
     --vueda-hairline-color: var(--border-strong);
+}
+
+/* `field-line` paints an editable field's resting edge: a bottom-only inset
+ * hairline at `--field-line`, the paper-form "write on this line" cue. It
+ * writes the same `--vueda-hairline-shadow` and box-shadow pair as `hairline`,
+ * so `focus-ring-shadow` still composes on top, and a `hairline-*` colour
+ * utility still recolours it (e.g. `read-only:hairline-border`). Field recipes
+ * restore the four-sided `hairline` on focus and invalid so those states keep a
+ * full edge. */
+@utility field-line {
+    --vueda-hairline-shadow: inset 0 calc(-1 * var(--vueda-hairline-width)) 0 0
+        var(--vueda-hairline-color, var(--field-line));
+    box-shadow: var(--vueda-hairline-shadow), var(--vueda-focus-shadow, 0 0 0 0 transparent);
 }
 
 /* `overlay-hairline` gives a floating surface a painted edge without a real
@@ -365,6 +379,9 @@
     --color-border: var(--border);
     --color-border-strong: var(--border-strong);
     --color-input: var(--input);
+    --color-field: var(--field);
+    --color-field-hover: var(--field-hover);
+    --color-field-line: var(--field-line);
     --color-ring: var(--ring);
     --color-success: var(--success);
     --color-warning: var(--warning);
@@ -454,6 +471,13 @@
     --input: oklch(
         0.9 0.008 250
     ); /* input edge — default colour painted by the `hairline-input` variant. Matches --border at rest; controls swap to --border-strong on hover and --ring on focus. */
+    --field: oklch(
+        0.965 0.005 250
+    ); /* editable field fill: text inputs, textareas, selects, date and time fields, tags inputs, and combobox triggers. Paired with the bottom `--field-line` so a field reads as a place to type rather than a boxed control. */
+    --field-hover: oklch(0.935 0.006 250); /* editable field fill on hover, one lightness step darker than --field. */
+    --field-line: var(
+        --muted-foreground
+    ); /* strong bottom edge painted by the `field-line` utility on an editable field at rest. Read-only fields drop to --border. */
     --ring: var(
         --primary
     ); /* focus-ring colour. Aliases --primary so focus tracks the accent; destructive controls swap to --destructive via `focus-ring-destructive`. */
@@ -858,6 +882,9 @@
     --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
     --border-strong: oklch(1 0 0 / 0.16); /* hover-border tint */
     --input: oklch(0.26 0.009 250);
+    --field: oklch(0.25 0.012 250); /* one step above --card so the fill stays visible on card surfaces */
+    --field-hover: oklch(0.29 0.012 250);
+    --field-line: var(--muted-foreground);
     --ring: var(--primary);
     --sunken: oklch(0.12 0.01 250);
 

@@ -176,7 +176,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>border: <code>--border</code></span>
+      <span>rest: <code>--field</code> fill, bottom line <code>--field-line</code></span>
     </template>
   </DemoCard>
   <DemoCard title="focused">
@@ -189,7 +189,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>border shifts to <code>--ring</code> on focus</span>
+      <span>full <code>--ring</code> edge returns on focus</span>
       <span>ring: <code>--ring/30</code> · 2px · 2px offset</span>
     </template>
   </DemoCard>

@@ -16,7 +16,7 @@ describe("lib/controls/input/Input.vue", () => {
 
         scopedIt("applies base styling classes", () => {
             const wrapper = mount(Input);
-            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("field-line");
             expect(wrapper.classes()).toContain("rounded-vueda-field");
             expect(wrapper.classes()).toContain("h-vueda-control");
         });
@@ -24,7 +24,7 @@ describe("lib/controls/input/Input.vue", () => {
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(Input, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("field-line");
         });
 
         scopedIt("passes through attributes to the input", () => {

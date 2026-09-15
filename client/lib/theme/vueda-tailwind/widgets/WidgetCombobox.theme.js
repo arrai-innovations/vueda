@@ -19,16 +19,15 @@ patchTheme({
             class: [
                 // Placeholder, icon, and border states.
                 "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground",
-                "hover:hairline-border-strong hairline",
+                "field-line hover:bg-field-hover",
 
                 // Focus, invalid, and dark-mode states.
-                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
-                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
-                "dark:bg-input/30 dark:hover:bg-accent dark:active:bg-accent-active",
+                "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
 
                 // Layout, shape, and type.
                 "flex w-full h-vueda-control items-center justify-between gap-2",
-                "rounded-vueda-field bg-transparent px-vueda-control-px text-sm",
+                "rounded-vueda-field bg-field px-vueda-control-px text-sm",
                 "whitespace-nowrap shadow-vueda-control transition-shadow",
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

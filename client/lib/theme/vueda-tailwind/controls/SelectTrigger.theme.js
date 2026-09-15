@@ -14,14 +14,14 @@ patchTheme({
      * Combobox-the-searchable-picker.
      */
     SelectTrigger: {
-        /** The pressable surface that opens a {@api theme-key:SelectContent.root}. Reads as a neutral chip (transparent at rest, `hairline` border, `shadow-vueda-control` micro-shadow, control-radius corners) rather than the input shell {@api theme-key:ComboboxTrigger.root} wears, because Select is an enum picker and the user is not about to type. Hover paints `hairline-border-strong` (one step darker than the resting hairline) without firing the focus ring. Three size tiers ride `h-vueda-control*` plus matching `px-vueda-control-px*`; dark mode rests on the input tint (`bg-input/30`) and hovers the fill to `--accent` (a perceptible lightness step, since the old `bg-input/50` topped out near the rest lightness because `--input` is itself dark), and `aria-invalid` swaps both the hairline and the focus-ring shadow to destructive. Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a chosen value. */
+        /** The pressable surface that opens a {@api theme-key:SelectContent.root}. Wears the editable field recipe: a `bg-field` fill on a bottom-only `field-line`, square `rounded-vueda-field` corners, and a `hover:bg-field-hover` step, so a picker that sets a value reads as a field rather than a button. Focus restores the four-sided hairline with the focus ring. Three size tiers ride `h-vueda-control*` plus matching `px-vueda-control-px*`, and `aria-invalid` restores the full edge and swaps the hairline and the focus-ring shadow to destructive. Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a chosen value. */
         root: {
             class: [
                 // Placeholder, icons, and interaction colors.
-                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-accent dark:active:bg-accent-active hover:hairline-border-strong",
+                "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground hover:bg-field-hover",
 
                 // Trigger shell.
-                "hairline flex w-fit items-center justify-between gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow",
+                "field-line flex w-fit items-center justify-between gap-2 rounded-vueda-field bg-field px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow",
 
                 // Disabled and size states.
                 "disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg",
@@ -31,7 +31,7 @@ patchTheme({
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 
                 // Focus and invalid states.
-                "focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
             ],
         },
     },

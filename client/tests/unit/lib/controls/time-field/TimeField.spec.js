@@ -30,12 +30,12 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             expect(wrapper.find('[data-slot="time-field"]').exists()).toBe(true);
         });
 
-        scopedIt("applies hairline and layout classes", () => {
+        scopedIt("applies field-line and layout classes", () => {
             const wrapper = mount(TimeField);
             const el = wrapper.find('[data-slot="time-field"]');
             expect(el.classes()).toContain("flex");
             expect(el.classes()).toContain("rounded-vueda-field");
-            expect(el.classes()).toContain("hairline");
+            expect(el.classes()).toContain("field-line");
         });
 
         scopedIt("applies text-sm class", () => {
@@ -43,9 +43,9 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("text-sm");
         });
 
-        scopedIt("applies dark-mode input tint", () => {
+        scopedIt("applies the field fill", () => {
             const wrapper = mount(TimeField);
-            expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("dark:bg-input/30");
+            expect(wrapper.find('[data-slot="time-field"]').classes()).toContain("bg-field");
         });
 
         scopedIt("applies aria-invalid destructive ring classes", () => {

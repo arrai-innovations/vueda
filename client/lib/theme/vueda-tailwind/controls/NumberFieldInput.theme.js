@@ -17,10 +17,10 @@ patchTheme({
         root: {
             class: [
                 // Input shell and type.
-                "flex h-vueda-control w-full rounded-vueda-field hairline bg-transparent font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow",
+                "flex h-vueda-control w-full rounded-vueda-field field-line bg-field hover:bg-field-hover font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow",
 
                 // Placeholder, focus, and disabled states.
-                "placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                "placeholder:text-muted-foreground focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
             ],
         },
     },

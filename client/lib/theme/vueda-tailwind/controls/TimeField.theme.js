@@ -17,11 +17,12 @@ patchTheme({
         root: ({ size }) => ({
             class: [
                 // Shell and surface.
-                "dark:bg-input/30 flex w-full items-center rounded-vueda-field hairline bg-transparent text-sm shadow-vueda-control transition-shadow",
+                "flex w-full items-center rounded-vueda-field field-line bg-field hover:bg-field-hover text-sm shadow-vueda-control transition-shadow",
 
                 // Focus, read-only, and disabled states.
-                "focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
-                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                "focus-within:hairline focus-within:hairline-ring focus-within:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                "data-[readonly]:bg-transparent data-[readonly]:hover:bg-transparent data-[readonly]:hairline-border",
+                "aria-invalid:hairline aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
 
                 // Size classes.
                 {

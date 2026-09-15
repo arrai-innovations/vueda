@@ -18,11 +18,11 @@ patchTheme({
         root: {
             class: [
                 // Shell and surface.
-                "flex flex-wrap gap-2 items-center rounded-vueda-field hairline bg-background dark:bg-input/30 px-2 py-1 text-sm shadow-vueda-control transition-shadow",
+                "flex flex-wrap gap-2 items-center rounded-vueda-field field-line bg-field hover:bg-field-hover px-2 py-1 text-sm shadow-vueda-control transition-shadow",
 
                 // Focus and invalid states.
-                "has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
-                "aria-invalid:hairline-destructive [&[aria-invalid]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
+                "has-[input:focus-visible]:hairline has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
+                "aria-invalid:hairline aria-invalid:hairline-destructive [&[aria-invalid]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
             ],
         },
     },

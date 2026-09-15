@@ -16,7 +16,7 @@ describe("lib/controls/textarea/Textarea.vue", () => {
 
         scopedIt("applies base styling classes", () => {
             const wrapper = mount(Textarea);
-            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("field-line");
             expect(wrapper.classes()).toContain("rounded-vueda-field");
             expect(wrapper.classes()).toContain("min-h-16");
         });
@@ -24,7 +24,7 @@ describe("lib/controls/textarea/Textarea.vue", () => {
         scopedIt("merges custom class while preserving base classes", () => {
             const wrapper = mount(Textarea, { props: { class: "my-custom-class" } });
             expect(wrapper.classes()).toContain("my-custom-class");
-            expect(wrapper.classes()).toContain("hairline");
+            expect(wrapper.classes()).toContain("field-line");
         });
 
         scopedIt("passes through attributes to the textarea", () => {
