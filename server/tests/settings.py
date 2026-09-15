@@ -1,4 +1,5 @@
 import decimal
+import hashlib
 from copy import deepcopy
 from pathlib import Path
 
@@ -23,6 +24,20 @@ decimal.setcontext(decimal.Context(rounding=decimal.ROUND_HALF_UP))  # Sensible 
 DATABASES = {"default": env.dj_db_url("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 TEST_POSTGRES_DB = env("TEST_POSTGRES_DB")
+
+# Give each checkout its own test database, so a run in one worktree cannot drop or truncate the
+# database a run in another worktree is using. The suffix comes from this checkout's path, so it is
+# stable between runs and needs no setup. Set VUEDA_TEST_DB_SUFFIX to choose the suffix yourself, or
+# to an empty string to use the unsuffixed name.
+#
+# Keep the suffix short. `suffix_each_test` in `tests/conftest.py` clones this database once per test
+# as `<name>_<40 hex digits>`, and PostgreSQL truncates database names at 63 characters. Six
+# characters stays inside that limit for up to 100 xdist workers.
+TEST_DB_SUFFIX = env("VUEDA_TEST_DB_SUFFIX", default=hashlib.sha1(str(ROOT_DIR).encode()).hexdigest()[:6])
+TEST_DB_NAME = f"test_{DATABASES['default']['NAME']}"
+if TEST_DB_SUFFIX:
+    TEST_DB_NAME = f"{TEST_DB_NAME}_{TEST_DB_SUFFIX}"
+DATABASES["default"]["TEST"] = {"NAME": TEST_DB_NAME}
 
 # Set up a second database connection, which is not atomic, so we can write logging
 # through it when a test fails, so we can validate filtering logging messages.
