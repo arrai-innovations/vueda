@@ -29,7 +29,6 @@ from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
-from django.http import Http404
 from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
@@ -48,11 +47,11 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
-from vueda.core.utils import AvailableActionsRequest
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
@@ -60,29 +59,6 @@ from vueda.history.queries import events_in_groups
 from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
-
-
-class _RetrieveActionView:
-    """
-    Presents ``action = "retrieve"`` to a permission check, delegating every other attribute
-    (``get_queryset()`` included) to the wrapped viewset unchanged.
-
-    A permission class reads ``view.action`` to decide which named permission a ``GET`` request
-    needs -- ``list`` or ``read``. Wrapping the view this way lets :meth:`VuedaViewSet._read_permitted`
-    check read authorization as an ordinary retrieve, independently of whatever action the
-    surrounding response is actually for, without mutating the viewset's own ``action`` attribute.
-    ``get_queryset()``, reached through this wrapper, still runs as a bound method of the wrapped
-    viewset and reads that viewset's real ``action``, so it keeps building whatever queryset the
-    actual request would have built.
-    """
-
-    action = "retrieve"
-
-    def __init__(self, viewset):
-        self._viewset = viewset
-
-    def __getattr__(self, name):
-        return getattr(self._viewset, name)
 
 
 class WarningConfirmationMixin:
@@ -1029,9 +1005,7 @@ class VuedaViewSet(
 
         ``history_list`` is additionally gated on read authorization here, so neither model
         metadata nor an object's own action list advertises a history endpoint the direct request
-        would refuse with a 403. Every other extra action is offered unconditionally, same as
-        before -- this is a read gate for history discovery, not a general extra-action
-        permission system.
+        would refuse with a 403.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
@@ -1046,39 +1020,17 @@ class VuedaViewSet(
         Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
         is ``None`` -- through this viewset's own configured permission classes.
 
-        Checked as an ordinary "retrieve" read over ``GET``, regardless of the HTTP method or
-        action that produced the response this feeds into: an update response does not check
-        history using update permission, and a list response does not substitute list permission
-        for read. ``instance=None`` decides model-scope discovery through ``has_permission``
-        alone, the same model-level check a CRUD action's own discovery uses, which is what lets a
-        matching workflow-state grant settle a model-level denial without scanning any row. An
-        object's own action list instead decides through ``has_object_permission``, which folds in
-        row-level and per-object workflow-state rules for that specific object.
-
-        ``request`` is ``None`` when there is no request to authorize against (for example,
-        schema generation building metadata without a live requester), in which case every other
-        action discovery path in this module leaves its result unfiltered, and this does the same.
+        Checked as an ordinary "retrieve" read, through :func:`vueda.core.permissions.check_action_permission`,
+        the same function an object's own ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`)
+        and model metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
+        already call to check ``retrieve`` for the same row or model, on this same viewset
+        instance, within the same request. ``check_action_permission`` caches its answer per
+        ``(action, instance)`` on that viewset instance, so whichever of those two callers reaches
+        ``retrieve`` first pays for the permission pass, and this call reuses that answer instead
+        of paying for a second one. See ``check_action_permission`` for what "checked as an
+        action" means and why ``instance=None`` takes a different path than a specific object.
         """
-        if request is None:
-            return True
-
-        fake_request = AvailableActionsRequest(
-            method="GET",
-            user=request.user,
-            authenticators=request.authenticators,
-            successful_authenticator=request.successful_authenticator,
-        )
-        read_view = _RetrieveActionView(self)
-
-        try:
-            if instance is None:
-                return all(permission.has_permission(fake_request, read_view) for permission in self.get_permissions())
-            return all(
-                permission.has_object_permission(fake_request, read_view, instance)
-                for permission in self.get_permissions()
-            )
-        except (PermissionDenied, Http404):
-            return False
+        return check_action_permission(self, request, instance, "retrieve")
 
     def get_object(self):
         """

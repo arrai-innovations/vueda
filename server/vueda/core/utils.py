@@ -1,6 +1,7 @@
-"""Shared utilities for template rendering, system user lookup, and fake requests."""
+"""Shared utilities for template rendering, system user lookup, and fake requests and views."""
 
 __all__ = (
+    "ActionView",
     "AvailableActionsRequest",
     "get_system_user",
     "render_template",
@@ -43,6 +44,28 @@ class AvailableActionsRequest:
         self.method = method
         self.successful_authenticator = successful_authenticator
         self.user = user
+
+
+class ActionView:
+    """
+    Presents a fixed ``action`` to a permission check, delegating every other attribute
+    (``get_queryset()`` included) to the wrapped view unchanged.
+
+    A permission class reads ``view.action`` to decide which named permission a request needs --
+    for example ``list`` versus ``read`` for two actions that both use ``GET``. Wrapping the view
+    this way lets a caller check authorization for one specific action, independently of whatever
+    action the surrounding response is actually for, without mutating the wrapped view's own
+    ``action`` attribute. ``get_queryset()``, reached through this wrapper, still runs as a bound
+    method of the wrapped view and reads that view's real ``action``, so it keeps building
+    whatever queryset the actual request would have built.
+    """
+
+    def __init__(self, view, action):
+        self._view = view
+        self.action = action
+
+    def __getattr__(self, name):
+        return getattr(self._view, name)
 
 
 def sort_by_dot_count_alphabetically(value):
