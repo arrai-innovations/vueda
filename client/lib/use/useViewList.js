@@ -435,40 +435,32 @@ export function useViewList(options) {
     });
     // Server-hidden filterables (e.g. the auto-injected `id__in` deep-link filter) have no
     // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
-    // Read it with the same param-key resolution the editable filter form uses, so a hidden
-    // filter that declares suffixes would resolve to the same keys a visible one does.
-    const hiddenFilterables = computed(() => {
+    // Read with the same param-key resolution the editable filter form uses, so a hidden filter
+    // that declares suffixes resolves to the same keys a visible one does. Independent of whether
+    // the URL currently carries a value for a key: used to keep a hidden filterable's keys out of
+    // what gets read from or written to the saved filter preference, where a stored key can exist
+    // with no matching URL value yet. `rawHiddenFilterParams` below is the value-bearing counterpart.
+    const hiddenFilterKeys = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
-        return (filterablesState.filterables || []).filter((fieldName) => {
-            const detail = filterableDetails[fieldName];
-            return detail && detail.typeFilter && detail.hidden;
-        });
+        return (filterablesState.filterables || [])
+            .filter((fieldName) => {
+                const detail = filterableDetails[fieldName];
+                return detail && detail.typeFilter && detail.hidden;
+            })
+            .flatMap((fieldName) => {
+                const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
+                return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+            });
     });
     const rawHiddenFilterParams = computed(() => {
-        const filterableDetails = filterablesState.filterableDetails || {};
         const params = {};
-        for (const fieldName of hiddenFilterables.value) {
-            const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
-            for (const key of Array.isArray(paramKeys) ? paramKeys : [paramKeys]) {
-                const value = route.query[key];
-                if (value !== undefined && value !== null && value !== "") {
-                    params[key] = value;
-                }
+        for (const key of hiddenFilterKeys.value) {
+            const value = route.query[key];
+            if (value !== undefined && value !== null && value !== "") {
+                params[key] = value;
             }
         }
         return params;
-    });
-    // Every query key a hidden filterable resolves to, independent of whether the URL currently
-    // carries a value for it. Used to keep a hidden filterable's keys out of what gets read from or
-    // written to the saved filter preference: unlike `rawHiddenFilterParams`, this stays correct
-    // whether or not the URL currently holds a value, so it also covers a stored preference key with
-    // no matching URL value yet.
-    const hiddenFilterKeys = computed(() => {
-        const filterableDetails = filterablesState.filterableDetails || {};
-        return hiddenFilterables.value.flatMap((fieldName) => {
-            const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
-            return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
-        });
     });
     // A fresh plain object every recomputation of `rawHiddenFilterParams` (any route.query change
     // recomputes it, whether or not a hidden filter's own key is involved), guarded down to a
