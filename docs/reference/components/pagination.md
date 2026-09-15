@@ -50,6 +50,9 @@ The other navigation primitives (Breadcrumb, NavigationMenu, Menubar) live on th
 
 Pagination renders a `<nav>` landmark with Previous/Next navigation buttons and numbered page
 items. Page items compose from `_ButtonGhost` (inactive) or `_ButtonOutline` (active).
+The active page keeps a foreground-colored edge at rest, distinct from the lighter navigation
+button outlines. Disabled items drop their edges along with the navigation buttons.
+Page items default to 32px squares; their `size` prop supports the same tiers as `Button`.
 Navigation buttons compose from `_ButtonOutline` and render icon-only as compact (sm) squares.
 First and Last use double-angle glyphs to set them apart from the single-chevron Previous and
 Next; each carries an `sr-only` label so the control keeps an accessible name.
@@ -60,11 +63,11 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
 
 <VuedaDemo class="grid gap-6">
   <DemoCard title="default" description="(sibling-count=1, page 5 of 10)">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5">
+    <Pagination v-slot="{ page }" :total="100" :items-per-page="10" :sibling-count="1" :default-page="5">
       <PaginationContent v-slot="{ items }">
         <PaginationPrevious />
         <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
+          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === page">
             {{ item.value }}
           </PaginationItem>
           <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
@@ -73,18 +76,18 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       </PaginationContent>
     </Pagination>
     <template #footer>
-      <span>active item composes <code>_ButtonOutline</code></span>
+      <span>current page: persistent foreground edge; inactive pages have no edge</span>
       <span>inactive items compose <code>_ButtonGhost</code></span>
       <span>nav buttons: icon-only, outline, sm square</span>
     </template>
   </DemoCard>
   <DemoCard title="show-edges" description="(first/last buttons + edge page numbers)">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" :show-edges="true">
+    <Pagination v-slot="{ page }" :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" :show-edges="true">
       <PaginationContent v-slot="{ items }">
         <PaginationFirst />
         <PaginationPrevious />
         <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
+          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === page">
             {{ item.value }}
           </PaginationItem>
           <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
@@ -99,12 +102,12 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
     </template>
   </DemoCard>
   <DemoCard title="at the first page" description="(show-edges, page 1 of 10)">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="1" :show-edges="true">
+    <Pagination v-slot="{ page }" :total="100" :items-per-page="10" :sibling-count="1" :default-page="1" :show-edges="true">
       <PaginationContent v-slot="{ items }">
         <PaginationFirst />
         <PaginationPrevious />
         <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 1">
+          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === page">
             {{ item.value }}
           </PaginationItem>
           <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
@@ -119,11 +122,11 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
     </template>
   </DemoCard>
   <DemoCard title="disabled">
-    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" disabled>
+    <Pagination v-slot="{ page }" :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" disabled>
       <PaginationContent v-slot="{ items }">
         <PaginationPrevious />
         <template v-for="(item, idx) in items" :key="idx">
-          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 5">
+          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === page">
             {{ item.value }}
           </PaginationItem>
           <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />

@@ -14,6 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Current page has a distinct outline (`PaginationItem`)**:
+    - The active page number keeps a foreground-colored edge at rest, making it easier to distinguish from the lighter navigation button outlines. Disabled pagination items still drop their edges.
+    - Page items now honor their `size` prop, defaulting to 32px squares. Previously, the missing size classes let the outline crowd the page number.
+
 - **Tags input focus colors follow validation state (`TagsInput`)**:
     - Focusing an invalid tags input now keeps both the field edge and outer focus ring destructive. An explicit `aria-invalid="false"` uses the normal focus color instead of incorrectly retaining a red ring.
 

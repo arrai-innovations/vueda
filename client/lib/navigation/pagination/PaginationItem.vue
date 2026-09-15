@@ -33,7 +33,11 @@ const props = defineProps({
 });
 
 const delegatedProps = reactiveOmit(props, "class", "size", "isActive", "themeOverride");
-const theme = useTheme("PaginationItem", props, reactive({ isActive: toRef(props, "isActive") }));
+const theme = useTheme(
+    "PaginationItem",
+    props,
+    reactive({ isActive: toRef(props, "isActive"), size: toRef(props, "size") }),
+);
 </script>
 
 <template>
