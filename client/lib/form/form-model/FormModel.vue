@@ -237,7 +237,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                 <form-message type="error" />
                 <form-message type="message" />
             </slot>
-            <div v-bind="$attrs">
+            <div v-bind="$attrs" :class="theme('fields')">
                 <slot
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"

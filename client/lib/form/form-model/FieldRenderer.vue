@@ -138,7 +138,9 @@ const fieldInnerClass = theme("fieldInner");
                     :widget-component="widgetComponent"
                     :widget-props="widgetProps"
                 >
-                    <a :name="fieldValuePath" />
+                    <!-- Scroll target for the first-error jump. Positioned so it stays a
+                         box scrollIntoView can reach without taking a field-content gap. -->
+                    <a :name="fieldValuePath" class="absolute" />
                     <div :class="fieldInnerClass" data-qa="field-renderer-field-inner">
                         <!-- @slot [widget(fieldName)] Override the entire widget area for a specific field. -->
                         <slot
