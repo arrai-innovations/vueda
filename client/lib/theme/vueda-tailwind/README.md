@@ -559,7 +559,41 @@ focus-visible:focus-ring-shadow`), so those states keep a full edge.
 with it. Do not apply `read-only:` to a `<select>` or `<button>` trigger: the
 `:read-only` pseudo-class matches every non-editable element.
 
-### 7.6 When a real `border` is still correct
+### 7.6 Disabled controls: `--disabled`
+
+A disabled control changes kind, it does not fade. `disabled:opacity-50` can only
+be as legible as the resting contrast is high, and a cell with no fill has almost
+none to halve: on the pagination steppers the disabled edge measured 1.26 contrast
+against the page and the enabled edge 1.67, a difference few people can see.
+
+Two tokens carry the state. `--disabled` is the fill that replaces a filled
+control's tone, so a disabled primary and a disabled destructive read alike.
+`--disabled-foreground` is the ink, on that fill and on no fill at all; one token
+serves both because `--disabled` stays light enough for the same ink to read on it
+and on `--background`.
+
+The Button primitives apply it by emphasis, following Carbon:
+
+- **Fill** (`_ButtonDefault`, `_ButtonSecondary`, `_ButtonDestructive`):
+  `disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none`.
+  The tone is replaced, not faded.
+- **Outline** (`_ButtonOutline` and its primary and destructive siblings):
+  `disabled:!shadow-none disabled:bg-transparent disabled:text-disabled-foreground`.
+  The box goes entirely, which is the signal: a cluster shows which cells still act
+  without anyone reading the glyphs. The `!` is required because `hairline` and
+  `shadow-vueda-control` are single-class box-shadow utilities that `shadow-none`
+  would otherwise race in stylesheet order.
+- **Ghost and link**: `disabled:text-disabled-foreground`, since there is no fill
+  or box to remove. Links also drop the underline affordance.
+
+`_ButtonBase` keeps only `disabled:pointer-events-none`. Carbon uses no opacity for
+disabled anywhere in its button or text-input styles.
+
+Control families outside the Button primitives (toggles, switches, checkboxes,
+sliders, and the field recipes) still use `disabled:opacity-50` and have not been
+converted.
+
+### 7.7 When a real `border` is still correct
 
 The edge-as-box-shadow rule has principled exceptions, where a real
 `border` (or the DPR-tracked `border-hairline` / `border-*-hairline`) is

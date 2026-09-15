@@ -382,6 +382,8 @@
     --color-field: var(--field);
     --color-field-hover: var(--field-hover);
     --color-field-line: var(--field-line);
+    --color-disabled: var(--disabled);
+    --color-disabled-foreground: var(--disabled-foreground);
     --color-ring: var(--ring);
     --color-success: var(--success);
     --color-warning: var(--warning);
@@ -442,7 +444,7 @@
     --secondary-active: oklch(0.83 0.008 250); /* secondary surface, pressed. */
     --muted: oklch(
         0.965 0.005 250
-    ); /* muted neutral surface — disabled control fills, subdued chips, low-emphasis backgrounds. */
+    ); /* muted neutral surface — subdued chips and low-emphasis backgrounds. Disabled controls use --disabled. */
     --muted-foreground: oklch(0.5 0.015 250); /* muted text — captions, supporting labels, table th. */
     --accent: oklch(
         0.92 0.008 250
@@ -475,6 +477,12 @@
         0.965 0.005 250
     ); /* editable field fill: text inputs, textareas, selects, date and time fields, tags inputs, and combobox triggers. Paired with the bottom `--field-line` so a field reads as a place to type rather than a boxed control. */
     --field-hover: oklch(0.935 0.006 250); /* editable field fill on hover, one lightness step darker than --field. */
+    --disabled: oklch(
+        0.9 0.004 250
+    ); /* disabled fill: replaces a filled control's tone so a disabled primary and a disabled destructive read alike. Light enough to sit quietly against --background, dark enough to still read as a slab. */
+    --disabled-foreground: oklch(
+        0.62 0.008 250
+    ); /* disabled ink: labels and icons on a disabled control, whether it carries the --disabled fill or no fill at all. One token serves both, because --disabled is light enough that the same ink reads on it and on --background. */
     --field-line: var(
         --muted-foreground
     ); /* strong bottom edge painted by the `field-line` utility on an editable field at rest. Read-only fields drop to --border. */
@@ -884,6 +892,8 @@
     --input: oklch(0.26 0.009 250);
     --field: oklch(0.25 0.012 250); /* one step above --card so the fill stays visible on card surfaces */
     --field-hover: oklch(0.29 0.012 250);
+    --disabled: oklch(0.3 0.008 250); /* a step above --card, the dark-mode counterpart of the light disabled slab */
+    --disabled-foreground: oklch(0.52 0.01 250);
     --field-line: var(--muted-foreground);
     --ring: var(--primary);
     --sunken: oklch(0.12 0.01 250);

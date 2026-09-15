@@ -98,6 +98,26 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       <span>show-edges always includes page 1 and last page in the number list</span>
     </template>
   </DemoCard>
+  <DemoCard title="at the first page" description="(show-edges, page 1 of 10)">
+    <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="1" :show-edges="true">
+      <PaginationContent v-slot="{ items }">
+        <PaginationFirst />
+        <PaginationPrevious />
+        <template v-for="(item, idx) in items" :key="idx">
+          <PaginationItem v-if="item.type === 'page'" :value="item.value" :is-active="item.value === 1">
+            {{ item.value }}
+          </PaginationItem>
+          <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
+        </template>
+        <PaginationNext />
+        <PaginationLast />
+      </PaginationContent>
+    </Pagination>
+    <template #footer>
+      <span>the ordinary mixed state: first and previous cannot act, next and last can</span>
+      <span>a disabled outline cell drops its edge and micro-shadow entirely, so the cluster shows which controls still act without reading their glyphs</span>
+    </template>
+  </DemoCard>
   <DemoCard title="disabled">
     <Pagination :total="100" :items-per-page="10" :sibling-count="1" :default-page="5" disabled>
       <PaginationContent v-slot="{ items }">
@@ -112,7 +132,7 @@ Theme keys: {@api theme-key:Pagination}, {@api theme-key:PaginationContent},
       </PaginationContent>
     </Pagination>
     <template #footer>
-      <span>disabled: pointer-events-none, opacity-50 on all items</span>
+      <span>disabled: <code>pointer-events-none</code> on every item, and each cell takes its own disabled surface rather than a uniform alpha</span>
     </template>
   </DemoCard>
 </VuedaDemo>
