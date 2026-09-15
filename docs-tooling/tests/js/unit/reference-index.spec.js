@@ -2,6 +2,7 @@ import {
     cssTokenAnchor,
     formatApiMemberTitle,
     memberAnchorFromId,
+    memberHeadingAnchor,
     memberNameFromId,
     themeKeySlotAnchor,
 } from "../../../js/utils/reference-index.js";
@@ -56,6 +57,32 @@ describe("memberAnchorFromId", () => {
             "defaultTheme",
         );
         expect(memberAnchorFromId("py:function:vueda.core.config.TomlEnv._expand")).toBe("_expand");
+    });
+});
+
+describe("memberHeadingAnchor", () => {
+    it("leaves an interior underscore alone", () => {
+        expect(memberHeadingAnchor("get_object")).toBe("get_object");
+    });
+
+    it("leaves a leading-only or trailing-only underscore alone", () => {
+        expect(memberHeadingAnchor("_expand")).toBe("_expand");
+        expect(memberHeadingAnchor("post_")).toBe("post_");
+    });
+
+    it("hyphenates a name with both a leading and a trailing underscore", () => {
+        expect(memberHeadingAnchor("__call__")).toBe("--call--");
+        expect(memberHeadingAnchor("_member_map_")).toBe("-member-map-");
+    });
+
+    it("keeps a hyphenated anchor distinct from a sibling member's name", () => {
+        expect(memberHeadingAnchor("__dict__")).not.toBe(memberHeadingAnchor("dict"));
+    });
+
+    it("is what memberAnchorFromId returns for a python member", () => {
+        expect(memberAnchorFromId("py:function:vueda.core.config.TomlEnv.__call__")).toBe(
+            memberHeadingAnchor("__call__"),
+        );
     });
 });
 

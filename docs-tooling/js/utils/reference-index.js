@@ -30,6 +30,19 @@ export const themeKeySlotAnchor = (componentName, slotName) => `theme-key-${comp
 export const cssTokenAnchor = (tokenName) => `css-token-${tokenName.replace(/^--/, "")}`;
 
 /**
+ * Anchor for a member heading, safe to write as a `{#id}` attribute.
+ *
+ * markdown-it pairs the underscore runs in `{#__call__}` into emphasis, which
+ * emphasises the name and drops the id, so a name with both a leading and a
+ * trailing underscore takes hyphens instead. An identifier cannot contain a
+ * hyphen, so the substitution cannot collide with another member's name.
+ */
+export const memberHeadingAnchor = (memberName) => {
+    const anchor = slugify(memberName);
+    return anchor.startsWith("_") && anchor.endsWith("_") ? anchor.replace(/_/g, "-") : anchor;
+};
+
+/**
  * Anchor for a member id, or "" when the id names its own page.
  *
  * The theming renderers write an explicit `<a id>` per member and the rest give
@@ -50,5 +63,5 @@ export const memberAnchorFromId = (memberId) => {
         return themeKeySlotAnchor(qualified.slice(0, separator), qualified.slice(separator + 1));
     }
     const memberName = memberNameFromId(memberId);
-    return memberName ? slugify(memberName) : "";
+    return memberName ? memberHeadingAnchor(memberName) : "";
 };

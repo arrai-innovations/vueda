@@ -1,5 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildPdocPathMap } from "../utils/path-map.js";
+import { memberHeadingAnchor } from "../utils/reference-index.js";
 import {
     escapeText,
     formatParameters,
@@ -12,7 +13,6 @@ import {
     renderLifecycle,
     renderList,
     renderTable,
-    slugify,
 } from "./markdown.js";
 
 const DUNDER_RE = /^__.*__$/;
@@ -96,9 +96,9 @@ function renderSignatures(node, filePath, memberAnchors) {
 }
 
 function renderInlineMember(member) {
-    const anchor = slugify(member.name);
+    const anchor = memberHeadingAnchor(member.name);
     const lines = [];
-    lines.push(renderHeading(2, `${member.name} {#${anchor}}`), "");
+    lines.push(renderHeading(2, `${renderCodeInline(member.name)} {#${anchor}}`), "");
 
     const lifecycleBlock = renderLifecycle(member.lifecycle);
     if (lifecycleBlock) {
@@ -205,7 +205,7 @@ export function renderPdocNode(node, index, filePath) {
     }
     if (inlineChildren && inlineChildren.length) {
         fm.member_ids = inlineChildren.map((c) => c.id);
-        memberAnchors = new Set(inlineChildren.map((c) => slugify(c.name)));
+        memberAnchors = new Set(inlineChildren.map((c) => memberHeadingAnchor(c.name)));
     }
 
     const frontmatter = renderFrontmatter(fm);

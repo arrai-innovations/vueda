@@ -1,5 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildTypedocPathMap } from "../utils/path-map.js";
+import { memberHeadingAnchor } from "../utils/reference-index.js";
 import {
     formatMembers,
     formatSource,
@@ -109,13 +110,13 @@ function inlineMemberAnchors(node, index) {
     }
     return {
         inlineChildren,
-        memberAnchors: new Set(inlineChildren.map((child) => slugify(child.name))),
+        memberAnchors: new Set(inlineChildren.map((child) => memberHeadingAnchor(child.name))),
     };
 }
 
 function renderPropertyDetail(node, index, filePath) {
     const lines = [];
-    lines.push(renderHeading(3, `${node.name} {#${slugify(node.name)}}`), "");
+    lines.push(renderHeading(3, `${node.name} {#${memberHeadingAnchor(node.name)}}`), "");
 
     const lifecycleBlock = renderLifecycle(node.lifecycle);
     if (lifecycleBlock) {
