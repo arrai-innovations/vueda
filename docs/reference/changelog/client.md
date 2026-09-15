@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Sign-in uses the primary button tone (`ViewSignIn`)**:
+    - The default Sign In action now uses the primary fill instead of the neutral fill, distinguishing it from the surrounding form surfaces. It retains the disabled treatment while a sign-in attempt is loading.
+
 - **Current page has a distinct outline (`PaginationItem`)**:
     - The active page number keeps a foreground-colored edge at rest, making it easier to distinguish from the lighter navigation button outlines. Disabled pagination items still drop their edges.
     - Page items now honor their `size` prop, defaulting to 32px squares. Previously, the missing size classes let the outline crowd the page number.
