@@ -164,7 +164,7 @@ The highest-value keys are:
 
 - {@api theme-key:ObjectsGrid} `root`, `table`, `headerRowGroup`, `headerRow`, `headerCell`, `bodyRowGroup`, `bodyRow`, `cardContainer`, `emptyText`, `emptyContent`.
 - {@api theme-key:ObjectsGridTableHeader} `root`, `label`.
-- {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested `WidgetLabel` override used in form/grid compositions.
+- {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested {@api theme-key:WidgetLabel} override used in form/grid compositions.
 - {@api theme-key:ObjectsGridCardCell} `header` and `value`.
 
 Per-instance props stay useful even when the global theme is stable: `fieldClasses`, `tableFieldClasses`, `cardFieldClasses`, `headerClasses`, `tableHeaderClasses`, and `cardHeaderClasses` let a single grid tune numeric columns, action column widths, and compact fields without adding a global variant.
