@@ -34,7 +34,10 @@ patchTheme({
                 // bg-transparent key here would be cleared by the outline key anyway,
                 // since combineClasses is last-write-wins.)
                 {
-                    "border border-foreground bg-transparent shadow-vueda-control": variant === "outline",
+                    // Same resting and hover edge colours as Toggle's outline, on the real
+                    // border the joined seams need.
+                    "border border-border-strong hover:border-foreground bg-transparent shadow-vueda-control":
+                        variant === "outline",
                 },
 
                 // Size classes. Only height varies per size: the group-item override

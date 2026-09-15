@@ -83,14 +83,14 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: DPR-aware `--foreground` hairline, `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
+        /** The neutral-chip recipe: DPR-aware hairline at `--border-strong` that darkens to `--foreground` on hover (a chip that still reads as a control without outweighing the one filled action beside it), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping its stronger edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-foreground bg-background text-foreground shadow-vueda-control",
+                "hairline hairline-border-strong bg-background text-foreground shadow-vueda-control",
 
                 // Interactive states.
-                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
+                "hover:hairline-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
             ],
         },
     },

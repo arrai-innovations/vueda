@@ -187,7 +187,7 @@ h1 {
     letter-spacing: -0.045em;
 }
 h1 span {
-    color: var(--vp-c-brand-1);
+    color: var(--arrai-docs-brand);
 }
 .intro {
     max-width: 540px;
@@ -218,11 +218,16 @@ h1 span {
         border-color 0.15s;
 }
 .primary {
-    background: var(--vp-c-brand-1);
-    color: var(--vp-c-bg);
+    background: var(--vp-button-brand-bg);
+    color: var(--vp-button-brand-text);
 }
 .primary:hover {
-    background: var(--vp-c-brand-2);
+    background: var(--vp-button-brand-hover-bg);
+    color: var(--vp-button-brand-hover-text);
+}
+.primary:active {
+    background: var(--vp-button-brand-active-bg);
+    color: var(--vp-button-brand-active-text);
 }
 .secondary {
     border-color: var(--vp-c-divider);
@@ -264,7 +269,7 @@ h1 span {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #45a0ff;
+    background: var(--arrai-docs-brand);
 }
 .preview img {
     display: block;
