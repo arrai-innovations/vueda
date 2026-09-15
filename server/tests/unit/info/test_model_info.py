@@ -638,3 +638,95 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
         names = {action["name"] for action in self.model_actions(api_client)}
 
         assert "history-list" in names
+        assert "retrieve" in names, (
+            "the state grant is registered under read_customerorder, so it must settle retrieve's "
+            "own model-level denial through the same has_permission deferral as history-list, not "
+            "only history-list's"
+        )
+
+
+@pytest.mark.django_db
+class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    Model metadata decides ``list`` and ``retrieve`` against their own required permissions, not
+    against whichever of the two the collision in ``ObjectPermissions.perms_map`` happened to
+    resolve. Reproduces #292 at the model-metadata discovery path: ``get_model_actions()`` never
+    set the viewset's ``action`` before checking either, so both resolved to ``read_*`` -- a
+    list-only requester was told ``retrieve`` was available, and a read-only requester was told
+    ``list`` was available.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Distributor Lister Only": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "list"),
+        ],
+        "Distributor Reader Only": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "read"),
+        ],
+        "Distributor Lister And Reader": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "lister@domain.invalid": {
+            "name": "Lister",
+            "password": "testpass",
+            "groups": ["Distributor Lister Only"],
+        },
+        "reader@domain.invalid": {
+            "name": "Reader",
+            "password": "testpass",
+            "groups": ["Distributor Reader Only"],
+        },
+        "both@domain.invalid": {
+            "name": "Both",
+            "password": "testpass",
+            "groups": ["Distributor Lister And Reader"],
+        },
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        register_model("store", "distributor")
+        yield
+        info.registration.get_empty_registry()
+
+    def model_actions(self, client):
+        response = client.get(
+            reverse("info.model_info-detail", args=("store", "distributor")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return {action["name"] for action in response.data["model_actions"]}
+
+    def test_list_permission_alone_does_not_grant_retrieve(self, api_client):
+        api_client.force_authenticate(user=self.users["lister@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert "list" in names
+        assert "retrieve" not in names
+
+    def test_read_permission_alone_does_not_grant_list(self, api_client):
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert "retrieve" in names
+        assert "list" not in names
+
+    def test_both_permissions_keep_both_entries(self, api_client):
+        api_client.force_authenticate(user=self.users["both@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert {"list", "retrieve"}.issubset(names)

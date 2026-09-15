@@ -8,6 +8,7 @@ integrator depends on.
 from datetime import timedelta
 from http import HTTPStatus
 from typing import ClassVar
+from unittest import mock
 
 import pgtrigger
 import pytest
@@ -26,7 +27,10 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from tests.store import viewsets as store_viewsets
 from vueda.core.audit import audited_action
+from vueda.core.permissions import check_action_permission
+from vueda.core.utils import AvailableActionsRequest
 from vueda.workflow.models import StatePermission
 
 
@@ -783,3 +787,185 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
         api_client.force_authenticate(user=self.users["non_reader@domain.invalid"])
 
         assert "history-list" in self.available_actions(api_client, order)
+
+
+@pytest.mark.django_db
+class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    ``available_actions`` must not cost anything on a response that doesn't carry it, and the
+    ``history-list`` read gate must reuse the CRUD loop's own ``retrieve`` decision for the same
+    row rather than running a second permission pass for it.
+
+    ``store.customerorder`` is under the ``order_fulfillment`` workflow, so its ``retrieve`` check
+    resolves through ``has_matching_state_grant`` / ``check_state_permission``, the exact path a
+    duplicate permission pass would pay for twice. That is the model and the workflow-state-grant
+    shape PR #288's review measured its query-cost numbers against.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        # "list" is a static grant so the list endpoint itself is reachable; "read" comes only
+        # from the workflow-state grant each test row shares, so every row's own retrieve check
+        # -- and therefore its history-list gate -- goes through has_matching_state_grant.
+        "Order Non Reader": [
+            ("store", "CustomerOrder", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "non_reader@domain.invalid": {
+            "name": "Non Reader",
+            "password": "testpass",
+            "groups": ["Order Non Reader"],
+        },
+        "the_customer@domain.invalid": {"name": "The Customer", "password": "testpass", "groups": []},
+    }
+
+    def make_orders(self, count, order_state, start_at):
+        if not hasattr(self, "_customer"):
+            self._customer = store_models.Customer.objects.create(user=self.users["the_customer@domain.invalid"])
+        customer = self._customer
+        return [
+            store_models.CustomerOrder.objects.create(
+                order_number=start_at + index, customer=customer, order_state=order_state, shipping_method="free"
+            )
+            for index in range(count)
+        ]
+
+    def grant_read_by_state(self, order):
+        self.users  # noqa: B018 -- creates groups_to_create's groups before Group.objects.get() below
+        StatePermission.objects.create(
+            state=order.object_state.state,
+            permission=Permission.objects.get(codename="read_customerorder", content_type__app_label="store"),
+            group=Group.objects.get(name="Order Non Reader"),
+            grant_or_deny=True,
+        )
+
+    def list_query_count(self, client, fields):
+        # A fresh user object each time, because Django caches permissions on the one it checked,
+        # which would otherwise make a later read look cheaper than the first (see
+        # TestHistoryQueryCost.read_history for the same concern).
+        client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+        with CaptureQueriesContext(connection) as ctx:
+            response = client.get(
+                reverse(
+                    "store.customerorder-list",
+                    query={
+                        settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: fields,
+                        settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
+                    },
+                ),
+            )
+        self.assert_response(response, HTTPStatus.OK)
+        return len(ctx.captured_queries)
+
+    def test_a_response_without_available_actions_costs_the_same_at_any_row_count(self, api_client):
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        first_order = self.make_orders(1, order_state, start_at=999)[0]
+        self.grant_read_by_state(first_order)
+
+        self.make_orders(2, order_state, start_at=1000)
+        small = self.list_query_count(api_client, "id")
+
+        self.make_orders(6, order_state, start_at=2000)
+        large = self.list_query_count(api_client, "id")
+
+        assert large == small, (
+            "a response that never carries available_actions must not pay its per-row permission "
+            "cost -- computing the field and discarding it afterward would grow with row count"
+        )
+
+    def test_the_history_list_gate_reuses_the_crud_loops_retrieve_check(self):
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        order = self.make_orders(1, order_state, start_at=999)[0]
+        self.grant_read_by_state(order)
+
+        user = get_user_model().objects.get(email="non_reader@domain.invalid")
+        request = AvailableActionsRequest(user=user)
+        viewset = store_viewsets.CustomerOrderViewSet()
+
+        with CaptureQueriesContext(connection) as first_check:
+            permitted = check_action_permission(viewset, request, order, "retrieve")
+        assert permitted is True
+        assert len(first_check.captured_queries) > 0, "the first check must actually touch the database"
+
+        with CaptureQueriesContext(connection) as second_check:
+            permitted_again = check_action_permission(viewset, request, order, "retrieve")
+        assert permitted_again is True
+        assert len(second_check.captured_queries) == 0, (
+            "a second check for the same (action, instance) on the same viewset instance must be "
+            "served from cache -- this is what lets history-list availability reuse the CRUD loop's "
+            "own retrieve check instead of running a second permission pass for the same row"
+        )
+
+    def test_the_cache_is_not_shared_across_different_actions_or_instances(self):
+        """
+        A cache key too coarse to separate actions or instances would still pass a test that only
+        ever asks the identical question twice. Guards specifically against that: a *different*
+        action for the same row, and the *same* action for a *different* row, must each still
+        reach the database, not silently reuse another entry's answer.
+        """
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        order_a, order_b = self.make_orders(2, order_state, start_at=999)
+        self.grant_read_by_state(order_a)
+
+        user = get_user_model().objects.get(email="non_reader@domain.invalid")
+        request = AvailableActionsRequest(user=user)
+        viewset = store_viewsets.CustomerOrderViewSet()
+
+        assert check_action_permission(viewset, request, order_a, "retrieve") is True
+
+        with CaptureQueriesContext(connection) as different_action:
+            check_action_permission(viewset, request, order_a, "list")
+        assert len(different_action.captured_queries) > 0, (
+            "checking a different action for the same row must not be served from retrieve's cache entry"
+        )
+
+        with CaptureQueriesContext(connection) as different_instance:
+            check_action_permission(viewset, request, order_b, "retrieve")
+        assert len(different_instance.captured_queries) > 0, (
+            "checking the same action for a different row must not be served from order_a's cache entry"
+        )
+
+    def test_the_crud_loop_and_the_history_list_gate_check_retrieve_on_the_same_viewset_instance(self, api_client):
+        """
+        The cache-sharing unit test above assumes the CRUD loop behind ``available_actions``
+        (``AvailableActionsField.get_value``) and the history-list gate
+        (``VuedaViewSet.get_allowed_extra_actions`` / ``_read_permitted``) check ``retrieve`` on
+        the very same viewset instance -- that assumption is what makes the cache in
+        ``check_action_permission`` actually pay off. This test drives a real detail request
+        through both call sites and verifies that assumption holds in production, rather than
+        only in a test that constructs the shared instance by hand.
+        """
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        order = self.make_orders(1, order_state, start_at=999)[0]
+        self.grant_read_by_state(order)
+        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+
+        retrieve_calls = []
+
+        def spy(viewset, request, instance, action):
+            if action == "retrieve" and instance is not None and instance.pk == order.pk:
+                retrieve_calls.append(id(viewset))
+            return check_action_permission(viewset, request, instance, action)
+
+        with (
+            mock.patch("vueda.core.serializers.fields.check_action_permission", side_effect=spy),
+            mock.patch("vueda.core.viewsets.check_action_permission", side_effect=spy),
+        ):
+            response = api_client.get(
+                reverse(
+                    "store.customerorder-detail",
+                    kwargs={"pk": order.pk},
+                    query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                ),
+            )
+        self.assert_response(response, HTTPStatus.OK)
+        assert "history-list" in response.data["available_actions"]
+
+        assert len(retrieve_calls) >= 2, (  # noqa: PLR2004
+            "expected both the CRUD loop and the history-list gate to check retrieve for this row"
+        )
+        assert len(set(retrieve_calls)) == 1, (
+            "the CRUD loop and the history-list gate checked retrieve on different viewset instances "
+            "-- check_action_permission's per-instance cache cannot pay off across them"
+        )
