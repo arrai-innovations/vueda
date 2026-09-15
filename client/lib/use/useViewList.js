@@ -298,7 +298,7 @@ export function useViewList(options) {
     const route = useRoute();
     const restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...Object.keys(hiddenFilterParams.value)]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);
@@ -458,6 +458,18 @@ export function useViewList(options) {
         }
         return params;
     });
+    // Every query key a hidden filterable resolves to, independent of whether the URL currently
+    // carries a value for it. Used to keep a hidden filterable's keys out of what gets read from or
+    // written to the saved filter preference: unlike `rawHiddenFilterParams`, this stays correct
+    // whether or not the URL currently holds a value, so it also covers a stored preference key with
+    // no matching URL value yet.
+    const hiddenFilterKeys = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        return hiddenFilterables.value.flatMap((fieldName) => {
+            const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
+            return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+        });
+    });
     // A fresh plain object every recomputation of `rawHiddenFilterParams` (any route.query change
     // recomputes it, whether or not a hidden filter's own key is involved), guarded down to a
     // stable reference here so it only actually changes -- and only then triggers the combined
@@ -548,7 +560,12 @@ export function useViewList(options) {
                 Object.assign(routeQuery, newFilterParams);
             }
             if (!isEqual(routeQuery, route.query)) {
-                if (filtersChanged || searchChanged) {
+                // Dropped while model metadata is still loading: `preferenceQueryFrom`
+                // needs `hiddenFilterKeys` to know which query keys a hidden filterable owns, and
+                // that list is empty until metadata resolves. Saving before then would store a
+                // hidden filterable's value (still present in `routeQuery` from the mount URL) as if
+                // it were a reader-chosen filter or search term.
+                if ((filtersChanged || searchChanged) && modelConfig.loading === false) {
                     listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
                 }
                 router.push({ query: routeQuery });
@@ -643,13 +660,18 @@ export function useViewList(options) {
         }
     });
     watch(
-        () => route.query,
-        (newQuery) => {
-            if (!isInitialized.filters) {
+        [() => route.query, () => modelConfig.loading],
+        ([newQuery]) => {
+            // Deferred until model metadata resolves (added as a watch source above so this
+            // reruns once it does, even if route.query itself stays otherwise unchanged):
+            // `hiddenFilterKeys` needs it to know which stored keys a hidden filterable owns, so a
+            // stored value could otherwise be restored unfiltered and then read back out through
+            // `hiddenFilterParams` as if the mount URL itself had carried it.
+            if (!isInitialized.filters && modelConfig.loading === false) {
                 isInitialized.filters = true;
                 const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
-                    router.push({ query: storedFilters });
+                    router.push({ query: omit(storedFilters, hiddenFilterKeys.value) });
                 }
             }
             const searchQuery = newQuery[SEARCH_PARAM] || "";
@@ -928,7 +950,7 @@ export function useViewList(options) {
                     }
                     const canonicalQuery = queryWithCurrentSort(
                         {
-                            ...listPreferenceStore.getFilters(preferenceArgs()),
+                            ...omit(listPreferenceStore.getFilters(preferenceArgs()), hiddenFilterKeys.value),
                             ...route.query,
                         },
                         sentSorted.value,

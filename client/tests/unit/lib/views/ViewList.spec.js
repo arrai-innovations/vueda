@@ -652,6 +652,43 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).not.toHaveBeenCalled();
             wrapper.unmount();
         });
+
+        scopedIt("does not save a hidden filterable's value to the preference while metadata is loading", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            modelConfig.loading = true;
+            modelConfig.config.filterables = [];
+            modelConfig.config.filterableDetails = {};
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const input = wrapper.findComponent(InputGroupInputStub);
+            input.vm.$emit("update:model-value", "term");
+            await vue.nextTick();
+            input.vm.$emit("search");
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("does not restore a stored hidden filterable's value to the request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            listPreferenceStoreMock.getFilters.mockReturnValue({ id: "1,2", category: "widgets" });
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                expect.objectContaining({ field: "category", value: "widgets" }),
+            ]);
+            expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets" } });
+            wrapper.unmount();
+        });
     });
 
     describe("Sorting and route synchronization", () => {
