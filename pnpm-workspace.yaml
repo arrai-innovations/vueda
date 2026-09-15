@@ -83,3 +83,6 @@ allowBuilds:
   vue-demi: true
   core-js: false
   protobufjs: false
+
+minimumReleaseAgeExclude:
+  - '@arrai-innovations/vitepress-theme@1.2.0'
