@@ -371,6 +371,8 @@ watch(
                             :data-row-index="objectGridFieldSlotProps.rowIndex"
                         />
                         <field-renderer
+                            :hidden="false"
+                            hide-label
                             :field-props="fieldSetTabularInline.state.computedFieldProps"
                             :form-model="fieldSetTabularInline.formModel"
                             :form-model-name="fieldObj.name"

@@ -165,6 +165,8 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
 
 Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}.
 
+{@api vue:component:FormField} accepts `hideLabel` when a surrounding layout already supplies the label. Help text, errors, and warnings still render below the control. {@api vue:component:FieldSetTabularInline} uses this mode because its column headers (or card headers on narrow screens) already name each field. The separate `hidden` prop continues to suppress the whole field shell, including messages.
+
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
   <DemoCard title="default · untouched">
     <FieldGroup>

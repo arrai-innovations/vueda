@@ -16,6 +16,7 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
  * @property {{ [key: string]: unknown }} [fieldProps] - Additional field-level props.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
+ * @property {boolean} [hideLabel] - Overrides label visibility on the field component while retaining messages.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
  */
 
@@ -144,6 +145,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
             hidden: computedHidden.value,
+            ...(props.hideLabel !== undefined ? { hideLabel: props.hideLabel } : {}),
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.themeOverride,

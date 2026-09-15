@@ -14,6 +14,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Tabular inline fields show validation messages (`FieldSetTabularInline`, `FormField`, `FieldRenderer`)**:
+    - Errors and warnings now appear below each inline control in both table and card layouts. Table cells keep controls top-aligned and allow messages to wrap. Previously, the inline editor suppressed messages together with field labels.
+    - `FormField` and `FieldRenderer` accept `hideLabel` to suppress only the label while retaining help and validation feedback. The existing `hidden` behavior is unchanged.
+
 - **Invalid number fields show their error state (`NumberFieldInput`)**:
     - Number inputs with `aria-invalid="true"` now paint a full destructive edge and a destructive keyboard focus ring, matching text inputs. Previously, an invalid numeric field kept its neutral bottom line even when its validation message was visible.
 
