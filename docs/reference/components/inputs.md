@@ -349,6 +349,31 @@ columns of values stay aligned.
       <span>steppers inside the input box</span>
     </template>
   </DemoCard>
+  <DemoCard title="invalid">
+    <div class="flex flex-col gap-1">
+      <StateLabel>invalid value</StateLabel>
+      <NumberField :default-value="42">
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <div class="flex flex-col gap-1">
+      <StateLabel>empty and invalid</StateLabel>
+      <NumberField>
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Empty invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <template #footer>
+      <span>full <code>--destructive</code> edge at rest; destructive focus ring on keyboard focus</span>
+    </template>
+  </DemoCard>
   <DemoCard title="at minimum">
     <NumberField :default-value="0" :min="0">
       <NumberFieldContent>

@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Invalid number fields show their error state (`NumberFieldInput`)**:
+    - Number inputs with `aria-invalid="true"` now paint a full destructive edge and a destructive keyboard focus ring, matching text inputs. Previously, an invalid numeric field kept its neutral bottom line even when its validation message was visible.
+
 - **Public npm distribution**:
     - The client package publishes to public npm with the `alpha` dist-tag.
       _Install `@arrai-innovations/vueda@alpha` to select the alpha channel._
