@@ -29,7 +29,8 @@ patchTheme({
 
                 // Color and state.
                 "text-muted-foreground hover:text-foreground transition-colors",
-                "disabled:pointer-events-none disabled:opacity-50",
+                // Disabled: no fill to replace, so the ink carries the state.
+                "disabled:pointer-events-none disabled:text-disabled-foreground",
 
                 // Icon sizing for a registered icon component.
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

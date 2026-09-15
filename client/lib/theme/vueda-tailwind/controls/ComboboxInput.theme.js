@@ -20,8 +20,8 @@ patchTheme({
                 // Placeholder and shell.
                 "placeholder:text-muted-foreground flex h-vueda-control-lg w-full rounded-vueda-control bg-transparent text-sm outline-hidden",
 
-                // Disabled state.
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                // Disabled: no fill to replace, so the ink carries the state.
+                "disabled:cursor-not-allowed disabled:text-disabled-foreground",
             ],
         },
     },

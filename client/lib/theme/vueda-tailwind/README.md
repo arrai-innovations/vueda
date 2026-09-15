@@ -589,9 +589,27 @@ The Button primitives apply it by emphasis, following Carbon:
 `_ButtonBase` keeps only `disabled:pointer-events-none`. Carbon uses no opacity for
 disabled anywhere in its button or text-input styles.
 
-Control families outside the Button primitives (toggles, switches, checkboxes,
-sliders, and the field recipes) still use `disabled:opacity-50` and have not been
-converted.
+Editable fields take the same posture, with the fill doing the work. A disabled
+field paints the `--disabled` fill, softens its rule to `--border`, and inks its
+value with `--disabled-foreground`, so the three field states read as three kinds:
+
+| state     | fill         | rule           | ink                     |
+| --------- | ------------ | -------------- | ----------------------- |
+| editable  | `--field`    | `--field-line` | `--foreground`          |
+| read-only | none         | `--border`     | `--foreground`          |
+| disabled  | `--disabled` | `--border`     | `--disabled-foreground` |
+
+Two mechanics matter. The `:read-only` pseudo-class also matches a **disabled**
+element, so the disabled declarations on `Input` and `Textarea` carry `!` to beat
+the read-only ones whatever the stylesheet order. And `DateField`, `TimeField`,
+`DateRangeField`, and `TagsInput` mark state with a `data-disabled` attribute on a
+wrapper element, which `disabled:` (`:disabled`) never matches, so those recipes
+use `data-[disabled]:`. A field with no fill to replace, such as the search input
+inside a combobox or command panel, recolors its ink only.
+
+Selection controls (checkboxes, radios, switches, toggles, sliders) and menu rows
+still use `disabled:opacity-50`. A menu row has no surface of its own, so alpha
+may remain right there; the selection controls have not been decided.
 
 ### 7.7 When a real `border` is still correct
 

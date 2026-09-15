@@ -23,7 +23,12 @@ patchTheme({
                 "field-line flex field-sizing-content min-h-16 w-full rounded-vueda-field bg-field hover:bg-field-hover px-3 py-2 text-base shadow-vueda-control transition-shadow",
 
                 // Disabled and responsive states.
-                "disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "md:text-sm",
+
+                // Disabled: an inert slab, not a faded field. See README section 7.6.
+                "disabled:pointer-events-none disabled:cursor-not-allowed",
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
+                "disabled:[-webkit-text-fill-color:var(--disabled-foreground)]",
 
                 // Focus and invalid states.
                 "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",

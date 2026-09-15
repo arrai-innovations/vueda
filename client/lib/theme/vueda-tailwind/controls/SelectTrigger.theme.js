@@ -24,7 +24,11 @@ patchTheme({
                 "field-line flex w-fit items-center justify-between gap-2 rounded-vueda-field bg-field px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow",
 
                 // Disabled and size states.
-                "disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg",
+                "data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg",
+
+                // Disabled: an inert slab, not a faded field. See README section 7.6.
+                "disabled:pointer-events-none disabled:cursor-not-allowed",
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
 
                 // Value and icon child elements.
                 "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",

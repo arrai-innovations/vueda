@@ -273,7 +273,8 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>input: <code>disabled:opacity-50 cursor-not-allowed</code></span>
+      <span>input: the <code>--disabled</code> fill replaces <code>--field</code>, the line softens to <code>--border</code>, and the ink is <code>--disabled-foreground</code></span>
+      <span>distinct from read-only beside it, which keeps no fill at all</span>
     </template>
   </DemoCard>
   <DemoCard title="readonly · editable later">

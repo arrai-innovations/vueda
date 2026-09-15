@@ -162,7 +162,7 @@ Token surface: {@api css-token:border} (trigger stroke),
       <span>placeholder fg <code>--muted-foreground</code></span>
       <span>focus outline <code>--ring</code></span>
       <span>invalid outline <code>--destructive</code></span>
-      <span>disabled opacity-50</span>
+      <span>disabled: <code>--disabled</code> fill, <code>--border</code> line, <code>--disabled-foreground</code> ink</span>
     </template>
   </DemoCard>
   <DemoCard title="trigger sizes">
