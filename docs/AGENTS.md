@@ -46,9 +46,10 @@ heading.
 
 ## VuedaDemo Blocks
 
-Do not start the VitePress dev server or scrape rendered HTML to verify
-`VuedaDemo` blocks. Check markup, imports or global registrations, then run
-`just check-eslint` and `just check-prettier`.
+Verify `VuedaDemo` blocks by checking markup, imports or global registrations,
+then run `just check-eslint` and `just check-prettier`. Rendered checks are also
+welcome: open the page on a running docs site (`just docs-serve`) and inspect or
+screenshot the demo.
 
 Do not place blank lines inside `<VuedaDemo>` or other HTML blocks used in docs.
 Markdown ends an HTML block at the first blank line.
