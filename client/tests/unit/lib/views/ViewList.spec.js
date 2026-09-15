@@ -109,13 +109,26 @@ let objectsGridProps;
 let columnSlotProps = {};
 const ObjectsGridStub = defineComponent({
     name: "ObjectsGridStub",
-    props: ["fields"],
+    props: ["fields", "cardFieldClasses", "cardHeaderClasses"],
     emits: ["update:isTable"],
     setup(props, { slots, attrs }) {
         objectsGridProps = props;
         return () =>
             h("div", { "data-qa": "objects-grid", ...attrs }, [
                 slots.default ? slots.default() : null,
+                // Render each field's `header(<col>)` slot as a card-layout label, the way
+                // ObjectsGridCardCell does, so header defaults are exercised.
+                ...(props.fields || []).map((field) => {
+                    const slot = slots[`header(${field.name})`];
+                    if (!slot) {
+                        return null;
+                    }
+                    return h(
+                        "div",
+                        { "data-header-column": field.name },
+                        slot({ field, class: "", isCardLayout: true, isTableLayout: false }),
+                    );
+                }),
                 // Mirror the real grid: render each field's `field(<col>)` slot
                 // (table + card both map to it) so injected column adapters and
                 // consumer slot overrides are exercised.
@@ -1462,6 +1475,42 @@ describe("lib/views/ViewList.vue", () => {
             const readout = wrapper.find('[data-qa="view-list-selection-count"]');
             expect(readout.exists()).toBe(true);
             expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
+
+    describe("Selection column in card layout", () => {
+        scopedIt("hides the empty selection label and value when nothing can act on a selection", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(objectsGridProps.cardFieldClasses.selected_).toBe("hidden");
+            expect(objectsGridProps.cardHeaderClasses.selected_).toBe("hidden");
+            expect(wrapper.find('[data-header-column="selected_"]').text()).toBe("");
+            wrapper.unmount();
+        });
+
+        scopedIt("labels the selection checkbox when a bulk action exists", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.actionDetails = { delete: { bulk: true } };
+            mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: ["delete"] }));
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(objectsGridProps.cardFieldClasses.selected_).toBeUndefined();
+            expect(objectsGridProps.cardHeaderClasses.selected_).toBeUndefined();
+            expect(wrapper.find('[data-header-column="selected_"]').text()).toBe("Selected");
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps a consumer field(selected_) slot visible without selectable actions", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                slots: { "field(selected_)": () => h("span", { "data-qa": "custom-selected" }, "pin") },
+            });
+            await vue.nextTick();
+            expect(objectsGridProps.cardFieldClasses.selected_).toBeUndefined();
+            expect(objectsGridProps.cardHeaderClasses.selected_).toBeUndefined();
             wrapper.unmount();
         });
     });

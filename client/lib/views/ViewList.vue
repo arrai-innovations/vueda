@@ -169,6 +169,12 @@ const filterTriggerZone = ref(null);
 const hasFilters = computed(() => (filter.state.addedFilters?.length || 0) > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
+// The default `selected_` column only has content when the list offers something to do with a
+// selection. Without bulk actions or transitions, and without a consumer `field(selected_)` slot,
+// its card-layout label and value are hidden so each card does not open with an empty row.
+const hasSelectableActions = computed(() => actions.bulkActions.size > 0 || actions.availableTransitions.size > 0);
+const hideEmptySelectionCard = computed(() => !hasSelectableActions.value && !slots["field(selected_)"]);
+
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
 const workflowActionButtonSlotName = useSlotNameResolver(["workflow-action-button", "button"]);
@@ -401,6 +407,14 @@ onMounted(() => {
                 ...($attrs.fieldClasses || {}),
                 selected_: theme('selectedCheckbox'),
             }"
+            :card-field-classes="{
+                ...($attrs.cardFieldClasses || {}),
+                ...(hideEmptySelectionCard ? { selected_: 'hidden' } : {}),
+            }"
+            :card-header-classes="{
+                ...($attrs.cardHeaderClasses || {}),
+                ...(hideEmptySelectionCard ? { selected_: 'hidden' } : {}),
+            }"
             :field-props="{
                 pkKey: modelConfig.info?.pk ?? 'id',
                 modelInfo: modelConfig.info,
@@ -435,7 +449,7 @@ onMounted(() => {
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">
                     <div :class="slotProps.class" :data-card-header="field.name">
-                        {{ slotProps.girdType === "cell" ? field.label : "" }}
+                        {{ slotProps.isCardLayout && hasSelectableActions ? field.label : "" }}
                     </div>
                 </slot>
             </template>
