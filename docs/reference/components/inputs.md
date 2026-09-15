@@ -582,10 +582,22 @@ control-height ladder below sm.
         <TagsInputItemText />
         <TagsInputItemDelete />
       </TagsInputItem>
-      <TagsInputInput placeholder="Max 3 reached" disabled />
+      <TagsInputInput placeholder="Edit tags" aria-label="Invalid tags" />
     </TagsInput>
     <template #footer>
-      <span>container border <code>--destructive</code></span>
+      <span><code>aria-invalid="true"</code>: the field edge and keyboard focus ring both use <code>--destructive</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="explicitly valid">
+    <TagsInput :default-value="['reviewed']" aria-invalid="false">
+      <TagsInputItem value="reviewed">
+        <TagsInputItemText />
+        <TagsInputItemDelete />
+      </TagsInputItem>
+      <TagsInputInput placeholder="Add tag…" aria-label="Valid tags" />
+    </TagsInput>
+    <template #footer>
+      <span><code>aria-invalid="false"</code>: the keyboard focus edge and ring use the normal <code>--ring</code> color</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">

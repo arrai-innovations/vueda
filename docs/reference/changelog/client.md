@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Tags input focus colors follow validation state (`TagsInput`)**:
+    - Focusing an invalid tags input now keeps both the field edge and outer focus ring destructive. An explicit `aria-invalid="false"` uses the normal focus color instead of incorrectly retaining a red ring.
+
 - **Input groups keep a single field edge (`InputGroupInput`, `InputGroupTextarea`)**:
     - Child inputs and textareas no longer draw their own bottom line or invalid border inside the group's edge when unfocused. The group continues to own the field edge and keyboard focus ring around the control and its addons.
 
