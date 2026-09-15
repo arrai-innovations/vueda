@@ -13,7 +13,7 @@ that folder's README.
 The VUEDA mark is a rotated V derived from Arrai's isometric
 "A-shielding-I" cube. The accent blue (`#0077f7`) is inherited verbatim
 from Arrai's primary brand colour and is anchored at
-`oklch(0.58 0.19 254)` in the theme tokens (`--primary` in
+`oklch(0.59 0.211 257.2)` in the theme tokens (`--primary` in
 `client/lib/theme/vueda-tailwind/base.css`).
 
 ## Mark and wordmark
