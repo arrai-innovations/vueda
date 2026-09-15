@@ -282,6 +282,7 @@
 
     /* Semantic radius aliases (generates rounded-vueda-* utilities) */
     --radius-vueda-control: var(--vueda-control-radius);
+    --radius-vueda-field: var(--vueda-field-radius);
     --radius-vueda-checkbox: var(--vueda-checkbox-radius);
     --radius-vueda-card: var(--vueda-card-radius);
     --radius-vueda-modal: var(--vueda-modal-radius);
@@ -485,7 +486,8 @@
 
     /* ---------- Semantic radius tokens ----------
      * Five-step semantic ladder; near-flat by design. */
-    --vueda-control-radius: 2px; /* slab radius shared by buttons, inputs, selects, and most chrome controls. */
+    --vueda-control-radius: 2px; /* slab radius shared by buttons, toggles, and most chrome controls. */
+    --vueda-field-radius: 0px; /* editable field corner: text inputs, textareas, selects, date and time fields, tags inputs, and combobox triggers. Square so a field reads as a different kind of control from the 2px button slab; focus rings follow this corner, so a focused field's ring is square too. */
     --vueda-checkbox-radius: 4px; /* softer than --vueda-control-radius by design; the 4px corner reads as "chit / chiclet" at 16×16, differentiating the checkbox body from the slab inputs and buttons beside it. */
     --vueda-card-radius: 4px; /* card and panel corner radius. */
     --vueda-modal-radius: 2px; /* dialog and sheet corner radius; matches --vueda-control-radius so modal chrome reads as a slab. */

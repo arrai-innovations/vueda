@@ -409,17 +409,24 @@ The integrator-facing restatement of the reserved bands lives in
 
 ## 6. Shapes: radius scale
 
-Five semantic radius tokens generate matching `rounded-vueda-*`
+The semantic radius tokens below generate matching `rounded-vueda-*`
 utilities. See `base.css § Semantic radius tokens`.
 
-| Token                     | Value  | Use                                              |
-| ------------------------- | ------ | ------------------------------------------------ |
-| `--vueda-control-radius`  | 2px    | buttons, inputs, selects, toggles, badges (slab) |
-| `--vueda-checkbox-radius` | 4px    | checkbox body, softer than control radius        |
-| `--vueda-card-radius`     | 4px    | cards, panels                                    |
-| `--vueda-modal-radius`    | 2px    | dialogs, sheets                                  |
-| `--vueda-pill-radius`     | 9999px | avatars; user-manipulated tags / chips           |
-| `--vueda-cal-day-radius`  | 2px    | calendar day-button corner (cell range fill)     |
+| Token                     | Value  | Use                                                                                   |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `--vueda-control-radius`  | 2px    | buttons, toggles, badges (slab)                                                       |
+| `--vueda-field-radius`    | 0      | text inputs, textareas, selects, date and time fields, tags inputs, combobox triggers |
+| `--vueda-checkbox-radius` | 4px    | checkbox body, softer than control radius                                             |
+| `--vueda-card-radius`     | 4px    | cards, panels                                                                         |
+| `--vueda-modal-radius`    | 2px    | dialogs, sheets                                                                       |
+| `--vueda-pill-radius`     | 9999px | avatars; user-manipulated tags / chips                                                |
+| `--vueda-cal-day-radius`  | 2px    | calendar day-button corner (cell range fill)                                          |
+
+Editable fields are square (`--vueda-field-radius`) while buttons keep the 2px
+slab. The corner is part of the "this is a different kind of control" signal, and
+it carries through to focus: a focus ring cannot take its own radius (`outline`
+and spread `box-shadow` both follow `border-radius`), so a focused field's ring is
+square while a button's `outline-offset` rounds its ring further.
 
 ### 6.1 Slab vs pill
 

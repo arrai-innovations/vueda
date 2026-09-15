@@ -34,7 +34,7 @@ describe("lib/controls/date-field/DateField.vue", () => {
             const wrapper = mount(DateField);
             const el = wrapper.find('[data-slot="date-field"]');
             expect(el.classes()).toContain("flex");
-            expect(el.classes()).toContain("rounded-vueda-control");
+            expect(el.classes()).toContain("rounded-vueda-field");
             expect(el.classes()).toContain("hairline");
         });
 

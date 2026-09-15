@@ -20,7 +20,7 @@ patchTheme({
             class: [
                 // Shell and surface.
                 "group/input-group dark:bg-input/30 hairline relative flex w-full items-center",
-                "rounded-vueda-control shadow-vueda-control transition-shadow",
+                "rounded-vueda-field shadow-vueda-control transition-shadow",
 
                 // Sizing.
                 "h-vueda-control min-w-0 has-[>textarea]:h-auto",

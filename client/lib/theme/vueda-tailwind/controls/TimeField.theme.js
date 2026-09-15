@@ -17,7 +17,7 @@ patchTheme({
         root: ({ size }) => ({
             class: [
                 // Shell and surface.
-                "dark:bg-input/30 flex w-full items-center rounded-vueda-control hairline bg-transparent text-sm shadow-vueda-control transition-shadow",
+                "dark:bg-input/30 flex w-full items-center rounded-vueda-field hairline bg-transparent text-sm shadow-vueda-control transition-shadow",
 
                 // Focus, read-only, and disabled states.
                 "focus-within:hairline-ring focus-within:focus-ring-shadow data-[readonly]:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",

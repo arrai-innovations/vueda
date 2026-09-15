@@ -21,7 +21,7 @@ patchTheme({
                 "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 dark:hover:bg-accent dark:active:bg-accent-active hover:hairline-border-strong",
 
                 // Native select shell.
-                "hairline h-vueda-control w-full min-w-0 appearance-none rounded-vueda-control bg-transparent px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow",
+                "hairline h-vueda-control w-full min-w-0 appearance-none rounded-vueda-field bg-transparent px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow",
 
                 // Disabled state.
                 "disabled:pointer-events-none disabled:cursor-not-allowed",

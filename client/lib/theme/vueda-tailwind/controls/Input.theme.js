@@ -21,7 +21,7 @@ patchTheme({
                 "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30",
 
                 // Input shell.
-                "hairline h-vueda-control w-full min-w-0 rounded-vueda-control bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-shadow",
+                "hairline h-vueda-control w-full min-w-0 rounded-vueda-field bg-transparent px-vueda-control-px text-base shadow-vueda-control transition-shadow",
 
                 // File input child.
                 "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
