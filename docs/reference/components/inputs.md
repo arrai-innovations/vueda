@@ -813,6 +813,28 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
       <span>one addon can hold several children; they lay out along the row</span>
     </template>
   </DemoCard>
+  <DemoCard title="invalid group with prefix">
+    <InputGroup>
+      <InputGroupAddon align="inline-start">
+        <InputGroupText>https://</InputGroupText>
+      </InputGroupAddon>
+      <InputGroupInput model-value="invalid address" aria-invalid="true" aria-label="Invalid address" />
+    </InputGroup>
+    <template #footer>
+      <span>The group owns the error edge and focus ring; the input draws no inner border.</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid textarea with block addon">
+    <InputGroup>
+      <InputGroupTextarea model-value="Incomplete note" aria-invalid="true" aria-label="Invalid note" />
+      <InputGroupAddon align="block-end">
+        <InputGroupText>Markdown supported</InputGroupText>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span>One error edge encloses the textarea and addon, including when the textarea loses focus.</span>
+    </template>
+  </DemoCard>
 </VuedaDemo>
 
 ## FileUpload

@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Input groups keep a single field edge (`InputGroupInput`, `InputGroupTextarea`)**:
+    - Child inputs and textareas no longer draw their own bottom line or invalid border inside the group's edge when unfocused. The group continues to own the field edge and keyboard focus ring around the control and its addons.
+
 - **Time-range errors mark both bounds (`WidgetTimeRangeField`)**:
     - A range validation error now sets `aria-invalid` on both the start and end controls, giving both the error border and destructive focus ring. Previously only the start control showed the range error.
 
