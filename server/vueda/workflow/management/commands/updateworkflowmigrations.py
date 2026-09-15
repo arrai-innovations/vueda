@@ -1,6 +1,7 @@
 """Management command for updating existing workflow migrations with current function implementations."""
 
 import ast
+import datetime
 import importlib.util
 import os
 import sys
@@ -28,6 +29,27 @@ IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmig
 # The keys naming the app and model a workflow was written for, which a change records alongside a
 # workflow's code so that a code two content types have held resolves to the right one.
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
+
+
+def recorded_at_utc(recorded):
+    """Return a recorded date that can be compared with the dates other migrations recorded.
+
+    Every date a generated migration records carries a time zone, so a naive one reached the file by
+    hand. UTC is what the generated ones hold, so reading a naive date as UTC keeps it comparable
+    and puts it where its author meant it to sit. The date in the file is left as it was written.
+    """
+    if recorded.tzinfo is None or recorded.utcoffset() is None:
+        return recorded.replace(tzinfo=datetime.timezone.utc)
+
+    return recorded
+
+
+def has_naive_history_dates(changed_data):
+    """Return whether any change records a date with no time zone."""
+    return any(
+        changed_item["history_date"].tzinfo is None or changed_item["history_date"].utcoffset() is None
+        for changed_item in changed_data
+    )
 
 
 def workflow_identity_of(changes):
@@ -70,7 +92,7 @@ def collect_workflow_identities(changed_data_lists):
                 for key, value in workflow_identity_of(changed_item["changes"]).items()
             }
 
-            identities.setdefault(code, []).append((changed_item["history_date"], identity))
+            identities.setdefault(code, []).append((recorded_at_utc(changed_item["history_date"]), identity))
 
     for entries in identities.values():
         entries.sort(key=lambda entry: entry[0])
@@ -126,7 +148,9 @@ def add_workflow_identities_to_changed_data(changed_data, identities):
     updated = []
 
     for changed_item in changed_data:
-        changes = add_workflow_identities(changed_item["changes"], identities, changed_item["history_date"])
+        changes = add_workflow_identities(
+            changed_item["changes"], identities, recorded_at_utc(changed_item["history_date"])
+        )
 
         # A workflow's own change names no workflow through a reference; it is the workflow.
         if changed_item["model_name"] == "workflow" and isinstance(changes.get("id"), dict):
@@ -351,6 +375,11 @@ class Command(BaseCommand):
         for filepath in migration_files:
             changed_data = self._load_changed_data(filepath)
             if changed_data is not None:
+                if has_naive_history_dates(changed_data):
+                    self.stdout.write(
+                        self.style.WARNING(f"  Naive dates found in changed_data in {filepath}. Treating as UTC.")
+                    )
+
                 changed_data_by_file[filepath] = changed_data
 
         identities = collect_workflow_identities(changed_data_by_file.values())
