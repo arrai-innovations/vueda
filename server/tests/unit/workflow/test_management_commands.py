@@ -3,10 +3,13 @@ import datetime
 import io
 import os
 import time
+from collections import Counter
 from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.migrations.recorder import MigrationRecorder
 
@@ -17,6 +20,8 @@ from tests.utils import info_registry_clear_with_appended_apps
 from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
+from vueda.workflow.management.commands import makeworkflowmigrations
+from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_ACTION_KIND
 from vueda.workflow.models import WorkflowEvent
 
 
@@ -1104,79 +1109,6 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert data == orig_data_transition_source
 
 
-class TestManagementCommandWorkflowMulti(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_workflow_multi(self, settings):
-        settings.MIGRATION_MODULES = {
-            "no_migrations": None,
-            "workflow_multi": "tests.workflow_multi",
-        }
-        append_installed_apps(settings, "tests.workflow_multi")
-
-        with self.temporary_migration_module(settings, app_label="workflow_multi") as migration_dir:
-            # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_multi")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # We should have run migration 0001 and 0002.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_multi").count() == 2  # noqa: PLR2004
-
-            # Create the generated migration 0003.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_multi", "--import-instead")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # Reload 0003, because we rewrote it after it would have imported it.
-            assert results, "No results were captured when makeworkflowmigrations was called."
-            migration = self.reload_module(results, migration_dir)
-
-            results = frozenset([line.strip() for line in results if line.strip()])
-            assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_multi." in results
-            )
-
-            # Every row the fixture wrote is captured, one change each, across all five models.
-            captured = [(change["model_name"], change["history_type"]) for change in migration.changed_data]
-            assert sorted(captured) == sorted(
-                [
-                    ("workflow", "added"),
-                    ("state", "added"),
-                    ("state", "added"),
-                    ("initialstate", "added"),
-                    ("transition", "added"),
-                    ("workflowpermission", "added"),
-                    ("workflowpermission", "added"),
-                ]
-            ), migration.changed_data
-
-            # The workflow itself is captured first, because its row was written first.
-            first_change = migration.changed_data[0]
-            assert first_change["model_name"] == "workflow"
-            assert first_change["history_type"] == "added"
-            assert first_change["changes"] == {
-                "code": "complete_task",
-                "content_type_id": {"app_label": "workflow_multi", "model": "workflowmulti"},
-                "historical_app_label": "workflow_multi",
-                "historical_model": "workflowmulti",
-                "id": {"code": "complete_task"},
-                "name": "complete task",
-            }, first_change
-            # The date is when the write was really recorded, so only its type is fixed.
-            assert isinstance(first_change["history_date"], datetime.datetime)
-
-            # Run makeworkflowmigrations again, to verify no changes are detected.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_multi", "--import-instead")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert "No workflow changes detected.\n" in results, results
-
-
 class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCommand):
     def get_unmatched_events_by_label(self, unmatched_history_data):
         """Group the codes of the events no migration captured, by what each event recorded.
@@ -2222,6 +2154,824 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         results = err.read()
 
         assert "No installed app with label 'app_that_does_not_exist'.\n" in results
+
+
+class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallCommand):
+    """A state and the transition that names it, removed and added again under the same code.
+
+    Each round of changes is written through the models with no action context, the way a person's
+    edit in the workflow screens is written, so history records it as an edit rather than as a
+    migration's replay. Each round then ends in a generated migration that is faked, which is what
+    the command instructs the author to do and what leaves the round's own writes as the only record
+    of it. Generating the next migration therefore has to match the earlier rounds' changes against
+    writes that differ only in the row each one names.
+
+    The transition is the only thing naming the state, as its target and as one transition's source,
+    and both carry a permission, so a change reaches a reused code through every reference that can
+    hold one: ``target_id``, ``source_id``, ``transition_id``, and ``state_id``.
+
+    Rounds one and two remove the state and the transition again, which mixes deleted rows with the
+    live ones the workflow keeps. Round three adds the same codes and keeps them, renaming the
+    state. Round four gives both codes up to newer rows by renaming rather than removing, so that
+    round three's permission and source rows are left naming a state and a transition that hold
+    neither code, which is what matching round three's changes has to work out.
+
+    Each round is asserted against its complete ordered change list rather than against the absence
+    of the earlier rounds' writes, so that a write going missing fails as loudly as one appearing
+    twice.
+    """
+
+    WORKFLOW_CODE = "reused_codes_workflow"
+    STATE_CODE = "reused_state"
+    STATE_NAME = "Reused State"
+    RENAMED_STATE_CODE = "renamed_state"
+    RENAMED_STATE_NAME = "Renamed State"
+    TRANSITION_CODE = "use_reused_state"
+    TRANSITION_NAME = "Use Reused State"
+    RENAMED_TRANSITION_CODE = "renamed_transition"
+    RENAMED_TRANSITION_NAME = "Renamed Transition"
+    BASE_TRANSITION_CODE = "go_to_state_1"
+    GROUP_NAME = "ReusedCodesAdmin"
+    PERMISSION_CODENAME = "update_workflowreusedcodes"
+
+    @classmethod
+    def workflow_id(cls):
+        return {
+            "code": cls.WORKFLOW_CODE,
+            "historical_app_label": "workflow_reused_codes",
+            "historical_model": "workflowreusedcodes",
+        }
+
+    @classmethod
+    def state_id(cls, code):
+        return {"code": code, "workflow_id": cls.workflow_id()}
+
+    @classmethod
+    def transition_id(cls, code):
+        return {"code": code, "workflow_id": cls.workflow_id()}
+
+    @classmethod
+    def permission_id_fields(cls):
+        return {
+            "historical_permission_codename": cls.PERMISSION_CODENAME,
+            "historical_permission_content_type_app_label": "workflow_reused_codes",
+            "historical_permission_content_type_model_name": "workflowreusedcodes",
+        }
+
+    @classmethod
+    def state_permission_id(cls, state_code):
+        return {
+            "group_id": {"name": cls.GROUP_NAME},
+            "historical_group_name": cls.GROUP_NAME,
+            **cls.permission_id_fields(),
+            "state_id": cls.state_id(state_code),
+        }
+
+    @classmethod
+    def transition_permission_id(cls, transition_code):
+        return {**cls.permission_id_fields(), "transition_id": cls.transition_id(transition_code)}
+
+    @classmethod
+    def workflow_permission_id(cls):
+        return {**cls.permission_id_fields(), "workflow_id": cls.workflow_id()}
+
+    @classmethod
+    def transition_source_id(cls, transition_code, source_code):
+        return {
+            "source_id": cls.state_id(source_code),
+            "transition_id": cls.transition_id(transition_code),
+        }
+
+    @classmethod
+    def expected_base_workflow_changes(cls):
+        """The workflow 0002 creates, which the first generated migration captures ahead of round one."""
+        return [
+            ("workflow", "added", cls.workflow_id()),
+            ("workflowpermission", "added", cls.workflow_permission_id()),
+            ("state", "added", cls.state_id("state_1")),
+            ("state", "added", cls.state_id("state_2")),
+            ("initialstate", "added", {"state_id": cls.state_id("state_1"), "workflow_id": cls.workflow_id()}),
+            ("statepermission", "added", cls.state_permission_id("state_1")),
+            ("transition", "added", cls.transition_id(cls.BASE_TRANSITION_CODE)),
+            ("transitionpermission", "added", cls.transition_permission_id(cls.BASE_TRANSITION_CODE)),
+            ("transitionsource", "added", cls.transition_source_id(cls.BASE_TRANSITION_CODE, "state_2")),
+        ]
+
+    @classmethod
+    def flatten_id(cls, value, prefix=""):
+        """Render an id block as sorted ``path=value`` pairs, keeping every value it holds.
+
+        Comparing the blocks as nested dictionaries is correct but unreadable when it fails: one
+        change spans twenty lines of a diff, and a missing change reads as a reordering of the ones
+        around it. Flattened, a change is one line, and sorting the keys keeps two equal blocks equal
+        whatever order they were built in.
+        """
+        if isinstance(value, dict):
+            pairs = []
+            for key in sorted(value):
+                pairs.extend(cls.flatten_id(value[key], f"{prefix}.{key}" if prefix else key))
+            return pairs
+
+        if type(value) is tuple:
+            old, new = value
+            if isinstance(old, dict) or isinstance(new, dict):
+                return [*cls.flatten_id(old, f"{prefix}.old"), *cls.flatten_id(new, f"{prefix}.new")]
+            return [f"{prefix}={old}->{new}"]
+
+        return [f"{prefix}={value}"]
+
+    @classmethod
+    def describe(cls, entries):
+        """Render ``(model, kind, id)`` entries one readable line each."""
+        return [f"{model} {kind} " + " ".join(cls.flatten_id(identity)) for model, kind, identity in entries]
+
+    @classmethod
+    def describe_changes(cls, changed_data):
+        """Reduce a generated migration's changes to the model, the kind of write, and the row named.
+
+        A change carries its own field values, which say what the write did rather than which row it
+        did it to: ``grant_or_deny`` on a state permission may be the very thing that changed. The
+        ``id`` block is the data the command uses to find the row again, so that is what a change is
+        recognised by here, and a field the write changed appears in it as a before-and-after pair.
+        """
+        return cls.describe(
+            (changed_item["model_name"], changed_item["history_type"], changed_item["changes"]["id"])
+            for changed_item in changed_data
+        )
+
+    @classmethod
+    def check_changes(cls, label, migration, expected_entries, previous_migration=None):
+        """Return how a generated migration differs from the round it should describe.
+
+        Problems are collected rather than asserted so that one run reports every migration it
+        generated. A round's edits and the migration built from them do not depend on the previous
+        round's migration being right, so stopping at the first mismatch would hide the rest.
+        """
+        problems = []
+
+        found = cls.describe_changes(migration.changed_data)
+        expected = cls.describe(expected_entries)
+
+        missing = list((Counter(expected) - Counter(found)).elements())
+        unexpected = list((Counter(found) - Counter(expected)).elements())
+
+        problems.extend(f"{label} is missing: {line}" for line in missing)
+        problems.extend(f"{label} should not carry: {line}" for line in unexpected)
+
+        if not missing and not unexpected and found != expected:
+            problems.append(f"{label} holds the right changes out of order:\n    " + "\n    ".join(found))
+
+        if previous_migration is not None:
+            # Each round writes rows that are identical to the round before it apart from the row
+            # each one names, so what a change describes cannot tell the two apart. When a change is
+            # matched to another round's write, the migration still reads as a plausible one. The
+            # moment each write was recorded is what separates them.
+            earliest = min(changed_item["history_date"] for changed_item in migration.changed_data)
+            previous_latest = max(changed_item["history_date"] for changed_item in previous_migration.changed_data)
+            if earliest <= previous_latest:
+                problems.append(
+                    f"{label} carries a write recorded at {earliest}, before the previous migration's "
+                    f"last write at {previous_latest}, so it describes a round that is already captured"
+                )
+
+        return problems
+
+    @classmethod
+    def expected_round_that_deletes(cls):
+        """A round that adds the state and the transition, modifies it, and removes both again.
+
+        Every write the round makes belongs here, permissions and source rows included. The command
+        currently reaches a generated migration with only some of them, because
+        ``_get_historical_queryset_for_model`` selects each model's events by joining through the
+        live related row and falls back to selecting by recorded ids only when that finds nothing at
+        all. One live row keeps the query non-empty, so the events of rows this round deleted are
+        dropped before matching begins. Asserting the whole list is what makes that visible, and
+        keeps a fix from trading missing old writes for missing new ones.
+        """
+        return [
+            ("state", "added", cls.state_id(cls.STATE_CODE)),
+            ("transition", "added", cls.transition_id(cls.TRANSITION_CODE)),
+            ("transitionsource", "added", cls.transition_source_id(cls.TRANSITION_CODE, "state_1")),
+            ("transitionsource", "added", cls.transition_source_id(cls.BASE_TRANSITION_CODE, cls.STATE_CODE)),
+            ("transitionpermission", "added", cls.transition_permission_id(cls.TRANSITION_CODE)),
+            ("statepermission", "added", cls.state_permission_id(cls.STATE_CODE)),
+            ("transition", "changed", cls.transition_id(cls.TRANSITION_CODE)),
+            ("transitionsource", "deleted", cls.transition_source_id(cls.TRANSITION_CODE, "state_1")),
+            ("transitionsource", "deleted", cls.transition_source_id(cls.BASE_TRANSITION_CODE, cls.STATE_CODE)),
+            ("transitionpermission", "deleted", cls.transition_permission_id(cls.TRANSITION_CODE)),
+            ("transition", "deleted", cls.transition_id(cls.TRANSITION_CODE)),
+            ("statepermission", "deleted", cls.state_permission_id(cls.STATE_CODE)),
+            ("state", "deleted", cls.state_id(cls.STATE_CODE)),
+        ]
+
+    @classmethod
+    def expected_round_that_renames(cls):
+        """A round that adds the same codes, modifies the transition, then renames the state.
+
+        Nothing is removed, so every row still has a live parent and the whole round is recorded.
+        The rename shows up as a before-and-after pair on the code the row is found by.
+        """
+        return [
+            ("state", "added", cls.state_id(cls.STATE_CODE)),
+            ("transition", "added", cls.transition_id(cls.TRANSITION_CODE)),
+            ("transitionsource", "added", cls.transition_source_id(cls.TRANSITION_CODE, "state_1")),
+            ("transitionsource", "added", cls.transition_source_id(cls.BASE_TRANSITION_CODE, cls.STATE_CODE)),
+            ("transitionpermission", "added", cls.transition_permission_id(cls.TRANSITION_CODE)),
+            ("statepermission", "added", cls.state_permission_id(cls.STATE_CODE)),
+            ("transition", "changed", cls.transition_id(cls.TRANSITION_CODE)),
+            (
+                "state",
+                "changed",
+                {"code": (cls.STATE_CODE, cls.RENAMED_STATE_CODE), "workflow_id": cls.workflow_id()},
+            ),
+        ]
+
+    @classmethod
+    def expected_round_that_takes_over_codes(cls):
+        """A round that gives both codes to new rows, by renaming what held them rather than removing it.
+
+        Nothing is deleted, so nothing is dropped, and the round leaves the previous round's
+        permission and source rows naming a row that no longer holds the code they were written
+        under. The transition's rename is a before-and-after pair on the code it is found by; the
+        two additions are ordinary adds under codes that are free again.
+        """
+        return [
+            ("state", "added", cls.state_id(cls.STATE_CODE)),
+            (
+                "transition",
+                "changed",
+                {"code": (cls.TRANSITION_CODE, cls.RENAMED_TRANSITION_CODE), "workflow_id": cls.workflow_id()},
+            ),
+            ("transition", "added", cls.transition_id(cls.TRANSITION_CODE)),
+        ]
+
+    def add_state_and_transition(self, workflow, permission, group):
+        """Add the state, the transition that names it, and the rows that hang off both."""
+        state_1 = models.State.objects.get(workflow=workflow, code="state_1")
+        base_transition = models.Transition.objects.get(workflow=workflow, code="go_to_state_1")
+
+        state = models.State.objects.create(workflow=workflow, code=self.STATE_CODE, name=self.STATE_NAME)
+        transition = models.Transition.objects.create(
+            workflow=workflow,
+            code=self.TRANSITION_CODE,
+            name=self.TRANSITION_NAME,
+            target=state,
+        )
+        models.TransitionSource.objects.create(transition=transition, source=state_1)
+        models.TransitionSource.objects.create(transition=base_transition, source=state)
+        models.TransitionPermission.objects.create(transition=transition, permission=permission)
+        models.StatePermission.objects.create(state=state, permission=permission, group=group, grant_or_deny=True)
+
+        return state, transition
+
+    def delete_state_and_transition(self, workflow):
+        """Remove them one statement at a time, so history orders the writes the way they were made."""
+        state = models.State.objects.get(workflow=workflow, code=self.STATE_CODE)
+        transition = models.Transition.objects.get(workflow=workflow, code=self.TRANSITION_CODE)
+        base_transition = models.Transition.objects.get(workflow=workflow, code="go_to_state_1")
+
+        models.TransitionSource.objects.get(transition=transition).delete()
+        models.TransitionSource.objects.get(transition=base_transition, source=state).delete()
+        models.TransitionPermission.objects.get(transition=transition).delete()
+        transition.delete()
+        models.StatePermission.objects.get(state=state).delete()
+        state.delete()
+
+    def rename_transition(self, workflow, round_name):
+        """Change the transition in the round that created it, so each round modifies it as well."""
+        transition = models.Transition.objects.get(workflow=workflow, code=self.TRANSITION_CODE)
+        transition.name = f"{self.TRANSITION_NAME} ({round_name})"
+        transition.save()
+
+    def make_workflow_migration(self, migration_dir):
+        """Generate the next workflow migration and return the module holding its changes."""
+        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_reused_codes", "--import-instead")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert results, "No results were captured when makeworkflowmigrations was called."
+
+        module = self.reload_module(results, migration_dir)
+        assert module is not None, "".join(results)
+
+        return module
+
+    def fake_migration(self, target):
+        """Record migrations up to a target without running them, the way the command instructs."""
+        succeeded, results = self.call_command("migrate", "workflow_reused_codes", target, "--fake")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+    HANDLER_NAMES = (
+        "handle_workflow",
+        "handle_workflow_permission",
+        "handle_state",
+        "handle_state_permission",
+        "handle_initial_state",
+        "handle_transition",
+        "handle_transition_permission",
+        "handle_transition_source",
+    )
+
+    def record_applied_changes(self, monkeypatch):
+        """Return a list that a running migration appends to as it applies each change.
+
+        A migration that raises says nothing about which of its changes it had reached; the
+        traceback names the handler and the row it could not find, and leaves the rest to be worked
+        out. Wrapping the handlers records the change on the way in, while its ``id`` block is still
+        intact, so a failure can name what the migration was applying. Reversing flips a change's
+        kind before dispatching, so a recorded kind is what the migration is doing, not what the
+        change was written as.
+        """
+        applied = []
+
+        def recorded(original):
+            def handler(apps, changed_item, change_reason, *, reversing=False):
+                applied.append(self.describe_changes([changed_item])[0])
+                return original(apps, changed_item, change_reason, reversing=reversing)
+
+            return handler
+
+        for name in self.HANDLER_NAMES:
+            monkeypatch.setattr(makeworkflowmigrations, name, recorded(getattr(makeworkflowmigrations, name)))
+
+        return applied
+
+    @staticmethod
+    def migrate_reporting_applied_change(call, label, applied):
+        """Run one migration, naming the change it was applying if it raises."""
+        applied.clear()
+        try:
+            succeeded, results = call()
+        except Exception as error:
+            reached = applied[-1] if applied else "no change at all"
+            pytest.fail(
+                f"{label} raised on change {len(applied)}, {reached}\n    {error!r}",
+                pytrace=False,
+            )
+
+        if not succeeded:
+            pytest.fail(f"{label} failed:\n{''.join(results)}", pytrace=False)
+
+    @classmethod
+    def describe_snapshot_difference(cls, found, expected):
+        """Name what differs between two snapshots, a row at a time."""
+        if found == expected:
+            return []
+
+        if expected is None:
+            return ["there is a workflow, where there should be none"]
+
+        if found is None:
+            return ["there is no workflow at all"]
+
+        differences = []
+        for key in sorted(expected):
+            found_value = found.get(key)
+            expected_value = expected[key]
+
+            if found_value == expected_value:
+                continue
+
+            if isinstance(expected_value, list) and isinstance(found_value, list):
+                differences.extend(
+                    f"{key} is missing {row}" for row in (Counter(expected_value) - Counter(found_value)).elements()
+                )
+                differences.extend(
+                    f"{key} should not have {row}"
+                    for row in (Counter(found_value) - Counter(expected_value)).elements()
+                )
+            else:
+                differences.append(f"{key} is {found_value}, where it should be {expected_value}")
+
+        return differences
+
+    @classmethod
+    def snapshot_workflow(cls):
+        """Everything the workflow holds, named by code rather than by id.
+
+        Ids differ between the rows a round of edits wrote and the rows a migration writes replaying
+        it, so a snapshot names every row the way a migration does. Taken after each round and again
+        after the migration generated for that round is applied, two snapshots that differ say the
+        migration did not reproduce the round, whatever the rows at the end of the run look like.
+        """
+        workflow = models.Workflow.objects.filter(code=cls.WORKFLOW_CODE).first()
+        if workflow is None:
+            return None
+
+        initial_state = models.InitialState.objects.filter(workflow=workflow).first()
+
+        return {
+            "workflow": (workflow.code, workflow.name, workflow.historical_app_label, workflow.historical_model),
+            "initial_state": initial_state and initial_state.state.code,
+            "workflow_permissions": sorted(
+                models.WorkflowPermission.objects.filter(workflow=workflow).values_list(
+                    "historical_permission_codename", flat=True
+                )
+            ),
+            "states": sorted(models.State.objects.filter(workflow=workflow).values_list("code", "name")),
+            "state_permissions": sorted(
+                models.StatePermission.objects.filter(state__workflow=workflow).values_list(
+                    "state__code", "historical_permission_codename", "historical_group_name", "grant_or_deny"
+                )
+            ),
+            "transitions": sorted(
+                models.Transition.objects.filter(workflow=workflow).values_list("code", "name", "target__code")
+            ),
+            "transition_permissions": sorted(
+                models.TransitionPermission.objects.filter(transition__workflow=workflow).values_list(
+                    "transition__code", "historical_permission_codename"
+                )
+            ),
+            "transition_sources": sorted(
+                models.TransitionSource.objects.filter(transition__workflow=workflow).values_list(
+                    "transition__code", "source__code", "ignored"
+                )
+            ),
+        }
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_reused_codes(self, settings, monkeypatch):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_reused_codes": "tests.workflow_reused_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_reused_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_reused_codes") as migration_dir:
+            # No migrations should have run yet.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 0
+
+            succeeded, results = self.call_command("migrate", "workflow_reused_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # We should have run migration 0001 and 0002.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 2  # noqa: PLR2004
+
+            workflow = models.Workflow.objects.get(code=self.WORKFLOW_CODE)
+            permission = Permission.objects.get(
+                codename="update_workflowreusedcodes",
+                content_type__app_label="workflow_reused_codes",
+            )
+            group = Group.objects.get(name="ReusedCodesAdmin")
+
+            # Round one: added, modified, and removed again. Each round's workflow is kept as it
+            # stands when the round ends, so replaying the round's migration can be held to it.
+            self.add_state_and_transition(workflow, permission, group)
+            self.rename_transition(workflow, "One")
+            self.delete_state_and_transition(workflow)
+            snapshots = [self.snapshot_workflow()]
+
+            first_migration = self.make_workflow_migration(migration_dir)
+
+            # The workflow 0002 created has no generated migration of its own yet, so this one
+            # captures that as well, ahead of round one's own writes.
+            problems = self.check_changes(
+                "0003",
+                first_migration,
+                [*self.expected_base_workflow_changes(), *self.expected_round_that_deletes()],
+            )
+
+            # Round two: the same codes added, modified, and removed again.
+            self.add_state_and_transition(workflow, permission, group)
+            self.rename_transition(workflow, "Two")
+            self.delete_state_and_transition(workflow)
+            snapshots.append(self.snapshot_workflow())
+
+            second_migration = self.make_workflow_migration(migration_dir)
+
+            # Round one is already captured by 0003, whose changes name rows that no longer exist and
+            # whose codes now belong to round two's rows as well. Only round two belongs here, and
+            # round two's writes are the only ones recorded after 0003's last.
+            problems += self.check_changes(
+                "0004", second_migration, self.expected_round_that_deletes(), previous_migration=first_migration
+            )
+
+            # Round three: the same codes added and modified, then the state renamed and kept.
+            self.add_state_and_transition(workflow, permission, group)
+            self.rename_transition(workflow, "Three")
+            state = models.State.objects.get(workflow=workflow, code=self.STATE_CODE)
+            state.code = self.RENAMED_STATE_CODE
+            state.name = self.RENAMED_STATE_NAME
+            state.save()
+            snapshots.append(self.snapshot_workflow())
+
+            third_migration = self.make_workflow_migration(migration_dir)
+
+            # Three rows have now been added under the state's code and three under the
+            # transition's. Both earlier rounds are captured by a migration, so only round three
+            # belongs here.
+            problems += self.check_changes(
+                "0005", third_migration, self.expected_round_that_renames(), previous_migration=second_migration
+            )
+
+            # Round four takes both codes over with newer rows, without removing anything: the state
+            # code round three renamed away from is free again, and renaming round three's transition
+            # frees its code the same way. Round three's permission and source rows are left naming
+            # a state and a transition that hold neither code any more, which is what matching
+            # 0005's changes now has to work out.
+            fourth_state = models.State.objects.create(workflow=workflow, code=self.STATE_CODE, name=self.STATE_NAME)
+            renamed_transition = models.Transition.objects.get(workflow=workflow, code=self.TRANSITION_CODE)
+            renamed_transition.code = self.RENAMED_TRANSITION_CODE
+            renamed_transition.name = self.RENAMED_TRANSITION_NAME
+            renamed_transition.save()
+            models.Transition.objects.create(
+                workflow=workflow,
+                code=self.TRANSITION_CODE,
+                name=self.TRANSITION_NAME,
+                target=fourth_state,
+            )
+            snapshots.append(self.snapshot_workflow())
+
+            fourth_migration = self.make_workflow_migration(migration_dir)
+
+            # Four rows have now been added under the state's code and four under the transition's,
+            # and the three earlier rounds are each captured by a migration. Matching 0005's changes
+            # is what reaches a reused code through ``state_id`` and ``transition_id``, on the
+            # permission and source rows that only a round keeping its rows can carry.
+            problems += self.check_changes(
+                "0006",
+                fourth_migration,
+                self.expected_round_that_takes_over_codes(),
+                previous_migration=third_migration,
+            )
+
+            # Nothing has replayed any of this yet: the rounds were edits, and no generated migration
+            # has been applied. Unapplying the app takes the workflow with it, so the generated
+            # migrations can replay every round onto an empty database. 0002 is faked rather than
+            # applied, because 0003 carries the workflow it creates.
+            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "zero")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            rolled_back = models.Workflow.objects.filter(code=self.WORKFLOW_CODE)
+            assert not rolled_back.exists(), rolled_back.values()
+
+            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "0001")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            self.fake_migration("0002")
+
+            # Replay one round at a time, holding each against the workflow that round left behind.
+            # A run that only checks the rows at the end would pass while an earlier migration put
+            # the workflow somewhere it never was, so long as a later one happened to correct it.
+            applied = self.record_applied_changes(monkeypatch)
+
+            for round_number, snapshot in enumerate(snapshots, start=1):
+                migration_name = f"000{round_number + 2}"
+
+                self.migrate_reporting_applied_change(
+                    lambda name=migration_name: self.call_command("migrate", "workflow_reused_codes", name),
+                    migration_name,
+                    applied,
+                )
+
+                differences = self.describe_snapshot_difference(self.snapshot_workflow(), snapshot)
+                if differences:
+                    pytest.fail(
+                        f"{migration_name} left the workflow somewhere round {round_number} never put it:"
+                        "\n    " + "\n    ".join(differences),
+                        pytrace=False,
+                    )
+
+            # We should have run migration 0001, 0002 (faked), and 0003 to 0006.
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 6  # noqa: PLR2004
+
+            # Reverse one migration at a time, holding each against the round before it. The
+            # snapshots say what the workflow looked like at every point going back, so a migration
+            # that reverses into a shape the workflow was never in fails where it happens.
+            for round_number in range(len(snapshots), 0, -1):
+                migration_name = f"000{round_number + 2}"
+
+                self.migrate_reporting_applied_change(
+                    lambda number=round_number: self.call_command(
+                        "migrate", "workflow_reused_codes", f"000{number + 1}"
+                    ),
+                    f"reversing {migration_name}",
+                    applied,
+                )
+
+                if round_number > 1:
+                    expected = snapshots[round_number - 2]
+                    failure = f"did not put the workflow back where round {round_number - 1} left it"
+                else:
+                    expected = None
+                    failure = "left a workflow behind, though it carries the one 0002 creates"
+
+                differences = self.describe_snapshot_difference(self.snapshot_workflow(), expected)
+                if differences:
+                    pytest.fail(
+                        f"reversing {migration_name} {failure}:\n    " + "\n    ".join(differences),
+                        pytrace=False,
+                    )
+
+            # We should be back to migration 0001 and 0002 (faked).
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 2  # noqa: PLR2004
+
+            # The changes each generated migration carries are reported last, so that a difference in
+            # the workflow a migration produces is what a run shows first.
+            if problems:
+                pytest.fail("\n".join(problems), pytrace=False)
+
+
+class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCallCommand):
+    """Local edits on a database that received a generated migration rather than writing one.
+
+    The author of a workflow migration fakes it, because the changes are already in their database.
+    Everyone else applies it, and the writes it makes are recorded under the action it opens. Those
+    writes are excluded as matching candidates, deliberately, so on a database that applied a
+    migration its changes have no record of their own to be matched against. What is left for them
+    to reach is the edits the person at that database has since made, and a change that consumes one
+    of those marks a local write as already captured, dropping it from the migration they generate.
+
+    0002 is committed rather than generated here, because a migration the test generated would carry
+    the edits that produced it, which is the situation this is the opposite of.
+    """
+
+    WORKFLOW_CODE = "received_codes_workflow"
+    SHARED_STATE_CODE = "shared_code"
+    SHARED_STATE_NAME = "Shared Code"
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_received_codes(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_received_codes": "tests.workflow_received_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_received_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_received_codes") as migration_dir:
+            # Apply the received migration rather than faking it, which is what everyone but its
+            # author does. The workflow is written by the migration, under the action it opens.
+            succeeded, results = self.call_command("migrate", "workflow_received_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            workflow = models.Workflow.objects.get(code=self.WORKFLOW_CODE)
+
+            # 0002 adds the shared state and removes it again, so applying it leaves no trace of the
+            # state in the workflow, and every event naming it belongs to the migration.
+            state_codes = frozenset(models.State.objects.filter(workflow=workflow).values_list("code", flat=True))
+            assert state_codes == {"state_1"}
+
+            recorded = models.StateEvent.objects.filter(code=self.SHARED_STATE_CODE)
+            assert recorded.count() == 2, recorded.values()  # noqa: PLR2004
+            assert all(event.pgh_context.metadata["kind"] == MIGRATION_ACTION_KIND for event in recorded)
+
+            # The local edit: the state the received migration removed, added back under the same
+            # code. Its event is the only one in the workflow that is not a migration's.
+            models.State.objects.create(workflow=workflow, code=self.SHARED_STATE_CODE, name=self.SHARED_STATE_NAME)
+
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations", "workflow_received_codes", "--import-instead"
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert "No workflow changes detected." not in "".join(results), (
+                "the local write was taken as already captured by a change 0002 carries, so nothing "
+                "was left to generate a migration from"
+            )
+
+            module = self.reload_module(results, migration_dir)
+            assert module is not None, "".join(results)
+
+            described = [
+                (changed_item["model_name"], changed_item["history_type"], changed_item["changes"]["id"])
+                for changed_item in module.changed_data
+            ]
+            assert described == [
+                (
+                    "state",
+                    "added",
+                    {
+                        "code": self.SHARED_STATE_CODE,
+                        "workflow_id": {
+                            "code": self.WORKFLOW_CODE,
+                            "historical_app_label": "workflow_received_codes",
+                            "historical_model": "workflowreceivedcodes",
+                        },
+                    },
+                ),
+            ]
+
+
+class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCommand):
+    """A workflow code given up by one model and taken over by another.
+
+    A workflow code is unique among live workflows, not over time: delete a workflow and another
+    model can take its code. Every change names a workflow by code alone, so deciding which app a
+    change belongs to, and which workflow its rows hang off, has to survive a code that two content
+    types have held.
+    """
+
+    WORKFLOW_CODE = "moved_workflow"
+    WORKFLOW_NAME = "Moved Workflow"
+
+    @classmethod
+    def workflow_id(cls, model_name):
+        """Name the workflow the way a change does, by the model it was written for."""
+        return {
+            "code": cls.WORKFLOW_CODE,
+            "historical_app_label": "workflow_moved_codes",
+            "historical_model": model_name,
+        }
+
+    @classmethod
+    def state_id(cls, model_name):
+        return {"code": "state_1", "workflow_id": cls.workflow_id(model_name)}
+
+    @classmethod
+    def initial_state_id(cls, model_name):
+        return {"state_id": cls.state_id(model_name), "workflow_id": cls.workflow_id(model_name)}
+
+    def make_workflow_for(self, model_name):
+        """Create the workflow, a state and an initial state against one of the two models."""
+        content_type = ContentType.objects.get(app_label="workflow_moved_codes", model=model_name)
+        workflow = models.Workflow.objects.create(
+            code=self.WORKFLOW_CODE,
+            name=self.WORKFLOW_NAME,
+            content_type=content_type,
+            historical_app_label="workflow_moved_codes",
+            historical_model=model_name,
+        )
+        state = models.State.objects.create(workflow=workflow, code="state_1", name="State 1")
+        models.InitialState.objects.create(workflow=workflow, state=state)
+
+        return workflow
+
+    @staticmethod
+    def remove_workflow(workflow):
+        """Take the workflow apart in the order the protected relations allow."""
+        models.InitialState.objects.filter(workflow=workflow).delete()
+        models.State.objects.filter(workflow=workflow).delete()
+        workflow.delete()
+
+    def make_workflow_migration(self, migration_dir):
+        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        module = self.reload_module(results, migration_dir)
+        assert module is not None, "".join(results)
+
+        return module
+
+    @staticmethod
+    def describe(changed_data):
+        return [
+            (changed_item["model_name"], changed_item["history_type"], changed_item["changes"]["id"])
+            for changed_item in changed_data
+        ]
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_moved_codes(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_moved_codes": "tests.workflow_moved_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_moved_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # The code belongs to the first model, and a migration captures that.
+            moved_from = self.make_workflow_for("workflowmovedfrom")
+            first_migration = self.make_workflow_migration(migration_dir)
+
+            assert self.describe(first_migration.changed_data) == [
+                ("workflow", "added", self.workflow_id("workflowmovedfrom")),
+                ("state", "added", self.state_id("workflowmovedfrom")),
+                ("initialstate", "added", self.initial_state_id("workflowmovedfrom")),
+            ]
+
+            # The code is given up, and taken over by the second model.
+            self.remove_workflow(moved_from)
+            self.make_workflow_for("workflowmovedto")
+
+            second_migration = self.make_workflow_migration(migration_dir)
+
+            # Only the handover belongs here. Deciding which content type a change belongs to reads
+            # the workflow its rows hang off, and both workflows answer to the same code, so a change
+            # from 0002 must not be read as the second model's, nor its rows as the first model's.
+            assert self.describe(second_migration.changed_data) == [
+                ("initialstate", "deleted", self.initial_state_id("workflowmovedfrom")),
+                ("state", "deleted", self.state_id("workflowmovedfrom")),
+                ("workflow", "deleted", self.workflow_id("workflowmovedfrom")),
+                ("workflow", "added", self.workflow_id("workflowmovedto")),
+                ("state", "added", self.state_id("workflowmovedto")),
+                ("initialstate", "added", self.initial_state_id("workflowmovedto")),
+            ]
 
 
 class TestManagementCommandUtils:
