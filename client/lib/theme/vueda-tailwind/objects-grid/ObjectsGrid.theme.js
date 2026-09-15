@@ -54,6 +54,9 @@ patchTheme({
                 "align-bottom",
                 "font-semibold",
                 "select-none",
+                // Match the body cells and TableHead: a label wider than its column's values (a
+                // "Unit Price" header over "0.38") widens the column instead of wrapping.
+                "whitespace-nowrap",
                 "data-[numeric]:text-right",
                 {
                     "!table-cell": isTable,

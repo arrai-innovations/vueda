@@ -17,7 +17,15 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## vNext (unreleased)
+## v3.0.0a1.post1 (unreleased)
+
+### Fixes
+
+- **Server wheel contents**:
+    - Removes stale files from the published `3.0.0a1` wheel, including deleted history modules that caused Django startup to fail with `ModuleNotFoundError: No module named 'simple_history'`. The framework source is unchanged apart from the version number.
+      _Upgrade to `3.0.0a1.post1` or later. No additional dependency or migration is required for this packaging correction._
+
+## v3.0.0a1 (2026-09-14)
 
 ### Breaking Changes
 
@@ -255,6 +263,9 @@ public-facing documentation baseline.
 
 ### Fixes
 
+- **OpenAPI validation**:
+    - Generated schemas describe bulk and single-object transition execution as separate paths. The bulk path no longer declares an optional `object_id` path parameter, which made the document invalid; the single-object path declares the required identifier. Handwritten model-info and workflow response schemas use the valid `readOnly` keyword. Runtime URLs and behavior are unchanged.
+
 - **`ordering_fields = None` in model-info metadata**:
     - A viewset that spells out `ordering_fields = None` no longer turns every `model_info` request for its model into a 500. `None` is `OrderingFilter`'s own class default and DRF reads it as "not declared" — `get_valid_fields` falls through to `get_default_valid_fields` — so `model_ordering.fields` now reports the serializer-derived fields, the same as for a viewset that omits the attribute. Previously the metadata treated the attribute as present and tried to iterate `None`, raising `TypeError`.
       _`ordering_fields = []` remains the declaration that offers nothing, subject to the default-ordering fields `VuedaOrderingFilter` always accepts._
@@ -272,6 +283,8 @@ public-facing documentation baseline.
       _A `?o=` naming a field the viewset actually offers sorts the same way it did; what changes is that the two cases above now behave on a searched list the way they do everywhere else._
     - A `?o=` naming a field the viewset does not offer is no longer applied to a searched list that deduplicates. Taking the ordering from the raw parameter meant this one path sorted by a field name DRF had already rejected, and `ordering_fields` gated `?o=` everywhere except here — so a field left out of `ordering_fields`, and out of `model_ordering.fields` with it, was orderable as long as a search term came along too. Such a request now sorts by relevance, which is what the same request without `?o=` does.
       _Add the field to the viewset's `ordering_fields` if clients are meant to order by it; that is what makes it a valid `?o=` target on every other list request, and what puts it in `model_ordering.fields` for a metadata-driven client to find._
+    - An ordering the `DISTINCT ON` cannot match no longer reaches the query on a searched list that deduplicates. Pairing an ordering term with a distinct column tested how many columns the term read. That accepted two shapes PostgreSQL rejects. A function over one column (`Lower("name")`) pairs the column against the function over it. A plain relation name whose related model declares its own `Meta.ordering` (`?o=customer`, where `Customer` orders by `["user__name"]`) is replaced by that ordering over the joined table, while the distinct column trims the join back to the local foreign key. Both failed the request with `SELECT DISTINCT ON expressions must match initial ORDER BY expressions`, an unhandled 500. Such a request now sorts by relevance, which is what the same request without `?o=` does.
+      _What still sorts as it did: a concrete field, a path through relations, a queryset annotation, the `"pk"` alias, and a relation whose related model declares no ordering. The function case is reached only through the viewset's own default `ordering`, because a `?o=` value is a plain field name and never carries the function. `ordering_fields = "__all__"` advertises every relation in `model_ordering.fields`, so the relation case was reachable from a metadata-driven client's own sort control._
 - **Serializer context when resolving default ordering fields**:
     - The canonical serializer is now instantiated with the model-info serializer's own `context` when resolving the ordering fields a viewset without `ordering_fields` allows. A serializer whose `get_fields()` needs the view — `ExcludeFieldsSerializerMixin` reads `context["view"].action` — no longer raises `KeyError` there. DRF's own `get_default_valid_fields` passes a context for the same reason.
       _The `view` in that context is the model-info viewset, not the viewset being described, so a serializer that varies its field set by `view.action` is resolved against `retrieve` on `/info/` rather than `list` on the endpoint the client will call, and can advertise a different set of ordering fields than that endpoint accepts. There is no better context to pass — DRF's own call supplies `{"request": request}` with no `view` at all, so the same serializer raises `KeyError` on the real `list` request too. Declare `ordering_fields` on such a viewset, which takes both paths out of the picture._

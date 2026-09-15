@@ -13,6 +13,17 @@
 @import "@vueda/theme/vueda-tailwind/base.css";
 @import "tailwindcss/utilities";
 
+/* Font stacks. base.css names "IBM Plex Sans" and "JetBrains Mono" but ships no
+ * font files. The Arrai VitePress theme already loads both, registered as
+ * "IBM Plex Sans Variable" and "JetBrains Mono Variable", so put those family
+ * names first rather than download the same fonts again. These :root tokens also
+ * reach the VuedaDemo shadow roots by inheritance; showcase.css cannot declare
+ * them itself, because its :root rule does not match inside a shadow tree. */
+:root {
+    --vueda-font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --vueda-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 @source "../../../client/lib/";
 @source "../../reference/";
 @source "./";

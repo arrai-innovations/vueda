@@ -115,7 +115,9 @@ describe("lib/utils/fetchSupport.js", () => {
     scopedIt("fetchHelper.cancel aborts the request", async () => {
         const abortSpy = vi.fn();
         const controller = { signal: {}, abort: abortSpy };
-        const AbortControllerMock = vi.fn(() => controller);
+        const AbortControllerMock = vi.fn(function () {
+            return controller;
+        });
         global.AbortController = AbortControllerMock;
         global.fetch = vi.fn().mockResolvedValue(new Response("", { status: 200 }));
         const promise = fetchHelper("/abort", {}, "prefix");

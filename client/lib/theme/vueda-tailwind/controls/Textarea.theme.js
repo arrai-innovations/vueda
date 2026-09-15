@@ -20,7 +20,7 @@ patchTheme({
                 "placeholder:text-muted-foreground dark:bg-input/30",
 
                 // Textarea shell.
-                "hairline flex field-sizing-content min-h-16 w-full rounded-vueda-control bg-transparent px-3 py-2 text-base shadow-vueda-control transition-shadow",
+                "hairline flex field-sizing-content min-h-16 w-full rounded-vueda-field bg-transparent px-3 py-2 text-base shadow-vueda-control transition-shadow",
 
                 // Disabled and responsive states.
                 "disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",

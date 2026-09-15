@@ -4,6 +4,8 @@
     <img src="docs/public/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
 </a>
 
+[![npm alpha](https://img.shields.io/npm/v/@arrai-innovations/vueda/alpha)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha) [![PyPI](https://img.shields.io/pypi/v/vueda)](https://pypi.org/project/vueda/)
+
 **Build business applications with Django and Vue.**
 
 [vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Changelog](https://vueda.dev/v3/reference/changelog/)
@@ -53,14 +55,14 @@ scaffold a project, connect the Django server and Vue client, and expose an
 inventory model from end to end. The [Copier templates](templates/README.md)
 provide the starting project structure.
 
-The v3 series is currently a prerelease. Follow the tutorial's
-[package registry setup](https://vueda.dev/v3/tutorials/start-building.html#package-registry-access)
-before installing packages.
+The v3 series is currently a prerelease. Both packages are available from public
+registries; no registry credentials are needed. The tutorial and templates select
+the v3 releases.
 
-| Package                                      | Role                                                                    |
-| -------------------------------------------- | ----------------------------------------------------------------------- |
-| [vueda](server/README.md)                    | Django models, REST APIs, metadata, permissions, workflows, and history |
-| [@arrai-innovations/vueda](client/README.md) | Vue components, forms, views, routing, and themes                       |
+| Package                                                                                    | Role                                                                    |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| [vueda](https://pypi.org/project/vueda/)                                                   | Django models, REST APIs, metadata, permissions, workflows, and history |
+| [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha) | Vue components, forms, views, routing, and themes                       |
 
 ## Develop VUEDA
 

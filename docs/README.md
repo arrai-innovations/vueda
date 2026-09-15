@@ -147,7 +147,7 @@ Examples:
 
 ## Verifying VuedaDemo blocks
 
-`VuedaDemo` blocks exist so that humans can review rendered component output visually in the VitePress site. Do not attempt to start the VitePress dev server or fetch its rendered HTML to verify a demo. There is no automated way to inspect visual output.
+`VuedaDemo` blocks exist so that readers can review rendered component output visually in the VitePress site.
 
 When you write or edit a `VuedaDemo` block, confirm correctness by:
 
@@ -155,7 +155,7 @@ When you write or edit a `VuedaDemo` block, confirm correctness by:
 2. Ensuring any referenced components are imported or globally registered in the docs site.
 3. Running `just check-eslint` and `just check-prettier` to pass linting and formatting.
 
-If the demo cannot be verified without a running browser, say so explicitly rather than attempting to curl or scrape the dev server.
+To check the rendered result, open the page on a running docs site (`just docs-serve`). Browser automation such as screenshots or computed-style checks is fine for this.
 
 ## HTML blocks inside VuedaDemo
 

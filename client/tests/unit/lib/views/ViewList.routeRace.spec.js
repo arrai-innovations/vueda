@@ -1,12 +1,12 @@
-// Clearing a sort and a filter close together must clear both, even though each is written to the
-// route independently. Reproducing that requires navigations that resolve asynchronously, the way
-// they do in a browser: `ViewList.spec.js` mocks `router.push`/`router.replace` to assign
-// `route.query` synchronously, which would let each write land before the next is computed and
-// mask a failure here. This file mounts ViewList against a real vue-router instance (memory
-// history) instead.
+// useViewList's sort, filter, and search writers each push to the route independently, so two
+// of them changing together must still settle correctly. Reproducing that requires navigations
+// that resolve asynchronously, the way they do in a browser: `ViewList.spec.js` mocks
+// `router.push`/`router.replace` to assign `route.query` synchronously, which would let each
+// write land before the next is computed and mask a failure here. This file mounts ViewList
+// against a real vue-router instance (memory history) instead.
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { ORDERING_PARAM } from "@vueda/utils/constants.js";
+import { ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import flushPromises from "flush-promises";
 import { defineComponent, h, nextTick, reactive, ref } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -405,5 +405,315 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
             wrapper.unmount();
         });
+
+        scopedIt.each([
+            ["sort", "filter"],
+            ["filter", "sort"],
+        ])(
+            "keeps a concurrently-chosen sort and a concurrently-chosen filter both applied when %s is chosen before %s",
+            async (first, second) => {
+                await router.push("/app/model/list");
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+                await flushPromises();
+                await nextTick();
+
+                // Sanity check: neither constraint is active yet.
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+
+                const chooseSort = () => wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+                const chooseFilter = () =>
+                    wrapper.vm.filter.state.addedFilters.push({
+                        field: "category",
+                        param: "category",
+                        value: "widgets",
+                    });
+                const choosers = { sort: chooseSort, filter: chooseFilter };
+
+                // Choose the sort and add the filter without awaiting in between, in the order
+                // this case is checking.
+                choosers[first]();
+                choosers[second]();
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                // Both choices must land in the settled URL, the controls, and the request
+                // parameters together -- neither push may cancel the other's contribution.
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+                expect(router.currentRoute.value.query.category).toBe("widgets");
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params.category).toBe("widgets");
+                // Saved preferences must agree with the final choices too, not with whichever
+                // one's push happened to be computed first.
+                expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, [
+                    "name",
+                ]);
+                expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                    { app: "app", model: "model" },
+                    { category: "widgets" },
+                );
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("restores a concurrently-chosen sort and filter together on a fresh mount", async () => {
+            await router.push("/app/model/list");
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            await nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+
+            await flushPromises();
+            await nextTick();
+            await flushPromises();
+            await nextTick();
+            wrapper.unmount();
+
+            // The settled URL is what a reload or a shared link mounts from -- a fresh instance
+            // reading it must restore both constraints, not just whichever one last won a race.
+            const freshWrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            await nextTick();
+
+            expect(freshWrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+            expect(freshWrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(freshWrapper.vm.filter.state.addedFilters[0]).toMatchObject({
+                field: "category",
+                value: "widgets",
+            });
+            expect(freshWrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+            expect(freshWrapper.vm.list.listState.params.category).toBe("widgets");
+            freshWrapper.unmount();
+        });
+
+        scopedIt.each([
+            ["sort", "search"],
+            ["search", "sort"],
+        ])("keeps a cleared sort and a cleared search both cleared when %s clears before %s", async (first, second) => {
+            modelConfig.config.sortables = ["name", "created_at"];
+            await router.push(`/app/model/list?${ORDERING_PARAM}=name&${SEARCH_PARAM}=abc`);
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            await nextTick();
+
+            // Sanity check: both constraints started active, restored from the URL.
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+            expect(wrapper.vm.list.listState.search).toBe("abc");
+
+            const clearSort = () => wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", []);
+            const clearSearch = () => {
+                wrapper.vm.list.listState.search = "";
+            };
+            const clearers = { sort: clearSort, search: clearSearch };
+
+            // Clear the sort and the search term without awaiting in between, so both writers
+            // compute their next `router.push` off the same not-yet-settled `route.query`, the
+            // way two nearly-simultaneous UI interactions would in a browser. Both orders must
+            // clear both constraints: whichever writer runs second still reads the route query
+            // from before either write landed.
+            clearers[first]();
+            clearers[second]();
+
+            await flushPromises();
+            await nextTick();
+            await flushPromises();
+            await nextTick();
+
+            // Both constraints were cleared; neither push should be allowed to resurrect the
+            // other's stale reading of the query.
+            expect(router.currentRoute.value.query[ORDERING_PARAM]).toBeUndefined();
+            expect(router.currentRoute.value.query[SEARCH_PARAM]).toBeUndefined();
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt.each([
+            ["sort", "search"],
+            ["search", "sort"],
+        ])(
+            "keeps a concurrently-chosen sort and search both applied when %s is chosen before %s",
+            async (first, second) => {
+                modelConfig.config.sortables = ["name", "created_at"];
+                await router.push("/app/model/list");
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+                await flushPromises();
+                await nextTick();
+
+                // Sanity check: neither constraint is active yet.
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual([]);
+                expect(router.currentRoute.value.query[SEARCH_PARAM]).toBeUndefined();
+
+                const chooseSort = () => wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+                const chooseSearch = () => {
+                    wrapper.vm.list.listState.search = "abc";
+                };
+                const choosers = { sort: chooseSort, search: chooseSearch };
+
+                // Choose the sort and set the search term without awaiting in between, in the
+                // order this case is checking.
+                choosers[first]();
+                choosers[second]();
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                // Both choices must land in the settled URL, the controls, and the request
+                // parameters together -- neither push may cancel the other's contribution.
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+                expect(router.currentRoute.value.query[SEARCH_PARAM]).toBe("abc");
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("abc");
+                // Saved preferences must agree with the final choices too, not with whichever
+                // one's push happened to be computed first.
+                expect(listPreferenceStoreMock.setSorting).toHaveBeenCalledWith({ app: "app", model: "model" }, [
+                    "name",
+                ]);
+                expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                    { app: "app", model: "model" },
+                    { [SEARCH_PARAM]: "abc" },
+                );
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("restores concurrently-chosen sort and search together on a fresh mount", async () => {
+            modelConfig.config.sortables = ["name", "created_at"];
+            await router.push("/app/model/list");
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            await nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            wrapper.vm.list.listState.search = "abc";
+
+            await flushPromises();
+            await nextTick();
+            await flushPromises();
+            await nextTick();
+            wrapper.unmount();
+
+            // The settled URL is what a reload or a shared link mounts from -- a fresh instance
+            // reading it must restore both constraints, not just whichever one last won a race.
+            const freshWrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            await nextTick();
+
+            expect(freshWrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+            expect(freshWrapper.vm.list.listState.search).toBe("abc");
+            expect(freshWrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+            expect(freshWrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("abc");
+            freshWrapper.unmount();
+        });
+
+        scopedIt(
+            "restores the URL's chosen sort after model metadata loads following the initial search restoration",
+            async () => {
+                modelConfig.loading = true;
+                modelConfig.config.sortables = [];
+                await router.push(`/app/model/list?${ORDERING_PARAM}=name&${SEARCH_PARAM}=abc`);
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+
+                // Search restoration reads the URL immediately, independent of model metadata,
+                // and triggers the combined sort+filter+search writer while the sort has not
+                // been restored yet. The chosen sort must still be in the URL once metadata
+                // finishes loading and the sort-restoration watcher runs.
+                await flushPromises();
+                await nextTick();
+
+                // `SortControl` doesn't render yet -- `sort.canShowSorter` needs sortables from
+                // the still-loading metadata -- so the URL itself is the only thing to check here.
+                expect(wrapper.vm.list.listState.search).toBe("abc");
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+
+                modelConfig.config.sortables = ["name", "created_at"];
+                modelConfig.loading = false;
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                expect(router.currentRoute.value.query[ORDERING_PARAM]).toBe("name");
+                expect(router.currentRoute.value.query[SEARCH_PARAM]).toBe("abc");
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("abc");
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt(
+            "restores the URL's chosen filter after model metadata loads following the initial search restoration",
+            async () => {
+                // Unlike sort, the filter writer only deletes route-query keys it previously owned
+                // (from `oldFilterParams`) and only assigns keys it currently knows about
+                // (`newFilterParams`). While model metadata is still loading, `filterParams` stays
+                // empty both before and after the search-triggered write below, so there is nothing
+                // for it to delete or overwrite: `category` passes through as a foreign key, the
+                // way any query param neither sort, filter, nor search owns yet would.
+                modelConfig.loading = true;
+                modelConfig.config.filterables = [];
+                modelConfig.config.filterableDetails = {};
+                await router.push(`/app/model/list?category=widgets&${SEARCH_PARAM}=abc`);
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model" },
+                    global: { plugins: [router] },
+                });
+
+                await flushPromises();
+                await nextTick();
+
+                expect(wrapper.vm.list.listState.search).toBe("abc");
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+                expect(router.currentRoute.value.query.category).toBe("widgets");
+
+                modelConfig.config.filterables = ["category"];
+                modelConfig.config.filterableDetails = { category: { typeFilter: "ChoiceField", label: "Category" } };
+                modelConfig.loading = false;
+
+                await flushPromises();
+                await nextTick();
+                await flushPromises();
+                await nextTick();
+
+                expect(router.currentRoute.value.query.category).toBe("widgets");
+                expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+                expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "category", value: "widgets" });
+                wrapper.unmount();
+            },
+        );
     });
 });

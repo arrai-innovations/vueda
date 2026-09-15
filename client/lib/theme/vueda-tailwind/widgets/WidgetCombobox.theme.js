@@ -28,7 +28,7 @@ patchTheme({
 
                 // Layout, shape, and type.
                 "flex w-full h-vueda-control items-center justify-between gap-2",
-                "rounded-vueda-control bg-transparent px-vueda-control-px text-sm",
+                "rounded-vueda-field bg-transparent px-vueda-control-px text-sm",
                 "whitespace-nowrap shadow-vueda-control transition-shadow",
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

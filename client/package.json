@@ -1,13 +1,13 @@
 {
   "name": "@arrai-innovations/vueda",
-  "version": "3.0.0-alpha.1",
+  "version": "3.0.0-alpha.2",
   "publishConfig": {
-    "tag": "latest",
-    "registry": "https://npm.arrai.dev/"
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
   },
   "description": "Vue 3 component library for VUEDA Server. Provides components and composables for form handling, CRUD views, and dynamic routing, driven by server-supplied model and field metadata. Includes authentication, navigation, permission management, and theming support.",
   "main": "index.js",
-  "types": "types/index.d.ts",
   "type": "module",
   "files": [
     "lib",
@@ -27,7 +27,7 @@
     "format": "pnpm -C .. exec prettier --check client",
     "eslint": "pnpm -C .. exec eslint --no-warn-ignored --cache --fix client",
     "prettier": "pnpm -C .. exec prettier --write client",
-    "build:types": "tsc",
+    "build:types": "del-cli types && tsc",
     "prepublishOnly": "npm run build:types"
   },
   "repository": {
@@ -48,7 +48,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.1",
-    "@vitest/coverage-istanbul": "^3.2.7",
+    "@vitest/coverage-istanbul": "^4.1.11",
     "@vue/test-utils": "^2.4.6",
     "del-cli": "^6.0.0",
     "flush-promises": "^1.0.2",
@@ -61,11 +61,11 @@
     "typescript": "^5.9.3",
     "vite": "^6.3.3",
     "vite-plugin-circular-dependency": "^0.2.1",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.11",
     "vue-docgen-api": "^4.79.2"
   },
   "peerDependencies": {
-    "@arrai-innovations/reactive-helpers": "^24.1.0",
+    "@arrai-innovations/reactive-helpers": "^25.0.0",
     "@arrai-innovations/vue-sonner": "^2.0.11",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",

@@ -17,7 +17,7 @@ describe("lib/controls/input/Input.vue", () => {
         scopedIt("applies base styling classes", () => {
             const wrapper = mount(Input);
             expect(wrapper.classes()).toContain("hairline");
-            expect(wrapper.classes()).toContain("rounded-vueda-control");
+            expect(wrapper.classes()).toContain("rounded-vueda-field");
             expect(wrapper.classes()).toContain("h-vueda-control");
         });
 

@@ -142,11 +142,11 @@ describe("lib/controls/combobox/Combobox.vue", () => {
             expect(wrapper.find('[data-slot="combobox-input"]').exists()).toBe(true);
         });
 
-        scopedIt("applies h-9 and border-b to wrapper", () => {
+        scopedIt("applies h-9 and a hairline bottom border to wrapper", () => {
             const wrapper = mount(ComboboxInput);
             const wrapperEl = wrapper.find('[data-slot="combobox-input-wrapper"]');
             expect(wrapperEl.classes()).toContain("h-9");
-            expect(wrapperEl.classes()).toContain("border-b");
+            expect(wrapperEl.classes()).toContain("border-b-hairline");
         });
 
         scopedIt("merges custom class on input", () => {

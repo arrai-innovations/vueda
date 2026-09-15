@@ -25,7 +25,7 @@ describe("lib/controls/native-select/NativeSelect.vue", () => {
             const wrapper = mount(NativeSelect);
             const select = wrapper.find('[data-slot="native-select"]');
             expect(select.classes()).toContain("hairline");
-            expect(select.classes()).toContain("rounded-vueda-control");
+            expect(select.classes()).toContain("rounded-vueda-field");
             expect(select.classes()).toContain("h-vueda-control");
         });
 

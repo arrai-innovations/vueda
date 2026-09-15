@@ -21,7 +21,7 @@ patchTheme({
                 "data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground dark:bg-input/30 dark:hover:bg-accent dark:active:bg-accent-active hover:hairline-border-strong",
 
                 // Trigger shell.
-                "hairline flex w-fit items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow",
+                "hairline flex w-fit items-center justify-between gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control transition-shadow",
 
                 // Disabled and size states.
                 "disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-vueda-control data-[size=sm]:h-vueda-control-sm data-[size=lg]:h-vueda-control-lg data-[size=lg]:px-vueda-control-px-lg",

@@ -259,7 +259,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
       <Combobox>
         <ComboboxAnchor class="w-full">
           <ComboboxTrigger
-            class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <span class="text-muted-foreground">Select customer...</span>
             <FontAwesomeIcon :icon="faChevronDown" class="size-4 opacity-50" />
@@ -310,7 +310,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
           <Combobox :open="true">
             <ComboboxAnchor class="w-64">
               <ComboboxTrigger
-                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
+                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
               >
                 <span class="text-muted-foreground">Select customer...</span>
                 <FontAwesomeIcon :icon="faChevronDown" class="size-4 opacity-50" />
@@ -345,7 +345,7 @@ Theme keys: {@api theme-key:ComboboxList}, {@api theme-key:ComboboxInput},
           <Combobox :open="true">
             <ComboboxAnchor class="w-64">
               <ComboboxTrigger
-                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
+                class="hairline flex w-full h-vueda-control items-center justify-between gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm whitespace-nowrap shadow-vueda-control"
               >
                 <span class="text-muted-foreground">Select customer...</span>
                 <FontAwesomeIcon :icon="faChevronDown" class="size-4 opacity-50" />
@@ -506,7 +506,7 @@ Theme keys: {@api theme-key:Command}, {@api theme-key:CommandInput},
       <div class="flex flex-col gap-2">
         <StateLabel>trigger pattern</StateLabel>
         <button
-          class="hairline flex h-vueda-control items-center gap-2 rounded-vueda-control bg-transparent px-vueda-control-px text-sm text-muted-foreground shadow-vueda-control hover:text-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow"
+          class="hairline flex h-vueda-control items-center gap-2 rounded-vueda-field bg-transparent px-vueda-control-px text-sm text-muted-foreground shadow-vueda-control hover:text-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow"
           @click="commandOpen = true"
         >
           <FontAwesomeIcon :icon="faMagnifyingGlass" />

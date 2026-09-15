@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-    github: arrai/github@5.0.0
     lintinator: arrai/lintinator@2.1.1
     pnpm: arrai/pnpm@1.0.0
     utils: arrai/utils@1.23.3
@@ -104,22 +103,28 @@ jobs:
     client-publish:
         executor: node-lts
         resource_class: small
-        circleci_ip_ranges: true
         steps:
             - checkout
-            - utils/add_npm_config:
-                  registry: npm.arrai.dev
-                  token: $NPM_ARRAI_DEV_TOKEN
-                  scopes: |
-                      @arrai-innovations:registry=https://npm.arrai.dev/
             - run:
-                  name: Install Dependencies
-                  command: pnpm install
+                  name: Install Dependencies from Public npm
+                  command: pnpm install --frozen-lockfile --registry=https://registry.npmjs.org/
             - run:
-                  name: Publish
+                  name: Publish to Public npm with OIDC
                   command: |
                       cd client
-                      pnpm publish --no-git-checks
+                      PACKAGE_VERSION=$(jq -r '.version' package.json)
+                      case "$PACKAGE_VERSION" in
+                        *-alpha.*) PUBLISH_TAG=alpha ;;
+                        *-beta.*) PUBLISH_TAG=beta ;;
+                        *-rc.*) PUBLISH_TAG=next ;;
+                        *-*) echo "Unsupported prerelease channel: $PACKAGE_VERSION"; exit 1 ;;
+                        *) PUBLISH_TAG=latest ;;
+                      esac
+                      NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+                      export NPM_ID_TOKEN
+                      # npm 11 supports the CircleCI OIDC token exchange.
+                      npx --yes --registry=https://registry.npmjs.org/ --package=npm@11 npm publish \
+                        --registry=https://registry.npmjs.org/ --access public --tag "$PUBLISH_TAG"
 
 workflows:
     client-test:
@@ -154,17 +159,8 @@ workflows:
                   name: client-publish
                   context: arrai-global
                   requires:
+                      - client-test-no-badge
                       - client-verify-release-version
-                  filters:
-                      tags:
-                          only: /^client-v.*/
-                      branches:
-                          ignore: /.*/
-            - github/create_release:
-                  name: client-release-on-github
-                  context: arrai-global
-                  requires:
-                      - client-publish
                   filters:
                       tags:
                           only: /^client-v.*/

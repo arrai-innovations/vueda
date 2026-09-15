@@ -9,7 +9,7 @@
     "preview": "vitepress preview"
   },
   "dependencies": {
-    "@arrai-innovations/reactive-helpers": "^24.1.0",
+    "@arrai-innovations/reactive-helpers": "^25.0.0",
     "@arrai-innovations/vue-sonner": "^2.0.11",
     "@arrai-innovations/vueda": "workspace:*",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -22,7 +22,7 @@
     "reka-ui": "^2.9.5"
   },
   "devDependencies": {
-    "@arrai-innovations/vitepress-theme": "^1.0.2",
+    "@arrai-innovations/vitepress-theme": "^1.1.0",
     "@tailwindcss/vite": "^4.2.1",
     "@vue/compiler-sfc": "^3.5.13",
     "sirv": "^3.0.2",

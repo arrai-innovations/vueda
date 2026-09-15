@@ -7,7 +7,7 @@ import {
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
 import { slugify } from "../../docs-tooling/js/utils/slugify.js";
-import { arraiThemeRoot, buildBreadcrumbRoutes } from "@arrai-innovations/vitepress-theme/config";
+import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
@@ -17,6 +17,9 @@ import { defineConfig } from "vitepress";
 import { configureDiagramsPlugin } from "vitepress-plugin-diagrams";
 
 const base = process.env.VITEPRESS_BASE || "/vueda/";
+// Published origin for absolute card URLs. CI publishes each major under
+// /v<major>/ at this host, so the base carries the version, not this constant.
+const siteUrl = "https://vueda.dev";
 const docsRoot = fileURLToPath(new URL("..", import.meta.url));
 const generatedRoot = path.join(docsRoot, ".generated");
 const apiRoot = path.join(docsRoot, "reference", "api");
@@ -839,7 +842,37 @@ export default defineConfig({
         ],
         ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube-solid.png` }],
     ],
+    // Link-preview crawlers read the served HTML and run no JavaScript, so the
+    // Open Graph and Twitter card tags have to be in the page before hydration.
+    // The shared theme shapes them; the origin, card image, and colour stay here.
+    //
+    // A page that writes its own og: or twitter: tag keeps it: the generated tag
+    // for that property is dropped rather than emitted twice, since a crawler
+    // reading two og:title tags picks one of them arbitrarily.
+    transformPageData(pageData, { siteConfig }) {
+        const authoredHead = pageData.frontmatter.head ?? [];
+        const authored = new Set(authoredHead.map(([, attributes = {}]) => attributes.property ?? attributes.name));
+        return {
+            frontmatter: {
+                ...pageData.frontmatter,
+                head: [
+                    ...authoredHead,
+                    ...buildSocialHead({
+                        siteUrl,
+                        base: siteConfig.site.base,
+                        pageData,
+                        siteData: siteConfig.site,
+                        image: "/assets/social-card.png",
+                        imageSize: { width: 1200, height: 630 },
+                        imageAlt: "The VUEDA wordmark above the words: integrator guide, changelog, and reference",
+                        themeColor: "#0077f7",
+                    }).filter(([, attributes]) => !authored.has(attributes.property ?? attributes.name)),
+                ],
+            },
+        };
+    },
     themeConfig: {
+        siteTitle: "vueda",
         logo: "/assets/logo-cube-solid.svg",
         search: { provider: "local" },
         outline: "deep",

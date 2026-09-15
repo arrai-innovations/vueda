@@ -242,11 +242,11 @@ describe("lib/controls/select/Select.vue", () => {
             expect(wrapper.find('[data-slot="select-trigger"]').exists()).toBe(true);
         });
 
-        scopedIt("applies hairline and rounded-vueda-control classes", () => {
+        scopedIt("applies hairline and rounded-vueda-field classes", () => {
             const wrapper = mount(SelectTrigger);
             const el = wrapper.find('[data-slot="select-trigger"]');
             expect(el.classes()).toContain("hairline");
-            expect(el.classes()).toContain("rounded-vueda-control");
+            expect(el.classes()).toContain("rounded-vueda-field");
         });
 
         scopedIt("has data-size=default by default", () => {

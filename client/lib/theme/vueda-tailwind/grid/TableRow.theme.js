@@ -14,7 +14,7 @@ patchTheme({
      */
     TableRow: {
         /**
-         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider.
+         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider. The divider sits on the row's cells rather than the `<tr>`: {@api theme-key:Table.table} uses the separated border model, which does not paint borders on rows.
          */
         root: {
             class: [
@@ -22,7 +22,7 @@ patchTheme({
                 "data-[state=selected]:bg-primary/[0.06] data-[state=selected]:hover:bg-primary/[0.09]",
                 "data-[state=selected]:active:bg-primary/[0.12]",
                 "data-[state=selected]:[box-shadow:inset_2px_0_0_0_var(--primary)]",
-                "border-b-hairline transition-colors",
+                "[&>*]:border-b-hairline transition-colors",
             ],
         },
     },

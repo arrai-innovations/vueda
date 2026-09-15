@@ -52,7 +52,18 @@ async function extractRest(outDir) {
     const outputPath = path.join(outDir, "openapi.json");
     await execFileAsync(
         "uv",
-        ["run", "--no-sync", "python", "manage.py", "spectacular", "--format", "openapi-json", "--file", outputPath],
+        [
+            "run",
+            "--no-sync",
+            "python",
+            "manage.py",
+            "spectacular",
+            "--format",
+            "openapi-json",
+            "--validate",
+            "--file",
+            outputPath,
+        ],
         {
             cwd: path.join(repoRoot, "server"),
             env: { ...process.env, DJANGO_SETTINGS_MODULE: "doc_settings" },

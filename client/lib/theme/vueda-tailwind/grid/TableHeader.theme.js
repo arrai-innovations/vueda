@@ -9,15 +9,15 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * Table header section. Adds the row-level bottom edge that separates the
-     * column header band from body rows.
+     * Table header section. The edge between the header band and body rows
+     * comes from the header row's own {@api theme-key:TableRow.root} divider.
      */
     TableHeader: {
         /**
-         * The `<thead>` section wrapper. It paints the row-level divider under header rows so sticky {@api theme-key:TableHead.root} cells retain a clear boundary above scrolling body content.
+         * The `<thead>` section wrapper. Empty by default: header cells take their bottom divider from {@api theme-key:TableRow.root}, and because that border belongs to the cell, a sticky {@api theme-key:TableHead.root} carries it over scrolling body content.
          */
         root: {
-            class: "[&_tr]:border-b-hairline",
+            class: "",
         },
     },
 });

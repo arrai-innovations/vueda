@@ -92,6 +92,8 @@ A consumer rebrands by overriding the tokens in their own CSS, after the `base.c
 
 Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs.
 
+Fonts follow the same split, with one difference. The font tokens name families, but `base.css` ships no font files, so loading them is the application's job. An app either loads the default families or overrides the stacks with fonts it already loads. [Load or replace the fonts](../guides/customize-vueda-appearance#load-or-replace-the-fonts) has the recipe.
+
 The token layer is broader than the JavaScript theme system in a specific sense: it cascades through CSS, so a single override affects every class that references the token, regardless of which component rendered it. The trade-off is that token overrides cannot express composition or per-component logic; those concerns belong in the JavaScript theme.
 
 ## How the layers interact

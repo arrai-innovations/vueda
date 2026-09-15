@@ -151,29 +151,41 @@
 /* Directional border-width utilities keyed to `--vueda-hairline-width`. Use
  * these when `hairline` (4-sided inset box-shadow) can't be used because only
  * some sides should be stroked, e.g. a joined segmented control. Pair with a
- * `border-*` color utility; border-style is already `solid` from Tailwind's
- * preflight. */
+ * `border-*` color utility. Each utility also sets its border style, the way
+ * Tailwind's own `border-*` width utilities do, so it paints even where
+ * preflight is absent (e.g. portal content styled by a utilities-only sheet).
+ * `--tw-border-style` keeps `border-dashed` composable; the `solid` fallback
+ * covers a stylesheet that never registered that property. */
 @utility border-t-hairline {
+    border-top-style: var(--tw-border-style, solid);
     border-top-width: var(--vueda-hairline-width);
 }
 @utility border-b-hairline {
+    border-bottom-style: var(--tw-border-style, solid);
     border-bottom-width: var(--vueda-hairline-width);
 }
 @utility border-l-hairline {
+    border-left-style: var(--tw-border-style, solid);
     border-left-width: var(--vueda-hairline-width);
 }
 @utility border-r-hairline {
+    border-right-style: var(--tw-border-style, solid);
     border-right-width: var(--vueda-hairline-width);
 }
 @utility border-y-hairline {
+    border-top-style: var(--tw-border-style, solid);
+    border-bottom-style: var(--tw-border-style, solid);
     border-top-width: var(--vueda-hairline-width);
     border-bottom-width: var(--vueda-hairline-width);
 }
 @utility border-x-hairline {
+    border-left-style: var(--tw-border-style, solid);
+    border-right-style: var(--tw-border-style, solid);
     border-left-width: var(--vueda-hairline-width);
     border-right-width: var(--vueda-hairline-width);
 }
 @utility border-hairline {
+    border-style: var(--tw-border-style, solid);
     border-width: var(--vueda-hairline-width);
 }
 
@@ -270,6 +282,7 @@
 
     /* Semantic radius aliases (generates rounded-vueda-* utilities) */
     --radius-vueda-control: var(--vueda-control-radius);
+    --radius-vueda-field: var(--vueda-field-radius);
     --radius-vueda-checkbox: var(--vueda-checkbox-radius);
     --radius-vueda-card: var(--vueda-card-radius);
     --radius-vueda-modal: var(--vueda-modal-radius);
@@ -473,7 +486,8 @@
 
     /* ---------- Semantic radius tokens ----------
      * Five-step semantic ladder; near-flat by design. */
-    --vueda-control-radius: 2px; /* slab radius shared by buttons, inputs, selects, and most chrome controls. */
+    --vueda-control-radius: 2px; /* slab radius shared by buttons, toggles, and most chrome controls. */
+    --vueda-field-radius: 0px; /* editable field corner: text inputs, textareas, selects, date and time fields, tags inputs, and combobox triggers. Square so a field reads as a different kind of control from the 2px button slab; focus rings follow this corner, so a focused field's ring is square too. */
     --vueda-checkbox-radius: 4px; /* softer than --vueda-control-radius by design; the 4px corner reads as "chit / chiclet" at 16×16, differentiating the checkbox body from the slab inputs and buttons beside it. */
     --vueda-card-radius: 4px; /* card and panel corner radius. */
     --vueda-modal-radius: 2px; /* dialog and sheet corner radius; matches --vueda-control-radius so modal chrome reads as a slab. */
@@ -568,9 +582,9 @@
     /* Font stacks. Galano Grotesque licence forbids web embedding; brand
      * stack is a Plex 600 fallback only — live brand type ships as SVG paths. */
     --vueda-font-sans:
-        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack — IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. */
+        "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; /* UI font stack: IBM Plex Sans with system fallbacks. Mapped through @theme as `font-sans`. Weights 400 / 500 / 600 only; never 700, never italic. The theme ships no font files: the application loads IBM Plex Sans at those weights, or overrides this stack with a family it loads. An unloaded family falls back to a system font silently. */
     --vueda-font-mono:
-        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack — JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. */
+        "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; /* data font stack: JetBrains Mono with system mono fallbacks. Mapped through @theme as `font-mono`. Reserved for machine-generated, positional, or digit-stable content. The theme ships no font files: the application loads JetBrains Mono, or overrides this stack with a family it loads. */
     --vueda-font-brand:
         "Galano Grotesque", "IBM Plex Sans", sans-serif; /* brand display stack — Galano Grotesque with a Plex 600 fallback. Licence forbids web embedding, so live brand type ships as pre-rendered SVG paths in the repo-root `brand/` folder; this stack is the runtime fallback only. */
 

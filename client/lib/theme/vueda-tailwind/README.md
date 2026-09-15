@@ -204,6 +204,13 @@ in `base.css § Typography`.
   webfont; `--vueda-font-brand` is a Plex 600 fallback stack only. Live
   brand type ships as pre-rendered SVG paths in `brand/`.
 
+VUEDA does not bundle fonts, for the same reason it does not bundle icons
+(§ 11). The consuming app usually loads fonts for its own chrome, so a
+bundled copy would download them twice. The stacks name the families; the
+app loads them or overrides `--vueda-font-sans` / `--vueda-font-mono`.
+Integrator guidance lives in `docs/guides/customize-vueda-appearance.md`
+(Load or replace the fonts).
+
 ### 3.1 Scale
 
 A 7-step scale tighter than shadcn defaults. Body is 13px. The tokens
@@ -402,17 +409,24 @@ The integrator-facing restatement of the reserved bands lives in
 
 ## 6. Shapes: radius scale
 
-Five semantic radius tokens generate matching `rounded-vueda-*`
+The semantic radius tokens below generate matching `rounded-vueda-*`
 utilities. See `base.css § Semantic radius tokens`.
 
-| Token                     | Value  | Use                                              |
-| ------------------------- | ------ | ------------------------------------------------ |
-| `--vueda-control-radius`  | 2px    | buttons, inputs, selects, toggles, badges (slab) |
-| `--vueda-checkbox-radius` | 4px    | checkbox body, softer than control radius        |
-| `--vueda-card-radius`     | 4px    | cards, panels                                    |
-| `--vueda-modal-radius`    | 2px    | dialogs, sheets                                  |
-| `--vueda-pill-radius`     | 9999px | avatars; user-manipulated tags / chips           |
-| `--vueda-cal-day-radius`  | 2px    | calendar day-button corner (cell range fill)     |
+| Token                     | Value  | Use                                                                                   |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `--vueda-control-radius`  | 2px    | buttons, toggles, badges (slab)                                                       |
+| `--vueda-field-radius`    | 0      | text inputs, textareas, selects, date and time fields, tags inputs, combobox triggers |
+| `--vueda-checkbox-radius` | 4px    | checkbox body, softer than control radius                                             |
+| `--vueda-card-radius`     | 4px    | cards, panels                                                                         |
+| `--vueda-modal-radius`    | 2px    | dialogs, sheets                                                                       |
+| `--vueda-pill-radius`     | 9999px | avatars; user-manipulated tags / chips                                                |
+| `--vueda-cal-day-radius`  | 2px    | calendar day-button corner (cell range fill)                                          |
+
+Editable fields are square (`--vueda-field-radius`) while buttons keep the 2px
+slab. The corner is part of the "this is a different kind of control" signal, and
+it carries through to focus: a focus ring cannot take its own radius (`outline`
+and spread `box-shadow` both follow `border-radius`), so a focused field's ring is
+square while a button's `outline-offset` rounds its ring further.
 
 ### 6.1 Slab vs pill
 
@@ -458,6 +472,13 @@ Two LCD artifacts drive the choice:
   red / blue chromatic fringing. A wider hairline forces Skia to
   distribute colour across adjacent subpixels.
 
+Saturated edges (validation red, VUEDA blue) fringe far more than neutral
+ones. A saturated colour drives one subpixel channel hard; a grey drives all
+three evenly. Saturated edges also smear when a GPU sends YCbCr 4:2:2 or 4:2:0
+instead of full RGB. That output is common on 4K office monitors over HDMI.
+VUEDA targets business desktops where that setup is ordinary, so the hairline
+scale stays a deliberate workaround.
+
 The scale is smooth (steps of 0.25px) and the three tokens
 (`--vueda-hairline-width`, `--vueda-focus-ring-width`,
 `--vueda-focus-ring-offset`) move in lockstep, so the visual proportions
@@ -479,8 +500,10 @@ colour must be opaque (a transparent gap layer does not mask the ring
 shadow behind it). Default gap colour is `--background`; override per
 surface via `[--vueda-focus-ring-gap-color:var(--card)]` etc.
 
-`hairline-primary` and `hairline-foreground` cover accented and
-high-contrast button outlines. `hairline-destructive` swaps the painted
+`hairline-primary` covers accented button outlines. Neutral outlines rest on
+`hairline-border-strong` and darken to `hairline-foreground` on hover, so an
+outline chip reads as a control without outweighing the filled action beside
+it. `hairline-destructive` swaps the painted
 edge to destructive on `aria-invalid` controls. `aria-invalid` is the
 cross-cutting trigger (see § 8).
 
@@ -541,6 +564,12 @@ Surfaces that pair a coloured edge with a `box-shadow` ring (the
 `ModelActionForm` / `ViewDestroy` tone cards, the workflow-transition
 option) keep a `border-hairline` real edge so the ring keeps its own
 `box-shadow`.
+
+`tests/unit/lib/theme/hairlineBorderGuard.spec.js` enforces these
+exceptions. It fails on a raw `border` / `border-t` / `border-b` / etc. width
+utility in a theme slot or a component template. A slot with `rounded-full`,
+`border-dashed`, or a `border-*-transparent` spacer is exempt automatically.
+Any other exception needs an allowlist entry with its reason.
 
 ## 8. Cross-cutting attributes
 

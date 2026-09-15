@@ -16,7 +16,7 @@ To get started:
 
 - Run tests: `just test-client` (accepts extra vitest args, paths relative to `client/`)
 
-    **Testing scope:** this is a component library with no standalone dev app. "Test" means Vitest unit tests -- do not attempt to start a Vite dev server or verify components by rendering them in a browser. Unit tests are the only automated verification available. If something cannot be confirmed by a unit test, say so explicitly rather than trying to serve or scrape rendered output.
+    **Testing scope:** this is a component library with no standalone dev app. Vitest unit tests are the primary verification. For rendered or visual behavior (layout, borders, fonts, theme tokens), check the component in the docs site or in a consuming app, for example by screenshotting a running `just docs-serve`. When reporting, say which results came from unit tests and which from a rendered check.
 
 
     ```bash

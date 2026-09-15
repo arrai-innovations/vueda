@@ -34,7 +34,7 @@ describe("lib/controls/time-field/TimeField.vue", () => {
             const wrapper = mount(TimeField);
             const el = wrapper.find('[data-slot="time-field"]');
             expect(el.classes()).toContain("flex");
-            expect(el.classes()).toContain("rounded-vueda-control");
+            expect(el.classes()).toContain("rounded-vueda-field");
             expect(el.classes()).toContain("hairline");
         });
 
