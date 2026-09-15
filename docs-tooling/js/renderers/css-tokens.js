@@ -5,12 +5,8 @@
  *   theming/tokens.md                  -- group index page
  *   theming/tokens/<group-slug>.md     -- one page per group, with per-token anchors
  */
+import { cssTokenAnchor } from "../utils/reference-index.js";
 import { renderCodeInline, renderFrontmatter, renderHeading, renderTable, slugify } from "./markdown.js";
-
-function tokenAnchorId(name) {
-    // name is the full custom-property identifier, e.g. "--vueda-control-height".
-    return `css-token-${name.replace(/^--/, "")}`;
-}
 
 function tokenMemberId(name) {
     return `css-token:${name.replace(/^--/, "")}`;
@@ -67,7 +63,7 @@ function renderGroupPage(group, tokens) {
     lines.push(renderHeading(2, "Tokens"));
     lines.push("");
     for (const token of tokens) {
-        const anchorId = tokenAnchorId(token.name);
+        const anchorId = cssTokenAnchor(token.name);
         lines.push(`<a id="${anchorId}"></a>`);
         lines.push("");
         lines.push(renderHeading(3, token.name));

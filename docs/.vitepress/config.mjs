@@ -1,12 +1,15 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
-import { formatApiMemberTitle, memberNameFromId } from "../../docs-tooling/js/utils/reference-index.js";
+import {
+    formatApiMemberTitle,
+    memberAnchorFromId,
+    memberNameFromId,
+} from "../../docs-tooling/js/utils/reference-index.js";
 import {
     normalizeTerm,
     parseFrontmatter,
     parseTermRef,
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
-import { slugify } from "../../docs-tooling/js/utils/slugify.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
@@ -316,10 +319,7 @@ const buildApiIndex = () => {
                         continue;
                     }
                     const memberName = memberNameFromId(memberId);
-                    // slugify() falls back to "index" for an empty value, which suits a
-                    // file path but not an anchor. A bare theme-key id names the page
-                    // itself and has no member, so it takes the page href unchanged.
-                    const anchor = memberName ? slugify(memberName) : "";
+                    const anchor = memberAnchorFromId(memberId);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
                         title: formatApiMemberTitle(title, memberName),
