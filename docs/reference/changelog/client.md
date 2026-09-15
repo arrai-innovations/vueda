@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Time-range errors mark both bounds (`WidgetTimeRangeField`)**:
+    - A range validation error now sets `aria-invalid` on both the start and end controls, giving both the error border and destructive focus ring. Previously only the start control showed the range error.
+
 - **Tabular inline fields show validation messages (`FieldSetTabularInline`, `FormField`, `FieldRenderer`)**:
     - Errors and warnings now appear below each inline control in both table and card layouts. Table cells keep controls top-aligned and allow messages to wrap. Previously, the inline editor suppressed messages together with field labels.
     - `FormField` and `FieldRenderer` accept `hideLabel` to suppress only the label while retaining help and validation feedback. The existing `hidden` behavior is unchanged.

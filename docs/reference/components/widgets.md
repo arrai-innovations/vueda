@@ -6,6 +6,8 @@ type: reference
 ---
 
 <script setup>
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import WidgetTimeRangeField from "@vueda/widgets/WidgetTimeRangeField.vue";
 import { SHOWCASE_FIELD_TYPES } from "../../.vitepress/theme/fixtures/showcaseFieldTypes.js";
 </script>
 
@@ -52,6 +54,16 @@ widgets render two segment groups and a separator in one shell.
   </footer>
 </VuedaDemo>
 </ClientOnly>
+
+<VuedaDemo>
+  <DemoCard title="Time range: invalid">
+    <WidgetTimeRangeField :model-value="{ lower: '17:00:00', upper: '09:00:00' }" invalid />
+    <FieldMessage :messages="['End time must be later than start time.']" />
+    <template #footer>
+      <span>This specimen explicitly sets <code>invalid</code>; both bounds show the range error and use a destructive focus ring.</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
 
 ## Duration
 

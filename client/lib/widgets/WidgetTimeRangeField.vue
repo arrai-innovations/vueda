@@ -115,6 +115,7 @@ const theme = useTheme("WidgetTimeRangeField", props);
             :hour-cycle="hourCycle"
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_upper' : undefined"
+            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
             :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"
