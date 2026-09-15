@@ -114,7 +114,7 @@
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
-import { buildFilterFromQuery, filtersToParams } from "@vueda/use/useFilterForm.js";
+import { buildFilterFromQuery, filtersToParams, getFilterParams } from "@vueda/use/useFilterForm.js";
 import { useFilterables } from "@vueda/use/useFilterables.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -181,7 +181,7 @@ const VIEW_NAME = "list";
 /**
  * @typedef {object} ViewListListGroup
  * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`, `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
- * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state.
+ * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across visible-filter, sort, and search changes until the URL itself drops it.
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
@@ -241,7 +241,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListFilterGroup
  * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
- * @property {string[]} validFilterables - `filterables` narrowed to fields with a usable, non-hidden filter type; the field list a filter UI should render as addable/editable.
+ * @property {string[]} validFilterables - `filterables` narrowed to fields with a usable, non-hidden filter type; the field list a filter UI should render as addable/editable. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters`, but its URL value still reaches `list.listState.params` -- see `list.listState`.
  * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
  */
 
@@ -298,7 +298,7 @@ export function useViewList(options) {
     const route = useRoute();
     const restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...Object.keys(hiddenFilterParams.value)]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);
@@ -433,6 +433,54 @@ export function useViewList(options) {
             return detail && detail.typeFilter && !detail.hidden;
         });
     });
+    // Server-hidden filterables (e.g. the auto-injected `id__in` deep-link filter) have no
+    // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
+    // Read it with the same param-key resolution the editable filter form uses, so a hidden
+    // filter that declares suffixes would resolve to the same keys a visible one does.
+    const hiddenFilterables = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        return (filterablesState.filterables || []).filter((fieldName) => {
+            const detail = filterableDetails[fieldName];
+            return detail && detail.typeFilter && detail.hidden;
+        });
+    });
+    const rawHiddenFilterParams = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        const params = {};
+        for (const fieldName of hiddenFilterables.value) {
+            const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
+            for (const key of Array.isArray(paramKeys) ? paramKeys : [paramKeys]) {
+                const value = route.query[key];
+                if (value !== undefined && value !== null && value !== "") {
+                    params[key] = value;
+                }
+            }
+        }
+        return params;
+    });
+    // A fresh plain object every recomputation of `rawHiddenFilterParams` (any route.query change
+    // recomputes it, whether or not a hidden filter's own key is involved), guarded down to a
+    // stable reference here so it only actually changes -- and only then triggers the combined
+    // watch below -- when a hidden filter's value genuinely changes. Without this guard, an
+    // unrelated route.query change (e.g. the ordering param) would still swap in a new
+    // reference-unequal-but-content-equal object, spuriously re-running the combined watch and
+    // racing its route write against other query-driven watchers (e.g. sort) reading the same tick.
+    const hiddenFilterParams = ref({});
+    watch(
+        rawHiddenFilterParams,
+        (newValue) => {
+            if (!isEqual(hiddenFilterParams.value, newValue)) {
+                hiddenFilterParams.value = newValue;
+            }
+        },
+        { immediate: true },
+    );
+    // Seeds the initial request with whatever hidden-filter values the mount URL already
+    // carries; the combined watch below keeps this synchronized with later URL, sort, and
+    // visible-filter changes, including a hidden value dropping out through external navigation.
+    if (route.params?.action === VIEW_NAME) {
+        Object.assign(listState.params, hiddenFilterParams.value);
+    }
 
     const addedFilters = ref([]);
     // A fresh plain object every recomputation, driven by whatever `addedFilters` fields the
@@ -449,7 +497,7 @@ export function useViewList(options) {
     // clear and a filter clear landing in the same tick are combined into exactly one push instead
     // of separate writes racing to patch the same not-yet-applied query.
     watch(
-        [sentSorted, filterParams, toRef(listState, "search")],
+        [sentSorted, filterParams, toRef(listState, "search"), hiddenFilterParams],
         ([newSorted, newFilterParams, newSearch], oldValues) => {
             const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
             // Filter-derived effects -- the reset to page 1 and this change's contribution to
@@ -465,7 +513,11 @@ export function useViewList(options) {
                 listState.currentPage = 1;
             }
             if (onListView) {
-                assignReactiveObject(listState.params, newFilterParams, [
+                // Hidden filter values ride along on every write here rather than through their own
+                // preserved key: sourced from the URL alone, they need no query-side reconciliation
+                // (they already are the URL), only carrying forward into the request whenever this
+                // merge runs -- including when they alone changed, e.g. external navigation.
+                assignReactiveObject(listState.params, { ...newFilterParams, ...hiddenFilterParams.value }, [
                     ...Object.keys(options.params || {}),
                     ...alwaysParamsKeys,
                     SEARCH_PARAM,
@@ -613,6 +665,7 @@ export function useViewList(options) {
         () => {
             assignReactiveObject(listState.params, options.params, [
                 ...Object.keys(filtersToParams(addedFilters.value)),
+                ...Object.keys(hiddenFilterParams.value),
                 ...alwaysParamsKeys,
             ]);
         },

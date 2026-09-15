@@ -1057,6 +1057,159 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("applies a server-hidden filter's URL value to the initial list request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt("applies a server-hidden filter's URL value once model metadata loads after mount", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const filterables = modelConfig.config.filterables;
+            const filterableDetails = modelConfig.config.filterableDetails;
+            modelConfig.loading = true;
+            modelConfig.config.filterables = [];
+            modelConfig.config.filterableDetails = {};
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+
+            modelConfig.loading = false;
+            modelConfig.config.filterables = filterables;
+            modelConfig.config.filterableDetails = filterableDetails;
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a visible filter change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", category: "widgets" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("excludes a server-hidden filter's value from the saved filter preference", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets" },
+            );
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "preserves a server-hidden filter's request param through editing a visible filter's value",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                route.query = { id: "1,2", category: "widgets" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+                wrapper.vm.filter.state.addedFilters[0].value = "gadgets";
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "gadgets" });
+                expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", category: "gadgets" } });
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("preserves a server-hidden filter's request param through clearing a visible filter", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2", category: "widgets" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(wrapper.vm.list.listState.params.category).toBeUndefined();
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a sort change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", [ORDERING_PARAM]: "name" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a search change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.search.searchSlotProps.updateListSearch("widgets");
+            wrapper.vm.search.filterList();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", [SEARCH_PARAM]: "widgets" });
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", [SEARCH_PARAM]: "widgets" } });
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "removes a server-hidden filter's request param once external navigation drops it from the URL",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                route.query = { id: "1,2" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+                route.query = {};
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+                wrapper.unmount();
+            },
+        );
+
         scopedIt("re-restores when the route query changes externally (e.g. browser navigation)", async () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
