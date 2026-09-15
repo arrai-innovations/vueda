@@ -162,6 +162,8 @@ python manage.py updateworkflowmigrations myapp
 
 A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. Changes are added to, never removed or altered: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. Running the command twice makes no further difference.
 
+Working out what a code meant when a change was recorded means ordering the dates that migrations record against each other, and every date a generated migration records carries a time zone. A date without one reached the file by hand, so the command reports the file and reads that date as UTC, which is what the generated dates hold. The date in the file is left exactly as it was written.
+
 If the command cannot read a migration's `changed_data` — the file has a syntax error, or has been altered so that it no longer runs on its own — it skips that file and reports it, and finishes with a failure. A skipped file is left exactly as it was, imports and functions included, because a file the command cannot read is one it cannot update safely. Fix the file by hand, then run the command again.
 
 The following are preserved exactly as written in each migration file:
