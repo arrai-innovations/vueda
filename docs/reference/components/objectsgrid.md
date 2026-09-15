@@ -8,8 +8,16 @@ type: reference
 <script setup>
 import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import FieldPickerMenuList from "@vueda/display/field-picker/FieldPickerMenuList.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faEllipsis, faPen } from "@fortawesome/free-solid-svg-icons";
+import { ref } from "vue";
+
+const pickerFields = [
+    "Name", "Slug", "SKU", "Category", "Supplier", "Unit Price", "Weight", "Warranty Period",
+    "Is Active", "Release Date", "Created At", "Updated At",
+].map((label) => ({ label, value: label }));
+const pickedField = ref("");
 
 const fields = [
     { name: "account", label: "Account" },
@@ -153,6 +161,29 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Could not load accounts." empty-variant="error" table-breakpoint="xs" />
       </ClientOnly>
     </div>
+  </DemoCard>
+</VuedaDemo>
+
+## Field picker menus
+
+The Sort and Filters controls use {@api vue:component:FieldPickerMenuList} for their
+available fields. Long lists keep a scrollbar visible even before hovering or scrolling;
+short lists fit their content without a scrollbar. The list height is capped at 15rem.
+The same list appears in the desktop popover and mobile dialog.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="long field list">
+    <FieldPickerMenuList :items="pickerFields" eyebrow="Add sort" @pick="pickedField = $event" />
+    <template #footer>
+      <span>scrollbar stays visible while fields overflow</span>
+      <span>{{ pickedField ? `Picked: ${pickedField}` : "Pick any field" }}</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="short field list">
+    <FieldPickerMenuList :items="pickerFields.slice(0, 3)" eyebrow="Add sort" @pick="pickedField = $event" />
+    <template #footer>
+      <span>no scrollbar when all fields fit</span>
+    </template>
   </DemoCard>
 </VuedaDemo>
 

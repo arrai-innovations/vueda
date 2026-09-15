@@ -1,4 +1,5 @@
 <script setup>
+import ScrollArea from "@vueda/shell/scroll-area/ScrollArea.vue";
 import "@vueda/theme/vueda-tailwind/display/FieldPickerMenuList.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -52,7 +53,7 @@ const icon = useIcons("FieldPickerMenuList", props);
 
 <template>
     <div :class="theme('eyebrow')">{{ eyebrow }}</div>
-    <div :class="theme('list')">
+    <ScrollArea type="auto" :theme-override="{ ScrollArea: { viewport: { class: theme('list') } } }">
         <button
             v-for="opt in items"
             :key="opt.value"
@@ -73,5 +74,5 @@ const icon = useIcons("FieldPickerMenuList", props);
         <div v-if="!items.length" :class="theme('empty')" :data-qa="`${qa}-empty`">
             {{ emptyText }}
         </div>
-    </div>
+    </ScrollArea>
 </template>

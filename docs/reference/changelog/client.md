@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Filter and sort field lists show when more fields are available (`FieldPickerMenuList`)**:
+    - Overflowing field lists now keep a scrollbar visible, including on systems that hide native scrollbars. Short lists still fit their content without a scrollbar. The existing `list` theme key styles the scroll viewport.
+
 - **Sort-chip hover follows the visible controls (`SortChip`)**:
     - The label's hover fill now rounds its right edge when the remove control is hidden. A single active sort therefore has a fully rounded hover fill instead of a square right edge.
 
