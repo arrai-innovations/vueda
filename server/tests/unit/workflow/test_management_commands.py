@@ -2635,6 +2635,20 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
                 [*self.expected_base_workflow_changes(), *self.expected_round_that_deletes()],
             )
 
+            # The whole of one change, rather than the row it names. A workflow is recorded by its
+            # code, by the content type it was written for, and by the app and model that outlive
+            # that content type, and the date is the moment the write was really recorded.
+            first_change = first_migration.changed_data[0]
+            assert first_change["changes"] == {
+                "code": self.WORKFLOW_CODE,
+                "content_type_id": {"app_label": "workflow_reused_codes", "model": "workflowreusedcodes"},
+                "historical_app_label": "workflow_reused_codes",
+                "historical_model": "workflowreusedcodes",
+                "id": self.workflow_id(),
+                "name": "Reused Codes Workflow",
+            }, first_change
+            assert isinstance(first_change["history_date"], datetime.datetime)
+
             # Round two: the same codes added, modified, and removed again.
             self.add_state_and_transition(workflow, permission, group)
             self.rename_transition(workflow, "Two")
@@ -2698,6 +2712,19 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
                 self.expected_round_that_takes_over_codes(),
                 previous_migration=third_migration,
             )
+
+            # Every round is captured by a migration now, so a further run has nothing left to find.
+            succeeded, results = self.call_command(
+                "makeworkflowmigrations", "workflow_reused_codes", "--import-instead"
+            )
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            if "No workflow changes detected." not in "".join(results):
+                problems.append(
+                    "a run with every round already captured still found changes to generate:\n    "
+                    + "".join(results).strip()
+                )
 
             # Nothing has replayed any of this yet: the rounds were edits, and no generated migration
             # has been applied. Unapplying the app takes the workflow with it, so the generated
