@@ -1591,16 +1591,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [],
             "expected_fields": {
                 "object_revision": {
@@ -3248,16 +3239,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [
                 {
                     "name": "product_option",

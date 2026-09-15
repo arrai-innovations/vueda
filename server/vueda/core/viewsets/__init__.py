@@ -29,6 +29,7 @@ from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django.http import Http404
 from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
@@ -51,6 +52,7 @@ from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
+from vueda.core.utils import AvailableActionsRequest
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
@@ -58,6 +60,29 @@ from vueda.history.queries import events_in_groups
 from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
+
+
+class _RetrieveActionView:
+    """
+    Presents ``action = "retrieve"`` to a permission check, delegating every other attribute
+    (``get_queryset()`` included) to the wrapped viewset unchanged.
+
+    A permission class reads ``view.action`` to decide which named permission a ``GET`` request
+    needs -- ``list`` or ``read``. Wrapping the view this way lets :meth:`VuedaViewSet._read_permitted`
+    check read authorization as an ordinary retrieve, independently of whatever action the
+    surrounding response is actually for, without mutating the viewset's own ``action`` attribute.
+    ``get_queryset()``, reached through this wrapper, still runs as a bound method of the wrapped
+    viewset and reads that viewset's real ``action``, so it keeps building whatever queryset the
+    actual request would have built.
+    """
+
+    action = "retrieve"
+
+    def __init__(self, viewset):
+        self._viewset = viewset
+
+    def __getattr__(self, name):
+        return getattr(self._viewset, name)
 
 
 class WarningConfirmationMixin:
@@ -1001,12 +1026,59 @@ class VuedaViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``history_list`` is additionally gated on read authorization here, so neither model
+        metadata nor an object's own action list advertises a history endpoint the direct request
+        would refuse with a 403. Every other extra action is offered unconditionally, same as
+        before -- this is a read gate for history discovery, not a general extra-action
+        permission system.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
+            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
+                continue
             allowed_actions.add(extra_action.url_name)
 
         return allowed_actions
+
+    def _read_permitted(self, request, instance):
+        """
+        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
+        is ``None`` -- through this viewset's own configured permission classes.
+
+        Checked as an ordinary "retrieve" read over ``GET``, regardless of the HTTP method or
+        action that produced the response this feeds into: an update response does not check
+        history using update permission, and a list response does not substitute list permission
+        for read. ``instance=None`` decides model-scope discovery through ``has_permission``
+        alone, the same model-level check a CRUD action's own discovery uses, which is what lets a
+        matching workflow-state grant settle a model-level denial without scanning any row. An
+        object's own action list instead decides through ``has_object_permission``, which folds in
+        row-level and per-object workflow-state rules for that specific object.
+
+        ``request`` is ``None`` when there is no request to authorize against (for example,
+        schema generation building metadata without a live requester), in which case every other
+        action discovery path in this module leaves its result unfiltered, and this does the same.
+        """
+        if request is None:
+            return True
+
+        fake_request = AvailableActionsRequest(
+            method="GET",
+            user=request.user,
+            authenticators=request.authenticators,
+            successful_authenticator=request.successful_authenticator,
+        )
+        read_view = _RetrieveActionView(self)
+
+        try:
+            if instance is None:
+                return all(permission.has_permission(fake_request, read_view) for permission in self.get_permissions())
+            return all(
+                permission.has_object_permission(fake_request, read_view, instance)
+                for permission in self.get_permissions()
+            )
+        except (PermissionDenied, Http404):
+            return False
 
     def get_object(self):
         """
@@ -1082,6 +1154,11 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
+        unconditionally, including no read gate for ``history_list``: that action is defined only
+        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
+        nothing for a read gate to filter.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():

@@ -371,6 +371,10 @@ public-facing documentation baseline.
     - `_unwrap_expandable_field()` no longer indexes an empty tuple. An `expandable_fields` entry written as `()` crashed `check_exclude_fields_serializer_usage` with `IndexError` instead of letting the check finish. The entry now resolves to no child, so traversal passes over it and `check_expandable_fields_configuration` reports it as `vueda_core.E002`.
       _A project that registers a serializer for metadata alone may see new `vueda_core.E001` to `vueda_core.E008` errors from `manage.py check`. Each one names a configuration fault that would otherwise surface as a request-time failure._
 
+- **`history-list` availability follows read authorization**:
+    - Model metadata and an object's own `available_actions` now report `history-list` only when the requester can read the underlying model or object, checked through the viewset's own configured permission classes -- including workflow-state grants and denials -- as an ordinary read, regardless of the HTTP method or action that produced the response. `VuedaViewSet.get_allowed_extra_actions` previously offered every extra action unconditionally, so a requester with `list` permission alone, or with no permission at all on a tracked model, could see `history-list` in model metadata or an object's own `available_actions` even though that requester's direct request to the same history endpoint already returned `403`. That direct request's own authorization is unchanged by this fix; only what a client is told exists to request is corrected.
+      _No integrator action. A client that filtered `available_actions`/`model_actions` down to what it could actually use may now see a shorter list; nothing that previously succeeded now fails._
+
 ## v3.0.0a0 (2026-05-27)
 
 ### Migration Summary
