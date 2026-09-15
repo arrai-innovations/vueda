@@ -9,6 +9,7 @@ type: reference
 import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import FieldPickerMenuList from "@vueda/display/field-picker/FieldPickerMenuList.vue";
+import TabularInlineDemo from "../../.vitepress/theme/components/TabularInlineDemo.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faEllipsis, faPen } from "@fortawesome/free-solid-svg-icons";
 import { ref } from "vue";
@@ -161,6 +162,24 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
         <ObjectsGrid :objects-in-order="[]" :fields="compactFields" empty-text="Could not load accounts." empty-variant="error" table-breakpoint="xs" />
       </ClientOnly>
     </div>
+  </DemoCard>
+</VuedaDemo>
+
+## Tabular inline editing
+
+{@api vue:component:FieldSetTabularInline} embeds an editable ObjectsGrid in its own
+fieldset. The fieldset owns the outer edge and the separator above help and validation
+messages; the embedded grid adds no second frame. Narrow screens switch the rows to cards.
+
+<VuedaDemo>
+  <DemoCard title="tabular inline contacts">
+    <ClientOnly>
+      <TabularInlineDemo />
+    </ClientOnly>
+    <template #footer>
+      <span>one fieldset frame, with a single separator above the help panel</span>
+      <span>edit or add contacts; changes stay in the demo</span>
+    </template>
   </DemoCard>
 </VuedaDemo>
 

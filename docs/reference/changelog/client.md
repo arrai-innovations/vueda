@@ -14,6 +14,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ## v3.0.0-alpha.2 (unreleased)
 
+- **Inline grids share their fieldset's edge (`ObjectsGrid`)**:
+    - Grids beneath a `data-flush` ancestor now remove their inset hairline as well as their corner radius. Tabular inline fields no longer draw a second frame inside the fieldset; the fieldset retains its outer edge and help-panel separator.
+
 - **Filter and sort field lists show when more fields are available (`FieldPickerMenuList`)**:
     - Overflowing field lists now keep a scrollbar visible, including on systems that hide native scrollbars. Short lists still fit their content without a scrollbar. The existing `list` theme key styles the scroll viewport.
 

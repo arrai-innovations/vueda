@@ -14,7 +14,7 @@ patchTheme({
      * state, row states, card layout, and row-action affordances.
      */
     ObjectsGrid: {
-        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` strips the embedded grid's border and radius so only the parent container's edge remains visible. */
+        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and any separators around the grid. */
         root: {
             class: [
                 "max-w-full overflow-x-auto",
@@ -22,8 +22,8 @@ patchTheme({
                 "[font-variant-numeric:tabular-nums_slashed-zero]",
                 // Flush variant: an ancestor stamps `data-flush="true"` (e.g. FieldSetTabularInline.body)
                 // to merge the grid into a parent card without doubling borders. Drop the rounded edge
-                // and side/top borders, keep a single bottom hairline as the seam to chrome below.
-                "[[data-flush]_&]:rounded-none [[data-flush]_&]:border-x-0 [[data-flush]_&]:border-t-0",
+                // and inset hairline; the parent owns the outer edge and feedback-panel separator.
+                "[[data-flush]_&]:rounded-none [[data-flush]_&]:shadow-none",
             ],
         },
         /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout. */
