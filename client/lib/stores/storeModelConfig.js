@@ -259,7 +259,43 @@ const mergeSimpleProperties = (
 };
 
 /**
- * Merge and flatten expansion details into fieldDetails using double-underscore keys.
+ * Reject a `submitFields` entry (including one inherited from the `fields` shorthand) that names
+ * an expand-flattened display field.
+ *
+ * `flattenExpansionDetails` only ever produces a dotted `expandName.subFieldName` entry for
+ * display and fetch purposes: it flattens whatever DRF-flex-fields expands for reading, and VUEDA
+ * has no mechanism to submit a nested value back through it. Writable nested data goes through a
+ * writable inline/array field instead, addressed by the expand's own plain name — never by one of
+ * its flattened dotted children — so a dotted `submitFields` entry whose prefix names an expanded
+ * field is always a misconfiguration rather than a legitimate way to submit a nested value.
+ *
+ * @param {ModelConfig} builtConfig - The built configuration, read for `expand` and `submitFields`.
+ * @param {{app: string, model: string}} args - Identifies the model being configured, for the error message.
+ * @throws {Error} If `submitFields` names an expand-flattened display field.
+ */
+const validateSubmitFields = (builtConfig, args) => {
+    const expandNames = new Set(builtConfig.expand || []);
+    if (!expandNames.size) {
+        return;
+    }
+
+    const invalidFields = (builtConfig.submitFields || []).filter((fieldName) => {
+        const dotIndex = fieldName.indexOf(".");
+        return dotIndex !== -1 && expandNames.has(fieldName.slice(0, dotIndex));
+    });
+
+    if (invalidFields.length) {
+        throw new Error(
+            `submitFields for ${args.app}.${args.model} names expand-flattened display field(s): ` +
+                `${invalidFields.join(", ")}. VUEDA does not support submitting a nested value through a ` +
+                'flattened display field. Remove them from submitFields (or the shared "fields" shorthand), ' +
+                "and use a writable inline/array field for anything the form must submit.",
+        );
+    }
+};
+
+/**
+ * Merge and flatten expansion details into fieldDetails using dotted keys.
  *
  * This function processes expandable field configurations by combining the expandDetails
  * from various configuration sources and then mapping them into the fieldDetails object.
@@ -279,8 +315,10 @@ const mergeSimpleProperties = (
  *
  *    b. Iterate over each sub-field defined in the merged expandDetails.f.
  *       For each sub-field, a flattened key is created using the pattern
- *       "expandName__subFieldName". The default configuration for this sub-field comes
- *       from the merged expandDetails.f, and any custom overrides provided via
+ *       "expandName.subFieldName" — the same dotted form the server reports for `f`/`e`/`o` and
+ *       filters, so a field an integrator overrides through `fieldComponents`/`sortables`/etc.
+ *       matches the name the server and the URL both use. The default configuration for this
+ *       sub-field comes from the merged expandDetails.f, and any custom overrides provided via
  *       customGenericConfig.fieldDetails or customSpecificConfig.fieldDetails for that key
  *       are merged in.
  *
@@ -352,7 +390,7 @@ const flattenExpansionDetails = (
         fieldDetails[expandName] = cloneDeep(omit(newExpandDetails, ["f"]));
 
         for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f || {})) {
-            const expandedFieldName = `${expandName}__${fieldName}`;
+            const expandedFieldName = `${expandName}.${fieldName}`;
             // any defaults are replaced by the expand details
             // but custom overrides are still merged
             const customGenericFieldDetails = customGenericConfig?.fieldDetails?.[expandedFieldName] || {};
@@ -571,6 +609,7 @@ export const storeModelConfig = defineStore("modelConfig", {
                     defaultSpecificConfig,
                     customSpecificConfig,
                 );
+                validateSubmitFields(builtConfig, args);
 
                 mergeDeepProperties(
                     builtConfig,
