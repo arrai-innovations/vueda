@@ -55,7 +55,7 @@ For how to change any of this, see [Customize VUEDA Appearance](../../guides/cus
 
 ## Table Layout
 
-The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle`. The 56 px row height is the legacy source default. The demo forces table mode with `tableBreakpoint="xs"`.
+The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle`. The 56 px row height is the legacy source default. Rows divide from each other with a hairline on their cells, and the header band divides from the first data row the same way. The last row drops its divider, so the root edge closes the grid. {@api theme-key:ObjectsGrid} `table` fills the root and uses the separated border model, which does not paint borders on rows or row groups; that is why the dividers sit on cells. The demo forces table mode with `tableBreakpoint="xs"`.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -86,6 +86,7 @@ The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overf
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span class="whitespace-nowrap">header: <code>ObjectsGridTableHeader</code></span>
     <span class="whitespace-nowrap">cells: <code>ObjectsGridBodyCell</code> · default <code>h-[3.5rem] px-1 lg:px-2</code></span>
+    <span class="whitespace-nowrap">dividers: <code>[&amp;>*]:border-b-hairline</code> on each row's cells</span>
     <span class="whitespace-nowrap">sorting: driven by toolbar controls outside the grid</span>
   </footer>
 </VuedaDemo>
