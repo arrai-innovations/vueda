@@ -1,6 +1,7 @@
 import { mockLifecycle, mockProvideInject, scopedIt, testWatches } from "@tests/unit/utils.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { ServerFeedbackError } from "@vueda/utils/errors.js";
+import { toFlatValuePath } from "@vueda/utils/formValuePath.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -497,7 +498,7 @@ describe("lib/use/useForm.js", () => {
                         },
                     });
 
-                    const result = formContext.getFirstErrorField(["tags", "tags__label"], ["tags"]);
+                    const result = formContext.getFirstErrorField(["tags", "tags.label"], ["tags"]);
                     expect(result).toBe("tags[1]");
                 });
 
@@ -509,11 +510,11 @@ describe("lib/use/useForm.js", () => {
                         },
                     });
 
-                    const result = formContext.getFirstErrorField(["tags", "tags__label"], ["tags"]);
+                    const result = formContext.getFirstErrorField(["tags", "tags.label"], ["tags"]);
                     expect(result).toBe("tags[2].label");
                 });
 
-                scopedIt("should resolve field__child to parent.child in array (e.g., items[0].description)", () => {
+                scopedIt("should resolve field.child to parent.child in array (e.g., items[0].description)", () => {
                     const { formContext } = getForm({
                         initialValues: {},
                         testErrors: {
@@ -521,12 +522,12 @@ describe("lib/use/useForm.js", () => {
                         },
                     });
 
-                    const result = formContext.getFirstErrorField(["items", "items__description"], ["items"]);
+                    const result = formContext.getFirstErrorField(["items", "items.description"], ["items"]);
                     expect(result).toBe("items[0].description");
                 });
 
                 scopedIt(
-                    "should not fail on parentless child field__child to parent.child in array (e.g., items[0].description)",
+                    "should not fail on parentless child field.child to parent.child in array (e.g., items[0].description)",
                     () => {
                         const { formContext } = getForm({
                             initialValues: {},
@@ -535,7 +536,7 @@ describe("lib/use/useForm.js", () => {
                             },
                         });
 
-                        const result = formContext.getFirstErrorField(["fake__description"], ["fake"]);
+                        const result = formContext.getFirstErrorField(["fake.description"], ["fake"]);
                         expect(result).toBeNull();
                     },
                 );
@@ -580,6 +581,18 @@ describe("lib/use/useForm.js", () => {
                 scopedIt("should require a name", () => {
                     const { formContext } = getForm({});
                     expect(() => formContext.updateValue()).toThrow("No name provided");
+                });
+                scopedIt("should not nest a dotted filter/expand field name given as a flat value path", () => {
+                    // `useFieldRenderer`'s `fieldValuePath` wraps a dotted, non-fieldset field's
+                    // identity (a related filter, an expand-flattened display field) in lodash's
+                    // bracket-quoted path syntax before handing it here, so a name like
+                    // "employee.name" must land as one flat key, not a nested `employee` object.
+                    const { formContext } = getForm({});
+
+                    formContext.updateValue(toFlatValuePath("employee.name"), "Bob");
+
+                    expect(formContext.state.values).toEqual({ "employee.name": "Bob" });
+                    expect(formContext.state.values.employee).toBeUndefined();
                 });
                 scopedIt("should update an existing value", async () => {
                     const { formContext } = getForm({
