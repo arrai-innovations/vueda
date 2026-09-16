@@ -274,6 +274,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             ("timesheet", "Timesheet", "update"),
             ("timesheet", "Timesheet", "read"),
         ],
+        "Timesheet Override Denied": [],
     }
 
     users_to_create: ClassVar[dict] = {
@@ -301,6 +302,11 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             "name": "Updater Reader",
             "password": "testpass",
             "groups": ["Timesheet Updater And Reader Only"],
+        },
+        "updater_reader_denied@domain.invalid": {
+            "name": "Updater Reader Denied",
+            "password": "testpass",
+            "groups": ["Timesheet Updater And Reader Only", "Timesheet Override Denied"],
         },
     }
 
@@ -390,3 +396,26 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         assert "update" in actions
         assert "retrieve" in actions
         assert "list" not in actions
+
+    def test_a_viewsets_check_object_permissions_override_is_honoured_by_discovery(self, api_client, timesheet):
+        """
+        Reproduces PR #288's review: object-action discovery must decide through the viewset's own
+        ``check_object_permissions`` hook, not through its permission classes alone, so a viewset
+        that overrides that hook to add its own object-level rules is honoured in ``available_actions``
+        the same way it is already honoured for the live request. ``TimesheetViewSet`` denies a
+        ``Timesheet Override Denied`` member's write past what ``update_timesheet`` alone would allow.
+        """
+        api_client.force_authenticate(user=self.users["updater_reader_denied@domain.invalid"])
+
+        actions = self.detail_actions(api_client, timesheet)
+
+        assert "retrieve" in actions
+        assert "update" not in actions
+        assert "partial_update" not in actions
+
+        response = api_client.patch(
+            reverse("timesheet.timesheet-detail", kwargs={"pk": timesheet.pk}),
+            format="json",
+            data={"period_start": "2024-02-17"},
+        )
+        self.assert_response(response, 403)

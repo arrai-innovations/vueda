@@ -72,8 +72,10 @@ def check_action_permission(viewset, request, instance, action) -> bool:
     ``instance=None`` decides through ``has_permission`` alone, the model-level check, which lets
     a matching workflow-state grant settle a model-level denial without scanning any row
     (:func:`has_matching_state_grant`). A specific ``instance`` instead decides through
-    ``has_object_permission``, which folds in row-level and per-object workflow-state rules for
-    that object.
+    ``viewset.check_object_permissions``, the same hook the endpoint itself calls to enforce the
+    request, so a viewset that overrides that hook to add its own object-level rules is honoured
+    here too, not only at the endpoint. It folds in row-level and per-object workflow-state rules
+    for that object either way.
 
     ``request`` is ``None`` when there is no request to authorize against (for example, schema
     generation building metadata without a live requester); every caller of this function leaves
@@ -114,10 +116,13 @@ def check_action_permission(viewset, request, instance, action) -> bool:
                 permission.has_permission(fake_request, action_view) for permission in viewset.get_permissions()
             )
         else:
-            permitted = all(
-                permission.has_object_permission(fake_request, action_view, instance)
-                for permission in viewset.get_permissions()
-            )
+            # Bound to `action_view`, not `viewset`, so a viewset override of
+            # `check_object_permissions` still runs -- and still sees `action` as the action under
+            # test, not whatever action the surrounding response is actually for -- while a nested
+            # call the override or the default implementation makes, such as `get_queryset()`,
+            # still runs against `viewset` itself and its real `action` (see `ActionView`).
+            type(viewset).check_object_permissions(action_view, fake_request, instance)
+            permitted = True
     except (exceptions.PermissionDenied, Http404):
         permitted = False
 

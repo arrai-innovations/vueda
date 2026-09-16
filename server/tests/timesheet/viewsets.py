@@ -1,4 +1,5 @@
 from django.db.models import Prefetch
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from tests.timesheet import filtersets
@@ -13,6 +14,19 @@ class TimesheetViewSet(VuedaViewSet):
     serializer_class = serializers.TimesheetSerializer
     filterset_class = filtersets.TimesheetFilterSet
     permit_list_expands = ["employee", "supervisor"]
+
+    def check_object_permissions(self, request, obj):
+        """
+        Denies a write the configured permission classes alone would allow, for a group no other
+        test puts a user in, so this stays inert everywhere ``TimesheetViewSet`` is otherwise used.
+
+        Exists to prove that object-action discovery (``check_action_permission``) honours a
+        viewset's own override of this hook, not just its permission classes -- the same
+        assumption the endpoint itself relies on when enforcing the real request.
+        """
+        super().check_object_permissions(request, obj)
+        if request.method in ("PUT", "PATCH") and request.user.groups.filter(name="Timesheet Override Denied").exists():
+            raise PermissionDenied()
 
 
 class TimesheetWithAliasedSupervisorViewSet(viewsets.VuedaViewSet):
