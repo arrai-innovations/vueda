@@ -1281,7 +1281,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     model_field = model_fields[-1]
 
                 # Label
-                declared_filter = declared_filters.get(filter_name)
+                #
+                # Keyed by the name the filter was declared under, not by `filter_name`:
+                # `PublicFilterAliasMixin` may have renamed the instance's copy to a dotted public
+                # name that names nothing in `base_filters`, which is still keyed the way the class
+                # declared it.
+                declared_name = getattr(filter_obj, "vueda_declared_filter_name", filter_name)
+                declared_filter = declared_filters.get(declared_name)
                 label = self.get_model_filtering_label(
                     filter_obj, model, declared_filter.label if declared_filter is not None else None
                 )

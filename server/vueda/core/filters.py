@@ -10,6 +10,7 @@ __all__ = (
     "IdInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
+    "PublicFilterAliasMixin",
     "VuedaCompositePrimaryKeyFilterSet",
     "VuedaFilterSet",
     "VuedaOrderingFilter",
@@ -49,6 +50,7 @@ from vueda.core.ordering import ordering_term_distinct_column
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
 from vueda.core.paths import join_ordering_direction
+from vueda.core.paths import orm_filter_path_to_public
 from vueda.core.paths import orm_ordering_path_to_public
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import reject_wildcard
@@ -151,15 +153,51 @@ class FormattedNamePathFilterSetMixin:
             filter_.vueda_declared_field_name = declared_field_name
 
 
+class PublicFilterAliasMixin:
+    """
+    Gives every declared filter a dotted public name, distinct from the name django-filter binds it
+    under internally.
+
+    A filter's own name can't be dotted to begin with: it is either a Python identifier (a class
+    attribute) or a ``__``-joined ``Meta.fields`` entry, and neither grammar can hold a literal
+    ``.``. The public name is derived from it by default — every ``__`` becomes a ``.``, the same
+    translation ``VuedaOrderingFilter`` applies to a path, so a filter reached through a relation
+    (``customer__formatted_name``, or the ``customer__formatted_name__icontains`` django-filter
+    itself builds for a ``Meta.fields`` lookup) is reachable under the same dotted name that path
+    would take in ``?o=`` or an expand — ``customer.formatted_name`` — with no configuration at all.
+    A declared name with no ``__`` in it (``distributor``, or an ordinary ``Meta.fields`` entry
+    without a lookup suffix) has nothing to translate and keeps its own name as its public one.
+
+    The declared name is remembered as ``vueda_declared_filter_name``, the way
+    ``FormattedNamePathFilterSetMixin`` remembers a rewritten ``field_name``, so metadata and error
+    messages can still refer to how the filter was written. It stops being a recognized query
+    parameter once renamed: nothing here keeps accepting it alongside the dotted one.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for declared_name in list(self.filters):
+            public_name = orm_filter_path_to_public(declared_name)
+            if public_name == declared_name:
+                continue
+
+            filter_ = self.filters.pop(declared_name)
+            filter_.vueda_declared_filter_name = declared_name
+            self.filters[public_name] = filter_
+
+
 class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
-class VuedaFilterSet(FormattedNamePathFilterSetMixin, IdInFilterSet):
+class VuedaFilterSet(PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, IdInFilterSet):
     pass
 
 
-class VuedaCompositePrimaryKeyFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
+class VuedaCompositePrimaryKeyFilterSet(
+    PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, rest_framework.FilterSet
+):
     """
     We can't have a default 'pk' filter.
     We would want filters for each field that combines to make the pk.

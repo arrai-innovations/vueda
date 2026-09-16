@@ -137,9 +137,7 @@ class TestModelViewsetAndOrderingFieldsOrdering:
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
 
-    def test_explicit_ordering_param_on_disallowed_field_falls_back_to_viewset_default(
-        self, product_ordering_data, api_client, settings
-    ):
+    def test_explicit_ordering_param_on_disallowed_field_is_rejected(self, product_ordering_data, api_client, settings):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
 
         user = product_ordering_data.users["test_admin@domain.invalid"]
@@ -151,10 +149,42 @@ class TestModelViewsetAndOrderingFieldsOrdering:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        # available_for_sale isn't in ordering_fields, so OrderingFilter ignores it and falls back
-        # to the viewset's default ordering, same as when no `?o=` is passed at all.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        # available_for_sale isn't in ordering_fields, so the whole request is rejected rather than
+        # silently falling back to the viewset's default ordering.
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    def test_a_mix_of_valid_and_invalid_ordering_terms_is_rejected_atomically(
+        self, product_ordering_data, api_client, settings
+    ):
+        """A request naming one valid term alongside an invalid one is rejected in full: none of it is
+        applied, rather than ordering by the valid term with the invalid one dropped."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "name,available_for_sale"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    def test_a_wildcard_ordering_term_is_rejected(self, product_ordering_data, api_client, settings):
+        """Ordering has no "every field" meaning the way `f`/`e` do, so a wildcard names nothing."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "*"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db
@@ -535,10 +565,9 @@ class TestOrderingLabelledOrderingFields:
             format="json",
         )
 
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        # Ignored like any other unrecognized `?o=` value, falling back to `ordering = ["-name"]`.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        # Unrecognized like any other invalid `?o=` value: the request is rejected rather than
+        # falling back to `ordering = ["-name"]`.
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db
@@ -620,7 +649,7 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
         # works here because that name happens to coincide with its source.
         assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
 
-    def test_explicit_ordering_param_on_serializer_field_with_explicit_source_falls_back_to_viewset_default(
+    def test_explicit_ordering_param_on_serializer_field_with_explicit_source_is_rejected(
         self, product_ordering_data, api_client, settings
     ):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_source_field"
@@ -634,14 +663,13 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         # ProductOrderingSourceFieldViewSet's serializer exposes Product.name as "title" via an
         # explicit source="name", with no matching annotation. DRF resolves valid ordering keys by
         # each field's source ("name"), not its exposed name, so "title" itself isn't recognized and
-        # OrderingFilter falls back to the viewset default.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        # the request is rejected rather than falling back to the viewset default.
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
-    def test_explicit_ordering_param_on_serializer_field_sourced_from_model_property_falls_back_to_viewset_default(
+    def test_explicit_ordering_param_on_serializer_field_sourced_from_model_property_is_rejected(
         self, product_ordering_data, api_client, settings
     ):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_property_field"
@@ -655,12 +683,11 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         # ProductOrderingPropertyFieldViewSet's serializer exposes the model property
         # Product.computed_title as "title". DRF's default resolution explicitly strips any
         # serializer field whose source names a model property, rather than resolving it under a
-        # different name, so OrderingFilter falls back to the viewset default.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        # different name, so the request is rejected rather than falling back to the viewset default.
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 class CartOrderingTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -876,9 +903,7 @@ class TestOrderingParamOnPKAliasThatIsNotDeclared:
     name, and never "pk".
     """
 
-    def test_explicit_pk_ordering_param_falls_back_to_the_viewset_default(
-        self, product_ordering_data, api_client, settings
-    ):
+    def test_explicit_pk_ordering_param_is_rejected(self, product_ordering_data, api_client, settings):
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering"
 
         user = product_ordering_data.users["test_admin@domain.invalid"]
@@ -890,10 +915,9 @@ class TestOrderingParamOnPKAliasThatIsNotDeclared:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        # Silently ignored, like any other field outside the valid set, so the rows arrive in the
+        # Rejected like any other field outside the valid set, rather than falling back to the
         # viewset's own default order.
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db
@@ -1277,10 +1301,11 @@ class TestOrderingParamOnRelatedFormattedName:
         user = cart_ordering_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        # The name the client sends is the one `model_ordering` reports, not the path behind it.
+        # The name the client sends is the dotted one `model_ordering` reports, not the `__`-joined
+        # path behind it.
         response = api_client.get(
             reverse("store.cart-list"),
-            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "customer__formatted_name"},
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "customer.formatted_name"},
             format="json",
         )
 
@@ -1298,11 +1323,11 @@ class TestOrderingParamOnRelatedFormattedName:
         user = cart_ordering_data.users["test_admin@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        # The "-" prefix has to survive the rewrite, which replaces the field name inside the term
-        # rather than the term itself.
+        # The "-" prefix has to survive both the dotted-to-`__` translation and the formatted-name
+        # rewrite, neither of which touches the term's direction.
         response = api_client.get(
             reverse("store.cart-list"),
-            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-customer__formatted_name"},
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-customer.formatted_name"},
             format="json",
         )
 
@@ -1327,6 +1352,22 @@ class TestOrderingParamOnRelatedFormattedName:
 
         ids = [x["id"] for x in response.data["results"]]
         assert len(ids) == len(set(ids)) == Cart.objects.count(), response_body(response)
+
+    def test_legacy_dunder_ordering_param_is_rejected(self, cart_ordering_data, api_client, settings):
+        """`?o=` is dotted on the public wire; the `__`-joined ORM path behind `customer.formatted_name`
+        sent directly is unrecognized rather than accepted as a compatibility alias."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_related_formatted_name"
+
+        user = cart_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "customer__formatted_name"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db
@@ -1390,12 +1431,12 @@ class TestOrderingParamOnRestrictedPKDefault:
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Apple", "Banana"]
 
-    def test_a_field_outside_ordering_fields_and_the_default_is_still_ignored(
+    def test_a_field_outside_ordering_fields_and_the_default_is_rejected(
         self, product_ordering_data, api_client, settings
     ):
         """Expanding the valid set to cover the default ordering must not open it up generally:
         "buzz_words" is neither whitelisted nor part of the default, so it stays invalid and the
-        request falls back to primary-key order."""
+        request is rejected rather than falling back to primary-key order."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_pk_restricted_fields"
 
         user = product_ordering_data.users["test_admin@domain.invalid"]
@@ -1407,8 +1448,7 @@ class TestOrderingParamOnRestrictedPKDefault:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Apple", "Banana"]
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db
@@ -1485,12 +1525,12 @@ class TestOrderingParamOnPKInOrderingFields:
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Apple", "Banana"]
 
-    def test_a_field_outside_ordering_fields_and_the_default_is_still_ignored(
+    def test_a_field_outside_ordering_fields_and_the_default_is_rejected(
         self, product_ordering_data, api_client, settings
     ):
         """Expanding the alias must not open the valid set up generally: "buzz_words" is neither
-        whitelisted nor part of the default, so it stays invalid and the request falls back to
-        `-name`."""
+        whitelisted nor part of the default, so it stays invalid and the request is rejected rather
+        than falling back to `-name`."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_pk_in_fields"
 
         user = product_ordering_data.users["test_admin@domain.invalid"]
@@ -1502,8 +1542,7 @@ class TestOrderingParamOnPKInOrderingFields:
             format="json",
         )
 
-        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
-        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
 
 @pytest.mark.django_db

@@ -321,7 +321,13 @@ _FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 def get_filterset_query_param_names(filterset_class, get_queryset):
     """
     The query parameter names a filterset accepts, including the suffixed names of multi-widget
-    filters and each filter's lookup expression form.
+    filters.
+
+    Each name is a filter's own key in ``self.filters`` — its declared name, or the dotted public
+    alias ``PublicFilterAliasMixin`` renamed it to — which is also the name django-filter's own form
+    binds request data under. Nothing wider than that is a recognized parameter: a filter's
+    ``lookup_expr`` decides which ORM lookup its value queries, not a second query parameter name a
+    client could send instead.
 
     Read the filters from an instance rather than from ``filterset_class.get_filters()``. That
     classmethod hands back the filter objects declared on the class itself, and ``Filter.field``
@@ -363,8 +369,6 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
                 names.add(f"{filter_name}_{suffix}")
         else:
             names.add(filter_name)
-        if hasattr(filter_obj, "lookup_expr"):
-            names.add(f"{filter_name}__{filter_obj.lookup_expr}")
 
     names = frozenset(names)
     _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names

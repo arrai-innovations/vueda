@@ -3,6 +3,7 @@ from django_filters import rest_framework
 
 import tests.store.models as my_models
 from tests import filters as test_filters
+from vueda.core.filters import NumberArrayFilter
 from vueda.core.filters import VuedaCompositePrimaryKeyFilterSet
 from vueda.core.filters import VuedaFilterSet
 
@@ -148,8 +149,12 @@ class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
     Customer rows it joins.
 
     `FormattedNamePathFilterSetMixin` points these at `customer__data__formatted_name` on the
-    filterset's own copy of the filters. The declared names stay as written, which is what the query
-    parameter and the `model_filtering` metadata are built from.
+    filterset's own copy of the filters. `customer_formatted_name`/`customer_formatted_name_icontains`
+    are single-underscore names with no `__` in them, so they have nothing for `PublicFilterAliasMixin`
+    to translate: the query parameter and the `model_filtering` metadata are built from the declared
+    name exactly as written, unchanged by `PublicFilterAliasMixin`. See `ProductAutoDerivedFilterSet`
+    below for a filter whose name does contain `__`, and gets a dotted public name derived from it
+    with no declaration at all.
 
     `customer_formatted_name` deliberately declares no label, so the label it generates is built from
     the path as declared rather than the one the query ends up using.
@@ -165,6 +170,39 @@ class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
     class Meta:
         model = my_models.Cart
         fields = ["last_modified"]
+
+
+class ProductAutoDerivedFilterSet(VuedaFilterSet):
+    """A `Meta.fields` dict entry naming a relation gets its dotted public name for free.
+
+    django-filter builds `distributor__name` and `distributor__name__icontains` itself, joining
+    `field_name` and `lookup_expr` with `__` (the `icontains` one, since `exact` is stripped as the
+    implicit default) -- no `Filter` is declared here by hand at all. `tangible_type__code` shows the
+    same derivation on a hand-declared filter instead: a class attribute is as free to use `__` in
+    its own name as a `Meta.fields` entry is, and `PublicFilterAliasMixin` doesn't care which
+    produced the name it is translating. Its declared label survives the rename either way --
+    `get_model_filtering` reads it from `tangible_type__code`, the name `base_filters` still holds it
+    under, not from `tangible_type.code`, the renamed instance copy `model_filtering` reports.
+
+    `distributor__id` and `distributor__id__in` show the same derivation again on a range filter and
+    an array filter, the two filter shapes the CharFilter examples above don't cover: the mixin reads
+    only the declared name as a string, never the filter's own class, so a `RangeFilter` or a
+    `NumberArrayFilter` with a `__`-joined name derives a dotted one exactly like a `CharFilter` does.
+
+    None of this needs any declaration naming a public alias for any of the five filters.
+    """
+
+    tangible_type__code = rest_framework.CharFilter(
+        field_name="tangible_type__code",
+        lookup_expr="icontains",
+        label="Tangible Type Code",
+    )
+    distributor__id = rest_framework.RangeFilter(field_name="distributor__id", label="Distributor ID Range")
+    distributor__id__in = NumberArrayFilter(field_name="distributor__id", lookup_expr="in", label="Distributor IDs")
+
+    class Meta:
+        model = my_models.Product
+        fields = {"distributor__name": ["exact", "icontains"]}
 
 
 class InventoryRecordFilterSet(VuedaFilterSet):
