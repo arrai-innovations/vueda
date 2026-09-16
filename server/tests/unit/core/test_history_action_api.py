@@ -874,6 +874,87 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
             "cost -- computing the field and discarding it afterward would grow with row count"
         )
 
+    def test_a_default_response_never_computes_available_actions(self, api_client):
+        """
+        ``f=id`` alone cannot prove ``available_actions`` costs nothing when a response doesn't
+        carry it: flex-fields' own sparse-field selection already drops every field but ``id``
+        from ``self.fields`` before ``VuedaSerializer.to_representation`` ever runs, so that
+        request would pass even against the withdrawn "compute ``available_actions``, then
+        discard the result" implementation. A request that names no ``?f=`` at all leaves
+        ``available_actions`` declared on the serializer the way a genuinely default response
+        does; only ``VuedaSerializer.to_representation``'s own drop of that field from
+        ``self.fields`` -- rather than from the rendered output afterward -- keeps
+        ``AvailableActionsField.get_value`` (where every action's permission check runs) from
+        being called at all. A raw query-count comparison can't isolate this on its own: a
+        genuinely default response also carries other fields whose own cost legitimately scales
+        with row count, which would mask -- or be mistaken for -- ``available_actions``' own cost.
+        """
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        first_order = self.make_orders(1, order_state, start_at=999)[0]
+        self.grant_read_by_state(first_order)
+        self.make_orders(4, order_state, start_at=1000)
+
+        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+        with mock.patch("vueda.core.serializers.fields.AvailableActionsField.get_value") as get_value:
+            response = api_client.get(
+                reverse("store.customerorder-list", query={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number"}),
+            )
+        self.assert_response(response, HTTPStatus.OK)
+        assert "available_actions" not in response.data["results"][0], response_body(response)
+        get_value.assert_not_called()
+
+    def test_a_multi_row_list_reuses_each_rows_own_retrieve_check(self, api_client):
+        """
+        Guards PR #288's round-1 regression on a list response specifically: a 20-row page cost
+        545 queries with ``available_actions`` requested against 485 on ``main``, because the
+        history-list gate ran a second permission pass for every row instead of reusing the CRUD
+        loop's own ``retrieve`` decision for that same row.
+        ``test_the_crud_loop_and_the_history_list_gate_check_retrieve_on_the_same_viewset_instance``
+        already proves this for one row's detail response; this extends the same spy to every row
+        of a list response, where the regression actually showed up.
+        """
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        orders = self.make_orders(5, order_state, start_at=999)
+        # Every order shares this one workflow state, so one grant on it covers every row.
+        self.grant_read_by_state(orders[0])
+        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+
+        retrieve_query_counts_by_row = {}
+
+        def spy(viewset, request, instance, action):
+            with CaptureQueriesContext(connection) as ctx:
+                permitted = check_action_permission(viewset, request, instance, action)
+            if action == "retrieve" and instance is not None:
+                retrieve_query_counts_by_row.setdefault(instance.pk, []).append(len(ctx.captured_queries))
+            return permitted
+
+        with (
+            mock.patch("vueda.core.serializers.fields.check_action_permission", side_effect=spy),
+            mock.patch("vueda.core.viewsets.check_action_permission", side_effect=spy),
+        ):
+            response = api_client.get(
+                reverse(
+                    "store.customerorder-list",
+                    query={
+                        settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions",
+                        settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
+                    },
+                ),
+            )
+        self.assert_response(response, HTTPStatus.OK)
+        assert len(retrieve_query_counts_by_row) == len(orders)
+
+        for pk, query_counts in retrieve_query_counts_by_row.items():
+            assert len(query_counts) >= 2, (  # noqa: PLR2004
+                f"expected row {pk} to be checked for retrieve by both the CRUD loop and the "
+                f"history-list gate, got {len(query_counts)} check(s)"
+            )
+            assert query_counts[0] > 0, f"row {pk}'s first retrieve check must actually touch the database"
+            assert all(count == 0 for count in query_counts[1:]), (
+                f"row {pk}'s retrieve check ran a second permission pass ({query_counts}) instead of "
+                f"reusing the CRUD loop's cached decision for that row -- this is PR #288's round-1 regression"
+            )
+
     def test_the_history_list_gate_reuses_the_crud_loops_retrieve_check(self):
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
         order = self.make_orders(1, order_state, start_at=999)[0]
