@@ -153,7 +153,7 @@ export function useFilter(props) {
                     }
                     if (detail?.typeFilter.toLowerCase().includes("range") && detail.suffixes?.length === 2) {
                         for (const lookup of detail.suffixes) {
-                            allFields[`${fieldName}__${lookup}`] = {
+                            allFields[`${fieldName}.${lookup}`] = {
                                 isBoundary: true,
                                 typeFilter: detail.typeFilter,
                                 required: false,

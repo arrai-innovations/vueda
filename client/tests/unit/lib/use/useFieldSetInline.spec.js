@@ -178,10 +178,10 @@ describe("lib/use/useFieldSetInline.js", () => {
     scopedIt("mergedFormModelProps merges values and reacts to prop changes", async () => {
         const { props } = await mountFieldSet(
             {
-                fields: ["fs__child", "expandable"],
+                fields: ["fs.child", "expandable"],
                 expand: ["expandable"],
                 fieldProps: { fs: { local: true } },
-                fieldDetails: { fs__child: { type: "string" } },
+                fieldDetails: { "fs.child": { type: "string" } },
                 expandDetails: { expandable: { type: "string" } },
             },
             { parentFormModel: { fields: ["parent"], fieldProps: { fs: { parent: true } } } },
@@ -193,31 +193,31 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(merged.app).toBe("app");
         expect(merged.model).toBe("model");
         expect(merged.view).toBe("view");
-        expect(merged.fields).toEqual(["parent", "fs__child", "expandable"]);
+        expect(merged.fields).toEqual(["parent", "fs.child", "expandable"]);
         expect(merged.fieldProps).toEqual({ fs: { parent: true, local: true } });
-        expect(merged.fieldDetails).toEqual({ fs__child: { type: "string" } });
+        expect(merged.fieldDetails).toEqual({ "fs.child": { type: "string" } });
         expect(merged.expandDetails).toEqual({ expandable: { type: "string" } });
         expect(merged.expand).toEqual(["expandable"]);
 
-        props.fields.push("fs__extra");
+        props.fields.push("fs.extra");
         props.expand = [];
         props.fieldProps.fs.local = false;
-        props.fieldDetails.fs__child.type = "number";
+        props.fieldDetails["fs.child"].type = "number";
         props.expandDetails.expandable.type = "number";
         await vue.nextTick();
-        expect(merged.fields).toEqual(["parent", "fs__child", "expandable", "fs__extra"]);
+        expect(merged.fields).toEqual(["parent", "fs.child", "expandable", "fs.extra"]);
         expect(merged.expand).toEqual([]);
         expect(merged.fieldProps.fs.local).toBe(false);
-        expect(merged.fieldDetails.fs__child.type).toBe("number");
+        expect(merged.fieldDetails["fs.child"].type).toBe("number");
         expect(merged.expandDetails.expandable.type).toBe("number");
     });
 
     scopedIt("fieldNames are derived from props.fields", async () => {
-        const { instance, props } = await mountFieldSet({ fields: ["fs__one", "other", "fs__two"] });
+        const { instance, props } = await mountFieldSet({ fields: ["fs.one", "other", "fs.two"] });
 
         expect(instance.state.fieldNames).toEqual(["one", "two"]);
 
-        props.fields.push("fs__three");
+        props.fields.push("fs.three");
         await vue.nextTick();
         expect(instance.state.fieldNames).toEqual(["one", "two", "three"]);
     });
