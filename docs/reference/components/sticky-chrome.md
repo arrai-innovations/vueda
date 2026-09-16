@@ -64,7 +64,7 @@ The provider is **window-scroll-only by design** (no `scrollRoot`, and it warns 
       <ClientOnly>
         <DemoTitleBar title="Customers">
           <template #actions>
-            <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary">order 0 · reveal always</span>
+            <span class="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary-text">order 0 · reveal always</span>
           </template>
         </DemoTitleBar>
       </ClientOnly>

@@ -16,6 +16,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Features
 
+- **Brand palette in both color modes (`vueda-tailwind`)**:
+    - Primary fills retain the canonical blue in light and dark mode, with dark labels and lighter hover/pressed fills. Dark surfaces derive from the brand navy and grey; supporting surfaces, text, fields, and borders use explicit palette mixes.
+    - New `--primary-text`, `--primary-text-active`, and `--sidebar-primary-text` tokens keep blue text readable independently of solid primary fills. Links and tinted labels use these tokens; `--ring` and `--info` follow the readable blue.
+    - Status colors retain their red, amber, and green meanings with adjusted contrast for tinted labels and destructive button states. `--info-foreground`, `--success-foreground`, and `--warning-foreground` supply the labels already referenced by action-banner icon tiles.
+      _Custom palettes should check `--primary-foreground` against primary fills and `--primary-text` against page and tinted surfaces. Custom recipes using `text-primary` for labels should use `text-primary-text`; labels on solid blue keep `text-primary-foreground`._
+
 - **Editable fields have square corners (`--vueda-field-radius`)**:
     - A new `--vueda-field-radius` token (0) and `rounded-vueda-field` utility give editable fields their own corner, separate from `--vueda-control-radius` (2px), which buttons and toggles keep. `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup` and its attached `InputGroupButton`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger now use it. Focus rings follow the element's corner, so a focused field's ring is square.
       _An application that wants rounded fields can set `--vueda-field-radius` after the `base.css` import._

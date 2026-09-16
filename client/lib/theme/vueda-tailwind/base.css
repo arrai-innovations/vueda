@@ -12,12 +12,12 @@
  * NOT: Material, Apple HIG, Salesforce Lightning, Mailchimp.
  *
  * PALETTE STRATEGY
- * Neutral scale is cool-tinted (hue 250, low chroma 0.01) so the UI
- * feels adjacent to the brand blue without ever decorating with it.
- * The blue is reserved for: the primary action in a context, the
- * focus ring, selected-state highlights, and brand surfaces. It is
- * not used for links-in-body, info banners, chart fills, or hover
- * tints. Muted surfaces are the default; accent is earned.
+ * Identity colours stay fixed: brand blue, navy, and grey. Supporting
+ * surfaces and text derive from that palette with white or black.
+ * Primary fills keep the brand blue in both modes; primary text and
+ * focus rings use separate contrast-adjusted colours. Blue signals
+ * actions, selection, focus, and informational status. Most surfaces
+ * use the navy/grey scale.
  *
  * TYPOGRAPHY: IBM Plex Sans / JetBrains Mono.
  * 13px body, 12px labels, 15px heading. 1.4 line-height on running
@@ -363,6 +363,8 @@
     --color-primary-foreground: var(--primary-foreground);
     --color-primary-hover: var(--primary-hover);
     --color-primary-active: var(--primary-active);
+    --color-primary-text: var(--primary-text);
+    --color-primary-text-active: var(--primary-text-active);
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
     --color-secondary-hover: var(--secondary-hover);
@@ -386,14 +388,18 @@
     --color-disabled-foreground: var(--disabled-foreground);
     --color-ring: var(--ring);
     --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
     --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
     --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
     --color-overlay: var(--overlay);
     --color-sunken: var(--sunken);
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary-text: var(--sidebar-primary-text);
     --color-sidebar-accent: var(--sidebar-accent);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-accent-active: var(--sidebar-accent-active);
@@ -407,114 +413,111 @@
     --radius: 0.25rem;
 
     /* ---------- Color palette: light ----------
-     * Near-monochrome cool neutrals (hue 250°, chroma 0.01).
-     * Blue accent is the ONE chromatic token: oklch(0.59 0.211 257.2) = #0077f7.
-     * Two-axis rule: cool neutral scale plus one blue accent. */
+     * Fixed identity colours with supporting mixes. Primary fills and
+     * readable primary text have separate roles in both modes. */
+    --vueda-brand-blue: #0077f7; /* identity blue inherited from Arrai; unchanged in dark mode. */
+    --vueda-brand-navy: #001c30; /* identity dark blue; the dark page surface and light text colour. */
+    --vueda-brand-grey: #e5e5e5; /* identity grey; dark body text and light supporting surfaces. */
 
     /* Surfaces */
-    --background: oklch(0.99 0.003 250); /* page surface — the dominant body fill. Barely-tinted paper in light mode. */
-    --foreground: oklch(0.18 0.015 250); /* default text colour on --background. */
-    --card: oklch(1 0 0); /* card surface — sits on --background with a 1px border, never a shadow. */
-    --card-foreground: oklch(0.18 0.015 250); /* text on a --card surface. */
-    --popover: oklch(
-        0.99 0.003 250
-    ); /* floating surface for popover, dropdown, hover card, and command list — overlaid via --vueda-shadow-popover. */
-    --popover-foreground: oklch(0.18 0.015 250); /* text on a --popover surface. */
+    --background: #ffffff; /* page surface. */
+    --foreground: var(--vueda-brand-navy); /* default text on the page. */
+    --card: #ffffff; /* card surface, separated by an edge rather than elevation. */
+    --card-foreground: var(--foreground); /* text on a card. */
+    --popover: #ffffff; /* floating menus, popovers, and command lists. */
+    --popover-foreground: var(--foreground); /* text on a floating surface. */
 
-    /* Accent — the one chromatic token. */
-    --primary: oklch(
-        0.59 0.211 257.2
-    ); /* VUEDA blue. Bound to the primary CTA, focus rings (--ring aliases this), selected-row markers, and the brand mark. */
-    --primary-foreground: oklch(
-        0.99 0.003 250
-    ); /* text painted on a --primary fill (primary Button label, selected sidebar item text). */
-    --primary-hover: oklch(
-        0.48 0.19 257.2
-    ); /* primary fill, hover. One perceptual lightness step (~0.10 OKLCH L) darker than --primary so the state change clears the glance-detection threshold on poor displays, instead of washing out the way an alpha fade over the page surface does. */
-    --primary-active: oklch(0.4 0.16 257.2); /* primary fill, pressed — a second lightness step darker again. */
+    /* Brand fills retain the canonical blue. Text adjusts independently. */
+    --primary: var(--vueda-brand-blue); /* primary action fill and selected-state markers. */
+    --primary-foreground: color-mix(
+        in srgb,
+        var(--vueda-brand-navy) 50%,
+        black
+    ); /* dark labels on primary fills in both modes. */
+    --primary-hover: color-mix(in srgb, var(--primary) 90%, white); /* primary fill on hover. */
+    --primary-active: color-mix(in srgb, var(--primary) 82%, white); /* primary fill when pressed. */
+    --primary-text: color-mix(
+        in srgb,
+        var(--primary) 72%,
+        var(--vueda-brand-navy)
+    ); /* blue text on page, card, and lightly tinted surfaces. */
+    --primary-text-active: color-mix(
+        in srgb,
+        var(--primary) 64%,
+        var(--vueda-brand-navy)
+    ); /* pressed primary link text. */
 
-    /* Secondary / muted / accent are all neutral variants. Kept distinct for shadcn compat. */
-    --secondary: oklch(
-        0.965 0.005 250
-    ); /* secondary neutral surface — kept distinct from --muted for shadcn compat; resolves to the same tint. */
-    --secondary-foreground: oklch(0.22 0.015 250); /* text on a --secondary surface. */
-    --secondary-hover: oklch(
-        0.9 0.006 250
-    ); /* secondary surface, hover. A visible lightness step darker than --secondary; the alpha-over-surface recipe this replaces was near-invisible because secondary already sits almost on top of the page surface. */
-    --secondary-active: oklch(0.83 0.008 250); /* secondary surface, pressed. */
-    --muted: oklch(
-        0.965 0.005 250
-    ); /* muted neutral surface — subdued chips and low-emphasis backgrounds. Disabled controls use --disabled. */
-    --muted-foreground: oklch(0.5 0.015 250); /* muted text — captions, supporting labels, table th. */
-    --accent: oklch(
-        0.92 0.008 250
-    ); /* hover / selected surface, one step darker than --muted. Tuned to sit a perceptible lightness step (~0.07 L) below the --background / --popover surfaces so the menu / list highlight and row hover (`bg-accent/50`) clear the glance threshold per § 2.5; half-strength (`bg-accent/50`) stays the canonical "current section" treatment. */
-    --accent-foreground: oklch(0.18 0.015 250); /* text on a --accent surface. */
-    --accent-active: oklch(
-        0.85 0.01 250
-    ); /* pressed neutral surface for outline / ghost buttons: one step below --accent (which serves as their hover) so press reads deeper than hover, without disturbing the --accent selection / row-hover semantics. */
+    /* Supporting surfaces derive from the brand grey and navy. */
+    --secondary: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* neutral filled controls. */
+    --secondary-foreground: var(--foreground); /* text on secondary fills. */
+    --secondary-hover: var(--vueda-brand-grey); /* secondary fill on hover. */
+    --secondary-active: color-mix(
+        in srgb,
+        var(--vueda-brand-grey) 88%,
+        var(--vueda-brand-navy)
+    ); /* pressed secondary fill. */
+    --muted: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* subdued supporting surfaces. */
+    --muted-foreground: color-mix(in srgb, var(--vueda-brand-navy) 68%, white); /* captions and supporting labels. */
+    --accent: var(--vueda-brand-grey); /* menu hover and toggle selection; rows use half strength. */
+    --accent-foreground: var(--foreground); /* text on neutral hover and selection surfaces. */
+    --accent-active: color-mix(
+        in srgb,
+        var(--vueda-brand-grey) 88%,
+        var(--vueda-brand-navy)
+    ); /* pressed neutral surface. */
 
-    /* Status — desaturated tokens consumed via the `bg-<stat>/10` + `border-<stat>/50` + `text-<stat>` recipe. */
-    --destructive: oklch(
-        0.52 0.18 27
-    ); /* red status — destructive actions, error state, the Calendar strikethrough rule. */
-    --destructive-foreground: oklch(0.99 0.003 250); /* text on a --destructive fill; identical in light and dark. */
-    --destructive-hover: oklch(0.44 0.18 27); /* destructive fill, hover — darker than --destructive. */
-    --destructive-active: oklch(0.37 0.16 27); /* destructive fill, pressed. */
-    --success: oklch(0.5 0.12 155); /* green status — success confirmation; pair with /10 surface and /50 border. */
-    --warning: oklch(0.58 0.14 70); /* amber status — warning state; pair with /10 surface and /50 border. */
-    --info: oklch(0.59 0.211 257.2); /* informational status — aliased to --primary because info IS the accent. */
+    /* Status colours retain their semantic roles, independent of identity. */
+    --destructive: oklch(0.5 0.18 27); /* destructive actions and error text; tinted surfaces use /10. */
+    --destructive-foreground: #ffffff; /* text on a destructive fill. */
+    --destructive-hover: oklch(0.44 0.18 27); /* destructive fill on hover. */
+    --destructive-active: oklch(0.37 0.16 27); /* destructive fill when pressed. */
+    --success: oklch(0.45 0.12 155); /* success text; pair with /10 surfaces and /50 edges. */
+    --success-foreground: #ffffff; /* labels on solid success fills. */
+    --warning: oklch(0.49 0.12 70); /* warning text; pair with /10 surfaces and /50 edges. */
+    --warning-foreground: #ffffff; /* labels on solid warning fills. */
+    --info: var(--primary-text); /* informational text and tints use the readable blue. */
+    --info-foreground: #ffffff; /* labels on solid informational fills. */
 
-    /* Structure */
-    --border: oklch(0.9 0.008 250); /* default hairline colour for separators, card edges, and `border` defaults. */
-    --border-strong: oklch(
-        0.82 0.012 250
-    ); /* one step darker than --border. Hover-border tint on input-shell controls (SelectTrigger, etc): signals affordance without triggering the focus ring. */
-    --input: oklch(
-        0.9 0.008 250
-    ); /* input edge — default colour painted by the `hairline-input` variant. Matches --border at rest; controls swap to --border-strong on hover and --ring on focus. */
-    --field: oklch(
-        0.965 0.005 250
-    ); /* editable field fill: text inputs, textareas, selects, date and time fields, tags inputs, and combobox triggers. Paired with the bottom `--field-line` so a field reads as a place to type rather than a boxed control. */
-    --field-hover: oklch(0.935 0.006 250); /* editable field fill on hover, one lightness step darker than --field. */
-    --disabled: oklch(
-        0.9 0.004 250
-    ); /* disabled fill: replaces a filled control's tone so a disabled primary and a disabled destructive read alike. Light enough to sit quietly against --background, dark enough to still read as a slab. */
-    --disabled-foreground: oklch(
-        0.62 0.008 250
-    ); /* disabled ink: labels and icons on a disabled control, whether it carries the --disabled fill or no fill at all. One token serves both, because --disabled is light enough that the same ink reads on it and on --background. */
-    --field-line: var(
-        --muted-foreground
-    ); /* strong bottom edge painted by the `field-line` utility on an editable field at rest. Read-only fields drop to --border. */
-    --ring: var(
-        --primary
-    ); /* focus-ring colour. Aliases --primary so focus tracks the accent; destructive controls swap to --destructive via `focus-ring-destructive`. */
+    /* Structure and editable fields */
+    --border: color-mix(in srgb, var(--vueda-brand-navy) 14%, white); /* separators and default edges. */
+    --border-strong: color-mix(
+        in srgb,
+        var(--vueda-brand-navy) 26%,
+        white
+    ); /* resting outline controls and stronger edges. */
+    --input: var(--border); /* default painted input edge. */
+    --field: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* editable field fill. */
+    --field-hover: color-mix(in srgb, var(--vueda-brand-grey) 72%, white); /* editable field fill on hover. */
+    --disabled: var(--vueda-brand-grey); /* inert fill replacing a disabled control's tone. */
+    --disabled-foreground: color-mix(
+        in srgb,
+        var(--vueda-brand-navy) 44%,
+        white
+    ); /* disabled labels on filled and transparent controls. */
+    --field-line: var(--muted-foreground); /* editable field's bottom edge; read-only fields use --border. */
+    --ring: var(--primary-text); /* focus colour with contrast independent of the primary fill. */
+    --overlay: color-mix(in srgb, var(--vueda-brand-navy) 60%, transparent); /* modal scrim in either mode. */
+    --sunken: color-mix(in srgb, var(--vueda-brand-grey) 72%, white); /* recessed code and empty-state surfaces. */
 
-    --overlay: oklch(
-        0.12 0.015 250 / 0.6
-    ); /* scrim fill for dialog / sheet / drawer overlays; identical in light and dark. */
-    --sunken: oklch(
-        0.95 0.008 250
-    ); /* inset surface, one step below --background. Recessed areas: command-palette stage, code blocks, empty table trays. */
-
-    /* Sidebar — one shade darker than background to read as chrome, not content. */
-    --sidebar: oklch(0.97 0.005 250); /* sidebar chrome surface. */
-    --sidebar-foreground: oklch(0.22 0.015 250); /* text on the sidebar surface. */
-    --sidebar-primary: oklch(
-        0.59 0.211 257.2
-    ); /* accent colour inside the sidebar (active rail, primary signals). Mirrors --primary so the sidebar tracks the brand accent. */
-    --sidebar-primary-foreground: oklch(0.99 0.003 250); /* text on a --sidebar-primary fill. */
-    --sidebar-accent: oklch(
-        0.93 0.008 250
-    ); /* hover / selected fill inside the sidebar — a neutral tint between --sidebar and --sidebar-border. */
-    --sidebar-accent-foreground: oklch(0.18 0.015 250); /* text on a --sidebar-accent surface. */
-    --sidebar-accent-active: oklch(
-        0.86 0.01 250
-    ); /* pressed sidebar fill: one step below --sidebar-accent (its hover) so a sidebar control presses deeper than it hovers, the sidebar-context analogue of --accent-active. */
-    --sidebar-border: oklch(0.88 0.008 250); /* hairline colour for sidebar separators and item edges. */
-    --sidebar-ring: var(
-        --ring
-    ); /* focus-ring inside the sidebar; aliases --ring so focus state stays consistent across chrome and content. */
+    /* Sidebar uses its own surface and interaction tokens. */
+    --sidebar: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* sidebar and app chrome. */
+    --sidebar-foreground: var(--foreground); /* sidebar text. */
+    --sidebar-primary: var(--primary); /* brand rail and selected icon colour. */
+    --sidebar-primary-foreground: var(--primary-foreground); /* labels on sidebar primary fills. */
+    --sidebar-primary-text: color-mix(
+        in srgb,
+        var(--sidebar-primary) 72%,
+        var(--vueda-brand-navy)
+    ); /* readable blue for tinted sidebar badges. */
+    --sidebar-accent: var(--vueda-brand-grey); /* sidebar hover and selection fill. */
+    --sidebar-accent-foreground: var(--foreground); /* text on sidebar hover and selection. */
+    --sidebar-accent-active: color-mix(
+        in srgb,
+        var(--vueda-brand-grey) 88%,
+        var(--vueda-brand-navy)
+    ); /* pressed sidebar fill. */
+    --sidebar-border: var(--border); /* sidebar edges and separators. */
+    --sidebar-ring: var(--ring); /* sidebar focus colour. */
 
     /* ---------- Semantic radius tokens ----------
      * Five-step semantic ladder; near-flat by design. */
@@ -846,68 +849,57 @@
 }
 
 /* ---------- Color palette: dark (primary target for operators) ----------
- * Surface stack: background < card < accent. All cool-neutral.
- * Blue shifts slightly lighter for contrast on dark. */
+ * Navy page, grey text, and explicit supporting mixes. Identity colours
+ * and primary fills stay unchanged; text and focus colours adjust. */
 .dark {
-    --background: oklch(0.16 0.01 250); /* near-black, cool */
-    --foreground: oklch(0.96 0.005 250);
-    --card: oklch(0.2 0.012 250); /* one step up from background */
-    --card-foreground: oklch(0.96 0.005 250);
-    --popover: oklch(0.22 0.012 250);
-    --popover-foreground: oklch(0.96 0.005 250);
+    --background: var(--vueda-brand-navy);
+    --foreground: var(--vueda-brand-grey);
+    --card: color-mix(in srgb, var(--vueda-brand-navy) 96%, var(--vueda-brand-grey));
+    --card-foreground: var(--foreground);
+    --popover: color-mix(in srgb, var(--vueda-brand-navy) 92%, var(--vueda-brand-grey));
+    --popover-foreground: var(--foreground);
 
-    --primary: oklch(0.68 0.17 257.2); /* lighter on dark */
-    --primary-foreground: oklch(0.16 0.01 250);
-    /* In dark mode hover/active push the fill LIGHTER (away from the near-black
-     * page surface), the mirror of the light-mode darken. This also widens
-     * contrast against the dark --primary-foreground text. Chroma eases as
-     * lightness rises so the lighter blue stays inside the sRGB gamut. */
-    --primary-hover: oklch(0.76 0.13 257.2);
-    --primary-active: oklch(0.84 0.1 257.2);
+    --primary-text: color-mix(in srgb, var(--primary) 68%, white);
+    --primary-text-active: color-mix(in srgb, var(--primary) 56%, white);
 
-    --secondary: oklch(0.24 0.012 250);
-    --secondary-foreground: oklch(0.96 0.005 250);
-    --secondary-hover: oklch(0.32 0.013 250);
-    --secondary-active: oklch(0.4 0.014 250);
-    --muted: oklch(0.24 0.012 250);
-    --muted-foreground: oklch(0.68 0.012 250);
-    --accent: oklch(
-        0.31 0.014 250
-    ); /* lighter than the dark surfaces by a perceptible step (mirror of the light-mode retune); see the light --accent note. */
-    --accent-foreground: oklch(0.96 0.005 250);
-    --accent-active: oklch(0.39 0.014 250);
+    --secondary: color-mix(in srgb, var(--vueda-brand-navy) 88%, var(--vueda-brand-grey));
+    --secondary-foreground: var(--foreground);
+    --secondary-hover: color-mix(in srgb, var(--vueda-brand-navy) 76%, var(--vueda-brand-grey));
+    --secondary-active: color-mix(in srgb, var(--vueda-brand-navy) 64%, var(--vueda-brand-grey));
+    --muted: color-mix(in srgb, var(--vueda-brand-navy) 88%, var(--vueda-brand-grey));
+    --muted-foreground: color-mix(in srgb, var(--vueda-brand-grey) 72%, var(--vueda-brand-navy));
+    --accent: color-mix(in srgb, var(--vueda-brand-navy) 78%, var(--vueda-brand-grey));
+    --accent-foreground: var(--foreground);
+    --accent-active: color-mix(in srgb, var(--vueda-brand-navy) 66%, var(--vueda-brand-grey));
 
-    --destructive: oklch(0.65 0.2 27);
-    /* Lighter than the muted dark rest (the primitive keeps `dark:bg-destructive/60`
-     * at rest); this is the lighten-on-hover delta that already read best in the
-     * dark state matrix. */
-    --destructive-hover: oklch(0.6 0.18 27);
-    --destructive-active: oklch(0.66 0.19 27);
+    --destructive: oklch(0.7 0.19 27);
+    --destructive-hover: oklch(0.56 0.18 27);
+    --destructive-active: oklch(0.58 0.18 27);
     --success: oklch(0.72 0.16 155);
+    --success-foreground: var(--primary-foreground);
     --warning: oklch(0.78 0.15 70);
-    --info: oklch(0.68 0.17 257.2);
+    --warning-foreground: var(--primary-foreground);
+    --info: var(--primary-text);
+    --info-foreground: var(--primary-foreground);
 
-    --border: oklch(1 0 0 / 0.08); /* low-contrast hairlines */
-    --border-strong: oklch(1 0 0 / 0.16); /* hover-border tint */
-    --input: oklch(0.26 0.009 250);
-    --field: oklch(0.25 0.012 250); /* one step above --card so the fill stays visible on card surfaces */
-    --field-hover: oklch(0.29 0.012 250);
-    --disabled: oklch(0.3 0.008 250); /* a step above --card, the dark-mode counterpart of the light disabled slab */
-    --disabled-foreground: oklch(0.52 0.01 250);
+    --border: color-mix(in srgb, var(--vueda-brand-navy) 82%, var(--vueda-brand-grey));
+    --border-strong: color-mix(in srgb, var(--vueda-brand-navy) 70%, var(--vueda-brand-grey));
+    --input: var(--border);
+    --field: color-mix(in srgb, var(--vueda-brand-navy) 88%, var(--vueda-brand-grey));
+    --field-hover: color-mix(in srgb, var(--vueda-brand-navy) 83%, var(--vueda-brand-grey));
+    --disabled: color-mix(in srgb, var(--vueda-brand-navy) 82%, var(--vueda-brand-grey));
+    --disabled-foreground: color-mix(in srgb, var(--vueda-brand-grey) 44%, var(--vueda-brand-navy));
     --field-line: var(--muted-foreground);
-    --ring: var(--primary);
-    --sunken: oklch(0.12 0.01 250);
+    --ring: var(--primary-text);
+    --sunken: color-mix(in srgb, var(--vueda-brand-navy) 85%, black);
 
-    --sidebar: oklch(0.14 0.01 250); /* sidebar darker than content in dark mode */
-    --sidebar-foreground: oklch(0.92 0.005 250);
-    --sidebar-primary: oklch(0.68 0.17 257.2);
-    --sidebar-primary-foreground: oklch(0.16 0.01 250);
-    --sidebar-accent: oklch(0.2 0.012 250);
-    --sidebar-accent-foreground: oklch(0.96 0.005 250);
-    --sidebar-accent-active: oklch(
-        0.26 0.012 250
-    ); /* lighter than --sidebar-accent in dark (mirror of the light retune); pressed sidebar fill. */
-    --sidebar-border: oklch(1 0 0 / 0.06);
+    --sidebar: color-mix(in srgb, var(--vueda-brand-navy) 65%, black);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary-text: color-mix(in srgb, var(--sidebar-primary) 68%, white);
+    --sidebar-accent: color-mix(in srgb, var(--vueda-brand-navy) 92%, var(--vueda-brand-grey));
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-accent-active: color-mix(in srgb, var(--vueda-brand-navy) 84%, var(--vueda-brand-grey));
+    --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
 
     /* Popover / overlay shadows need more ring, less drop on dark backgrounds */

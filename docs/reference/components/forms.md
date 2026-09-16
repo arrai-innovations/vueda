@@ -551,7 +551,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
             <FieldContent>
               <Input id="auth-pwd" type="password" autocomplete="current-password" placeholder="••••••••" />
               <FieldDescription>
-                <a href="#" class="text-primary underline underline-offset-4">Forgot your password?</a>
+                <a href="#" class="text-primary-text underline underline-offset-4">Forgot your password?</a>
               </FieldDescription>
             </FieldContent>
           </Field>
@@ -574,7 +574,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </Button>
         <p class="mt-5 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>New to VUEDA?</span>
-          <a href="#" class="text-primary underline underline-offset-4">Request access</a>
+          <a href="#" class="text-primary-text underline underline-offset-4">Request access</a>
         </p>
       </div>
     </div>
@@ -609,7 +609,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </div>
         <p class="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>Lost your authenticator?</span>
-          <a href="#" class="text-primary underline underline-offset-4">Use a recovery code</a>
+          <a href="#" class="text-primary-text underline underline-offset-4">Use a recovery code</a>
         </p>
       </div>
     </div>
@@ -676,7 +676,7 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
     <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
       <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
-          <span class="text-primary">Send</span> 4 invoices to customers
+          <span class="text-primary-text">Send</span> 4 invoices to customers
         </h3>
         <span class="text-xs text-muted-foreground">bulk action · dry-run validated</span>
       </header>
@@ -711,14 +711,14 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
     </div>
     <template #footer>
       <span>inline panel · not an overlay or drawer</span>
-      <span>action verb in <code>text-primary</code> · record list as bordered table</span>
+      <span>action verb in <code>text-primary-text</code> · record list as bordered table</span>
     </template>
   </DemoCard>
   <DemoCard title="with form-level error · dry-run failed">
     <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
       <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
-          <span class="text-primary">Void</span> 2 invoices
+          <span class="text-primary-text">Void</span> 2 invoices
         </h3>
         <span class="text-xs text-muted-foreground">bulk action · dry-run failed</span>
       </header>

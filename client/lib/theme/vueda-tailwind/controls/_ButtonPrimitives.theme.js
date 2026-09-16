@@ -56,7 +56,7 @@ patchTheme({
      * Composed into Button.root when `tone` is `primary` and `emphasis` is `fill`.
      */
     _ButtonDefault: {
-        /** The `--primary` CTA fill: solid primary background, primary-foreground text. Hover and active swap the fill to the `--primary-hover` / `--primary-active` lightness steps (darker in light mode, lighter in dark) so the state change clears the glance-detection threshold rather than washing out the way the old `/90` alpha fade did. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
+        /** The `--primary` fill keeps the canonical brand blue in both modes with dark `--primary-foreground` labels. Hover and active use opaque white mixes through `--primary-hover` and `--primary-active`. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
         root: {
             class: [
                 "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active",
@@ -155,9 +155,9 @@ patchTheme({
      * for use inside running text rather than as a standalone control.
      */
     _ButtonLink: {
-        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only; active deepens the text to `--primary-active`. The `link` emphasis of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
+        /** The inline-text recipe uses `--primary-text`, a contrast-adjusted blue separate from the primary fill. Hover adds an underline with a 4px offset; active uses `--primary-text-active`. The `link` emphasis of {@api theme-key:Button} drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
         root: {
-            class: "text-primary underline-offset-4 hover:underline active:text-primary-active disabled:text-disabled-foreground disabled:no-underline",
+            class: "text-primary-text underline-offset-4 hover:underline active:text-primary-text-active disabled:text-disabled-foreground disabled:no-underline",
         },
     },
 
@@ -167,11 +167,11 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonOutline}.
      */
     _ButtonPrimaryOutline: {
-        /** The primary neutral-chip recipe: a DPR-aware `--primary` hairline and `--primary` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--primary` tint behind the label (`/10` then `/15`). The secondary-CTA treatment: it reads as accented without the full weight of a filled {@api theme-key:_ButtonDefault}, so it can sit beside the primary fill as the "other" emphasized action. */
+        /** The primary outline recipe pairs a DPR-aware `--primary` hairline with readable `--primary-text` over `--background` (dark mode keeps `bg-input/30`). Hover and active add a primary tint (`/10` then `/15`) while the label retains its contrast-adjusted blue. The inset hairline matches filled-button dimensions. */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-primary bg-background text-primary shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-primary bg-background text-primary-text shadow-vueda-control dark:bg-input/30",
 
                 // Interactive states.
                 "hover:bg-primary/10 active:bg-primary/15",
@@ -211,9 +211,13 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonGhost}.
      */
     _ButtonPrimaryGhost: {
-        /** The transparent-at-rest primary recipe: `--primary` text with no fill or edge until hover, when a low-alpha `--primary` tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
+        /** The transparent-at-rest primary recipe uses `--primary-text` with no fill or edge until hover, when a primary tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
         root: {
-            class: ["text-primary", "hover:bg-primary/10 active:bg-primary/15", "disabled:text-disabled-foreground"],
+            class: [
+                "text-primary-text",
+                "hover:bg-primary/10 active:bg-primary/15",
+                "disabled:text-disabled-foreground",
+            ],
         },
     },
 

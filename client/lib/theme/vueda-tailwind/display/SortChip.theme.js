@@ -24,7 +24,7 @@ patchTheme({
                 // (`.sortable-drag`) reads as a lifted, primary-accented chip; the gap it
                 // leaves behind (`.sortable-ghost`) is dimmed to mark the drop target.
                 "[&.sortable-ghost]:opacity-40",
-                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary",
+                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary-text",
             ],
         },
         /** Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so the hover target covers the pill. Carries the left pill radius when no leading ordinal is shown, and the right pill radius when no remove control is shown. */

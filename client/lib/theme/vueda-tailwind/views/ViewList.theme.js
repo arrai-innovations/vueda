@@ -58,7 +58,7 @@ patchTheme({
         },
         /** Check glyph leading the selection read-out. Tinted `--primary` so the confirm mark carries the accent while the surrounding count text stays in the strip's `--foreground` tone. */
         selectionCountIcon: {
-            class: ["text-primary"],
+            class: ["text-primary-text"],
         },
         /** The numeric count inside the selection read-out. `font-semibold` lifts it one weight above the strip's 500 body so the figure reads first; `tabular-nums` keeps its width stable as the selection grows. */
         selectionCountValue: {

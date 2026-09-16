@@ -39,7 +39,7 @@ const accounts = [
 ];
 
 const statusClasses = {
-    primary: "border-primary/30 bg-primary/10 text-primary",
+    primary: "border-primary/30 bg-primary/10 text-primary-text",
     warning: "border-warning/40 bg-warning/10 text-warning",
 };
 

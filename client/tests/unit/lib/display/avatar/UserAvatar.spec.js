@@ -75,7 +75,7 @@ describe("lib/display/avatar/UserAvatar.vue", () => {
             const wrapper = mount(UserAvatar, { props: { name: "JR" } });
             expect(wrapper.attributes("data-tone")).toBe("primary");
             expect(wrapper.classes()).toContain("border-primary");
-            expect(wrapper.classes()).toContain("text-primary");
+            expect(wrapper.classes()).toContain("text-primary-text");
         });
 
         scopedIt("sidebar tone applies sidebar-accent surface", () => {
