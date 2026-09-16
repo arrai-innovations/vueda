@@ -1,6 +1,7 @@
 version: 2.1
 
 orbs:
+    github: arrai/github@dev:prerelease-pattern
     lintinator: arrai/lintinator@2.1.1
     pnpm: arrai/pnpm@1.0.0
     utils: arrai/utils@1.23.3
@@ -161,6 +162,17 @@ workflows:
                   requires:
                       - client-test-no-badge
                       - client-verify-release-version
+                  filters:
+                      tags:
+                          only: /^client-v.*/
+                      branches:
+                          ignore: /.*/
+            - github/create_release:
+                  name: client-release-on-github
+                  context: arrai-global
+                  prerelease_pattern: '-(alpha|beta|rc)\.'
+                  requires:
+                      - client-publish
                   filters:
                       tags:
                           only: /^client-v.*/
