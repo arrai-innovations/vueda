@@ -43,7 +43,10 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.fieldSlotName.value).toBe("field(foo)");
         expect(result.widgetSlotName.value).toBe("widget(foo)");
         expect(result.widgetComponent.value).toEqual(availableWidgets.WidgetUnmapped);
-        expect(result.fieldProps.value.name).toBe("foo");
+        // Outside a fieldset, the value path is the flattened (lodash bracket-escaped) form of the
+        // identity, even for a plain undotted name: `useForm`'s `get`/`set` parse `['foo']` down to
+        // the same flat key `foo` would address on their own.
+        expect(result.fieldProps.value.name).toBe("['foo']");
         expect(result.fieldProps.value.modelValue).toBe("val");
         expect(result.fieldProps.value.hidden).toBe(false);
         expect(result.remainingSlots.value).toEqual(["custom"]);
@@ -95,15 +98,15 @@ describe("lib/use/useFieldRenderer.js", () => {
     });
 
     scopedIt("computes fieldValuePath for object grid rows", async () => {
-        const fieldSetContext = { state: vue.reactive({ name: "items" }) };
+        const fieldSetContext = { state: vue.reactive({ name: "items", formModelName: "items" }) };
         const props = vue.reactive({
-            formModelName: "items__name",
+            formModelName: "items.name",
             formModel: {
-                fieldComponents: { items__name: "FieldString" },
+                fieldComponents: { "items.name": "FieldString" },
                 widgetComponents: {},
                 fieldDetails: {},
-                fieldProps: { items__name: {} },
-                widgetProps: { items__name: {} },
+                fieldProps: { "items.name": {} },
+                widgetProps: { "items.name": {} },
             },
             objectGridFieldSlotProps: { rowIndex: 2, value: "v" },
         });
