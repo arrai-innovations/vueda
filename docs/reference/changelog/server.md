@@ -19,6 +19,15 @@ public-facing documentation baseline.
 
 ## v3.0.0a1.post1 (unreleased)
 
+### Breaking Changes
+
+- **Dotted ordering and filter paths**:
+    - `?o=` now takes dotted paths (`?o=employee.name`, `?o=-employee.name`) instead of `__`-joined ORM paths. A `?o=` value naming an unrecognized field — including a `__`-joined path — rejects the entire request with `400 Bad Request` rather than silently dropping the invalid term and falling back to the default ordering; a request naming a mix of valid and invalid terms is rejected the same way, with none of it applied.
+    - Every declared filter now gets a dotted public name (`PublicFilterAliasMixin`), separate from the name the filter is declared under and the `__`-joined `field_name` it queries. The public name is derived automatically — `__` translated to `.`, so a `Meta.fields` entry crossing a relation (`customer__formatted_name`, or the `customer__formatted_name__icontains` django-filter builds for a lookup) gets `customer.formatted_name` / `customer.formatted_name.icontains` with nothing declared, and a hand-declared filter attribute picks up the same translation if its own name contains `__`. A filter's declared name is no longer a recognized query parameter once renamed.
+    - `model_ordering` and `model_filtering` (`/info/` metadata) now report dotted names exclusively; a `__`-joined ORM path is never reported.
+    - `get_filterset_query_param_names` no longer reports a filter's `lookup_expr` as a second, `__`-suffixed query parameter name (e.g. `id__in` alongside `id`) — django-filter never read that name from a request, and reporting it obscured a filterset's real accepted-parameter set in a `400` error message.
+      _Send dotted paths for `?o=` and for any declared filter that crosses a relation — most existing filters that cross a relation through `Meta.fields` pick up a dotted public name automatically, with no code change. Name a hand-declared filter attribute with `__` instead of a bare underscore if it should read as a dotted path on the wire._
+
 ### Fixes
 
 - **Server wheel contents**:
