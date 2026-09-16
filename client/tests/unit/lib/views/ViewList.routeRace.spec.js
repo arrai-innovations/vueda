@@ -305,8 +305,8 @@ beforeEach(async () => {
         clearError: vi.fn(),
         info: { pk: "id" },
         config: {
-            displayFields: ["field__name"],
-            fieldDetails: { field__name: {} },
+            displayFields: ["field.name"],
+            fieldDetails: { "field.name": {} },
             verboseNamePlural: "items",
             actionDetails: {},
             fetchFields: [],

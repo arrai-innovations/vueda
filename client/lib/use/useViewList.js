@@ -422,10 +422,10 @@ export function useViewList(options) {
         filterablesState,
     );
     // Filterables that resolved to a usable filter type; everything else is skipped. Server-hidden
-    // filters (e.g. the auto-injected `id__in` deep-link filter, whose widget is a HiddenInput) are
-    // excluded: they are programmatic, not user-entered, and have no mapped input widget, so they
-    // must not be restored from the URL as an editable filter. This is passed down to FilterGroup
-    // via `filter.validFilterables`, so it isn't recomputed there.
+    // filters (e.g. the auto-injected `id` deep-link filter, an `in`-lookup whose widget is a
+    // HiddenInput) are excluded: they are programmatic, not user-entered, and have no mapped input
+    // widget, so they must not be restored from the URL as an editable filter. This is passed down
+    // to FilterGroup via `filter.validFilterables`, so it isn't recomputed there.
     const validFilterables = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
         return (filterablesState.filterables || []).filter((fieldName) => {
@@ -666,25 +666,18 @@ export function useViewList(options) {
         return new Set(workflow.transitions.map((transition) => transition.code));
     });
 
-    const translateExpandedField = (field) => {
-        if (field?.name?.includes("__")) {
-            return {
-                ...field,
-                value: field.value || field.name.replace(/__/g, "."),
-            };
-        }
-        return field;
-    };
-
     const columns = ref([]);
+    // A field's dotted `name` already is the path `unifiedGet` reads the row's value from
+    // (`useObjectGridCell` falls back to it whenever a field declares no `value` of its own), so
+    // nothing here needs to derive one.
     const computedFieldObjects = computed(() => {
         const result = [];
         for (const field of options.extraFieldObjects || []) {
-            result.push(translateExpandedField(field));
+            result.push(field);
         }
         for (const field of calculatedDisplayFields.value) {
             if (columns.value.includes(field.name)) {
-                result.push(translateExpandedField(field));
+                result.push(field);
             }
         }
         return result;
