@@ -1003,9 +1003,18 @@ class VuedaViewSet(
         """
         Override this function to change if a user is allowed to do a certain action.
 
-        ``history_list`` is additionally gated on read authorization here, so neither model
-        metadata nor an object's own action list advertises a history endpoint the direct request
-        would refuse with a 403.
+        ``history_list`` is additionally gated on read authorization here, checked the same way an
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). For a requester whose read
+        comes from a model-level permission, this agrees with the history endpoint's own
+        enforcement, so neither model metadata nor an object's own action list advertises a
+        history endpoint the direct request would refuse with a 403.
+
+        A requester whose read comes only from a workflow-state grant is the one exception:
+        :meth:`_read_permitted` defers a model-level read denial to that grant, but the history
+        endpoint enforces read as its own ``history_list`` action, which no viewset yet lists in
+        ``workflow_object_permission_actions`` and so does not defer the same way. Discovery
+        offers ``history-list`` to that requester, and the direct request still returns 403.
+        Tracked in #291.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
