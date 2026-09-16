@@ -31,7 +31,7 @@ const getFieldComponent = (_field) => {
  */
 const getWidgetComponent = (field) => {
     if (field.readOnly) {
-        return availableWidgets.WidgetReadOnly;
+        return getTypeMapping(defaultFieldMappings, field)?.readOnlyWidget ?? availableWidgets.WidgetReadOnly;
     }
     const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let widget;
@@ -52,6 +52,9 @@ const getWidgetComponent = (field) => {
  */
 const getWidgetProps = (field) => {
     const defaultMapping = getTypeMapping(defaultFieldMappings, field);
+    if (field.readOnly && defaultMapping?.readOnlyWidget) {
+        return { ...defaultMapping.readOnlyWidgetProps };
+    }
     let baseProps;
     if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
         baseProps = defaultMapping?.[field.typeDb]?.widgetProps;

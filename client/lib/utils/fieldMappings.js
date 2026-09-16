@@ -11,6 +11,8 @@ import merge from "lodash-es/merge.js";
  * @typedef {object} FieldMappingEntry
  * @property {import('vue').Component|null} [component] - The field component override. Only used by filterFieldMapping; defaultFieldMappings and choiceFieldMappings rely on FormField as the hardcoded default.
  * @property {import('vue').Component|null} widget - The widget component, or null if none.
+ * @property {import('vue').Component} [readOnlyWidget] - The widget component used when the field renders read-only. Falls back to `WidgetReadOnly` when absent.
+ * @property {object} [readOnlyWidgetProps] - Extra props forwarded to `readOnlyWidget`, used in place of `widgetProps` when the field renders read-only.
  * @property {object} [fieldProps] - Extra props forwarded to the field component.
  * @property {object} [widgetProps] - Extra props forwarded to the widget component.
  * @property {import('vue').Component} [manyComponent] - Component for many-field wrappers.
@@ -52,6 +54,11 @@ export const defaultFieldMappings = {
         DateField: {
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "date" },
+            // Read-only display options mirror the `columnProps` that
+            // columnMappings gives ColumnDateTime, so a read view and a list
+            // format the same field identically.
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { showTime: false },
             default: true,
         },
     },
@@ -60,6 +67,8 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "datetime" },
             widgetProps: { granularity: "minute" },
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { showTime: true },
             default: true,
         },
     },
@@ -272,6 +281,10 @@ export const defaultFieldMappings = {
         TimeField: {
             widget: availableWidgets.WidgetTimeField,
             fieldProps: { validation: "time" },
+            // Time-only value: no date, and no relative or tooltip text, which
+            // would reference "today" and mislead.
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { format: "t", showRelative: false, showTooltip: false },
             default: true,
         },
     },
