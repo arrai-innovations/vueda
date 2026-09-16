@@ -102,7 +102,7 @@ For fields with cross-field server validation (where the server error on one fie
 
 ```js
 const fieldProps = {
-    line_items__sku: {
+    "line_items.sku": {
         validationDependencies: ["$parent.product", "$parent.quantity"],
         clearServerErrorDependents: ["$parent.quantity", "$parent.price"],
     },
