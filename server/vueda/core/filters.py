@@ -36,6 +36,7 @@ from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
 from ordered_set import OrderedSet
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
@@ -47,6 +48,11 @@ from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_distinct_column
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
+from vueda.core.paths import join_ordering_direction
+from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.paths import public_ordering_path_to_orm
+from vueda.core.paths import reject_wildcard
+from vueda.core.paths import split_ordering_direction
 
 
 class BaseArrayFilter(rest_framework.Filter):
@@ -218,6 +224,16 @@ class VuedaOrderingFilter(OrderingFilter):
        the tables it joins, so the related form would raise `FieldError` without this. The rewrite
        reaches inside an expression, so `Lower("customer__formatted_name")` still sorts case-
        insensitively on the column behind the name.
+
+    4. `?o=` is dotted (`employee.name`), matching every other public path on the wire, while
+       `order_by()` and everything above stays `__`-joined. `remove_invalid_fields` is where the two
+       meet: it is the one place DRF hands this class a raw, unvalidated list of request terms rather
+       than an already-resolved queryset ordering, so it is also the one place a dotted term can be
+       told apart from an invalid one before translation, and the one place a request naming even one
+       invalid term can be rejected outright rather than quietly ordered by whatever named terms
+       happened to validate. Everything below this point — `nulls_ordering`, a view's declared
+       `ordering`, the annotation and pk-alias handling above — stays `__`-joined, because none of it
+       is written from a request.
     """
 
     def filter_queryset(self, request, queryset, view):
@@ -247,6 +263,67 @@ class VuedaOrderingFilter(OrderingFilter):
         ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
         ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
         return queryset.order_by(*ordering)
+
+    def remove_invalid_fields(self, queryset, fields, view, request):
+        """
+        The `?o=` terms translated to `__`-joined `order_by()` terms, or a raised 400 naming every
+        term that isn't one of the dotted names `get_valid_fields` accepts.
+
+        DRF's own `remove_invalid_fields` drops whatever doesn't validate and returns what's left,
+        which is what lets a request naming one bad field alongside good ones quietly order by the
+        good ones, and a request naming nothing valid quietly fall back to the default ordering. Ordering
+        is validated atomically instead: every term is checked before any of them is translated, and a
+        request naming even one invalid term is rejected in full, with none of it applied.
+
+        :param queryset: The queryset the ordering will apply to.
+        :type queryset: django.db.models.QuerySet
+        :param fields: The raw, comma-split `?o=` terms, e.g. `["-employee.name", "created"]`.
+        :type fields: List[str]
+        :param view: The view being ordered.
+        :type view: rest_framework.generics.GenericAPIView
+        :param request: The current request.
+        :type request: rest_framework.request.Request
+        :return: The terms translated to `__`-joined `order_by()` terms.
+        :rtype: List[str]
+        :raises rest_framework.exceptions.ValidationError: If any term is invalid.
+        """
+        valid_orm_fields = {
+            field_name
+            for field_name, _label in self.get_valid_fields(queryset, view, {"request": request})
+            if isinstance(field_name, str)
+        }
+        valid_public_fields = {orm_ordering_path_to_public(field_name) for field_name in valid_orm_fields}
+
+        translated = []
+        invalid_terms = []
+        for term in fields:
+            descending, path = split_ordering_direction(term)
+
+            try:
+                reject_wildcard(path)
+            except ValueError:
+                invalid_terms.append(term)
+                continue
+
+            if path not in valid_public_fields:
+                invalid_terms.append(term)
+                continue
+
+            translated.append(join_ordering_direction(descending, public_ordering_path_to_orm(path)))
+
+        if invalid_terms:
+            raise ValidationError(
+                {
+                    api_settings.ORDERING_PARAM: [
+                        _("Invalid ordering term(s): {terms}. Valid ordering fields are: {valid}.").format(
+                            terms=", ".join(sorted(invalid_terms)),
+                            valid=", ".join(sorted(valid_public_fields)),
+                        )
+                    ]
+                }
+            )
+
+        return translated
 
     def get_valid_fields(self, queryset, view, context=None):
         # `context` is passed straight to a serializer by the super call, so a caller that omits it

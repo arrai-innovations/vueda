@@ -45,6 +45,7 @@ from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.paths import orm_ordering_path_to_public
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
@@ -574,12 +575,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``Coalesce("nickname", Value(""))``. Ordering expressions are mentioned near the bottom of
         https://docs.djangoproject.com/en/5.2/ref/models/options/#ordering.
 
-        The name reported is the field path as declared, not the path it resolved through: a
-        ``formatted_name`` ordering is reported as ``formatted_name``, which is the name the client
-        sends back in ``?o=`` and the name the queryset annotation carries, not the lookup expression
-        behind it. The type comes from the column that path lands on, so it describes the field the
-        client orders by rather than what a function wrapped around it returns — ``Length("name")``
-        reports ``name`` as ``alpha``, not the integer the expression sorts on.
+        The name reported is the dotted public form of the field path as declared, not the path it
+        resolved through: a ``formatted_name`` ordering is reported as ``formatted_name``, which is
+        the name the client sends back in ``?o=`` (dotted, for a path that crosses a relation) and
+        the name the queryset annotation carries, not the lookup expression behind it. The type comes
+        from the column that path lands on, so it describes the field the client orders by rather
+        than what a function wrapped around it returns — ``Length("name")`` reports ``name`` as
+        ``alpha``, not the integer the expression sorts on.
 
         Raises ``UnnameableOrderingTermError`` for a term that references no field or more than one, since
         neither has a single name a client could send back.
@@ -592,7 +594,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         fields = ordering_fields_from_path(model, field_name)
         field = fields[-1]
 
-        ordering_data = {"name": field_name}
+        ordering_data = {"name": orm_ordering_path_to_public(field_name)}
 
         if include_ascending:
             ordering_data["ascending"] = ordering_term_is_ascending(order_by)
@@ -784,16 +786,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             # An annotation the loop above already resolved as a real field path — a `formatted_name`
             # reached through `formatted_name_lookup_expression` — keeps the type taken from that
             # path, which describes the column a client sorts on better than the annotation's own
-            # output field does. The rest are named here, since nothing else would report them.
+            # output field does. The rest are named here, since nothing else would report them. An
+            # annotation is a queryset-local name rather than a relation path, so it is not expected
+            # to carry `__`, but it is translated the same way every other name in `fields_by_name`
+            # is, so the two can never disagree about what an already-resolved name looks like.
             for annotation_name in annotation_names:
-                if annotation_name in fields_by_name:
+                public_name = orm_ordering_path_to_public(annotation_name)
+                if public_name in fields_by_name:
                     continue
 
                 data = {
-                    "name": annotation_name,
+                    "name": public_name,
                     "type": self.get_annotation_ordering_type(queryset, annotation_name),
                 }
-                fields_by_name[annotation_name] = data
+                fields_by_name[public_name] = data
                 ordering_data["fields"].append(data)
 
         # VuedaOrderingFilter accepts an explicit `?o=` request on a default-ordering field even when
