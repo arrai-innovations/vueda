@@ -713,6 +713,27 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
+        scopedIt("excludes a hidden filterable's stored key when a stored sort canonicalizes the route", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["field1"];
+            listPreferenceStoreMock.getFilters.mockReturnValue({ id: "1,2", category: "widgets" });
+            listPreferenceStoreMock.getSorting.mockReturnValue(["field1"]);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(routerReplace).toHaveBeenCalledWith({
+                query: { category: "widgets", [ORDERING_PARAM]: "field1" },
+            });
+            expect(route.query).toEqual({ category: "widgets", [ORDERING_PARAM]: "field1" });
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                expect.objectContaining({ field: "category", value: "widgets" }),
+            ]);
+            wrapper.unmount();
+        });
         scopedIt("applies stored sorting to the sort control on mount", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.sortables = ["created_at", "name"];
