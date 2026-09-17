@@ -11,12 +11,17 @@ class CoreConfig(AppConfig):
     verbose_name = "VUEDA Core"
 
     def ready(self):
+        from django.core.checks import Tags
         from django.core.checks import register
 
         from .checks import check_exclude_fields_serializer_usage
         from .checks import check_expandable_fields_configuration
         from .checks import check_model_feature_policy
+        from .checks import check_session_cache_is_shared
 
         register(check_expandable_fields_configuration)
         register(check_exclude_fields_serializer_usage)
         register(check_model_feature_policy)
+        # Deployment-only: a per-process cache is a correct choice for a one-process deployment,
+        # so this reports through `check --deploy` rather than on every management command.
+        register(check_session_cache_is_shared, Tags.caches, deploy=True)
