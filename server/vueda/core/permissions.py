@@ -5,6 +5,7 @@ __all__ = (
     "BaseRowLevelPermissions",
     "DynamicObjectPermissions",
     "ObjectPermissions",
+    "check_action_permission",
     "filter_rows_for_user",
     "has_matching_state_grant",
     "has_row_dependent_authorization",
@@ -12,10 +13,13 @@ __all__ = (
 
 from django.conf import settings
 from django.db.models import Q
+from django.http import Http404
 from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
 
 from vueda.core.installed_apps import workflow_is_installed
+from vueda.core.utils import ActionView
+from vueda.core.utils import AvailableActionsRequest
 
 
 def has_matching_state_grant(model, user, required_permissions) -> bool:
@@ -54,6 +58,76 @@ def has_matching_state_grant(model, user, required_permissions) -> bool:
         permission__content_type=ContentType.objects.get_for_model(model),
         grant_or_deny=True,
     ).exists()
+
+
+def check_action_permission(viewset, request, instance, action) -> bool:
+    """
+    Whether ``request.user`` may perform ``action`` against ``instance`` -- or the model at
+    large, when ``instance`` is ``None`` -- through ``viewset``'s own configured permission
+    classes.
+
+    Checked as ``action`` over its own HTTP method, independently of whatever action the
+    surrounding response is actually for: a list response does not substitute list permission for
+    retrieve, and a write response does not substitute its own write permission for read.
+    ``instance=None`` decides through ``has_permission`` alone, the model-level check, which lets
+    a matching workflow-state grant settle a model-level denial without scanning any row
+    (:func:`has_matching_state_grant`). A specific ``instance`` instead decides through
+    ``viewset.check_object_permissions``, the same hook the endpoint itself calls to enforce the
+    request, so a viewset that overrides that hook to add its own object-level rules is honoured
+    here too, not only at the endpoint. It folds in row-level and per-object workflow-state rules
+    for that object either way.
+
+    ``request`` is ``None`` when there is no request to authorize against (for example, schema
+    generation building metadata without a live requester); every caller of this function leaves
+    its result unfiltered in that case.
+
+    Caches its answer on ``viewset`` per ``(action, instance)`` for that viewset instance's own
+    lifetime -- one request -- so two callers asking the identical question (an object's own
+    ``available_actions`` checking ``retrieve``, and ``history-list`` availability checking read
+    the same way) pay for one permission pass, not two. The cache keys on ``id(instance)``, since
+    a model instance is unhashable without a primary key and a composite primary key is not
+    reliably hashable either; it holds a reference to ``instance`` alongside its answer so that id
+    cannot be freed and reassigned to an unrelated object for as long as the cache entry lives,
+    which would otherwise alias a later, different row onto this row's cached answer.
+    """
+    if request is None:
+        return True
+
+    cache = viewset.__dict__.setdefault("_action_permission_cache", {})
+    cache_key = (action, id(instance) if instance is not None else None)
+    if cache_key in cache:
+        return cache[cache_key][1]
+
+    # Local import: vueda.info.serializers locally imports VuedaViewSet from this package's
+    # sibling module, so a module-level import here would risk the same cycle it avoids there.
+    from vueda.info.serializers import METHOD_MAPPING
+
+    fake_request = AvailableActionsRequest(
+        method=METHOD_MAPPING[action].upper(),
+        user=request.user,
+        authenticators=request.authenticators,
+        successful_authenticator=request.successful_authenticator,
+    )
+    action_view = ActionView(viewset, action)
+
+    try:
+        if instance is None:
+            permitted = all(
+                permission.has_permission(fake_request, action_view) for permission in viewset.get_permissions()
+            )
+        else:
+            # Bound to `action_view`, not `viewset`, so a viewset override of
+            # `check_object_permissions` still runs -- and still sees `action` as the action under
+            # test, not whatever action the surrounding response is actually for -- while a nested
+            # call the override or the default implementation makes, such as `get_queryset()`,
+            # still runs against `viewset` itself and its real `action` (see `ActionView`).
+            type(viewset).check_object_permissions(action_view, fake_request, instance)
+            permitted = True
+    except (exceptions.PermissionDenied, Http404):
+        permitted = False
+
+    cache[cache_key] = (instance, permitted)
+    return permitted
 
 
 class ObjectPermissions(DjangoObjectPermissions):

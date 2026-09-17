@@ -47,6 +47,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
@@ -1001,12 +1002,44 @@ class VuedaViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``history_list`` is additionally gated on read authorization here, checked the same way an
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). For a requester whose read
+        comes from a model-level permission, this agrees with the history endpoint's own
+        enforcement, so neither model metadata nor an object's own action list advertises a
+        history endpoint the direct request would refuse with a 403.
+
+        A requester whose read comes only from a workflow-state grant is the one exception:
+        :meth:`_read_permitted` defers a model-level read denial to that grant, but the history
+        endpoint enforces read as its own ``history_list`` action, which no viewset yet lists in
+        ``workflow_object_permission_actions`` and so does not defer the same way. Discovery
+        offers ``history-list`` to that requester, and the direct request still returns 403.
+        Tracked in #291.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
+            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
+                continue
             allowed_actions.add(extra_action.url_name)
 
         return allowed_actions
+
+    def _read_permitted(self, request, instance):
+        """
+        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
+        is ``None`` -- through this viewset's own configured permission classes.
+
+        Checked as an ordinary "retrieve" read, through :func:`vueda.core.permissions.check_action_permission`,
+        the same function an object's own ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`)
+        and model metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
+        already call to check ``retrieve`` for the same row or model, on this same viewset
+        instance, within the same request. ``check_action_permission`` caches its answer per
+        ``(action, instance)`` on that viewset instance, so whichever of those two callers reaches
+        ``retrieve`` first pays for the permission pass, and this call reuses that answer instead
+        of paying for a second one. See ``check_action_permission`` for what "checked as an
+        action" means and why ``instance=None`` takes a different path than a specific object.
+        """
+        return check_action_permission(self, request, instance, "retrieve")
 
     def get_object(self):
         """
@@ -1082,6 +1115,11 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
+        unconditionally, including no read gate for ``history_list``: that action is defined only
+        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
+        nothing for a read gate to filter.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
