@@ -1,21 +1,15 @@
 <script setup>
 import LoadingHeartbeatStrip from "@vueda/display/loading/LoadingHeartbeatStrip.vue";
-import LoadingSkeletonGhost from "@vueda/display/loading/LoadingSkeletonGhost.vue";
-import SystemMessageCard from "@vueda/display/system-message/SystemMessageCard.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewLoading.theme.js";
-import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, onMounted, onUnmounted, ref, toRef } from "vue";
+import { computed, ref, watch } from "vue";
 
 /**
- * Full-page loading placeholder for route-level async resolution. Composes a
- * `SystemMessageCard(tone="loading")` with a spinner crest, an optional verb-path
- * crest label, a body row for what is loading and one-line context, a
- * `LoadingSkeletonGhost` claiming layout space, and a `LoadingHeartbeatStrip`
- * showing elapsed time and dependency progress. Once `elapsedMs` exceeds
- * `slowAfterMs` the card flips to `tone="warning"`, the spinner swaps for an
- * hourglass, the heartbeat dot turns amber, and the slow-path body is shown.
- * A `slow-actions` slot populates the card actions footer (e.g. Cancel, View queue).
+ * Compact loading status for route-level async resolution. Shows a loading icon
+ * and label, with optional request details and dependency progress. After
+ * `slowAfterMs`, shows a slow-load message and the optional `slow-actions` slot.
  */
 defineOptions({});
 
@@ -51,7 +45,9 @@ const props = defineProps({
     slowAfterMs: {
         type: Number,
         default: () => {
-            if (typeof window === "undefined") return 3000;
+            if (typeof window === "undefined") {
+                return 3000;
+            }
             const raw = window
                 .getComputedStyle(document.documentElement)
                 .getPropertyValue("--vueda-loading-slow-ms")
@@ -63,25 +59,27 @@ const props = defineProps({
 });
 
 const theme = useTheme("ViewLoading", props);
-useIconsOverride(toRef(props, "iconOverride"));
+const icon = useIcons("ViewLoading", props);
+const isActive = useIsActive();
 
 const elapsedMs = ref(0);
-let intervalId = null;
-
-onMounted(() => {
-    intervalId = setInterval(() => {
+watch(isActive, (active, _, onCleanup) => {
+    if (!active) {
+        return;
+    }
+    const intervalId = setInterval(() => {
         elapsedMs.value += 100;
     }, 100);
-});
-
-onUnmounted(() => {
-    clearInterval(intervalId);
+    onCleanup(() => clearInterval(intervalId));
 });
 
 const isSlow = computed(() => elapsedMs.value >= props.slowAfterMs);
-const cardTone = computed(() => (isSlow.value ? "warning" : "loading"));
-const cardIconName = computed(() => (isSlow.value ? "hourglass" : "loading"));
-const cardIconProps = computed(() => ({ class: isSlow.value ? theme("slowCrest") : theme("crest") }));
+const statusIconName = computed(() => (isSlow.value ? "hourglass" : "loading"));
+const statusIcon = computed(() => icon(statusIconName.value));
+const statusIconProps = computed(() => ({
+    ...statusIcon.value?.props,
+    class: [statusIcon.value?.props?.class, isSlow.value ? theme("slowCrest") : theme("crest")],
+}));
 const heartbeatTone = computed(() => (isSlow.value ? "slow" : "default"));
 
 const crestKind = computed(() => {
@@ -92,30 +90,23 @@ const crestKind = computed(() => {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="view-loading-root">
-        <system-message-card
-            :tone="cardTone"
-            :icon-name="cardIconName"
-            :icon-props="cardIconProps"
-            :icon-override="props.iconOverride"
-            data-qa="view-loading-card"
-        >
-            <template v-if="crestKind" #crest-kind>{{ crestKind }}</template>
-
-            <div v-if="!isSlow && (name || context)" :class="theme('bodyRow')" data-qa="view-loading-body-row">
-                <span v-if="name" :class="theme('bodyRowText')" data-qa="view-loading-name">{{ name }}</span>
-                <span v-if="context" :class="theme('bodyRowSub')" data-qa="view-loading-context">{{ context }}</span>
+        <div :class="theme('content')">
+            <div :class="theme('status')" role="status" aria-live="polite" data-qa="view-loading-status">
+                <component :is="statusIcon.component" v-if="statusIcon" v-bind="statusIconProps" aria-hidden="true" />
+                <span v-if="isSlow" :class="theme('slowTitle')" data-qa="view-loading-slow-title">
+                    This is taking longer than usual
+                </span>
+                <span v-else :class="theme('bodyRowText')" data-qa="view-loading-name">{{ name || "Loading…" }}</span>
             </div>
-            <div v-if="isSlow" :class="theme('bodyRow')" data-qa="view-loading-slow-body">
-                <span :class="theme('slowTitle')" data-qa="view-loading-slow-title"
-                    >This is taking longer than usual</span
-                >
-                <span v-if="slowBlurb" :class="theme('slowBlurb')" data-qa="view-loading-slow-blurb">{{
+            <div v-if="context || crestKind || (isSlow && slowBlurb)" :class="theme('bodyRow')">
+                <span v-if="context" :class="theme('bodyRowSub')" data-qa="view-loading-context">{{ context }}</span>
+                <span v-if="crestKind" :class="theme('request')" data-qa="view-loading-request">{{ crestKind }}</span>
+                <span v-if="isSlow && slowBlurb" :class="theme('slowBlurb')" data-qa="view-loading-slow-blurb">{{
                     slowBlurb
                 }}</span>
             </div>
-
-            <loading-skeleton-ghost :class="theme('skeleton')" data-qa="view-loading-skeleton" />
             <loading-heartbeat-strip
+                v-if="requestId || dependencies"
                 :class="theme('heartbeat')"
                 :request-id="requestId"
                 :elapsed-ms="elapsedMs"
@@ -124,11 +115,10 @@ const crestKind = computed(() => {
                 :tone="heartbeatTone"
                 data-qa="view-loading-heartbeat"
             />
-
-            <!-- @slot slow-actions Buttons shown once the slow threshold is exceeded (e.g. Cancel, View queue). -->
-            <template v-if="isSlow && $slots['slow-actions']" #actions>
+            <div v-if="isSlow && $slots['slow-actions']" :class="theme('actions')">
+                <!-- @slot slow-actions Buttons shown once the slow threshold is exceeded (e.g. Cancel, View queue). -->
                 <slot name="slow-actions" />
-            </template>
-        </system-message-card>
+            </div>
+        </div>
     </div>
 </template>

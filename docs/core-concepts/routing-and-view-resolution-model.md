@@ -83,7 +83,7 @@ The guard and the resolver can theoretically disagree if the metadata changes be
 
 **`ViewActionRouter` is the runtime multiplexer that selects a concrete view component based on the current action, metadata state, and component registry.** It does not render UI itself, it delegates to exactly one resolved component. The resolution follows a fixed priority chain that always terminates.
 
-**Loading state takes precedence.** If model-config is still loading, the resolver renders `ViewLoading`. No metadata matching occurs until loading completes.
+**The current view stays mounted while the destination resolves.** On initial entry, the resolver renders `ViewLoading`. During later navigation, it retains the current component and its props while model configuration, workflow metadata, and the destination component load. Once ready, it switches the component and props together. A newer navigation discards an obsolete component result. If the resolved component stays the same, Vue reuses its instance; a different component replaces it and its children.
 
 **Missing metadata produces a not-found view.** If the actions array and transitions array are both absent (null or undefined), the resolver renders `ViewActionNotFound`. This covers the case where metadata fetch succeeded, but the model has no actions or transitions, typically a serializer-only registration that should not have been navigated to.
 

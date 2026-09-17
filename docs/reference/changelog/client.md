@@ -45,6 +45,14 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Route loading keeps the current view until its destination is ready (`ViewActionRouter`)**:
+    - Navigation retains the current component and its app, model, action, and primary-key props while destination metadata and the component load. The initial route still shows `ViewLoading`. Superseded component imports no longer replace the newer destination.
+    - A destination resolving to the same component reuses its instance. Custom views must handle changes to their route props; switching to a different wrapper still replaces its children.
+
+- **Simpler route loading status (`ViewLoading`)**:
+    - The default presentation is a loading icon and label, without a card, skeleton bars, or elapsed-time strip. Optional request details and dependency counts still appear when supplied. The existing slow threshold, message, and action slot remain available; elapsed time pauses while the component is deactivated by `KeepAlive`.
+      _Style the status through `ViewLoading`; `SystemMessageCard` overrides and `ViewLoading.skeleton` no longer apply. Icon overrides now use `ViewLoading.loading` and `ViewLoading.hourglass`, with the usual `Default` fallback._
+
 - **Inline grids share their fieldset's edge (`ObjectsGrid`)**:
     - Grids beneath a `data-flush` ancestor now remove their inset hairline as well as their corner radius. Tabular inline fields no longer draw a second frame inside the fieldset; the fieldset retains its outer edge and help-panel separator.
 
