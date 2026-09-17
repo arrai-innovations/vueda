@@ -36,6 +36,14 @@ class BothFormattedNameConfiguredSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class BothFormattedNameSelectRelatedConfiguredSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.BothFormattedNameSelectRelatedConfigured
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class NoNameFieldSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.NoNameField
@@ -204,6 +212,18 @@ class ExpandableFieldsBadTupleLengthSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "no_name": (NoNameFieldSerializer, {}, "extra"),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class ExpandableFieldsEmptyTupleSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NoExpandableFieldsData
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "no_name": (),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 

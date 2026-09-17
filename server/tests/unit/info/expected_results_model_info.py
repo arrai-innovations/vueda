@@ -438,13 +438,6 @@ EXPECTED_RESULTS = [
             ],
             "expected_actions_customer": [
                 {
-                    "name": "list",
-                    "bulk": False,
-                    "description": "list store.customer",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
                     "name": "retrieve",
                     "bulk": False,
                     "description": "retrieve store.customer",
@@ -696,6 +689,45 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "retrieve",
+                    "bulk": False,
+                    "description": "retrieve store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "bulk": False,
+                    "description": "create store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
+                },
+                {
+                    "name": "update",
+                    "bulk": False,
+                    "description": "update store.cart",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "bulk": False,
+                    "description": "partial_update store.cart",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "bulk": True,
+                    "description": "destroy store.cart",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "history-list",
                     "bulk": False,
@@ -1151,13 +1183,6 @@ EXPECTED_RESULTS = [
             ],
             "expected_actions_customer": [
                 {
-                    "name": "list",
-                    "bulk": False,
-                    "description": "list store.customerorder",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
                     "name": "retrieve",
                     "bulk": False,
                     "description": "retrieve store.customerorder",
@@ -1597,16 +1622,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [],
             "expected_fields": {
                 "object_revision": {
@@ -3259,16 +3275,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [
                 {
                     "name": "product_option",

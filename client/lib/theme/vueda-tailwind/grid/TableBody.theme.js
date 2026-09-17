@@ -14,10 +14,10 @@ patchTheme({
      */
     TableBody: {
         /**
-         * The `<tbody>` section wrapper. It removes the last row divider so the enclosing {@api theme-key:Table.container} border remains the closing edge instead of doubling the table bottom.
+         * The `<tbody>` section wrapper. It removes the last row's divider from that row's cells so the enclosing {@api theme-key:Table.container} edge remains the closing edge instead of doubling the table bottom.
          */
         root: {
-            class: "[&_tr:last-child]:border-0",
+            class: "[&>tr:last-child>*]:border-b-0",
         },
     },
 });

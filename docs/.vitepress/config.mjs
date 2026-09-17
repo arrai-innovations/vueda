@@ -1,13 +1,16 @@
-import { formatApiMemberTitle, memberNameFromId } from "../../docs-tooling/js/utils/reference-index.js";
+import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
+import {
+    formatApiMemberTitle,
+    memberAnchorFromId,
+    memberNameFromId,
+} from "../../docs-tooling/js/utils/reference-index.js";
 import {
     normalizeTerm,
-    parseApiRef,
     parseFrontmatter,
     parseTermRef,
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
-import { slugify } from "../../docs-tooling/js/utils/slugify.js";
-import { arraiThemeRoot, buildBreadcrumbRoutes } from "@arrai-innovations/vitepress-theme/config";
+import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
 import path from "node:path";
@@ -17,6 +20,9 @@ import { defineConfig } from "vitepress";
 import { configureDiagramsPlugin } from "vitepress-plugin-diagrams";
 
 const base = process.env.VITEPRESS_BASE || "/vueda/";
+// Published origin for absolute card URLs. CI publishes each major under
+// /v<major>/ at this host, so the base carries the version, not this constant.
+const siteUrl = "https://vueda.dev";
 const docsRoot = fileURLToPath(new URL("..", import.meta.url));
 const generatedRoot = path.join(docsRoot, ".generated");
 const apiRoot = path.join(docsRoot, "reference", "api");
@@ -313,7 +319,7 @@ const buildApiIndex = () => {
                         continue;
                     }
                     const memberName = memberNameFromId(memberId);
-                    const anchor = slugify(memberName);
+                    const anchor = memberAnchorFromId(memberId);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
                         title: formatApiMemberTitle(title, memberName),
@@ -330,71 +336,6 @@ const buildApiIndex = () => {
 
 const apiIndex = timeSync("config:api-index", buildApiIndex);
 const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
-
-const apiLinkPlugin = (md, options = {}) => {
-    const resolve = options.resolve;
-    const strict = options.strict !== false;
-    const softbreakSpacer = " ";
-
-    md.inline.ruler.before("emphasis", "vueda-api-link", (state, silent) => {
-        const { pos } = state;
-        if (state.src.charCodeAt(pos) !== 0x7b) {
-            return false;
-        }
-        const parsed = parseApiRef(state.src, pos);
-        if (!parsed) {
-            return false;
-        }
-        if (silent) {
-            return true;
-        }
-
-        const { raw, rawId, length } = parsed;
-        const entry = resolve ? resolve(rawId) : null;
-        if (!entry) {
-            const hint = state.env?.relativePath || state.env?.path || "unknown file";
-            const message = `Unknown API id "${rawId}" in ${hint}`;
-            if (strict) {
-                throw new Error(message);
-            }
-            const token = state.push("text", "", 0);
-            token.content = raw;
-            state.pos += length;
-            return true;
-        }
-
-        const open = state.push("link_open", "a", 1);
-        open.attrs = [["href", entry.href]];
-        const text = state.push("text", "", 0);
-        text.content = entry.title || rawId;
-        state.push("link_close", "a", -1);
-
-        let nextPos = pos + length;
-        const char = state.src.charCodeAt(nextPos);
-        if (char === 0x0a || char === 0x0d) {
-            if (char === 0x0d) {
-                nextPos += 1;
-                if (state.src.charCodeAt(nextPos) === 0x0a) {
-                    nextPos += 1;
-                }
-            } else {
-                nextPos += 1;
-            }
-            while (nextPos < state.src.length) {
-                const code = state.src.charCodeAt(nextPos);
-                if (code !== 0x20 && code !== 0x09) {
-                    break;
-                }
-                nextPos += 1;
-            }
-            const spacer = state.push("text", "", 0);
-            spacer.content = softbreakSpacer;
-        }
-
-        state.pos = nextPos;
-        return true;
-    });
-};
 
 const escapeAttr = (value) =>
     value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -817,6 +758,11 @@ export default defineConfig({
     lastUpdated: true,
     base,
     outDir: "../site",
+    // Build output goes to /static/ so that /assets/ holds only the verbatim
+    // copies from docs/public/assets. Hashed files can then be served with
+    // Cache-Control: immutable by directory, and the unhashed logos we link
+    // from npm and PyPI keep stable /assets/ URLs.
+    assetsDir: "static",
     metaChunk: true,
     buildConcurrency:
         Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
@@ -834,13 +780,44 @@ export default defineConfig({
         ],
         ["link", { rel: "apple-touch-icon", href: `${base}assets/logo-cube-solid.png` }],
     ],
+    // Link-preview crawlers read the served HTML and run no JavaScript, so the
+    // Open Graph and Twitter card tags have to be in the page before hydration.
+    // The shared theme shapes them; the origin, card image, and colour stay here.
+    //
+    // A page that writes its own og: or twitter: tag keeps it: the generated tag
+    // for that property is dropped rather than emitted twice, since a crawler
+    // reading two og:title tags picks one of them arbitrarily.
+    transformPageData(pageData, { siteConfig }) {
+        const authoredHead = pageData.frontmatter.head ?? [];
+        const authored = new Set(authoredHead.map(([, attributes = {}]) => attributes.property ?? attributes.name));
+        return {
+            frontmatter: {
+                ...pageData.frontmatter,
+                head: [
+                    ...authoredHead,
+                    ...buildSocialHead({
+                        siteUrl,
+                        base: siteConfig.site.base,
+                        pageData,
+                        siteData: siteConfig.site,
+                        image: "/assets/social-card.png",
+                        imageSize: { width: 1200, height: 630 },
+                        imageAlt: "The VUEDA wordmark above the words: integrator guide, changelog, and reference",
+                        themeColor: "#0077f7",
+                    }).filter(([, attributes]) => !authored.has(attributes.property ?? attributes.name)),
+                ],
+            },
+        };
+    },
     themeConfig: {
+        siteTitle: "vueda",
         logo: "/assets/logo-cube-solid.svg",
+        search: { provider: "local" },
         outline: "deep",
         breadcrumbs: { routes: breadcrumbRoutes },
         vueda: packageVersions,
         nav: [
-            { text: "About", link: "/" },
+            { text: "Home", link: "/" },
             { text: "Tutorials", link: "/tutorials/" },
             { text: "Guides", link: "/guides" },
             { text: "Core Concepts", link: "/core-concepts" },

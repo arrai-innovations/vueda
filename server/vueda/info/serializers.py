@@ -27,7 +27,6 @@ from django.core.exceptions import FieldError
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
-from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from django_filters.filters import AllValuesFilter
@@ -35,7 +34,6 @@ from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_is_installed
@@ -45,10 +43,10 @@ from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
-from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -441,6 +439,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         Get the actions for a model and their own metadata.
         Actions will be sorted by method action, followed by sorted extra actions.
+
+        Each CRUD action is checked against its own required permission through
+        :func:`vueda.core.permissions.check_action_permission`, called with no instance --
+        model-scope discovery decides through ``has_permission`` alone, the same model-level
+        check a CRUD action's own per-object discovery relies on before it ever reaches a row, so
+        a matching workflow-state grant can settle a model-level denial here too. A model-level
+        action describes what a requester might do on some instance of the model, not a guarantee
+        that holds for every instance; the per-object surfaces (an object's own
+        ``available_actions``) decide that separately, through ``has_object_permission``.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -460,24 +467,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         action_data = []
         for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
-            if user is not None:
-                skip_action = False
-                for method_action, method in METHOD_MAPPING.items():
-                    if method_action.lower() == action:
-                        fake_request = AvailableActionsRequest(
-                            authenticators=request.authenticators,
-                            method=method.upper(),
-                            successful_authenticator=request.successful_authenticator,
-                            user=user,
-                        )
-
-                        try:
-                            called_viewset.check_object_permissions(fake_request, None)
-                        except (PermissionDenied, Http404):
-                            skip_action = True
-
-                if skip_action:
-                    continue
+            if user is not None and not check_action_permission(called_viewset, request, None, action):
+                continue
 
             action_item_data = {
                 "name": action,
@@ -1608,19 +1599,19 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             "properties": {
                                 "name": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 "bulk": {
                                     "type": "boolean",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 "description": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 "detail": {
                                     "type": "boolean",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 "method_names": {
                                     "type": "array",
@@ -1669,7 +1660,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             "properties": {
                                 "name": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 "app_label": {
                                     "title": "django app name",
@@ -1685,14 +1676,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 },
                                 "many": {
                                     "type": "boolean",
-                                    "readonly": True,
+                                    "readOnly": True,
                                     "description": (
                                         "Whether a single object will be returned, or an array containing many."
                                     ),
                                 },
                                 "read_only": {
                                     "type": "boolean",
-                                    "readonly": True,
+                                    "readOnly": True,
                                 },
                                 settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
                                     "type": "object",
@@ -1700,53 +1691,53 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     "properties": {
                                         "Field Name": {
                                             "type": "object",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "title": "Data",
                                             "properties": {
                                                 "label": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Displayed name of the field.",
                                                     "example": "Name",
                                                 },
                                                 "type_db": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Database Field Type.",
                                                     "example": "CharField",
                                                 },
                                                 "type_model": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Django Model Field Type.",
                                                     "example": "CharField",
                                                 },
                                                 "type_serializer": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Rest Framework Serializer Field Type.",
                                                     "example": "CharField",
                                                 },
                                                 "many": {
                                                     "type": "boolean",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "One or more objects?",
                                                     "example": "False",
                                                 },
                                                 "read_only": {
                                                     "type": "boolean",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "example": "True",
                                                 },
                                                 "required": {
                                                     "type": "boolean",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "A value is required when submitted.",
                                                     "example": "False",
                                                 },
                                                 "app_label": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                                     "maxLength": 100,
                                                     "pattern": "^[a-zA-Z0-9_]+$",
@@ -1755,7 +1746,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 },
                                                 "model": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                                     "maxLength": 100,
                                                     "pattern": "^[a-zA-Z0-9_]+$",
@@ -1766,23 +1757,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                     "oneOf": [
                                                         {
                                                             "type": "array",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": "The choices to choose from.",
                                                             "title": "Choices",
                                                             "example": "False",
                                                             "items": {
                                                                 "type": "object",
-                                                                "readonly": True,
+                                                                "readOnly": True,
                                                                 "properties": {
                                                                     "label": {
                                                                         "type": "string",
-                                                                        "readonly": True,
+                                                                        "readOnly": True,
                                                                         "description": "Displayed name for the choice.",
                                                                         "example": "Express Shipping",
                                                                     },
                                                                     "value": {
                                                                         "type": "string",
-                                                                        "readonly": True,
+                                                                        "readOnly": True,
                                                                         "description": "PK or code for the choice.",
                                                                         "example": "express_shipping",
                                                                     },
@@ -1795,7 +1786,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                         },
                                                         {
                                                             "type": "boolean",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": (
                                                                 'If true, use <a href="#tag/vueda.info/operation'
                                                                 '/vueda.info_model_info_choices_list">'
@@ -1807,13 +1798,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 },
                                                 "pk": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Exists if this field is the primary key.",
                                                     "example": "1",
                                                 },
                                                 "help_text": {
                                                     "type": "string",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": (
                                                         "Helpful text about what data should exist in the field."
                                                     ),
@@ -1821,31 +1812,31 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 },
                                                 "max_length": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Maximum number of characters for the value.",
                                                     "example": "32",
                                                 },
                                                 "min_length": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Minimum number of characters for the value.",
                                                     "example": "2",
                                                 },
                                                 "max_value": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Maximum number allowed for the value.",
                                                     "example": "2147483647",
                                                 },
                                                 "min_value": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Minimum number allowed for the value.",
                                                     "example": "-2147483648",
                                                 },
                                                 "max_digits": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": (
                                                         "Maximum number of digits including "
                                                         "decimal places for the value."
@@ -1854,7 +1845,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 },
                                                 "decimal_places": {
                                                     "type": "integer",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "description": "Number of decimal places for the value.",
                                                     "example": "2",
                                                 },
@@ -1892,54 +1883,54 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             # so we display it as best as possible, and have an example.
                             "Field Name": {
                                 "type": "object",
-                                "readonly": True,
+                                "readOnly": True,
                                 "description": "Example: <code>{&quot;product_name&quot;: {...</code>",
                                 "title": "Data",
                                 "properties": {
                                     "label": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Displayed name of the field.",
                                         "example": "Name",
                                     },
                                     "type_db": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Database Field Type.",
                                         "example": "CharField",
                                     },
                                     "type_model": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Django Model Field Type.",
                                         "example": "CharField",
                                     },
                                     "type_serializer": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Rest Framework Serializer Field Type",
                                         "example": "CharField",
                                     },
                                     "many": {
                                         "type": "boolean",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "One or more objects?",
                                         "example": "False",
                                     },
                                     "read_only": {
                                         "type": "boolean",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "example": "True",
                                     },
                                     "required": {
                                         "type": "boolean",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "A value is required when submitted.",
                                         "example": "False",
                                     },
                                     "app_label": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                         "maxLength": 100,
                                         "pattern": "^[a-zA-Z0-9_]+$",
@@ -1948,7 +1939,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "model": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                         "maxLength": 100,
                                         "pattern": "^[a-zA-Z0-9_]+$",
@@ -1959,23 +1950,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "oneOf": [
                                             {
                                                 "type": "array",
-                                                "readonly": True,
+                                                "readOnly": True,
                                                 "description": "The choices to choose from.",
                                                 "title": "Choices",
                                                 "example": "False",
                                                 "items": {
                                                     "type": "object",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "properties": {
                                                         "label": {
                                                             "type": "string",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": "Displayed name for the choice.",
                                                             "example": "Express Shipping",
                                                         },
                                                         "value": {
                                                             "type": "string",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": "PK or code for the choice.",
                                                             "example": "express_shipping",
                                                         },
@@ -1988,7 +1979,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                             },
                                             {
                                                 "type": "boolean",
-                                                "readonly": True,
+                                                "readOnly": True,
                                                 "description": (
                                                     'If true, use <a href="#tag/vueda.info/operation'
                                                     '/vueda.info_model_info_choices_list">'
@@ -2000,43 +1991,43 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "pk": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Exists if this field is the primary key.",
                                         "example": "1",
                                     },
                                     "help_text": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Helpful text about what data should exist in the field.",
                                         "example": "Multiple values may be separated by commas.",
                                     },
                                     "max_length": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Maximum number of characters for the value.",
                                         "example": "32",
                                     },
                                     "min_length": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Minimum number of characters for the value.",
                                         "example": "2",
                                     },
                                     "max_value": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Maximum number allowed for the value.",
                                         "example": "2147483647",
                                     },
                                     "min_value": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Minimum number allowed for the value.",
                                         "example": "-2147483648",
                                     },
                                     "max_digits": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": (
                                             "Maximum number of digits including decimal places for the value."
                                         ),
@@ -2044,7 +2035,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "decimal_places": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Number of decimal places for the value.",
                                         "example": "2",
                                     },
@@ -2072,31 +2063,31 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             # so we display it as best as possible, and have an example.
                             "Field Name": {
                                 "type": "object",
-                                "readonly": True,
+                                "readOnly": True,
                                 "description": "Example: <code>{&quot;order_number&quot;: {...</code>",
                                 "title": "Data",
                                 "properties": {
                                     "label": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Displayed name of the filter",
                                         "example": "Name",
                                     },
                                     "type_db": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Database Field Type",
                                         "example": "CharField",
                                     },
                                     "type_model": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Django Model Field Type",
                                         "example": "CharField",
                                     },
                                     "type_filter": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": (
                                             "The django form field defined as the 'field_class' in a django "
                                             "filters field.  This was used, so custom filters would work, as "
@@ -2106,7 +2097,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "lookup_exprs": {
                                         "type": "array",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": (
                                             "The lookup expressions used by queries.  These may not be "
                                             "useful, since the suffixes should be used to submit a filter."
@@ -2114,19 +2105,19 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "title": "Lookup Expressions",
                                         "items": {
                                             "type": "string",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "example": "exact",
                                         },
                                     },
                                     "required": {
                                         "type": "boolean",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "A value is required when filtering.",
                                         "example": "False",
                                     },
                                     "app_label": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                         "maxLength": 100,
                                         "pattern": "^[a-zA-Z0-9_]+$",
@@ -2135,7 +2126,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "model": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
                                         "maxLength": 100,
                                         "pattern": "^[a-zA-Z0-9_]+$",
@@ -2146,23 +2137,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "oneOf": [
                                             {
                                                 "type": "array",
-                                                "readonly": True,
+                                                "readOnly": True,
                                                 "description": "The choices to choose from.",
                                                 "title": "Choices",
                                                 "example": "False",
                                                 "items": {
                                                     "type": "object",
-                                                    "readonly": True,
+                                                    "readOnly": True,
                                                     "properties": {
                                                         "label": {
                                                             "type": "string",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": "Displayed name for the choice.",
                                                             "example": "Express Shipping",
                                                         },
                                                         "value": {
                                                             "type": "string",
-                                                            "readonly": True,
+                                                            "readOnly": True,
                                                             "description": "PK or code for the choice.",
                                                             "example": "express_shipping",
                                                         },
@@ -2175,7 +2166,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                             },
                                             {
                                                 "type": "boolean",
-                                                "readonly": True,
+                                                "readOnly": True,
                                                 "description": (
                                                     'If true, use <a href="#tag/vueda.info/operation'
                                                     '/vueda.info_model_info_filter_choices_list">'
@@ -2187,37 +2178,37 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "help_text": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Helpful text about what data should exist in the field.",
                                         "example": "Multiple values may be separated by commas.",
                                     },
                                     "max_length": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Maximum number of characters for the value.",
                                         "example": "32",
                                     },
                                     "min_length": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Minimum number of characters for the value.",
                                         "example": "2",
                                     },
                                     "max_value": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Maximum number allowed for the value.",
                                         "example": "2147483647",
                                     },
                                     "min_value": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Minimum number allowed for the value.",
                                         "example": "-2147483648",
                                     },
                                     "max_digits": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": (
                                             "Maximum number of digits including decimal places for the value."
                                         ),
@@ -2225,19 +2216,19 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "decimal_places": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Number of decimal places for the value.",
                                         "example": "2",
                                     },
                                     "empty_label": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Label for an empty choice.",
                                         "example": "---------",
                                     },
                                     "empty_value": {
                                         "type": "integer",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "Value for an empty choice.",
                                         "example": "&quot;&quot;",
                                     },
@@ -2245,12 +2236,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     # display it as best as possible, and have an example.
                                     "error_messages": {
                                         "type": "object",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "title": "Code: Msg",
                                         "properties": {
                                             "code": {
                                                 "type": "string",
-                                                "readonly": True,
+                                                "readOnly": True,
                                                 "title": "msg",
                                                 "description": (
                                                     "Code and value of the possible error messages.  Some messages "
@@ -2264,27 +2255,27 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     },
                                     "input_formats": {
                                         "type": "array",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "A list of the python input formats available.",
                                         "items": {
                                             "type": "string",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "example": "%H:%M:%S",
                                         },
                                     },
                                     "input_type": {
                                         "type": "string",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "The html widget type used by the widget.",
                                         "example": "select",
                                     },
                                     "suffixes": {
                                         "type": "array",
-                                        "readonly": True,
+                                        "readOnly": True,
                                         "description": "A list of the suffixes to use with the filter name.",
                                         "items": {
                                             "type": "string",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "example": (
                                                 "after -> {&quot;last_modified_after&quot;: &quot;2024-08-01&quot;}"
                                             ),
@@ -2320,7 +2311,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 ),
                                 "items": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                     "description": "Field to order by.",
                                     "example": "last_name",
                                 },
@@ -2345,13 +2336,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                     "properties": {
                                         "name": {
                                             "type": "string",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "description": "Field to order by.",
                                             "example": "last_name",
                                         },
                                         "type": {
                                             "type": "string",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "description": "Type of Ordering.",
                                             "enum": [
                                                 "alpha",
@@ -2364,7 +2355,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         },
                                         "ascending": {
                                             "type": "boolean",
-                                            "readonly": True,
+                                            "readOnly": True,
                                             "description": (
                                                 "Direction this field is sorted in when it's part of the "
                                                 "default ordering. Only present for fields listed in `default`."
@@ -2419,12 +2410,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                             "properties": {
                                 "codename": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                     "example": "create_customerorder",
                                 },
                                 "name": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                     "example": "Can create customer order",
                                 },
                             },

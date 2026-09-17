@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    github: arrai/github@5.0.0
+    github: arrai/github@dev:prerelease-pattern
     lintinator: arrai/lintinator@2.1.1
     pypi: arrai/pypi@3.1.0
     pysentry: arrai/pysentry@1.0.0
@@ -340,9 +340,12 @@ workflows:
                           only: /^server-v.*/
                       branches:
                           ignore: /.*/
-            - github/create_release:
-                  name: server-release-on-github
-                  context: arrai-global
+            - pypi/upload_release:
+                  name: server-publish
+                  context: arrai-public-package-publishing
+                  twine_username: __token__
+                  twine_repository_url: https://upload.pypi.org/legacy/
+                  cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
                   requires:
                       - server-build
                   filters:
@@ -350,12 +353,12 @@ workflows:
                           only: /^server-v.*/
                       branches:
                           ignore: /.*/
-            - pypi/upload_release:
-                  name: server-publish
-                  context: arrai-private-package-publishing
-                  cache_key: build-{{ arch }}-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+            - github/create_release:
+                  name: server-release-on-github
+                  context: arrai-global
+                  prerelease_pattern: "[0-9](a|b|rc)[0-9]+"
                   requires:
-                      - server-build
+                      - server-publish
                   filters:
                       tags:
                           only: /^server-v.*/

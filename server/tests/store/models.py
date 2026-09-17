@@ -117,6 +117,7 @@ class Cart(VuedaModel):
     expected_delivery_time = models.DurationField(null=True)
 
     formatted_name = None
+    formatted_name_select_related = ("customer__user",)
 
     class Meta(VuedaModel.Meta):
         ordering = [F("expected_delivery_time").asc(nulls_first=True)]

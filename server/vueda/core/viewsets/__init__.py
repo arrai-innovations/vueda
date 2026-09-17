@@ -21,6 +21,7 @@ __all__ = (
 
 import datetime
 import warnings
+import weakref
 from functools import cache
 
 import pghistory
@@ -52,6 +53,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
@@ -575,7 +577,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
 
-_FILTERSET_QUERY_PARAM_NAMES = {}
+# Keyed weakly so a filterset class built at runtime (one composed per view, or per test) is
+# collectable once its last other reference goes away. A class declared in a module is referenced by
+# that module and lives as long as the process either way.
+_FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 
 
 def get_filterset_query_param_names(filterset_class, get_queryset):
@@ -592,15 +597,30 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
 
     The names depend only on the filterset class, so they are built once per class. Instantiating a
     filterset reads every filter's field, which is a query per value-derived filter, and this runs on
-    every list request. ``get_queryset`` is taken as a callable rather than a queryset for the same
-    reason: on the cached path nothing needs one, and building one is work of its own.
+    every list request.
+
+    A filterset that names its model in ``Meta`` is instantiated without a queryset, which leaves it
+    to build the default one for that model. Passing the view's queryset instead would make this
+    depend on what ``get_queryset`` does, and ``VuedaViewSet.get_queryset`` builds a serializer that
+    rejects an over-deep ``?e=``. Discovery would then report that error on a cache miss and the
+    unrecognized parameter on a cache hit, so the same request would fail two different ways
+    depending on what an earlier request left behind. Only the filter names are read here, so the
+    queryset the filterset ends up filtering does not matter.
+
+    A filterset whose ``Meta`` names no model takes its model from the queryset it is given, so that
+    one still gets the view's. ``get_queryset`` is a callable rather than a queryset because the
+    cached path and the model-backed path never call it.
     """
     names = _FILTERSET_QUERY_PARAM_NAMES.get(filterset_class)
     if names is not None:
         return names
 
+    # `BaseFilterSet.__init__` defaults a missing queryset to `Meta.model`'s, and every filter reads
+    # its model from the queryset the filterset holds.
+    queryset = None if filterset_class._meta.model is not None else get_queryset()
+
     names = set()
-    for filter_name, filter_obj in filterset_class(queryset=get_queryset()).filters.items():
+    for filter_name, filter_obj in filterset_class(queryset=queryset).filters.items():
         widget = filter_obj.field.widget
         # If the filter has suffixes, then we need to use those with the filter name.
         if hasattr(widget, "suffixes"):
@@ -1264,12 +1284,44 @@ class VuedaViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``history_list`` is additionally gated on read authorization here, checked the same way an
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). For a requester whose read
+        comes from a model-level permission, this agrees with the history endpoint's own
+        enforcement, so neither model metadata nor an object's own action list advertises a
+        history endpoint the direct request would refuse with a 403.
+
+        A requester whose read comes only from a workflow-state grant is the one exception:
+        :meth:`_read_permitted` defers a model-level read denial to that grant, but the history
+        endpoint enforces read as its own ``history_list`` action, which no viewset yet lists in
+        ``workflow_object_permission_actions`` and so does not defer the same way. Discovery
+        offers ``history-list`` to that requester, and the direct request still returns 403.
+        Tracked in #291.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
+            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
+                continue
             allowed_actions.add(extra_action.url_name)
 
         return allowed_actions
+
+    def _read_permitted(self, request, instance):
+        """
+        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
+        is ``None`` -- through this viewset's own configured permission classes.
+
+        Checked as an ordinary "retrieve" read, through :func:`vueda.core.permissions.check_action_permission`,
+        the same function an object's own ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`)
+        and model metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
+        already call to check ``retrieve`` for the same row or model, on this same viewset
+        instance, within the same request. ``check_action_permission`` caches its answer per
+        ``(action, instance)`` on that viewset instance, so whichever of those two callers reaches
+        ``retrieve`` first pays for the permission pass, and this call reuses that answer instead
+        of paying for a second one. See ``check_action_permission`` for what "checked as an
+        action" means and why ``instance=None`` takes a different path than a specific object.
+        """
+        return check_action_permission(self, request, instance, "retrieve")
 
     def get_object(self):
         """
@@ -1345,6 +1397,11 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
+        unconditionally, including no read gate for ``history_list``: that action is defined only
+        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
+        nothing for a read gate to filter.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():

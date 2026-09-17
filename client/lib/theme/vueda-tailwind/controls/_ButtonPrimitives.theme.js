@@ -34,8 +34,11 @@ patchTheme({
                 "inline-flex items-center justify-center gap-2 whitespace-nowrap",
                 "rounded-vueda-control text-sm font-medium transition-all",
 
-                // Disabled state.
-                "disabled:pointer-events-none disabled:opacity-50",
+                // Disabled state. The surface treatment belongs to the tone and
+                // emphasis primitives below, because a uniform alpha can only be as
+                // legible as the resting contrast is high, and an outline or ghost
+                // cell has almost none to fade.
+                "disabled:pointer-events-none",
 
                 // Icons and child elements.
                 "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
@@ -53,8 +56,15 @@ patchTheme({
      * Composed into Button.root when `tone` is `primary` and `emphasis` is `fill`.
      */
     _ButtonDefault: {
-        /** The `--primary` CTA fill: solid primary background, primary-foreground text. Hover and active swap the fill to the `--primary-hover` / `--primary-active` lightness steps (darker in light mode, lighter in dark) so the state change clears the glance-detection threshold rather than washing out the way the old `/90` alpha fade did. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
-        root: { class: "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active" },
+        /** The `--primary` fill keeps the canonical brand blue in both modes with dark `--primary-foreground` labels. Hover and active use opaque white mixes through `--primary-hover` and `--primary-active`. Pair sparingly with neutral pressed-state recipes like {@api theme-key:Toggle.root} so a CTA and an active toggle do not compete. */
+        root: {
+            class: [
+                "bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active",
+
+                // Disabled: the tone is replaced by the neutral disabled slab.
+                "disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none",
+            ],
+        },
     },
 
     /**
@@ -71,6 +81,9 @@ patchTheme({
                 // Interactive and focus states.
                 "hover:bg-destructive-hover active:bg-destructive-active focus-visible:outline-destructive",
                 "dark:bg-destructive/60",
+
+                // Disabled: the tone is replaced by the neutral disabled slab.
+                "disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none dark:disabled:bg-disabled",
             ],
         },
     },
@@ -83,14 +96,18 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: DPR-aware `--foreground` hairline, `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping the foreground-coloured edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
+        /** The neutral-chip recipe: DPR-aware hairline at `--border-strong` that darkens to `--foreground` on hover (a chip that still reads as a control without outweighing the one filled action beside it), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping its stronger edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-foreground bg-background text-foreground shadow-vueda-control",
+                "hairline hairline-border-strong bg-background text-foreground shadow-vueda-control",
 
                 // Interactive states.
-                "hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
+                "hover:hairline-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
+
+                // Disabled: the box goes. A disabled outline cell keeps only its
+                // label, so the row it sits in shows at a glance which cells still act.
+                "disabled:!shadow-none disabled:bg-transparent disabled:text-disabled-foreground",
             ],
         },
     },
@@ -101,7 +118,14 @@ patchTheme({
      */
     _ButtonSecondary: {
         /** The `--secondary` surface fill: solid secondary background, secondary-foreground text. Hover and active swap to the `--secondary-hover` / `--secondary-active` lightness steps (darker in light mode, lighter in dark); the previous `/80` alpha hover was near-invisible because secondary sits almost on the page surface. Use for actions that sit beside a CTA without stealing it; a row of secondary buttons reads as a control cluster rather than a set of competing CTAs. */
-        root: { class: "bg-secondary text-secondary-foreground hover:bg-secondary-hover active:bg-secondary-active" },
+        root: {
+            class: [
+                "bg-secondary text-secondary-foreground hover:bg-secondary-hover active:bg-secondary-active",
+
+                // Disabled: the tone is replaced by the neutral disabled slab.
+                "disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none",
+            ],
+        },
     },
 
     /**
@@ -117,6 +141,9 @@ patchTheme({
                 // Interactive states.
                 "hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
                 "dark:hover:bg-accent/50 dark:active:bg-accent",
+
+                // Disabled: no fill or box to remove, so the label carries the state.
+                "disabled:text-disabled-foreground",
             ],
         },
     },
@@ -128,8 +155,10 @@ patchTheme({
      * for use inside running text rather than as a standalone control.
      */
     _ButtonLink: {
-        /** The inline-text recipe: `--primary` text with a 4px underline offset that appears on hover only; active deepens the text to `--primary-active`. The `link` emphasis of {@api theme-key:Button} also drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
-        root: { class: "text-primary underline-offset-4 hover:underline active:text-primary-active" },
+        /** The inline-text recipe uses `--primary-text`, a contrast-adjusted blue separate from the primary fill. Hover adds an underline with a 4px offset; active uses `--primary-text-active`. The `link` emphasis of {@api theme-key:Button} drops the control height and horizontal padding so the affordance does not break surrounding line metrics. */
+        root: {
+            class: "text-primary-text underline-offset-4 hover:underline active:text-primary-text-active disabled:text-disabled-foreground disabled:no-underline",
+        },
     },
 
     /**
@@ -138,14 +167,18 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonOutline}.
      */
     _ButtonPrimaryOutline: {
-        /** The primary neutral-chip recipe: a DPR-aware `--primary` hairline and `--primary` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--primary` tint behind the label (`/10` then `/15`). The secondary-CTA treatment: it reads as accented without the full weight of a filled {@api theme-key:_ButtonDefault}, so it can sit beside the primary fill as the "other" emphasized action. */
+        /** The primary outline recipe pairs a DPR-aware `--primary` hairline with readable `--primary-text` over `--background` (dark mode keeps `bg-input/30`). Hover and active add a primary tint (`/10` then `/15`) while the label retains its contrast-adjusted blue. The inset hairline matches filled-button dimensions. */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-primary bg-background text-primary shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-primary bg-background text-primary-text shadow-vueda-control dark:bg-input/30",
 
                 // Interactive states.
                 "hover:bg-primary/10 active:bg-primary/15",
+
+                // Disabled: the box goes. A disabled outline cell keeps only its
+                // label, so the row it sits in shows at a glance which cells still act.
+                "disabled:!shadow-none disabled:bg-transparent disabled:text-disabled-foreground",
             ],
         },
     },
@@ -164,6 +197,10 @@ patchTheme({
 
                 // Interactive and focus states.
                 "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",
+
+                // Disabled: the box goes. A disabled outline cell keeps only its
+                // label, so the row it sits in shows at a glance which cells still act.
+                "disabled:!shadow-none disabled:bg-transparent disabled:text-disabled-foreground",
             ],
         },
     },
@@ -174,9 +211,13 @@ patchTheme({
      * sibling of {@api theme-key:_ButtonGhost}.
      */
     _ButtonPrimaryGhost: {
-        /** The transparent-at-rest primary recipe: `--primary` text with no fill or edge until hover, when a low-alpha `--primary` tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
+        /** The transparent-at-rest primary recipe uses `--primary-text` with no fill or edge until hover, when a primary tint paints the background (`/10` hover, `/15` active). The lowest-weight accented affordance, for an emphasized action inside a dense cluster where an outline or fill would be too heavy. */
         root: {
-            class: ["text-primary", "hover:bg-primary/10 active:bg-primary/15"],
+            class: [
+                "text-primary-text",
+                "hover:bg-primary/10 active:bg-primary/15",
+                "disabled:text-disabled-foreground",
+            ],
         },
     },
 
@@ -191,6 +232,9 @@ patchTheme({
             class: [
                 "text-destructive",
                 "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",
+
+                // Disabled: no fill or box to remove, so the label carries the state.
+                "disabled:text-disabled-foreground",
             ],
         },
     },
@@ -202,7 +246,9 @@ patchTheme({
      */
     _ButtonNeutralLink: {
         /** The neutral inline-text recipe: `--foreground` text with a 4px underline offset that appears on hover only; active eases the label to 70% opacity. Unlike {@api theme-key:_ButtonLink}, it does not tint the text with `--primary`, so a row of quiet text actions does not spread the earned accent across every secondary affordance. The `link` emphasis of {@api theme-key:Button} also drops the control height and horizontal padding. */
-        root: { class: "text-foreground underline-offset-4 hover:underline active:opacity-70" },
+        root: {
+            class: "text-foreground underline-offset-4 hover:underline active:opacity-70 disabled:text-disabled-foreground disabled:no-underline",
+        },
     },
 
     /**
@@ -211,6 +257,8 @@ patchTheme({
      */
     _ButtonDestructiveLink: {
         /** The destructive inline-text recipe: `--destructive` text with a 4px underline offset that appears on hover only; active deepens the label to `--destructive-active`. The text-weight counterpart to {@api theme-key:_ButtonDestructive}, for a cautionary action that must read inline with prose rather than as a control. */
-        root: { class: "text-destructive underline-offset-4 hover:underline active:text-destructive-active" },
+        root: {
+            class: "text-destructive underline-offset-4 hover:underline active:text-destructive-active disabled:text-disabled-foreground disabled:no-underline",
+        },
     },
 });

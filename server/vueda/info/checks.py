@@ -11,6 +11,8 @@ from django.db.models.sql.query import Query
 from rest_flex_fields import WILDCARD_VALUES
 
 from vueda.core.formatted_name import FORMATTED_NAME
+from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION
+from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.formatted_name import path_multiplies_rows
 from vueda.core.formatted_name import resolve_formatted_name_path
@@ -167,6 +169,36 @@ def _validate_default_manager(model):
     ]
 
 
+def _validate_select_related_pairing(model):
+    """
+    Report a model that declares both ``formatted_name_lookup_expression`` and
+    ``formatted_name_select_related``.
+
+    ``formatted_name_select_related`` only has an effect alongside ``get_formatted_name()``: a
+    lookup expression resolves ``formatted_name`` entirely through the database annotation, so there
+    is no per-instance Python method for a ``select_related`` to prepare relations for. Declaring
+    both suggests the model meant to use one and left the other behind.
+    """
+    lookup_expression = getattr(model, FORMATTED_NAME_LOOKUP_EXPRESSION, None)
+    select_related = getattr(model, FORMATTED_NAME_SELECT_RELATED, None)
+    if not lookup_expression or not select_related:
+        return []
+
+    return [
+        Error(
+            f"{model.__name__} defines both formatted_name_lookup_expression and formatted_name_select_related.",
+            hint=(
+                "formatted_name_select_related only has an effect alongside a get_formatted_name() "
+                "method: formatted_name_lookup_expression resolves entirely through a database "
+                "annotation, so there is no per-instance computation for select_related to prepare "
+                "relations for. Remove whichever one the model doesn't use."
+            ),
+            obj=model,
+            id="vueda_info.E011",
+        )
+    ]
+
+
 def _validate_model_formatted_name(model):
     from vueda.core.models import FormattedNameBaseModel
 
@@ -235,6 +267,8 @@ def _validate_model_formatted_name(model):
     if has_lookup and isinstance(has_lookup, str):
         errors.extend(_validate_lookup_expression_path(model, has_lookup))
         errors.extend(_validate_default_manager(model))
+
+    errors.extend(_validate_select_related_pairing(model))
 
     return errors
 

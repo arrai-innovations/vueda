@@ -17,7 +17,7 @@
  * import { useSlots } from "vue";
  *
  * const props = defineProps({ app: { type: String, required: true }, model: { type: String, required: true } });
- * const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
+ * const { modelConfig, list, actions, search, sort, columns, pagination, filter } = useViewList(props);
  * const slots = useSlots();
  * const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
  * </script>
@@ -57,14 +57,15 @@
  * @example Wiring FilterGroup
  * ```html
  * <filter-group
- *     v-model="list.listState.filterArgs"
+ *     v-model="filter.state.addedFilters"
  *     :app="props.app"
  *     :model="props.model"
  *     :view="'list'"
  *     :error="list.instanceList.state.error"
  *     :errored="list.instanceList.state.errored"
- *     :filterables="props.filterables"
- *     :filterable-details="props.filterableDetails"
+ *     :filterables="filter.filterables"
+ *     :filterable-details="filter.filterableDetails"
+ *     :valid-filterables="filter.validFilterables"
  * />
  * ```
  *
@@ -113,6 +114,8 @@
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
+import { buildFilterFromQuery, filtersToParams, getFilterParams } from "@vueda/use/useFilterForm.js";
+import { useFilterables } from "@vueda/use/useFilterables.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
@@ -138,7 +141,6 @@ import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
-import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -167,6 +169,10 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<object> | object} [calculatedObjectsRules] - Rules for deriving calculated objects alongside each row.
  * @property {import('vue').Ref<object> | object} [params] - Extra query parameters merged into every API request.
  *
+ * Filter configuration.
+ * @property {import('vue').Ref<string[]> | string[]} [filterables] - Field names to show as filters; overrides the model config's declared list when set.
+ * @property {import('vue').Ref<object> | object} [filterableDetails] - Per-field filter detail overrides merged with the model config's declared details.
+ *
  * Pagination behaviour.
  * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
  * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"` entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
@@ -181,7 +187,7 @@ const VIEW_NAME = "list";
 /**
  * @typedef {object} ViewListListGroup
  * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`, `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
- * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object, filterArgs: object}>} listState - Mutable reactive list state; `currentPage`, `perPage`, and `filterArgs` are the primary mutation points.
+ * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across visible-filter, sort, and search changes until the URL itself drops it.
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
@@ -238,6 +244,14 @@ const VIEW_NAME = "list";
  */
 
 /**
+ * @typedef {object} ViewListFilterGroup
+ * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
+ * @property {string[]} validFilterables - `filterables` narrowed to fields with a usable, non-hidden filter type; the field list a filter UI should render as addable/editable. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters`, but its URL value still reaches `list.listState.params` -- see `list.listState`.
+ * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
+ */
+
+/**
  * @typedef {object} ViewListContext
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {import('vue').UnwrapNestedRefs<ViewListListGroup>} list - Core list state and computed field data.
@@ -246,6 +260,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').UnwrapNestedRefs<ViewListSortGroup>} sort - Sorting and legacy mobile sort shell state.
  * @property {import('vue').UnwrapNestedRefs<ViewListColumnsGroup>} columns - Column visibility state.
  * @property {import('vue').UnwrapNestedRefs<ViewListPaginationGroup>} pagination - Pagination display state.
+ * @property {import('vue').UnwrapNestedRefs<ViewListFilterGroup>} filter - Filter state, restoration, and the resolved filterable field set.
  */
 
 /**
@@ -289,8 +304,7 @@ export function useViewList(options) {
     const route = useRoute();
     const restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const filterQueryFrom = (query) => omit(query, [SEARCH_PARAM, ORDERING_PARAM]);
-    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM]);
+    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);
@@ -333,11 +347,11 @@ export function useViewList(options) {
             } else {
                 listPreferenceStore.clearSorting(preferenceArgs());
             }
+            // Route synchronization happens in the combined sort+filter writer below, keyed off
+            // `sentSorted` (which this call updates via `applySort`): a route push here, computed
+            // independently against `route.query`, is what let a same-tick filter change and sort
+            // change each push a query still carrying the other's stale value.
             applySort(sanitized, { chosen: true });
-            const routeQuery = queryWithCurrentSort(route.query, sentSorted.value);
-            if (!isEqual(routeQuery, route.query)) {
-                router.push({ query: routeQuery });
-            }
         },
     });
 
@@ -392,12 +406,188 @@ export function useViewList(options) {
             [FIELDS_PARAM]: calculatedListFields,
             [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
         },
-        filterArgs: {},
     });
     // Always send `ps` for a numeric page size so the server's `perPage` response matches the selection.
     if (seededPerPage !== ALL_PAGES) {
         listState.params[PAGE_SIZE_PARAM] = seededPerPage;
     }
+
+    // Filter ownership: this composable is the single owner of rich filter state (`addedFilters`),
+    // route restoration, query parameter synchronization, and saved filter preferences.
+    // `FilterGroup` is a presentation host: it renders from `addedFilters` and mutates it in place
+    // through the add/edit/remove flows, but does not itself watch the route or compute query params.
+    // Own the target object directly (rather than the default one `useFilterables` would create and
+    // wrap in `readonly()`): `restoreFiltersFromQuery`'s watch below deep-watches `filterableDetails`
+    // on every route change, and an unnecessary extra proxy layer there scales with field count.
+    const filterablesState = reactive({ filterables: [], filterableDetails: {} });
+    useFilterables(
+        modelConfig,
+        reactive({
+            filterables: toRef(options, "filterables"),
+            filterableDetails: toRef(options, "filterableDetails"),
+        }),
+        filterablesState,
+    );
+    // Filterables that resolved to a usable filter type; everything else is skipped. Server-hidden
+    // filters (e.g. the auto-injected `id__in` deep-link filter, whose widget is a HiddenInput) are
+    // excluded: they are programmatic, not user-entered, and have no mapped input widget, so they
+    // must not be restored from the URL as an editable filter. This is passed down to FilterGroup
+    // via `filter.validFilterables`, so it isn't recomputed there.
+    const validFilterables = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        return (filterablesState.filterables || []).filter((fieldName) => {
+            const detail = filterableDetails[fieldName];
+            return detail && detail.typeFilter && !detail.hidden;
+        });
+    });
+    // Server-hidden filterables (e.g. the auto-injected `id__in` deep-link filter) have no
+    // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
+    // Read with the same param-key resolution the editable filter form uses, so a hidden filter
+    // that declares suffixes resolves to the same keys a visible one does. Independent of whether
+    // the URL currently carries a value for a key: used to keep a hidden filterable's keys out of
+    // what gets read from or written to the saved filter preference, where a stored key can exist
+    // with no matching URL value yet. `rawHiddenFilterParams` below is the value-bearing counterpart.
+    const hiddenFilterKeys = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        return (filterablesState.filterables || [])
+            .filter((fieldName) => {
+                const detail = filterableDetails[fieldName];
+                return detail && detail.typeFilter && detail.hidden;
+            })
+            .flatMap((fieldName) => {
+                const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
+                return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+            });
+    });
+    const rawHiddenFilterParams = computed(() => {
+        const params = {};
+        for (const key of hiddenFilterKeys.value) {
+            const value = route.query[key];
+            if (value !== undefined && value !== null && value !== "") {
+                params[key] = value;
+            }
+        }
+        return params;
+    });
+    // A fresh plain object every recomputation of `rawHiddenFilterParams` (any route.query change
+    // recomputes it, whether or not a hidden filter's own key is involved), guarded down to a
+    // stable reference here so it only actually changes -- and only then triggers the combined
+    // watch below -- when a hidden filter's value genuinely changes. Without this guard, an
+    // unrelated route.query change (e.g. the ordering param) would still swap in a new
+    // reference-unequal-but-content-equal object, spuriously re-running the combined watch and
+    // racing its route write against other query-driven watchers (e.g. sort) reading the same tick.
+    const hiddenFilterParams = ref({});
+    watch(
+        rawHiddenFilterParams,
+        (newValue) => {
+            if (!isEqual(hiddenFilterParams.value, newValue)) {
+                hiddenFilterParams.value = newValue;
+            }
+        },
+        { immediate: true },
+    );
+    // Seeds the initial request with whatever hidden-filter values the mount URL already
+    // carries; the combined watch below keeps this synchronized with later URL, sort, and
+    // visible-filter changes, including a hidden value dropping out through external navigation.
+    if (route.params?.action === VIEW_NAME) {
+        Object.assign(listState.params, hiddenFilterParams.value);
+    }
+
+    const addedFilters = ref([]);
+    // A fresh plain object every recomputation, driven by whatever `addedFilters` fields the
+    // reader has touched. Reusing it as a watch source (rather than the deep-watched `addedFilters`
+    // ref itself) means the watcher below gets genuinely distinct old/new snapshots to compare,
+    // without a manual `cloneDeep`.
+    const filterParams = computed(() => filtersToParams(addedFilters.value));
+
+    // The single writer for the three constraints useViewList owns end-to-end -- the chosen sort,
+    // the active filters, and the search term -- to list parameters, URL state, and saved filter
+    // preferences. All three are read here from their own reactive state (`sentSorted`,
+    // `filterParams`, `listState.search`) rather than each being pushed independently against
+    // `route.query`: since Vue batches synchronous reactive changes into one flush, e.g. a sort
+    // clear and a filter clear landing in the same tick are combined into exactly one push instead
+    // of separate writes racing to patch the same not-yet-applied query.
+    watch(
+        [sentSorted, filterParams, toRef(listState, "search"), hiddenFilterParams],
+        ([newSorted, newFilterParams, newSearch], oldValues) => {
+            const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
+            // Filter-derived effects -- the reset to page 1 and this change's contribution to
+            // `listState.params` -- apply only while this is the active list view, matching this
+            // composable's original filter-write behavior: a `ViewList` instance kept mounted
+            // off-screen (e.g. mid route transition) must not touch the live route or preferences
+            // on a stray filter mutation. Sort and search changes have always pushed regardless of
+            // the active view, so neither is gated here.
+            const onListView = route.params?.action === VIEW_NAME;
+            const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
+            const searchChanged = !isEqual(newSearch, oldSearch);
+            if (filtersChanged) {
+                listState.currentPage = 1;
+            }
+            if (onListView) {
+                // Hidden filter values ride along on every write here rather than through their own
+                // preserved key: sourced from the URL alone, they need no query-side reconciliation
+                // (they already are the URL), only carrying forward into the request whenever this
+                // merge runs -- including when they alone changed, e.g. external navigation.
+                assignReactiveObject(listState.params, { ...newFilterParams, ...hiddenFilterParams.value }, [
+                    ...Object.keys(options.params || {}),
+                    ...alwaysParamsKeys,
+                    SEARCH_PARAM,
+                ]);
+            }
+            // Start from the current route so keys none of sort/filters/search own (any foreign
+            // query param) pass through untouched. Each domain deletes only the key(s) it
+            // previously wrote, then sets whatever it currently owns -- a sort with nothing
+            // chosen yet (e.g. while restoration is still waiting on model metadata) is
+            // therefore indistinguishable from a foreign key and never gets touched.
+            const routeQuery = { ...route.query };
+            if (oldSorted?.length) {
+                delete routeQuery[ORDERING_PARAM];
+            }
+            const sortValue = formatSortQuery(newSorted);
+            if (sortValue) {
+                routeQuery[ORDERING_PARAM] = sortValue;
+            }
+            if (newSearch) {
+                routeQuery[SEARCH_PARAM] = newSearch;
+            } else {
+                delete routeQuery[SEARCH_PARAM];
+            }
+            if (onListView) {
+                for (const key of Object.keys(oldFilterParams || {})) {
+                    delete routeQuery[key];
+                }
+                Object.assign(routeQuery, newFilterParams);
+            }
+            if (!isEqual(routeQuery, route.query)) {
+                // Dropped while model metadata is still loading: `preferenceQueryFrom`
+                // needs `hiddenFilterKeys` to know which query keys a hidden filterable owns, and
+                // that list is empty until metadata resolves. Saving before then would store a
+                // hidden filterable's value (still present in `routeQuery` from the mount URL) as if
+                // it were a reader-chosen filter or search term.
+                if ((filtersChanged || searchChanged) && modelConfig.loading === false) {
+                    listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
+                }
+                router.push({ query: routeQuery });
+            }
+        },
+    );
+
+    // Rebuild the active-filter list from the URL on load and whenever the query changes externally
+    // (e.g. browser navigation). Guarded so filters already applied in-memory, which carry richer
+    // values than the URL (e.g. resolved choice objects), are not flattened back into the URL form.
+    const restoreFiltersFromQuery = () => {
+        const details = filterablesState.filterableDetails || {};
+        const restored = (validFilterables.value || [])
+            .map((field) => buildFilterFromQuery(field, details[field], route.query))
+            .filter(Boolean);
+        if (!isEqual(filtersToParams(restored), filtersToParams(addedFilters.value))) {
+            addedFilters.value = restored;
+        }
+    };
+    watch([() => route.query, validFilterables, () => filterablesState.filterableDetails], restoreFiltersFromQuery, {
+        immediate: true,
+        deep: true,
+    });
 
     const instanceListProps = reactive({
         target: {
@@ -448,6 +638,8 @@ export function useViewList(options) {
             listState.params[PAGE_SIZE_PARAM] = newPerPage;
         }
     });
+    // Pagination bookkeeping only -- route synchronization for `search` happens in the combined
+    // sort+filter+search writer above, keyed off `listState.search` directly.
     watch([toRef(listState, "currentPage"), toRef(listState, "search")], ([newPage, newSearch]) => {
         instanceList.clearList({ keepPagination: true });
         if (newPage <= 1 || newPage > instanceList.state.paginateInfo?.totalPages) {
@@ -462,26 +654,23 @@ export function useViewList(options) {
         }
         if (!newSearch) {
             delete listState.params[SEARCH_PARAM];
-            const routeQuery = omit(route.query, [SEARCH_PARAM]);
-            listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-            router.push({ query: routeQuery });
         } else {
             listState.params[SEARCH_PARAM] = newSearch;
-            const routeQuery = { ...route.query, [SEARCH_PARAM]: newSearch };
-            if (!isEqual(routeQuery, route.query)) {
-                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-                router.push({ query: routeQuery });
-            }
         }
     });
     watch(
-        () => route.query,
-        (newQuery) => {
-            if (!isInitialized.filters) {
+        [() => route.query, () => modelConfig.loading],
+        ([newQuery]) => {
+            // Deferred until model metadata resolves (added as a watch source above so this
+            // reruns once it does, even if route.query itself stays otherwise unchanged):
+            // `hiddenFilterKeys` needs it to know which stored keys a hidden filterable owns, so a
+            // stored value could otherwise be restored unfiltered and then read back out through
+            // `hiddenFilterParams` as if the mount URL itself had carried it.
+            if (!isInitialized.filters && modelConfig.loading === false) {
                 isInitialized.filters = true;
                 const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
-                    router.push({ query: storedFilters });
+                    router.push({ query: omit(storedFilters, hiddenFilterKeys.value) });
                 }
             }
             const searchQuery = newQuery[SEARCH_PARAM] || "";
@@ -496,40 +685,12 @@ export function useViewList(options) {
         toRef(options, "params"),
         () => {
             assignReactiveObject(listState.params, options.params, [
-                ...Object.keys(listState.filterArgs),
+                ...Object.keys(filtersToParams(addedFilters.value)),
+                ...Object.keys(hiddenFilterParams.value),
                 ...alwaysParamsKeys,
             ]);
         },
         { deep: true, immediate: true },
-    );
-    watch(
-        () => cloneDeep(listState.filterArgs),
-        (newFilter, oldFilter) => {
-            if (route.params?.action !== VIEW_NAME) {
-                return;
-            }
-            if (!isEqual(newFilter, oldFilter)) {
-                listState.currentPage = 1;
-            }
-            assignReactiveObject(listState.params, listState.filterArgs, [
-                ...Object.keys(options.params || {}),
-                ...alwaysParamsKeys,
-                SEARCH_PARAM,
-            ]);
-            const filterQuery = filterQueryFrom(route.query);
-            if (!isEqual(newFilter, filterQuery)) {
-                const routeQuery = {
-                    ...(route.query[SEARCH_PARAM] ? { [SEARCH_PARAM]: route.query[SEARCH_PARAM] } : {}),
-                    ...(route.query[ORDERING_PARAM] !== undefined
-                        ? { [ORDERING_PARAM]: route.query[ORDERING_PARAM] }
-                        : {}),
-                    ...newFilter,
-                };
-                listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
-                router.push({ query: routeQuery });
-            }
-        },
-        { deep: true },
     );
 
     const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
@@ -916,7 +1077,7 @@ export function useViewList(options) {
                     }
                     const canonicalQuery = queryWithCurrentSort(
                         {
-                            ...listPreferenceStore.getFilters(preferenceArgs()),
+                            ...omit(listPreferenceStore.getFilters(preferenceArgs()), hiddenFilterKeys.value),
                             ...route.query,
                         },
                         sentSorted.value,
@@ -1028,6 +1189,14 @@ export function useViewList(options) {
             computedShowAllPages,
             showingAllPages,
             paginateInfo,
+        }),
+        filter: reactive({
+            filterables: computed(() => filterablesState.filterables),
+            filterableDetails: computed(() => filterablesState.filterableDetails),
+            validFilterables,
+            state: {
+                addedFilters,
+            },
         }),
     };
 }

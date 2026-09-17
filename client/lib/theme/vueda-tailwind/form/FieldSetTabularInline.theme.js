@@ -148,11 +148,11 @@ patchTheme({
                 "text-muted-foreground max-w-[44ch]",
             ],
         },
-        /** Component-local override that gives embedded grid cells enough minimum width inside fieldsets. */
+        /** Embedded cells keep controls top-aligned when messages add height and allow help and validation text to wrap. */
         themeOverride: {
             ObjectsGridBodyCell: {
                 root: {
-                    class: "min-w-36",
+                    class: "min-w-36 !align-top !whitespace-normal",
                 },
             },
         },

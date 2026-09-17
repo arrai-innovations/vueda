@@ -88,7 +88,7 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
         scopedIt("applies outline variant when active", () => {
             const wrapper = mount(PaginationItem, { props: { isActive: true } });
             expect(wrapper.classes()).toContain("hairline");
-            expect(wrapper.classes()).toContain("hairline-foreground");
+            expect(wrapper.classes()).toContain("hairline-border-strong");
             expect(wrapper.classes()).toContain("bg-background");
         });
 
@@ -107,7 +107,7 @@ describe("lib/navigation/pagination/Pagination.vue", () => {
         scopedIt("applies outline button classes", () => {
             const wrapper = mount(PaginationFirst);
             expect(wrapper.classes()).toContain("hairline");
-            expect(wrapper.classes()).toContain("hairline-foreground");
+            expect(wrapper.classes()).toContain("hairline-border-strong");
             expect(wrapper.classes()).toContain("bg-background");
         });
 

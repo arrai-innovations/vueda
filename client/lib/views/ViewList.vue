@@ -30,6 +30,7 @@ import { getCRUDName } from "@vueda/utils/case.js";
 import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
+import { useRoute } from "vue-router";
 
 /**
  * Full-page list view for a Django model. Renders a paginated, sortable, and searchable data grid with support
@@ -148,7 +149,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination, filter } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -162,11 +163,17 @@ const icon = useIcons("ViewList", props);
 const filterTriggerZone = ref(null);
 
 // The shared constraints band hosts both the filter chips and the sort chips.
-// `hasFilters` drives band visibility and the divider; it reads the applied
-// filter params (the chip-bearing source) rather than threading a count. Each
-// group owns its own clear control.
-const hasFilters = computed(() => Object.keys(list.listState.filterArgs || {}).length > 0);
+// `hasFilters` drives band visibility and the divider; it reads the active
+// filter list directly rather than threading a count. Each group owns its own
+// clear control.
+const hasFilters = computed(() => (filter.state.addedFilters?.length || 0) > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
+
+// The default `selected_` column only has content when the list offers something to do with a
+// selection. Without bulk actions or transitions, and without a consumer `field(selected_)` slot,
+// its card-layout label and value are hidden so each card does not open with an empty row.
+const hasSelectableActions = computed(() => actions.bulkActions.size > 0 || actions.availableTransitions.size > 0);
+const hideEmptySelectionCard = computed(() => !hasSelectableActions.value && !slots["field(selected_)"]);
 
 const targetlessActionButtonSlotName = useSlotNameResolver(["targetless-action-button", "button"]);
 const bulkActionButtonSlotName = useSlotNameResolver(["bulk-action-button", "button"]);
@@ -200,17 +207,30 @@ const themedSearchSlotProps = computed(() => ({
 }));
 
 const emit = defineEmits([
+    /** Emitted once on mount with a live ref to the selected primary keys (`actions.selectedObjects`). */
     "selected",
+    /** Emitted once on mount with a live ref to the active sort order (`sort.sorting.state.sorted`). */
     "sorted",
+    /** Emitted once on mount with a live ref to the raw fetched objects (`list.instanceList.state.objects`). */
     "objects",
+    /** Emitted once on mount with a live ref to the current object ordering (`list.instanceList.state.order`). */
     "order",
+    /** Emitted once on mount with a live ref to the combined loading state (`list.loading`). */
     "loading",
+    /** Emitted once on mount with a live ref to the fetched related objects. */
     "related-objects",
+    /** Emitted once on mount with a live ref to the fetched calculated objects. */
     "calculated-objects",
-    "filter-change",
+    /** Emitted once on mount with a live ref to the active-filter list (`filter.state.addedFilters`). */
+    "filtered",
+    /** Emitted once on mount with a live ref to the current route query. */
     "query-change",
+    /** Forwarded from FilterGroup when a filter form popover should close. */
     "hide-filter-form",
 ]);
+
+const route = useRoute();
+
 onMounted(() => {
     emit(
         "objects",
@@ -223,6 +243,14 @@ onMounted(() => {
     emit(
         "sorted",
         toRef(() => sort.sorting.state.sorted),
+    );
+    emit(
+        "filtered",
+        toRef(() => filter.state.addedFilters),
+    );
+    emit(
+        "query-change",
+        toRef(() => route.query),
     );
     emit("selected", readonly(toRef(actions, "selectedObjects")));
     emit("loading", list.loading);
@@ -323,19 +351,18 @@ onMounted(() => {
             <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts">
                 <template #filters>
                     <filter-group
-                        v-model="list.listState.filterArgs"
+                        v-model="filter.state.addedFilters"
                         hosted
                         :app="props.app"
                         :model="props.model"
                         :view="'list'"
                         :error="list.instanceList.state.error"
                         :errored="list.instanceList.state.errored"
-                        :filterable-details="props.filterableDetails"
-                        :filterables="props.filterables"
+                        :filterables="filter.filterables"
+                        :filterable-details="filter.filterableDetails"
+                        :valid-filterables="filter.validFilterables"
                         :trigger-target="filterTriggerZone"
-                        @filter-change="emit('filter-change', $event)"
                         @hide-filter-form="emit('hide-filter-form', $event)"
-                        @query-change="emit('query-change', $event)"
                     >
                         <template v-for="(_, slot) in slots" #[slot]="slotProps">
                             <slot :name="slot" v-bind="slotProps || {}" />
@@ -365,7 +392,9 @@ onMounted(() => {
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
         <slot name="before-list">
-            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2">
+            <!-- FormMessage renders only a comment when it has nothing to show; empty:hidden keeps the
+                 padding from leaving an 8px strip between the constraints band and the grid. -->
+            <div class="max-w-full overflow-x-auto p-1 flex flex-col gap-2 empty:hidden">
                 <form-message type="error" />
                 <form-message type="message" />
             </div>
@@ -377,6 +406,14 @@ onMounted(() => {
             :field-classes="{
                 ...($attrs.fieldClasses || {}),
                 selected_: theme('selectedCheckbox'),
+            }"
+            :card-field-classes="{
+                ...($attrs.cardFieldClasses || {}),
+                ...(hideEmptySelectionCard ? { selected_: 'hidden' } : {}),
+            }"
+            :card-header-classes="{
+                ...($attrs.cardHeaderClasses || {}),
+                ...(hideEmptySelectionCard ? { selected_: 'hidden' } : {}),
             }"
             :field-props="{
                 pkKey: modelConfig.info?.pk ?? 'id',
@@ -412,7 +449,7 @@ onMounted(() => {
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
                 <slot :name="`field(${field.name})`" v-bind="slotProps">
                     <div :class="slotProps.class" :data-card-header="field.name">
-                        {{ slotProps.girdType === "cell" ? field.label : "" }}
+                        {{ slotProps.isCardLayout && hasSelectableActions ? field.label : "" }}
                     </div>
                 </slot>
             </template>

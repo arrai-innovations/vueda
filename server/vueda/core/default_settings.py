@@ -189,6 +189,13 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         "USE_TZ": True,
         "ALLOWED_HOSTS": env.list("ALLOWED_HOSTS"),  # like "host", not "host:port" or "http(s)://host"
         "DATABASES": {"default": env.dj_db_url("DATABASE_URL")},  # like "postgres://user:password@host:5432/dbname"
+        # Required, because SESSION_ENGINE below stores sessions in this cache. Django's own default
+        # is LocMemCache, which each process holds privately, so an unset CACHES would divide
+        # sessions across worker processes instead of failing. The URL scheme selects the backend:
+        # "redis://host:6379/0?key_prefix=app-", "redis:///var/run/redis.sock" for a unix socket,
+        # "rediss://" for TLS, "db://cache_table", or "locmem://" for a single-process deployment.
+        # A Redis URL needs the redis client, which installs with the "redis" extra.
+        "CACHES": {"default": env.dj_cache_url("CACHE_URL")},
         "EMAIL_SUBJECT_PREFIX": env("EMAIL_SUBJECT_PREFIX", default=""),
         "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
         "SESSION_COOKIE_HTTPONLY": True,

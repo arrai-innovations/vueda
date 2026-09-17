@@ -132,6 +132,47 @@ describe("lib/form/form-model/FormField.vue", () => {
         });
     });
 
+    describe("hideLabel=true (retains field feedback)", () => {
+        scopedIt("keeps help, errors, and warnings below the control and updates them reactively", async () => {
+            fieldContext.state.help = "Enter the ordered quantity.";
+            fieldContext.state.errors = { required: "This field is required." };
+            fieldContext.state.messages = { stock: "Quantity exceeds available stock." };
+            const wrapper = mount(FormField, {
+                props: { name: "quantity", hideLabel: true },
+                slots: { default: '<input data-qa="quantity-control" />' },
+            });
+
+            expect(wrapper.find("[data-slot='field-label']").exists()).toBe(false);
+            expect(wrapper.get("[data-qa='quantity-control']").exists()).toBe(true);
+            expect(wrapper.get("[data-slot='field-description']").text()).toBe("Enter the ordered quantity.");
+            expect(wrapper.get('[role="alert"]').text()).toBe("This field is required.");
+            expect(wrapper.get('[role="status"]').text()).toBe("Quantity exceeds available stock.");
+
+            fieldContext.state.errors = {};
+            fieldContext.state.messages = {};
+            await vue.nextTick();
+            expect(wrapper.find("[data-slot='field-message']").exists()).toBe(false);
+            expect(wrapper.get("[data-qa='quantity-control']").exists()).toBe(true);
+        });
+
+        scopedIt("retains error and warning slot overrides without rendering the label slot", () => {
+            fieldContext.state.name = "quantity";
+            fieldContext.state.errors = { required: "Required" };
+            fieldContext.state.messages = { stock: "Check stock" };
+            const wrapper = mount(FormField, {
+                props: { name: "quantity", hideLabel: true },
+                slots: {
+                    "field-label": () => "Duplicate label",
+                    "field(quantity)errors": ({ errors }) => `Error: ${errors.required}`,
+                    "field-warnings": ({ messages }) => `Warning: ${messages.stock}`,
+                },
+            });
+            expect(wrapper.text()).not.toContain("Duplicate label");
+            expect(wrapper.text()).toContain("Error: Required");
+            expect(wrapper.text()).toContain("Warning: Check stock");
+        });
+    });
+
     describe("hidden=true (suppresses layout)", () => {
         scopedIt("renders a plain div wrapper", () => {
             const wrapper = mount(FormField, { props: { name: "test", hidden: true } });

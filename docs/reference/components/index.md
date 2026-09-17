@@ -17,6 +17,7 @@ designer can move from the visual to the override surface in one click.
 - [Buttons](/reference/components/buttons)
 - [Forms](/reference/components/forms)
 - [Inputs](/reference/components/inputs)
+- [Form Widgets](/reference/components/widgets)
 - [Selection + Command](/reference/components/selection-and-command)
 - [Date + Time](/reference/components/datetime)
 - [Feedback + Loading](/reference/components/feedback-and-loading)

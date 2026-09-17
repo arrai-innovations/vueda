@@ -24,8 +24,8 @@ describe("lib/controls/native-select/NativeSelect.vue", () => {
         scopedIt("applies base styling classes to the select", () => {
             const wrapper = mount(NativeSelect);
             const select = wrapper.find('[data-slot="native-select"]');
-            expect(select.classes()).toContain("hairline");
-            expect(select.classes()).toContain("rounded-vueda-control");
+            expect(select.classes()).toContain("field-line");
+            expect(select.classes()).toContain("rounded-vueda-field");
             expect(select.classes()).toContain("h-vueda-control");
         });
 

@@ -112,6 +112,35 @@ class CartFilterSet(VuedaFilterSet):
         ]
 
 
+class EmptyCartFilterSet(rest_framework.FilterSet):
+    """Accepts no query parameter at all, so every parameter a request sends is unrecognized.
+
+    ``VuedaFilterSet`` would contribute an ``id`` filter, so this derives from django-filter's own
+    ``FilterSet`` to leave the accepted set empty. That makes the rejection a list request produces
+    depend on nothing but the parameter it was sent.
+    """
+
+    class Meta:
+        model = my_models.Cart
+        fields = []
+
+
+class CartItemCartBaseManagerChoiceFilterSet(VuedaFilterSet):
+    """The `cart` filter's queryset is built from `Cart._base_manager` rather than `Cart.objects`
+    (`FormattedNameManager`), so a query-count test against this filterset's choices isolates
+    `ModelInfoFilterSetChoicesViewSet.get_queryset`'s own `annotate_formatted_name` call:
+    `FormattedNameManager` never gets a chance to apply `formatted_name_select_related` first the
+    way it would through `Cart.objects.all()`, so a flat query count can only be that resolver's own
+    doing.
+    """
+
+    cart = rest_framework.ModelChoiceFilter(queryset=my_models.Cart._base_manager.all())
+
+    class Meta:
+        model = my_models.CartItem
+        fields = ["cart"]
+
+
 class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
     """Filters against `customer__formatted_name`, which names no column of its own: Customer reaches
     its formatted name through `formatted_name_lookup_expression = "data__formatted_name"`, and the

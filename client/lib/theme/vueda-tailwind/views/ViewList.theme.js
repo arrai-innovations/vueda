@@ -37,9 +37,9 @@ patchTheme({
         filterTriggerZone: {
             class: ["contents"],
         },
-        /** Class forwarded to the embedded {@api theme-key:ObjectsGrid.root}. Suppresses the grid's own card border and radius so the ViewList strips above and below own the visible chrome; the grid renders as a flush slab between the filter strip and the pagination strip. */
+        /** Class forwarded to the embedded {@api theme-key:ObjectsGrid.root}. Suppresses the grid's own card edge and radius so the ViewList strips above and below own the visible chrome; the grid renders as a flush slab between the filter strip and the pagination strip. The edge is the `hairline` inset box-shadow, not a border, so it takes `!shadow-none`: a plain `shadow-none` and `hairline` are both single-class utilities, and stylesheet order, not array order, would pick the winner. */
         objectsGrid: {
-            class: ["w-full border-0 rounded-none"],
+            class: ["w-full rounded-none !shadow-none"],
         },
         /** Strip beneath the title row that holds the search input and the column-hiding select. Card-toned with a bottom hairline; shares the page-chrome rhythm with the title row above and the {@api theme-key:NavigationPaginationBar} below, so the chrome reads as a matched frame around the grid. */
         underActionsBar: {
@@ -58,7 +58,7 @@ patchTheme({
         },
         /** Check glyph leading the selection read-out. Tinted `--primary` so the confirm mark carries the accent while the surrounding count text stays in the strip's `--foreground` tone. */
         selectionCountIcon: {
-            class: ["text-primary"],
+            class: ["text-primary-text"],
         },
         /** The numeric count inside the selection read-out. `font-semibold` lifts it one weight above the strip's 500 body so the figure reads first; `tabular-nums` keeps its width stable as the selection grows. */
         selectionCountValue: {

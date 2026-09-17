@@ -2,6 +2,7 @@
 import { parseTime } from "@internationalized/date";
 import TimeField from "@vueda/controls/time-field/TimeField.vue";
 import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetTimeRangeField.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -114,6 +115,7 @@ const theme = useTheme("WidgetTimeRangeField", props);
             :hour-cycle="hourCycle"
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_upper' : undefined"
+            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
             :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"

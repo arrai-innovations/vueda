@@ -1,62 +1,80 @@
 <script setup>
-import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import FilterChip from "@vueda/form/filter/FilterChip.vue";
 import FilterMenu from "@vueda/form/filter/FilterMenu.vue";
 import "@vueda/theme/vueda-tailwind/form/FilterGroup.theme.js";
 import { useFilter } from "@vueda/use/useFilter.js";
-import { buildFilterFromQuery } from "@vueda/use/useFilterForm.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
-import isEqual from "lodash-es/isEqual.js";
-import isObject from "lodash-es/isObject.js";
-import { computed, ref, useSlots, watch } from "vue";
+import { computed, useSlots } from "vue";
 import { useRoute } from "vue-router";
 
 /**
- * Filter orchestrator for a model list view. It fetches the available
- * filterable fields from server configuration, renders the add-filter
- * {@api vue:component:FilterMenu} (whose trigger teleports into the toolbar) and,
- * when filters are active, a strip of removable {@api vue:component:FilterChip}s
- * plus a Clear filters control. It owns the active-filter list, mirrors it to the
- * `v-model` query params, and restores active filters from the URL on load.
+ * Presentation host for a model list view's filter controls. It renders the
+ * add-filter {@api vue:component:FilterMenu} (whose trigger teleports into the
+ * toolbar) from the caller-resolved `filterables` / `filterableDetails` /
+ * `validFilterables` and, when filters are active, a strip of removable
+ * {@api vue:component:FilterChip}s plus a Clear filters control. Resolving
+ * which fields are filterable (typically via
+ * {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList}),
+ * restoring the active-filter list from the URL, mirroring it to query
+ * parameters, and persisting it as a preference are all the caller's
+ * responsibility; this component only renders the `v-model` list and threads
+ * add/edit/remove edits back through it.
  *
  * @vueda-slot-forward FilterFieldForm
  */
 defineOptions({});
 
-const params = defineModel({
-    type: Object,
+/** The active-filter list; the source of truth for both the chips and menu. Owned by the caller. */
+const addedFilters = defineModel({
+    type: Array,
     required: true,
 });
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** Django app label used to fetch the filter configuration from the server. */
+    /**
+     * Django app label. Not used to discover filterable fields (see `filterables` below);
+     * used for field/widget component override resolution and passed to descendants
+     * (e.g. `FilterFieldForm`) for choice-value fetching.
+     */
     app: {
         type: String,
         required: true,
     },
-    /** Django model name used to fetch the filter configuration from the server. */
+    /** Django model name. See `app` above for what this is (and isn't) used for. */
     model: {
         type: String,
         required: true,
     },
-    /** View name used to fetch the filter configuration from the server. */
+    /** View name, forwarded the same way as `app`/`model`. */
     view: {
         type: String,
         required: true,
     },
-    /** List of field names to show as filters; overrides the server-provided list when set. */
+    /**
+     * Resolved filterable field names for this app/model/view (e.g. `useViewList`'s
+     * `filter.filterables`), including fields with no usable filter type or that are
+     * server-hidden. `FilterGroup` does not fetch, merge, or recompute this itself.
+     */
     filterables: {
         type: Array,
-        default: null,
+        required: true,
     },
-    /** Per-field filter detail overrides merged with server-provided configuration. */
+    /** Resolved per-field filter details (e.g. `useViewList`'s `filter.filterableDetails`). */
     filterableDetails: {
         type: Object,
-        default: null,
+        required: true,
+    },
+    /**
+     * `filterables` narrowed to fields with a usable, non-hidden filter type (e.g.
+     * `useViewList`'s `filter.validFilterables`); the field list rendered as addable/editable.
+     */
+    validFilterables: {
+        type: Array,
+        required: true,
     },
     /** When true, the filter group is in an error state, enabling error display. */
     errored: {
@@ -84,96 +102,16 @@ const props = defineProps({
         default: false,
     },
 });
-const emit = defineEmits(["filter-change", "hide-filter-form", "query-change"]);
+const emit = defineEmits([
+    /** Forwarded from the add-filter menu or a filter chip's edit popover when it should close. */
+    "hide-filter-form",
+]);
 
-const filterContext = useFilter(props);
+// Only used for field/widget component resolution and the FilterModelSymbol provide that
+// FilterFieldForm/FilterChip inject; `filterables`/`filterableDetails` themselves are the
+// props above, never recomputed here.
+useFilter(props);
 const route = useRoute();
-
-/** Active filters, the source of truth for both the chips and the query params. */
-const addedFilters = ref([]);
-
-// Filterables that resolved to a usable filter type; everything else is skipped.
-// Server-hidden filters (e.g. the auto-injected `id__in` deep-link filter, whose
-// widget is a HiddenInput) are excluded: they are programmatic, not user-entered,
-// and have no mapped input widget, so they must not appear in the add-filter menu
-// or render as editable chips.
-const validFilterables = computed(() => {
-    const filterables = deepUnref(filterContext?.filterables) || [];
-    const filterableDetails = filterContext?.filterableDetails || {};
-    return filterables.filter((fieldName) => {
-        const detail = filterableDetails[fieldName];
-        return detail && detail.typeFilter && !detail.hidden;
-    });
-});
-
-// Reduce an active-filter list to the flat query-param object the URL carries.
-// Shared by the apply watch (addedFilters -> params) and the restoration guard
-// (so a round-trip through the URL does not clobber rich in-memory values).
-const filtersToParams = (filters) => {
-    const desiredParams = {};
-    for (const filter of filters) {
-        let filterValue = filter.value;
-        if (filter.isValueRawObject) {
-            Array.isArray(filterValue)
-                ? (filterValue = filterValue.map((value) => value.value))
-                : (filterValue = filterValue.value);
-        }
-        if (Array.isArray(filter.param)) {
-            filter.param.forEach((p) => {
-                if (isObject(filter.value)) {
-                    const parts = p.split("_");
-                    const key = parts[parts.length - 1];
-                    desiredParams[p] = filterValue[key] ?? "";
-                } else {
-                    desiredParams[p] = filterValue;
-                }
-            });
-        } else {
-            desiredParams[`${filter.param}`] = filterValue;
-        }
-    }
-    return desiredParams;
-};
-
-watch(
-    addedFilters,
-    (newAddedFilters) => {
-        const desiredParams = filtersToParams(newAddedFilters);
-        if (!isEqual(desiredParams, params.value)) {
-            params.value = desiredParams;
-            emit("filter-change", newAddedFilters);
-        }
-    },
-    { deep: true },
-);
-
-// Notify the host (useViewList) when the route query changes externally.
-watch(
-    () => route.query,
-    (newQuery) => {
-        if (!isEqual(newQuery, params.value)) {
-            emit("query-change", newQuery);
-        }
-    },
-    { immediate: true },
-);
-
-// Rebuild the active-filter list (and thus the chips) from the URL on load and
-// whenever the query changes externally. Guarded so our own applied filters,
-// which carry richer values than the URL, are not flattened back into the URL form.
-const restoreFromQuery = () => {
-    const details = filterContext?.filterableDetails || {};
-    const restored = (validFilterables.value || [])
-        .map((field) => buildFilterFromQuery(field, details[field], route.query))
-        .filter(Boolean);
-    if (!isEqual(filtersToParams(restored), filtersToParams(addedFilters.value))) {
-        addedFilters.value = restored;
-    }
-};
-watch([() => route.query, validFilterables, () => filterContext?.filterableDetails], restoreFromQuery, {
-    immediate: true,
-    deep: true,
-});
 
 const clearFilters = () => {
     addedFilters.value = [];
@@ -199,7 +137,7 @@ defineExpose({ addedFilters });
         <filter-menu
             v-model="addedFilters"
             :filterables="validFilterables"
-            :filterable-details="filterContext?.filterableDetails ?? {}"
+            :filterable-details="filterableDetails"
             :query="route.query"
             :trigger-target="triggerTarget"
             @hide-filter-form="emit('hide-filter-form', $event)"
@@ -219,7 +157,7 @@ defineExpose({ addedFilters });
                 :key="filter.field"
                 v-model="addedFilters"
                 :filter="filter"
-                :filter-details="filterContext?.filterableDetails?.[filter.field] ?? {}"
+                :filter-details="filterableDetails?.[filter.field] ?? {}"
                 :query="route.query"
                 :errored="erroredFields.includes(filter.field)"
                 @hide-filter-form="emit('hide-filter-form', $event)"
@@ -247,7 +185,7 @@ defineExpose({ addedFilters });
                         {{ error.message }}
                         <ul>
                             <li v-for="(value, key) in error.errorDetails" :key="key">
-                                <strong>{{ filterContext?.filterableDetails?.[key]?.label ?? key }}</strong
+                                <strong>{{ filterableDetails?.[key]?.label ?? key }}</strong
                                 >: {{ value.join(", ") }}
                             </li>
                         </ul>

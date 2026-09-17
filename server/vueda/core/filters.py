@@ -44,6 +44,7 @@ from vueda.core.fields.form import BaseArrayField
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import ordering_pk_field_names
+from vueda.core.ordering import ordering_term_distinct_column
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
 
@@ -409,18 +410,24 @@ class VuedaSearchFilterBackend(SearchFilter):
         request into the terms the database will actually sort by: a related model's
         ``formatted_name`` rewritten to the column behind it, and a field with a declared
         ``nulls_ordering`` placement turned into an ``F(...).asc(nulls_first=True)`` expression.
-        Re-reading the raw query parameter here would throw both away -- ordering by a path the
-        database doesn't know, and dropping the placement -- so the terms are taken from the queryset
+        Re-reading the raw query parameter here would throw both away, ordering by a path the
+        database doesn't know and dropping the placement, so the terms are taken from the queryset
         instead.
 
-        ``None`` when the ordering can't be paired with distinct columns, which leaves the caller to
-        order by search rank as it does for a request that asked for no ordering at all:
+        ``ordering_term_distinct_column`` decides one term at a time, and describes what pairs with
+        what. The pairing is all or nothing: ``DISTINCT ON`` matches ``ORDER BY`` from the left, so a
+        single unpairable term takes the whole ordering with it rather than leaving a gap that
+        misaligns the terms after it.
+
+        ``None`` when the ordering can't be paired, which leaves the caller to order by search rank as
+        it does for a request that asked for no ordering at all. Two ways to get there:
 
         - The queryset carries no explicit ordering. A ``?o=`` naming nothing valid resolves to no
           ordering at all on a view that declares no default, and there is nothing to re-apply.
-        - A term names no field (``"?"``) or more than one (``Concat("first_name", "last_name")``).
-          PostgreSQL requires the ``DISTINCT ON`` expressions to match the leftmost ``ORDER BY``
-          expressions, so every term needs a column to pair with; such a term has none.
+        - Some term has no column to pair with. A term reading no column (``"?"``) or several
+          (``Concat("first_name", "last_name")``) is one case; so is a term that reads one column
+          without being that column (``Lower("name")``), and a relation Django expands into the
+          related model's own ordering (``"customer"``).
 
         :param queryset: The queryset as the ordering backend left it.
         :type queryset: django.db.models.QuerySet
@@ -433,11 +440,11 @@ class VuedaSearchFilterBackend(SearchFilter):
 
         distinct_columns = []
         for term in ordering:
-            field_names = ordering_term_field_names(term)
-            if len(field_names) != 1:
+            distinct_column = ordering_term_distinct_column(queryset, term)
+            if distinct_column is None:
                 return None
 
-            distinct_columns.append(field_names[0])
+            distinct_columns.append(distinct_column)
 
         return ordering, distinct_columns
 

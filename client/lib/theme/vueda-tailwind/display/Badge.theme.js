@@ -26,11 +26,10 @@ patchTheme({
          * are **solid**: a saturated fill with its own `-foreground` token for the label, and a
          * transparent hairline so no edge shows. `info`, `success`, and `warning` are **tinted**:
          * a 10 % surface, the tone itself as the label colour, and a 50 % hairline, which is the
-         * pairing the tone tokens document (see `--success` in `base.css`). The split is
-         * deliberate rather than an oversight: the three semantic tones have no `-foreground`
-         * token, so a solid fill could not state a readable label colour, and every status pill
-         * in the kit (for example {@api theme-key:ViewHistoryList.typePill}) already reads as
-         * tinted. Use the solid family for identity and counts, the tinted family for status.
+         * pairing the tone tokens document (see `--success` in `base.css`). Status pills
+         * (for example {@api theme-key:ViewHistoryList.typePill}) use this quieter tint;
+         * solid status surfaces such as banner icons pair the tone with its `-foreground`.
+         * Use the solid badge family for identity and counts, the tinted family for status.
          */
         root: ({ variant, numeric }) => ({
             class: [

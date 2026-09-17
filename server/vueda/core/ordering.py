@@ -8,15 +8,21 @@ __all__ = (
     "ordering_fields_entry_name",
     "ordering_fields_from_path",
     "ordering_pk_field_names",
+    "ordering_term_column_path",
+    "ordering_term_distinct_column",
     "ordering_term_field_names",
     "ordering_term_is_ascending",
     "queryset_explicit_ordering",
     "rewrite_ordering_term_field_names",
 )
 
+from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
+from django.contrib.admin.utils import get_model_from_relation
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
+from django.db.models.expressions import OrderBy
 
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.formatted_name import split_alias_path
@@ -119,6 +125,110 @@ def ordering_term_field_names(term):
             names.append(expression.name)
 
     return names
+
+
+def ordering_term_column_path(term):
+    """
+    The field path an ordering term compiles to as a bare column reference, or ``None`` when it
+    compiles to anything else.
+
+    This is a narrower question than :func:`ordering_term_field_names`, which reports every column a
+    term reads. A term can read exactly one column and still not *be* that column: ``Lower("name")``
+    reads ``name`` and compiles to ``LOWER("name")``. Anywhere the column reference itself has to be
+    reproduced, rather than the value the term sorts by, the distinction decides whether the term can
+    be used at all.
+
+    Three shapes compile to a bare column, and they are the three ways to name one:
+
+    - a field-name string, with or without a ``-`` prefix (``"name"``, ``"-name"``);
+    - an ``F``, which is what a string becomes;
+    - an ``OrderBy`` wrapping either, which is what ``F("name").asc(nulls_first=True)`` builds.
+
+    A direction and a nulls placement are read off the term and discarded here, because neither
+    changes the column being referenced. Everything else compiles to an expression over a column
+    rather than to the column: every scalar function, whether or not it reads a single column, and
+    Django's random ordering ``"?"``, which references none.
+
+    :param term: The ordering term to inspect.
+    :type term: Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]
+    :return: The field path the term references, or None.
+    :rtype: Optional[str]
+    """
+    if isinstance(term, str):
+        return None if term == RANDOM_ORDERING else term.removeprefix("-")
+
+    expression = term.expression if isinstance(term, OrderBy) else term
+
+    return expression.name if isinstance(expression, F) else None
+
+
+def ordering_term_distinct_column(queryset, term):
+    """
+    The column ``distinct()`` needs in order to keep a ``DISTINCT ON`` matching this ordering term, or
+    ``None`` when the term has no column to pair with.
+
+    PostgreSQL requires the ``DISTINCT ON`` expressions to match the leftmost ``ORDER BY``
+    expressions, and ``distinct()`` accepts only field paths while ``order_by()`` accepts any
+    expression. So a term pairs only when it compiles to a bare column reference *and* Django
+    compiles that reference the same way on both sides of the query. A caller that gets ``None`` has
+    to drop the whole ordering rather than the one term: the match is positional, so a gap in the
+    middle would misalign every term after it.
+
+    Four things a term can be, and what each pairs with:
+
+    - **An expression over a column**, such as ``Lower("name")``. Pairs with nothing.
+      ``distinct("name")`` compiles to the column and the ordering compiles to ``LOWER("name")``, so
+      the two never match however the pair is written.
+    - **A queryset annotation**, such as the ``formatted_name`` that
+      ``formatted_name_lookup_expression`` puts on every queryset. Pairs with its own name. Both
+      sides resolve an annotation to the same expression.
+    - **A relation whose related model declares a** ``Meta.ordering``, such as ``"customer"`` on a
+      model whose ``Customer`` orders by ``["user__name"]``. Pairs with nothing.
+      ``Query.find_ordering_name`` replaces such a term with the related model's own ordering, over
+      the joined table, while ``SQLCompiler.get_distinct`` trims the join back to the local foreign
+      key column. A relation whose related model declares no ordering pairs with itself, because both
+      sides then reach the same local column.
+    - **Any other resolvable field path**, including one reaching through relations
+      (``"customer__data__formatted_name"``) and the ``"pk"`` alias. Pairs with the path itself, or
+      with the field behind the alias. A composite primary key pairs with nothing, since one term
+      would need several columns and the match is one term to one column.
+
+    A path that resolves to no field at all pairs with nothing. Such a term fails the query on its
+    own account, and returning ``None`` leaves that failure to the ordering rather than turning it
+    into a mismatched ``DISTINCT ON``.
+
+    :param queryset: The queryset the term will be applied to, read for its model and annotations.
+    :type queryset: django.db.models.QuerySet
+    :param term: The ordering term to pair.
+    :type term: Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]
+    :return: The field path to pass to ``distinct()``, or None.
+    :rtype: Optional[str]
+    """
+    path = ordering_term_column_path(term)
+    if path is None:
+        return None
+
+    if path in queryset.query.annotations:
+        return path
+
+    model = queryset.model
+    try:
+        # `distinct()` resolves the alias as readily as `order_by()` does, but the alias stands for
+        # more than one column on a composite primary key, and one term can only be paired with one.
+        pk_field_names = ordering_pk_field_names(model, path)
+        if len(pk_field_names) != 1:
+            return None
+
+        path = pk_field_names[0]
+        fields = get_fields_from_path(model, path)
+    except (FieldDoesNotExist, NotRelationField):
+        return None
+
+    final_field = fields[-1]
+    if final_field.is_relation and get_model_from_relation(final_field)._meta.ordering:
+        return None
+
+    return path
 
 
 def queryset_explicit_ordering(queryset):

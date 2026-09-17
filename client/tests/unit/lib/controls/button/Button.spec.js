@@ -101,10 +101,11 @@ describe("lib/controls/button/Button.vue", () => {
             expect(wrapper.classes()).not.toContain("border-primary");
         });
 
-        scopedIt("neutral outline uses a DPR-aware foreground hairline", () => {
+        scopedIt("neutral outline rests on a strong hairline that darkens to foreground on hover", () => {
             const wrapper = mount(Button, { props: { emphasis: "outline" } });
             expect(wrapper.classes()).toContain("hairline");
-            expect(wrapper.classes()).toContain("hairline-foreground");
+            expect(wrapper.classes()).toContain("hairline-border-strong");
+            expect(wrapper.classes()).toContain("hover:hairline-foreground");
             expect(wrapper.classes()).not.toContain("border");
             expect(wrapper.classes()).not.toContain("border-foreground");
         });

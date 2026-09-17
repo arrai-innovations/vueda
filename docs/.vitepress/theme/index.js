@@ -10,6 +10,7 @@ import StateLabel from "./components/StateLabel.vue";
 import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
 import { seedShowcaseModels } from "./fixtures/showcaseCustomer.js";
+import { seedShowcaseFieldTypes } from "./fixtures/showcaseFieldTypes.js";
 import "./showcase-portals.css";
 import { createArraiTheme } from "@arrai-innovations/vitepress-theme";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
@@ -59,6 +60,7 @@ const theme = createArraiTheme({
         const pinia = createPinia();
         app.use(pinia);
         seedShowcaseModels(pinia);
+        seedShowcaseFieldTypes(pinia);
 
         app.component("AuthDemo", AuthDemo);
         app.component("DemoCard", DemoCard);

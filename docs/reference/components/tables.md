@@ -104,10 +104,12 @@ background by default; those come from the enclosing surface (typically a Card
 or a bordered wrapper the consumer provides).
 
 Seven additional keys cover the inner elements:
-{@api theme-key:TableHeader} (`[&_tr]:border-b`),
-{@api theme-key:TableBody} (`[&_tr:last-child]:border-0`),
-{@api theme-key:TableFooter} (`bg-muted/50 border-t font-medium`),
-{@api theme-key:TableRow} (`hover:bg-accent/50 data-[state=selected]:bg-primary/[0.06] border-b transition-colors`),
+{@api theme-key:TableHeader} (empty; the header row's cells carry the divider),
+{@api theme-key:TableBody} (`[&>tr:last-child>*]:border-b-0`),
+{@api theme-key:TableFooter} (`bg-muted/50 font-medium [&>tr:first-child>*]:border-t-hairline`),
+{@api theme-key:TableRow} (`hover:bg-accent/50 data-[state=selected]:bg-primary/[0.06] [&>*]:border-b-hairline transition-colors`).
+Row dividers sit on the cells, not the `<tr>`, because the table uses the
+separated border model, which does not paint borders on rows or row groups.
 {@api theme-key:TableHead} (`h-10 px-2 text-left align-middle font-medium whitespace-nowrap`),
 {@api theme-key:TableCell} (`p-2 align-middle whitespace-nowrap`),
 {@api theme-key:TableCaption} (`text-muted-foreground mt-4 text-sm`).
@@ -166,11 +168,11 @@ Seven additional keys cover the inner elements:
     </div>
     <template #footer>
       <span>container: <code>relative w-full overflow-auto</code></span>
-      <span>footer: <code>bg-muted/50 border-t font-medium</code></span>
+      <span>footer: <code>bg-muted/50 font-medium</code>, top divider on the first footer row's cells</span>
       <span>caption: <code>caption-bottom mt-4 text-sm text-muted-foreground</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="selected row — data-[state=selected]:bg-muted">
+  <DemoCard title="selected row: data-[state=selected]">
     <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
       <Table>
         <TableHeader>
@@ -204,9 +206,9 @@ Seven additional keys cover the inner elements:
       </Table>
     </div>
     <template #footer>
-      <span>selected fills to <code>bg-muted</code> (neutral tint) in the default theme</span>
-      <span>hover fills to <code>bg-muted/50</code></span>
-      <span><code>border-b transition-colors</code> on every row</span>
+      <span>selected: <code>bg-primary/[0.06]</code> tint plus a 2px leading primary rail</span>
+      <span>hover fills to <code>bg-accent/50</code></span>
+      <span><code>[&amp;>*]:border-b-hairline</code> divider on every row's cells</span>
     </template>
   </DemoCard>
 </VuedaDemo>

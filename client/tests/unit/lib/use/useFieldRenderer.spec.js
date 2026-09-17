@@ -51,6 +51,27 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3, b: 2 });
     });
 
+    scopedIt("overrides label visibility only on the field and otherwise preserves model configuration", async () => {
+        const props = vue.reactive({
+            formModelName: "quantity",
+            formModel: {
+                fieldComponents: {},
+                widgetComponents: {},
+                fieldDetails: { quantity: { label: "Quantity" } },
+                fieldProps: { quantity: { hideLabel: true } },
+                widgetProps: {},
+            },
+            objectGridFieldSlotProps: {},
+        });
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+        expect(result.fieldProps.value.hideLabel).toBe(true);
+        props.hideLabel = false;
+        expect(result.fieldProps.value.hideLabel).toBe(false);
+        props.hideLabel = true;
+        expect(result.fieldProps.value.hideLabel).toBe(true);
+        expect(result.widgetProps.value).not.toHaveProperty("hideLabel");
+    });
+
     scopedIt("reports a component resolution failure as field error state", async () => {
         const props = vue.reactive({
             formModelName: "foo",

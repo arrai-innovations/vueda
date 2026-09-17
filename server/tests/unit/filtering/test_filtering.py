@@ -17,6 +17,7 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from vueda import info
+from vueda.core import viewsets as core_viewsets
 from vueda.core.filters import SEARCH_LOOKUP_PREFIX
 from vueda.core.filters import TRIGRAM_SIMILAR_PREFIX
 from vueda.core.filters import TRIGRAM_WORD_SIMILAR_PREFIX
@@ -166,12 +167,17 @@ class TestValueDerivedFilterChoicesStayFresh:
     @pytest.fixture(autouse=True)
     def fresh_filterset_class(self):
         """
-        Start from — and leave behind — the state a fresh process would be in, so these tests fail
-        on a regression regardless of which tests ran before them in this worker.
+        Start from, and leave behind, the state a fresh process would be in, so these tests fail on a
+        regression regardless of which tests ran before them in this worker.
+
+        The parameter-name cache is cleared alongside the filters: a populated cache would skip the
+        filterset instantiation these tests are here to watch.
         """
         clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+        core_viewsets._FILTERSET_QUERY_PARAM_NAMES.clear()
         yield
         clear_cached_filterset_fields(store_filtersets.ProductFilterSet)
+        core_viewsets._FILTERSET_QUERY_PARAM_NAMES.clear()
 
     def test_list_caches_no_form_field_on_the_filterset_class(self, test_data, api_client):
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -944,6 +950,158 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
         # ascending default.
         assert response.data["results"][0]["id"] == test_data.carts["test_customer_2@domain.invalid"]["cart"].pk
         assert response.data["results"][1]["id"] == first_cart.pk
+
+
+@pytest.mark.django_db
+class TestSearchDistinctPairsOnlyBareColumns:
+    """A searched list that has to deduplicate re-applies its ordering only when every term has a
+    column to pair with, and sorts by rank when one does not.
+
+    `VuedaSearchFilterBackend` pairs the ordering it re-applies with the `DISTINCT ON` columns that
+    have to match it, and PostgreSQL compares those expressions rather than the values behind them.
+    A term that reads one column is not necessarily that column, and a relation name is not
+    necessarily the column Django orders by, so reading the column names out of a term is not enough
+    to pair it. Each case below produced `SELECT DISTINCT ON expressions must match initial ORDER BY
+    expressions`, an unhandled 500, before the pairing judged the resolved expressions.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    # Matches two special_care entries on each of the two products that carry them.
+    PRODUCT_SEARCH_TERMS = "Perishable Fragile"
+    # Widened to reach the two products under a second distributor, so an ordering by distributor has
+    # more than one value to sort.
+    MULTI_DISTRIBUTOR_SEARCH_TERMS = "Perishable Fragile Dangerous"
+    CART_SEARCH_TERMS = "Small Medium Sugar Cinnamon"
+
+    @staticmethod
+    def list_url(api_client, settings, url_name, terms, ordering=None):
+        data = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        if ordering is not None:
+            data[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
+
+        return api_client.get(reverse(url_name), data=data, format="json")
+
+    def test_a_function_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
+        """`ordering = [Lower("name")]` reads `name` and compiles to `LOWER("name")`, which
+        `distinct("name")` cannot match. A nonempty `?o=` that DRF rejects is what reaches it: the
+        rejected value leaves the default ordering on the queryset while still asking this backend
+        for explicit-order handling."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_function_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.ProductSerializer,
+            store_viewsets.ProductM2MSearchFunctionOrderingViewSet,
+        )
+
+        response = self.list_url(
+            api_client,
+            settings,
+            "store.product-list",
+            self.PRODUCT_SEARCH_TERMS,
+            ordering="not_an_allowed_field",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+
+        # The same request without `?o=` is the rank path this falls back to, so the two agree row
+        # for row. Asserting against it rather than a fixed order keeps this about the fallback
+        # rather than about which product happens to rank first.
+        ranked = self.list_url(api_client, settings, "store.product-list", self.PRODUCT_SEARCH_TERMS)
+
+        assert ranked.status_code == HTTPStatus.OK, response_body(ranked)
+        assert [result["id"] for result in response.data["results"]] == [
+            result["id"] for result in ranked.data["results"]
+        ]
+
+    def test_a_relation_whose_related_model_orders_itself_falls_back_to_rank(
+        self,
+        test_data,
+        api_client,
+        settings,
+    ):
+        """`Customer` declares `ordering = ["user__name"]`, so Django replaces `order_by("customer")`
+        with that ordering over the joined table while `distinct("customer")` trims the join back to
+        the local foreign key column. Unlike the case above, this arrives through a `?o=` the viewset
+        offers and metadata advertises."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_relation_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.CartSerializer,
+            store_viewsets.CartM2MSearchRelationOrderingViewSet,
+        )
+
+        response = self.list_url(
+            api_client,
+            settings,
+            "store.cart-list",
+            self.CART_SEARCH_TERMS,
+            ordering="customer",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+
+        # Row for row the same as the rank path, which is what falling back to rank means. This
+        # search returns each cart once per matching cart item on that path, because the rank branch
+        # deduplicates on `combined_rank` alongside the primary key and each joined row scores its
+        # own rank. That is how the branch already behaves for a cart search sending no `?o=` at all,
+        # so the count is asserted against it rather than against one row per cart.
+        ranked = self.list_url(api_client, settings, "store.cart-list", self.CART_SEARCH_TERMS)
+
+        assert ranked.status_code == HTTPStatus.OK, response_body(ranked)
+        assert [result["id"] for result in response.data["results"]] == [
+            result["id"] for result in ranked.data["results"]
+        ]
+
+    def test_a_relation_whose_related_model_declares_no_ordering_is_kept(
+        self,
+        test_data,
+        api_client,
+        settings,
+    ):
+        """The counterpart that has to keep working: `Distributor` declares no `Meta.ordering`, so
+        both sides of the query reach `store_product.distributor_id` and the ordering pairs. Rejecting
+        every relation name would sort this by rank instead."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_relation_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.ProductSerializer,
+            store_viewsets.ProductM2MSearchRelationOrderingViewSet,
+        )
+
+        def distributor_ids(ordering):
+            response = self.list_url(
+                api_client,
+                settings,
+                "store.product-list",
+                self.MULTI_DISTRIBUTOR_SEARCH_TERMS,
+                ordering=ordering,
+            )
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert response.data["totalRecords"] == 4, response_body(response)  # noqa: PLR2004
+            return [
+                store_models.Product.objects.get(pk=result["id"]).distributor_id for result in response.data["results"]
+            ]
+
+        ascending = distributor_ids("distributor")
+        descending = distributor_ids("-distributor")
+
+        assert ascending == sorted(ascending)
+        assert descending == sorted(descending, reverse=True)
+        # Two distributors among the matched rows, so the two directions really do differ. Without
+        # this the assertions above would hold for any order at all.
+        assert len(frozenset(ascending)) == 2, ascending  # noqa: PLR2004
+        assert ascending != descending
 
 
 class CartRelatedFormattedNameTestData(BaseTestUserMixin, BaseTestGroupMixin):

@@ -139,7 +139,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span>readonly fill <code>--muted</code>/50</span>
+      <span>readonly: no fill, <code>--border</code> bottom line</span>
       <span>disabled opacity 50</span>
     </template>
   </DemoCard>
@@ -270,7 +270,7 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <template #footer>
-      <span>readonly fill <code>--muted</code>/50</span>
+      <span>readonly: no fill, <code>--border</code> bottom line</span>
       <span>disabled opacity 50</span>
     </template>
   </DemoCard>
@@ -360,7 +360,7 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <template #footer>
-      <span>readonly fill <code>--muted</code>/50</span>
+      <span>readonly: no fill, <code>--border</code> bottom line</span>
       <span>disabled opacity 50</span>
     </template>
   </DemoCard>

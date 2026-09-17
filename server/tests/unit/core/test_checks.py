@@ -6,6 +6,21 @@ from tests.utils import use_test_router
 from vueda.core.routers import IncludeAppInRouteNameRouter
 
 
+@pytest.fixture(autouse=True)
+def empty_info_registry():
+    """Run each test against an empty vueda.info registry, then restore the original.
+
+    Both serializer system checks seed their graph traversal from the registry, so a
+    registration left behind by another test would change what they discover.
+    """
+    from vueda.info import registration
+
+    original = registration._registry
+    registration.get_empty_registry()
+    yield
+    registration._registry = original
+
+
 @pytest.mark.django_db
 class TestExpandableFieldsChecks:
     def test_list_value_system_check_error(self, settings):
@@ -226,6 +241,147 @@ class TestExpandableFieldsChecks:
             )
         ]
 
+    def test_serializer_only_registration_is_checked(self, settings):
+        """A serializer reachable only through info.register_serializer() must still be validated.
+
+        The URL conf routes nothing that reaches ExpandableFieldsListSerializer, so the registration is
+        the check's only way to find it.
+        """
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExpandableFieldsListSerializer)
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsListSerializer.Meta.expandable_fields['no_name'] is a list.",
+                hint="flex-fields only supports tuples for expandable_fields values, not lists.",
+                obj=err_serializers.ExpandableFieldsListSerializer,
+                id="vueda_core.E001",
+            )
+        ]
+
+    def test_serializer_only_registration_recurses_into_expandable_child(self, settings):
+        """Traversal from a serializer-only registered root reaches that root's expandable children.
+
+        ExpandableFieldsNestedInvalidSerializer's own entry is valid; the error belongs to the
+        ExpandableFieldsListSerializer it expands to.
+        """
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExpandableFieldsNestedInvalidSerializer)
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsListSerializer.Meta.expandable_fields['no_name'] is a list.",
+                hint="flex-fields only supports tuples for expandable_fields values, not lists.",
+                obj=err_serializers.ExpandableFieldsListSerializer,
+                id="vueda_core.E001",
+            )
+        ]
+
+    def test_viewset_registration_without_a_route_is_checked(self, settings):
+        """info.register() registrations seed the check too, even when the viewset has no route."""
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register(err_serializers.ExpandableFieldsListSerializer, err_viewsets.ExpandableFieldsListViewSet)
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsListSerializer.Meta.expandable_fields['no_name'] is a list.",
+                hint="flex-fields only supports tuples for expandable_fields values, not lists.",
+                obj=err_serializers.ExpandableFieldsListSerializer,
+                id="vueda_core.E001",
+            )
+        ]
+
+    def test_empty_tuple_system_check_error(self, settings):
+        """ExpandableFieldsEmptyTupleSerializer holds a 0-tuple; check must flag it as E002, not raise.
+
+        An empty tuple carries no serializer to unwrap, so graph traversal has to tolerate it for the
+        check to report anything at all.
+        """
+        from django.core.checks import Error
+
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_empty_tuple"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsEmptyTupleSerializer.Meta.expandable_fields['no_name'] is a 0-tuple.",
+                hint="A tuple value must be exactly (Serializer/Field class or lazy string, options dict).",
+                obj=err_serializers.ExpandableFieldsEmptyTupleSerializer,
+                id="vueda_core.E002",
+            )
+        ]
+
+    def test_empty_tuple_from_registration_system_check_error(self, settings):
+        """A 0-tuple on a serializer-only registered root reports E002 the same way a routed one does."""
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExpandableFieldsEmptyTupleSerializer)
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsEmptyTupleSerializer.Meta.expandable_fields['no_name'] is a 0-tuple.",
+                hint="A tuple value must be exactly (Serializer/Field class or lazy string, options dict).",
+                obj=err_serializers.ExpandableFieldsEmptyTupleSerializer,
+                id="vueda_core.E002",
+            )
+        ]
+
+    def test_routed_and_registered_serializer_reports_one_error(self, settings):
+        """A serializer found through both a route and a registration is walked once, not twice."""
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_list_value"
+
+        info.register_serializer(err_serializers.ExpandableFieldsListSerializer)
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExpandableFieldsListSerializer.Meta.expandable_fields['no_name'] is a list.",
+                hint="flex-fields only supports tuples for expandable_fields values, not lists.",
+                obj=err_serializers.ExpandableFieldsListSerializer,
+                id="vueda_core.E001",
+            )
+        ]
+
 
 @pytest.mark.django_db
 class TestExcludeFieldsSerializerUsageChecks:
@@ -297,12 +453,9 @@ class TestExcludeFieldsSerializerUsageChecks:
 
         from vueda import info
         from vueda.core.checks import check_exclude_fields_serializer_usage
-        from vueda.info import registration
 
         settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
 
-        # Isolate the registry, so this doesn't pollute (or get polluted by) other tests.
-        registration.get_empty_registry()
         info.register_serializer(err_serializers.ExcludeFieldsSerializer)
 
         errors = check_exclude_fields_serializer_usage(app_configs=None)
@@ -319,3 +472,201 @@ class TestExcludeFieldsSerializerUsageChecks:
                 id="vueda_core.E009",
             )
         ]
+
+    def test_registered_parent_nested_field_system_check_error(self, settings):
+        """A registered parent's declared nested ExcludeFieldsSerializerMixin child is flagged as E007.
+
+        ExcludeFieldsAsNestedFieldSerializer has no route here; the registration is what the check
+        traverses from.
+        """
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExcludeFieldsAsNestedFieldSerializer)
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExcludeFieldsSerializer is used as ExcludeFieldsAsNestedFieldSerializer's 'leaf' field, but "
+                "inherits ExcludeFieldsSerializerMixin.",
+                hint=(
+                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
+                    "it is a routed ViewSet's serializer_class directly -- not when nested as a field on "
+                    "another serializer."
+                ),
+                obj=err_serializers.ExcludeFieldsSerializer,
+                id="vueda_core.E007",
+            )
+        ]
+
+    def test_registered_parent_expandable_field_system_check_error(self, settings):
+        """A registered parent's expandable ExcludeFieldsSerializerMixin child is flagged as E008."""
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExcludeFieldsAsExpandableFieldSerializer)
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExcludeFieldsSerializer is used as an expandable field "
+                "(ExcludeFieldsAsExpandableFieldSerializer.Meta.expandable_fields['leaf']), but inherits "
+                "ExcludeFieldsSerializerMixin.",
+                hint=(
+                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
+                    "it is a routed ViewSet's serializer_class directly -- not when reachable through another "
+                    "serializer's expandable_fields."
+                ),
+                obj=err_serializers.ExcludeFieldsSerializer,
+                id="vueda_core.E008",
+            )
+        ]
+
+    def test_empty_tuple_expandable_entry_is_skipped(self, settings):
+        """A 0-tuple expandable entry resolves to no child, so this check passes over it rather than raising.
+
+        check_expandable_fields_configuration owns reporting the malformed entry itself, as E002.
+        """
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_empty_tuple"
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == []
+
+    def test_empty_tuple_expandable_entry_from_registration_is_skipped(self, settings):
+        """A 0-tuple on a serializer-only registered root is skipped the same way a routed one is."""
+        from vueda import info
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_valid_tuple"
+
+        info.register_serializer(err_serializers.ExpandableFieldsEmptyTupleSerializer)
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == []
+
+    def test_routed_and_registered_parent_reports_one_error(self, settings):
+        """A parent found through both a route and a registration reports its misused child once."""
+        from django.core.checks import Error
+
+        from vueda import info
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_nested"
+
+        info.register(
+            err_serializers.ExcludeFieldsAsNestedFieldSerializer,
+            err_viewsets.ExcludeFieldsAsNestedFieldViewSet,
+        )
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ExcludeFieldsSerializer is used as ExcludeFieldsAsNestedFieldSerializer's 'leaf' field, but "
+                "inherits ExcludeFieldsSerializerMixin.",
+                hint=(
+                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
+                    "it is a routed ViewSet's serializer_class directly -- not when nested as a field on "
+                    "another serializer."
+                ),
+                obj=err_serializers.ExcludeFieldsSerializer,
+                id="vueda_core.E007",
+            )
+        ]
+
+
+class TestSessionCacheChecks:
+    """`check_session_cache_is_shared` reports sessions kept in a cache workers cannot share."""
+
+    def _configure(self, settings, backend, *, debug=False, engine="django.contrib.sessions.backends.cache"):
+        settings.DEBUG = debug
+        settings.SESSION_ENGINE = engine
+        settings.CACHES = {"default": {"BACKEND": backend}}
+
+    def test_locmem_behind_cache_sessions_is_reported(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.locmem.LocMemCache")
+
+        warnings = check_session_cache_is_shared(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_core.W001"]
+        assert "LocMemCache" in warnings[0].msg
+        assert "CACHE_URL" in warnings[0].hint
+
+    def test_dummy_cache_behind_cache_sessions_is_reported(self, settings):
+        # DummyCache stores nothing, so it loses a session immediately rather than between workers.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.dummy.DummyCache")
+
+        assert [warning.id for warning in check_session_cache_is_shared(app_configs=None)] == ["vueda_core.W001"]
+
+    def test_shared_backend_passes(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.redis.RedisCache")
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_database_sessions_pass_on_a_per_process_cache(self, settings):
+        # The cache holds no sessions, so its reach does not matter to them.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(
+            settings,
+            "django.core.cache.backends.locmem.LocMemCache",
+            engine="django.contrib.sessions.backends.db",
+        )
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_cached_db_sessions_pass_on_a_per_process_cache(self, settings):
+        # cached_db writes through to the database, so a per-process cache costs reads, not sessions.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(
+            settings,
+            "django.core.cache.backends.locmem.LocMemCache",
+            engine="django.contrib.sessions.backends.cached_db",
+        )
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_debug_passes(self, settings):
+        # A single-process development server shares its cache with itself.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.locmem.LocMemCache", debug=True)
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_session_cache_alias_is_followed(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        settings.DEBUG = False
+        settings.SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+        settings.SESSION_CACHE_ALIAS = "sessions"
+        settings.CACHES = {
+            "default": {"BACKEND": "django.core.cache.backends.redis.RedisCache"},
+            "sessions": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        }
+
+        warnings = check_session_cache_is_shared(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_core.W001"]
+        assert "'sessions'" in warnings[0].msg

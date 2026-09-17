@@ -25,7 +25,7 @@ patchTheme({
                 // `false` cannot clear them (combineClasses last-write-wins).
                 {
                     "h-6 gap-1 px-2 [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2": !size || size === "xs",
-                    "h-vueda-control-sm px-vueda-control-px-sm gap-1.5 rounded-vueda-control has-[>svg]:px-vueda-control-px-sm":
+                    "h-vueda-control-sm px-vueda-control-px-sm gap-1.5 rounded-vueda-field has-[>svg]:px-vueda-control-px-sm":
                         size === "sm",
                     "size-6": size === "icon-xs",
                     "size-vueda-control-sm": size === "icon-sm",

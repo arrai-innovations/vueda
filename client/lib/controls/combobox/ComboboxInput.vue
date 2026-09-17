@@ -48,7 +48,7 @@ const icon = useIcons("ComboboxInput", props);
 </script>
 
 <template>
-    <div data-slot="combobox-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
+    <div data-slot="combobox-input-wrapper" class="flex h-9 items-center gap-2 border-b-hairline px-3">
         <component
             :is="icon('search').component"
             v-if="icon('search')"

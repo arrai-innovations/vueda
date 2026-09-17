@@ -82,6 +82,8 @@ The theme also requires a set of CSS custom properties that the class strings re
 
 `base.css` is the brand-customization surface. Override individual tokens after the import to re-skin the app; see [Customize VUEDA Appearance](customize-vueda-appearance#re-skin-via-tokens) for the full recipe. The default values land VUEDA in a near-monochrome cool-neutral palette with dense control sizing; consumers who want a different look should override tokens rather than fork `base.css`.
 
+`base.css` names its fonts, IBM Plex Sans and JetBrains Mono, but does not load them. Load those families yourself or point the font tokens at fonts your app already loads; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
+
 The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes, and either supply your own equivalent token definitions or rewrite the class strings to not depend on the VUEDA tokens.
 
 This must be called **before** any VUEDA component renders. Calling it before `createApp` satisfies this requirement.
@@ -102,7 +104,7 @@ These must be called **before** any VUEDA store or composable attempts a data fe
 
 ## Controls and Widgets
 
-VUEDA's controls and widgets (`Button`, `WidgetSelect`, `WidgetDatePicker`, `WidgetInput`, `WidgetMultiSelect`, `WidgetCheckbox`, `WidgetRadio`, `WidgetSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
+VUEDA's controls and widgets (`Button`, `WidgetSelectDropdown`, `WidgetDateField`, `WidgetTextInput`, `WidgetCombobox`, `WidgetCheckbox`, `WidgetRadioGroup`, `WidgetRangeSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
 
 ## Toast Notifications
 
@@ -167,6 +169,8 @@ After completing the registration sequence, verify the following:
 **Toast notifications not appearing.** The `Sonner` toaster is not mounted in the root component. Add `<Sonner />` to `TheApp.vue`.
 
 **Components render as unstyled HTML.** `setTheme` was not called, so components resolve empty class strings. Verify `setTheme(vuedaTailwind)` is called before app creation and that Tailwind plus `@vueda/theme/vueda-tailwind/base.css` are imported in your stylesheet. Check the browser console for missing CSS custom property warnings.
+
+**Text renders in a system font, and headers wrap where the component reference does not.** The page loads no face with the family name in {@api css-token:vueda-font-sans} or {@api css-token:vueda-font-mono}, so the browser used a fallback. Load the default fonts or override the stacks; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
 
 **Lists load but show no data.** CRUDL adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
 

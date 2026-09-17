@@ -249,7 +249,7 @@ items, dialog actions), override the matching `_Button*` meta key rather than
       </div>
     </div>
     <template #footer>
-      <span>fg <code>--primary</code></span>
+      <span>fg <code>--primary-text</code></span>
       <span>hover underline</span>
       <span>use inside running text, not toolbars</span>
     </template>

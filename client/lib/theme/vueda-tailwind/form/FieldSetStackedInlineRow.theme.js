@@ -43,7 +43,7 @@ patchTheme({
         },
         /** Flexible field column that owns remaining row width. */
         fields: {
-            class: ["flex-1 min-w-0"],
+            class: ["flex flex-col flex-1 min-w-0 gap-4"],
         },
         /** Outer action group for row controls, pinned to the row start edge. */
         actionBarOuter: {

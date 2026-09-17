@@ -1,6 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { config, mount } from "@vue/test-utils";
-import { computed, defineComponent, h, reactive, ref, toRef } from "vue";
+import { defineComponent, h, reactive, ref } from "vue";
 
 const FilterMenuStub = defineComponent({
     name: "FilterMenuStub",
@@ -47,19 +47,9 @@ const ErrorDisplayStub = defineComponent({
     },
 });
 
-const mockedUseFilter = vi.fn((props) =>
-    reactive({
-        app: toRef(props, "app"),
-        model: toRef(props, "model"),
-        filterables: computed(() =>
-            (props.filterables ?? []).filter((f) => {
-                const detail = props.filterableDetails?.[f];
-                return detail && detail.typeFilter;
-            }),
-        ),
-        filterableDetails: toRef(props, "filterableDetails"),
-    }),
-);
+// FilterGroup only calls useFilter() for its side effects (field/widget component resolution and
+// the FilterModelSymbol provide for descendants).
+const mockedUseFilter = vi.fn();
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 
@@ -76,10 +66,10 @@ vi.mock("@vueda/use/useTheme.js", async () => {
 });
 vi.mock("vue-router", () => ({ useRoute: () => route }));
 
-let FilterGroup, vue;
+let FilterGroup, ListFilterError, vue;
 
 function mountGroup(props = {}) {
-    const params = ref(props.modelValue ?? {});
+    const addedFilters = ref(props.modelValue ?? []);
     const wrapper = mount(FilterGroup, {
         props: {
             app: "a",
@@ -87,12 +77,13 @@ function mountGroup(props = {}) {
             view: "list",
             filterables: ["foo"],
             filterableDetails: { foo: { typeFilter: "CharField" } },
-            modelValue: params.value,
-            "onUpdate:modelValue": (v) => (params.value = v),
+            validFilterables: ["foo"],
+            modelValue: addedFilters.value,
+            "onUpdate:modelValue": (v) => (addedFilters.value = v),
             ...props,
         },
     });
-    return { wrapper, params };
+    return { wrapper, addedFilters };
 }
 
 describe("lib/form/filter/FilterGroup.vue", () => {
@@ -101,6 +92,9 @@ describe("lib/form/filter/FilterGroup.vue", () => {
     beforeEach(async () => {
         vue = await import("vue");
         FilterGroup = (await import("@vueda/form/filter/FilterGroup.vue")).default;
+        // Imported from the same (post-resetModules) registry as FilterGroup, so `instanceof
+        // ListFilterError` checks inside the component agree with instances built in tests.
+        ListFilterError = (await import("@vueda/utils/errors.js")).ListFilterError;
         route.query = {};
         previousStubs = config.global.stubs;
         config.global.stubs = { ...previousStubs, "router-link": true };
@@ -112,99 +106,113 @@ describe("lib/form/filter/FilterGroup.vue", () => {
         vi.clearAllMocks();
     });
 
-    scopedIt("renders the add-filter menu with the valid filterables", () => {
-        const { wrapper } = mountGroup({
-            filterables: ["foo", "bar"],
-            filterableDetails: { foo: { typeFilter: "CharField" }, bar: undefined },
-        });
+    scopedIt("passes the given validFilterables straight through to the add-filter menu", () => {
+        const { wrapper } = mountGroup({ validFilterables: ["foo", "bar"] });
         const menu = wrapper.get('[data-qa="filter-menu"]');
-        // Only foo has a typeFilter, so bar is filtered out of the valid filterables.
-        expect(menu.attributes("data-count")).toBe("1");
+        expect(menu.attributes("data-count")).toBe("2");
     });
 
-    scopedIt("excludes server-hidden filters from the menu and restoration", async () => {
-        route.query = { id: "1,2" };
-        const { wrapper } = mountGroup({
-            filterables: ["foo", "id"],
-            filterableDetails: {
-                foo: { typeFilter: "CharField" },
-                id: { typeFilter: "DecimalInField", hidden: true },
-            },
-        });
-        await vue.nextTick();
-        // The hidden id__in filter is omitted from the add-filter menu...
-        expect(wrapper.get('[data-qa="filter-menu"]').attributes("data-count")).toBe("1");
-        // ...and is not restored as an editable chip even when present in the URL.
-        expect(wrapper.vm.addedFilters.some((f) => f.field === "id")).toBe(false);
-    });
-
-    scopedIt("updates params and emits filter-change on addedFilters update", async () => {
-        const { wrapper, params } = mountGroup();
-        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
-        await vue.nextTick();
-
-        expect(params.value).toEqual({ foo: "bar" });
-        expect(wrapper.emitted()["filter-change"][0][0]).toEqual([{ field: "foo", param: "foo", value: "bar" }]);
-
-        wrapper.vm.addedFilters[0] = {
-            field: "foo",
-            param: ["foo_lower", "foo_upper"],
-            value: { lower: 1, upper: 2 },
-            isValueRawObject: false,
-        };
-        await vue.nextTick();
-        expect(params.value).toEqual({ foo_lower: 1, foo_upper: 2 });
+    scopedIt("calls useFilter for field/widget component resolution", () => {
+        mountGroup();
+        expect(mockedUseFilter).toHaveBeenCalledWith(
+            expect.objectContaining({ app: "a", model: "m", filterables: ["foo"] }),
+        );
     });
 
     scopedIt("renders a chip per active filter", async () => {
-        const { wrapper } = mountGroup();
-        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
+        const { wrapper, addedFilters } = mountGroup({ modelValue: [{ field: "foo", param: "foo", value: "bar" }] });
         await vue.nextTick();
         const chips = wrapper.findAll('[data-qa="filter-chip"]');
         expect(chips).toHaveLength(1);
         expect(chips[0].attributes("data-field")).toBe("foo");
-    });
-
-    scopedIt("restores active filters from the URL query on mount", async () => {
-        route.query = { foo: "bar" };
-        const { wrapper } = mountGroup();
-        await vue.nextTick();
-        expect(wrapper.vm.addedFilters).toHaveLength(1);
-        expect(wrapper.vm.addedFilters[0]).toMatchObject({ field: "foo", param: "foo", value: "bar", range: false });
-        expect(wrapper.findAll('[data-qa="filter-chip"]')).toHaveLength(1);
-    });
-
-    scopedIt("emits query-change when the route query changes", async () => {
-        route.query = { q: "1" };
-        const { wrapper } = mountGroup({ filterables: [], filterableDetails: {} });
-        expect(wrapper.emitted()["query-change"][0]).toEqual([{ q: "1" }]);
-
-        route.query = { q: "2" };
-        await vue.nextTick();
-        expect(wrapper.emitted()["query-change"][1]).toEqual([{ q: "2" }]);
+        expect(addedFilters.value).toHaveLength(1);
     });
 
     scopedIt("offers Clear filters only with more than one filter", async () => {
-        const { wrapper } = mountGroup();
-        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
+        const { wrapper, addedFilters } = mountGroup({
+            modelValue: [{ field: "foo", param: "foo", value: "bar" }],
+        });
         await vue.nextTick();
-        // A lone filter is removed by its own chip; no bulk clear.
         expect(wrapper.find('[data-qa="filter-clear"]').exists()).toBe(false);
 
-        wrapper.vm.addedFilters.push({ field: "baz", param: "baz", value: "qux" });
+        addedFilters.value.push({ field: "baz", param: "baz", value: "qux" });
+        await wrapper.setProps({ modelValue: addedFilters.value });
         await vue.nextTick();
         expect(wrapper.get('[data-qa="filter-clear"]').exists()).toBe(true);
     });
 
     scopedIt("clears all filters via the Clear filters button", async () => {
-        const { wrapper } = mountGroup();
-        wrapper.vm.addedFilters.push({ field: "foo", param: "foo", value: "bar" });
-        wrapper.vm.addedFilters.push({ field: "baz", param: "baz", value: "qux" });
+        const { wrapper } = mountGroup({
+            modelValue: [
+                { field: "foo", param: "foo", value: "bar" },
+                { field: "baz", param: "baz", value: "qux" },
+            ],
+        });
         await vue.nextTick();
         const clear = wrapper.get('[data-qa="filter-clear"]');
         await clear.trigger("click");
         await vue.nextTick();
-        expect(wrapper.vm.addedFilters.length).toBe(0);
+
+        expect(wrapper.emitted()["update:modelValue"].at(-1)[0]).toEqual([]);
+        await wrapper.setProps({ modelValue: [] });
+        await vue.nextTick();
         expect(wrapper.findAll('[data-qa="filter-chip"]')).toHaveLength(0);
+    });
+
+    describe("Validation-error mapping", () => {
+        scopedIt(
+            "maps a ListFilterError's erroredFilters to the matching chip and renders per-field messages",
+            async () => {
+                const error = new ListFilterError(undefined, { foo: ["This field is required."] });
+                const { wrapper } = mountGroup({
+                    modelValue: [
+                        { field: "foo", param: "foo", value: "" },
+                        { field: "baz", param: "baz", value: "qux" },
+                    ],
+                    error,
+                    errored: true,
+                });
+                await vue.nextTick();
+
+                const chips = wrapper.findAll('[data-qa="filter-chip"]');
+                // Only the chip named in erroredFilters is flagged; an unrelated active filter is not.
+                expect(chips.find((c) => c.attributes("data-field") === "foo").attributes("data-errored")).toBe("true");
+                expect(
+                    chips.find((c) => c.attributes("data-field") === "baz").attributes("data-errored"),
+                ).toBeUndefined();
+
+                const errorDisplay = wrapper.get('[data-qa="error-display"]');
+                expect(errorDisplay.text()).toContain("Invalid filter values.");
+                expect(errorDisplay.text()).toContain("foo");
+                expect(errorDisplay.text()).toContain("This field is required.");
+            },
+        );
+
+        scopedIt("does not render the error message list when errored is false, but still flags the chip", async () => {
+            const error = new ListFilterError(undefined, { foo: ["This field is required."] });
+            const { wrapper } = mountGroup({
+                modelValue: [{ field: "foo", param: "foo", value: "" }],
+                error,
+                errored: false,
+            });
+            await vue.nextTick();
+
+            // `errored` only gates the message-list display; chip flagging is driven by
+            // `error.erroredFilters` alone, independent of `errored`.
+            expect(wrapper.find('[data-qa="error-display"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="filter-chip"]').attributes("data-errored")).toBe("true");
+        });
+
+        scopedIt("ignores a non-ListFilterError error object", async () => {
+            const { wrapper } = mountGroup({
+                modelValue: [{ field: "foo", param: "foo", value: "" }],
+                error: new Error("boom"),
+                errored: true,
+            });
+            await vue.nextTick();
+
+            expect(wrapper.find('[data-qa="error-display"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="filter-chip"]').attributes("data-errored")).toBeUndefined();
+        });
     });
 });

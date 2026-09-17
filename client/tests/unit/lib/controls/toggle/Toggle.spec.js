@@ -18,7 +18,8 @@ describe("lib/controls/toggle/Toggle.vue", () => {
         scopedIt("applies outline variant classes", () => {
             const wrapper = mount(Toggle, { props: { variant: "outline" } });
             expect(wrapper.classes()).toContain("hairline");
-            expect(wrapper.classes()).toContain("hairline-foreground");
+            expect(wrapper.classes()).toContain("hairline-border-strong");
+            expect(wrapper.classes()).toContain("hover:hairline-foreground");
         });
 
         scopedIt("applies sm size classes", () => {

@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    github: arrai/github@5.0.0
+    github: arrai/github@dev:prerelease-pattern
     lintinator: arrai/lintinator@2.1.1
     pnpm: arrai/pnpm@1.0.0
     utils: arrai/utils@1.23.3
@@ -40,10 +40,16 @@ jobs:
                       fi
 
     client-test:
+        parameters:
+            create_badges:
+                type: boolean
+                default: true
         executor: node-lts
         resource_class: medium+
+        circleci_ip_ranges: true
         steps:
             - checkout
+            - utils/add_ssh_config
             - utils/add_npm_config:
                   registry: npm.arrai.dev
                   token: $NPM_ARRAI_DEV_TOKEN
@@ -53,28 +59,73 @@ jobs:
                   name: Install Dependencies
                   command: pnpm install
             - run:
-                  name: Run Tests
-                  command: pnpm -C client test
+                  name: Run Tests with Coverage
+                  command: pnpm -C client run coverage
+            # Only the main run publishes. Every other run still executes the
+            # suite under coverage, so a break in instrumentation surfaces on
+            # the branch that causes it.
+            - when:
+                  condition: <<parameters.create_badges>>
+                  steps:
+                      - utils/rsync_folder:
+                            when: always
+                            folder: client/coverage/
+                            remote_folder: ${CIRCLE_BRANCH}/coverage_${CIRCLE_JOB}
+                            host: docs
+                      - utils/make_status_shield:
+                            when: on_fail
+                            status: errors
+                            color: red
+                            logo: Vue.js
+                      - utils/make_status_shield:
+                            when: on_success
+                            status: passed
+                            color: brightgreen
+                            logo: Vue.js
+                      - utils/rsync_file:
+                            when: always
+                            file: ~/status.svg
+                            remote_file: ${CIRCLE_BRANCH}/${CIRCLE_JOB}.svg
+                            host: docs
+                      - run:
+                            name: Create coverage report
+                            when: always
+                            command: |
+                                jq 'if (.total.branches.pct | type) == "number" and (.total.statements.pct | type) == "number" then ((.total.branches.pct + .total.statements.pct) / 2) else 0 end | floor' client/coverage/coverage-summary.json > /tmp/.coveragep
+                      - utils/make_coverage_shield:
+                            when: always
+                            link: https://vueda.dev/artifacts/${CIRCLE_BRANCH}/coverage_${CIRCLE_JOB}/
+                      - utils/rsync_file:
+                            when: always
+                            file: /tmp/coverage.svg
+                            remote_file: ${CIRCLE_BRANCH}/${CIRCLE_JOB}.coverage.svg
+                            host: docs
 
     client-publish:
         executor: node-lts
         resource_class: small
-        circleci_ip_ranges: true
         steps:
             - checkout
-            - utils/add_npm_config:
-                  registry: npm.arrai.dev
-                  token: $NPM_ARRAI_DEV_TOKEN
-                  scopes: |
-                      @arrai-innovations:registry=https://npm.arrai.dev/
             - run:
-                  name: Install Dependencies
-                  command: pnpm install
+                  name: Install Dependencies from Public npm
+                  command: pnpm install --frozen-lockfile --registry=https://registry.npmjs.org/
             - run:
-                  name: Publish
+                  name: Publish to Public npm with OIDC
                   command: |
                       cd client
-                      pnpm publish --no-git-checks
+                      PACKAGE_VERSION=$(jq -r '.version' package.json)
+                      case "$PACKAGE_VERSION" in
+                        *-alpha.*) PUBLISH_TAG=alpha ;;
+                        *-beta.*) PUBLISH_TAG=beta ;;
+                        *-rc.*) PUBLISH_TAG=next ;;
+                        *-*) echo "Unsupported prerelease channel: $PACKAGE_VERSION"; exit 1 ;;
+                        *) PUBLISH_TAG=latest ;;
+                      esac
+                      NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+                      export NPM_ID_TOKEN
+                      # npm 11 supports the CircleCI OIDC token exchange.
+                      npx --yes --registry=https://registry.npmjs.org/ --package=npm@11 npm publish \
+                        --registry=https://registry.npmjs.org/ --access public --tag "$PUBLISH_TAG"
 
 workflows:
     client-test:
@@ -85,7 +136,17 @@ workflows:
                       - arrai-global
                   filters:
                       branches:
-                          only: /.*/
+                          only:
+                              - main
+            - client-test:
+                  name: client-test-no-badge
+                  context:
+                      - arrai-global
+                  create_badges: false
+                  filters:
+                      branches:
+                          ignore:
+                              - main
                       tags:
                           only: /^client-v.*/
             - client-verify-release-version:
@@ -99,6 +160,7 @@ workflows:
                   name: client-publish
                   context: arrai-global
                   requires:
+                      - client-test-no-badge
                       - client-verify-release-version
                   filters:
                       tags:
@@ -108,6 +170,7 @@ workflows:
             - github/create_release:
                   name: client-release-on-github
                   context: arrai-global
+                  prerelease_pattern: '-(alpha|beta|rc)\.'
                   requires:
                       - client-publish
                   filters:

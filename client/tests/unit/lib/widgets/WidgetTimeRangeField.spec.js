@@ -133,6 +133,27 @@ describe("lib/widgets/WidgetTimeRangeField.vue", () => {
     });
 
     describe("Widget state bindings", () => {
+        scopedIt("marks both bounds invalid and clears both when the range error is resolved", async () => {
+            const wrapper = mount(WidgetTimeRangeField);
+            const fields = wrapper.findAll('[data-control="time-field"]');
+            const { nextTick } = await vi.importActual("vue");
+            for (const field of fields) {
+                expect(field.attributes("aria-invalid")).toBeUndefined();
+            }
+
+            widgetContext.state.validationState.invalid = true;
+            await nextTick();
+            for (const field of fields) {
+                expect(field.attributes("aria-invalid")).toBe("true");
+            }
+
+            widgetContext.state.validationState.invalid = false;
+            await nextTick();
+            for (const field of fields) {
+                expect(field.attributes("aria-invalid")).toBeUndefined();
+            }
+        });
+
         scopedIt("applies disabled state to both fields", async () => {
             const wrapper = mount(WidgetTimeRangeField);
             const fields = wrapper.findAll('[data-control="time-field"]');

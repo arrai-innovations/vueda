@@ -10,6 +10,8 @@ just bootstrap
 
 This project is configured for {{ js_package_manager }} for JavaScript packages.
 
+The server needs PostgreSQL at `DATABASE_URL` and the cache at `CACHE_URL`, both named in `server/config.local.toml`. Sessions live in that cache.
+
 ## Run for Local Development
 
 ```bash

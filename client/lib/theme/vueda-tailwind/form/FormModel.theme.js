@@ -36,7 +36,7 @@ patchTheme({
         },
         /** Container for generated field entries. */
         fields: {
-            class: [],
+            class: ["flex w-full flex-col gap-7"],
         },
         /** Wrapper around each generated field. */
         field: {

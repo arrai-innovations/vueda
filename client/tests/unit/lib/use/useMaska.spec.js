@@ -5,10 +5,12 @@ const { MockMaskInput, mountedFns, disposeFns, mockedTryOnMounted, mockedTryOnSc
     const mountedFns = [];
     const disposeFns = [];
     return {
-        MockMaskInput: vi.fn(() => ({
-            update: vi.fn(),
-            destroy: vi.fn(),
-        })),
+        MockMaskInput: vi.fn(function () {
+            return {
+                update: vi.fn(),
+                destroy: vi.fn(),
+            };
+        }),
         mountedFns,
         disposeFns,
         mockedTryOnMounted: vi.fn((fn) => mountedFns.push(fn)),

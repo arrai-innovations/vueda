@@ -126,17 +126,17 @@ Most rebrand-level changes (primary color, control radius, control heights, focu
 @import "@vueda/theme/vueda-tailwind/base.css";
 
 :root {
-    --primary: oklch(0.6 0.15 180); /* teal */
+    --primary: oklch(0.6 0.15 180); /* teal fill in both modes */
     --vueda-control-height: 36px; /* taller controls */
     --vueda-control-radius: 6px; /* softer corners */
-}
-
-.dark {
-    --primary: oklch(0.7 0.13 180); /* lighter teal on dark */
 }
 ```
 
 No JavaScript runs; every Tailwind utility that references the token (`bg-primary`, `h-vueda-control`, `rounded-vueda-control`) automatically picks up the new value across the entire app. Light/dark variants are scoped through the existing `.dark` selector.
+
+The default theme keeps its primary fill unchanged between modes. `--primary-foreground` supplies dark labels on solid fills; `--primary-text` supplies a shade in light mode and a tint in dark mode for links and tinted labels. `--primary-text-active` serves pressed links. The text and hover/active colors derive from `--primary`, but check their contrast when choosing a different brand color and override each role as needed. Use `text-primary-text` for blue text on page or lightly tinted surfaces and `text-primary-foreground` for labels on solid primary fills. `--ring` and `--info` follow the readable text color by default.
+
+`--vueda-brand-blue`, `--vueda-brand-navy`, and `--vueda-brand-grey` define the identity palette. Supporting surfaces and body text derive from navy and grey with white or black. Override those identity tokens for a coordinated palette change, or individual semantic tokens to retune a particular surface.
 
 Some tokens to know:
 
@@ -146,8 +146,44 @@ Some tokens to know:
 - **Radius**: `--vueda-control-radius`, `--vueda-card-radius`, `--vueda-modal-radius`, `--vueda-pill-radius`.
 - **Shadows**: `--vueda-shadow-control`, `--vueda-shadow-card`, `--vueda-shadow-popover`, `--vueda-shadow-overlay`.
 - **Motion**: `--vueda-duration-interaction`, `--vueda-ease-interaction`.
+- **Fonts**: {@api css-token:vueda-font-sans} and {@api css-token:vueda-font-mono}. See [Load or replace the fonts](#load-or-replace-the-fonts).
 
 The full set with default values lives in `base.css` itself, with section comments explaining what each token controls.
+
+### Load or replace the fonts
+
+`base.css` names fonts but does not ship them. The default stacks ask for IBM Plex Sans for interface text and JetBrains Mono for machine-generated, positional, and digit-stable values. If the page never loads a face with that exact family name, the browser silently falls back to a system font. Nothing errors, but text widths change, so column headers wrap, chips grow, and dense layouts stop matching the component reference.
+
+VUEDA leaves font loading to the application, because the application usually loads fonts for its own chrome already. A bundled copy would download the same family twice, or a family the app replaces anyway.
+
+To keep the default look, load both families at the three weights the theme uses. Body text uses 400, controls use 500 ({@api css-token:vueda-font-weight-ui}), and labels use 600 ({@api css-token:vueda-font-weight-label}). The static [Fontsource](https://fontsource.org/) packages register the exact family names the stacks expect:
+
+```js
+// main.js
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource/jetbrains-mono/600.css";
+```
+
+To use different fonts, or fonts your app already loads under another name, override the stacks after the `base.css` import. Name the family exactly as its `@font-face` rule registers it. Variable builds often use a different name from the static ones: `@fontsource-variable/ibm-plex-sans` registers `IBM Plex Sans Variable`, not `IBM Plex Sans`.
+
+```css
+/* main.css */
+@import "tailwindcss";
+@import "@vueda/theme/vueda-tailwind/base.css";
+
+:root {
+    --vueda-font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+    --vueda-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+}
+```
+
+A replacement font is a customization like any other token change. It changes text metrics, so screens drift from the component reference by the width difference between the fonts. Keep the default fonts when matching the reference closely matters more than the brand.
+
+To confirm the fonts loaded, run `document.fonts.check('600 16px "IBM Plex Sans"')` in the browser console with your family name. It returns `false` when no matching face is available.
 
 ## Common pitfalls
 
@@ -156,5 +192,13 @@ The full set with default values lives in `base.css` itself, with section commen
 **Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `patchTheme` or `setTheme` at app startup.
 
 **Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
+
+**Drawing app chrome with a plain `border`.** VUEDA's edges step from 2px at a device pixel ratio of 1 down to 1px at a ratio of 2. That scale avoids colour fringing on common office displays. A Tailwind `border` or `border-b` stays at 1px, so a header drawn with it looks thinner than the VUEDA surfaces beside it. Use the matching utilities from `base.css` instead:
+
+- `border-b-hairline` (or `-t`, `-l`, `-r`, `-x`, `-y`) for one edge.
+- `border-hairline` for four real border sides.
+- `hairline hairline-border` for a four-sided edge on an element with no other box-shadow.
+
+**Naming a font the page never loads.** The token stacks name families; they do not load them. A stack whose first family has no loaded face falls back to a system font without any warning. Load the fonts or override the stacks, as in [Load or replace the fonts](#load-or-replace-the-fonts).
 
 **Forgetting that `composes` uses replace semantics.** Declaring `composes` on an override does not append to the default's compose list; it replaces it entirely. If you intend to extend the default's composition, write the full new list.

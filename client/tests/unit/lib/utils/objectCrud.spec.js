@@ -223,7 +223,9 @@ describe("lib/utils/objectCrud.js", () => {
             const abortSpy = vi.fn();
             const controller = { signal: {}, abort: abortSpy };
             const OriginalAbortController = global.AbortController;
-            global.AbortController = vi.fn(() => controller);
+            global.AbortController = vi.fn(function () {
+                return controller;
+            });
             getListUrl.mockReturnValue("list-url");
             const response = new Response(JSON.stringify({ id: 3 }), { status: 201 });
             getJsonOrText.mockResolvedValue({ id: 3 });

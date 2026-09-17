@@ -19,8 +19,8 @@ patchTheme({
                 // Placeholder and input shell.
                 "placeholder:text-muted-foreground flex h-[var(--vueda-cmd-input-height)] w-full rounded-vueda-control bg-transparent py-3 text-sm outline-hidden",
 
-                // Disabled state.
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                // Disabled: no fill to replace, so the ink carries the state.
+                "disabled:cursor-not-allowed disabled:text-disabled-foreground",
             ],
         },
         /** The row that wraps {@api theme-key:CommandInput.root} together with the leading search icon, sized to `--vueda-cmd-input-height` and capped by a bottom hairline (`border-b`) so the input separates cleanly from the {@api theme-key:CommandList.root} below. The wrapper, not the input, owns the divider so the seam stays continuous even when the input is empty or focused. */
