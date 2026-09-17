@@ -2390,7 +2390,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 ),
                                 "items": {
                                     "type": "string",
-                                    "readonly": True,
+                                    "readOnly": True,
                                     "description": "Column total to request.",
                                     "example": "product_price",
                                 },
