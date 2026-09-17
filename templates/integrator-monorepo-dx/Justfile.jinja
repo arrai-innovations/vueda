@@ -43,4 +43,4 @@ serve-server:
   cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
 
 serve-client:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_run }} dev
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_exec }} vite --host {{ bind_ip }} --port {{ client_port }}
