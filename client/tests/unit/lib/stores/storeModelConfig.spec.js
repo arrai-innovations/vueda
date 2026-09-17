@@ -704,12 +704,52 @@ describe("lib/stores/storeModelConfig.js", () => {
             );
         });
 
-        scopedIt("rejects the fields shorthand producing the same invalid submitFields entry", async () => {
+        scopedIt("drops an expand-flattened field the fields shorthand names, rather than rejecting", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
             store.initialized = {};
 
             store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.fetchFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a list config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a read config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "read" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("still rejects an explicitly declared submitFields entry naming a flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { fields: ["name"], submitFields: ["name", "employee.username"] },
+            );
 
             await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
                 /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,

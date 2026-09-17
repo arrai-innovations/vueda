@@ -239,11 +239,24 @@ const mergeSimpleProperties = (
         }
     }
 
+    const expandNames = new Set(mergedConfig.expand || []);
     for (const fieldKey of ["displayFields", "fetchFields", "submitFields"]) {
         // use fields if displayFields, fetchFields, and submitFields are not set
         if (!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) {
             if (mergedConfig.fields) {
-                mergedConfig[fieldKey] = mergedConfig.fields;
+                // A field named by the shorthand can be display- and fetch-valid while being
+                // unsubmittable (an expand-flattened field, addressed by a dotted name whose prefix
+                // is an expand): dropped here rather than in `submitFields` itself, so a shorthand
+                // that's correct for `list`/`read` doesn't fail those views for a `create`/`update`
+                // restriction they never apply to. An explicitly declared `submitFields` entry still
+                // hits `validateSubmitFields` below.
+                mergedConfig[fieldKey] =
+                    fieldKey === "submitFields"
+                        ? mergedConfig.fields.filter((fieldName) => {
+                              const dotIndex = fieldName.indexOf(".");
+                              return dotIndex === -1 || !expandNames.has(fieldName.slice(0, dotIndex));
+                          })
+                        : mergedConfig.fields;
             } else if (defaultGenericConfig[fieldKey]) {
                 mergedConfig[fieldKey] = defaultGenericConfig[fieldKey];
             }
