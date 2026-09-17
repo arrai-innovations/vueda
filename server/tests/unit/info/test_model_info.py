@@ -206,6 +206,7 @@ REGISTRATIONS_BY_MODEL = {
 
 EXPANDED_FIELDS = [
     "model_actions",
+    "model_column_totals",
     "model_expands",
     "model_fields",
     "model_filtering",
@@ -403,6 +404,17 @@ class BaseModelInfoDetail(BaseModelInfo):
                         )
 
     @staticmethod
+    def check_model_column_totals_data(response_data, expected_data, app_label, model_name):
+        """The totals a client may ask for.
+
+        Order is part of the contract: it is the order the viewset declares its totals in, and the
+        order they come back in. The section reports the names only -- the parameter that asks for
+        them is a client-side constant until parameter-name discovery ships.
+        """
+        data = response_data.data["model_column_totals"]
+        assert data["fields"] == expected_data, f'"{app_label}", "{model_name}" -> "expected_column_totals" -> "fields"'
+
+    @staticmethod
     def check_model_permissions_data(response_data, expected_data, app_label, model_name):
         data = response_data.data["model_permissions"]
         assert {frozenset(x) for x in data} == {frozenset(x) for x in expected_data}, (
@@ -457,6 +469,7 @@ class BaseModelInfoDetail(BaseModelInfo):
         self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
         self.check_model_filtering_data(response, kwargs["expected_filtering"], app_label, model_name)
         self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
+        self.check_model_column_totals_data(response, kwargs["expected_column_totals"], app_label, model_name)
         self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
 
 
@@ -489,3 +502,56 @@ class TestModelInfoSerializerCustomer(BaseModelInfoDetail):
     test_data_class = CustomerTestData
     user_email = "test_customer_1@domain.invalid"
     expected_actions_key = "expected_actions_customer"
+
+
+@pytest.mark.django_db
+class TestModelColumnTotalsSection(BaseModelInfo):
+    """What the column totals section reports, beyond the per-model name lists.
+
+    The names themselves are checked per model in `BaseModelInfoDetail`. What is checked here is
+    what no per-model expectation can show: the section carries the declared names and nothing else,
+    and it is expanded rather than returned by default.
+    """
+
+    test_data_class = CustomerTestData
+    user_email = "test_customer_1@domain.invalid"
+
+    def get_section(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("info.model_info-detail", args=("store", "cartitem")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_column_totals"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return response.data["model_column_totals"], response
+
+    def test_section_reports_names_only(self, authenticated_client, settings):
+        """The parameter a client sends is its own constant, so renaming `COLUMN_TOTALS_PARAM`
+        changes what the server accepts without changing what this section reports. Reporting the
+        name here waits for parameter-name discovery, after v3.0.0."""
+        settings.COLUMN_TOTALS_PARAM = "totals"
+        register_model("store", "cartitem")
+
+        section, response = self.get_section(authenticated_client)
+
+        assert section == {"fields": ["quantity", "product_price"]}, response_body(response)
+
+    def test_total_name_need_not_be_a_serializer_field(self, authenticated_client):
+        """`product_price` sums `product_option__price` and names no field of the serializer, which
+        is what a flag on each `model_fields` entry could not have reported."""
+        register_model("store", "cartitem")
+
+        section, response = self.get_section(authenticated_client)
+
+        assert "product_price" in section["fields"], response_body(response)
+        assert "product_price" not in store_serializers.CartItemSerializer().fields
+
+    def test_section_is_not_returned_unless_expanded(self, authenticated_client):
+        register_model("store", "cartitem")
+
+        response = authenticated_client.get(
+            reverse("info.model_info-detail", args=("store", "cartitem")), format="json"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "model_column_totals" not in response.data

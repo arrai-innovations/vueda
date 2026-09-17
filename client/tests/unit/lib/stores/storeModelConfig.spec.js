@@ -193,6 +193,9 @@ const dummyModelInfo = {
             lookupExprs: ["icontains", "exact"],
         },
     },
+    columnTotals: {
+        fields: ["hours", "product_price"],
+    },
     permissions: [
         { codename: "activate_timesheet", name: "Can activate timesheet" },
         { codename: "add_timesheet", name: "Can add timesheet" },
@@ -268,6 +271,10 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
             expect(config.sorted).toEqual(["-week_start", "employee__last_name"]);
 
+            // Column totals: the names a list request may ask for. The parameter that asks is a
+            // client constant, not part of the config built from model info.
+            expect(config.totalables).toEqual(["hours", "product_price"]);
+
             expect(config.fieldDetails).toHaveProperty("id");
             expect(config.fieldDetails).toHaveProperty("name");
             expect(config.fieldDetails).toHaveProperty("description");
@@ -336,6 +343,9 @@ describe("lib/stores/storeModelConfig.js", () => {
                 fieldDetails: {},
                 filterableDetails: {},
                 sortableDetails: {},
+                // Present and empty rather than absent, so a list view reading `config.totalables`
+                // gets a list to filter rather than `undefined` when model info never arrived.
+                totalables: [],
             });
         });
 
@@ -381,6 +391,37 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.filterables).toEqual([]);
             expect(config.sortables).toEqual([]);
             expect(config.sorted).toEqual([]);
+        });
+
+        scopedIt("offers no column totals when the server advertises no section", async () => {
+            // An older server sends no `model_column_totals` at all, which has to read the same way
+            // as a model that declares no totals: nothing to offer, so nothing is asked for.
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            delete customModelInfo.columnTotals;
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.totalables).toEqual([]);
+        });
+
+        scopedIt("ignores anything the totals section carries beyond the names", async () => {
+            // The config takes `fields` and nothing else, so a server sending more (an older one
+            // reporting the parameter name, say) neither breaks the build nor leaks into the config.
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+            customModelInfo.columnTotals = { param: "totals", fields: ["hours"] };
+            mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.totalables).toEqual(["hours"]);
+            expect(config).not.toHaveProperty("totalablesParam");
         });
 
         scopedIt("derives the default sort from ordering.default, honoring each field's ascending flag", async () => {
