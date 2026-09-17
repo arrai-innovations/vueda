@@ -57,12 +57,43 @@ def expected_server_dependency(version: str) -> str | None:
     return f"vueda >={version},<{next_major}"
 
 
+# A requirement may carry extras, as in "vueda[redis] >=3.0.0,<4". The bracket sits between the
+# name and the specifier, so a requirement with extras matches neither the bare name nor a
+# "<name> " prefix.
+REQUIREMENT_PATTERN = re.compile(
+    r"(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?:\[(?P<extras>[^\]]*)\])?(?P<rest>.*)"
+)
+
+
+def split_requirement(dependency: str) -> tuple[str, str, str] | None:
+    """Split a requirement into its name, its extras, and whatever follows them."""
+    match = REQUIREMENT_PATTERN.fullmatch(dependency.strip())
+    if match is None:
+        return None
+    return match.group("name"), match.group("extras") or "", match.group("rest").strip()
+
+
 def get_dependency(dependencies: list[str], name: str) -> str | None:
-    prefix = f"{name} "
     for dependency in dependencies:
-        if dependency == name or dependency.startswith(prefix):
+        parts = split_requirement(dependency)
+        if parts is not None and parts[0] == name:
             return dependency
     return None
+
+
+def matches_expected_dependency(dependency: str | None, expected: str) -> bool:
+    """Compare a requirement to the expected pin, ignoring any extras it carries.
+
+    Which extras a template installs is its own choice. The version pin is the part that has to
+    track the released version.
+    """
+    if dependency is None:
+        return False
+    parts = split_requirement(dependency)
+    if parts is None:
+        return False
+    name, _extras, rest = parts
+    return f"{name} {rest}" == expected
 
 
 def check_client_parity() -> list[str]:
@@ -124,12 +155,12 @@ def check_server_template_parity() -> list[str]:
 
     min_vueda_dependency = get_dependency(min_dependencies, "vueda")
     dx_vueda_dependency = get_dependency(dx_dependencies, "vueda")
-    if min_vueda_dependency != expected_vueda_dependency:
+    if not matches_expected_dependency(min_vueda_dependency, expected_vueda_dependency):
         errors.append(
             f"{SERVER_MIN_TEMPLATE.relative_to(ROOT)} must pin "
             f'"{expected_vueda_dependency}" (found "{min_vueda_dependency}")'
         )
-    if dx_vueda_dependency != expected_vueda_dependency:
+    if not matches_expected_dependency(dx_vueda_dependency, expected_vueda_dependency):
         errors.append(
             f"{SERVER_DX_TEMPLATE.relative_to(ROOT)} must pin "
             f'"{expected_vueda_dependency}" (found "{dx_vueda_dependency}")'
