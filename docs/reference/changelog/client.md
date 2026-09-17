@@ -45,6 +45,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Stable title-bar loading indicator (`PageTitle`)**:
+    - The spinner occupies reserved space beside the heading, so toggling loading cannot wrap it onto another line or change the title bar's height. The reserved space is styled through `PageTitle.loading`.
+    - The title row reserves the standard control height (`--vueda-control-height`), keeping the header equally tall with or without a single row of default-size page actions. Longer titles and wrapped actions can still increase its height.
+
 - **State isolation when reusing model views**:
     - Lists clear selection and transient state when the model changes, restore the destination model's saved preferences, and avoid rewriting its query while the previous route's props are retained.
     - Create and update forms reset drafts, validation, and submission errors for a new target, including models with identical defaults. Missing-object errors clear on target changes and retries.

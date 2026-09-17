@@ -47,11 +47,10 @@ page.bindActionZone(actionZone);
                         <h1 :class="theme('title')">
                             <!-- Page title content rendered inside the `<h1>`; falls back to the active view's title. -->
                             <slot name="title">{{ title }}</slot>
-                            <template v-if="loading">
-                                &nbsp;
-                                <loading-spinner-inline />
-                            </template>
                         </h1>
+                        <span :class="theme('loading')" data-qa="page-title-loading">
+                            <loading-spinner-inline v-if="loading" />
+                        </span>
                     </div>
                 </div>
                 <!-- Page actions teleport here via PageActions; empty until a view contributes some. -->
