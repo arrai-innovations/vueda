@@ -75,14 +75,7 @@ SECRET_KEY = "test_secret_key"
 # that builds users. Override it here rather than in `vueda.core.default_settings`, which ships.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
-# Settings needed to see the permissions and workflows views.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "KEY_PREFIX": "vueda-",
-        "LOCATION": "unique-snowflake",
-    }
-}
+# CACHES comes from CACHE_URL in config.toml, through get_defaults.
 LOGIN_URL = "/routes/vueda.user/dev-login/"
 SECURE_BROWSER_XSS_FILTER = True
 SESSION_COOKIE_SECURE = False

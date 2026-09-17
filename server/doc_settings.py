@@ -23,6 +23,7 @@ env = TomlEnv(
         "STATICFILES_DIRS": [],
         "AUTH_USER_MODEL": "doc_app.User",
         "DATABASE_URL": f"sqlite:///{ROOT_DIR / 'docs.sqlite3'}",
+        "CACHE_URL": "locmem://",  # A docs build runs in one process and reaches no cache service.
         "DATABASE_BACKUP_DIR": str(ROOT_DIR / "tmp"),
         "ANYMAIL_MAILGUN_API_KEY": "docs",
         "ANYMAIL_MAILGUN_SENDER_DOMAIN": "domain.invalid",

@@ -1,9 +1,11 @@
-"""System checks validating VUEDA serializer configuration and model feature policy."""
+"""System checks validating VUEDA serializer configuration, model feature policy, and cache setup."""
 
 import inspect
 
 import rest_flex_fields.serializers as flex_serializers
+from django.conf import settings
 from django.core.checks import Error
+from django.core.checks import Warning as CheckWarning
 from rest_framework.fields import Field
 from rest_framework.serializers import BaseSerializer
 from rest_framework.serializers import ListSerializer
@@ -365,3 +367,51 @@ def check_model_feature_policy(app_configs, **kwargs):
     for model in models:
         errors.extend(check_model_feature_declaration(model))
     return errors
+
+
+# Every process gets its own copy of these, so what one worker writes the next never reads.
+# DummyCache keeps nothing at all, which loses a session immediately rather than between workers.
+_PER_PROCESS_CACHE_BACKENDS = frozenset(
+    {
+        "django.core.cache.backends.locmem.LocMemCache",
+        "django.core.cache.backends.dummy.DummyCache",
+    }
+)
+
+
+def check_session_cache_is_shared(app_configs, **kwargs):
+    """Report sessions stored in a cache that worker processes cannot share.
+
+    ``get_defaults`` requires ``CACHE_URL``, so the backend is a deliberate choice rather than a
+    silent default. ``locmem://`` and ``dummy://`` still satisfy that key. Behind more than one
+    worker process, a session written by one worker is missing from the next request another
+    serves, and the user loses the session at an unpredictable point.
+
+    Only ``django.contrib.sessions.backends.cache`` is reported. ``cached_db`` writes through to
+    the database, so a per-process cache costs it reads rather than sessions.
+
+    This is a deploy check, and it returns early while ``DEBUG`` is on, because a single-process
+    development server shares its cache with itself.
+    """
+    if settings.DEBUG:
+        return []
+    if getattr(settings, "SESSION_ENGINE", "") != "django.contrib.sessions.backends.cache":
+        return []
+
+    alias = getattr(settings, "SESSION_CACHE_ALIAS", "default")
+    backend = (getattr(settings, "CACHES", {}).get(alias) or {}).get("BACKEND", "")
+    if backend not in _PER_PROCESS_CACHE_BACKENDS:
+        return []
+
+    return [
+        CheckWarning(
+            f"SESSION_ENGINE stores sessions in the {alias!r} cache, which uses {backend}.",
+            hint=(
+                "Point CACHE_URL at a cache every worker process shares, such as "
+                "'redis://host:6379/0?key_prefix=app-' or 'db://cache_table'. Keep the per-process "
+                "backend only where one process serves every request, or set SESSION_ENGINE to "
+                "'django.contrib.sessions.backends.db'."
+            ),
+            id="vueda_core.W001",
+        )
+    ]

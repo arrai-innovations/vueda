@@ -17,7 +17,17 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## v3.0.0a1.post1 (unreleased)
+## v3.0.0a2 (unreleased)
+
+### Breaking Changes
+
+- **`CACHE_URL` configures the cache, and cache-backed sessions need a shared one**:
+    - `get_defaults()` requires a `CACHE_URL` key and builds `CACHES["default"]` from it through `django-cache-url`. It previously set `SESSION_ENGINE` to the cache backend while leaving `CACHES` unset, so Django's own `LocMemCache` default held the sessions. That cache is private to each process: behind more than one worker, a session written by one worker was missing from the next request another served, and the forgot-password cooldown in `VuedaForgotPasswordView` admitted one request per worker per minute rather than one per address. allauth's own rate limits count in the same cache, so sign-in and password reset attempts divided per worker too. The URL scheme selects the backend and carries the key prefix that separates two deployments sharing one instance: `redis://host:6379/0?key_prefix=app-`, `redis:///var/run/redis.sock` for a unix socket, `rediss://` for TLS, `db://cache_table`, or `locmem://` where one process serves every request.
+    - Django ships the Redis cache backend and imports its client lazily, so a Redis URL needs the new `redis` extra, `vueda[redis]`. A database cache URL installs nothing extra and needs `manage.py createcachetable` once per deployment.
+    - `check --deploy` reports `vueda_core.W001` when `SESSION_ENGINE` stores sessions in a per-process cache, `LocMemCache` or `DummyCache`, while `DEBUG` is off. Database sessions and `cached_db` sessions are not reported, because neither loses a session to a per-process cache.
+      _Add `CACHE_URL` to every deployment's configuration before upgrading. Startup raises `Missing config key: CACHE_URL` without it. Install the `redis` extra wherever that URL names Redis._
+
+## v3.0.0a1.post1 (2026-09-14)
 
 ### Fixes
 
