@@ -2380,6 +2380,36 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                         },
                     }
 
+                    # Model Column Totals
+                    data["content"]["application/json"]["schema"]["properties"]["model_column_totals"] = {
+                        "type": "object",
+                        "title": "Column Totals Data",
+                        "properties": {
+                            "fields": {
+                                "type": "array",
+                                "description": (
+                                    "The total names a client may request, in declaration order. Each is the "
+                                    "key the value comes back under in the paginated response's "
+                                    "`columnTotals`, and is named after the column it renders under rather "
+                                    "than after the server-side field path it sums. They are requested "
+                                    "through the `COLUMN_TOTALS_PARAM` query parameter, documented on each "
+                                    "`list` operation that declares totals; a wildcard value (`*` or `~all`) "
+                                    "requests every declared total, and naming none requests none, which "
+                                    "runs no aggregation query."
+                                ),
+                                "items": {
+                                    "type": "string",
+                                    "readonly": True,
+                                    "description": "Column total to request.",
+                                    "example": "product_price",
+                                },
+                            },
+                        },
+                        "required": [
+                            "fields",
+                        ],
+                    }
+
                     # Model Permissions
                     data["content"]["application/json"]["schema"]["properties"]["model_permissions"] = {
                         "type": "array",
