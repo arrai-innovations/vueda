@@ -118,9 +118,11 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
+import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import {
     ALL_PAGES,
+    COLUMN_TOTALS_PARAM,
     DEFAULT_PAGE_SIZE,
     DEFAULT_PAGE_SIZE_OPTIONS,
     EXPAND_PARAM,
@@ -135,6 +137,7 @@ import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } f
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
+import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -168,6 +171,9 @@ const VIEW_NAME = "list";
  * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
  * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"` entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
  *
+ * Layout.
+ * @property {import('vue').Ref<string> | string} [tableBreakpoint] - Breakpoint at which the grid switches from cards to a table, matching `ObjectsGrid`'s prop of the same name. Defaults to `"lg"`; `"xs"` is always table. Read reactively, and answers `sort.isTable` until an `ObjectsGrid` reports its own layout — so the first list request knows whether the totals footer will be rendered, without waiting for the grid to mount.
+ *
  * Action styling.
  * @property {import('vue').Ref<string[]> | string[]} [primaryActions] - Targetless action names promoted to the filled hero CTA; defaults to `["create"]`.
  */
@@ -181,7 +187,7 @@ const VIEW_NAME = "list";
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
  * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
  * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
- * @property {object} columnTotals - Map of field name to column total value.
+ * @property {object} columnTotals - Map of display column name to that column's total, for the totals this request asked for. Totals are opt-in: the request carries the intersection of the totals the server advertises (`modelConfig.config.totalables`) and the currently visible columns, under `COLUMN_TOTALS_PARAM`, so hiding the last totalled column stops asking for totals at all and this is `{}`. The server computes them during the same list request that returns the rows, and each response replaces this map rather than merging into it, so a total is always as fresh as the rows beside it and can never describe data that has since changed.
  * @property {boolean} loading - Combined loading state (model config + instance list).
  * @property {boolean} errored - True when either model config or instance list has a non-filter error.
  * @property {Error|null} error - The active error, or null.
@@ -212,7 +218,7 @@ const VIEW_NAME = "list";
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater. `state.sorted` is the sort in effect, for display: it holds `defaultSorted` while the reader has not chosen a sort. What the list request sends as its ordering param is the chosen sort alone, so an untouched default is shown without being sent.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
  * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Shown whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to. It is a report of what the server does on its own, so it is never sent back as an ordering param, and it stays out of the URL as well. Sending it would replace the ordering the server applies, which is not always the same order: a ranked search sorts by relevance while the param is absent, and a default declared as an expression (`Lower("name")`) sorts by that expression rather than by the bare column reported here. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
- * @property {boolean} isTable - True when the grid is in table mode (auto-unwrapped ref; can be assigned via `@update:is-table`).
+ * @property {boolean} isTable - True when the grid is in table mode. Derived from the `tableBreakpoint` option until an `ObjectsGrid` reports its own layout; assigning it (via `@update:is-table`) makes that report the answer from then on.
  * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
  * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
  * @property {boolean} canShowMobileSorter - Deprecated. True when the legacy card-layout-only mobile sorter should be rendered (`!isTable && sortables exist`). Use `canShowSorter`.
@@ -373,9 +379,10 @@ export function useViewList(options) {
     const showingAllPages = ref(seededPerPage === ALL_PAGES);
     const computedShowAllPages = computed(() => showingAllPages.value);
 
-    // The page-size param is framework-managed (seeded here, updated by the perPage watch), so it must
-    // survive the consumer-`params` reconciliation below the same way ordering, fields, and expand do.
-    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM];
+    // The page-size and column-totals params are framework-managed (seeded here, updated by the
+    // perPage and totals watches), so they must survive the consumer-`params` reconciliation below
+    // the same way ordering, fields, and expand do.
+    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM, COLUMN_TOTALS_PARAM];
     const listState = reactive({
         currentPage: 1,
         perPage: seededPerPage,
@@ -583,19 +590,151 @@ export function useViewList(options) {
     };
 
     const columns = ref([]);
+    // The columns a reader sees before anyone has chosen any: every display field, minus the ones
+    // this reader hid last time, and all of them when hiding would leave nothing to show.
+    //
+    // The watcher further down seeds `columns` from this, but it cannot run until the model config
+    // has arrived, and the first list request is assembled in that same moment. Anything derived
+    // from `columns` alone is therefore still empty when that request is built. So this is the
+    // shared derivation, and `effectiveColumns` is what the rest of the view reads: the reader's
+    // own selection once there is one, and what they are about to be shown until then.
+    const defaultVisibleColumns = computed(() => {
+        const fieldNames = calculatedDisplayFields.value.map((field) => field?.name);
+        if (!fieldNames.length) {
+            return [];
+        }
+        const hiddenSet = new Set(listPreferenceStore.getHiddenColumns(preferenceArgs()) || []);
+        const visible = fieldNames.filter((name) => !hiddenSet.has(name));
+        return visible.length > 0 ? visible : [...fieldNames];
+    });
+    const effectiveColumns = computed(() => (isInitialized.columns ? columns.value : defaultVisibleColumns.value));
     const computedFieldObjects = computed(() => {
         const result = [];
         for (const field of options.extraFieldObjects || []) {
             result.push(translateExpandedField(field));
         }
         for (const field of calculatedDisplayFields.value) {
-            if (columns.value.includes(field.name)) {
+            if (effectiveColumns.value.includes(field.name)) {
                 result.push(translateExpandedField(field));
             }
         }
         return result;
     });
     const specialSlots = computed(() => (options.extraFieldObjects || []).map((field) => `field(${field.name})`));
+
+    // Declared up here rather than beside the other grid state below, because the totals computed
+    // that follows reads it and the watch on that computed is `immediate`.
+    //
+    // Seeded from the same breakpoint `ObjectsGrid` decides its own layout by, not from an assumed
+    // table. The grid takes over through `@update:is-table` once it mounts, but that is a tick after
+    // the totals parameter is written and the first list request has left. Seeding `true` on a phone
+    // meant that request asked for totals the footer would not render, the grid then reported card
+    // layout, the parameter was dropped, and the list fetched a second time — one wasted round trip
+    // and one wasted aggregation per total, on the narrow viewport least able to afford either.
+    // Read reactively rather than once: a consumer may swap `tableBreakpoint` to force a layout
+    // (remapping it to "xs" or "inf" is how a layout toggle is built), and a shell that renders no
+    // `ObjectsGrid` at all never receives an `@update:is-table` to correct a stale seed with.
+    const tableBreakpoint = computed(() => unref(options.tableBreakpoint) || "lg");
+    const isTableByBreakpoint = useBreakpoints(breakpointsVueda).greaterOrEqual(tableBreakpoint);
+    // What the grid last reported, or `null` while it has reported nothing. The grid is the
+    // authority once it mounts -- it may be told a different breakpoint than this composable was --
+    // and it re-emits on every change, so the breakpoint below answers only until then.
+    const reportedIsTable = ref(null);
+    const isTable = computed({
+        get: () => reportedIsTable.value ?? (tableBreakpoint.value === "xs" || isTableByBreakpoint.value),
+        set: (value) => {
+            reportedIsTable.value = value;
+        },
+    });
+
+    // Column totals are opt-in server-side: a list request that names none gets an empty
+    // `columnTotals` back and costs no aggregation query. So ask for the totals the rendered columns
+    // can actually show — the footer keys totals by display column name, and a total for a hidden
+    // column would be a `SUM` computed for no one. Hiding the last totalled column drops the
+    // parameter entirely; showing it again puts it back.
+    //
+    // Card layout drops the whole set for the same reason: the totals row is a table footer, and
+    // `ViewList` renders it only while `isTable`. Below the grid's table breakpoint there is nowhere
+    // to put a total, so a phone-width list should not be paying for one. Crossing back over the
+    // breakpoint puts the parameter back.
+    //
+    // Always the whole set, never a delta. The server computes totals from the same queryset that
+    // produced the rows in that response, so asking for one more total means re-asking for the ones
+    // already shown: the data behind them may have changed since, and a total carried over from an
+    // earlier response could describe rows that are no longer on screen.
+    const requestedColumnTotals = computed(() => {
+        if (!isTable.value) {
+            return [];
+        }
+        const totalables = modelConfig.config?.totalables || [];
+        if (!totalables.length) {
+            return [];
+        }
+        const visible = new Set(computedFieldObjects.value.map((field) => field?.name));
+        return totalables.filter((name) => visible.has(name));
+    });
+    watch(
+        requestedColumnTotals,
+        (requested) => {
+            if (!requested.length) {
+                delete listState.params[COLUMN_TOTALS_PARAM];
+                return;
+            }
+            // Written only when the names actually differ. The computed hands back a fresh array
+            // whenever any column's visibility changes, and assigning an equal-but-new array here
+            // would refetch the list for a request that did not change.
+            if (!isEqual(listState.params[COLUMN_TOTALS_PARAM], requested)) {
+                listState.params[COLUMN_TOTALS_PARAM] = [...requested];
+            }
+        },
+        // Synchronous, so the parameter is in `listState.params` before the list request that should
+        // carry it is assembled. The model config arriving is what both fills these names in and
+        // lets the first request go out; a queued watcher would write the parameter after that
+        // request had already left, and the list would fetch a second time to add it.
+        { immediate: true, flush: "sync" },
+    );
+
+    // A declared total whose name matches no display column at all is the one misconfiguration the
+    // server's `vueda_info.E011` check cannot catch: `column_totals` keys name client columns, and
+    // the server has no idea what those are, since `displayFields` is configured per project and per
+    // view. Nothing fails for it — the total is simply never requested and never rendered — so this
+    // is the only place it can be said out loud.
+    //
+    // Compared against every configured display column rather than the currently visible ones, so a
+    // reader hiding a totalled column is not reported as a misconfiguration.
+    let reportedUnmatchedTotals = "";
+    watch(
+        [() => modelConfig.config?.totalables, calculatedDisplayFields, () => options.extraFieldObjects],
+        ([totalables, displayFields, extraFields]) => {
+            const columnNames = new Set(
+                [...(displayFields || []), ...(extraFields || [])].map((field) => field?.name).filter(Boolean),
+            );
+            // No columns yet means the model config has not arrived, not that nothing matches.
+            if (!columnNames.size) {
+                return;
+            }
+            const unmatched = (totalables || []).filter((name) => !columnNames.has(name));
+            const reported = unmatched.join(",");
+            if (!unmatched.length) {
+                // Cleared rather than left alone, so the same mismatch coming back later is
+                // reported again. The sentinel exists to keep one misconfiguration from logging on
+                // every column change, not to log it once for the life of the view.
+                reportedUnmatchedTotals = "";
+                return;
+            }
+            if (reported === reportedUnmatchedTotals) {
+                return;
+            }
+            reportedUnmatchedTotals = reported;
+            console.error(
+                `useViewList: ${unref(appRef)}.${unref(modelRef)} advertises column total(s) ` +
+                    `${unmatched.join(", ")} matching no display column, so they can never be requested ` +
+                    "or rendered. Name each total in the viewset's `column_totals` after the column it " +
+                    "belongs under, or add that column to `displayFields`.",
+            );
+        },
+        { immediate: true, deep: true },
+    );
 
     // Resolve a type-aware column adapter (and its props) for each display
     // field. ViewList injects these as default `field(<col>)` slot content so
@@ -691,7 +830,6 @@ export function useViewList(options) {
         },
     });
 
-    const isTable = ref(true);
     const columnTotals = computed(() => instanceList.state.columnTotals || {});
     const mobileSortDrawerVisible = ref(false);
     const sortablesList = computed(() => unref(sorting.state.sortables) || []);
@@ -718,16 +856,13 @@ export function useViewList(options) {
         calculatedDisplayFields,
         (newFields, oldFields) => {
             if (!isInitialized.columns) {
-                const fieldNames = newFields.map((field) => field?.name);
-                if (!fieldNames.length) {
+                // Empty only while there are no display fields yet, which is not a choice to record:
+                // leave the flag down so the next fields to arrive still seed the selection.
+                if (!defaultVisibleColumns.value.length) {
                     columns.value = [];
                     return;
                 }
-                const hidden =
-                    listPreferenceStore.getHiddenColumns({ app: unref(appRef), model: unref(modelRef) }) || [];
-                const hiddenSet = new Set(hidden);
-                const visible = fieldNames.filter((name) => !hiddenSet.has(name));
-                columns.value = visible.length > 0 ? visible : [...fieldNames];
+                columns.value = [...defaultVisibleColumns.value];
                 isInitialized.columns = true;
             } else {
                 const fieldNames = newFields.map((field) => field?.name).filter((name) => !!name);

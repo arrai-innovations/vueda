@@ -358,6 +358,14 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "MAX_PAGE_SIZE": 200,
             "PAGE_SIZE_QUERY_PARAM": "ps",
             "PAGE_QUERY_PARAM": "p",
+            # Names the column totals a `list` request wants aggregated, e.g. `?ct=hours,product_price`.
+            # Its own parameter rather than a value of the sparse-fields parameter: `f` selects row
+            # fields, and a total name is never a valid `f` value. Deliberately not in
+            # REST_FLEX_FIELDS -- that dict configures rest-flex-fields, which never reads this.
+            # Clients hold this name as a constant of their own (`COLUMN_TOTALS_PARAM` in
+            # `@vueda/utils/constants` for VUEDA's client), as they do for every other wire
+            # parameter, so changing it here needs a matching client change.
+            "COLUMN_TOTALS_PARAM": "ct",
         },
         **{  # CORS settings, which we use for both django-cors-headers and asgi-cors-middleware
             "CORS_ALLOWED_ORIGINS": env.list("CORS_ALLOWED_ORIGINS"),
