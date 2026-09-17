@@ -314,7 +314,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             },
             "NON_FIELD_ERRORS_KEY": "non_field_errors",
             "DEFAULT_RENDERER_CLASSES": [
-                "rest_framework.renderers.JSONRenderer",
+                "vueda.core.renderers.VuedaJSONRenderer",
             ],
             "DEFAULT_AUTHENTICATION_CLASSES": [
                 "rest_framework.authentication.SessionAuthentication",
