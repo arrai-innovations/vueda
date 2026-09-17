@@ -1,3 +1,5 @@
+import re
+import warnings
 from collections.abc import Iterable
 
 from django.contrib.admin.utils import NotRelationField
@@ -5,6 +7,8 @@ from django.contrib.admin.utils import get_fields_from_path
 from django.core.checks import Error
 from django.core.checks import Warning as CheckWarning
 from django.core.exceptions import FieldDoesNotExist
+from django.db.models.sql.query import Query
+from rest_flex_fields import WILDCARD_VALUES
 
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import formatted_name_annotation_path
@@ -17,6 +21,45 @@ from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
 from vueda.core.ordering import queryset_explicit_ordering
+
+
+# The column types `Sum` means something for. Numeric columns, plus `DurationField` -- an interval,
+# which adds up the same way. Everything else (a `CharField`, a `BooleanField`, a `DateField`, a
+# relation) either raises in the database or produces a number that stands for nothing.
+SUMMABLE_INTERNAL_TYPES = frozenset(
+    {
+        "AutoField",
+        "BigAutoField",
+        "BigIntegerField",
+        "DecimalField",
+        "DurationField",
+        "FloatField",
+        "IntegerField",
+        "PositiveBigIntegerField",
+        "PositiveIntegerField",
+        "PositiveSmallIntegerField",
+        "SmallAutoField",
+        "SmallIntegerField",
+    }
+)
+
+# What VUEDA needs of a `column_totals` key beyond what Django needs of a column alias, and only
+# that. Django's half of the question is asked of Django itself, in `_django_alias_problem` below.
+#
+# The key is three things at once: a value a client sends in the column totals query parameter, the
+# alias VUEDA hands `queryset.aggregate()`, and the name of the column the total renders under. Only
+# the first of those asks for anything Django does not, and what it asks is that the name survive
+# `get_requested_column_totals` reading it back: that parser splits each value on commas (the
+# convention `?e=` and `?f=` already use), strips what it gets, and drops what is left empty. So a
+# name carrying a comma arrives as fragments that match nothing, and an empty name never arrives at
+# all -- both are declared totals no client could ever ask for. Django already refuses whitespace,
+# so the strip needs nothing here. The wildcard spellings are reserved as exact values, which is all
+# the parser compares them as: `*a`, `**` and `load~all` are names like any other.
+#
+# Nothing about the rest of the round trip constrains the spelling. The name comes back as a key of
+# the JSON `columnTotals` object and is read as `columnTotals[name]`, and a name that could not be a
+# JavaScript variable is still a perfectly good object key.
+COLUMN_TOTAL_SEPARATOR_PATTERN = re.compile(r",")
 
 
 def _is_property_on_model(model, attr_name):
@@ -681,6 +724,332 @@ def check_ordering_configuration(app_configs, **kwargs):
         errors.extend(_validate_ordering_declarations(model, registration["viewset"]))
         errors.extend(_validate_queryset_ordering(model, registration["viewset"]))
         errors.extend(_validate_nulls_ordering(registration["viewset"]))
+
+    return errors
+
+
+def _column_totals_error(viewset, message, hint):
+    return Error(message, hint=hint, obj=viewset, id="vueda_info.E011")
+
+
+def _django_alias_problem(name):
+    """
+    What Django makes of ``name`` as a column alias: ``(error, deprecation)``, either may be None.
+
+    Asked of Django rather than restated here, so the two can never disagree and a project is held
+    to the rule its own Django enforces. The blocklist has grown across releases, and a percent sign
+    is currently a deprecation that becomes an error in Django 7.0 -- restating either would mean
+    keeping a copy in step with a rule that is still moving.
+
+    ``check_alias`` reports both outcomes the way the ORM does, by raising and by warning, so both
+    are collected here rather than only the one that stops a request.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        try:
+            Query(None).check_alias(name)
+        except ValueError as err:
+            return str(err), None
+    deprecation = next(
+        (
+            str(entry.message)
+            for entry in caught
+            if issubclass(entry.category, DeprecationWarning | PendingDeprecationWarning)
+        ),
+        None,
+    )
+    return None, deprecation
+
+
+def _validate_column_total_name(viewset, name):
+    """
+    Report a ``column_totals`` key a client could not ask for, or the database could not be handed.
+
+    The key is the name a client sends in the column totals query parameter and the alias
+    ``queryset.aggregate()`` is called with, so it has to survive both. Django answers for the
+    alias; see ``COLUMN_TOTAL_SEPARATOR_PATTERN`` for what the query parameter adds.
+
+    A name Django only deprecates is reported as ``vueda_info.W002`` rather than an error, so a
+    project keeps the behaviour its Django gives it today and hears about the upgrade that ends it.
+    """
+    if not isinstance(name, str):
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals declares a total named {name!r}, which is not a string.",
+                hint=(
+                    "A total's name is sent by a client, handed to `aggregate()` as an alias, and returned as a "
+                    'JSON key, so it has to be text, e.g. `{"product_price": "product_option__price"}`.'
+                ),
+            )
+        ]
+
+    if not name:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals declares a total with an empty name.",
+                hint=(
+                    "The column totals query parameter drops empty values, so an empty name is a total no "
+                    "client could ask for. Name the total after the column it belongs under, e.g. "
+                    '`{"product_price": "product_option__price"}`.'
+                ),
+            )
+        ]
+
+    if name in WILDCARD_VALUES:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals declares a total named '{name}', which is a wildcard value.",
+                hint=(
+                    f"{', '.join(sorted(WILDCARD_VALUES))} are reserved: a client sends one of them to request "
+                    "every declared total, so a total of that name could never be asked for on its own. Name "
+                    "the total after the column it belongs under."
+                ),
+            )
+        ]
+
+    if COLUMN_TOTAL_SEPARATOR_PATTERN.search(name):
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals declares a total named {name!r}, which contains a comma.",
+                hint=(
+                    "The column totals query parameter separates the names it carries with commas, so a name "
+                    "containing one is split into pieces that match no declared total and can never be "
+                    "requested. Name the total after the column it belongs under."
+                ),
+            )
+        ]
+
+    error, deprecation = _django_alias_problem(name)
+    if error:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals declares a total named {name!r}, which Django will not accept "
+                "as a column alias.",
+                hint=(
+                    f"{error} The name is handed to `aggregate()` as the alias the total comes back under, so "
+                    'anything `aggregate()` refuses fails the request, e.g. `{"product_price": '
+                    '"product_option__price"}`.'
+                ),
+            )
+        ]
+
+    if deprecation:
+        # RemovedInDjango70Warning: when Django folds the percent sign into its own blocklist this
+        # becomes unreachable, because `check_alias` will raise instead of warn. Remove it then.
+        return [
+            CheckWarning(
+                f"{viewset.__name__}.column_totals declares a total named {name!r}, which Django deprecates as a "
+                "column alias.",
+                hint=(
+                    f"{deprecation} It still works, and VUEDA still accepts it, but the Django release that "
+                    "removes it will turn every list request asking for this total into a server error. Rename "
+                    "the total before then."
+                ),
+                obj=viewset,
+                id="vueda_info.W002",
+            )
+        ]
+
+    return []
+
+
+def _validate_column_total_path(model, viewset, name, path, annotation_names):
+    """
+    Report a ``column_totals`` value that can't be summed as declared.
+
+    ``annotation_names`` are the annotations the viewset's own queryset carries, from
+    :func:`_queryset_annotation_names`. A path naming one is accepted and checked no further: there
+    is no model field behind it to read a type from, and ``aggregate()`` resolves it perfectly well.
+    This is the same allowance ordering makes for the same reason (see
+    :func:`_validate_ordering_declarations`), so the two declarations accept the same paths.
+
+    Three ways it can fail, each with its own answer:
+
+    - It doesn't name a field on the model, walking ``__`` through relations the way the ORM does,
+      and isn't one of those annotations either. ``queryset.aggregate()`` raises ``FieldError`` on
+      the first list request that asks for it.
+    - It reaches through a relation that can match more than one related row. This one is the
+      reason a declaration is validated at all rather than left to fail at request time: such a
+      join adds a row per related object, which inflates *every* total computed in the same
+      ``aggregate()`` call. Ask for a good total alongside a bad one and the good one comes back
+      wrong, with nothing to say so. Supporting totals across those relations needs a different
+      aggregation design than one ``aggregate()`` call, so they are refused here.
+    - It lands on something ``Sum`` means nothing for -- a relation itself, or a column that isn't
+      numeric or a duration.
+    """
+    if not isinstance(path, str) or not path:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals['{name}'] is {path!r}, not a field path.",
+                hint=(
+                    "Declare each total as a mapping entry of client-facing column name -> ORM field path, "
+                    'e.g. `column_totals = {"product_price": "product_option__price"}`.'
+                ),
+            )
+        ]
+
+    if path in annotation_names:
+        # An annotation the viewset's own `get_queryset` adds. `aggregate()` resolves it like any
+        # other expression, and there is no model field behind it to check a type or a join against,
+        # so the rest of this function has nothing to say about it. What it sums is the project's
+        # own to get right, the same as for an annotation named in `ordering_fields`.
+        return []
+
+    try:
+        fields = get_fields_from_path(model, path)
+    except (FieldDoesNotExist, NotRelationField):
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals['{name}'] is '{path}', but {model.__name__} has no such "
+                "field or related field.",
+                hint=(
+                    f"Point it at a column on {model.__name__}, at one reached through its relations with "
+                    "`__`, or at an annotation the viewset's own `get_queryset` adds. Where the value needs "
+                    "a join or an aggregate, model it as a database view (a `managed = False` model related "
+                    "by `OneToOneField`) and total a real column on that view. A list request asking for "
+                    "this total raises `FieldError` from `queryset.aggregate()`."
+                ),
+            )
+        ]
+
+    if path_multiplies_rows(fields):
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals['{name}'] is '{path}', which reaches through a relation "
+                "that can match more than one row.",
+                hint=(
+                    "Totals over real columns are computed in one `aggregate()` call, so a reverse foreign key, "
+                    "a many-to-many, or a GenericRelation joins a row per related object and inflates every "
+                    "one of them, not only this one -- a correctly declared total requested alongside this one "
+                    "comes back wrong. Point it at a column on this model, or at one reached through "
+                    "single-valued relations (a forward foreign key or a one-to-one, nullable or not)."
+                ),
+            )
+        ]
+
+    field = fields[-1]
+    if field.is_relation:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals['{name}'] is '{path}', which names a relation rather than a column.",
+                hint=(
+                    "Add the column to sum to the end of the path, e.g. "
+                    f"'{path}__<field>'. Every total is a `Sum`, and there is nothing to sum here."
+                ),
+            )
+        ]
+
+    internal_type = field.get_internal_type()
+    if internal_type not in SUMMABLE_INTERNAL_TYPES:
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals['{name}'] is '{path}', which is a {internal_type} and "
+                "cannot be summed.",
+                hint=(
+                    "Every total is a `Sum`, so it needs a numeric column or a DurationField: "
+                    f"{', '.join(sorted(SUMMABLE_INTERNAL_TYPES))}. A list request asking for this total "
+                    "fails in the database."
+                ),
+            )
+        ]
+
+    return []
+
+
+def _validate_column_totals(model, viewset):
+    """
+    Report a viewset's ``column_totals`` declaration that no ``list`` request could honor.
+
+    Nothing else catches these. A bad path or an unsummable column raises in the database, but only
+    for the request that asks for that total -- and since totals are opt-in, that may be no request
+    at all for a long time. A path through a multi-valued relation raises nothing ever and silently
+    returns wrong numbers, for every total computed alongside it.
+
+    Note that ``manage.py check`` has to be run for any of this to be reported: Django does not run
+    system checks when starting a WSGI application, so a deployment that never invokes the command
+    still ships whatever it declared. See
+    https://docs.djangoproject.com/en/5.2/topics/checks/ for when checks do and don't run.
+    """
+    if viewset is None:
+        return []
+
+    column_totals = getattr(viewset, "column_totals", None)
+    if not column_totals:
+        # Not declared, or declared empty -- in any shape. An empty declaration offers no totals,
+        # which is exactly what it says.
+        return []
+
+    if not isinstance(column_totals, dict):
+        if isinstance(column_totals, (list, tuple)) and all(isinstance(entry, str) for entry in column_totals):
+            as_mapping = ", ".join(f"{entry!r}: {entry!r}" for entry in column_totals)
+            hint = (
+                "`column_totals` is a mapping of client-facing column name -> ORM field path. Rewrite the "
+                "list as one, naming each total after the column it renders under: "
+                f"`column_totals = {{{as_mapping}}}`. Under the list form the ORM path doubled as the "
+                "response key, so a total only reached a column when the two happened to be spelled the same."
+            )
+        else:
+            hint = (
+                "Declare it as a mapping of client-facing column name -> ORM field path, e.g. "
+                '`column_totals = {"product_price": "product_option__price"}`.'
+            )
+
+        return [
+            _column_totals_error(
+                viewset,
+                f"{viewset.__name__}.column_totals is a {type(column_totals).__name__}, not a dict.",
+                hint=hint,
+            )
+        ]
+
+    # `None` means the queryset could not be built here -- a `get_queryset` that reaches for
+    # `self.request`, most often -- so there is no telling an annotation from a stale path. Ordering
+    # skips its whole check in that case; here only the path half depends on it, so the names are
+    # still checked and the paths are left alone.
+    annotation_names = _queryset_annotation_names(viewset)
+
+    errors = []
+    for name, path in column_totals.items():
+        name_messages = _validate_column_total_name(viewset, name)
+        errors.extend(name_messages)
+        # An unusable name has no total to speak of, so its path is not reported on top of it; the
+        # one fix brings both back into scope. A name Django only deprecates still works today, so
+        # its path is checked as usual -- the warning is about an upgrade, not about this total
+        # being broken now.
+        if annotation_names is not None and not any(isinstance(message, Error) for message in name_messages):
+            errors.extend(_validate_column_total_path(model, viewset, name, path, annotation_names))
+
+    return errors
+
+
+def check_column_totals_configuration(app_configs, **kwargs):
+    from vueda.info.registration import get_all_registrations
+
+    errors = []
+
+    # Registered viewsets, which is every viewset with a metadata surface: the registry holds one
+    # per model and a second registration for the same model raises at startup, so there is no
+    # "other" viewset for a model to miss here. A second surface over the same data is a proxy
+    # model, which registers in its own right and comes back around through this loop.
+    #
+    # A viewset routed without being registered is the one thing outside this boundary, and nothing
+    # can widen it -- an unregistered viewset is not discoverable from here. It matters more for
+    # totals than for the ordering checks beside it, where a stale declaration raises at request
+    # time: a `column_totals` path through a reverse foreign key or a many-to-many raises nothing,
+    # ever, and silently inflates every total computed beside it. The guide says so.
+    for _key, registration in get_all_registrations().items():
+        model = registration["serializer"].Meta.model
+        errors.extend(_validate_column_totals(model, registration["viewset"]))
 
     return errors
 
