@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
@@ -58,6 +58,62 @@ describe("lib/use/useObjectForm.js", () => {
         defaultOnSubmitAnyError = mod.defaultOnSubmitAnyError;
         defaultOnSubmissionSuccess = mod.defaultOnSubmissionSuccess;
         vi.clearAllMocks();
+    });
+
+    scopedIt("resets a reused form even when model defaults are equal and clears submission failure", async () => {
+        const { useForm } = await import("@vueda/use/useForm.js");
+        const props = reactive({ app: "catalog", model: "category" });
+        const instanceObject = { state: reactive({ pk: null }), clearError: vi.fn() };
+        const { formContext, objectForm } = await withSetup(() => {
+            const formContext = useForm(reactive({ initialValues: { name: "" } }));
+            return { formContext, objectForm: useObjectForm({ props, formContext, instanceObject }) };
+        });
+        formContext.updateValue("name", "old draft");
+        formContext.updateError("name", "validate", "Invalid");
+        expect(formContext.state.values.name).toBe("old draft");
+        expect(formContext.state.errors.name).toBeDefined();
+        formContext.setAllTouched();
+        objectForm.state.submitErrored = true;
+        props.model = "warehouse";
+        await flushPromises();
+        expect(objectForm.state.submitErrored).toBe(false);
+        expect(formContext.state.values).toEqual({ name: "" });
+        expect(formContext.state.errors).toEqual({});
+        expect(formContext.state.submitted).toBe(false);
+        expect(instanceObject.clearError).toHaveBeenCalled();
+        objectForm.state.submitErrored = true;
+        instanceObject.state.pk = "2";
+        await flushPromises();
+        expect(objectForm.state.submitErrored).toBe(false);
+    });
+
+    scopedIt("ignores a save completion after changing its target", async () => {
+        let resolveSave;
+        const request = new Promise((resolve) => {
+            resolveSave = resolve;
+        });
+        request.cancel = vi.fn();
+        const props = reactive({ app: "catalog", model: "category" });
+        const formContext = {
+            state: { anyModified: true, anyError: false, submittingValues: {} },
+            setAllTouched: vi.fn(),
+            reset: vi.fn(),
+        };
+        const instanceObject = {
+            state: reactive({ pk: "1", pkKey: "id", object: { id: "1" } }),
+            update: vi.fn(() => request),
+            clearError: vi.fn(),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.onSubmissionSuccess = vi.fn();
+        const submission = objectForm.submit();
+        await flushPromises();
+        instanceObject.state.pk = "2";
+        await flushPromises();
+        resolveSave();
+        await submission;
+        expect(request.cancel).toHaveBeenCalled();
+        expect(objectForm.onSubmissionSuccess).not.toHaveBeenCalled();
     });
 
     scopedIt("defaultOnSubmitNotAnyModified shows toast and returns true", async () => {

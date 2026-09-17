@@ -1,5 +1,5 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
 import { ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
@@ -322,6 +322,8 @@ vi.mock("vue", async () => {
     return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
 });
 
+enableAutoUnmount(afterEach);
+
 let ViewList, vue, modelConfig, instanceList;
 
 const resetListPreferenceStoreMock = () => {
@@ -426,6 +428,70 @@ afterEach(() => {
 });
 
 describe("lib/views/ViewList.vue", () => {
+    scopedIt("resets model state and restores destination preferences on a reused list", async () => {
+        route.params = { app: "catalog", model: "category", action: "list" };
+        modelConfig.config.displayFields = ["name", "description"];
+        modelConfig.config.sortables = ["name"];
+        const wrapper = mount(ViewList, { props: { app: "catalog", model: "category" } });
+        await vue.nextTick();
+        wrapper.vm.actions.selectedObjects.push(4);
+        wrapper.vm.sort.sorting.updateSorted(["name"]);
+        await vue.nextTick();
+        listPreferenceStoreMock.getPerPage.mockImplementation(({ model }) => (model === "warehouse" ? 50 : 25));
+        listPreferenceStoreMock.getHiddenColumns.mockImplementation(({ model }) =>
+            model === "warehouse" ? ["name"] : [],
+        );
+        listPreferenceStoreMock.getSorting.mockImplementation(({ model }) =>
+            model === "warehouse" ? ["-code"] : null,
+        );
+        listPreferenceStoreMock.getFilters.mockImplementation(({ model }) =>
+            model === "warehouse" ? { category: "stored" } : undefined,
+        );
+        const uid = wrapper.vm.$.uid;
+        route.params.model = "warehouse";
+        route.query = {};
+        await vue.nextTick();
+        modelConfig.loading = true;
+        await wrapper.setProps({ model: "warehouse" });
+        modelConfig.config.displayFields = ["name", "code"];
+        modelConfig.config.sortables = ["code"];
+        modelConfig.loading = false;
+        await vue.nextTick();
+        await vue.nextTick();
+        expect(wrapper.vm.$.uid).toBe(uid);
+        expect(wrapper.vm.actions.selectedObjects).toEqual([]);
+        expect(wrapper.vm.list.listState.perPage).toBe(50);
+        expect(wrapper.vm.columns.columns).toEqual(["code"]);
+        expect(wrapper.vm.sort.sorting.state.sorted).toEqual(["-code"]);
+        expect(wrapper.vm.list.listState.params).toMatchObject({ ps: 50, category: "stored" });
+        expect(route.query).toMatchObject({ category: "stored", [ORDERING_PARAM]: "-code" });
+    });
+
+    scopedIt("does not rewrite a destination query while the old model props are retained", async () => {
+        route.params = { app: "catalog", model: "category", action: "list" };
+        modelConfig.config.sortables = ["name"];
+        const wrapper = mount(ViewList, { props: { app: "catalog", model: "category" } });
+        await vue.nextTick();
+        routerPush.mockClear();
+        routerReplace.mockClear();
+        listPreferenceStoreMock.setFilters.mockClear();
+        route.params.model = "warehouse";
+        route.query = { [ORDERING_PARAM]: "-code", [SEARCH_PARAM]: "destination", category: "new" };
+        await vue.nextTick();
+        expect(routerPush).not.toHaveBeenCalled();
+        expect(routerReplace).not.toHaveBeenCalled();
+        expect(listPreferenceStoreMock.setFilters).not.toHaveBeenCalled();
+        modelConfig.loading = true;
+        await wrapper.setProps({ model: "warehouse" });
+        modelConfig.config.sortables = ["code"];
+        modelConfig.loading = false;
+        await vue.nextTick();
+        await vue.nextTick();
+        expect(route.query).toEqual({ [ORDERING_PARAM]: "-code", [SEARCH_PARAM]: "destination", category: "new" });
+        expect(wrapper.vm.list.listState.search).toBe("destination");
+        expect(wrapper.vm.list.listState.params).toMatchObject({ category: "new", [SEARCH_PARAM]: "destination" });
+    });
+
     describe("Lookup context", () => {
         scopedIt("calls useLookupContext if lookup context is missing", () => {
             mockedInject.mockReturnValueOnce(null);

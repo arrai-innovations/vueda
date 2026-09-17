@@ -333,7 +333,9 @@ describe("lib/views/ModelActionForm.vue", () => {
 
         scopedIt("forwards a dryRunTarget identity built from the selected pks", () => {
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] } });
-            expect(wrapper.getComponent(ActionFormStub).props("dryRunTarget")).toBe("1,2");
+            expect(wrapper.getComponent(ActionFormStub).props("dryRunTarget")).toBe(
+                JSON.stringify(["app", "person", "activate", ["1", "2"]]),
+            );
         });
     });
 
@@ -482,6 +484,16 @@ describe("lib/views/ModelActionForm.vue", () => {
             await input.setValue("delete 2 people");
             expect(button.attributes("disabled")).toBeUndefined();
             expect(wrapper.get('[data-slot="typed-confirm-field"]').attributes("data-match")).toBe("true");
+        });
+
+        scopedIt("requires fresh typed confirmation after the action target changes", async () => {
+            const { wrapper } = mountModelActionForm({ confirmText: "yes" });
+            const input = wrapper.get('[data-qa="typed-confirm-field-input"]');
+            await input.setValue("yes");
+            expect(wrapper.vm.typedConfirmMatch).toBe(true);
+            await wrapper.setProps({ action: "archive" });
+            expect(input.element.value).toBe("");
+            expect(wrapper.vm.typedConfirmMatch).toBe(false);
         });
 
         scopedIt("re-disables when the typed value drifts back out of match", async () => {

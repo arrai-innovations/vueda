@@ -45,6 +45,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **State isolation when reusing model views**:
+    - Lists clear selection and transient state when the model changes, restore the destination model's saved preferences, and avoid rewriting its query while the previous route's props are retained.
+    - Create and update forms reset drafts, validation, and submission errors for a new target, including models with identical defaults. Missing-object errors clear on target changes and retries.
+    - Model actions distinguish the app, model, action, and keys for dry-run validation. Typed confirmation resets for a new target; cancelled or superseded submissions cannot show success, retry warnings, or redirect the destination view.
+    - History views reset pagination and layout and fetch the new object's history even when only its key changes.
+    - Metadata requests follow the latest model after rapid navigation and ignore obsolete results and errors.
+
 - **Route loading keeps the current view until its destination is ready (`ViewActionRouter`)**:
     - Navigation retains the current component and its app, model, action, and primary-key props while destination metadata and the component load. The initial route still shows `ViewLoading`. Superseded component imports no longer replace the newer destination.
     - A destination resolving to the same component reuses its instance. Custom views must handle changes to their route props; switching to a different wrapper still replaces its children.

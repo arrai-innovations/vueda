@@ -14,7 +14,7 @@ import ActionForm from "@vueda/views/ActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
-import { computed, inject, provide, ref, unref, useSlots } from "vue";
+import { computed, inject, provide, ref, unref, useSlots, watch } from "vue";
 
 /**
  * Wraps `ActionForm` to execute a named action (such as delete or a custom
@@ -190,6 +190,12 @@ const icon = useIcons("ModelActionForm", props);
 const slots = useSlots();
 
 const typedConfirmInput = ref("");
+watch(dryRunTarget, () => {
+    typedConfirmInput.value = "";
+    if (!injectedFormContext) {
+        formContext.reset();
+    }
+});
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
 

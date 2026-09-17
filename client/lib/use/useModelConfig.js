@@ -134,13 +134,16 @@ export function useModelConfig(app, model, view) {
                 // the store drops its built configs when the authenticated user changes, so rebuild
                 () => userStore.identityGeneration,
             ],
-            ([active, app, model, view]) => {
+            ([active, app, model, view], _, onCleanup) => {
+                let current = true;
+                onCleanup(() => {
+                    current = false;
+                });
                 if (!active) {
                     return; // we'll pick up again when the component is active
                 }
                 // we don't need to check if app and model have changed, vue does that checking for us
                 //  on immutable primitive values
-                // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
                 if (app && model) {
                     loadingError.clearError();
                     loadingError.setLoading();
@@ -150,12 +153,15 @@ export function useModelConfig(app, model, view) {
                     modelConfigStore
                         .getConfig(args)
                         .then(() => {
+                            if (!current) {
+                                return;
+                            }
                             // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
                             //  reactivity issues not working when the key is not there initially
                             returnObject.config = toRef(modelConfigStore.builtConfigs, key);
                         })
                         .catch((e) => {
-                            if (e instanceof AuthScopeInvalidatedError) {
+                            if (!current || e instanceof AuthScopeInvalidatedError) {
                                 // the authenticated user changed mid-build; the identity watch rebuilds
                                 return;
                             }
@@ -163,7 +169,9 @@ export function useModelConfig(app, model, view) {
                             console.error("useModelConfig: error fetching config", e);
                         })
                         .finally(() => {
-                            loadingError.clearLoading();
+                            if (current) {
+                                loadingError.clearLoading();
+                            }
                         });
                 }
             },

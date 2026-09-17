@@ -11,7 +11,7 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
-import { computed, nextTick, reactive } from "vue";
+import { computed, nextTick, onScopeDispose, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -385,12 +385,35 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         submit: null,
     };
 
+    let targetGeneration = 0;
+    let request = null;
+    const cancelSubmission = () => {
+        targetGeneration += 1;
+        request?.cancel?.();
+        request = null;
+        confirmation.cancel();
+        promises.submit = null;
+        loadingError.clearLoading();
+    };
+    onScopeDispose(cancelSubmission);
+    watch([() => props.app, () => props.model, () => state.pk], () => {
+        cancelSubmission();
+        state.submitErrored = false;
+        loadingError.clearError();
+        instanceObject.clearError();
+        formContext.reset();
+    });
+
     // Performs one create/update attempt and routes the outcome. On a ConfirmationRequiredError
     // (server 409: valid but unacknowledged warnings) it asks the confirmation hook and, if the user
     // confirms, retries once with the warnings digest acknowledged. A changed warning set yields a
     // new digest and re-prompts, so this terminates on either a clean save, a real error, or a cancel.
-    const performAndHandle = async (createOrUpdate, args, isUpdate) => {
-        await createOrUpdate(args);
+    const performAndHandle = async (createOrUpdate, args, isUpdate, generation) => {
+        request = createOrUpdate(args);
+        await request;
+        if (generation !== targetGeneration) {
+            return;
+        }
         if (!instanceObject.state.errored) {
             await returnObject.onSubmissionSuccess({ formContext, toast, router, isUpdate, state });
             return;
@@ -409,8 +432,16 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                 toast,
                 state,
             });
+            if (generation !== targetGeneration) {
+                return;
+            }
             if (confirmed) {
-                await performAndHandle(createOrUpdate, { ...args, acknowledgeWarnings: error.digest }, isUpdate);
+                await performAndHandle(
+                    createOrUpdate,
+                    { ...args, acknowledgeWarnings: error.digest },
+                    isUpdate,
+                    generation,
+                );
             } else {
                 state.submitErrored = true;
             }
@@ -418,13 +449,14 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         }
         state.submitErrored = true;
         const handled = await returnObject.onSubmissionError({ error, formContext, toast, isUpdate, state });
-        if (handled) {
+        if (handled && generation === targetGeneration) {
             instanceObject.clearError();
         }
         // otherwise, whatever is looking at instanceObject.state.error will handle it.
     };
 
     const doSubmit = async () => {
+        const generation = targetGeneration;
         try {
             // start 'submitting' right away, makes it useful for disabling the submit button.
             loadingError.clearError();
@@ -435,9 +467,15 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             formContext.setAllTouched();
             // wait for validation watchers to run
             await nextTick();
+            if (generation !== targetGeneration) {
+                return;
+            }
             if (!formContext.state.anyModified) {
                 // should we stop if there is nothing changed?
                 const stop = await returnObject.onSubmitNotAnyModified({ state, formContext, toast });
+                if (generation !== targetGeneration) {
+                    return;
+                }
                 if (stop) {
                     state.submitErrored = true;
                     return;
@@ -446,6 +484,9 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (formContext.state.anyError) {
                 // should we stop for errors?
                 const stop = await returnObject.onSubmitAnyError({ state, formContext, toast });
+                if (generation !== targetGeneration) {
+                    return;
+                }
                 if (stop) {
                     state.submitErrored = true;
                     return;
@@ -462,13 +503,18 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (isUpdate) {
                 args.id = instanceObject.state.object[instanceObject.state.pkKey];
             }
-            await performAndHandle(createOrUpdate, args, isUpdate);
+            await performAndHandle(createOrUpdate, args, isUpdate, generation);
         } catch (e) {
             // errors here are outside the normal course for expected errors
-            loadingError.setError(e);
+            if (generation === targetGeneration) {
+                loadingError.setError(e);
+            }
         } finally {
-            loadingError.clearLoading();
-            promises.submit = null;
+            if (generation === targetGeneration) {
+                loadingError.clearLoading();
+                promises.submit = null;
+                request = null;
+            }
         }
     };
     return returnObject;

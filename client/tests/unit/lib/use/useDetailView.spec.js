@@ -9,6 +9,9 @@ import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive, ref } from "vue";
 
+vi.mock("@vueda/use/useLeaveUnload.js", () => ({ useLeaveUnload: vi.fn() }));
+vi.mock("vue-router", async () => ({ ...(await vi.importActual("vue-router")), useRouter: () => ({ push: vi.fn() }) }));
+
 vi.mock("@vueda/use/useModelConfig.js", async () => {
     const actual = await vi.importActual("@vueda/use/useModelConfig.js");
     return { ...actual, useModelConfig: vi.fn() };
@@ -83,6 +86,43 @@ describe("lib/use/useDetailView.js", () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+    });
+
+    scopedIt("retrieves the next record after a missing record and a failed form submission", async () => {
+        const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+        const { useObject404: realUseObject404 } = await vi.importActual("@vueda/use/useObject404.js");
+        const { useObjectForm } = await import("@vueda/use/useObjectForm.js");
+        const { default: flushPromises } = await import("flush-promises");
+        const retrieve = vi.fn(async ({ pk }) => {
+            if (pk === "42") {
+                throw Object.assign(new Error("Missing"), { response: { status: 404 } });
+            }
+            return { id: pk, name: `Record ${pk}` };
+        });
+        useObject.mockImplementationOnce((options) => realUseObject({ ...options, handlers: { retrieve } }));
+        useObject404.mockImplementationOnce(realUseObject404);
+        const detail = await withSetup(() => {
+            const detail = useDetailView(props, formInitialValue);
+            props.objectForm = useObjectForm({
+                props,
+                formContext: { state: {}, reset: vi.fn() },
+                instanceObject: detail.instanceObject,
+            });
+            return detail;
+        });
+        await flushPromises();
+        expect(detail.instance.combinedError?.message).toContain("42");
+        props.pk = "43";
+        await flushPromises();
+        expect(detail.instance.combinedError).toBeNull();
+        expect(formInitialValue).toEqual({ id: "43", name: "Record 43" });
+        props.objectForm.state.submitErrored = true;
+        await nextTick();
+        props.pk = "44";
+        await flushPromises();
+        expect(props.objectForm.state.submitErrored).toBe(false);
+        expect(retrieve).toHaveBeenLastCalledWith(expect.objectContaining({ pk: "44" }));
+        expect(formInitialValue).toEqual({ id: "44", name: "Record 44" });
     });
 
     describe("return shape", () => {
