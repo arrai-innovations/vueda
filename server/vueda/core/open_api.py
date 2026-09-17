@@ -30,6 +30,7 @@ from http.client import responses
 
 from django.conf import settings
 from django.db import models
+from rest_flex_fields import WILDCARD_VALUES
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
@@ -337,6 +338,76 @@ class VuedaBaseAutoSchema:
                         parameter["schema"]["title"] = "ordering"
 
         return parameters
+
+    def _get_declared_column_totals(self):
+        """
+        The ``column_totals`` mapping of the viewset behind this operation, when the operation is
+        the one that accepts them.
+
+        Empty for anything but ``list``: the totals parameter is a ``list`` concept, and
+        ``NoExtraFieldsForViewSetMixin.retrieve`` rejects it outright. Empty too for a view that
+        declares no totals, so the parameter is documented only where sending it could do something.
+        """
+        if self.method != "GET" or getattr(self.view, "action", None) != "list":
+            return {}
+
+        # Duck-typed rather than imported: `vueda.core.viewsets` is a heavier import than this module
+        # needs, and a project's own mixin providing the same hook is documented the same way.
+        get_declared_column_totals = getattr(self.view, "get_declared_column_totals", None)
+        if get_declared_column_totals is None:
+            return {}
+
+        return get_declared_column_totals()
+
+    def get_override_parameters(self):
+        """
+        Document the column totals parameter on every ``list`` operation that declares totals.
+
+        Nothing else discovers it: it is neither a pagination parameter nor a filter backend's, so
+        ``_get_pagination_parameters`` and ``_get_filter_parameters`` never see it, and a schema
+        built without this would describe a response key (``columnTotals``) that no documented
+        request could ever populate.
+
+        The values are enumerated per operation, so the schema names the totals *this* endpoint
+        declares rather than describing the feature in the abstract.
+        """
+        parameters = super().get_override_parameters()
+
+        column_totals = self._get_declared_column_totals()
+        if not column_totals:
+            return parameters
+
+        from drf_spectacular.utils import OpenApiParameter
+
+        return [
+            *parameters,
+            OpenApiParameter(
+                name=settings.COLUMN_TOTALS_PARAM,
+                type=str,
+                many=True,
+                # `build_parameter_type` puts an enum on an array schema's `items`, which is where it
+                # belongs: each comma-separated value is one of these, not the list as a whole.
+                enum=[*column_totals, *WILDCARD_VALUES],
+                location=OpenApiParameter.QUERY,
+                required=False,
+                # `style="form"` with `explode=False` is the comma-separated spelling
+                # (`?ct=hours,product_price`). Repeating the parameter means the same thing to the
+                # server, but OpenAPI can only describe one serialization, and comma-separated is
+                # what VUEDA's own client sends.
+                style="form",
+                explode=False,
+                description=(
+                    "The column totals to aggregate for this list, from the `COLUMN_TOTALS_PARAM` "
+                    "setting. Totals are opt-in: omit this and `columnTotals` comes back empty, "
+                    "costing no aggregation query. Each requested total adds one `SUM` over the "
+                    "same filtered, permission-limited set the rows come from, and comes back under "
+                    "the name given here. A wildcard value (`*` or `~all`) requests every declared "
+                    "total. `model_column_totals` in the model info metadata advertises these names, "
+                    "so a client discovers which totals a model offers; this parameter's name is a "
+                    "constant a client holds itself, as for every other wire parameter."
+                ),
+            ),
+        ]
 
     def _process_override_parameters(self, direction="request"):
         """
