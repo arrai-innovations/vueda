@@ -172,19 +172,27 @@ class PublicFilterAliasMixin:
     ``FormattedNamePathFilterSetMixin`` remembers a rewritten ``field_name``, so metadata and error
     messages can still refer to how the filter was written. It stops being a recognized query
     parameter once renamed: nothing here keeps accepting it alongside the dotted one.
+
+    Renamed on ``get_filters()``, the classmethod django-filter's metaclass calls to build
+    ``base_filters``, rather than on each instance's ``self.filters`` in ``__init__``. drf-spectacular
+    reads ``base_filters`` directly for the OpenAPI schema, and ``BaseFilterSet.__init__`` sets
+    ``self.filters = copy.deepcopy(self.base_filters)``, so renaming here is what both the schema and
+    every instance see, in one place. Rebuilding the mapping by iterating ``super().get_filters()`` in
+    its own order (rather than popping and re-inserting into an existing dict) also keeps each
+    filter's declared position: a dict comprehension only changes a key's spelling, never when it was
+    inserted.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        for declared_name in list(self.filters):
+    @classmethod
+    def get_filters(cls):
+        filters = super().get_filters()
+        renamed = {}
+        for declared_name, filter_ in filters.items():
             public_name = orm_filter_path_to_public(declared_name)
-            if public_name == declared_name:
-                continue
-
-            filter_ = self.filters.pop(declared_name)
-            filter_.vueda_declared_filter_name = declared_name
-            self.filters[public_name] = filter_
+            if public_name != declared_name:
+                filter_.vueda_declared_filter_name = declared_name
+            renamed[public_name] = filter_
+        return renamed
 
 
 class IdInFilterSet(rest_framework.FilterSet):

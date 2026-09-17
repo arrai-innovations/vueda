@@ -8,8 +8,10 @@ from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
+from django.urls import resolve
 from django.urls import reverse
 
+import tests.store.filtersets as my_filtersets
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
@@ -66,9 +68,10 @@ class TestModelFilteringAutoDerivedAlias:
     def test_model_filtering_reports_the_derived_dotted_names(self, api_client, settings):
         """One response, several facets of the same rename: the dotted names are the keys reported,
         the `__`-joined names behind them never appear, `tangible_type__code`'s own
-        `label="Tangible Type Code"` -- read by `vueda_declared_filter_name`, not by the renamed key
-        `model_filtering` reports it under -- survives being renamed to `tangible_type.code`, a
-        range filter (`distributor__id`) and an array filter (`distributor__id__in`) are renamed the
+        `label="Tangible Type Code"` -- read from `base_filters`, which `PublicFilterAliasMixin.
+        get_filters()` renames the same way it renames the instance's `filters` -- survives being
+        renamed to `tangible_type.code`,
+        a range filter (`distributor__id`) and an array filter (`distributor__id__in`) are renamed the
         same way a `CharFilter` is, keeping their own `type_filter`/`suffixes` metadata intact, and a
         `HiddenInput`-widget filter (`distributor__description`) is renamed and reported the same
         way too, still carrying `hidden: True`."""
@@ -187,3 +190,62 @@ class TestModelFilteringAutoDerivedAlias:
         )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+
+class TestPublicFilterAliasMixinClassLevelRename:
+    """`PublicFilterAliasMixin` renames `base_filters` itself (via `get_filters()`), not only each
+    instance's `filters` copy -- so the rename is visible to anything that reads the class attribute
+    directly, such as drf-spectacular's schema generation and `get_model_filtering`'s declared-label
+    lookup, and to the `model_info_filter_choices` route, which needs a dotted name to be routable at
+    all before any filterset is even involved."""
+
+    def test_base_filters_is_keyed_by_the_dotted_public_name(self):
+        """`base_filters` -- the class attribute django-filter's metaclass builds and drf-spectacular
+        reads directly for the OpenAPI schema -- carries the same dotted names `model_filtering`
+        reports, not the `__`-joined declared ones. Before this rename moved from `__init__` (which
+        only ever touched the per-instance `self.filters` copy) to `get_filters()`, `base_filters`
+        still held every name exactly as declared."""
+        base_filter_names = set(my_filtersets.ProductAutoDerivedFilterSet.base_filters)
+
+        assert "distributor.name" in base_filter_names
+        assert "distributor.name.icontains" in base_filter_names
+        assert "tangible_type.code" in base_filter_names
+        assert "distributor.id" in base_filter_names
+        assert "distributor.id.in" in base_filter_names
+        assert "distributor.description" in base_filter_names
+
+        assert "distributor__name" not in base_filter_names
+        assert "distributor__name__icontains" not in base_filter_names
+        assert "tangible_type__code" not in base_filter_names
+        assert "distributor__id" not in base_filter_names
+        assert "distributor__id__in" not in base_filter_names
+        assert "distributor__description" not in base_filter_names
+
+    def test_base_filters_keeps_each_filters_declared_position(self):
+        """Renaming a key in place (a dict comprehension over `super().get_filters()`, in its own
+        order) keeps every filter's declared position. The previous `pop`-then-reinsert approach
+        moved each renamed filter to the end of the dict as it was renamed, so `id` -- the one filter
+        here with nothing to rename -- ended up first instead of third, and `model_filtering`'s
+        (and the client's filter-control) order followed."""
+        assert list(my_filtersets.ProductAutoDerivedFilterSet.base_filters) == [
+            "distributor.name",
+            "distributor.name.icontains",
+            "id",
+            "tangible_type.code",
+            "distributor.id",
+            "distributor.id.in",
+            "distributor.description",
+        ]
+
+    def test_a_dotted_filter_name_has_a_reachable_choices_url(self):
+        """The `model_info_filter_choices` route's `field` segment allows a `.` the same way a
+        filter's public name can carry one, so a dotted name -- unreachable by any other route
+        pattern still restricted to `[a-zA-Z0-9_]+` -- resolves. Checked at the URL layer alone
+        (`reverse`/`resolve`), independent of whatever a given filter type's choices endpoint does
+        with the request, since it is the routing itself the dot used to break."""
+        url = reverse(
+            "info.model_info_filterset_choices-list",
+            args=("store", "product", "tangible_type.code"),
+        )
+
+        assert resolve(url).kwargs["field"] == "tangible_type.code"

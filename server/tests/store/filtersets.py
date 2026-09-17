@@ -182,8 +182,9 @@ class ProductAutoDerivedFilterSet(VuedaFilterSet):
     same derivation on a hand-declared filter instead: a class attribute is as free to use `__` in
     its own name as a `Meta.fields` entry is, and `PublicFilterAliasMixin` doesn't care which
     produced the name it is translating. Its declared label survives the rename either way --
-    `get_model_filtering` reads it from `tangible_type__code`, the name `base_filters` still holds it
-    under, not from `tangible_type.code`, the renamed instance copy `model_filtering` reports.
+    `get_model_filtering` reads it from `base_filters`, which `PublicFilterAliasMixin.get_filters()`
+    renames the same way it renames the instance's `filters`, so both are keyed by `tangible_type.code`
+    together.
 
     `distributor__id` and `distributor__id__in` show the same derivation again on a range filter and
     an array filter, the two filter shapes the CharFilter examples above don't cover: the mixin reads
