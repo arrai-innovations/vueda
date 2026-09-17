@@ -433,7 +433,7 @@ export function useViewList(options) {
             return detail && detail.typeFilter && !detail.hidden;
         });
     });
-    // Server-hidden filterables (e.g. the auto-injected `id__in` deep-link filter) have no
+    // Server-hidden filterables (e.g. the auto-injected `id` deep-link filter) have no
     // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
     // Read with the same param-key resolution the editable filter form uses, so a hidden filter
     // that declares suffixes resolves to the same keys a visible one does. Independent of whether
