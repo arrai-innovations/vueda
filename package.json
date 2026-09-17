@@ -8,7 +8,7 @@
         "fix:prettier": "prettier --write ."
     },
     "devDependencies": {
-        "@arrai-innovations/commitlint-config": "^2.1.0",
+        "@arrai-innovations/commitlint-config": "^3.1.0",
         "@commitlint/cli": "^19.8.1",
         "@trivago/prettier-plugin-sort-imports": "^4.3.0",
         "@vitest/eslint-plugin": "^1.1.43",
