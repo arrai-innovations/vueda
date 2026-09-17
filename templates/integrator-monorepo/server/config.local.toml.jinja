@@ -10,6 +10,11 @@ CORS_ALLOWED_ORIGINS = ["http://{{ bind_ip }}:{{ client_port }}"]
 
 # Required:
 DATABASE_URL = "postgres://postgres:postgres@localhost:5432/{{ project_slug }}"
+# Sessions live in this cache, so every worker process has to reach the same one. The key
+# prefix keeps this project's keys apart from another project's on a shared instance. Use
+# "db://{{ python_package }}_cache" with `manage.py createcachetable` to avoid running Redis,
+# or "locmem://" where one process serves every request.
+CACHE_URL = "redis://localhost:6379/0?key_prefix={{ project_slug }}-"
 #
 # Optional:
-# CELERY_BROKER_URL = "redis://localhost:6379/0"
+# CELERY_BROKER_URL = "redis://localhost:6379/1"
