@@ -1364,6 +1364,31 @@ describe("lib/use/useForm.js", () => {
                         stop();
                     }
                 });
+                scopedIt(
+                    "should key a plain field's server error the same way toFlatValuePath addresses its value",
+                    async () => {
+                        const { formContext } = getForm({ initialValues: { name: "", other: "" } });
+                        const error = new ServerFeedbackError("Invalid", { errors: { name: ["Too long"] } });
+
+                        formContext.handleServerFormValidationError(error);
+                        await flushPromises();
+
+                        // `errors` is keyed by the raw server field name; a plain (undotted) identity's
+                        // value path has to resolve to that same key, or the error never reaches the field
+                        // that renders it.
+                        expect(formContext.state.errors[toFlatValuePath("name")]).toEqual({ server: ["Too long"] });
+
+                        formContext.setAllTouched();
+                        expect(formContext.state.touched[toFlatValuePath("name")]).toBe(true);
+
+                        expect(formContext.getFirstErrorField(["name"], [])).toBe("name");
+
+                        // `clearServerErrors` is called with the same renderer-produced value path, so it
+                        // has to resolve to the key the server error actually landed under.
+                        formContext.clearServerErrors(toFlatValuePath("name"));
+                        expect(formContext.state.errors[toFlatValuePath("name")]).toBeUndefined();
+                    },
+                );
             });
             describe("clearServerErrors", () => {
                 scopedIt("should clear server error and message for a given field", async () => {

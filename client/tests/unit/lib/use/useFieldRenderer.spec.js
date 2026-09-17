@@ -43,10 +43,11 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.fieldSlotName.value).toBe("field(foo)");
         expect(result.widgetSlotName.value).toBe("widget(foo)");
         expect(result.widgetComponent.value).toEqual(availableWidgets.WidgetUnmapped);
-        // Outside a fieldset, the value path is the flattened (lodash bracket-escaped) form of the
-        // identity, even for a plain undotted name: `useForm`'s `get`/`set` parse `['foo']` down to
-        // the same flat key `foo` would address on their own.
-        expect(result.fieldProps.value.name).toBe("['foo']");
+        // Outside a fieldset, a plain undotted identity has nothing to protect from lodash nesting,
+        // so it passes through unchanged: this is the same raw key `useForm`'s `errors`, `messages`,
+        // and `touched` maps use, so a server error or touched-state lookup for this field agrees
+        // with its value path.
+        expect(result.fieldProps.value.name).toBe("foo");
         expect(result.fieldProps.value.modelValue).toBe("val");
         expect(result.fieldProps.value.hidden).toBe(false);
         expect(result.remainingSlots.value).toEqual(["custom"]);

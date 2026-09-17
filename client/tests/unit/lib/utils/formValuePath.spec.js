@@ -24,6 +24,10 @@ describe("lib/utils/formValuePath.js", () => {
             expect(values).toEqual({ employee: { id: 1 }, "employee.name": "Bob" });
         });
 
+        it("passes a plain undotted name through unchanged", () => {
+            expect(toFlatValuePath("name")).toBe("name");
+        });
+
         it("addresses a plain undotted name the same way a bare name would", () => {
             const values = {};
             set(values, toFlatValuePath("name"), "Bob");
