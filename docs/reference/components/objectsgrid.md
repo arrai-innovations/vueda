@@ -8,8 +8,17 @@ type: reference
 <script setup>
 import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import Button from "@vueda/controls/button/Button.vue";
+import FieldPickerMenuList from "@vueda/display/field-picker/FieldPickerMenuList.vue";
+import TabularInlineDemo from "../../.vitepress/theme/components/TabularInlineDemo.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faEllipsis, faPen } from "@fortawesome/free-solid-svg-icons";
+import { ref } from "vue";
+
+const pickerFields = [
+    "Name", "Slug", "SKU", "Category", "Supplier", "Unit Price", "Weight", "Warranty Period",
+    "Is Active", "Release Date", "Created At", "Updated At",
+].map((label) => ({ label, value: label }));
+const pickedField = ref("");
 
 const fields = [
     { name: "account", label: "Account" },
@@ -30,7 +39,7 @@ const accounts = [
 ];
 
 const statusClasses = {
-    primary: "border-primary/30 bg-primary/10 text-primary",
+    primary: "border-primary/30 bg-primary/10 text-primary-text",
     warning: "border-warning/40 bg-warning/10 text-warning",
 };
 
@@ -46,7 +55,7 @@ For how to change any of this, see [Customize VUEDA Appearance](../../guides/cus
 
 ## Table Layout
 
-The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle`. The 56 px row height is the legacy source default. The demo forces table mode with `tableBreakpoint="xs"`.
+The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle`. The 56 px row height is the legacy source default. Rows divide from each other with a hairline on their cells, and the header band divides from the first data row the same way. The last row drops its divider, so the root edge closes the grid. {@api theme-key:ObjectsGrid} `table` fills the root and uses the separated border model, which does not paint borders on rows or row groups; that is why the dividers sit on cells. The demo forces table mode with `tableBreakpoint="xs"`.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -77,6 +86,7 @@ The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overf
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span class="whitespace-nowrap">header: <code>ObjectsGridTableHeader</code></span>
     <span class="whitespace-nowrap">cells: <code>ObjectsGridBodyCell</code> · default <code>h-[3.5rem] px-1 lg:px-2</code></span>
+    <span class="whitespace-nowrap">dividers: <code>[&amp;>*]:border-b-hairline</code> on each row's cells</span>
     <span class="whitespace-nowrap">sorting: driven by toolbar controls outside the grid</span>
   </footer>
 </VuedaDemo>
@@ -156,6 +166,47 @@ While loading, each cell is replaced by a `Skeleton` sized to its field type: `h
   </DemoCard>
 </VuedaDemo>
 
+## Tabular inline editing
+
+{@api vue:component:FieldSetTabularInline} embeds an editable ObjectsGrid in its own
+fieldset. The fieldset owns the outer edge and the separator above help and validation
+messages; the embedded grid adds no second frame. Narrow screens switch the rows to cards.
+
+<VuedaDemo>
+  <DemoCard title="tabular inline contacts">
+    <ClientOnly>
+      <TabularInlineDemo />
+    </ClientOnly>
+    <template #footer>
+      <span>one fieldset frame, with a single separator above the help panel</span>
+      <span>edit or add contacts; changes stay in the demo</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Field picker menus
+
+The Sort and Filters controls use {@api vue:component:FieldPickerMenuList} for their
+available fields. Long lists keep a scrollbar visible even before hovering or scrolling;
+short lists fit their content without a scrollbar. The list height is capped at 15rem.
+The same list appears in the desktop popover and mobile dialog.
+
+<VuedaDemo class="grid gap-6 sm:grid-cols-2">
+  <DemoCard title="long field list">
+    <FieldPickerMenuList :items="pickerFields" eyebrow="Add sort" @pick="pickedField = $event" />
+    <template #footer>
+      <span>scrollbar stays visible while fields overflow</span>
+      <span>{{ pickedField ? `Picked: ${pickedField}` : "Pick any field" }}</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="short field list">
+    <FieldPickerMenuList :items="pickerFields.slice(0, 3)" eyebrow="Add sort" @pick="pickedField = $event" />
+    <template #footer>
+      <span>no scrollbar when all fields fit</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
 ## Customization Surface
 
 Use tokens for color, type, radius, border, shadow, and density decisions that should apply across the component. Use theme keys when changing the composition: table wrappers, row groups, header cells, card label/value pairs, and skeleton placement.
@@ -164,7 +215,7 @@ The highest-value keys are:
 
 - {@api theme-key:ObjectsGrid} `root`, `table`, `headerRowGroup`, `headerRow`, `headerCell`, `bodyRowGroup`, `bodyRow`, `cardContainer`, `emptyText`, `emptyContent`.
 - {@api theme-key:ObjectsGridTableHeader} `root`, `label`.
-- {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested `WidgetLabel` override used in form/grid compositions.
+- {@api theme-key:ObjectsGridBodyCell} for table cell chrome and the nested {@api theme-key:WidgetLabel} override used in form/grid compositions.
 - {@api theme-key:ObjectsGridCardCell} `header` and `value`.
 
 Per-instance props stay useful even when the global theme is stable: `fieldClasses`, `tableFieldClasses`, `cardFieldClasses`, `headerClasses`, `tableHeaderClasses`, and `cardHeaderClasses` let a single grid tune numeric columns, action column widths, and compact fields without adding a global variant.

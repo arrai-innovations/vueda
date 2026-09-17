@@ -69,7 +69,11 @@ const base = computed(() => parsed.value.base);
 const descending = computed(() => parsed.value.descending);
 const label = computed(() => props.fieldDetails?.[base.value]?.label || memoizedStartCase(base.value));
 
-const theme = useTheme("SortChip", props, reactive({ showOrdinal: toRef(props, "showOrdinal") }));
+const theme = useTheme(
+    "SortChip",
+    props,
+    reactive({ showOrdinal: toRef(props, "showOrdinal"), removable: toRef(props, "removable") }),
+);
 const icon = useIcons("SortChip", props);
 </script>
 

@@ -39,6 +39,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /** Suppresses the label while retaining the control, help, errors, and warnings. */
+    hideLabel: {
+        type: Boolean,
+        default: false,
+    },
 });
 const emit = defineEmits([...FIELD_EMITS]);
 const attrs = useAttrs();
@@ -67,7 +72,7 @@ const warningsSlot = useSlotNameResolver(
 </script>
 <template>
     <Field v-if="!hidden" :orientation="orientation" :class="$attrs.class" data-qa="form-field">
-        <FieldLabel :for="fieldId">
+        <FieldLabel v-if="!hideLabel" :for="fieldId">
             <!-- @slot [field(fieldName)label, field-label] Override the label content for this field. -->
             <slot :name="labelSlot.name" :label="fieldContext.state.label" :required="fieldContext.state.required">
                 {{ fieldContext.state.label }}

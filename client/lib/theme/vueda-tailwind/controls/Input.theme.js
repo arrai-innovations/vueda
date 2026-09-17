@@ -27,7 +27,12 @@ patchTheme({
                 "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
 
                 // Disabled and responsive states.
-                "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "md:text-sm",
+
+                // Disabled: an inert slab, not a faded field. See README section 7.6.
+                "disabled:pointer-events-none disabled:cursor-not-allowed",
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
+                "disabled:[-webkit-text-fill-color:var(--disabled-foreground)]",
 
                 // Focus and invalid states.
                 "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow",

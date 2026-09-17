@@ -17,11 +17,9 @@ from collections.abc import Iterable
 
 from django.core.serializers.base import DeserializationError
 from django.core.serializers.base import SerializationError
-from django.http import Http404
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
-from vueda.core.utils import AvailableActionsRequest
+from vueda.core.permissions import check_action_permission
 
 
 class AvailableActionsField(serializers.ListField):
@@ -36,22 +34,12 @@ class AvailableActionsField(serializers.ListField):
         super().__init__(**kwargs)
 
     def get_value(self, instance):
-        from vueda.info.serializers import METHOD_MAPPING
-
         request = self.context["request"]
-        user = request.user
 
         viewset = self.context["view"]
 
         available_actions = []
-        if hasattr(viewset, "check_object_permissions"):
-            check_viewset = viewset
-            fake_request = AvailableActionsRequest(
-                user=user,
-                authenticators=request.authenticators,
-                successful_authenticator=request.successful_authenticator,
-            )
-
+        if hasattr(viewset, "get_permissions"):
             if instance is None:
                 instances = self.parent.instance
                 if instances is None:
@@ -67,14 +55,10 @@ class AvailableActionsField(serializers.ListField):
                     continue
 
                 allowed = False
-                fake_request.method = METHOD_MAPPING[action].upper()
                 for instance in instances:
-                    try:
-                        check_viewset.check_object_permissions(fake_request, instance)
+                    if check_action_permission(viewset, request, instance, action):
                         allowed = True
                         break
-                    except (PermissionDenied, Http404):
-                        pass
                 if allowed:
                     available_actions.append(action)
 

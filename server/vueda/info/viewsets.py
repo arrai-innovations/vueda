@@ -49,8 +49,9 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
 
     Effectively, this is a custom model viewset for content types.
 
-    urls using this viewset should provide the app_label and model as kwargs.
-    ie: ```py
+    urls using this viewset should provide the app_label and model as kwargs, for example:
+
+    ```py
     path('model-info/<str:app_label>/<str:model>/', ModelInfoViewSet.as_view(), name='model-info')
     ```
     """

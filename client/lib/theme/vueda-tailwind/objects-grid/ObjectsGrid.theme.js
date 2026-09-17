@@ -14,7 +14,7 @@ patchTheme({
      * state, row states, card layout, and row-action affordances.
      */
     ObjectsGrid: {
-        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` strips the embedded grid's border and radius so only the parent container's edge remains visible. */
+        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and any separators around the grid. */
         root: {
             class: [
                 "max-w-full overflow-x-auto",
@@ -22,15 +22,15 @@ patchTheme({
                 "[font-variant-numeric:tabular-nums_slashed-zero]",
                 // Flush variant: an ancestor stamps `data-flush="true"` (e.g. FieldSetTabularInline.body)
                 // to merge the grid into a parent card without doubling borders. Drop the rounded edge
-                // and side/top borders, keep a single bottom hairline as the seam to chrome below.
-                "[[data-flush]_&]:rounded-none [[data-flush]_&]:border-x-0 [[data-flush]_&]:border-t-0",
+                // and inset hairline; the parent owns the outer edge and feedback-panel separator.
+                "[[data-flush]_&]:rounded-none [[data-flush]_&]:shadow-none",
             ],
         },
-        /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout. */
+        /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout, and fills the root so row dividers reach both card edges instead of stopping at the last column. The separated border model keeps cell padding free of collapsed edges, so row dividers sit on cells rather than on rows. */
         table: {
             class: ({ isTable }) => [
                 {
-                    "!table border-separate border-spacing-0": isTable,
+                    "!table w-full border-separate border-spacing-0": isTable,
                 },
             ],
         },
@@ -44,9 +44,9 @@ patchTheme({
                 },
             ],
         },
-        /** The table-layout header row wrapper. It becomes a table row only when {@api theme-key:ObjectsGrid.table} is in table mode. */
+        /** The table-layout header row wrapper. It becomes a table row only when {@api theme-key:ObjectsGrid.table} is in table mode, and carries the divider that separates the header band from the first data row. The divider sits on the header cells because the separated border model does not paint borders on rows. */
         headerRow: {
-            class: ({ isTable }) => [{ "!table-row": isTable }],
+            class: ({ isTable }) => [{ "!table-row": isTable, "[&>*]:border-b-hairline": isTable }],
         },
         /** The table-layout column header cell. It aligns numeric columns with `data-numeric` so sortable columns keep their right edge stable. */
         headerCell: {
@@ -77,7 +77,7 @@ patchTheme({
                 "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
             ],
         },
-        /** The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table row group in table layout. */
+        /** The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table row group in table layout. In table layout it removes the last row's divider from that row's cells so the enclosing {@api theme-key:ObjectsGrid.root} edge remains the closing edge. */
         bodyRowGroup: {
             class: ({ isTable }) => [
                 "print:block",
@@ -85,11 +85,11 @@ patchTheme({
                     // 1 / 2 / 3 column responsive default; projects override via theme as needed.
                     "grid grid-flow-row grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 p-1 2xs:p-2 2xl:p-4 gap-1 2xs:gap-2 2xl:gap-4":
                         !isTable,
-                    "!table-row-group": isTable,
+                    "!table-row-group [&>*:last-child>*]:border-b-0": isTable,
                 },
             ],
         },
-        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. */
+        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. In table layout each row also divides from the next; that divider sits on the row's cells, because the separated border model does not paint borders on rows. */
         bodyRow: {
             class: ({ isTable }) => {
                 return [
@@ -112,7 +112,7 @@ patchTheme({
                     // you can't tell how many cards are on a row, so we must treat them all the same.
                     // first and last don't help us here.
                     {
-                        "!table-row": isTable,
+                        "!table-row [&>*]:border-b-hairline": isTable,
                         "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card hairline hairline-border overflow-y-auto": !isTable,
                     },
                 ];

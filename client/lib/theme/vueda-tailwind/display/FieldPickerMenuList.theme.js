@@ -20,9 +20,9 @@ patchTheme({
                 "px-2 py-1.5 text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.04em] text-muted-foreground",
             ],
         },
-        /** Scrollable list wrapper. Capped so the popover never overflows the viewport on small screens. */
+        /** Scrollable viewport capped at 15rem, with space for the scrollbar that stays visible while the list overflows. */
         list: {
-            class: ["max-h-60 overflow-y-auto"],
+            class: ["max-h-60 pr-3"],
         },
         /** A selectable field row. */
         item: {

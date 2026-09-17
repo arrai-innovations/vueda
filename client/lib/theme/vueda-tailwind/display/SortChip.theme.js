@@ -24,14 +24,15 @@ patchTheme({
                 // (`.sortable-drag`) reads as a lifted, primary-accented chip; the gap it
                 // leaves behind (`.sortable-ghost`) is dimmed to mark the drop target.
                 "[&.sortable-ghost]:opacity-40",
-                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary",
+                "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary-text",
             ],
         },
-        /** Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so the hover target covers the pill. Carries the left pill radius only when no leading ordinal is shown. */
+        /** Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so the hover target covers the pill. Carries the left pill radius when no leading ordinal is shown, and the right pill radius when no remove control is shown. */
         label: {
-            class: ({ showOrdinal }) => [
+            class: ({ showOrdinal, removable }) => [
                 "inline-flex items-center self-stretch gap-1.5 py-1 pr-2 hover:bg-accent",
                 showOrdinal ? "pl-1.5" : "rounded-l-full pl-2.5",
+                !removable && "rounded-r-full",
             ],
         },
         /** Drag handle (`.drag-handle`, grab cursor): a grip glyph plus the priority ordinal. Leftmost segment carrying the left pill radius. Shown only with more than one sort, so it is also the reorder affordance for touch (no hover needed to discover it). */

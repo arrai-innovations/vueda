@@ -16,6 +16,7 @@ import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
+import { validateClientSymbols } from "../js/validators/client-symbols.js";
 import { validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
@@ -490,12 +491,19 @@ async function runValidate(argv) {
 
     const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
 
+    const clientLibDir = path.join(repoRoot, "client", "lib");
+    const symbols = validateClientSymbols({ files, clientLibDir });
+    errors.push(...symbols.errors);
+
     console.error(
         `Checked ${files.length} file(s) against ${apiIndexSize} API ids and ${glossaryIndexSize} glossary terms`,
     );
+    console.error(
+        `Checked ${symbols.checkedFiles} authored file(s) against ${symbols.componentCount} client components`,
+    );
 
     if (errors.length > 0) {
-        for (const error of errors) {
+        for (const error of errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
             const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
             console.log(`${rel}:${error.line}: ${error.message}`);
         }

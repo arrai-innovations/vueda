@@ -27,7 +27,6 @@ from django.core.exceptions import FieldError
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
-from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from django_filters.filters import AllValuesFilter
@@ -35,7 +34,6 @@ from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_is_installed
@@ -46,10 +44,10 @@ from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
 from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
-from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -441,6 +439,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         Get the actions for a model and their own metadata.
         Actions will be sorted by method action, followed by sorted extra actions.
+
+        Each CRUD action is checked against its own required permission through
+        :func:`vueda.core.permissions.check_action_permission`, called with no instance --
+        model-scope discovery decides through ``has_permission`` alone, the same model-level
+        check a CRUD action's own per-object discovery relies on before it ever reaches a row, so
+        a matching workflow-state grant can settle a model-level denial here too. A model-level
+        action describes what a requester might do on some instance of the model, not a guarantee
+        that holds for every instance; the per-object surfaces (an object's own
+        ``available_actions``) decide that separately, through ``has_object_permission``.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -460,24 +467,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         action_data = []
         for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
-            if user is not None:
-                skip_action = False
-                for method_action, method in METHOD_MAPPING.items():
-                    if method_action.lower() == action:
-                        fake_request = AvailableActionsRequest(
-                            authenticators=request.authenticators,
-                            method=method.upper(),
-                            successful_authenticator=request.successful_authenticator,
-                            user=user,
-                        )
-
-                        try:
-                            called_viewset.check_object_permissions(fake_request, None)
-                        except (PermissionDenied, Http404):
-                            skip_action = True
-
-                if skip_action:
-                    continue
+            if user is not None and not check_action_permission(called_viewset, request, None, action):
+                continue
 
             action_item_data = {
                 "name": action,

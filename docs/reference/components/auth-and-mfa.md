@@ -132,7 +132,7 @@ The two cards below are structural diagrams, not styled specimens: they label th
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · credentials accepted. Submit to see the loading state, then the "Signed In" success toast.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInAccepts" toasts />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>AuthorizingForm centers the card; <code>ViewSignIn</code> supplies the email and password fields plus a single "Sign In" submit</span>
+    <span>AuthorizingForm centers the card; <code>ViewSignIn</code> supplies the email and password fields plus a single primary "Sign In" submit</span>
     <span>theme key: <code>AuthorizingForm</code> · source: <code>ViewSignIn.vue</code></span>
   </footer>
 </VuedaDemo>

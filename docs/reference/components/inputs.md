@@ -349,6 +349,31 @@ columns of values stay aligned.
       <span>steppers inside the input box</span>
     </template>
   </DemoCard>
+  <DemoCard title="invalid">
+    <div class="flex flex-col gap-1">
+      <StateLabel>invalid value</StateLabel>
+      <NumberField :default-value="42">
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <div class="flex flex-col gap-1">
+      <StateLabel>empty and invalid</StateLabel>
+      <NumberField>
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Empty invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <template #footer>
+      <span>full <code>--destructive</code> edge at rest; destructive focus ring on keyboard focus</span>
+    </template>
+  </DemoCard>
   <DemoCard title="at minimum">
     <NumberField :default-value="0" :min="0">
       <NumberFieldContent>
@@ -557,10 +582,22 @@ control-height ladder below sm.
         <TagsInputItemText />
         <TagsInputItemDelete />
       </TagsInputItem>
-      <TagsInputInput placeholder="Max 3 reached" disabled />
+      <TagsInputInput placeholder="Edit tags" aria-label="Invalid tags" />
     </TagsInput>
     <template #footer>
-      <span>container border <code>--destructive</code></span>
+      <span><code>aria-invalid="true"</code>: the field edge and keyboard focus ring both use <code>--destructive</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="explicitly valid">
+    <TagsInput :default-value="['reviewed']" aria-invalid="false">
+      <TagsInputItem value="reviewed">
+        <TagsInputItemText />
+        <TagsInputItemDelete />
+      </TagsInputItem>
+      <TagsInputInput placeholder="Add tag…" aria-label="Valid tags" />
+    </TagsInput>
+    <template #footer>
+      <span><code>aria-invalid="false"</code>: the keyboard focus edge and ring use the normal <code>--ring</code> color</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -786,6 +823,28 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
     <template #footer>
       <span><code>block-end</code> puts the addon on its own row under the control, inside the same border</span>
       <span>one addon can hold several children; they lay out along the row</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid group with prefix">
+    <InputGroup>
+      <InputGroupAddon align="inline-start">
+        <InputGroupText>https://</InputGroupText>
+      </InputGroupAddon>
+      <InputGroupInput model-value="invalid address" aria-invalid="true" aria-label="Invalid address" />
+    </InputGroup>
+    <template #footer>
+      <span>The group owns the error edge and focus ring; the input draws no inner border.</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid textarea with block addon">
+    <InputGroup>
+      <InputGroupTextarea model-value="Incomplete note" aria-invalid="true" aria-label="Invalid note" />
+      <InputGroupAddon align="block-end">
+        <InputGroupText>Markdown supported</InputGroupText>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span>One error edge encloses the textarea and addon, including when the textarea loses focus.</span>
     </template>
   </DemoCard>
 </VuedaDemo>

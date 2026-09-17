@@ -9,7 +9,7 @@ import { computed, reactive, readonly, unref } from "vue";
  * @typedef {object} ResolvedSlotGroupsRaw
  * @property {import('vue').ComputedRef<{[groupPrefix: string]: [string, string][]}>} grouped - The grouped slot names.
  * @property {import('vue').ComputedRef<string[]>} remaining - The remaining slot names.
- * @property {([groupPrefix: string]) => boolean} hasGrouped - Whether the grouped slot names contain any slots.
+ * @property {(groupPrefix: string) => boolean} hasGrouped - Whether the grouped slot names contain any slots.
  */
 
 /**
