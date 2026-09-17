@@ -82,6 +82,29 @@ describe("lib/stores/storeModelInfo.js", () => {
         expect(store.promises[key]).toBeUndefined();
     });
 
+    scopedIt("requests the column totals section and exposes it as columnTotals", async () => {
+        const args = { app: "blog", model: "post" };
+        fetchHelper.mockResolvedValue({
+            ...serverData("CharField"),
+            model_column_totals: { fields: ["hours", "product_price"] },
+        });
+
+        const result = await store.fetchModelInfo(args);
+
+        // Both lists have to name the section: `f` selects which root keys come back, `e` expands it.
+        // Each goes out as one comma-separated value rather than a repeated key, which is how every
+        // list-valued VUEDA parameter is sent and what the server splits on.
+        const query = fetchHelper.mock.calls[0][0].split("?")[1];
+        const params = new URLSearchParams(query);
+        expect(params.get("f").split(",")).toContain("model_column_totals");
+        expect(params.get("e").split(",")).toContain("model_column_totals");
+
+        // `column_totals` is the only multi-word section name, so it is renamed rather than left
+        // snake_case next to `ordering` and `filtering`.
+        expect(result.columnTotals).toEqual({ fields: ["hours", "product_price"] });
+        expect(result.column_totals).toBeUndefined();
+    });
+
     scopedIt("camelCases expand descriptor root keys while preserving f field-name keys", async () => {
         const args = { app: "catalog", model: "widget" };
         const serverData = {

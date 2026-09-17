@@ -56,6 +56,7 @@ import { defineStore } from "pinia";
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
+ * @property {string[]} totalables - column names that can carry a total in list view. A list request asks for the ones that are currently visible; totals are opt-in server-side, so asking for none costs no aggregation query. Requested under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`.
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
@@ -88,6 +89,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [filterables] - filters to display in list view
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view
+ * @property {string[]} [totalables] - column names that can carry a total in list view
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
@@ -125,6 +127,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 fieldDetails: {},
                 filterableDetails: {},
                 sortableDetails: {},
+                totalables: [],
             },
             {},
         ];
@@ -167,6 +170,11 @@ const getDefaultFromModelInfo = (modelInfo) => {
             filterables: Object.keys(modelInfo.filtering || {}),
             sortables: orderingFields.map((o) => o.name),
             sorted: defaultSorted,
+            // The totals this model can carry, as the server reports them. An older server sends no
+            // `model_column_totals` section at all, which reads the same way as a model with no
+            // totals: nothing to offer, so nothing is asked for. The parameter that asks is
+            // `COLUMN_TOTALS_PARAM`, a client constant, and is not discovered here.
+            totalables: [...(modelInfo.columnTotals?.fields || [])],
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),

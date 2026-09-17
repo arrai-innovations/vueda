@@ -40,6 +40,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaListSerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
+from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
 from vueda.core.viewsets import build_prefetch_plan
@@ -2163,7 +2164,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
 
     def test_list_without_filterset_class_accepts_extra_allowed_param(self, authenticated_client, test_data):
         """
-        NoteViewSet has no filterset_class and permits a list expand, so it can exercise all seven
+        NoteViewSet has no filterset_class and permits a list expand, so it can exercise all eight
         get_extra_allowed_fields() params as genuinely valid values, not just recognized keys.
         """
         info.registration.get_empty_registry()
@@ -2177,6 +2178,9 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         )
 
         query = {
+            # NoteViewSet declares no `column_totals`, so the only value the totals param can carry
+            # here is the empty one, which asks for nothing.
+            settings.COLUMN_TOTALS_PARAM: "",
             settings.PAGE_QUERY_PARAM: 1,
             settings.PAGE_SIZE_QUERY_PARAM: 10,
             settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
@@ -2185,7 +2189,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
             settings.REST_FRAMEWORK["SEARCH_PARAM"]: "distributor",
             settings.REST_FRAMEWORK["ORDERING_PARAM"]: "object_id",
         }
-        assert set(query) == set(store_viewsets.NoteViewSet.get_extra_allowed_fields()), (
+        assert set(query) == set(store_viewsets.NoteViewSet().get_extra_allowed_fields()), (
             "query should exercise every param get_extra_allowed_fields() recognizes"
         )
 
@@ -2200,7 +2204,9 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         response = authenticated_client.get(reverse("store.note-list"), data={"nosuchparam": "1"})
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, o, om, p, ps, s."]
+        assert response.data["nosuchparam"] == [
+            "Invalid query parameter.  Valid filters are ct, e, f, o, om, p, ps, s."
+        ]
 
     def test_retrieve_without_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
         distributor = test_data.distributors["T-Shirt Corp."]
@@ -2231,3 +2237,35 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
         assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are e, f, om."]
+
+
+class TestExtraAllowedFieldsFollowsTheTotalsReader:
+    """The totals parameter is recognized only where something reads it.
+
+    `ListRowLevelViewSetMixin.list` is what validates the names the parameter carries and answers
+    400 for an undeclared one. Recognizing it without that is the failure this mixin exists to
+    prevent: any value accepted, nothing done with it, no error.
+
+    None of these touch the database, so the class takes no fixtures.
+    """
+
+    def test_recognized_when_the_list_mixin_reads_it(self):
+        assert settings.COLUMN_TOTALS_PARAM in store_viewsets.NoteViewSet().get_extra_allowed_fields()
+
+    def test_not_recognized_without_the_list_mixin(self):
+        class TotallessViewSet(NoExtraFieldsForViewSetMixin):
+            """The shape the gate is for: strict parameters, but no `list` that reads totals."""
+
+        assert not hasattr(TotallessViewSet, "get_declared_column_totals")
+        assert settings.COLUMN_TOTALS_PARAM not in TotallessViewSet().get_extra_allowed_fields()
+
+    def test_the_rest_of_the_parameters_are_unconditional(self):
+        """Only the totals entry is gated; nothing else here depends on another mixin."""
+
+        class TotallessViewSet(NoExtraFieldsForViewSetMixin):
+            pass
+
+        gated = set(store_viewsets.NoteViewSet().get_extra_allowed_fields())
+        ungated = set(TotallessViewSet().get_extra_allowed_fields())
+
+        assert gated - ungated == {settings.COLUMN_TOTALS_PARAM}

@@ -47,9 +47,31 @@ Error semantics are strict and immediate. A missing required key raises `KeyErro
 
 ## Wire Query Parameter Namespace
 
-The server and client share a fixed set of query parameter names for search, ordering, pagination, and flex-field control. These names are a wire contract: both sides must use the same strings, and there is no runtime negotiation or discovery mechanism.
+The server and client share a fixed set of query parameter names for search, ordering, pagination, and flex-field control. These names are a wire contract: both sides must use the same strings, and there is no runtime negotiation or discovery mechanism for them.
 
-The canonical names are: `s` for search, `o` for ordering, `p` for page number, `ps` for page size, `e` for expand, `f` for fields, and `om` for omit. The server declares these in `REST_FRAMEWORK` settings (`SEARCH_PARAM`, `ORDERING_PARAM`), `REST_FLEX_FIELDS` settings (`EXPAND_PARAM`, `FIELDS_PARAM`, `OMIT_PARAM`), and pagination class settings. The client declares the same values as constants in `@vueda/utils/constants`.
+The canonical names are: `s` for search, `o` for ordering, `p` for page number, `ps` for page size, `e` for expand, `f` for fields, `om` for omit, and `ct` for column totals. The server declares these in `REST_FRAMEWORK` settings (`SEARCH_PARAM`, `ORDERING_PARAM`), `REST_FLEX_FIELDS` settings (`EXPAND_PARAM`, `FIELDS_PARAM`, `OMIT_PARAM`), the top-level `COLUMN_TOTALS_PARAM` setting, and pagination class settings. The client declares the same values as constants in `@vueda/utils/constants`. Renaming any of them on the server requires the matching change in that file.
+
+::: info
+Parameter-name discovery — reporting these names in metadata so a client reads them rather than declaring them — is planned for after the v3.0.0 release, and is deliberately being taken up for the parameter set as a whole rather than one parameter at a time.
+:::
+
+What a project's declarations _do_ change is which column totals exist, and that is discovered: the `model_column_totals` model-info section reports each model's declared total names, so a client knows which columns can carry a total without per-model configuration. The name of the parameter that asks for them is not part of that section. See [Expose Aggregates in `list` Responses](../guides/list-column-totals).
+
+The totals parameter is the only one of the eight that a project's own declarations change the shape of, so it is the only one the schema generator has to derive rather than describe once. `VuedaBaseAutoSchema.get_override_parameters` adds it to a `list` operation whose viewset declares `column_totals`, enumerating that viewset's own total names plus the wildcard values:
+
+```yaml
+- in: query
+  name: ct
+  schema:
+      type: array
+      items:
+          type: string
+          enum: ["*", product_price, quantity, "~all"]
+  style: form
+  explode: false
+```
+
+It has to be added explicitly because it belongs to neither of the two surfaces drf-spectacular discovers parameters from: it is not a paginator's, and not a filter backend's. Without it a generated schema would describe a `columnTotals` response key that no documented request could populate. `style: form` with `explode: false` is the comma-separated spelling; repeating the parameter means the same thing to the server, but OpenAPI describes one serialization and comma-separated is what the client sends. The parameter is documented only where sending it does something — never on `retrieve`, which rejects it, and never on a viewset declaring no totals. Projects that do not install drf-spectacular, which is optional, are unaffected.
 
 These short, single-letter names are a deliberate departure from DRF's upstream defaults (which use longer names like `search` and `ordering`). The short names reduce URL length, but the important property is that they are fixed. If a project overrides the server's query parameter settings without also updating the client constants, client requests will silently stop applying the intended search, ordering, pagination, or flex-field behaviour; the server will ignore the client's query keys because they do not match the expected names.
 
@@ -114,6 +136,7 @@ Configuration failures surface at different points in the application lifecycle 
 - {@api py:function:vueda.core.default_settings.get_production_defaults}
 - {@api py:module:vueda.core.config}
 - {@api py:class:vueda.core.config.TomlEnv}
+- {@api py:class:vueda.core.open_api.VuedaBaseAutoSchema}
 - {@api py:module:vueda.core.patch_django}
 - {@api py:module:vueda.core.permissions}
 - {@api js:module:@arrai-innovations/vueda/utils/constants}

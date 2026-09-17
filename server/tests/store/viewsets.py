@@ -263,6 +263,96 @@ class CartItemViewSet(VuedaViewSet):
     queryset = my_models.CartItem.objects.all()
     serializer_class = my_serializers.CartItemSerializer
     ordering_fields = ["product_option__name", "quantity"]
+    # Two totals, one named after the column it sums and one not. `product_price` is what a client
+    # asks for and what comes back; `product_option__price` is the path summed for it, and never
+    # leaves the server. The pair is what makes "only the requested totals are aggregated" testable
+    # -- asking for one has to leave the other out of both the response and the SQL -- and what
+    # proves a response key is the declared name rather than the ORM path.
+    column_totals = {"quantity": "quantity", "product_price": "product_option__price"}
+
+
+class CartItemDurationColumnTotalsViewSet(CartItemViewSet):
+    """Totals a DurationField reached through two forward foreign keys, the one non-numeric column
+    type `Sum` still means something for. Valid, so `vueda_info.E011` has to stay quiet about it."""
+
+    column_totals = {"delivery_time": "cart__expected_delivery_time"}
+
+
+class CartItemListColumnTotalsViewSet(CartItemViewSet):
+    """Still declares `column_totals` in the list-of-paths form VUEDA used before the mapping.
+
+    Nothing fails at request time for this one -- the names simply never resolve as totals -- so
+    `vueda_info.E011` is the only signal that the declaration stopped meaning anything."""
+
+    column_totals = ["quantity"]
+
+
+class CartItemUnresolvableColumnTotalsViewSet(CartItemViewSet):
+    """Totals a path the model has no field for. `queryset.aggregate()` raises `FieldError`, but
+    only for a request that asks for this total, and totals are opt-in -- so that may be no request
+    at all until a client first tries."""
+
+    column_totals = {"quantity": "no_such_field"}
+
+
+class CartItemUnsummableColumnTotalsViewSet(CartItemViewSet):
+    """Totals a CharField reached through a forward foreign key. The path resolves; the database is
+    what refuses it."""
+
+    column_totals = {"product_name": "product_option__name"}
+
+
+class CartItemRelationColumnTotalsViewSet(CartItemViewSet):
+    """Totals the relation itself rather than a column on the far side of it, the shape a path is
+    left in when the column at the end of it is forgotten."""
+
+    column_totals = {"product_option": "product_option"}
+
+
+class CartItemWildcardColumnTotalsViewSet(CartItemViewSet):
+    """Names a total after a wildcard value, which a client could only ever send to mean "every
+    declared total"."""
+
+    column_totals = {"*": "quantity"}
+
+
+class CartItemBadNameColumnTotalsViewSet(CartItemViewSet):
+    """Names a total something the query parameter could not carry back: it separates the names it
+    carries with commas, so this one arrives as two that match nothing.
+
+    Django has no objection to a comma in an alias, so this stands for VUEDA's half of the rule
+    alone. `CartItemAliasUnsafeNameColumnTotalsViewSet` stands for Django's."""
+
+    column_totals = {"total,quantity": "quantity"}
+
+
+class CartItemAliasUnsafeNameColumnTotalsViewSet(CartItemViewSet):
+    """Names a total something `aggregate()` would refuse as a column alias, for the whitespace.
+
+    Nothing about the query parameter objects to it, so this stands for Django's half of the rule
+    alone -- the half VUEDA asks Django rather than restating."""
+
+    column_totals = {"total quantity": "quantity"}
+
+
+class InvoiceReverseColumnTotalsViewSet(VuedaViewSet):
+    """Totals across a reverse foreign key, which joins a row per invoice line.
+
+    The reason `column_totals` is checked at all rather than left to fail in the database: this one
+    raises nothing, ever. It returns an inflated number for itself, and inflates every other total
+    computed in the same `aggregate()` call along with it."""
+
+    queryset = my_models.Invoice.objects.all()
+    serializer_class = my_serializers.InvoiceSerializer
+    column_totals = {"line_amount": "invoice_lines__amount"}
+
+
+class ProductManyToManyColumnTotalsViewSet(VuedaViewSet):
+    """Totals across a many-to-many, which multiplies rows the same way a reverse foreign key does."""
+
+    queryset = my_models.Product.objects.all()
+    serializer_class = my_serializers.ProductSerializer
+    column_totals = {"special_care_id": "special_care__id"}
 
 
 class CartItemCartBaseManagerChoiceFilterViewSet(CartItemViewSet):
@@ -356,6 +446,29 @@ class InventoryRecordViewSet(VuedaViewSet):
     serializer_class = my_serializers.InventoryRecordSerializer
     filterset_class = my_filtersets.InventoryRecordFilterSet
     ordering_fields = ["when", "reason", "quantity"]
+    # Three totals, so "asking for one adds one SUM, not three" has somewhere to be observed, and so
+    # `model_column_totals` reports a list long enough to show it keeps declaration order.
+    column_totals = {"quantity": "quantity", "cost": "cost", "unit_price": "product_option__price"}
+
+
+class InventoryRecordAnnotatedColumnTotalsViewSet(InventoryRecordViewSet):
+    """Totals an annotation its own `get_queryset` adds, rather than a column on the model.
+
+    The case `vueda_info.E011` cannot resolve through `_meta` and defers to the queryset for, the
+    same way ordering does for a term naming an annotation.
+
+    The annotation reaches through a foreign key on purpose. `get_column_info` aggregates a total
+    over a real column on the matched rows re-selected by primary key, and an annotation cannot go
+    with them -- the expressions in `query.annotations` are resolved, so their `Col` leaves name the
+    original query's aliases and carrying one adds no join. An annotation over two local columns
+    hides that, because the base table's alias is the same in both queries; this one compiles to SQL
+    naming a table the query never joined.
+    """
+
+    column_totals = {"line_total": "line_total"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(line_total=F("product_option__price") * F("quantity"))
 
 
 class ProductM2MSearchViewSet(ProductViewSet):
@@ -388,6 +501,28 @@ class ProductM2MSearchRelationOrderingViewSet(ProductM2MSearchViewSet):
     the request sorts by it rather than by rank."""
 
     ordering_fields = [*ProductM2MSearchViewSet.ordering_fields, "distributor"]
+
+
+class ProductM2MSearchColumnTotalsViewSet(ProductM2MSearchViewSet):
+    """Totals a local column and a queryset annotation, on a viewset whose *search* reaches across a
+    many-to-many.
+
+    `vueda_info.E011` has nothing to say about either one -- `quantity` is a column on Product
+    itself, and the check does not look at what an annotation computes. The join arrives from the
+    search backend instead, and a `SUM` over the joined rows counts a product once per matching
+    `special_care` row. So this is the half of the guarantee the check cannot cover: a single-valued
+    declaration is not enough on its own.
+
+    Both kinds are declared together because `get_column_info` protects them by different routes --
+    a column by re-selecting the matched rows by primary key, an annotation by summing over a
+    distinct `(pk, value)` subquery, in two `aggregate()` calls -- and a request naming both has to
+    come back with both un-multiplied.
+    """
+
+    column_totals = {"quantity": "quantity", "double_quantity": "double_quantity"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(double_quantity=F("quantity") * 2)
 
 
 class DistributorMixedRankedAndWordSimilarViewSet(DistributorViewSet):
