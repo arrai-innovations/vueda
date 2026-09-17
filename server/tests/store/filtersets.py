@@ -1,3 +1,4 @@
+from django import forms
 from django.core.validators import StepValueValidator
 from django_filters import rest_framework
 
@@ -189,7 +190,13 @@ class ProductAutoDerivedFilterSet(VuedaFilterSet):
     only the declared name as a string, never the filter's own class, so a `RangeFilter` or a
     `NumberArrayFilter` with a `__`-joined name derives a dotted one exactly like a `CharFilter` does.
 
-    None of this needs any declaration naming a public alias for any of the five filters.
+    `distributor__description` shows the same derivation on a filter no client is meant to set by
+    hand -- a `HiddenInput` widget, the way a viewset might inject a tenant-scoping filter from
+    request context. The mixin renames it exactly like a visible filter: nothing here skips a
+    hidden widget, which is what lets `distributor.description` still appear in `model_filtering`
+    for a collision check (or anything else walking every filter's alias) to see.
+
+    None of this needs any declaration naming a public alias for any of the six filters.
     """
 
     tangible_type__code = rest_framework.CharFilter(
@@ -199,6 +206,11 @@ class ProductAutoDerivedFilterSet(VuedaFilterSet):
     )
     distributor__id = rest_framework.RangeFilter(field_name="distributor__id", label="Distributor ID Range")
     distributor__id__in = NumberArrayFilter(field_name="distributor__id", lookup_expr="in", label="Distributor IDs")
+    distributor__description = rest_framework.CharFilter(
+        field_name="distributor__description",
+        label="Distributor Description",
+        widget=forms.HiddenInput,
+    )
 
     class Meta:
         model = my_models.Product
