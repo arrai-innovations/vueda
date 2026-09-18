@@ -272,8 +272,11 @@ const mergeSimpleProperties = (
 };
 
 /**
- * Reject a `submitFields` entry (including one inherited from the `fields` shorthand) that names
- * an expand-flattened display field.
+ * Reject a declared `submitFields` entry that names an expand-flattened display field.
+ *
+ * Only a declared entry reaches this: `mergeSimpleProperties` already drops a flattened field when
+ * it derives `submitFields` from the `fields` shorthand, so a shorthand that is correct for display
+ * and fetch still builds a `list` or `read` config.
  *
  * `flattenExpansionDetails` only ever produces a dotted `expandName.subFieldName` entry for
  * display and fetch purposes: it flattens whatever DRF-flex-fields expands for reading, and VUEDA
@@ -301,7 +304,7 @@ const validateSubmitFields = (builtConfig, args) => {
         throw new Error(
             `submitFields for ${args.app}.${args.model} names expand-flattened display field(s): ` +
                 `${invalidFields.join(", ")}. VUEDA does not support submitting a nested value through a ` +
-                'flattened display field. Remove them from submitFields (or the shared "fields" shorthand), ' +
+                "flattened display field. Remove them from submitFields, " +
                 "and use a writable inline/array field for anything the form must submit.",
         );
     }
