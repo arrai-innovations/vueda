@@ -82,11 +82,11 @@ Each view consumes a different subset of the config's field properties. Aligning
 
 **`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
 
-**`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand__subfield` keys for expanded relation fields.
+**`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand.subfield` keys for expanded relation fields.
 
 **`ViewCreate`** and **`ViewUpdate`** submit using `submitFields`. The PK is injected into the request payload automatically for update operations. The form model is built from `fieldDetails` for the fields in `submitFields`, which controls labels, types, required flags, and validation constraints.
 
-When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand__subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category__name"]`. This allows display and field configuration to target expanded sub-fields directly.
+When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
 
 ## Action and Route Strategy
 
@@ -148,7 +148,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Links to an action are always enabled, even without a selected object.** `useLinkModelView` checks `actionDetails[action].detail || actionDetails[action].bulk` to decide if a PK is required. If neither flag is set, the link is enabled unconditionally. Set `detail: true` or `bulk: true` on the action's `actionDetails` entry to gate the link on row selection.
 
-**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand__subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand__subfield` keys will not be present in `fieldDetails`.
+**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
 
 **Template route paths do not match project structure.** The provided project templates wire CRUDL routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
 

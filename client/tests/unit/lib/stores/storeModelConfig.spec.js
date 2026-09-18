@@ -178,11 +178,11 @@ const dummyModelInfo = {
         },
     ],
     ordering: {
-        default: ["week_start", "employee__last_name"],
+        default: ["week_start", "employee.last_name"],
         fields: [
             { name: "week_start", type: "date", ascending: false },
-            { name: "employee__last_name", type: "alpha", ascending: true },
-            { name: "employee__first_name", type: "alpha" },
+            { name: "employee.last_name", type: "alpha", ascending: true },
+            { name: "employee.first_name", type: "alpha" },
         ],
     },
     filtering: {
@@ -265,21 +265,21 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             // Filtering and ordering
             expect(config.filterables).toEqual(["name"]);
-            expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
-            expect(config.sorted).toEqual(["-week_start", "employee__last_name"]);
+            expect(config.sortables).toEqual(["week_start", "employee.last_name", "employee.first_name"]);
+            expect(config.sorted).toEqual(["-week_start", "employee.last_name"]);
 
             expect(config.fieldDetails).toHaveProperty("id");
             expect(config.fieldDetails).toHaveProperty("name");
             expect(config.fieldDetails).toHaveProperty("description");
 
             expect(config.fieldDetails).toHaveProperty("employee");
-            expect(config.fieldDetails).toHaveProperty("employee__id");
-            expect(config.fieldDetails).toHaveProperty("employee__username");
-            expect(config.fieldDetails).toHaveProperty("employee__email");
+            expect(config.fieldDetails).toHaveProperty("employee.id");
+            expect(config.fieldDetails).toHaveProperty("employee.username");
+            expect(config.fieldDetails).toHaveProperty("employee.email");
 
             expect(config.fieldDetails).toHaveProperty("timesheet_days");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days__id");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days__day");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.id");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
 
             expect(config.expandDetails).toHaveProperty("employee");
             expect(config.expandDetails).toHaveProperty("timesheet_days");
@@ -390,18 +390,18 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
             customModelInfo.ordering = {
-                default: ["employee__first_name", "week_start"],
+                default: ["employee.first_name", "week_start"],
                 fields: [
                     { name: "week_start", type: "date", ascending: false },
-                    { name: "employee__first_name", type: "alpha", ascending: true },
-                    { name: "employee__last_name", type: "alpha" },
+                    { name: "employee.first_name", type: "alpha", ascending: true },
+                    { name: "employee.last_name", type: "alpha" },
                 ],
             };
             mockedFetchModelInfo.mockResolvedValue(customModelInfo);
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             // Priority order follows `default`; direction follows each field's `ascending`.
-            expect(config.sorted).toEqual(["employee__first_name", "-week_start"]);
+            expect(config.sorted).toEqual(["employee.first_name", "-week_start"]);
         });
 
         scopedIt(
@@ -414,16 +414,16 @@ describe("lib/stores/storeModelConfig.js", () => {
 
                 const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
                 customModelInfo.ordering = {
-                    default: ["employee__last_name"],
+                    default: ["employee.last_name"],
                     // `ascending` is only ever omitted by the server for fields that aren't
                     // in `default`; a `default` entry missing it is a server contract bug.
-                    fields: [{ name: "employee__last_name", type: "alpha" }],
+                    fields: [{ name: "employee.last_name", type: "alpha" }],
                 };
                 mockedFetchModelInfo.mockResolvedValue(customModelInfo);
 
                 const config = await store.getConfig({ app: "testApp", model: "testModel" });
-                expect(config.sorted).toEqual(["employee__last_name"]);
-                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("employee__last_name"));
+                expect(config.sorted).toEqual(["employee.last_name"]);
+                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("employee.last_name"));
 
                 consoleError.mockRestore();
             },
@@ -603,7 +603,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                     },
                 },
                 fieldDetails: {
-                    employee__username: { placeholder: "Enter username" },
+                    "employee.username": { placeholder: "Enter username" },
                 },
             };
             const customSpecificConfig = {
@@ -616,7 +616,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                     },
                 },
                 fieldDetails: {
-                    employee__username: { placeholder: "Specific placeholder" },
+                    "employee.username": { placeholder: "Specific placeholder" },
                 },
             };
 
@@ -628,8 +628,8 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             expect(config.expandDetails.employee.extra).toBe("specific");
 
-            expect(config.fieldDetails["employee__username"].label).toBe("Specific Username");
-            expect(config.fieldDetails["employee__username"].placeholder).toBe("Specific placeholder");
+            expect(config.fieldDetails["employee.username"].label).toBe("Specific Username");
+            expect(config.fieldDetails["employee.username"].placeholder).toBe("Specific placeholder");
         });
 
         scopedIt("supports null specific config entries", async () => {
@@ -687,7 +687,93 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             expect(config.fieldDetails).toHaveProperty("employee");
-            expect(config.fieldDetails).not.toHaveProperty("employee__id");
+            expect(config.fieldDetails).not.toHaveProperty("employee.id");
+        });
+    });
+
+    describe("submitFields validation", () => {
+        scopedIt("rejects a submitFields entry that names an expand-flattened display field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { submitFields: ["name", "employee.username"] });
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
+                /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,
+            );
+        });
+
+        scopedIt("drops an expand-flattened field the fields shorthand names, rather than rejecting", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.fetchFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a list config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a read config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "read" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("still rejects an explicitly declared submitFields entry naming a flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { fields: ["name"], submitFields: ["name", "employee.username"] },
+            );
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
+                /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,
+            );
+        });
+
+        scopedIt("allows the same expand-flattened field in displayFields and fetchFields", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    displayFields: ["name", "employee.username"],
+                    fetchFields: ["name", "employee.username"],
+                    submitFields: ["name"],
+                },
+            );
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.fetchFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
         });
     });
 

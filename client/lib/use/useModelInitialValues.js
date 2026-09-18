@@ -192,9 +192,9 @@ export function useModelFilterInitialValues(app, model) {
                     }
                     const filterFields = [];
                     for (const expression of lookupExpressions) {
-                        const key = `${filterableName}__${expression.value}`;
+                        const key = `${filterableName}.${expression.value}`;
                         newInitialValues[key] = getFieldInitialValue(filterableDetail);
-                        filterFields.push(`${filterableName}__${expression.value}`);
+                        filterFields.push(`${filterableName}.${expression.value}`);
                     }
                 });
                 if (!isEqual(initialValues.value, newInitialValues)) {

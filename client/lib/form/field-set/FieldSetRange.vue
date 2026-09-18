@@ -47,7 +47,11 @@ const slots = useSlots();
 const formModel = inject(FormModelSymbol, null);
 const filterModel = inject(FilterModelSymbol, null);
 const boundaryNames = computed(() => {
-    return props.suffixes.map((suffix) => `${fieldContext.state.name}__${suffix}`) ?? [];
+    // Built from this field's identity (`formModelName`), not its value path (`name`): a top-level
+    // range field's `name` is the flattened, lodash-safe form of that same identity (see
+    // `toFlatValuePath`), and concatenating onto it here would bake the escaping into the boundary's
+    // own identity instead of just its value path.
+    return props.suffixes.map((suffix) => `${fieldContext.state.formModelName}.${suffix}`) ?? [];
 });
 
 const hasChoresContent = computed(

@@ -61,6 +61,7 @@ let FieldSetRange;
 beforeEach(async () => {
     FieldSetRange = (await import("@vueda/form/field-set/FieldSetRange.vue")).default;
     fieldContext.state.value = null;
+    fieldContext.state.formModelName = "range";
     fieldContext.deleteError.mockClear();
     fieldContext.updateError.mockClear();
     loggerWarn.mockClear();
@@ -108,6 +109,17 @@ describe("lib/form/field-set/FieldSetRange.vue", () => {
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
         expect(loggerWarn).not.toHaveBeenCalled();
         expect(fieldContext.updateError).not.toHaveBeenCalled();
+    });
+
+    scopedIt("derives dotted boundary names from a dotted formModelName", async () => {
+        fieldContext.state.formModelName = "employee.range";
+        const wrapper = mount(FieldSetRange, { props: {} });
+        await nextTick();
+
+        const renderers = wrapper.findAll('[data-qa="field-renderer"]');
+        expect(renderers).toHaveLength(2);
+        expect(renderers[0].attributes("form-model-name")).toBe("employee.range.lower");
+        expect(renderers[1].attributes("form-model-name")).toBe("employee.range.upper");
     });
 
     scopedIt("handles zero boundaries correctly", async () => {

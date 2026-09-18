@@ -369,8 +369,8 @@ beforeEach(async () => {
         clearError: vi.fn(),
         info: { pk: "id" },
         config: {
-            displayFields: ["field__name"],
-            fieldDetails: { field__name: {} },
+            displayFields: ["field.name"],
+            fieldDetails: { "field.name": {} },
             verboseNamePlural: "items",
             actionDetails: {},
             fetchFields: [],
@@ -507,19 +507,21 @@ describe("lib/views/ViewList.vue", () => {
     });
 
     describe("List rendering and pagination", () => {
-        scopedIt("translates expanded field names for ObjectsGrid", async () => {
+        scopedIt("passes extra and display field objects through to ObjectsGrid unchanged", async () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, {
                 props: {
                     app: "a",
                     model: "b",
-                    extraFieldObjects: [{ name: "foo__bar", label: "Foo" }],
+                    extraFieldObjects: [{ name: "foo.bar", label: "Foo" }],
                 },
             });
             await vue.nextTick();
             const fields = objectsGridProps.fields;
-            expect(fields[0]).toEqual({ name: "foo__bar", label: "Foo", value: "foo.bar" });
-            expect(fields[1]).toEqual({ name: "field__name", value: "field.name" });
+            // A field's dotted `name` already is the path `unifiedGet` reads a row's value from, so
+            // no `value` is derived or injected here.
+            expect(fields[0]).toEqual({ name: "foo.bar", label: "Foo" });
+            expect(fields[1]).toEqual({ name: "field.name" });
             wrapper.unmount();
         });
 
@@ -598,7 +600,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
             expect(wrapper.find('[data-qa="select"]').exists()).toBe(true);
-            expect(selectProps.modelValue).toEqual(["field__name"]);
+            expect(selectProps.modelValue).toEqual(["field.name"]);
             expect(selectProps.multiple).toBe(true);
             wrapper.unmount();
         });
@@ -606,7 +608,7 @@ describe("lib/views/ViewList.vue", () => {
         scopedIt("initializes columns using stored hidden preferences", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;
-            modelConfig.config.displayFields = ["field__name", "other_field"];
+            modelConfig.config.displayFields = ["field.name", "other_field"];
             modelConfig.config.fieldDetails.other_field = {};
             listPreferenceStoreMock.getHiddenColumns.mockReturnValue(["other_field"]);
 
@@ -615,14 +617,14 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" });
-            expect(selectProps.modelValue).toEqual(["field__name"]);
+            expect(selectProps.modelValue).toEqual(["field.name"]);
             wrapper.unmount();
         });
 
         scopedIt("persists hidden column selections to the preference store", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;
-            modelConfig.config.displayFields = ["field__name", "other_field"];
+            modelConfig.config.displayFields = ["field.name", "other_field"];
             modelConfig.config.fieldDetails.other_field = {};
 
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
@@ -634,7 +636,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, [
-                "field__name",
+                "field.name",
             ]);
             wrapper.unmount();
         });
@@ -878,6 +880,22 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerReplace).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name,created_at" },
             });
+            wrapper.unmount();
+        });
+
+        scopedIt("restores a dotted related-field sort from the URL", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "-customer.name,created_at" };
+            modelConfig.config.sortables = ["customer.name", "created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // The dot in `customer.name` is a literal character in a single sort term here, not a
+            // separator: only the comma between terms and the leading `-` for direction are meaningful.
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-customer.name", "created_at"]);
+            expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
 
@@ -1150,6 +1168,26 @@ describe("lib/views/ViewList.vue", () => {
                 field: "category",
                 param: "category",
                 value: "widgets",
+                range: false,
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("restores a dotted related-field filter from the URL query on load", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["customer.name"];
+            modelConfig.config.filterableDetails = {
+                "customer.name": { typeFilter: "CharField", label: "Customer Name" },
+            };
+            route.query = { "customer.name": "Acme" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({
+                field: "customer.name",
+                param: "customer.name",
+                value: "Acme",
                 range: false,
             });
             wrapper.unmount();
@@ -1645,10 +1683,10 @@ describe("lib/views/ViewList.vue", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.exists()).toBe(true);
             // ColumnText reproduces the historical plain-text cell: just `formatted`.
-            expect(cell.text()).toBe("fmt:field__name");
+            expect(cell.text()).toBe("fmt:field.name");
             wrapper.unmount();
         });
 
@@ -1657,35 +1695,35 @@ describe("lib/views/ViewList.vue", () => {
             const wrapper = mount(ViewList, {
                 props: { app: "app", model: "model" },
                 slots: {
-                    "field(field__name)": (slotProps) =>
+                    "field(field.name)": (slotProps) =>
                         h("span", { "data-qa": "consumer-cell" }, `consumer:${slotProps.formatted}`),
                 },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="consumer-cell"]').exists()).toBe(true);
-            expect(cell.text()).toBe("consumer:fmt:field__name");
+            expect(cell.text()).toBe("consumer:fmt:field.name");
             wrapper.unmount();
         });
 
         scopedIt("uses the columnComponents prop override", async () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, {
-                props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
-            expect(cell.text()).toBe("custom:fmt:field__name");
+            expect(cell.text()).toBe("custom:fmt:field.name");
             wrapper.unmount();
         });
 
         scopedIt("uses a modelConfig.config.columnComponents override", async () => {
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.columnComponents = { field__name: CustomColumn };
+            modelConfig.config.columnComponents = { "field.name": CustomColumn };
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             wrapper.unmount();
         });
@@ -1696,12 +1734,12 @@ describe("lib/views/ViewList.vue", () => {
                 props: {
                     app: "app",
                     model: "model",
-                    columnComponents: { field__name: CustomColumn },
-                    columnProps: { field__name: { extra: "EX" } },
+                    columnComponents: { "field.name": CustomColumn },
+                    columnProps: { "field.name": { extra: "EX" } },
                 },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').attributes("data-extra")).toBe("EX");
             wrapper.unmount();
         });
@@ -1712,12 +1750,12 @@ describe("lib/views/ViewList.vue", () => {
                 name: "ConfigColumn",
                 setup: () => () => h("span", { "data-qa": "config-column" }),
             });
-            modelConfig.config.columnComponents = { field__name: ConfigColumn };
+            modelConfig.config.columnComponents = { "field.name": ConfigColumn };
             const wrapper = mount(ViewList, {
-                props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
             wrapper.unmount();

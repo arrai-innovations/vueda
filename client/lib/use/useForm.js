@@ -503,8 +503,8 @@ function getFirstErrorField(state, displayFields, arrayFields) {
             }
         }
 
-        // Check for nested fields (e.g., field__child -> field.child)
-        const fieldSplit = field.split("__");
+        // Check for nested fields (e.g., field.child)
+        const fieldSplit = field.split(".");
         const localFieldName = fieldSplit.pop();
         const parentField = fieldSplit.join(".");
         if (parentField.length && arrayFields.includes(parentField)) {

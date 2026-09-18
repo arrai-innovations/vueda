@@ -95,7 +95,7 @@ Overrides are expressed through model-config (a Pinia store), which supports bot
 - **Route action restrictions**: narrowing which actions are navigable.
 - **Post-action redirects**: controlling where the client navigates after a successful action.
 
-Expanded relations are flattened into the field namespace using double-underscore syntax (`expandName__fieldName`), so overrides to nested fields use the same mechanism as overrides to base fields. There is no separate API for configuring expanded fields.
+Expanded relations are flattened into the field namespace using dot syntax (`expandName.fieldName`), so overrides to nested fields use the same mechanism as overrides to base fields. There is no separate API for configuring expanded fields.
 
 ## Resolution Determinism
 

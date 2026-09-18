@@ -172,8 +172,8 @@ class TestModelOrderingLookupExpressionFormattedName:
 
         fields_by_name = {field["name"]: field for field in model_ordering["fields"]}
 
-        # "user__email" is only in `ordering_fields`, so it keeps the plain name/type shape.
-        assert fields_by_name["user__email"] == {"name": "user__email", "type": "alpha"}, response_body(response)
+        # "user.email" is only in `ordering_fields`, so it keeps the plain name/type shape.
+        assert fields_by_name["user.email"] == {"name": "user.email", "type": "alpha"}, response_body(response)
 
 
 @pytest.mark.django_db
@@ -214,7 +214,7 @@ class TestModelOrderingMethodBackedFormattedName:
 
         # The rest of `ordering_fields` is still reported, so one unorderable entry doesn't cost the
         # client the fields it can use.
-        assert "customer__user__email" in names, response_body(response)
+        assert "customer.user.email" in names, response_body(response)
         assert "last_modified" in names, response_body(response)
 
 
@@ -743,9 +743,9 @@ class TestModelOrderingRelatedFormattedName:
         assert response.status_code == HTTPStatus.OK, response_body(response)
         model_ordering = response.data["model_ordering"]
 
-        # Not "customer__data__formatted_name": the lookup expression is how the server reaches the
+        # Not "customer.data.formatted_name": the lookup expression is how the server reaches the
         # value, not something the client knows about or could send back.
-        assert model_ordering["default"] == ["customer__formatted_name"], response_body(response)
+        assert model_ordering["default"] == ["customer.formatted_name"], response_body(response)
 
     def test_fields_carries_it_with_the_looked_up_type(self, api_client, settings):
         response = get_model_ordering_response(api_client, settings, "store", "cart")
@@ -759,9 +759,9 @@ class TestModelOrderingRelatedFormattedName:
         # a CharField), and `ascending` from its place in the default ordering — true here because a
         # bare expression sorts ascending. The entry exists at all only because the default ordering
         # names the field; `ordering_fields` doesn't list it.
-        assert "customer__data__formatted_name" not in fields_by_name, response_body(response)
-        assert fields_by_name["customer__formatted_name"] == {
-            "name": "customer__formatted_name",
+        assert "customer.data.formatted_name" not in fields_by_name, response_body(response)
+        assert fields_by_name["customer.formatted_name"] == {
+            "name": "customer.formatted_name",
             "type": "alpha",
             "ascending": True,
         }, response_body(response)
@@ -794,8 +794,8 @@ class TestModelOrderingRelatedFormattedNameThatCannotBeFollowed:
 
         # No `ascending`: the viewset declares no `ordering`, so this is offered for explicit `?o=`
         # requests without being part of any default ordering.
-        assert fields_by_name["cart__customer__formatted_name"] == {
-            "name": "cart__customer__formatted_name",
+        assert fields_by_name["cart.customer.formatted_name"] == {
+            "name": "cart.customer.formatted_name",
             "type": "alpha",
         }, response_body(response)
 
@@ -807,7 +807,7 @@ class TestModelOrderingRelatedFormattedNameThatCannotBeFollowed:
 
         names = [field["name"] for field in model_ordering["fields"]]
 
-        assert "cart__formatted_name" not in names, response_body(response)
+        assert "cart.formatted_name" not in names, response_body(response)
 
         # The rest of `ordering_fields` survives, so one unusable entry doesn't cost the client the
         # fields it can use.
@@ -839,5 +839,5 @@ class TestModelOrderingMultiValuedRelatedFormattedName:
 
         names = [field["name"] for field in model_ordering["fields"]]
 
-        assert "cart_items__formatted_name" not in names, response_body(response)
+        assert "cart_items.formatted_name" not in names, response_body(response)
         assert "last_modified" in names, response_body(response)

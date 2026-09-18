@@ -26,7 +26,7 @@ export const getPrefixedSlots = (slots, prefix, retainFullName = false, exclude 
  *
  * @param {{[slotName: string]: any}} slots - The slots object
  * @param {string} prefixType - e.g., 'field', 'widget', 'header'
- * @param {string} fieldName - e.g., 'foo' or 'foo__bar'
+ * @param {string} fieldName - e.g., 'foo' or 'foo.bar'
  * @param {string[]} exclude - List of slot names or suffixes to exclude.
  * @param {boolean} [checkExpanded=false] - If true, expanded slots are also checked.
  * @param {boolean} [keepEmptySuffix=true] - If true, empty suffixes are kept in the result.
@@ -41,7 +41,7 @@ export const getSlotNamesFor = (
     keepEmptySuffix = true,
 ) => {
     const basePrefix = `${prefixType}(${fieldName})`;
-    const expandedPrefix = `${prefixType}(${fieldName}__`;
+    const expandedPrefix = `${prefixType}(${fieldName}.`;
 
     const baseSlots = getPrefixedSlots(slots, basePrefix, false, exclude, keepEmptySuffix);
 
@@ -57,7 +57,7 @@ export const getSlotNamesFor = (
  *
  * @param {string[]} innerNamesInOrder - The inner names in order of precedence.
  * @param {string} prefixType - The prefix type (e.g., 'field', 'widget').
- * @param {string} fieldName - The field name (e.g., 'foo' or 'foo__bar').
+ * @param {string} fieldName - The field name (e.g., 'foo' or 'foo.bar').
  * @param {{[slotName: string]: any}} slots - The slots object.
  */
 export function resolveSlotName(innerNamesInOrder, prefixType, fieldName, slots) {

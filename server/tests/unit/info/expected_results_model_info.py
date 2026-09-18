@@ -601,10 +601,10 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": ["user__name"],
+                "default": ["user.name"],
                 "fields": [
-                    {"name": "user__email", "type": "alpha"},
-                    {"name": "user__name", "type": "alpha", "ascending": True},
+                    {"name": "user.email", "type": "alpha"},
+                    {"name": "user.name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -1100,7 +1100,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": ["expected_delivery_time"],
                 "fields": [
-                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "customer.user.email", "type": "alpha"},
                     {"name": "last_modified", "type": "datetime"},
                     {"name": "expected_delivery_time", "type": "numeric", "ascending": True},
                 ],
@@ -1539,7 +1539,7 @@ EXPECTED_RESULTS = [
                 "default": [],
                 "fields": [
                     {"name": "order_number", "type": "numeric"},
-                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "customer.user.email", "type": "alpha"},
                     {"name": "when", "type": "datetime"},
                     {"name": "order_state", "type": "alpha"},
                 ],
@@ -2303,7 +2303,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": ["name"],
                 "fields": [
-                    {"name": "distributor__name", "type": "alpha"},
+                    {"name": "distributor.name", "type": "alpha"},
                     {"name": "name", "type": "alpha", "ascending": True},
                     {"name": "disabled", "type": "boolean"},
                 ],
@@ -3124,9 +3124,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": ["product_option__product__name"],
+                "default": ["product_option.product.name"],
                 "fields": [
-                    {"name": "product_option__product__name", "type": "alpha", "ascending": True},
+                    {"name": "product_option.product.name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -4331,7 +4331,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": [],
                 "fields": [
-                    {"name": "product_option__name", "type": "alpha"},
+                    {"name": "product_option.name", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
                 ],
             },
