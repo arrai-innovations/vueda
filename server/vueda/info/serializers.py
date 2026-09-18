@@ -2820,7 +2820,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                             "default": [],
                                             "fields": [
                                                 {"name": "order_number", "type": "numeric"},
-                                                {"name": "customer__user__email", "type": "alpha"},
+                                                {"name": "customer.user.email", "type": "alpha"},
                                                 {"name": "when", "type": "datetime"},
                                                 {"name": "order_state", "type": "alpha"},
                                             ],
