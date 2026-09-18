@@ -27,6 +27,11 @@ public-facing documentation baseline.
     - `check --deploy` reports `vueda_core.W001` when `SESSION_ENGINE` stores sessions in a per-process cache, `LocMemCache` or `DummyCache`, while `DEBUG` is off. Database sessions and `cached_db` sessions are not reported, because neither loses a session to a per-process cache.
       _Add `CACHE_URL` to every deployment's configuration before upgrading. Startup raises `Missing config key: CACHE_URL` without it. Install the `redis` extra wherever that URL names Redis._
 
+### Fixes
+
+- **`available_actions` and model metadata now treat every object-permission refusal as an unavailable action**:
+    - Action discovery's `check_action_permission()` only caught `rest_framework.exceptions.PermissionDenied` and `Http404` from a viewset's `check_object_permissions()` hook. `APIView.permission_denied()` raises `NotAuthenticated` rather than `PermissionDenied` for a requester whose authenticators none succeeded, so an anonymous requester's per-action check escaped uncaught and failed the whole response instead of leaving just that action out. A viewset's own `check_object_permissions()` override raising Django's `PermissionDenied`, a separate class from the DRF exception of the same name, escaped the same way. Both refusals are now caught alongside the two this already handled, so the surrounding response keeps its own status and reports the remaining actions, with only the refused one missing from `available_actions` and model metadata. A permission class or override that raises any other error, such as `TypeError` from its own bug, still surfaces rather than being read as a refusal.
+
 ## v3.0.0a1.post1 (2026-09-14)
 
 ### Fixes

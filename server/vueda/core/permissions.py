@@ -12,6 +12,7 @@ __all__ = (
 )
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.db.models import Q
 from django.http import Http404
 from rest_framework import exceptions
@@ -123,7 +124,14 @@ def check_action_permission(viewset, request, instance, action) -> bool:
             # still runs against `viewset` itself and its real `action` (see `ActionView`).
             type(viewset).check_object_permissions(action_view, fake_request, instance)
             permitted = True
-    except (exceptions.PermissionDenied, Http404):
+    except (exceptions.PermissionDenied, exceptions.NotAuthenticated, DjangoPermissionDenied, Http404):
+        # APIView.permission_denied() raises NotAuthenticated, not PermissionDenied, for a
+        # requester whose authenticators none succeeded -- fake_request carries the real request's
+        # own authenticators, so an unauthenticated requester takes that path here too. A viewset's
+        # own check_object_permissions() override can likewise raise Django's PermissionDenied,
+        # a separate class from the DRF one of the same name. Both are refusals, on equal footing
+        # with the two already caught, and belong to this same except clause rather than a bare
+        # `except Exception`, which would also hide a faulty override's TypeError or AttributeError.
         permitted = False
 
     cache[cache_key] = (instance, permitted)
