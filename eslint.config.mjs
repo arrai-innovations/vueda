@@ -190,6 +190,7 @@ const eslintConfig = [
             "docs/.vitepress/cache/**",
             "docs/.vitepress/dist/**",
             "docs/.vitepress/.temp/**",
+            "docs/temp/**",
             "docs-tooling/.generated/**",
             "templates/**",
         ],

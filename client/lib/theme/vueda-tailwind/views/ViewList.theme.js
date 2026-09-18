@@ -68,9 +68,9 @@ patchTheme({
         actionButtonGroupBar: {
             class: ["flex flex-wrap gap-1 2xl:gap-2 w-full sm:w-fit sm:max-w-max"],
         },
-        /** Right-aligned control cluster inside {@api theme-key:ViewList.underActionsBar} (search input + columns select). `ml-auto` pushes the cluster to the end of the strip so the title row above and this row align on the right. */
+        /** Right-aligned control cluster inside {@api theme-key:ViewList.underActionsBar} (search input + columns select). From `sm` up, `ml-auto` pushes the cluster to the end of the strip so the title row above and this row align on the right. Below `sm` the strip wraps the cluster onto its own row, where a right-pushed cluster would leave a ragged gap on the left, so it grows to the full row instead. `grow` and `ml-auto` do not combine: an auto margin absorbs the free space before `flex-grow` can claim it, which is why the two swap at the breakpoint rather than stack. */
         listControlBar: {
-            class: ["flex flex-row gap-1 2xl:gap-2 ml-auto"],
+            class: ["flex flex-row gap-1 2xl:gap-2 grow sm:grow-0 sm:ml-auto"],
         },
         /** Cell class for the column-totals row appended below the body rows when any column declares a total. The 2 px top border separates the totals row from the data rows above it; the cell otherwise inherits {@api theme-key:ObjectsGridBodyCell} chrome. */
         columnTotalCell: {

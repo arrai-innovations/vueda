@@ -45,6 +45,15 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Card layout draws one edge per card (`ObjectsGrid.root`, `ObjectsGrid.bodyRow`)**:
+    - Below `tableBreakpoint` the grid root drew a radius and an inset hairline around a grid of cards that each carry one, so every card sat 4 px inside a second frame. The root now takes the radius and hairline in table layout only, where it is the surface the rows sit on and its edge closes the last row.
+    - The root keeps its `--card` fill in both layouts, so the gutter between cards matches the chrome a consumer wraps around the grid. Card rows carry that fill themselves as well, so a card reads the same on any ground.
+      _A theme override that suppressed the root's edge for card layout can drop it. `ViewList` already suppressed the edge and looks the same as before._
+
+- **Wrapped list controls fill their row (`ViewList.listControlBar`)**:
+    - The search input and columns select stayed pushed to the right after the control strip wrapped them onto a row of their own, leaving a ragged gap on the left at phone widths. The cluster now grows to the full row below `sm` and keeps its right alignment from `sm` up.
+      _The recipe swaps between `grow` and `ml-auto` at the breakpoint rather than setting both, because an auto margin absorbs the free space before `flex-grow` can claim it._
+
 - **Stable title-bar loading indicator (`PageTitle`)**:
     - The spinner occupies reserved space beside the heading, so toggling loading cannot wrap it onto another line or change the title bar's height. The reserved space is styled through `PageTitle.loading`.
     - The title row reserves the standard control height (`--vueda-control-height`), keeping the header equally tall with or without a single row of default-size page actions. Longer titles and wrapped actions can still increase its height.

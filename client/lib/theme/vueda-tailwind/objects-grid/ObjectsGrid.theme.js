@@ -14,12 +14,15 @@ patchTheme({
      * state, row states, card layout, and row-action affordances.
      */
     ObjectsGrid: {
-        /** The outer scroll surface and card chrome for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and any separators around the grid. */
+        /** The outer scroll surface and card fill for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. The radius and inset hairline apply in table layout only, where the root is the surface the rows sit on and its edge closes the last row. Card layout drops the edge, because each card already carries one through {@api theme-key:ObjectsGrid.bodyRow} and an edge here would sit 4 px outside every card edge. The fill stays in both layouts, so the gutter between cards keeps the same tone as the chrome a consumer wraps around the grid. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and any separators around the grid. */
         root: {
-            class: [
+            class: ({ isTable }) => [
                 "max-w-full overflow-x-auto",
-                "rounded-vueda-card hairline hairline-border bg-card text-foreground text-body",
+                "bg-card text-foreground text-body",
                 "[font-variant-numeric:tabular-nums_slashed-zero]",
+                {
+                    "rounded-vueda-card hairline hairline-border": isTable,
+                },
                 // Flush variant: an ancestor stamps `data-flush="true"` (e.g. FieldSetTabularInline.body)
                 // to merge the grid into a parent card without doubling borders. Drop the rounded edge
                 // and inset hairline; the parent owns the outer edge and feedback-panel separator.
@@ -89,7 +92,7 @@ patchTheme({
                 },
             ],
         },
-        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. In table layout each row also divides from the next; that divider sits on the row's cells, because the separated border model does not paint borders on rows. */
+        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. In table layout each row also divides from the next; that divider sits on the row's cells, because the separated border model does not paint borders on rows. In card layout the row is the card: it carries the card fill, radius, and edge, so it reads the same on any ground and is the only edge in that layout. */
         bodyRow: {
             class: ({ isTable }) => {
                 return [
@@ -113,7 +116,8 @@ patchTheme({
                     // first and last don't help us here.
                     {
                         "!table-row [&>*]:border-b-hairline": isTable,
-                        "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card hairline hairline-border overflow-y-auto": !isTable,
+                        "p-1 2xs:p-2 2xl:p-4 rounded-vueda-card hairline hairline-border bg-card overflow-y-auto":
+                            !isTable,
                     },
                 ];
             },
