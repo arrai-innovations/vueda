@@ -495,21 +495,23 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
                 return True
 
             def has_object_permission(self, request, view, obj):
-                raise TypeError("faulty override")
+                if getattr(view, "action", None) == "retrieve":
+                    raise TypeError("faulty override")
+                return True
 
         monkeypatch.setattr(TimesheetViewSet, "permission_classes", [FaultyPermission])
         api_client.force_authenticate(user=self.users["reader@domain.invalid"])
 
         response = api_client.get(
             reverse(
-                "timesheet.timesheet-detail",
-                kwargs={"pk": timesheet.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                "timesheet.timesheet-list",
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions"},
             ),
         )
 
         self.assert_response(response, 500)
         assert "TypeError" in response.data["serverStack"]
+        assert "check_action_permission" in response.data["serverStack"]
 
 
 class TestCheckActionPermissionRefusals:
