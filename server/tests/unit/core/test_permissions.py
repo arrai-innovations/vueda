@@ -3,7 +3,10 @@ from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.urls import reverse
+from rest_framework.permissions import BasePermission
+from rest_framework.views import APIView
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
@@ -11,6 +14,8 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.employee.models import Employee
 from tests.timesheet.models import Timesheet
+from tests.timesheet.viewsets import TimesheetViewSet
+from vueda.core.permissions import check_action_permission
 
 
 @pytest.mark.django_db
@@ -274,7 +279,12 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             ("timesheet", "Timesheet", "update"),
             ("timesheet", "Timesheet", "read"),
         ],
+        "Timesheet Deleter And Reader Only": [
+            ("timesheet", "Timesheet", "delete"),
+            ("timesheet", "Timesheet", "read"),
+        ],
         "Timesheet Override Denied": [],
+        "Timesheet Django Override Denied": [],
     }
 
     users_to_create: ClassVar[dict] = {
@@ -307,6 +317,11 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             "name": "Updater Reader Denied",
             "password": "testpass",
             "groups": ["Timesheet Updater And Reader Only", "Timesheet Override Denied"],
+        },
+        "deleter_reader_django_denied@domain.invalid": {
+            "name": "Deleter Reader Django Denied",
+            "password": "testpass",
+            "groups": ["Timesheet Deleter And Reader Only", "Timesheet Django Override Denied"],
         },
     }
 
@@ -419,3 +434,128 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             data={"period_start": "2024-02-17"},
         )
         self.assert_response(response, 403)
+
+    def test_an_unauthenticated_objects_refusal_is_reported_as_unavailable_not_a_failure(
+        self, api_client, timesheet, monkeypatch
+    ):
+        """
+        ``APIView.permission_denied()`` raises ``NotAuthenticated``, not ``PermissionDenied``, once a
+        request carries authenticators and none of them succeeded -- exactly what an anonymous
+        requester looks like once any authentication backend is configured. Discovery's fake
+        per-action request copies the real request's authenticators, so an anonymous requester takes
+        that path too. Before the fix, that exception escaped ``check_action_permission()`` and failed
+        the whole response with a 401 instead of leaving "retrieve" out of ``available_actions`` and
+        returning the list normally (issue #306).
+        """
+
+        class PermitModelDenyRetrieveObject(BasePermission):
+            def has_permission(self, request, view):
+                return True
+
+            def has_object_permission(self, request, view, obj):
+                return getattr(view, "action", None) != "retrieve"
+
+        monkeypatch.setattr(TimesheetViewSet, "permission_classes", [PermitModelDenyRetrieveObject])
+
+        actions = self.list_row_actions(api_client, timesheet)
+
+        assert "list" in actions
+        assert "retrieve" not in actions
+
+    def test_a_viewsets_check_object_permissions_override_raising_djangos_permission_denied_is_honoured_by_discovery(
+        self, api_client, timesheet
+    ):
+        """
+        A ``check_object_permissions`` override can just as easily raise Django's own
+        ``PermissionDenied`` as DRF's -- a separate class of the same name -- and discovery must treat
+        that refusal the same way it already treats DRF's: leaving the one action out rather than
+        letting it escape and fail the whole response (issue #306). ``TimesheetViewSet`` denies a
+        ``Timesheet Django Override Denied`` member's delete this way.
+        """
+        api_client.force_authenticate(user=self.users["deleter_reader_django_denied@domain.invalid"])
+
+        actions = self.detail_actions(api_client, timesheet)
+
+        assert "retrieve" in actions
+        assert "destroy" not in actions
+
+        response = api_client.delete(reverse("timesheet.timesheet-detail", kwargs={"pk": timesheet.pk}))
+        self.assert_response(response, 403)
+
+    def test_a_faulty_permission_override_still_surfaces_its_own_error(self, api_client, timesheet, monkeypatch):
+        """
+        Discovery must catch a refusal, not every error: a permission class that raises ``TypeError``
+        because of its own bug is not reporting that an action is unavailable, and must still surface
+        as the application's own error response rather than be swallowed and reported as a quiet
+        absence (issue #306).
+        """
+
+        class FaultyPermission(BasePermission):
+            def has_permission(self, request, view):
+                return True
+
+            def has_object_permission(self, request, view, obj):
+                if getattr(view, "action", None) == "retrieve":
+                    raise TypeError("faulty override")
+                return True
+
+        monkeypatch.setattr(TimesheetViewSet, "permission_classes", [FaultyPermission])
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        response = api_client.get(
+            reverse(
+                "timesheet.timesheet-list",
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions"},
+            ),
+        )
+
+        self.assert_response(response, 500)
+        assert "TypeError" in response.data["serverStack"]
+        assert "check_action_permission" in response.data["serverStack"]
+
+
+class TestCheckActionPermissionRefusals:
+    """
+    Unit-level coverage for ``check_action_permission()``'s own except clause, alongside the
+    viewset-level coverage above (issue #306).
+    """
+
+    def test_an_unauthenticated_object_refusal_reports_the_action_as_unavailable(self):
+        class AnonReadDeniesObject(BasePermission):
+            def has_permission(self, request, view):
+                return True
+
+            def has_object_permission(self, request, view, obj):
+                return False
+
+        class FakeViewSet(APIView):
+            action = "retrieve"
+
+            def get_permissions(self):
+                return [AnonReadDeniesObject()]
+
+        class FakeRequest:
+            def __init__(self):
+                self.user = None
+                self.authenticators = ["some-authenticator"]
+                self.successful_authenticator = None
+
+        assert check_action_permission(FakeViewSet(), FakeRequest(), object(), "retrieve") is False
+
+    def test_a_djangos_permission_denied_override_reports_the_action_as_unavailable(self):
+        class RaisesDjangoPermissionDenied(APIView):
+            action = "retrieve"
+
+            def get_permissions(self):
+                return []
+
+            def check_object_permissions(self, request, obj):
+                raise DjangoPermissionDenied()
+
+        class FakeRequest:
+            def __init__(self):
+                self.user = None
+                self.authenticators = ()
+                self.successful_authenticator = None
+
+        assert check_action_permission(RaisesDjangoPermissionDenied(), FakeRequest(), object(), "retrieve") is False
