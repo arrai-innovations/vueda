@@ -6,7 +6,9 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { mergeTheme } from "@vueda/use/useTheme.js";
+import { defaultFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
+import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
@@ -224,7 +226,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             widget = computed(() => {
                 if (getIsReadOnly(fieldName, detailObject.readOnly)) {
-                    return availableWidgets.WidgetReadOnly;
+                    // A field can render read-only without being read-only on the server (a
+                    // whole ViewRead, a computed field, a read-only model config), so the
+                    // per-type read-only widget resolves here as well as in getWidgetComponent.
+                    return (
+                        getTypeMapping(defaultFieldMappings, detailObject)?.readOnlyWidget ??
+                        availableWidgets.WidgetReadOnly
+                    );
                 }
                 if (baseExpanded) {
                     return null;
@@ -265,8 +273,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
                 const readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
+                const readOnlyMapping = readOnly ? getTypeMapping(defaultFieldMappings, detailObject) : null;
                 const baseProps = {
-                    ...getWidgetProps(detailObject),
+                    // A read-only widget takes its own display options; the edit widget's props
+                    // (granularity, validation helpers) mean nothing to it.
+                    ...(readOnlyMapping?.readOnlyWidget
+                        ? readOnlyMapping.readOnlyWidgetProps
+                        : getWidgetProps(detailObject)),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                 };

@@ -52,4 +52,28 @@ describe("lib/utils/fieldMappings.js", () => {
         expect(defaultFieldMappings.JSONField.JSONField.widget).toBe(availableWidgets.WidgetJson);
         expect(manyFieldMappings.JSONField.JSONField.widget).toBe(availableWidgets.WidgetJson);
     });
+
+    it.each(["DateField", "DateTimeField", "TimeField"])(
+        "maps a read-only %s to the read-only date widget",
+        async (type) => {
+            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            expect(defaultFieldMappings[type][type].readOnlyWidget).toBe(availableWidgets.WidgetDateTimeReadOnly);
+        },
+    );
+
+    it.each(["DateField", "DateTimeField", "TimeField"])(
+        "gives a read-only %s the display options its list column uses",
+        async (type) => {
+            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { columnMappings } = await import("@vueda/utils/columnMappings.js");
+
+            // A read view and a list render the same field through the same options, so the
+            // two surfaces cannot drift into formatting one value two ways.
+            expect(defaultFieldMappings[type][type].readOnlyWidgetProps).toEqual(
+                columnMappings[type][type].columnProps,
+            );
+        },
+    );
 });

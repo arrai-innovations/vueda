@@ -69,6 +69,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - A server-hidden filter (e.g. the deep-link `id` filter `IdInFilterSet` declares) is excluded from `validFilterables` and `filter.state.addedFilters`, but its URL value now reaches the `list` request from the first fetch onward, including when model metadata is still loading at mount. `useViewList` reads it straight from the mounted URL into `list.listState.params` and keeps it there through visible-filter, sort, and search changes; only a URL that stops carrying the hidden filter's key removes it from the request. Previously, a hidden filter's URL value never reached the request at all. It is kept out of the saved filter preference, so it constrains only the visit that carried it in the URL.
       _No integrator action. A list URL carrying a hidden filter's key now constrains that visit's requests, and the key is still kept out of the saved filter preference._
 
+- **Read-only date fields render a formatted date, not the raw string (`fieldMappings`, `buildForm`, `useFormModel`, new `WidgetDateTimeReadOnly`)**:
+    - Every field that rendered read-only took `WidgetReadOnly`, whatever its type, and that widget prints the value the server sent. A read view showed `2026-08-25T17:21:56.906248Z` where the same field in a list showed `2026-08-25, 11:21 a.m. MDT`, because only the list had a type-aware adapter layer (`columnMappings`). Update forms showed the raw string too, for their read-only fields.
+    - `fieldMappings` entries take two new optional keys. `readOnlyWidget` names the widget a field takes when it renders read-only, and `readOnlyWidgetProps` supplies that widget's options in place of `widgetProps`, which belong to the editing widget. `DateField`, `DateTimeField`, and `TimeField` now name the new `WidgetDateTimeReadOnly`, whose options are the same values `columnMappings` gives `ColumnDateTime`, so a list and a read view format one field one way.
+    - `WidgetDateTimeReadOnly` wraps `WidgetReadOnly` and fills its value with `DateTimeDisplay`, so the row keeps its label association, theme slots, and lookup behavior. A field's own `widget(fieldName)default` slot still replaces the date rendering.
+    - An empty date now renders the dash `DateTimeDisplay` already showed in list cells. Other empty types still render nothing, matching `ColumnText`.
+      _Read-only dates change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` to format dates itself, should re-check it. A type keeps `WidgetReadOnly` unless its mapping names a `readOnlyWidget`, so nothing else moves._
+
 ## v3.0.0-alpha.3 (2026-09-16)
 
 ### Features

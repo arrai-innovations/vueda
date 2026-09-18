@@ -89,6 +89,127 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.fieldComponents["department.title"]).toBeTruthy();
             expect(state.widgetComponents.name).toBeTruthy();
         });
+        scopedIt("gives a read-only datetime field the read-only date widget and its options", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const props = vue.reactive({
+                app: "foo",
+                model: "bar",
+                view: "read",
+                fields: ["updated_at", "name"],
+                expand: [],
+                fieldDetails: {
+                    updated_at: {
+                        name: "updated_at",
+                        typeSerializer: "DateTimeField",
+                        typeModel: "DateTimeField",
+                        many: false,
+                        readOnly: true,
+                    },
+                    name: {
+                        name: "name",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: true,
+                    },
+                },
+                expandDetails: {},
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+            await flushPromises();
+
+            expect(state.widgetComponents.updated_at).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.updated_at.showTime).toBe(true);
+            // The edit widget's props mean nothing to the read-only one.
+            expect(state.widgetProps.updated_at.granularity).toBeUndefined();
+            // A type with no read-only mapping keeps the plain read-only widget.
+            expect(state.widgetComponents.name).toBe(availableWidgets.WidgetReadOnly);
+        });
+        scopedIt("gives a writable date field the read-only date widget on a read view", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const props = vue.reactive({
+                app: "foo",
+                model: "bar",
+                // A read view renders every field read-only, whether or not the server says so.
+                view: "read",
+                fields: ["release_date"],
+                expand: [],
+                fieldDetails: {
+                    release_date: {
+                        name: "release_date",
+                        typeSerializer: "DateField",
+                        typeModel: "DateField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+                expandDetails: {},
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+            await flushPromises();
+
+            expect(state.widgetComponents.release_date).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.release_date.showTime).toBe(false);
+        });
+        scopedIt("keeps read-only date options when an override clears the read-only flag", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const props = vue.reactive({
+                app: "foo",
+                model: "bar",
+                view: "update",
+                fields: ["release_date", "opens_at"],
+                expand: [],
+                // An explicit false clears the effective read-only state, but a field the
+                // server marks read-only still resolves to a read-only widget, so that
+                // widget still needs its display options.
+                fieldProps: {
+                    release_date: { readOnly: false },
+                    opens_at: { readOnly: false },
+                },
+                fieldDetails: {
+                    release_date: {
+                        name: "release_date",
+                        typeSerializer: "DateField",
+                        typeModel: "DateField",
+                        many: false,
+                        readOnly: true,
+                    },
+                    opens_at: {
+                        name: "opens_at",
+                        typeSerializer: "TimeField",
+                        typeModel: "TimeField",
+                        many: false,
+                        readOnly: true,
+                    },
+                },
+                expandDetails: {},
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+            await flushPromises();
+
+            expect(state.fieldProps.release_date.readOnly).toBe(false);
+            expect(state.widgetComponents.release_date).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.release_date.showTime).toBe(false);
+
+            expect(state.widgetComponents.opens_at).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.opens_at.format).toBe("t");
+            expect(state.widgetProps.opens_at.showRelative).toBe(false);
+        });
         scopedIt("uses expand details when field name contains '.'", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
 
