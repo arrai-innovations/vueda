@@ -22,6 +22,7 @@
  */
 import { demoResponse } from "./demoApi.js";
 import { SHOWCASE_CUSTOMER, customerModelInfo } from "./showcaseCustomer.js";
+import { SHOWCASE_FIELD_TYPES, fieldTypesModelInfo } from "./showcaseFieldTypes.js";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
@@ -517,6 +518,202 @@ export const CUSTOMER_HISTORY = [
 ];
 
 /**
+ * Rows for the wide-model list demo, against the field-type model in
+ * `showcaseFieldTypes.js`. The customer fixture is five short populated columns, which
+ * hides what a real model does to a list: a dozen columns that overflow sideways, a
+ * duration and a JSON blob with no column adapter of their own, and empty values of
+ * every type. These rows carry all three on purpose.
+ *
+ * Nulls are spread rather than clustered: every nullable column is empty in at least
+ * one row, and row 12 is empty in all of them, so the widest and the emptiest cases are
+ * both on screen at once.
+ *
+ * @type {object[]}
+ */
+export const FIELD_TYPE_RECORDS = [
+    {
+        id: 1,
+        releaseDate: "2026-01-15",
+        publishedAt: "2026-01-15T14:00:00Z",
+        campaignWindow: { lower: "2026-01-15", upper: "2026-03-31" },
+        opensAt: "09:00:00",
+        serviceWindow: { lower: "08:00:00", upper: "18:00:00" },
+        leadTime: "2 08:00:00",
+        regions: ["na", "eu"],
+        expedited: false,
+        metadata: { sku: "BRG-6204", revision: 3, channels: ["direct", "partner"] },
+        datasheet: "https://files.domain.invalid/brg-6204.pdf",
+        heroImage: "https://files.domain.invalid/brg-6204.png",
+        serverIp: "10.2.14.7",
+    },
+    {
+        id: 2,
+        releaseDate: "2026-02-02",
+        publishedAt: null,
+        campaignWindow: { lower: "2026-02-02", upper: null },
+        opensAt: "06:30:00",
+        serviceWindow: null,
+        leadTime: "14 00:00:00",
+        regions: ["apac"],
+        expedited: true,
+        metadata: { sku: "FST-8002", revision: 1 },
+        datasheet: null,
+        heroImage: null,
+        serverIp: "10.2.14.9",
+    },
+    {
+        id: 3,
+        releaseDate: "2026-02-18",
+        publishedAt: "2026-02-18T09:45:00Z",
+        campaignWindow: null,
+        opensAt: null,
+        serviceWindow: { lower: "09:00:00", upper: "17:00:00" },
+        leadTime: "0 04:30:00",
+        regions: [],
+        expedited: false,
+        metadata: {},
+        datasheet: "https://files.domain.invalid/fst-8002.pdf",
+        heroImage: null,
+        serverIp: null,
+    },
+    {
+        id: 4,
+        releaseDate: "2026-03-01",
+        publishedAt: "2026-03-01T22:15:00Z",
+        campaignWindow: { lower: "2026-03-01", upper: "2026-06-30" },
+        opensAt: "00:00:00",
+        serviceWindow: { lower: "00:00:00", upper: "23:59:00" },
+        leadTime: "365 00:00:00",
+        regions: ["na", "latam", "mea"],
+        expedited: true,
+        metadata: { sku: "GSK-8001", revision: 12, notes: "Ships with the winter catalogue." },
+        datasheet: "https://files.domain.invalid/gsk-8001.pdf",
+        heroImage: "https://files.domain.invalid/gsk-8001.png",
+        serverIp: "10.2.15.2",
+    },
+    {
+        id: 5,
+        releaseDate: "2026-03-14",
+        publishedAt: "2026-03-14T16:30:00Z",
+        campaignWindow: { lower: null, upper: "2026-05-01" },
+        opensAt: "13:15:00",
+        serviceWindow: { lower: "13:00:00", upper: "16:00:00" },
+        leadTime: null,
+        regions: ["eu"],
+        expedited: false,
+        metadata: { sku: "BLT-4410" },
+        datasheet: null,
+        heroImage: "https://files.domain.invalid/blt-4410.png",
+        serverIp: "10.2.15.7",
+    },
+    {
+        id: 6,
+        releaseDate: "2026-04-06",
+        publishedAt: null,
+        campaignWindow: null,
+        opensAt: "08:00:00",
+        serviceWindow: null,
+        leadTime: "7 12:00:00",
+        regions: ["na"],
+        expedited: true,
+        metadata: { sku: "CLM-2201", revision: 2 },
+        datasheet: null,
+        heroImage: null,
+        serverIp: null,
+    },
+    {
+        id: 7,
+        releaseDate: "2026-04-21",
+        publishedAt: "2026-04-21T11:05:00Z",
+        campaignWindow: { lower: "2026-04-21", upper: "2026-07-15" },
+        opensAt: "10:30:00",
+        serviceWindow: { lower: "10:00:00", upper: "20:00:00" },
+        leadTime: "1 00:00:00",
+        regions: ["apac", "mea"],
+        expedited: false,
+        metadata: { sku: "WSH-0915", revision: 5, channels: ["direct"] },
+        datasheet: "https://files.domain.invalid/wsh-0915.pdf",
+        heroImage: null,
+        serverIp: "10.2.16.1",
+    },
+    {
+        id: 8,
+        releaseDate: "2026-05-09",
+        publishedAt: "2026-05-09T07:20:00Z",
+        campaignWindow: { lower: "2026-05-09", upper: "2026-05-16" },
+        opensAt: "07:00:00",
+        serviceWindow: { lower: "07:00:00", upper: "19:00:00" },
+        leadTime: "0 00:45:00",
+        regions: ["na", "eu", "apac"],
+        expedited: true,
+        metadata: { sku: "PIN-3308", revision: 1, notes: "Limited run." },
+        datasheet: null,
+        heroImage: "https://files.domain.invalid/pin-3308.png",
+        serverIp: "10.2.16.4",
+    },
+    {
+        id: 9,
+        releaseDate: "2026-05-27",
+        publishedAt: null,
+        campaignWindow: { lower: "2026-05-27", upper: "2026-08-31" },
+        opensAt: null,
+        serviceWindow: { lower: "09:30:00", upper: "15:30:00" },
+        leadTime: "30 00:00:00",
+        regions: ["latam"],
+        expedited: false,
+        metadata: {},
+        datasheet: "https://files.domain.invalid/axl-7724.pdf",
+        heroImage: null,
+        serverIp: "10.2.16.8",
+    },
+    {
+        id: 10,
+        releaseDate: "2026-06-11",
+        publishedAt: "2026-06-11T18:40:00Z",
+        campaignWindow: null,
+        opensAt: "11:45:00",
+        serviceWindow: null,
+        leadTime: "3 06:15:00",
+        regions: ["eu", "mea"],
+        expedited: true,
+        metadata: { sku: "RNG-5560", revision: 8 },
+        datasheet: null,
+        heroImage: null,
+        serverIp: null,
+    },
+    {
+        id: 11,
+        releaseDate: "2026-07-02",
+        publishedAt: "2026-07-02T05:00:00Z",
+        campaignWindow: { lower: "2026-07-02", upper: "2026-09-30" },
+        opensAt: "05:00:00",
+        serviceWindow: { lower: "05:00:00", upper: "13:00:00" },
+        leadTime: "0 12:00:00",
+        regions: ["na"],
+        expedited: false,
+        metadata: { sku: "CAP-1180", revision: 4, channels: ["partner"] },
+        datasheet: "https://files.domain.invalid/cap-1180.pdf",
+        heroImage: "https://files.domain.invalid/cap-1180.png",
+        serverIp: "10.2.17.3",
+    },
+    {
+        id: 12,
+        releaseDate: "2026-07-20",
+        publishedAt: null,
+        campaignWindow: null,
+        opensAt: null,
+        serviceWindow: null,
+        leadTime: null,
+        regions: [],
+        expedited: null,
+        metadata: null,
+        datasheet: null,
+        heroImage: null,
+        serverIp: null,
+    },
+];
+
+/**
  * Seed the demo model metadata under a given app label so `getConfig` resolves offline.
  * Idempotent: re-seeding overwrites the same key.
  *
@@ -579,6 +776,97 @@ export function customerScenario({
             availableActions,
             validTransitions,
             actions,
+        }),
+    };
+}
+
+/** Actions the field-type model offers; it has no destroy, so its rows carry no delete. */
+export const FIELD_TYPE_AVAILABLE_ACTIONS = ["list", "retrieve", "update", "partial_update"];
+
+/**
+ * Seed the field-type model under a given app label, with the list metadata a list view
+ * needs. `showcaseFieldTypes.js` declares the model for the Form Widgets page, where a
+ * form reads neither ordering nor filtering, so both are thin there. This adds them for
+ * the list demo instead of widening the shared object, which would change every form
+ * demo on that page.
+ *
+ * @param {import('pinia').Pinia} pinia - The pinia instance to seed.
+ * @param {string} [app] - App label to register under.
+ * @param {{[view: string]: object}} [viewConfigs] - Per-view model config overrides.
+ * @returns {void}
+ */
+export function seedFieldTypesModel(pinia, app = SHOWCASE_FIELD_TYPES.app, viewConfigs = null) {
+    const info = {
+        ...fieldTypesModelInfo,
+        appLabel: app,
+        ordering: {
+            default: ["releaseDate"],
+            fields: [
+                { name: "releaseDate", type: "date", ascending: true },
+                { name: "publishedAt", type: "date" },
+                { name: "leadTime", type: "numeric" },
+                { name: "expedited", type: "boolean" },
+            ],
+        },
+        filtering: {
+            releaseDate: {
+                label: "Release date",
+                fieldClass: "DateFilter",
+                inputType: "date",
+                typeDb: "DateField",
+                typeModel: "DateField",
+                typeFilter: "DateField",
+                hidden: false,
+                required: false,
+                lookupExprs: ["exact", "gte", "lte"],
+                errorMessages: {},
+            },
+            expedited: {
+                label: "Handling",
+                fieldClass: "BooleanFilter",
+                inputType: "checkbox",
+                typeDb: "BooleanField",
+                typeModel: "BooleanField",
+                typeFilter: "BooleanField",
+                hidden: false,
+                required: false,
+                lookupExprs: ["exact"],
+                errorMessages: {},
+            },
+        },
+    };
+    storeModelInfo(pinia).infos[getAppModelDotName({ app, model: SHOWCASE_FIELD_TYPES.model })] = info;
+    if (viewConfigs) {
+        storeModelConfig(pinia).setConfig({ app, model: SHOWCASE_FIELD_TYPES.model }, null, viewConfigs);
+    }
+}
+
+/**
+ * Build the matched `seed` / `api` pair for a wide-model list demo: twelve columns of
+ * mixed types with empty values throughout. Pass a distinct `app` label per divergent
+ * scenario, for the same reason `customerScenario` does.
+ *
+ * @param {object} [options]
+ * @param {string} [options.app] - App label the demo mounts under.
+ * @param {object[]} [options.records] - Rows the list and detail endpoints serve.
+ * @param {{[view: string]: object}} [options.viewConfigs] - Per-view model config overrides.
+ * @returns {{ app: string, model: string, seed: Function, api: object[] }}
+ */
+export function fieldTypesScenario({
+    app = SHOWCASE_FIELD_TYPES.app,
+    records = FIELD_TYPE_RECORDS,
+    viewConfigs = null,
+} = {}) {
+    const model = SHOWCASE_FIELD_TYPES.model;
+    return {
+        app,
+        model,
+        seed: (pinia) => seedFieldTypesModel(pinia, app, viewConfigs),
+        api: modelRoutes({
+            app,
+            model,
+            records,
+            availableActions: FIELD_TYPE_AVAILABLE_ACTIONS,
         }),
     };
 }

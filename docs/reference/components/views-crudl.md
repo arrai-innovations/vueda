@@ -12,7 +12,7 @@ import {
     faArrowUpFromBracket,
     faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
+import { customerScenario, fieldTypesScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
@@ -20,6 +20,7 @@ const listScenario = customerScenario({
     app: "showcaselist",
     viewConfigs: { list: { displayFields: ["account", "owner", "tier", "mrr", "currency"] } },
 });
+const wideListScenario = fieldTypesScenario({ app: "showcasewidelist" });
 const createScenario = customerScenario({ app: "showcasecreate" });
 const updateScenario = customerScenario({ app: "showcaseupdate" });
 const readScenario = customerScenario({ app: "showcaseread" });
@@ -128,6 +129,49 @@ rows, and page through it; every control is the real one.
     <span>selection: ticking a row reveals the bulk-actions strip, with the selection count and the model's bulk actions. It replaces the toolbar contents rather than stacking below it</span>
     <span>pagination: the range read-out, the rows-per-page selector (its <code>All</code> entry loads every page in one pass), and the navigation cluster. The chosen page size is remembered per model</span>
     <span>theme keys: {@api theme-key:ViewList}, {@api theme-key:ObjectsGrid}, {@api theme-key:FilterChip} · source: <code>ViewList.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+### A wider model
+
+The demo above narrows the list to five short columns, which is the comfortable case. A
+real model is usually wider and emptier. This second demo is the same component against
+a twelve-column model with a value of every shape: dates, a datetime, two ranges, a
+duration, a multi-value choice, a JSON blob, file and image paths, and an IP address.
+Every nullable column is empty in at least one row, and the last row is empty in all of
+them.
+
+This demo forces table mode with `tableBreakpoint="xs"`, because the demo frame is
+narrower than the `lg` default at which the grid switches from cards to a table.
+
+Two things are visible here that the narrow demo cannot show. The grid runs wider than
+its frame and scrolls sideways inside its own card, rather than compressing columns to
+fit. Only date, time, and datetime fields have a column adapter of their own
+({@api vue:component:ColumnDateTime}); everything else falls through to
+{@api vue:component:ColumnText}, which prints the stored value, so a duration reads
+`2 08:00:00` and a JSON object reads as one line.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view list - 12 records - every field type</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewList.vue')"
+    :app="wideListScenario.app"
+    :model="wideListScenario.model"
+    action="list"
+    :seed="wideListScenario.seed"
+    :api="wideListScenario.api"
+    :view-props="{ tableBreakpoint: 'xs' }"
+    page-title
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>columns: no <code>displayFields</code> override, so the config default applies and every non-pk field gets a column</span>
+    <span>layout: <code>tableBreakpoint="xs"</code> forces table mode. The demo frame is 688 px, below the <code>lg</code> default, so both list demos would otherwise render as cards</span>
+    <span>overflow: {@api theme-key:ObjectsGrid} <code>root</code> is the scroll surface. Columns size to content, and the header row stays on one line rather than wrapping to keep the table narrow</span>
+    <span>adapters: date, time, and datetime resolve to <code>ColumnDateTime</code> through <code>columnMappings.js</code>; duration, JSON, range, boolean, and choice have no entry and fall back to <code>ColumnText</code></span>
+    <span>empty values: <code>ColumnDateTime</code> prints a dash, <code>ColumnText</code> prints nothing at all, and an empty list prints <code>[]</code>. Whether a list should carry one placeholder for all three is open, and read views have to answer it the same way</span>
+    <span>sorting: release date, published at, lead time, and handling carry ordering metadata; the rest are display-only</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
