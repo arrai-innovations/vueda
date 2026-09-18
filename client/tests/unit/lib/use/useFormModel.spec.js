@@ -161,6 +161,55 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.widgetComponents.release_date).toBe(availableWidgets.WidgetDateTimeReadOnly);
             expect(state.widgetProps.release_date.showTime).toBe(false);
         });
+        scopedIt("keeps read-only date options when an override clears the read-only flag", async () => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const props = vue.reactive({
+                app: "foo",
+                model: "bar",
+                view: "update",
+                fields: ["release_date", "opens_at"],
+                expand: [],
+                // An explicit false clears the effective read-only state, but a field the
+                // server marks read-only still resolves to a read-only widget, so that
+                // widget still needs its display options.
+                fieldProps: {
+                    release_date: { readOnly: false },
+                    opens_at: { readOnly: false },
+                },
+                fieldDetails: {
+                    release_date: {
+                        name: "release_date",
+                        typeSerializer: "DateField",
+                        typeModel: "DateField",
+                        many: false,
+                        readOnly: true,
+                    },
+                    opens_at: {
+                        name: "opens_at",
+                        typeSerializer: "TimeField",
+                        typeModel: "TimeField",
+                        many: false,
+                        readOnly: true,
+                    },
+                },
+                expandDetails: {},
+            });
+
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+            await flushPromises();
+
+            expect(state.fieldProps.release_date.readOnly).toBe(false);
+            expect(state.widgetComponents.release_date).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.release_date.showTime).toBe(false);
+
+            expect(state.widgetComponents.opens_at).toBe(availableWidgets.WidgetDateTimeReadOnly);
+            expect(state.widgetProps.opens_at.format).toBe("t");
+            expect(state.widgetProps.opens_at.showRelative).toBe(false);
+        });
         scopedIt("uses expand details when field name contains '__'", async () => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
 
