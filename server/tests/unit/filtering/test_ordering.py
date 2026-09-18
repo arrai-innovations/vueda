@@ -186,6 +186,45 @@ class TestModelViewsetAndOrderingFieldsOrdering:
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
 
+    def test_a_trailing_comma_is_ignored_rather_than_rejecting_the_request(
+        self, product_ordering_data, api_client, settings
+    ):
+        """DRF's `get_ordering` splits `?o=` on commas without discarding empties, so a trailing comma
+        hands `remove_invalid_fields` an empty term alongside `name`. The empty term names nothing to
+        reject, so it is dropped and `name` still applies -- the same request `main` accepted, since
+        DRF's own `remove_invalid_fields` silently dropped the empty term there too."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "name,"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+    def test_a_lone_comma_falls_back_to_the_default_ordering(self, product_ordering_data, api_client, settings):
+        """`?o=,` names no term at all once both empty strings are dropped, so `remove_invalid_fields`
+        returns nothing to order by and the view's default ordering applies, rather than a 400 for a
+        request that named nothing invalid."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
+
+        user = product_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.product-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: ","},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+
 
 @pytest.mark.django_db
 class TestOrderingMultiFieldDefaultAllowsExplicitOrderingOnEachField:

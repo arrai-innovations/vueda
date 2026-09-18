@@ -232,6 +232,12 @@ class VuedaOrderingFilter(OrderingFilter):
        (first <-> last) when the field is sorted descending instead, list the field name in
        `nulls_ordering_flip` as well.
 
+       `nulls_ordering` and `nulls_ordering_flip` are declared on the view, the same place `ordering`
+       is, so their field names stay `__`-joined like every other view-declared ordering term — never
+       the dotted `?o=` grammar. `filter_queryset` applies a placement after `get_ordering` has
+       already translated a client's dotted term to its `__`-joined `order_by()` form, so a dotted key
+       here matches nothing a request could ever name.
+
        The placement applies wherever that field is sorted by name — an explicit `?o=` request, and
        equally a default `ordering` written as plain strings (`ordering = ["due_date"]`), since DRF
        hands those to the backend as strings too. A default ordering term written as an expression is
@@ -343,6 +349,14 @@ class VuedaOrderingFilter(OrderingFilter):
         translated = []
         invalid_terms = []
         for term in fields:
+            # DRF's `get_ordering` splits `?o=` on commas without discarding empties, so a trailing,
+            # leading, or doubled comma (`?o=name,`, `?o=,name`, `?o=name,,when`) hands this an empty
+            # string alongside the terms a client actually named. An empty term names nothing to
+            # reject, so it is dropped rather than failing the whole request the way an unnamed,
+            # unrecognizable field would.
+            if not term:
+                continue
+
             descending, path = split_ordering_direction(term)
 
             try:
