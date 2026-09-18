@@ -896,9 +896,10 @@ class VuedaViewSet(
 
     # `history_list` (below) fetches its object unconditionally, so it can defer a model-scope
     # denial to a matching workflow-state grant, the same way `retrieve` does -- see
-    # `vueda.core.permissions.ObjectPermissions._has_later_permission_decision`. A subclass that
-    # sets its own `workflow_object_permission_actions`, for its own further action, keeps this
-    # entry too; see `__init_subclass__` below, which merges rather than replaces.
+    # `vueda.core.permissions.ObjectPermissions._has_later_permission_decision`. `__init_subclass__`
+    # below adds this entry to every subclass's own resolved value, however that value was reached
+    # (a local override, a mixin supplying it, or plain inheritance), without disturbing anything
+    # else that value does or does not contain.
     workflow_object_permission_actions = frozenset({"history_list"})
 
     def initial(self, request, *args, **kwargs):
@@ -946,17 +947,16 @@ class VuedaViewSet(
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        # A subclass that declares its own `workflow_object_permission_actions` otherwise replaces
-        # the inherited collection outright, through ordinary attribute lookup, dropping
-        # `history_list` for that subclass. Merge the subclass's own value with whatever it would
-        # have inherited instead, so declaring a further action never costs it history deferral.
-        own_actions = cls.__dict__.get("workflow_object_permission_actions")
-        if own_actions is not None:
-            for base in cls.__mro__[1:]:
-                inherited_actions = base.__dict__.get("workflow_object_permission_actions")
-                if inherited_actions is not None:
-                    cls.workflow_object_permission_actions = frozenset(own_actions) | frozenset(inherited_actions)
-                    break
+        # `cls.workflow_object_permission_actions` here is already the fully-resolved value
+        # ordinary Python attribute lookup gives this class: its own override if it declared one
+        # (including an explicit, deliberate `frozenset()` that drops an action a parent declared,
+        # because that parent's implementation of the action no longer guarantees an object
+        # permission check), or a mixin's collection if one earlier in the MRO supplies it without
+        # this class overriding it, or plain inheritance otherwise. Adding only `history_list` on
+        # top preserves whatever that resolution already decided -- it never restores an action
+        # this class chose to leave out, and never depends on a mixin having been written as a
+        # `VuedaViewSet` subclass itself for its collection to be seen.
+        cls.workflow_object_permission_actions = frozenset(cls.workflow_object_permission_actions) | {"history_list"}
 
         if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
             warnings.warn(
