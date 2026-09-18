@@ -1,11 +1,16 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
+import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
-import { nextTick, reactive } from "vue";
+import { createPinia, setActivePinia } from "pinia";
+import { defineComponent, h, nextTick, reactive, ref } from "vue";
 
 vi.mock("@vueda/use/useDetailView.js", async () => {
     const actual = await vi.importActual("@vueda/use/useDetailView.js");
@@ -23,6 +28,59 @@ vi.mock("@vueda/use/useObjectForm.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObjectForm.js");
     return { ...actual, useObjectForm: vi.fn() };
 });
+
+// The composables below are only exercised by the "real composition" describe block further down,
+// which drives the actual useDetailView.js (rather than the useDetailView mock above) to prove
+// useViewUpdate.js's own wiring — its two separate object instances — surfaces a submission failure.
+// Every other test in this file mocks useDetailView wholesale, so these never get called for them.
+vi.mock("@vueda/use/useLeaveUnload.js", () => ({ useLeaveUnload: vi.fn() }));
+vi.mock("vue-router", async () => ({ ...(await vi.importActual("vue-router")), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@arrai-innovations/vue-sonner", () => ({
+    toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), loading: vi.fn(), message: vi.fn() },
+}));
+vi.mock("@vueda/use/useModelConfig.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useModelConfig.js");
+    return { ...actual, useModelConfig: vi.fn() };
+});
+vi.mock("@vueda/use/useIsActive.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useIsActive.js");
+    return { ...actual, useIsActive: vi.fn() };
+});
+vi.mock("@vueda/use/useFilteredActions.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useFilteredActions.js");
+    return { ...actual, useFilteredActions: vi.fn() };
+});
+vi.mock("@vueda/use/useObject404.js", async () => {
+    const actual = await vi.importActual("@vueda/use/useObject404.js");
+    return { ...actual, useObject404: vi.fn() };
+});
+
+// Stubs for mounting the real ErrorDisplay.vue (visible-feedback assertions below): the component
+// itself and formatError() run for real, only their own presentational dependencies are stubbed.
+const ErrorDisplayAlertStub = defineComponent({
+    name: "ErrorDisplayAlertStub",
+    props: ["variant"],
+    setup(props, { slots }) {
+        return () => h("div", { "data-qa": "error-display-alert", "data-variant": props.variant }, slots.default?.());
+    },
+});
+const ErrorDisplayAlertDescriptionStub = defineComponent({
+    name: "ErrorDisplayAlertDescriptionStub",
+    setup(_, { slots }) {
+        return () => h("div", { "data-qa": "error-display-alert-description" }, slots.default?.());
+    },
+});
+const ErrorDisplayAlertCloseStub = defineComponent({
+    name: "ErrorDisplayAlertCloseStub",
+    setup: () => () => h("button", { "data-qa": "error-display-alert-close" }),
+});
+vi.mock("@vueda/feedback/alert/Alert.vue", () => ({ default: ErrorDisplayAlertStub }));
+vi.mock("@vueda/feedback/alert/AlertDescription.vue", () => ({ default: ErrorDisplayAlertDescriptionStub }));
+vi.mock("@vueda/feedback/alert/AlertClose.vue", () => ({ default: ErrorDisplayAlertCloseStub }));
+const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
+const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "cls" });
+vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
+vi.mock("@sentry/vue", () => ({ captureException: vi.fn() }));
 
 describe("lib/use/useViewUpdate.js", () => {
     let props, mockModelConfig, mockInstanceObject, mockDetailViewInstance, mockDetailViewActions;
@@ -304,5 +362,198 @@ describe("lib/use/useViewUpdate.js", () => {
             const [, detailFormInitialValue] = useDetailView.mock.calls[0];
             expect(formInitialValue).toBe(detailFormInitialValue);
         });
+    });
+
+    describe("real composition: submission failure visibility", () => {
+        /**
+         * Wires the real useViewUpdate() end-to-end: real useDetailView, useObjectForm, useForm, and
+         * useObject — called twice, since useViewUpdate.js creates two separate object instances (one
+         * for retrieval inside useDetailView, one for submission directly in useViewUpdate.js itself).
+         * Only the metadata composables useDetailView.js depends on (useModelConfig, useIsActive,
+         * useFilteredActions, useObject404) stay mocked with static return values, reusing the same
+         * shapes the "wiring" tests above already use.
+         */
+        const buildRealViewUpdate = async (update) => {
+            setActivePinia(createPinia());
+            const { useDetailView: realUseDetailView } = await vi.importActual("@vueda/use/useDetailView.js");
+            const { useObjectForm: realUseObjectForm } = await vi.importActual("@vueda/use/useObjectForm.js");
+            const { useForm: realUseForm } = await vi.importActual("@vueda/use/useForm.js");
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+
+            useModelConfig.mockReturnValue(mockModelConfig);
+            useIsActive.mockReturnValue(ref(true));
+            useFilteredActions.mockReturnValue(reactive({ actions: [] }));
+            useObject404.mockReturnValue(undefined);
+            useDetailView.mockImplementation(realUseDetailView);
+            useObjectForm.mockImplementation(realUseObjectForm);
+            useForm.mockImplementation(realUseForm);
+
+            const retrieve = vi.fn().mockResolvedValue({ id: "42", name: "Test Widget" });
+            let callCount = 0;
+            useObject.mockImplementation((options) => {
+                callCount += 1;
+                // First call is useDetailView's retrieval instance; the second is useViewUpdate.js's
+                // own instanceObjectForSubmit.
+                return callCount === 1
+                    ? realUseObject({ ...options, handlers: { retrieve } })
+                    : realUseObject({ ...options, handlers: { update } });
+            });
+
+            return withSetup(() => useViewUpdate(props));
+        };
+
+        /**
+         * Mounts the real ErrorDisplay.vue with the same three props ViewUpdate.vue binds it to, so a
+         * test can assert on rendered, user-visible text instead of only the reactive state behind it.
+         */
+        const mountErrorDisplay = async (instance) => {
+            const { mount } = await import("@vue/test-utils");
+            const { default: ErrorDisplay } = await import("@vueda/display/error-display/ErrorDisplay.vue");
+            return mount(ErrorDisplay, {
+                props: {
+                    error: instance.combinedError,
+                    errored: instance.combinedErrored,
+                    whileText: instance.combinedWhileText,
+                    ignoreFormValidationErrors: true,
+                },
+            });
+        };
+
+        scopedIt(
+            "surfaces an unhandled update failure (e.g. HTTP 403) through combinedError, without the " +
+                "retrieval instance ever holding it",
+            async () => {
+                const { FetchError } = await import("@vueda/utils/errors.js");
+                const { default: flushPromises } = await import("flush-promises");
+
+                // Same failure the server sends for a rejected authorization check: a 403 whose body
+                // identifies the refusal, not a form-validation (400) or confirmation-required (409)
+                // error.
+                const forbidden = new FetchError(
+                    "Failed to update object",
+                    { status: 403, statusText: "Forbidden" },
+                    { detail: "You do not have permission to perform this action." },
+                );
+                const update = vi.fn(() => Promise.reject(forbidden));
+
+                const result = await buildRealViewUpdate(update);
+                await flushPromises();
+                expect(result.instance.combinedErrored).toBe(false);
+
+                // No field component is mounted here, so simulate one reporting the "name" field
+                // dirty the same way useField.js does, rather than pulling in the full form-rendering
+                // stack just to flip anyModified.
+                result.formContext.registerIsModifiedHook("name", () => true);
+                result.formContext.updateValue("name", "Edited Widget");
+                await flushPromises();
+
+                await result.objectForm.submit();
+                await flushPromises();
+
+                expect(update).toHaveBeenCalled();
+                expect(result.instance.combinedError).toBe(forbidden);
+                expect(result.instance.combinedErrored).toBe(true);
+                expect(result.instance.combinedWhileText).toBe("submitting form");
+                expect(result.objectForm.state.loading).toBe(false);
+                expect(result.objectForm.state.submitErrored).toBe(true);
+                // Retains the edited value instead of discarding it on a failed save.
+                expect(result.formContext.state.values.name).toBe("Edited Widget");
+                // The defect this guards against: the failure must not depend on the retrieval
+                // instance useViewUpdate.js returns as `instanceObject`.
+                expect(result.instanceObject.state.error).toBeNull();
+
+                // Visible feedback: mount the real ErrorDisplay.vue (the component ViewUpdate.vue
+                // renders, bound to these same three props) and assert the user-facing text it
+                // produces, not just the reactive state that feeds it.
+                const errorWrapper = await mountErrorDisplay(result.instance);
+                expect(errorWrapper.find('[data-qa="error-display-alert"]').exists()).toBe(true);
+                expect(errorWrapper.text()).toContain("There was an error while submitting form.");
+                expect(errorWrapper.text()).toContain("You do not have permission to perform this action.");
+
+                // A successful retry clears the failure and follows the normal successful-save
+                // behavior.
+                update.mockImplementationOnce(() => Promise.resolve({ id: "42", name: "Edited Widget" }));
+                await result.objectForm.submit();
+                await flushPromises();
+
+                expect(result.instance.combinedError).toBeNull();
+                expect(result.instance.combinedErrored).toBe(false);
+                expect(result.objectForm.state.submitErrored).toBe(false);
+            },
+        );
+
+        scopedIt(
+            "surfaces an unhandled server failure (HTTP 500) through combinedError, same as a permission " + "refusal",
+            async () => {
+                const { FetchError } = await import("@vueda/utils/errors.js");
+                const { default: flushPromises } = await import("flush-promises");
+
+                // A server-side crash: no `detail` (nothing about the request was rejected on purpose),
+                // only a stack trace the server includes for diagnostics. Exercises formatError's
+                // `responseData.serverStack` branch, distinct from the 403 test's `detail` branch.
+                const serverFailure = new FetchError(
+                    "Failed to update object",
+                    { status: 500, statusText: "Internal Server Error" },
+                    { serverStack: "Traceback (most recent call last):\n  ZeroDivisionError" },
+                );
+                const update = vi.fn(() => Promise.reject(serverFailure));
+
+                const result = await buildRealViewUpdate(update);
+                await flushPromises();
+
+                result.formContext.registerIsModifiedHook("name", () => true);
+                result.formContext.updateValue("name", "Edited Widget");
+                await flushPromises();
+
+                await result.objectForm.submit();
+                await flushPromises();
+
+                expect(update).toHaveBeenCalled();
+                expect(result.instance.combinedError).toBe(serverFailure);
+                expect(result.instance.combinedErrored).toBe(true);
+                expect(result.objectForm.state.loading).toBe(false);
+                expect(result.formContext.state.values.name).toBe("Edited Widget");
+                expect(result.instanceObject.state.error).toBeNull();
+
+                const errorWrapper = await mountErrorDisplay(result.instance);
+                expect(errorWrapper.find('[data-qa="error-display-alert"]').exists()).toBe(true);
+                expect(errorWrapper.text()).toContain("500: Internal Server Error");
+                expect(errorWrapper.text()).toContain("ZeroDivisionError");
+            },
+        );
+
+        scopedIt(
+            "surfaces an unhandled network failure (no response at all) through combinedError, same as an " +
+                "HTTP failure",
+            async () => {
+                const { default: flushPromises } = await import("flush-promises");
+
+                // What fetch() itself rejects with when the network drops: no `.response`/`.responseData`
+                // at all, so it is not a FetchError and is not recognized by any error-shape-specific
+                // handling (field validation, confirmation). It must still reach the visible error.
+                const networkFailure = new TypeError("Failed to fetch");
+                const update = vi.fn(() => Promise.reject(networkFailure));
+
+                const result = await buildRealViewUpdate(update);
+                await flushPromises();
+
+                result.formContext.registerIsModifiedHook("name", () => true);
+                result.formContext.updateValue("name", "Edited Widget");
+                await flushPromises();
+
+                await result.objectForm.submit();
+                await flushPromises();
+
+                expect(update).toHaveBeenCalled();
+                expect(result.instance.combinedError).toBe(networkFailure);
+                expect(result.instance.combinedErrored).toBe(true);
+                expect(result.objectForm.state.loading).toBe(false);
+                expect(result.instanceObject.state.error).toBeNull();
+
+                const errorWrapper = await mountErrorDisplay(result.instance);
+                expect(errorWrapper.find('[data-qa="error-display-alert"]').exists()).toBe(true);
+                expect(errorWrapper.text()).toContain("Failed to fetch");
+            },
+        );
     });
 });
