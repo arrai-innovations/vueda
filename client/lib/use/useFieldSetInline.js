@@ -343,7 +343,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                 return [...state.fieldObjects].filter((field) => field.action);
             }),
             fieldNames: computed(() => {
-                const prefix = `${fieldSetContext.state.formModelName}__`;
+                const prefix = `${fieldSetContext.state.formModelName}.`;
 
                 if (props.fields) {
                     return props.fields.reduce((acc, fullFieldName) => {
@@ -386,7 +386,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                     ? state.fieldNames?.map((name) => {
                           return {
                               fieldName: name,
-                              name: `${fieldSetContext.state.formModelName}__${name}`,
+                              name: `${fieldSetContext.state.formModelName}.${name}`,
                               ...fields[name],
                           };
                       })

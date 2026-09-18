@@ -123,7 +123,7 @@ Two components render this state. `FormMessage` is form-scope: placed inside a f
 
 Structured feedback objects (where a server error entry is an object rather than a string) have no wire-format template contract. The default `FormMessage` renderer iterates the object's entries and emits one `name: value` line per entry as a fallback. Consumers that need richer rendering override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the object's shape; see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for the pattern.
 
-`getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with `__`-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
+`getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with dot-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
 
 ## Observable Failure Signatures
 

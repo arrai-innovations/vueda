@@ -55,6 +55,53 @@ widgets render two segment groups and a separator in one shell.
 </VuedaDemo>
 </ClientOnly>
 
+### Read-only dates
+
+A read view, a computed field, or a read-only model config renders a field
+without its editing controls. Date, time, and datetime fields then select
+{@api vue:component:WidgetDateTimeReadOnly} rather than the plain
+{@api vue:component:WidgetReadOnly}, so the value reads as a formatted date
+instead of the raw string the server sent. The display options come from
+`readOnlyWidgetProps` in `fieldMappings.js`, which carry the same values as the
+`columnProps` a list column uses, so the same field reads the same way in a list
+and on a read view. An empty date renders the same dash both places.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['releaseDate', 'publishedAt', 'opensAt']"
+    :initial-values="{ releaseDate: '2026-06-01', publishedAt: '2026-08-25T17:21:56.906248Z', opensAt: '09:30:00' }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Release date: <code>showTime: false</code>, so the time is left off</span>
+    <span>Published at: <code>showTime: true</code>, with the relative time on hover</span>
+    <span>Opens at: <code>format: "t"</code>, and no relative text, which would reference today and mislead</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+An empty date is the case the raw string handled worst: it rendered a label with
+nothing beside it.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['releaseDate', 'publishedAt']"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>empty dates render the {@api theme-key:DateTimeDisplay} <code>dash</code> slot, matching a list cell</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 <VuedaDemo>
   <DemoCard title="Time range: invalid">
     <WidgetTimeRangeField :model-value="{ lower: '17:00:00', upper: '09:00:00' }" invalid />

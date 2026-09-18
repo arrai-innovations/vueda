@@ -50,9 +50,9 @@ describe("lib/use/useFilter.js", () => {
         });
         const state = await withSetup(() => useFilter(props));
         await nextTick();
-        expect(state.fieldComponents).toHaveProperty("created__after");
-        expect(state.fieldComponents).toHaveProperty("created__before");
-        expect(state.widgetComponents).toHaveProperty("created__after");
+        expect(state.fieldComponents).toHaveProperty("created.after");
+        expect(state.fieldComponents).toHaveProperty("created.before");
+        expect(state.widgetComponents).toHaveProperty("created.after");
         expect(state.widgetComponents.created).toBeUndefined();
     });
 

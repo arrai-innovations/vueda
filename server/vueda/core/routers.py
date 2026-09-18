@@ -116,9 +116,12 @@ class ContentTypeRouter(SimpleRouter):
 
 class ContentTypeChoicesRouter(SimpleRouter):
     # Need a custom route for list, so we can require app_label, model, and field in the url.
+    # `field` allows `.` (unlike `app_label`/`model`, which name identifiers): a filter's public
+    # name is dotted for a relation traversal (`distributor.name`) or a lookup expression
+    # (`distributor.name.icontains`), and this is the URL a dotted filter's choices are fetched from.
     routes = [
         Route(
-            url=r"^{prefix}/(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_]+){trailing_slash}$",
+            url=r"^{prefix}/(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_.]+){trailing_slash}$",
             mapping={
                 "get": "list",
             },
@@ -132,5 +135,5 @@ class ContentTypeChoicesRouter(SimpleRouter):
         """
         instead of looking at the standard config attributes, always lookup by <app_label>/<model>/<field>
         """
-        lookup_value = f"{lookup_prefix}(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_]+)"
+        lookup_value = f"{lookup_prefix}(?P<app_label>[a-zA-Z0-9_]+)/(?P<model>[a-zA-Z0-9_]+)/(?P<field>[a-zA-Z0-9_.]+)"
         return lookup_value

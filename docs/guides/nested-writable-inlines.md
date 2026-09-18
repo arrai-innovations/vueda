@@ -115,11 +115,11 @@ Nested validation errors surface in the response with key paths that identify th
 }
 ```
 
-On the client, `useForm` maps these nested error paths to form fields. The mapping currently supports one level of `__` split for nested expand paths. Ensure that:
+On the client, `useForm` maps these nested error paths to form fields. The mapping currently supports one level of `.` split for nested expand paths. Ensure that:
 
 - Backend nested keys (e.g., `items[1].description`) resolve to focusable form fields in the client.
 - The first error in a nested validation response is scrolled/focused correctly.
-- Nested error paths beyond one `__` split may not map correctly; test deep nesting explicitly if your form model uses it.
+- Nested error paths beyond one `.` split may not map correctly; test deep nesting explicitly if your form model uses it.
 
 Include a failing nested-write test path in your verification so that first-error selection behaviour is stable.
 
@@ -143,7 +143,7 @@ After implementing nested writes, verify the following:
 
 **Children unexpectedly deleted on update.** The omission-means-deletion contract is in effect. Existing children whose PKs are absent from the `update` payload are deleted. Include all children you want to keep, with their PKs.
 
-**Nested validation errors not appearing in the form.** Check that the client form model's field mapping supports the nested key path depth. `useForm` currently supports one level of `__` split for nested expand paths; deeper nesting may require custom error mapping.
+**Nested validation errors not appearing in the form.** Check that the client form model's field mapping supports the nested key path depth. `useForm` currently supports one level of `.` split for nested expand paths; deeper nesting may require custom error mapping.
 
 ## Relevant Implementation Surface
 
