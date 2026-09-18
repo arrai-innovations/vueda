@@ -650,9 +650,11 @@ Theme keys: {@api theme-key:ScrollArea} (root + viewport),
 
 ## Separator
 
-Separator is a 1 px rule. It picks an axis from `orientation` and stretches
-along the cross axis: a horizontal separator is `h-px w-full`, a vertical
-one is `w-px h-full`. Both modes read color from {@api css-token:border}.
+Separator is a hairline rule. It picks an axis from `orientation` and stretches
+along the cross axis: a horizontal separator is `h-hairline w-full`, a vertical
+one is `w-hairline h-full`. Both modes read color from {@api css-token:border}.
+A hairline resolves to one device pixel, so it measures 2 px at a device pixel
+ratio of 1 and 1 px at 2.
 The vertical mode requires the parent to set an explicit height because
 `h-full` collapses inside a `flex` row otherwise.
 

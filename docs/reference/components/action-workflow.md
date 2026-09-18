@@ -267,19 +267,20 @@ Every action view is `ModelActionForm` underneath, so the same slots and props r
 - `confirm-button` replaces the submit button, including its label.
 - `selected-objects` replaces the whole selected-records panel, for a project that wants richer rows than a name and a primary key.
 
-The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
+The action banner, selected-objects panel, prompt block, and actions strip each have a theme key: {@api theme-key:ModelActionForm.banner}, {@api theme-key:ModelActionForm.selectedObjects}, {@api theme-key:ModelActionForm.message}, and {@api theme-key:ActionForm.buttons}. Patch a key to change a composition; set a token to change a value everywhere it appears.
 
-| Surface             | Key tokens                                                                                   |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| Info banner         | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
-| Success banner      | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
-| Warning banner      | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
-| Destructive banner  | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
-| Prompt block        | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
-| Object list         | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
-| Actions strip       | `--border` (top hairline)                                                                    |
-| Diff old            | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
-| Diff new            | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Revision stripe     | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
-| Type pill (updated) | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
-| Type pill (created) | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Surface                | Key tokens                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Info banner            | `--info` as a 6 % background mix; the border stays `--border`                                       |
+| Success banner         | `--success` as a 6 % background mix, `border-success/20`                                            |
+| Warning banner         | `--warning` as a 6 % background mix, `border-warning/20`                                            |
+| Destructive banner     | `--destructive` via `bg-destructive/[0.06]`, `border-destructive/20` (see CRUDL Views)              |
+| Prompt block           | `--primary` (2 px left rule at `border-primary/60`), `--muted` (background tint via `bg-muted/25`)  |
+| Selected-objects panel | `--muted` (`bg-muted/25`), `--border` (hairline), `--radius-vueda-card`                             |
+| Selected-object chip   | `--card` (fill), `--border` (hairline), `--radius-vueda-control`                                    |
+| Actions strip          | `--border` (top hairline), `--muted` (`bg-muted/25`)                                                |
+| Diff old               | `--destructive` as a 7 % background mix and the leading minus glyph; the value stays `--foreground` |
+| Diff new               | `--success` as an 8 % background mix and the leading plus glyph; the value stays `--foreground`     |
+| Revision stripe        | `--primary` via `border-l-2 border-primary` on first cell of each revision group                    |
+| Type pill (updated)    | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                             |
+| Type pill (created)    | `--success` via `bg-success/10`, `border-success/30`, `text-success`                                |
