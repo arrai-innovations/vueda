@@ -17,7 +17,13 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## v3.0.0a2 (unreleased)
+## v3.0.0a3 (unreleased)
+
+- **`history-list` defers to a matching workflow-state grant, the same as `retrieve`**:
+    - A requester whose read comes only from a matching workflow-state grant, with no model-level read permission, now receives `200` from that object's history route, the same as that requester already received from the object's own detail route. `VuedaViewSet` now includes `history_list` in `ObjectPermissions`'s `workflow_object_permission_actions` by default, so a model-scope denial for `history_list` defers to a state grant the same way `retrieve`, `update`, `partial_update`, and `destroy` already do. A requester with no matching grant and no model-level read still receives `403`, and a state deny that removes read for an object's current state still removes that object's history even when model-level permission would otherwise grant it.
+      _No integrator action. A viewset that already sets its own `workflow_object_permission_actions` for its own custom action keeps that entry; VUEDA merges `history_list` into the result rather than letting the subclass's value replace it._
+
+## v3.0.0a2 (2026-09-18)
 
 ### Breaking Changes
 

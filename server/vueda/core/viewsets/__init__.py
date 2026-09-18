@@ -894,6 +894,13 @@ class VuedaViewSet(
 
     detail_args = ["pk"]
 
+    # `history_list` (below) fetches its object unconditionally, so it can defer a model-scope
+    # denial to a matching workflow-state grant, the same way `retrieve` does -- see
+    # `vueda.core.permissions.ObjectPermissions._has_later_permission_decision`. A subclass that
+    # sets its own `workflow_object_permission_actions`, for its own further action, keeps this
+    # entry too; see `__init_subclass__` below, which merges rather than replaces.
+    workflow_object_permission_actions = frozenset({"history_list"})
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         # Name what the request is doing inside the action the history middleware opened, so an
@@ -938,6 +945,19 @@ class VuedaViewSet(
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # A subclass that declares its own `workflow_object_permission_actions` otherwise replaces
+        # the inherited collection outright, through ordinary attribute lookup, dropping
+        # `history_list` for that subclass. Merge the subclass's own value with whatever it would
+        # have inherited instead, so declaring a further action never costs it history deferral.
+        own_actions = cls.__dict__.get("workflow_object_permission_actions")
+        if own_actions is not None:
+            for base in cls.__mro__[1:]:
+                inherited_actions = base.__dict__.get("workflow_object_permission_actions")
+                if inherited_actions is not None:
+                    cls.workflow_object_permission_actions = frozenset(own_actions) | frozenset(inherited_actions)
+                    break
+
         if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
             warnings.warn(
                 f"{cls.__module__}.{cls.__name__} inherits from both VuedaViewSet and ReadOnlyModelViewSet. "
@@ -1008,17 +1028,12 @@ class VuedaViewSet(
         Override this function to change if a user is allowed to do a certain action.
 
         ``history_list`` is additionally gated on read authorization here, checked the same way an
-        object's own ``retrieve`` already is (:meth:`_read_permitted`). For a requester whose read
-        comes from a model-level permission, this agrees with the history endpoint's own
-        enforcement, so neither model metadata nor an object's own action list advertises a
-        history endpoint the direct request would refuse with a 403.
-
-        A requester whose read comes only from a workflow-state grant is the one exception:
-        :meth:`_read_permitted` defers a model-level read denial to that grant, but the history
-        endpoint enforces read as its own ``history_list`` action, which no viewset yet lists in
-        ``workflow_object_permission_actions`` and so does not defer the same way. Discovery
-        offers ``history-list`` to that requester, and the direct request still returns 403.
-        Tracked in #291.
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
+        ``workflow_object_permission_actions`` by default (see that attribute above), so a
+        requester whose read comes only from a matching workflow-state grant is offered
+        ``history-list`` here the same way a requester whose read comes from a model-level
+        permission already is, and both agree with what the history endpoint's own enforcement
+        answers for the same row.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():

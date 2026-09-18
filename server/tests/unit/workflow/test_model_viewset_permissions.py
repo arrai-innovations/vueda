@@ -8,6 +8,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.permissions import BasePermission
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import response_body
 from tests.store import models as store_models
@@ -286,6 +288,80 @@ class TestWorkflowModelViewSetPermissions:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response_body(response)
+
+    def test_history_list_defers_to_matching_state_grant(
+        self, api_client, user, permission_group, customer_order, workflow, content_type
+    ):
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+
+    def test_history_list_denies_user_with_no_grant_and_no_model_permission(self, api_client, user, customer_order):
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+
+    def test_history_list_state_deny_overrides_model_permission(
+        self, api_client, user, permission_group, customer_order, workflow, content_type
+    ):
+        permission_group.permissions.add(
+            Permission.objects.get(content_type=content_type, codename="read_customerorder")
+        )
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+            grant=False,
+        )
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND, response_body(response)
+
+    def test_history_list_defers_to_a_matching_state_grant_for_a_subclass_with_its_own_workflow_object_permission_actions(
+        self, user, permission_group, customer_order, workflow, content_type
+    ):
+        """
+        A subclass declaring `workflow_object_permission_actions` for its own action must still
+        reach `history_list`.
+        """
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+
+        class SubclassViewSet(store_viewsets.CustomerOrderViewSet):
+            workflow_object_permission_actions = frozenset(("custom_object_action",))
+
+        request = APIRequestFactory().get(f"/store/customerorders/{customer_order.pk}/history/")
+        force_authenticate(request, user=user)
+
+        response = SubclassViewSet.as_view({"get": "history_list"})(request, pk=customer_order.pk)
+
+        assert response.status_code == status.HTTP_200_OK, response.data
 
     def test_additional_permission_class_denial_is_not_suppressed(
         self,
