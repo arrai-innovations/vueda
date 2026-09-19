@@ -641,6 +641,11 @@ Theme key: {@api theme-key:Switch}. Token surface: {@api css-token:input}
 {@api css-token:primary} reads as a _fill_ rather than as a CTA; verify the
 on-track contrast against the thumb when retoning primary.
 
+Disabled switches use {@api css-token:disabled} for the track and
+{@api css-token:disabled-foreground} for the thumb, at full opacity in both
+color modes. The thumb's position continues to show whether the value is on
+or off.
+
 <VuedaDemo>
   <DemoCard>
     <div class="grid grid-cols-[auto_repeat(4,minmax(0,1fr))] items-center gap-x-3 gap-y-2">

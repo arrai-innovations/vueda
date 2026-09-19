@@ -419,10 +419,15 @@ the standard focus / disabled / invalid axes. The check and minus glyphs
 ship as default slot content; consumers can override the indicator slot
 to use icon components instead of text glyphs.
 
-Theme key: {@api theme-key:Checkbox}. The body is a 16 × 16 chiclet at
+Theme key: {@api theme-key:Checkbox}. The body is a 24 × 24 square at
 {@api css-token:vueda-checkbox-radius} (4 px), intentionally rounder than
 the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
 chit rather than a miniature input next to its label.
+
+Disabled checkboxes keep their check or indeterminate mark, but use
+{@api css-token:disabled} fill, {@api css-token:border} edge, and
+{@api css-token:disabled-foreground} ink instead of fading the whole control.
+Disabled colors take precedence over invalid colors.
 
 <VuedaDemo>
   <DemoCard>
@@ -443,6 +448,10 @@ chit rather than a miniature input next to its label.
       <div><Checkbox disabled /></div>
       <div><Checkbox :default-value="true" disabled /></div>
       <div><Checkbox default-value="indeterminate" disabled /></div>
+      <StateLabel>disabled + invalid</StateLabel>
+      <div><Checkbox disabled aria-invalid="true" /></div>
+      <div><Checkbox :default-value="true" disabled aria-invalid="true" /></div>
+      <div><Checkbox default-value="indeterminate" disabled aria-invalid="true" /></div>
       <StateLabel>invalid</StateLabel>
       <div><Checkbox aria-invalid="true" /></div>
       <div><Checkbox aria-invalid="true" :default-value="true" /></div>
@@ -472,6 +481,9 @@ Checkbox. The group itself only contributes layout (gap, orientation).
 Theme keys: {@api theme-key:RadioGroup},
 {@api theme-key:RadioGroupItem}. The selected dot is a geometric circle
 inside the item, not a glyph, so it stays stable across font hydration.
+Disabled items use the same fill, edge, and ink tokens as disabled checkboxes;
+the selected dot remains visible. A disabled group applies this treatment to
+all its items.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="vertical">
@@ -534,6 +546,19 @@ inside the item, not a glyph, so it stays stable across font hydration.
       <span>focus outline <code>--ring</code></span>
       <span>invalid border <code>--destructive</code></span>
     </template>
+  </DemoCard>
+  <DemoCard title="disabled group">
+    <RadioGroup default-value="selected" disabled class="flex flex-row gap-5">
+      <div class="flex items-center gap-2">
+        <RadioGroupItem value="selected" aria-label="Disabled selected" />
+        <StateLabel>selected</StateLabel>
+      </div>
+      <div class="flex items-center gap-2">
+        <RadioGroupItem value="unselected" aria-label="Disabled unselected" />
+        <StateLabel>unselected</StateLabel>
+      </div>
+    </RadioGroup>
+    <template #footer>disabled fill and ink; selection stays visible</template>
   </DemoCard>
 </VuedaDemo>
 

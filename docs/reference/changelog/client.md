@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Disabled checkbox, radio, and switch controls**:
+    - Disabled states now use the existing disabled fill and foreground tokens instead of reducing the whole control's opacity. Checkbox marks, radio dots, and switch-thumb positions preserve the value; disabled colors override active and invalid colors in both themes.
+
 - **FieldSetMany**:
     - Remove-entry buttons now use destructive tone consistently with unsaved inline deletion. Add and Remove explicitly use non-submit buttons so editing the list does not submit its parent form.
 
