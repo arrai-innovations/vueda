@@ -31,6 +31,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **InputOTP**:
+    - `aria-invalid="true"` on the input now gives all visible slots destructive borders and the active slot a destructive focus ring. The ring follows the active slot across groups. Disabled colors still take precedence.
+      _The focus ring is now styled through `InputOTPSlot.root`, rather than `InputOTP.root`. Update custom ring overrides if needed._
+
 - **Disabled Toggle, ToggleGroup, Slider, and InputOTP controls**:
     - Disabled states use the existing disabled fill and foreground tokens at full opacity. Pressed toggles, slider ranges and thumb positions, and entered OTP digits remain visible in both themes.
 

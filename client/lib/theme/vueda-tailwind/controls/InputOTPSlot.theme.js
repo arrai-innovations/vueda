@@ -13,7 +13,7 @@ patchTheme({
      * single hairline across the run; the active slot is outlined by the ring.
      */
     InputOTPSlot: {
-        /** A single character cell. Borders use `--input` at the `border-hairline` width, and every non-first slot pulls left by exactly `--vueda-hairline-width` so adjacent slots overlap one device pixel and read as one painted line rather than doubling at the seam. The active slot promotes `z-10` and swaps to `border-ring` so the run's active position outlines cleanly above its neighbours; `aria-invalid` swaps the border to `--destructive` on the same rule. First / last children round only their outer corners so the run reads as one chip. When the containing OTP input is disabled, slots use `--disabled` fill, `--disabled-foreground` ink, and `--border` edges with no shadow, including active or invalid slots. */
+        /** A single character cell. Borders use `--input` at the `border-hairline` width, and every non-first slot pulls left by exactly `--vueda-hairline-width` so adjacent slots overlap one device pixel and read as one painted line rather than doubling at the seam. The active slot promotes `z-10` and swaps to `border-ring` so the run's active position outlines cleanly above its neighbours; `aria-invalid="true"` on the containing native input swaps every slot border and the active focus ring to `--destructive`. The active slot owns the focus ring, including across separated groups. Direct slot-level `aria-invalid` remains supported. First / last children round only their outer corners so the run reads as one chip. When the containing OTP input is disabled, slots use `--disabled` fill, `--disabled-foreground` ink, and `--border` edges with no shadow, including active or invalid slots. */
         root: {
             class: [
                 // Surface, sizing, and joining.
@@ -25,6 +25,9 @@ patchTheme({
 
                 // Active and invalid states.
                 "data-[active=true]:z-10 data-[active=true]:border-ring aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive",
+                "group-has-[input[aria-invalid=true]]/input-otp:border-destructive",
+                "group-has-[input:enabled]/input-otp:data-[active=true]:focus-ring",
+                "group-has-[input[aria-invalid=true]]/input-otp:focus-ring-destructive aria-invalid:focus-ring-destructive",
             ],
         },
     },

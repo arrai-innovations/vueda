@@ -653,6 +653,9 @@ Theme keys: {@api theme-key:InputOTP},
 {@api theme-key:InputOTPSlot}. Slots compose into the same border /
 focus surface as Input, with adjacent slots sharing seams via
 `first:rounded-l-md` / `last:rounded-r-md` rules.
+Set `aria-invalid="true"` on `InputOTP` to give every slot a destructive edge.
+The focus ring follows the active slot, including across separated groups, and
+uses the destructive color while invalid. Disabled state takes precedence.
 Disabled slots use {@api css-token:disabled} fill,
 {@api css-token:disabled-foreground} ink, and {@api css-token:border} edges at
 full opacity. Filled slots keep their digits and empty slots remain blank.
@@ -707,7 +710,7 @@ full opacity. Filled slots keep their digits and empty slots remain blank.
       <span>slot border <code>--destructive</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="disabled" class="sm:col-span-2">
+  <DemoCard title="disabled">
     <InputOTP :maxlength="4" default-value="29" disabled>
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
@@ -716,6 +719,17 @@ full opacity. Filled slots keep their digits and empty slots remain blank.
     <template #footer>
       <span>disabled fill and ink preserve entered digits</span>
       <span>no caret on disabled slot</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled, invalid">
+    <InputOTP :maxlength="4" default-value="29" disabled aria-invalid="true">
+      <InputOTPGroup>
+        <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
+      </InputOTPGroup>
+    </InputOTP>
+    <template #footer>
+      <span>disabled edges take precedence over invalid state</span>
+      <span>no focus ring</span>
     </template>
   </DemoCard>
 </VuedaDemo>
