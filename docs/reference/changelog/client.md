@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Visible duration units (`WidgetDuration`)**:
+    - Each enabled spinner now shows its unit above the input. Clicking a unit label focuses its own input, including when several units are shown. Customize the labels through `WidgetDuration.unitLabel`.
+
 - **Card layout draws one edge per card (`ObjectsGrid.root`, `ObjectsGrid.bodyRow`)**:
     - Below `tableBreakpoint` the grid root drew a radius and an inset hairline around a grid of cards that each carry one, so every card sat 4 px inside a second frame. The root now takes the radius and hairline in table layout only, where it is the surface the rows sit on and its edge closes the last row.
     - The root keeps its `--card` fill in both layouts, so the gutter between cards matches the chrome a consumer wraps around the grid. Card rows carry that fill themselves as well, so a card reads the same on any ground.
