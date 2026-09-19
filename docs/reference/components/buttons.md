@@ -512,6 +512,12 @@ Theme key: {@api theme-key:Toggle}. The pressed surface reads from
 that drives hover on ghost and outline buttons; rebranding the accent shifts
 all three in lockstep.
 
+Disabled toggles use {@api css-token:disabled-foreground} ink at full opacity.
+A pressed toggle keeps a {@api css-token:disabled} fill; an unpressed toggle
+stays transparent. Outline variants soften their edge to {@api css-token:border}.
+The public `pressed`, `defaultPressed`, and `update:pressed` API controls this
+state, including through `v-model:pressed`.
+
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default">
     <div class="grid grid-cols-[auto_repeat(3,minmax(0,1fr))] items-center gap-x-3 gap-y-1">
@@ -600,8 +606,10 @@ child variant), not state. Per-item states are covered by the
 [Toggle matrix](#toggle-state-matrix) above.
 
 Theme keys: {@api theme-key:ToggleGroup},
-{@api theme-key:ToggleGroupItem}. Items compose from the Toggle key, so a
-restyle of {@api theme-key:Toggle} flows through here automatically.
+{@api theme-key:ToggleGroupItem}. Items have their own theme recipe and match
+Toggle's state treatment. Customize both keys when restyling the whole family.
+Disabling the group applies disabled colors to every item while preserving the
+selected values and joined outline seams.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="single · default spacing">
@@ -627,6 +635,14 @@ restyle of {@api theme-key:Toggle} flows through here automatically.
       <ToggleGroupItem value="underline">Underline</ToggleGroupItem>
     </ToggleGroup>
     <template #footer>any combination selectable, each item toggles independently</template>
+  </DemoCard>
+  <DemoCard title="disabled group">
+    <ToggleGroup type="single" variant="outline" default-value="day" disabled>
+      <ToggleGroupItem value="day">Day</ToggleGroupItem>
+      <ToggleGroupItem value="week">Week</ToggleGroupItem>
+      <ToggleGroupItem value="month">Month</ToggleGroupItem>
+    </ToggleGroup>
+    <template #footer>selected fill stays visible; disabled ink and edges replace active colors</template>
   </DemoCard>
 </VuedaDemo>
 

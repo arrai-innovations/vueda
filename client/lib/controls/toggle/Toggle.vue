@@ -1,9 +1,8 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/controls/Toggle.theme.js";
-import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { Toggle } from "reka-ui";
+import { Toggle, useForwardProps } from "reka-ui";
 import { reactive, toRef } from "vue";
 
 /**
@@ -45,8 +44,8 @@ const emits = defineEmits({
     "update:pressed": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "size", "variant", "themeOverride");
-const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const delegatedProps = reactiveOmit(props, "class", "size", "variant", "themeOverride", "pressed", "defaultPressed");
+const forwarded = useForwardProps(delegatedProps);
 
 const theme = useTheme(
     "Toggle",
@@ -63,8 +62,11 @@ const theme = useTheme(
         v-slot="slotProps"
         data-slot="toggle"
         v-bind="forwarded"
+        :model-value="pressed"
+        :default-value="defaultPressed"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
+        @update:model-value="emits('update:pressed', $event)"
     >
         <slot v-bind="slotProps" />
     </Toggle>

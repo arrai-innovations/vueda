@@ -653,6 +653,9 @@ Theme keys: {@api theme-key:InputOTP},
 {@api theme-key:InputOTPSlot}. Slots compose into the same border /
 focus surface as Input, with adjacent slots sharing seams via
 `first:rounded-l-md` / `last:rounded-r-md` rules.
+Disabled slots use {@api css-token:disabled} fill,
+{@api css-token:disabled-foreground} ink, and {@api css-token:border} edges at
+full opacity. Filled slots keep their digits and empty slots remain blank.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="6-digit, fresh">
@@ -705,13 +708,13 @@ focus surface as Input, with adjacent slots sharing seams via
     </template>
   </DemoCard>
   <DemoCard title="disabled" class="sm:col-span-2">
-    <InputOTP :maxlength="4" disabled>
+    <InputOTP :maxlength="4" default-value="29" disabled>
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span>opacity 50 across all slots</span>
+      <span>disabled fill and ink preserve entered digits</span>
       <span>no caret on disabled slot</span>
     </template>
   </DemoCard>
@@ -735,6 +738,9 @@ application renders it normally.
 Theme keys: {@api theme-key:Slider}. Token surface:
 {@api css-token:primary} (range fill), {@api css-token:muted} (track),
 {@api css-token:ring} (thumb focus).
+Disabled sliders use {@api css-token:disabled} for the track and
+{@api css-token:disabled-foreground} for the range and thumbs, at full opacity.
+Thumb positions and the selected span remain visible in either orientation.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="single value">
@@ -766,8 +772,14 @@ Theme keys: {@api theme-key:Slider}. Token surface:
       <Slider disabled :default-value="[60]" :max="100" />
     </ClientOnly>
     <template #footer>
-      <span>disabled dims the whole control and drops pointer interaction; the value still renders</span>
+      <span>disabled track, range, and thumb colors preserve the value without fading the control</span>
     </template>
+  </DemoCard>
+  <DemoCard title="disabled range">
+    <ClientOnly>
+      <Slider disabled :default-value="[25, 75]" :max="100" />
+    </ClientOnly>
+    <template #footer>both thumb positions and the selected span remain visible</template>
   </DemoCard>
   <DemoCard title="vertical" description=" (orientation)">
     <ClientOnly>

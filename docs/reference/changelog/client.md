@@ -31,6 +31,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Disabled Toggle, ToggleGroup, Slider, and InputOTP controls**:
+    - Disabled states use the existing disabled fill and foreground tokens at full opacity. Pressed toggles, slider ranges and thumb positions, and entered OTP digits remain visible in both themes.
+
+- **Toggle**:
+    - `pressed`, `defaultPressed`, and `update:pressed` now map to Reka's value API, restoring controlled and default pressed states without changing VUEDA's public API.
+
 - **Disabled checkbox, radio, and switch controls**:
     - Disabled states now use the existing disabled fill and foreground tokens instead of reducing the whole control's opacity. Checkbox marks, radio dots, and switch-thumb positions preserve the value; disabled colors override active and invalid colors in both themes.
 
