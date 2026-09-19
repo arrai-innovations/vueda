@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **WidgetSelectDropdown**:
+    - Empty-string and nullish choices no longer cause invalid select items. Their label supplies the placeholder when no explicit placeholder is provided; `false` and `0` remain selectable. Active filters can still be cleared through their Remove control.
+
 - **Inline fieldsets**:
     - Editable unsaved rows now show a Delete button even when the server supplies no `destroy` action. This applies to stacked, singular stacked, and tabular inlines. Deletion controls for saved rows still require the action metadata.
     - The `destroy-button` slot also renders without a server action; its `action` and `value` props are then undefined, and its `label` defaults to `Delete`.

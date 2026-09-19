@@ -156,6 +156,13 @@ the [CRUDL Views](/reference/components/views-crudl) demos already show. The two
 below are the cases those demos never reach: a many-valued choice, and a boolean
 that carries labels for its two states.
 
+{@api vue:component:WidgetSelectDropdown} treats empty-string, `null`, and
+`undefined` choices as no selection and omits them from the menu. Unless an
+explicit `placeholder` is supplied, it uses the first empty choice's label as
+the placeholder. Values `false` and `0` remain ordinary choices. Clear an active
+filter with its Remove control; in a custom form, reset the bound value to clear
+the selection.
+
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
   <DemoFormModel
