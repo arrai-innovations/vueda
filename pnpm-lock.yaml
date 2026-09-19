@@ -55,6 +55,7 @@ overrides:
 patchedDependencies:
   vitepress-plugin-diagrams@1.1.2: 719fa333abedf54696eac5b9d6c31cb2206b685402ea13600ff31542f3e52cdd
   vitepress@1.6.4: 6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267
+  vue-input-otp@0.3.2: cc8c183e1163d216a3e54472f7df1c0fcde9dcb5661531aa4d0bc515f7fc1b5d
 
 importers:
 
@@ -215,7 +216,7 @@ importers:
         version: 2.3.0(sortablejs@1.15.6)(vue@3.5.27(typescript@5.9.3))
       vue-input-otp:
         specifier: ^0.3.2
-        version: 0.3.2(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+        version: 0.3.2(patch_hash=cc8c183e1163d216a3e54472f7df1c0fcde9dcb5661531aa4d0bc515f7fc1b5d)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
       vue-router:
         specifier: ^4.5.0
         version: 4.6.4(vue@3.5.27(typescript@5.9.3))
@@ -11585,7 +11586,7 @@ snapshots:
     dependencies:
       vue: 3.5.27(typescript@5.9.3)
 
-  vue-input-otp@0.3.2(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3)):
+  vue-input-otp@0.3.2(patch_hash=cc8c183e1163d216a3e54472f7df1c0fcde9dcb5661531aa4d0bc515f7fc1b5d)(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3)):
     dependencies:
       '@vueuse/core': 12.8.2(typescript@5.9.3)
       reka-ui: 2.9.7(vue@3.5.27(typescript@5.9.3))

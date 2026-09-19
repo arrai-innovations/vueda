@@ -157,6 +157,22 @@ When you write or edit a `VuedaDemo` block, confirm correctness by:
 
 To check the rendered result, open the page on a running docs site (`just docs-serve`). Browser automation such as screenshots or computed-style checks is fine for this.
 
+### InputOTP dependency patch
+
+The workspace applies `patches/vue-input-otp@0.3.2.patch` through pnpm so OTP
+examples work inside VuedaDemo's shadow DOM. The patch reads focus from the
+input's own DOM root, listens for selection changes in that root and its
+document, and installs the native input's selection/autofill styles once per
+root. Other demos retain the same shadow boundary and style isolation.
+
+This is a repository dependency patch, not part of the published VUEDA package.
+Consuming applications do not inherit it. Remove it once an upstream version
+supports these behaviors; the published 0.4.0 package still uses the document-only
+focus check. `InputOTP.integration.spec.js` exercises the real installed
+component in document and shadow DOM. After changing the patch, also check
+focus, arrow keys, replacement, paste, blur, and disabled examples on the inputs
+reference page in the running docs site.
+
 ## HTML blocks inside VuedaDemo
 
 Markdown ends an HTML block at the first blank line. Any blank line inside a `<VuedaDemo>` (or any other HTML block) splits it into separate fragments, so closing tags end up in a different block from their openers. Vue's template compiler then sees unclosed elements and throws `Element X is not closed`.
