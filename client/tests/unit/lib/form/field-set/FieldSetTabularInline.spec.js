@@ -138,6 +138,21 @@ describe("lib/form/field-set/FieldSetTabularInline.vue", () => {
         vi.clearAllMocks();
     });
 
+    scopedIt("invokes custom actions with the selected row and tabular helpers", async () => {
+        const callback = vi.fn();
+        const action = { fieldName: "inspect", label: "Inspect", action: callback };
+        const wrapper = mountWithContext([{ id: 1 }, { id: 2 }], { state: { actions: [action] } });
+        await wrapper.get('[data-row="1"] [data-qa="control-button"]').trigger("click");
+        expect(callback).toHaveBeenCalledExactlyOnceWith({
+            objectGridFieldSlotProps: { pk: 2, rowIndex: 1 },
+            action,
+            fieldSetContextState: wrapper.vm.fieldSetTabularInline.fieldSetContext.state,
+            rowValueName: "items[1]",
+            event: expect.any(MouseEvent),
+            doCreate: wrapper.vm.fieldSetTabularInline.doCreate,
+        });
+    });
+
     scopedIt("removes only the chosen unsaved row without destroy metadata", async () => {
         const wrapper = mountWithContext([{ id: 0 }, {}, {}]);
         expect(wrapper.find('[data-row="0"] [data-qa="control-button"]').exists()).toBe(false);

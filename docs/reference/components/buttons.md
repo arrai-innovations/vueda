@@ -378,6 +378,26 @@ applies the placement `emphasis` chosen by the surrounding view, and promotes
 the view's hero action to a fill. Authoring a `<Button>` by hand should follow
 the same table so hand-placed and resolved buttons read identically.
 
+### Custom inline row actions
+
+An inline action entry in `fieldObjects` uses a label and an `action` function,
+for example `{ fieldName: "inspect", label: "Inspect", action: inspectRow }`.
+The default non-destroy action button is a small neutral outline button in both
+stacked and tabular layouts. Both use
+{@api vue:component:FieldSetInlineActionButton}, which owns the styling and invokes
+the callback without submitting the parent form.
+
+The callback receives `action`, `fieldSetContextState`, `rowValueName`, and the
+click `event`. `rowValueName` identifies the current value path, such as
+`lines[1]`; a singular stacked inline uses its field name without an index.
+Stacked passes its existing inline state (field objects, actions, and selection),
+while tabular passes its field context state (including the field value) and
+also supplies `objectGridFieldSlotProps` and `doCreate`. These context objects
+are layout-specific; do not assume they have the same shape.
+
+An `item-action-button` slot replaces the default button and owns its activation
+handler. Use the slot's `action` and row context when implementing that handler.
+
 ### Customizing built-in inline buttons
 
 Stacked, singular stacked, and tabular inlines use a small destructive ghost

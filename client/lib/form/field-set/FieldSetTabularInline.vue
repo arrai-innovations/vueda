@@ -1,6 +1,7 @@
 <script setup>
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import Button from "@vueda/controls/button/Button.vue";
+import FieldSetInlineActionButton from "@vueda/form/field-set/FieldSetInlineActionButton.vue";
 import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import ObjectsGrid from "@vueda/objects-grid/ObjectsGrid.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
@@ -348,24 +349,15 @@ watch(
                                                 doCreate: fieldSetTabularInline.doCreate,
                                             }"
                                         >
-                                            <Button
-                                                emphasis="outline"
-                                                size="sm"
-                                                @click="
-                                                    ($event) =>
-                                                        action.action({
-                                                            objectGridFieldSlotProps,
-                                                            action,
-                                                            fieldSetContextState:
-                                                                fieldSetTabularInline.fieldSetContext.state,
-                                                            rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
-                                                            event: $event,
-                                                            doCreate: fieldSetTabularInline.doCreate,
-                                                        })
-                                                "
-                                            >
-                                                {{ action.label }}
-                                            </Button>
+                                            <FieldSetInlineActionButton
+                                                :action="action"
+                                                :action-context="{
+                                                    objectGridFieldSlotProps,
+                                                    fieldSetContextState: fieldSetTabularInline.fieldSetContext.state,
+                                                    rowValueName: `${fieldSetTabularInline.fieldSetContext.state.name}[${objectGridFieldSlotProps.rowIndex}]`,
+                                                    doCreate: fieldSetTabularInline.doCreate,
+                                                }"
+                                            />
                                         </slot>
                                     </template>
                                 </template>

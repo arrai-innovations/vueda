@@ -45,7 +45,7 @@ const ButtonStub = defineComponent({
             return h("button", {
                 "data-qa": "button-stub",
                 "data-label": typeof label === "string" ? label.trim() : undefined,
-                onClick: () => emit("click"),
+                onClick: (event) => emit("click", event),
                 onUpdateModelValue: (v) => emit("update:model-value", v),
             });
         };
@@ -161,6 +161,33 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         cb.vm.$emit("update:model-value", true);
         await wrapper.vm.$nextTick();
         expect(wrapper.emitted("update:selected")[0]).toEqual([true]);
+    });
+
+    scopedIt("invokes the custom action with the current row and click event", async () => {
+        const callback = vi.fn();
+        const action = { fieldName: "inspect", label: "Inspect", action: callback };
+        const wrapper = mountWithContext({ actions: [action] });
+        await wrapper.setProps({ index: 2 });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback).toHaveBeenCalledExactlyOnceWith({
+            action,
+            fieldSetContextState: wrapper.props("fieldSetContextState"),
+            rowValueName: "fs[2]",
+            event: expect.any(MouseEvent),
+        });
+        // Indexes change when an earlier row is removed.
+        await wrapper.setProps({ index: 1 });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback.mock.calls[1][0].rowValueName).toBe("fs[1]");
+        expect(wrapper.emitted("destroy-row")).toBeUndefined();
+    });
+
+    scopedIt("uses the field path for a singular custom row action", async () => {
+        const callback = vi.fn();
+        const wrapper = mountWithContext({ actions: [{ fieldName: "inspect", label: "Inspect", action: callback }] });
+        await wrapper.setProps({ index: undefined, fieldName: "details" });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback.mock.calls[0][0].rowValueName).toBe("details");
     });
 
     scopedIt("forwards update:model-value from action button", async () => {

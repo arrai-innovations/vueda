@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import FieldSetInlineActionButton from "@vueda/form/field-set/FieldSetInlineActionButton.vue";
 import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInlineRow.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
@@ -58,6 +59,7 @@ const icon = useIcons("FieldSetStackedInlineRow", props);
 
 const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
 const onDelete = () => emit("destroy-row", props.index);
+const rowValueName = computed(() => (props.index == null ? props.fieldName : `${props.fieldName}[${props.index}]`));
 
 const slots = useSlots();
 const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox", "item-action-button"];
@@ -204,11 +206,15 @@ const rowState = computed(() => {
                             v-bind="{
                                 action,
                                 fieldSetContextState: fieldSetContextState,
-                                rowValueName: `${fieldName}[${index}]`,
+                                rowValueName,
                             }"
                             @update:model-value="emit('update:model-value', $event)"
                         >
-                            <Button @update:model-value="emit('update:model-value', $event)">{{ action.label }}</Button>
+                            <FieldSetInlineActionButton
+                                :action="action"
+                                :action-context="{ fieldSetContextState, rowValueName }"
+                                @update:model-value="emit('update:model-value', $event)"
+                            />
                         </slot>
                     </template>
                 </template>
