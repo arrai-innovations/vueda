@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **ModelActionForm**:
+    - Confirmation screens now display fetched record names as visible links beside their primary keys. Records without fetched names show their primary key once. Per-record errors and warnings remain visible.
+
 - **WidgetCombobox**:
     - Required pickers inside VUEDA fields now show field errors on submission instead of letting the browser focus a visually hidden input and block the submit handler. Required indicators and accessible required state remain intact, and VUEDA validation still blocks empty required values. Standalone and contextless pickers retain native required validation.
 

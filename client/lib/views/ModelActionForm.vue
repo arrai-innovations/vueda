@@ -328,6 +328,7 @@ const resolveWarningGroups = (warnings, bulk) => {
                                 >
                                     <form-field
                                         :field-value="targetPk"
+                                        :hide-label="true"
                                         :label="targetPk"
                                         :name="targetPk"
                                         :read-only="true"
@@ -335,7 +336,6 @@ const resolveWarningGroups = (warnings, bulk) => {
                                         <widget-read-only
                                             :app="app"
                                             :foreign-key-obj="objectsMap.get(targetPk)"
-                                            :hidden="true"
                                             :invalid="false"
                                             :loading="combinedLoading"
                                             :model="model"
