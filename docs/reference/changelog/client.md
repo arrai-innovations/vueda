@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **ViewList bulk-action sizing**:
+    - Bulk and workflow action buttons now use the small size consistently with the selection-bar convention. Their slot props include `size: "sm"`, so custom replacements that spread those props receive the same sizing.
+
 - **List filter and sort controls**:
     - Clear filters and Reset sort now use small neutral outline buttons so they remain recognizable as controls before hover. Their existing theme hooks and clearing behavior are unchanged.
 

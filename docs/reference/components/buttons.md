@@ -357,6 +357,11 @@ Size is a third, independent placement axis: `sm` in dense chrome (titles,
 toolbars, dialogs, bulk bars), `default` (32px) in form footers, `lg` for auth
 and full-page CTAs, `icon-sm` for pagination.
 
+`ViewList` supplies `size="sm"` for bulk and workflow actions through their shared
+slot props. Spread those props in a `bulk-action-button` or
+`workflow-action-button` replacement to retain the placement size; override
+`size` explicitly when your custom layout needs a different control height.
+
 ### Placement reference
 
 | Placement              | Primary action     | Alternative                    | Dismiss    | Destructive                             |
