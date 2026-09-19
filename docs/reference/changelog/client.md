@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **WidgetCombobox**:
+    - Required pickers inside VUEDA fields now show field errors on submission instead of letting the browser focus a visually hidden input and block the submit handler. Required indicators and accessible required state remain intact, and VUEDA validation still blocks empty required values. Standalone and contextless pickers retain native required validation.
+
 - **InputOTP**:
     - `aria-invalid="true"` on the input now gives all visible slots destructive borders and the active slot a destructive focus ring. The ring follows the active slot across groups. Disabled colors still take precedence.
       _The focus ring is now styled through `InputOTPSlot.root`, rather than `InputOTP.root`. Update custom ring overrides if needed._
