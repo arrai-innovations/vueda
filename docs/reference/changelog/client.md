@@ -31,6 +31,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Inline fieldsets**:
+    - Editable unsaved rows now show a Delete button even when the server supplies no `destroy` action. This applies to stacked, singular stacked, and tabular inlines. Deletion controls for saved rows still require the action metadata.
+    - The `destroy-button` slot also renders without a server action; its `action` and `value` props are then undefined, and its `label` defaults to `Delete`.
+
 - **Visible duration units (`WidgetDuration`)**:
     - Each enabled spinner now shows its unit above the input. Clicking a unit label focuses its own input, including when several units are shown. Customize the labels through `WidgetDuration.unitLabel`.
 

@@ -14,7 +14,27 @@ const SimpleStub = (qa) =>
     });
 
 vi.mock("@vueda/form/form-model/FieldRenderer.vue", () => ({ default: SimpleStub("field-renderer") }));
-vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({ default: SimpleStub("objects-grid") }));
+vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({
+    default: defineComponent({
+        props: ["objectsInOrder"],
+        setup:
+            (props, { slots }) =>
+            () =>
+                h(
+                    "div",
+                    { "data-qa": "objects-grid" },
+                    Array.isArray(props.objectsInOrder)
+                        ? props.objectsInOrder.map((obj, rowIndex) =>
+                              h(
+                                  "div",
+                                  { "data-row": rowIndex },
+                                  slots["field(item-action-bar)"]?.({ pk: obj?.id, rowIndex }),
+                              ),
+                          )
+                        : [],
+                ),
+    }),
+}));
 vi.mock("@vueda/controls/button/Button.vue", () => ({ default: SimpleStub("control-button") }));
 vi.mock("@vueda/shell/field/FieldDescription.vue", () => ({
     default: defineComponent({
@@ -40,6 +60,7 @@ const useFieldSetTabularInline = vi.fn();
 vi.mock("@vueda/use/useFieldSetTabularInline.js", () => ({
     FIELD_SET_TABULAR_INLINE_PROPS: {
         showCreateButton: { type: Boolean, default: true },
+        readOnly: { type: Boolean, default: false },
         fieldProps: { type: Object, default: undefined },
     },
     FIELD_SET_TABULAR_INLINE_EMITS: [],
@@ -115,6 +136,51 @@ describe("lib/form/field-set/FieldSetTabularInline.vue", () => {
     afterEach(() => {
         warnSpy.mockClear();
         vi.clearAllMocks();
+    });
+
+    scopedIt("removes only the chosen unsaved row without destroy metadata", async () => {
+        const wrapper = mountWithContext([{ id: 0 }, {}, {}]);
+        expect(wrapper.find('[data-row="0"] [data-qa="control-button"]').exists()).toBe(false);
+        const button = wrapper.get('[data-row="2"] [data-qa="control-button"]');
+        expect(button.text()).toBe("Delete");
+        await button.trigger("click");
+        expect(wrapper.vm.fieldSetTabularInline.removeObject).toHaveBeenCalledExactlyOnceWith(2);
+        expect(wrapper.vm.fieldSetTabularInline.handleSelected).not.toHaveBeenCalled();
+    });
+
+    scopedIt("keeps saved-row destroy selection separate from unsaved removal", async () => {
+        const wrapper = mountWithContext([{ id: 0 }, {}], {
+            state: { actions: [{ fieldName: "destroy", label: "Delete" }] },
+        });
+        const saved = wrapper.get('[data-row="0"]');
+        expect(saved.find('[data-qa="control-button"]').exists()).toBe(false);
+        saved.getComponent({ name: "widget-checkbox-stub" }).vm.$emit("update:model-value", true);
+        expect(wrapper.vm.fieldSetTabularInline.handleSelected).toHaveBeenCalledExactlyOnceWith(true, 0);
+        const unsaved = wrapper.get('[data-row="1"]');
+        expect(unsaved.findAll('[data-qa="control-button"]')).toHaveLength(1);
+        expect(unsaved.find('[data-qa="widget-checkbox"]').exists()).toBe(false);
+        await unsaved.get('[data-qa="control-button"]').trigger("click");
+        expect(wrapper.vm.fieldSetTabularInline.removeObject).toHaveBeenCalledExactlyOnceWith(1);
+    });
+
+    scopedIt("does not offer unsaved removal in read-only fieldsets", () => {
+        for (const options of [{ props: { readOnly: true } }, { state: { computedFieldProps: { readOnly: true } } }]) {
+            const wrapper = mountWithContext([{}], options);
+            expect(wrapper.find('[data-row="0"] [data-qa="control-button"]').exists()).toBe(false);
+        }
+    });
+
+    scopedIt("supports the destroy-button slot without server action metadata", async () => {
+        const wrapper = mountWithContext([{}], {
+            slots: {
+                "destroy-button": (props) =>
+                    h("button", { onClick: props.onClick }, `${props.label} ${props.rowIndex}`),
+            },
+        });
+        const button = wrapper.get('[data-row="0"] button');
+        expect(button.text()).toBe("Delete 0");
+        await button.trigger("click");
+        expect(wrapper.vm.fieldSetTabularInline.removeObject).toHaveBeenCalledExactlyOnceWith(0);
     });
 
     scopedIt("warns when value is not an array", async () => {

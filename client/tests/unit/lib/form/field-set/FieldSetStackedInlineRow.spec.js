@@ -92,6 +92,7 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
                 fieldName: "fs",
                 fieldSetContextState,
                 pk: options.pk,
+                readOnly: options.readOnly,
             },
             global: {
                 provide: { [FormModelSymbol]: formModel },
@@ -118,15 +119,39 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         const wrapper = mountWithContext({
             actions: [{ fieldName: "destroy", label: "Delete", value: 1 }],
         });
+        expect(wrapper.findAllComponents(ButtonStub)).toHaveLength(1);
         const btn = wrapper.get('[data-qa="button-stub"]');
         expect(btn.attributes("data-label")).toBe("Delete");
         await btn.trigger("click");
         expect(wrapper.emitted("destroy-row")[0]).toEqual([0]);
     });
 
+    scopedIt("removes an unsaved row without a destroy action", async () => {
+        const wrapper = mountWithContext();
+        await wrapper.get('[data-label="Delete"]').trigger("click");
+        expect(wrapper.emitted("destroy-row")).toEqual([[0]]);
+        expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+    });
+
+    scopedIt("does not offer removal for saved rows without a destroy action", () => {
+        for (const pk of [0, 1, "saved"]) {
+            const wrapper = mountWithContext({ pk });
+            expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+            expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+        }
+    });
+
+    scopedIt("does not offer removal for read-only unsaved rows", () => {
+        for (const actions of [[], [{ fieldName: "destroy", label: "Delete" }]]) {
+            const wrapper = mountWithContext({ readOnly: true, actions });
+            expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+            expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+        }
+    });
+
     scopedIt("emits update:selected from checkbox when pk present", async () => {
         const wrapper = mountWithContext({
-            pk: 1,
+            pk: 0,
             actions: [{ fieldName: "destroy", label: "Delete", value: 1 }],
         });
         const cb = wrapper.getComponent(WidgetCheckboxStub);
@@ -139,8 +164,8 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         const wrapper = mountWithContext({
             actions: [{ fieldName: "save", label: "Save", value: 2 }],
         });
-        const btn = wrapper.getComponent(ButtonStub);
-        expect(btn.attributes("data-label")).toBe("Save");
+        const btn = wrapper.findAllComponents(ButtonStub).find((button) => button.attributes("data-label") === "Save");
+        expect(wrapper.findAllComponents(ButtonStub)).toHaveLength(2);
         btn.vm.$emit("update:model-value", "v");
         await wrapper.vm.$nextTick();
         expect(wrapper.emitted("update:model-value")[0]).toEqual(["v"]);

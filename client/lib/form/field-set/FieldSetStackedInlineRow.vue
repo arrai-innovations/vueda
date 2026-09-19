@@ -11,8 +11,9 @@ import { computed, inject, unref, useSlots } from "vue";
 /**
  * Renders a single row within a stacked inline field set, including all
  * non-action fields and a row-level action bar. The action bar shows a delete
- * button for new (unsaved) rows and a destroy checkbox for existing rows, with
- * slot overrides available for each.
+ * button for editable new (unsaved) rows, even without a destroy action.
+ * Existing rows show a destroy checkbox only when that action is provided.
+ * Slot overrides are available for each.
  */
 defineOptions({});
 
@@ -70,11 +71,17 @@ const remainingSlotNames = computed(() => {
     return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
 });
 
+const isUnsaved = computed(() => props.pk === undefined || props.pk === null);
+const canRemove = computed(() => isUnsaved.value && !props.readOnly);
+const destroyAction = computed(() =>
+    props.fieldSetContextState.actions.find((action) => action.fieldName === "destroy"),
+);
+
 const rowState = computed(() => {
     if (props.fieldSetContextState?.selected?.includes?.(props.index)) {
         return "selected-for-destroy";
     }
-    if (props.pk === undefined || props.pk === null) {
+    if (isUnsaved.value) {
         return "dirty";
     }
     return null;
@@ -124,29 +131,29 @@ const rowState = computed(() => {
         </div>
         <slot name="item-action-bar">
             <div
-                v-if="fieldSetContextState.actions.length"
+                v-if="canRemove || fieldSetContextState.actions.length"
                 :class="theme('actionBarOuter')"
                 data-qa="field-set-tabular-inline-item-action-bar"
             >
+                <!-- @slot [destroy-button, fieldset-destroy-button] Button used to remove an editable unsaved row. The action prop is undefined when no destroy action is provided. -->
+                <slot
+                    v-if="canRemove"
+                    :action="destroyAction"
+                    :label="destroyAction?.label ?? 'Delete'"
+                    :name="fieldSetSlotNames['destroy-button'].name"
+                    :row-index="index"
+                    :selected="fieldSetContextState?.selected.includes(index)"
+                    :theme="theme"
+                    :value="destroyAction?.value"
+                    @click="onDelete"
+                >
+                    <Button emphasis="ghost" @click="onDelete">Delete</Button>
+                </slot>
                 <template v-for="action in fieldSetContextState.actions">
                     <template v-if="action.fieldName === 'destroy'">
-                        <!-- @slot [destroy-button, fieldset-destroy-button] Button used to delete a new (unsaved) inline row. -->
-                        <slot
-                            v-if="!pk"
-                            :action="action"
-                            :label="action.label"
-                            :name="fieldSetSlotNames['destroy-button'].name"
-                            :row-index="index"
-                            :selected="fieldSetContextState?.selected.includes(index)"
-                            :theme="theme"
-                            :value="action.value"
-                            @click="onDelete"
-                        >
-                            <Button emphasis="ghost" @click="onDelete">Delete</Button>
-                        </slot>
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
-                            v-else
+                            v-if="!isUnsaved"
                             :skip-feedback="true"
                             :action="action"
                             :contextless="true"

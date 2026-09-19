@@ -56,7 +56,7 @@ const handleIsTableUpdate = (state, newValue) => {
  * @typedef {object} FieldSetTabularInlineRawState
  * @property {boolean} [isTable=true] - Whether the fieldset is displayed as a table.
  * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding actions.
- *  If any actions exist, includes a synthetic 'item-action-bar' field first.
+ *  Includes an 'item-action-bar' field first when actions exist or editable unsaved rows can be removed.
  * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
  *  model's field props.
  * @property {{ widgetContext: import('@vueda/use/useWidget.js').WidgetContext, props: import('vue').UnwrapNestedRefs<object> }[]} widgetContextItems - The widget
@@ -109,7 +109,12 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         isTable: true,
         computedFieldObjects: computed(() => {
             const objects = [];
-            if (state.actions.length) {
+            const hasRemovableRows =
+                !props.readOnly &&
+                !state.computedFieldProps.readOnly &&
+                Array.isArray(fieldSetContext.state.value) &&
+                fieldSetContext.state.value.some((row) => row?.id == null);
+            if (state.actions.length || hasRemovableRows) {
                 objects.push({
                     name: "item-action-bar",
                 });
@@ -119,7 +124,7 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
             return objects.filter((field) => !field.action);
         }),
         computedFieldProps: computed(() =>
-            merge(fieldSetInline.formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
+            merge({}, fieldSetInline.formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
         ),
     });
 
