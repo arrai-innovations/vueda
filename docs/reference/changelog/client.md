@@ -38,6 +38,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Empty-string and nullish choices no longer cause invalid select items. Their label supplies the placeholder when no explicit placeholder is provided; `false` and `0` remain selectable. Active filters can still be cleared through their Remove control.
 
 - **Inline fieldsets**:
+    - Unsaved-row Delete buttons now use a trash icon, destructive tone, and small sizing consistently across stacked, singular stacked, and tabular layouts. Customize the icon through `FieldSetStackedInlineRow.typeDeleted` or `FieldSetTabularInline.typeDeleted` in `iconOverride` (with `Default.typeDeleted` as the fallback), and extra classes through each component's `destroyButton` theme key.
     - Editable unsaved rows now show a Delete button even when the server supplies no `destroy` action. This applies to stacked, singular stacked, and tabular inlines. Deletion controls for saved rows still require the action metadata.
     - The `destroy-button` slot also renders without a server action; its `action` and `value` props are then undefined, and its `label` defaults to `Delete`.
 

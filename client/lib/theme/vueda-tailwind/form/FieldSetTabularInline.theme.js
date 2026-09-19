@@ -14,6 +14,10 @@ patchTheme({
      * controls.
      */
     FieldSetTabularInline: {
+        /** Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance comes from {@api theme-key:Button}. */
+        destroyButton: {
+            class: [],
+        },
         /** Card shell for tabular inline editing, including nested-fieldset inset chrome. */
         root: {
             class: [

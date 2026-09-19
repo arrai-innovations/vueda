@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import { defineComponent, h, reactive } from "vue";
+import { Text, defineComponent, h, reactive } from "vue";
 
 const FieldRendererStub = defineComponent({
     name: "FieldRendererStub",
@@ -38,7 +38,10 @@ const ButtonStub = defineComponent({
     setup(_, { emit, slots }) {
         return () => {
             const children = slots.default?.();
-            const label = children?.[0]?.children;
+            const label = children
+                ?.filter((child) => child.type === Text)
+                .map((child) => child.children)
+                .join("");
             return h("button", {
                 "data-qa": "button-stub",
                 "data-label": typeof label === "string" ? label.trim() : undefined,

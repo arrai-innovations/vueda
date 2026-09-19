@@ -330,7 +330,9 @@ them independent. Decide each separately:
   secondary form action, a page-title secondary action, a toolbar trigger,
   pagination, an error-recovery retry.
 - **`ghost`** is a dismiss or a dense-strip action: cancel, clear, the actions
-  in a bulk-selection bar, an inline tertiary affordance.
+  in a bulk-selection bar, an inline tertiary affordance. Pair a ghost action
+  with an icon or place it in an established action group so it reads as
+  interactive before hover. For a standalone text-only action, prefer `outline`.
 - **`link`** is inline within running prose only. Never in a toolbar or an
   action strip, where it breaks the control rhythm.
 
@@ -341,8 +343,8 @@ them independent. Decide each separately:
 - **`primary`** is the earned accent. Reach for it only on the one promoted
   action per context (or set it explicitly for a deliberate CTA). Spreading
   `primary` across a cluster spends the accent that signals "the" action.
-- **`destructive`** marks an action that deletes data or is otherwise
-  irreversible. Set the tone, not a `text-destructive` class: a destructive
+- **`destructive`** marks deletion, including removal of an unsaved inline row,
+  or another destructive action. Set the tone, not a `text-destructive` class: a destructive
   ghost (`tone="destructive" emphasis="ghost"`) is a quiet red row action, a
   destructive fill is a confirm hero. The tone composes the right
   `_ButtonDestructive*` primitive for whatever emphasis the placement chose.
@@ -355,15 +357,16 @@ and full-page CTAs, `icon-sm` for pagination.
 
 ### Placement reference
 
-| Placement              | Primary action     | Alternative                | Dismiss    | Destructive             |
-| ---------------------- | ------------------ | -------------------------- | ---------- | ----------------------- |
-| Page-title action zone | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm | `destructive` fill, sm  |
-| Form / dialog footer   | `primary` fill     | `neutral` outline          | `ghost`    | `destructive` fill      |
-| Toolbar                |                    | `neutral` outline, sm      |            |                         |
-| Bulk-selection bar     |                    | `ghost` sm                 |            | `destructive` ghost, sm |
-| Pagination             |                    | `neutral` outline, icon-sm |            |                         |
-| Empty state            | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm |                         |
-| Inline (running prose) | `primary` link     | `neutral` link             |            | `destructive` link      |
+| Placement              | Primary action     | Alternative                    | Dismiss    | Destructive                             |
+| ---------------------- | ------------------ | ------------------------------ | ---------- | --------------------------------------- |
+| Page-title action zone | `primary` fill, sm | `neutral` outline, sm          | `ghost` sm | `destructive` fill, sm                  |
+| Form / dialog footer   | `primary` fill     | `neutral` outline              | `ghost`    | `destructive` fill                      |
+| Toolbar                |                    | `neutral` outline, sm          |            |                                         |
+| Inline fieldset row    |                    | `neutral` outline, sm (Create) |            | `destructive` ghost, sm (icon + Delete) |
+| Bulk-selection bar     |                    | `ghost` sm                     |            | `destructive` ghost, sm                 |
+| Pagination             |                    | `neutral` outline, icon-sm     |            |                                         |
+| Empty state            | `primary` fill, sm | `neutral` outline, sm          | `ghost` sm |                                         |
+| Inline (running prose) | `primary` link     | `neutral` link                 |            | `destructive` link                      |
 
 For buttons that navigate to a model action, this resolution happens
 automatically: every action button renders through
@@ -372,6 +375,31 @@ tone (a delete / destroy action is `destructive`, everything else `neutral`),
 applies the placement `emphasis` chosen by the surrounding view, and promotes
 the view's hero action to a fill. Authoring a `<Button>` by hand should follow
 the same table so hand-placed and resolved buttons read identically.
+
+### Customizing built-in inline buttons
+
+Stacked, singular stacked, and tabular inlines use a small destructive ghost
+button with a trash icon and a visible Delete label for unsaved rows. Create
+uses a small neutral outline button. The icon is decorative; the label provides
+the button's accessible name.
+
+The inline component selects `tone`, `emphasis`, and `size`. `useTheme` resolves
+the classes that draw those choices. Choose the customization point by what you
+need to change:
+
+- For layout or extra classes on Delete, override
+  {@api theme-key:FieldSetStackedInlineRow.destroyButton} (also used by singular
+  stacked inlines) or {@api theme-key:FieldSetTabularInline.destroyButton}.
+- For shared button appearance, override {@api theme-key:Button.root} or its
+  composed primitives. A `themeOverride` on the fieldset scopes overrides to
+  that fieldset and its descendants; a Button override there affects Create
+  and other buttons too.
+- For the trash icon, supply `iconOverride` with the `typeDeleted` entry under
+  `FieldSetStackedInlineRow` or `FieldSetTabularInline`. `Default.typeDeleted` changes
+  the shared fallback.
+- To choose different button props or replace its content, use the fieldset's
+  `destroy-button` slot. Forward its click handler so the replacement still
+  removes the unsaved row. Theme class hooks do not change component props.
 
 ## ButtonGroup: composition matrix
 

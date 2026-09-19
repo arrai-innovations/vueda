@@ -259,10 +259,18 @@ watch(
                                     @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                 >
                                     <Button
+                                        tone="destructive"
                                         emphasis="ghost"
                                         size="sm"
+                                        :class="fieldSetTabularInline.theme('destroyButton')"
                                         @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                     >
+                                        <component
+                                            :is="icon('typeDeleted').component"
+                                            v-if="icon('typeDeleted')"
+                                            v-bind="icon('typeDeleted').props"
+                                            aria-hidden="true"
+                                        />
                                         Delete
                                     </Button>
                                 </slot>

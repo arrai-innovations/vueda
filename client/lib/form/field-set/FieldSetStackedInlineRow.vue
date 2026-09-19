@@ -2,6 +2,7 @@
 import Button from "@vueda/controls/button/Button.vue";
 import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInlineRow.theme.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
@@ -49,9 +50,11 @@ const props = defineProps({
         required: true,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...ICON_OVERRIDE_PROPS,
 });
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow", props);
+const icon = useIcons("FieldSetStackedInlineRow", props);
 
 const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
 const onDelete = () => emit("destroy-row", props.index);
@@ -147,7 +150,21 @@ const rowState = computed(() => {
                     :value="destroyAction?.value"
                     @click="onDelete"
                 >
-                    <Button emphasis="ghost" @click="onDelete">Delete</Button>
+                    <Button
+                        tone="destructive"
+                        emphasis="ghost"
+                        size="sm"
+                        :class="theme('destroyButton')"
+                        @click="onDelete"
+                    >
+                        <component
+                            :is="icon('typeDeleted').component"
+                            v-if="icon('typeDeleted')"
+                            v-bind="icon('typeDeleted').props"
+                            aria-hidden="true"
+                        />
+                        Delete
+                    </Button>
                 </slot>
                 <template v-for="action in fieldSetContextState.actions">
                     <template v-if="action.fieldName === 'destroy'">
