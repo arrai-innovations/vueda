@@ -6,6 +6,9 @@ type: reference
 ---
 
 <script setup>
+import FieldSetMany from "@vueda/form/field-set/FieldSetMany.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
@@ -37,6 +40,7 @@ import { faMicrosoft } from "@fortawesome/free-brands-svg-icons";
 import { ref } from "vue";
 
 const remember = ref(false);
+const notificationEmails = ref(["orders@example.com", "accounts@example.com"]);
 </script>
 
 # Forms
@@ -758,3 +762,30 @@ The field shell is the most frequently customized part of VUEDA's theme. The hig
 - {@api theme-key:FieldMessage}: `root` — error text color; `list` — multi-message bullet list layout.
 - {@api theme-key:FormMessage}: `root` — margin around the consolidated Alert; `list` — list layout inside Alert.
 - {@api theme-key:FieldGroup}: `root` — gap between fields, container-query scope for responsive orientation.
+
+## Repeated values: FieldSetMany
+
+{@api vue:component:FieldSetMany} edits a list of values, with Add and Remove
+controls. Every entry can be removed, including the first and last. An optional
+list can be empty; a required list reports a list-level error when empty.
+Each added entry requires a value. Read-only lists disable Add and Remove.
+
+The fieldset heading labels the list. Per-entry labels stay available to assistive
+technology, while the default theme visually hides them to avoid repeating the
+heading. Remove aligns with the top control row, so validation messages below an
+input do not move its button. The `rows`, `component`, and `removeButton` slots on
+{@api theme-key:FieldSetMany} control this layout.
+
+This example uses `contextless` and `v-model` to keep its draft local to the demo.
+Inside a form, the component uses the array at its `name` path. Removing an entry
+shifts indexed feedback with the remaining values through
+{@api js:function:@arrai-innovations/vueda/use/useForm#useForm}'s `removeArrayItem(name, index)` method.
+
+<VuedaDemo>
+  <DemoCard title="optional email list">
+    <FieldSetMany v-model="notificationEmails" contextless name="notification_emails" label="Notification emails" :required="false" :many-component="FormField">
+      <WidgetTextInput type="email" />
+    </FieldSetMany>
+    <template #footer>remove all entries to return to an empty list; Add creates an entry that requires a value</template>
+  </DemoCard>
+</VuedaDemo>

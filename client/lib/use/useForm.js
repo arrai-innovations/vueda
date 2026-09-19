@@ -117,6 +117,51 @@ const deleteValue = (state, name) => {
     }
 };
 
+/**
+ * Remove an array entry and move indexed feedback and interaction state with
+ * the surviving values. Initial values retain their original indexes so the
+ * resulting edits remain visible to modification tracking.
+ *
+ * @param {FormContextState} state - The form state.
+ * @param {string} name - The array field path.
+ * @param {number} index - The zero-based index to remove.
+ * @private
+ */
+const removeArrayItem = (state, name, index) => {
+    validateName(name);
+    const values = get(state.values, name);
+    if (!Array.isArray(values) || !Number.isInteger(index) || index < 0 || index >= values.length) return;
+    const prefix = `${name}[`;
+    /** @param {string} path @returns {string|null} */
+    const shiftedPath = (path) => {
+        if (!path.startsWith(prefix)) return path;
+        const match = path.slice(prefix.length).match(/^(\d+)\](.*)$/);
+        if (!match || Number(match[1]) < index) return path;
+        if (Number(match[1]) === index) return null;
+        return `${prefix}${Number(match[1]) - 1}]${match[2]}`;
+    };
+    for (const collection of [state.errors, state.messages, state.touched, state.ignored]) {
+        const entries = Object.entries(collection);
+        for (const [path] of entries) {
+            if (shiftedPath(path) !== path) delete collection[path];
+        }
+        for (const [path, value] of entries) {
+            const nextPath = shiftedPath(path);
+            if (nextPath !== null && nextPath !== path) collection[nextPath] = value;
+        }
+    }
+    if (state.focused) state.focused = shiftedPath(state.focused);
+    state.anyError = Object.keys(state.errors).length > 0;
+    state.anyMessage = Object.keys(state.messages).length > 0;
+    state.anyTouched = Object.keys(state.touched).length > 0;
+    state.anyIgnored = Object.keys(state.ignored).length > 0;
+    updateValue(
+        state,
+        name,
+        values.filter((_, i) => i !== index),
+    );
+};
+
 function validateCode(code) {
     if (!code) {
         throw new Error("No code provided");
@@ -315,7 +360,10 @@ const setTouched = (state, name) => {
  * @private
  */
 const setAllTouched = (state) => {
-    assignReactiveObject(state.touched, Object.fromEntries(flattenPaths(state.values).map((path) => [path, true])));
+    // Empty arrays have no leaf paths, but their registered field still needs
+    // required validation on submission (for example an empty FieldSetMany).
+    const paths = new Set([...flattenPaths(state.values), ...Object.keys(state.required)]);
+    assignReactiveObject(state.touched, Object.fromEntries([...paths].map((path) => [path, true])));
     if (!state.anyTouched) {
         state.anyTouched = true;
     }
@@ -534,6 +582,7 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
+ * @property {(name: string, index: number) => void} removeArrayItem - Remove an array entry and shift its indexed errors, messages, touched, ignored, and focused state with the remaining values.
  * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
  * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
@@ -760,6 +809,7 @@ export function useForm(props) {
         // *** Value & Initial Value Handling ***
         updateValue: updateValue.bind(null, state),
         deleteValue: deleteValue.bind(null, state),
+        removeArrayItem: removeArrayItem.bind(null, state),
         updateInitialValue: updateInitialValue.bind(null, state),
         deleteInitialValue: deleteInitialValue.bind(null, state),
 

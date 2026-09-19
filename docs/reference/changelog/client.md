@@ -41,6 +41,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Disabled states now use the existing disabled fill and foreground tokens instead of reducing the whole control's opacity. Checkbox marks, radio dots, and switch-thumb positions preserve the value; disabled colors override active and invalid colors in both themes.
 
 - **FieldSetMany**:
+    - Any entry can be removed, including the first and last. Optional lists stay empty until Add is used; required lists validate their minimum of one entry. Every added entry requires a value, and read-only lists disable Add and Remove.
+    - Repeated labels remain accessible but are visually hidden. Remove buttons align with their controls even when validation messages appear. Indexed feedback follows surviving values through the new `useForm.removeArrayItem(name, index)` method.
     - Remove-entry buttons now use destructive tone consistently with unsaved inline deletion. Add and Remove explicitly use non-submit buttons so editing the list does not submit its parent form.
 
 - **ViewList bulk-action sizing**:

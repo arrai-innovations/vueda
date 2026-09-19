@@ -8,13 +8,14 @@ import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { watchIfDev } from "@vueda/utils/dev.js";
-import { computed, useAttrs } from "vue";
+import { FormContextSymbol } from "@vueda/utils/symbols.js";
+import { computed, inject, unref, useAttrs } from "vue";
 
 /**
  * A field that manages a list of values by rendering one instance of
  * `manyComponent` per entry. Provides Add and Remove buttons so users can
- * grow or shrink the list, and the first entry is always required while
- * subsequent entries are optional.
+ * grow or shrink the list. Every entry can be removed. Required lists need at
+ * least one entry; optional lists may be empty. Added entries require a value.
  */
 defineOptions({});
 
@@ -22,6 +23,11 @@ const attrs = useAttrs();
 const props = defineProps({
     ...ICON_OVERRIDE_PROPS,
     ...FIELD_PROPS,
+    /** Checks whether the list violates its required rule; defaults to rejecting missing or empty arrays. */
+    isRequiredViolation: {
+        type: Function,
+        default: (value) => !Array.isArray(value) || value.length === 0,
+    },
     /** The component used to render each individual entry in the list. */
     manyComponent: {
         type: Object,
@@ -31,16 +37,33 @@ const props = defineProps({
 });
 const emit = defineEmits([...FIELD_EMITS]);
 
+/** @type {import('@vueda/use/useForm.js').FormContext|null} */
+const providedFormContext = inject(FormContextSymbol, null);
+const formContext = computed(() => (props.contextless ? null : unref(providedFormContext)));
 const fieldContext = useField(props, emit);
 const logger = useDevLogger({ fieldContext });
 
 const fieldProps = computed(() => {
     const values = fieldContext.state.value;
-    const indexes = Array.isArray(values) && values.length ? values.map((_, index) => index) : [0];
+    const indexes = Array.isArray(values) ? values.map((_, index) => index) : [];
     return indexes.map((index) => ({
         ...props,
         ...attrs,
         name: `${fieldContext.state.name}[${index}]`,
+        label: `${fieldContext.state.label} ${index + 1}`,
+        help: "",
+        required: true,
+        shouldRequireFn: null,
+        // The list's required rule does not apply to a scalar entry. False and
+        // zero are values, not empty entries, for boolean and numeric lists.
+        isRequiredViolation: (value) => value === null || value === undefined || value === "",
+        modelValue: values[index],
+        "onUpdate:modelValue": (value) => {
+            if (fieldContext.state.readOnly) return;
+            const next = [...fieldContext.state.value];
+            next[index] = value;
+            fieldContext.state.value = next;
+        },
     }));
 });
 
@@ -55,11 +78,21 @@ watchIfDev(
 );
 
 const onAdd = () => {
+    if (fieldContext.state.readOnly) return;
+    fieldContext.blur();
     fieldContext.state.value = [...(fieldContext.state.value ?? []), undefined];
 };
 
 const onDestroy = (index) => {
-    fieldContext.state.value = (fieldContext.state.value ?? []).filter((_, i) => i !== index);
+    const values = fieldContext.state.value;
+    if (fieldContext.state.readOnly || !Array.isArray(values) || index < 0 || index >= values.length) return;
+    fieldContext.blur();
+
+    if (formContext.value) {
+        formContext.value.removeArrayItem(fieldContext.state.name, index);
+    } else {
+        fieldContext.state.value = values.filter((_, i) => i !== index);
+    }
 };
 const theme = useTheme("FieldSetMany", props);
 const icon = useIcons("FieldSetMany", props);
@@ -75,25 +108,30 @@ const icon = useIcons("FieldSetMany", props);
                     </label>
                 </slot>
             </div>
-            <div v-if="fieldProps?.length">
+            <div v-if="fieldProps.length" :class="theme('rows')">
                 <template v-for="(fieldProp, index) in fieldProps" :key="index">
                     <!-- @slot [field(fieldName)] Override the rendered row for a specific field entry. -->
                     <slot :name="`field(${fieldProp.name})`" v-bind="{ fieldProps, index }">
                         <div :class="theme('row')" data-qa="field-set-many-row">
                             <div :class="theme('component')">
-                                <component :is="props.manyComponent" v-bind="fieldProp" :required="index > 0">
+                                <component :is="props.manyComponent" v-bind="fieldProp">
                                     <slot :hidden="true" />
                                 </component>
                             </div>
                             <div :class="theme('removeButton')" data-qa="field-set-many-remove">
-                                <!-- @slot [destroy] Override the delete button for a row. The slot receives `onClick`, `disabled`, and `index` as slot props; the first entry's remove is disabled rather than hidden. -->
-                                <slot name="destroy" :disabled="index === 0" :index="index" @click="onDestroy(index)">
+                                <!-- @slot [destroy] Override the delete button for a row. The slot receives `onClick`, `disabled`, and `index` as slot props; removal is disabled when the field is read-only. -->
+                                <slot
+                                    name="destroy"
+                                    :disabled="fieldContext.state.readOnly"
+                                    :index="index"
+                                    @click="onDestroy(index)"
+                                >
                                     <Button
                                         type="button"
                                         tone="destructive"
                                         emphasis="ghost"
                                         size="icon-sm"
-                                        :disabled="index === 0"
+                                        :disabled="fieldContext.state.readOnly"
                                         @click="onDestroy(index)"
                                     >
                                         <component
@@ -112,8 +150,14 @@ const icon = useIcons("FieldSetMany", props);
             </div>
             <div :class="theme('footer')" data-qa="field-set-many-footer">
                 <!-- @slot [add] Override the add button. -->
-                <slot name="add" @click="onAdd">
-                    <Button type="button" emphasis="outline" size="sm" @click="onAdd">
+                <slot name="add" :disabled="fieldContext.state.readOnly" @click="onAdd">
+                    <Button
+                        type="button"
+                        emphasis="outline"
+                        size="sm"
+                        :disabled="fieldContext.state.readOnly"
+                        @click="onAdd"
+                    >
                         <component
                             :is="icon('plus').component"
                             v-if="icon('plus')"
