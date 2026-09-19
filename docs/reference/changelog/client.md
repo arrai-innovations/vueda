@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **FieldSetMany**:
+    - Remove-entry buttons now use destructive tone consistently with unsaved inline deletion. Add and Remove explicitly use non-submit buttons so editing the list does not submit its parent form.
+
 - **ViewList bulk-action sizing**:
     - Bulk and workflow action buttons now use the small size consistently with the selection-bar convention. Their slot props include `size: "sm"`, so custom replacements that spread those props receive the same sizing.
 

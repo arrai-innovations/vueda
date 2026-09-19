@@ -346,7 +346,10 @@ them independent. Decide each separately:
   action per context (or set it explicitly for a deliberate CTA). Spreading
   `primary` across a cluster spends the accent that signals "the" action.
 - **`destructive`** marks deletion, including removal of an unsaved inline row,
-  or another destructive action. Set the tone, not a `text-destructive` class: a destructive
+  or a repeated value through `FieldSetMany`. Removing a draft value deserves the
+  same tone even though it has not been saved. Clearing a filter changes the view
+  rather than its data, so that control remains neutral.
+  Set the tone, not a `text-destructive` class: a destructive
   ghost (`tone="destructive" emphasis="ghost"`) is a quiet red row action, a
   destructive fill is a confirm hero. The tone composes the right
   `_ButtonDestructive*` primitive for whatever emphasis the placement chose.
