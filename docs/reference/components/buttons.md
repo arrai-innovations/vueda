@@ -333,6 +333,8 @@ them independent. Decide each separately:
   in a bulk-selection bar, an inline tertiary affordance. Pair a ghost action
   with an icon or place it in an established action group so it reads as
   interactive before hover. For a standalone text-only action, prefer `outline`.
+  The list's Clear filters and Reset sort controls use small neutral outlines:
+  they change the view's constraints, so they do not need destructive tone.
 - **`link`** is inline within running prose only. Never in a toolbar or an
   action strip, where it breaks the control rhythm.
 

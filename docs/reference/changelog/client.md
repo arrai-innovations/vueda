@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **List filter and sort controls**:
+    - Clear filters and Reset sort now use small neutral outline buttons so they remain recognizable as controls before hover. Their existing theme hooks and clearing behavior are unchanged.
+
 - **Numeric range filters**:
     - Filters with `typeFilter: "RangeField"` now render optional numeric minimum and maximum inputs. Decimal thresholds retain their fractional values, and numeric range validation compares string-backed values numerically, so a valid range such as `2.5` to `10.25` is accepted.
 
