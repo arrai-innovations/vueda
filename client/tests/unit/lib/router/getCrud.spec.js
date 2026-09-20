@@ -46,6 +46,16 @@ describe("lib/router/getCrud.js", () => {
         );
     });
 
+    it("captures the selection before waiting for metadata", async () => {
+        let resolveMetadata;
+        fetchModelInfo.mockReturnValue(new Promise((resolve) => (resolveMetadata = resolve)));
+        const pk = ["20"];
+        const route = getCRUDForTo({ app: "catalog", model: "item", pk, view: "bulk" });
+        pk.push("73");
+        resolveMetadata({ actions: [] });
+        expect((await route).query.pk).toBe("20");
+    });
+
     it("does not throw when pk missing for detail view even with throwOnUndefinedPk", async () => {
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "retrieve", detail: true }] });
         const result = await getCRUDForTo({

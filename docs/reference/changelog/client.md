@@ -31,6 +31,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Bulk action and workflow transition links**:
+    - Links now follow changes to the selected rows, including additions and removals within the same selection array. Previously, a link could keep the first selection and open the action with outdated record IDs.
+
 - **useSignInFlow**:
     - A post-login redirect that cannot happen is now reported instead of being announced as a success. The composable pushed its destination without awaiting or catching it, then showed the "Signed In" toast on the next line, so a navigation that rejected or threw left an unhandled error in the console, a success message on screen, and the person still on the sign-in form. The push is now awaited: on success the existing toast is unchanged, and on failure a `toast.error` says the sign-in worked but the next page could not be opened, with the destination and the error logged to the console for whoever owns the routes. Both failure shapes are covered, since Vue Router resolves the destination inside `push` and an unmatched route name throws synchronously while a rejecting guard does not.
       _The most common cause is the default destination. With no `redirect` prop and no `?redirect` query parameter, the flow still pushes `{ name: "welcome" }`, which an application that names its landing route something else does not have. See [Build Auth Views](../../guides/build-auth-views) for the redirect chain._
