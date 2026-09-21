@@ -23,6 +23,9 @@ import { defineAsyncComponent, markRaw } from "vue";
  */
 export const availableColumns = {
     ColumnText: markRaw(ColumnText),
+    ColumnBoolean: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnBoolean.vue")).default),
+    ),
     ColumnDateTime: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDateTime.vue")).default),
     ),
