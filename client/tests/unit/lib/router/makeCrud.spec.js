@@ -19,14 +19,22 @@ describe("lib/router/makeCrud.js", () => {
     let pinia;
     const component = {};
     const vueApp = {};
-    const router = {};
+    let router;
     const actionRedirect = { name: "not-found" };
+
+    /**
+     * The guard `makeCRUDRoutes` last registered with `router.beforeEach`.
+     *
+     * @returns {(to: object, from: object) => any} The registered guard.
+     */
+    const registeredGuard = () => router.beforeEach.mock.calls.at(-1)[0];
 
     beforeEach(async () => {
         vi.resetModules();
         requireAuth.mockReset();
         requireGroups.mockReset();
         requireModelInfo.mockReset();
+        router = { beforeEach: vi.fn() };
         pinia = createPinia();
         setActivePinia(pinia);
         ({ makeCRUDRoutes } = await import("@vueda/router/makeCrud.js"));
@@ -51,20 +59,20 @@ describe("lib/router/makeCrud.js", () => {
                 component,
             }),
         );
-        expect(detail.beforeEnter).toBe(list.beforeEnter);
-        const guards = detail.beforeEnter;
-        expect(guards).toHaveLength(1);
 
-        const to = { params: { app: "a", model: "b", action: "c", pk: "1" } };
-        guards[0](to);
+        const to = { name: "actionrouter.detailview", params: { app: "a", model: "b", action: "c", pk: "1" } };
+        const from = { name: undefined, params: {} };
+        registeredGuard()(to, from);
         expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, to, router, pinia);
     });
 
-    scopedIt("adds prefix and guards when provided", () => {
+    scopedIt("adds prefix and guards when provided", async () => {
         const authRedirect = { name: "login" };
         const groups = ["admin"];
         const groupsRedirect = { name: "denied" };
         const actionRedirect = { name: "missing" };
+        requireAuth.mockResolvedValue(undefined);
+        requireModelInfo.mockResolvedValue(true);
         const [detail, list] = makeCRUDRoutes({
             component,
             authRedirect,
@@ -80,12 +88,9 @@ describe("lib/router/makeCrud.js", () => {
         expect(detail.path).toBe("/pre/:app/:model/:action/:pk");
         expect(list.path).toBe("/pre/:app/:model/:action/");
 
-        const to = { params: { app: "a", model: "b", action: "c", pk: "1" } };
-        const guards = list.beforeEnter;
-        expect(guards).toHaveLength(3);
-        guards[0](to);
-        guards[1](to);
-        guards[2](to);
+        const to = { name: "actionrouter.listview", params: { app: "a", model: "b", action: "c" } };
+        const from = { name: undefined, params: {} };
+        await registeredGuard()(to, from);
 
         expect(requireAuth).toHaveBeenCalledWith(authRedirect, to, router, pinia);
         expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, to, router, pinia);
@@ -102,6 +107,77 @@ describe("lib/router/makeCrud.js", () => {
             router,
             pinia,
         );
+    });
+
+    describe("Recheck when navigation stays inside one route record", () => {
+        const to = (action, extra = {}) => ({
+            name: "actionrouter.listview",
+            params: { app: "blog", model: "post", action },
+            ...extra,
+        });
+
+        beforeEach(() => {
+            requireModelInfo.mockResolvedValue(true);
+        });
+
+        scopedIt("reruns the checks when the action changes inside the same record", async () => {
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+
+            await registeredGuard()(to("update"), to("list"));
+
+            expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, to("update"), router, pinia);
+        });
+
+        scopedIt("reruns the checks when the model changes inside the same record", async () => {
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            const target = { name: "actionrouter.listview", params: { app: "blog", model: "comment", action: "list" } };
+
+            await registeredGuard()(target, to("list"));
+
+            expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, target, router, pinia);
+        });
+
+        scopedIt("skips the checks when only the query string changes", async () => {
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            const target = to("list", { query: { page: "2" } });
+
+            const result = await registeredGuard()(target, to("list", { query: { page: "1" } }));
+
+            expect(requireModelInfo).not.toHaveBeenCalled();
+            expect(result).toBe(true);
+        });
+
+        scopedIt("skips the checks when only the primary key changes", async () => {
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            const detailTo = (pk) => ({
+                name: "actionrouter.detailview",
+                params: { app: "blog", model: "post", action: "update", pk },
+            });
+
+            const result = await registeredGuard()(detailTo("2"), detailTo("1"));
+
+            expect(requireModelInfo).not.toHaveBeenCalled();
+            expect(result).toBe(true);
+        });
+
+        scopedIt("leaves a route it did not generate alone", async () => {
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            const target = { name: "welcome", params: {} };
+
+            const result = await registeredGuard()(target, to("list"));
+
+            expect(requireModelInfo).not.toHaveBeenCalled();
+            expect(result).toBe(true);
+        });
+
+        scopedIt("redirects when the check for the new target denies it", async () => {
+            requireModelInfo.mockResolvedValue(actionRedirect);
+            makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+
+            const result = await registeredGuard()(to("delete"), to("list"));
+
+            expect(result).toBe(actionRedirect);
+        });
     });
 
     scopedIt("list route props splits pk query", () => {
@@ -196,7 +272,7 @@ describe("lib/router/makeCrud.js", () => {
         beforeEach(() => {
             userStore = storeUser(pinia);
             currentRoute = ref(location("actionrouter.listview"));
-            watchingRouter = { currentRoute, replace: vi.fn(() => Promise.resolve()) };
+            watchingRouter = { currentRoute, replace: vi.fn(() => Promise.resolve()), beforeEach: vi.fn() };
             requireAuth.mockResolvedValue(undefined);
             requireModelInfo.mockResolvedValue(true);
             requireGroups.mockResolvedValue(true);

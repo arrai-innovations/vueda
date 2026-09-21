@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **A move between models or actions rechecks route access (`makeCRUDRoutes`)**:
+    - `makeCRUDRoutes` generates two route records shared by every app, model, and action: one for list views and one for detail views. Vue Router runs `beforeEnter` only when a navigation enters a record, so a navigation between models or actions, which changes only the route's parameters, stayed inside the same record and ran no check at all. The client rendered "Action Not Found" for the new model instead of redirecting to `actionRedirect`, and the address bar kept the denied URL.
+    - `makeCRUDRoutes` now also registers the configured checks as a `beforeEach` guard, so a navigation that changes the app, model, or action reruns `requireAuth`, `requireModelInfo`, and `requireGroups` and redirects to `authRedirect`, `actionRedirect`, or `groupsRedirect`, whether or not the navigation enters a different route record. A navigation that changes only the query string or the primary key skips the checks, since neither affects what they resolve.
+      _No integrator action. Every request to the server still carries its own authorization, so this closes a case where the client showed the wrong view rather than a case where a principal could read data they should not._
+
 - **The empty state spans the grid width in table layout (`ObjectsGrid`)**:
     - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
       _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._

@@ -231,6 +231,54 @@ describe("lib/router/makeCrud.js", () => {
         });
     });
 
+    describe("Recheck when navigation stays inside one route record", () => {
+        scopedIt("redirects a move from an allowed model to a denied one", async () => {
+            modelAllows("post", ["list"]);
+            modelAllows("comment", []);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+            expect(router.currentRoute.value.name).toBe("actionrouter.listview");
+
+            const failure = await router.push("/blog/comment/list/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+            expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
+            expect(failure).toBeUndefined();
+        });
+
+        scopedIt("redirects a move to an action the model config omits, leaving the model unchanged", async () => {
+            modelAllows("post", ["list"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+
+            await router.push("/blog/post/create/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+        });
+
+        scopedIt("runs no metadata check on a query-only change, and keeps the current view mounted", async () => {
+            modelAllows("post", ["list"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+            fetchHelper.mockClear();
+
+            await router.push("/blog/post/list/?page=2");
+
+            expect(router.currentRoute.value.fullPath).toBe("/blog/post/list/?page=2");
+            expect(fetchHelper).not.toHaveBeenCalled();
+        });
+
+        scopedIt("behaves as entering the record from outside, including the auth redirect", async () => {
+            whoIs({});
+            buildRouter({ authRedirect: { name: "sign-in" } });
+            await storeUser(pinia).fetchCurrentUser();
+
+            await router.push("/blog/post/list/");
+
+            expect(router.currentRoute.value.name).toBe("sign-in");
+        });
+    });
+
     describe("Metadata fetched for a user who has since been replaced", () => {
         scopedIt("does not let it approve the navigation that fetched it", async () => {
             let releasePost;
