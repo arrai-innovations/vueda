@@ -126,6 +126,7 @@ function mountWithContext(value, options = {}) {
         handleSelected: vi.fn(),
         refFn: vi.fn(),
         removeObject: vi.fn(),
+        setVisibility: vi.fn(),
         toggleVisibility: vi.fn(),
     });
 
@@ -234,14 +235,14 @@ describe("lib/form/field-set/FieldSetTabularInline.vue", () => {
         expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    scopedIt("emits toggleVisibility when title bar is clicked", async () => {
+    scopedIt("requests visibility when the disclosure is clicked", async () => {
         const wrapper = mountWithContext([], {
             state: { hidable: true },
         });
         const titleBar = wrapper.find('[data-qa="field-set-tabular-inline-title-bar"]');
-        expect(titleBar.attributes("role")).toBe("button");
+        expect(titleBar.element.tagName).toBe("BUTTON");
         expect(titleBar.attributes("aria-expanded")).toBe("true");
         await titleBar.trigger("click");
-        expect(wrapper.vm.fieldSetTabularInline.toggleVisibility).toHaveBeenCalled();
+        expect(wrapper.vm.fieldSetTabularInline.setVisibility).toHaveBeenCalledWith(false);
     });
 });

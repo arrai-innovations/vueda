@@ -14,7 +14,7 @@ import { computed, reactive, readonly, toRefs } from "vue";
 export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
 
 /** Array of Vue event names emitted by tabular inline field-set components. Pass to the `emits` option of a tabular inline field-set component. */
-export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
+export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS, "update:visible"];
 
 /**
  * @callback BoundHandleIsTableUpdate
@@ -87,6 +87,7 @@ const handleIsTableUpdate = (state, newValue) => {
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.
+ * @property {(visible: boolean) => void} setVisibility - Set visibility, emitting update:visible when controlled.
  * @property {BoundToggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
  */
 
@@ -142,6 +143,7 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         handleSelected: fieldSetInline.handleSelected,
         refFn: fieldSetInline.refFn,
         removeObject: fieldSetInline.removeObject,
+        setVisibility: fieldSetInline.setVisibility,
         toggleVisibility: fieldSetInline.toggleVisibility,
     };
 }

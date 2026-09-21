@@ -182,10 +182,6 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
     if (defaultValues) {
         defaultObject = { ...defaultObject, ...defaultValues };
     }
-    if (!state.internalVisible) {
-        state.internalVisible = true;
-        state.userHasToggled = true;
-    }
     fieldSetContext.blur();
     fieldSetContext.state.value = fieldSetContext.state.value
         ? [...cloneDeep(fieldSetContext.state.value), defaultObject]
@@ -215,16 +211,18 @@ const removeObject = (fieldSetContext, index) => {
  * @callback BoundToggleVisibility
  */
 /**
- * Toggles the visibility of the fieldset.
+ * Sets visibility locally or requests a controlled visibility change.
  *
  * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('vue').EmitFn} emit - The emit function.
+ * @param {boolean} visible - Whether the body should be open.
+ * @returns {void}
  */
-const toggleVisibility = (state, emit) => {
+const setVisibility = (state, emit, visible) => {
     if (state.visible !== undefined) {
-        emit("update:visible", !state.internalVisible);
+        emit("update:visible", visible);
     } else {
-        state.internalVisible = !state.internalVisible;
+        state.internalVisible = visible;
     }
     state.userHasToggled = true;
 };
@@ -284,6 +282,7 @@ const refFn = (state, el) => {
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.
+ * @property {(visible: boolean) => void} setVisibility - Set visibility, emitting update:visible when controlled.
  * @property {BoundToggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
  */
 
@@ -427,18 +426,15 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         },
         { deep: true, flush: "post" },
     );
-    watch(toRef(state, "isVisibleByDefault"), (newVal) => {
-        if (!state.userHasToggled && state.visible === undefined) {
-            state.internalVisible = newVal;
-        }
-    });
     watch(
-        [toRef(state, "visible"), toRef(state, "hidable")],
-        ([newVisibleVal, newHidable]) => {
-            if (newVisibleVal !== undefined) {
-                state.internalVisible = newVisibleVal;
-            } else if (newHidable === false || state.internalVisible === undefined) {
-                state.internalVisible = state.isVisibleByDefault;
+        [toRef(state, "visible"), toRef(state, "hidable"), toRef(state, "isVisibleByDefault")],
+        ([visible, hidable, defaultVisible]) => {
+            if (visible !== undefined) {
+                state.internalVisible = visible;
+            } else if (hidable === false) {
+                state.internalVisible = true;
+            } else if (!state.userHasToggled) {
+                state.internalVisible = defaultVisible;
             }
         },
         { immediate: true },
@@ -452,6 +448,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         formModel,
         resolvedSlotNames,
         doCreate: (_e, defaultValues) => {
+            if (!state.internalVisible) {
+                setVisibility(state, emit, true);
+            }
             doCreate(state, fieldSetContext, _e, defaultValues);
         },
         getEmptyFieldObject: () => {
@@ -466,8 +465,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         removeObject: (index) => {
             removeObject(fieldSetContext, index);
         },
+        setVisibility: (visible) => setVisibility(state, emit, visible),
         toggleVisibility: () => {
-            toggleVisibility(state, emit);
+            setVisibility(state, emit, !state.internalVisible);
         },
     };
 }

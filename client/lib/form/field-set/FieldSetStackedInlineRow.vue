@@ -153,6 +153,7 @@ const rowState = computed(() => {
                     @click="onDelete"
                 >
                     <Button
+                        type="button"
                         tone="destructive"
                         emphasis="ghost"
                         size="sm"

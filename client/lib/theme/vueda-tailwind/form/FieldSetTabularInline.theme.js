@@ -43,6 +43,12 @@ patchTheme({
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },
+        /** Disclosure label and chevron, beside the independent Create action. */
+        titleTrigger: {
+            class: [
+                "flex flex-1 min-w-0 items-center gap-2 2xs:gap-3 text-left [font:inherit] [text-transform:inherit] tracking-[inherit] -ml-3 -my-2 px-3 py-2 self-stretch",
+            ],
+        },
         /** Interactive state layer for a hidable tabular title bar. See also: {@api theme-key:FieldSetStackedInline.titleBarToggle}. */
         titleBarToggle: {
             class: [
@@ -76,7 +82,7 @@ patchTheme({
         objectsGrid: {
             class: "w-full",
         },
-        /** Hidden grid state used when the empty invitation replaces the tabular body. */
+        /** Legacy grid visibility hook. CollapsibleContent now controls body visibility. */
         objectsGridHidden: {
             class: "hidden",
         },
