@@ -187,4 +187,52 @@ describe("lib/use/useViewDestroy.js", () => {
         const listProps = useList.mock.calls[0][0].props;
         expect(listProps.pkKey).toBe("id");
     });
+
+    describe("Page title", () => {
+        // "Delete", not "Destroy": the route names the operation, the page says what the
+        // operator is doing.
+        scopedIt("names the operation and the model's verbose name", async () => {
+            mockModelConfig.config = { verboseName: "widget", verboseNamePlural: "widgets" };
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.titleStr.value).toBe("Delete Widget");
+        });
+
+        scopedIt("counts and pluralizes a bulk destroy", async () => {
+            mockModelConfig.config = { verboseName: "widget", verboseNamePlural: "widgets" };
+            props.pk = ["1", "2", "3"];
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.titleStr.value).toBe("Delete 3 Widgets");
+        });
+
+        scopedIt("still names one record when a bulk route carries a single pk", async () => {
+            mockModelConfig.config = { verboseName: "widget", verboseNamePlural: "widgets" };
+            props.pk = ["1"];
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.titleStr.value).toBe("Delete Widget");
+        });
+
+        // The config arrives with the model info, so the title has to read before it lands.
+        scopedIt("falls back to the model name when no verbose name is configured", async () => {
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.titleStr.value).toBe("Delete Test Model");
+
+            props.pk = ["1", "2"];
+            await nextTick();
+            expect(result.titleStr.value).toBe("Delete 2 Test Models");
+        });
+
+        scopedIt("reports loading while either the config or the records are in flight", async () => {
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.pageLoading.value).toBe(false);
+
+            mockInstanceList.state.loading = true;
+            await nextTick();
+            expect(result.pageLoading.value).toBe(true);
+
+            mockInstanceList.state.loading = false;
+            mockModelConfig.loading = true;
+            await nextTick();
+            expect(result.pageLoading.value).toBe(true);
+        });
+    });
 });

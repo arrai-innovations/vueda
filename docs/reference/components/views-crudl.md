@@ -292,7 +292,8 @@ from the fetched instances, and an optional type-to-confirm phrase gates the sub
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>card: {@api theme-key:ViewDestroy} paints a <code>border-destructive/50</code> edge plus an 8 % destructive ring, and wraps the inner {@api theme-key:ModelActionForm} as <code>bare</code> so only this surface carries chrome</span>
-    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the title is generated from the record count and model verbose name</span>
+    <span>title: contributed through <code>usePageTitle</code> like the other CRUD views, and counted for a bulk destroy. It reads Delete, not Destroy: the route names the operation, the page says what the operator is doing</span>
+    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the banner title is generated from the record count and model verbose name</span>
     <span>consequences: the <code>linkedObjectCounts</code> prop becomes a {@api vue:component:ConsequencesBullets} list. With none supplied the banner falls back to a single "This action cannot be undone." line</span>
     <span>records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each row's <code>formatted_name</code> beside its primary key</span>
     <span>type-to-confirm: {@api vue:component:TypedConfirmField} holds its own value and gates submit; it is not a form field, so the phrase never reaches the request body</span>

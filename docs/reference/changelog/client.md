@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **The destroy view contributes a page title (`ViewDestroy`, `useViewDestroy`)**:
+    - A Destroy route went straight from the shell breadcrumb to the danger card, with no page heading, because neither `ViewDestroy` nor `useViewDestroy` called `usePageTitle` while Create, Update, Read, List, and the action confirmations all do. `useViewDestroy` now exposes `titleStr` and `pageLoading`, and the view registers them, so the layout's `PageTitle` renders a heading here too.
+    - The title reads "Delete Widget", and counts and pluralizes a bulk destroy as "Delete 3 Widgets". It says Delete rather than Destroy: the route action names the operation, the heading says what the operator is doing, matching the danger banner below it.
+      _An application that added its own heading above `ViewDestroy` to fill the gap will now show two. Remove the local one. An application that renders `PageTitle` only when its context carries a title will start showing the bar on this route._
+
 - **`JSON` renders as formatted text, not one line (`fieldMappings`, `columnMappings`, new `WidgetJsonReadOnly`, `ColumnJson`, and `JsonDisplay`)**:
     - A read view printed a whole `JSON` payload on one line, because a field with no `readOnlyWidget` falls back to `WidgetReadOnly`. `JSONField` now names `WidgetJsonReadOnly` in `fieldMappings` and `ColumnJson` in `columnMappings`, so the type no longer relies on the `ColumnText` fallback either.
     - `JsonDisplay` has two forms, and both use the mono stack. The block form the read view uses indents the payload two spaces per level and wraps a long string value; the inline form a list cell uses keeps it compact and truncates past `maxLength` (200 characters by default). Size and leading are inherited rather than set, so a read row keeps its rhythm and a grid cell still follows `data-density`. `indent` and `maxLength` reach the two through `readOnlyWidgetProps` and `columnProps`.

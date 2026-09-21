@@ -3,6 +3,7 @@ import ConsequencesBullets from "@vueda/display/consequences-bullets/Consequence
 import LoadingSpinnerBlock from "@vueda/display/loading/LoadingSpinnerBlock.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewDestroy.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
@@ -18,6 +19,10 @@ import { computed, useSlots } from "vue";
  * Wraps the ModelActionForm in a destructive-toned card with a danger banner so the blast radius is
  * legible at a glance. The banner exposes a `linkedObjectCounts` prop and a `banner` slot for
  * surfacing cascading-delete summaries when the server provides them.
+ *
+ * Contributes its own page title ("Delete Widget", or "Delete 3 Widgets" for a bulk destroy)
+ * through {@link usePageTitle}, so the layout's PageTitle display renders a heading here as it
+ * does on the other CRUD views.
  */
 defineOptions({
     inheritAttrs: false,
@@ -67,7 +72,11 @@ const props = defineProps({
     },
 });
 
-const { modelConfig, instanceList } = useViewDestroy(props);
+const { modelConfig, instanceList, titleStr, pageLoading } = useViewDestroy(props);
+// Contribute the page title to the layout's PageTitle display, as Create, Update, and the
+// action confirmations do. Without this the Destroy route went straight from the shell
+// breadcrumb to the danger card, with no page heading of its own.
+usePageTitle(() => ({ title: titleStr.value, loading: pageLoading.value }));
 const slots = useSlots();
 const theme = useTheme("ViewDestroy", props);
 const icon = useIcons("ViewDestroy", props);
