@@ -23,6 +23,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Features
 
+- **Optional Unovis theme integration**:
+    - Import `theme/vueda-tailwind/unovis.css` and wrap charts in `unovis-vueda` to map axes, legends, crosshairs, and tooltips to VUEDA tokens. Five independent chart colors use an Okabe-Ito derivative with light and dark variants; single-series charts use the first color by default.
+    - Native Unovis components remain available directly. The integration does not load Unovis from VUEDA's common startup imports. See [Style Unovis Charts](../../guides/style-unovis-charts.md) for installation, coverage, and local overrides.
+
 - **Brand palette in both color modes (`vueda-tailwind`)**:
     - Primary fills retain the canonical blue in light and dark mode, with dark labels and lighter hover/pressed fills. Dark surfaces derive from the brand navy and grey; supporting surfaces, text, fields, and borders use explicit palette mixes.
     - New `--primary-text`, `--primary-text-active`, and `--sidebar-primary-text` tokens keep blue text readable independently of solid primary fills. Links and tinted labels use these tokens; `--ring` and `--info` follow the readable blue.
