@@ -12,26 +12,13 @@ Integrator-facing changes for the `@arrai-innovations/vueda` npm package.
 Use this page for changes that affect client package consumers: public Vue components, composables, routes,
 stores, theme behavior, build integration, dependency expectations, and migration notes.
 
-## v3.0.0-alpha.4 (unreleased)
-
-### Breaking Changes
-
-- **Dotted field, filter, and expand identities (`storeModelConfig`, `useFormModel`, `useFilter`, `useFieldSetInline`, `FieldSetRange`, `useViewList`)**:
-    - Every client-side identity that crosses a relation now uses dots instead of `__`: expand-flattened `fieldDetails` keys, `fieldComponents`/`widgetComponents`/`fieldProps`/`widgetProps` override keys, sortables, slot names (`field(employee.name)`), range-filter sub-field keys, and the `o`/filter query parameters sent to match the server's dotted `model_ordering`/`model_filtering` metadata. `useForm`'s value storage addresses a dotted, non-nested identity (a related filter, an expand-flattened display field) as one flat key rather than letting the dots nest it, so a filter or display field named `employee.name` never becomes a nested `employee` object in form state.
-    - `storeModelConfig` rejects a declared `submitFields` entry that names an expand-flattened display field, since VUEDA has no mechanism to submit a nested value back through one; use a writable inline/array field for anything the form must submit. A `fields` shorthand naming such a field still builds: the derived `submitFields` drops it, so a shorthand that is correct for display and fetch does not fail a `list` or `read` config.
-      _Update any application config that overrides `fieldComponents`, `sortables`, `filterableDetails`, `columnComponents`, or a `field(...)`/`widget(...)` slot for a field that crosses a relation, from the `__`-joined form to the dotted form. Saved list preferences (sort order, hidden columns, filters) stored under the old `__`-joined names in `localStorage` become stale and are dropped; users see default preferences once after upgrading. Move a dotted `fields`/`displayFields`/`fetchFields` entry for an expand-flattened field out of `submitFields` if it was there, since it now fails config validation instead of silently submitting broken nested data._
+## v3.0.0-alpha.5 (2026-09-21)
 
 ### Features
 
 - **Optional Unovis theme integration**:
     - Import `theme/vueda-tailwind/unovis.css` and wrap charts in `unovis-vueda` to map axes, legends, crosshairs, and tooltips to VUEDA tokens. Five independent chart colors use an Okabe-Ito derivative with light and dark variants; single-series charts use the first color by default.
     - Native Unovis components remain available directly. The integration does not load Unovis from VUEDA's common startup imports. See [Style Unovis Charts](../../guides/style-unovis-charts.md) for installation, coverage, and local overrides.
-
-- **Brand palette in both color modes (`vueda-tailwind`)**:
-    - Primary fills retain the canonical blue in light and dark mode, with dark labels and lighter hover/pressed fills. Dark surfaces derive from the brand navy and grey; supporting surfaces, text, fields, and borders use explicit palette mixes.
-    - New `--primary-text`, `--primary-text-active`, and `--sidebar-primary-text` tokens keep blue text readable independently of solid primary fills. Links and tinted labels use these tokens; `--ring` and `--info` follow the readable blue.
-    - Status colors retain their red, amber, and green meanings with adjusted contrast for tinted labels and destructive button states. `--info-foreground`, `--success-foreground`, and `--warning-foreground` supply the labels already referenced by action-banner icon tiles.
-      _Custom palettes should check `--primary-foreground` against primary fills and `--primary-text` against page and tinted surfaces. Custom recipes using `text-primary` for labels should use `text-primary-text`; labels on solid blue keep `text-primary-foreground`._
 
 - **Focused and invalid fields keep the bottom-only line (`Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, `WidgetCombobox`)**:
     - `alpha.3` gave editable fields a `--field` fill on a bottom-only `field-line`, then restored the four-sided hairline on focus and invalid. A field therefore changed shape twice per interaction, and the restored edge sat inside the focus ring, so a focused field carried two full perimeters. Focus and invalid now keep the resting shape and recolor that one line: `--ring` on focus, `--destructive` on invalid. The focus ring is unchanged and remains the only mark that goes all the way round a field.
@@ -115,6 +102,25 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 - **Visible duration units (`WidgetDuration`)**:
     - Each enabled spinner now shows its unit above the input. Clicking a unit label focuses its own input, including when several units are shown. Customize the labels through `WidgetDuration.unitLabel`.
+
+## v3.0.0-alpha.4 (2026-09-18)
+
+### Breaking Changes
+
+- **Dotted field, filter, and expand identities (`storeModelConfig`, `useFormModel`, `useFilter`, `useFieldSetInline`, `FieldSetRange`, `useViewList`)**:
+    - Every client-side identity that crosses a relation now uses dots instead of `__`: expand-flattened `fieldDetails` keys, `fieldComponents`/`widgetComponents`/`fieldProps`/`widgetProps` override keys, sortables, slot names (`field(employee.name)`), range-filter sub-field keys, and the `o`/filter query parameters sent to match the server's dotted `model_ordering`/`model_filtering` metadata. `useForm`'s value storage addresses a dotted, non-nested identity (a related filter, an expand-flattened display field) as one flat key rather than letting the dots nest it, so a filter or display field named `employee.name` never becomes a nested `employee` object in form state.
+    - `storeModelConfig` rejects a declared `submitFields` entry that names an expand-flattened display field, since VUEDA has no mechanism to submit a nested value back through one; use a writable inline/array field for anything the form must submit. A `fields` shorthand naming such a field still builds: the derived `submitFields` drops it, so a shorthand that is correct for display and fetch does not fail a `list` or `read` config.
+      _Update any application config that overrides `fieldComponents`, `sortables`, `filterableDetails`, `columnComponents`, or a `field(...)`/`widget(...)` slot for a field that crosses a relation, from the `__`-joined form to the dotted form. Saved list preferences (sort order, hidden columns, filters) stored under the old `__`-joined names in `localStorage` become stale and are dropped; users see default preferences once after upgrading. Move a dotted `fields`/`displayFields`/`fetchFields` entry for an expand-flattened field out of `submitFields` if it was there, since it now fails config validation instead of silently submitting broken nested data._
+
+### Features
+
+- **Brand palette in both color modes (`vueda-tailwind`)**:
+    - Primary fills retain the canonical blue in light and dark mode, with dark labels and lighter hover/pressed fills. Dark surfaces derive from the brand navy and grey; supporting surfaces, text, fields, and borders use explicit palette mixes.
+    - New `--primary-text`, `--primary-text-active`, and `--sidebar-primary-text` tokens keep blue text readable independently of solid primary fills. Links and tinted labels use these tokens; `--ring` and `--info` follow the readable blue.
+    - Status colors retain their red, amber, and green meanings with adjusted contrast for tinted labels and destructive button states. `--info-foreground`, `--success-foreground`, and `--warning-foreground` supply the labels already referenced by action-banner icon tiles.
+      _Custom palettes should check `--primary-foreground` against primary fills and `--primary-text` against page and tinted surfaces. Custom recipes using `text-primary` for labels should use `text-primary-text`; labels on solid blue keep `text-primary-foreground`._
+
+### Fixes
 
 - **Card layout draws one edge per card (`ObjectsGrid.root`, `ObjectsGrid.bodyRow`)**:
     - Below `tableBreakpoint` the grid root drew a radius and an inset hairline around a grid of cards that each carry one, so every card sat 4 px inside a second frame. The root now takes the radius and hairline in table layout only, where it is the surface the rows sit on and its edge closes the last row.
