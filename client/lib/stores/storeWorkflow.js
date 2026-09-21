@@ -405,9 +405,13 @@ export const storeWorkflow = defineStore("workflow", {
                         }
                     })
                     .catch((e) => {
-                        if (isCurrentAuthScope()) {
-                            this.errors.workflowTransitions[key] = e;
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this rejection, denial
+                            // or otherwise, was determined for the previous principal, so it must not decide
+                            // anything for the currently authenticated user, the same as a stale success above.
+                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchWorkflowTransition", key);
                         }
+                        this.errors.workflowTransitions[key] = e;
                         throw e;
                     })
                     .finally(() => {

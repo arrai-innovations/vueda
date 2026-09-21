@@ -277,6 +277,45 @@ describe("lib/router/makeCrud.js", () => {
             expect(router.currentRoute.value.path).toBe("/");
             expect(toastMock.error).not.toHaveBeenCalled();
         });
+
+        scopedIt(
+            "does not let a workflow denial fetched for the previous user redirect or toast for the new one",
+            async () => {
+                let rejectWorkflow;
+                respond(
+                    urls.workflowUserPermittedTransitions,
+                    () =>
+                        new Promise((_resolve, reject) => {
+                            rejectWorkflow = reject;
+                        }),
+                );
+                await startAs({ id: 1 });
+
+                // entering the record runs the guard chain, which parks on the workflow discovery request
+                const pending = router.push("/blog/purchaseorder/list/");
+                await flushPromises();
+                expect(router.currentRoute.value.path).toBe("/");
+
+                whoIs({ id: 2 });
+                await storeUser(pinia).login({ username: "second", password: "second" });
+                const { WorkflowPermissionDeniedError } = await import("@vueda/stores/storeWorkflow.js");
+                rejectWorkflow(
+                    new WorkflowPermissionDeniedError(
+                        "Failed to fetch workflow transitions for model",
+                        { status: 403 },
+                        { detail: "nope" },
+                    ),
+                );
+                const failure = await pending;
+                await flushPromises();
+
+                // the denial describes what the first user was forbidden, not the second, so it must not
+                // show that user's toast or redirect the second user's navigation
+                expect(isNavigationFailure(failure, NavigationFailureType.aborted)).toBe(true);
+                expect(router.currentRoute.value.path).toBe("/");
+                expect(toastMock.error).not.toHaveBeenCalled();
+            },
+        );
     });
 
     describe("Workflow discovery denial", () => {
