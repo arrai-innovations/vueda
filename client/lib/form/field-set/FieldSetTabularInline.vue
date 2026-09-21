@@ -187,6 +187,7 @@ watch(
                         @click="fieldSetTabularInline.doCreate"
                     >
                         <Button
+                            type="button"
                             emphasis="outline"
                             size="sm"
                             :class="fieldSetTabularInline.theme('createButton')"
@@ -260,6 +261,7 @@ watch(
                                     @click="fieldSetTabularInline.removeObject(objectGridFieldSlotProps.rowIndex)"
                                 >
                                     <Button
+                                        type="button"
                                         tone="destructive"
                                         emphasis="ghost"
                                         size="sm"
@@ -415,6 +417,7 @@ watch(
                                 @click="fieldSetTabularInline.doCreate"
                             >
                                 <Button
+                                    type="button"
                                     emphasis="ghost"
                                     size="sm"
                                     :class="fieldSetTabularInline.theme('inLineCreateButton')"
