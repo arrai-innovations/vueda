@@ -27,6 +27,7 @@ patchTheme({
                 "data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed",
                 "data-[disabled]:bg-disabled data-[disabled]:text-disabled-foreground data-[disabled]:hairline-border",
                 "data-[readonly]:bg-transparent data-[readonly]:hover:bg-transparent data-[readonly]:hairline-border",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
                 "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
 
                 // Size classes.

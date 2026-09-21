@@ -216,6 +216,7 @@ const icon = useIcons("WidgetCombobox", props);
             <ComboboxTrigger
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                :data-warning="widgetContext.state.validationState.warning || undefined"
                 :aria-required="widgetContext.state.required || undefined"
                 :class="theme('trigger')"
                 data-qa="widget-combobox"

@@ -116,6 +116,9 @@
 @utility hairline-foreground {
     --vueda-hairline-color: var(--foreground);
 }
+@utility hairline-warning {
+    --vueda-hairline-color: var(--warning);
+}
 @utility hairline-destructive {
     --vueda-hairline-color: var(--destructive);
 }

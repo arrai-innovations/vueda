@@ -14,6 +14,13 @@
  * and is not a finding. Colour utilities (`hairline-ring`, `hairline-border`) set only
  * `--vueda-hairline-color`, so they compose with `field-line` and are the intended way to
  * express a state.
+ *
+ * It also fails on a field that has no warning colour, so a control added to the family
+ * cannot quietly skip the non-blocking warning state the widgets write as `data-warning`,
+ * and on a warning colour that does not exclude the invalid case. That exclusion has to be
+ * in the selector: Tailwind emits the arbitrary `data-[warning=true]` variant after the
+ * built-in `aria-invalid` one, so an unscoped warning outranks an error on a control that
+ * carries both, which a hand-authored form can do.
  */
 import { slotDefs, slotTokens, utilityOf } from "@tests/unit/themeSlotResolution.js";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -40,9 +47,17 @@ const FIELD_SLOT_FLOOR = 10;
 const restoredEdges = (classTokens) =>
     classTokens.filter((token) => token.includes(":") && utilityOf(token) === "hairline");
 
+const warningTokens = (classTokens) => classTokens.filter((token) => utilityOf(token) === "hairline-warning");
+
+// The variant half has to rule the invalid case out, whether the recipe reads the
+// attribute on itself (`not-aria-invalid`) or on a child (`not-has-[...]`).
+const excludesInvalid = (token) => /not-aria-invalid|not-has-\[.*aria-invalid/.test(token);
+
 describe("lib/theme/vueda-tailwind/**/*.theme.js", () => {
     describe("Field line guard", () => {
         const findings = [];
+        const missingWarning = [];
+        const unscopedWarning = [];
         let fieldSlots = 0;
 
         beforeAll(async () => {
@@ -60,6 +75,10 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js", () => {
                             fieldSlots++;
                             const restored = restoredEdges(classTokens);
                             if (restored.length) findings.push(`${path}: ${restored.join(", ")}`);
+                            const warns = warningTokens(classTokens);
+                            if (!warns.length) missingWarning.push(path);
+                            else if (!warns.every(excludesInvalid))
+                                unscopedWarning.push(`${path}: ${warns.join(", ")}`);
                         }
                     }
                 }
@@ -69,6 +88,17 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js", () => {
         it("field slots never restore a four-sided hairline in a state variant", () => {
             expect(captured.length).toBeGreaterThan(0);
             expect(findings, `four-sided edges restored on a field:\n${findings.join("\n")}`).toEqual([]);
+        });
+
+        it("every field slot carries a warning colour", () => {
+            expect(missingWarning, `fields with no warning state:\n${missingWarning.join("\n")}`).toEqual([]);
+        });
+
+        it("an error outranks a warning on the same control", () => {
+            expect(
+                unscopedWarning,
+                `warning colours that do not exclude aria-invalid:\n${unscopedWarning.join("\n")}`,
+            ).toEqual([]);
         });
 
         it("still reaches the field family", () => {

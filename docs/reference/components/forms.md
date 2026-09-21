@@ -165,9 +165,9 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
 
 ## Field: validation states
 
-{@api vue:component:FieldMessage} handles both error and warning severity beneath the control. Error messages render in `text-destructive`; warning messages render in amber. Multiple messages automatically switch to a bulleted list. The invalid border on the input (`aria-invalid="true"`) comes from the `Input` theme key, not the field shell.
+{@api vue:component:FieldMessage} handles both error and warning severity beneath the control. Error messages render in `text-destructive`; warning messages render in amber. Multiple messages automatically switch to a bulleted list. The control's own state line comes from the `Input` theme key, not the field shell: `aria-invalid="true"` paints it destructive, and `data-warning="true"` paints it amber.
 
-Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}.
+Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}, {@api css-token:warning}.
 
 {@api vue:component:FormField} accepts `hideLabel` when a surrounding layout already supplies the label. Help text, errors, and warnings still render below the control. {@api vue:component:FieldSetTabularInline} uses this mode because its column headers (or card headers on narrow screens) already name each field. The separate `hidden` prop continues to suppress the whole field shell, including messages.
 
@@ -233,7 +233,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
     </FieldGroup>
     <template #footer>
       <span>single string: renders as inline text</span>
-      <span>input border: <code>border-destructive</code> via <code>aria-invalid</code></span>
+      <span>field line: <code>hairline-destructive</code> via <code>aria-invalid</code></span>
     </template>
   </DemoCard>
   <DemoCard title="error · multiple messages">
@@ -258,14 +258,14 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       <Field>
         <FieldLabel for="vs-warn">Tax ID</FieldLabel>
         <FieldContent>
-          <Input id="vs-warn" model-value="12-3456789" />
+          <Input id="vs-warn" model-value="12-3456789" data-warning="true" />
           <FieldMessage severity="warning" :messages="['Format unfamiliar — saved as-is. Verify before posting invoices.']" />
         </FieldContent>
       </Field>
     </FieldGroup>
     <template #footer>
       <span><code>severity="warning"</code> → amber text · <code>role="status"</code></span>
-      <span>border stays neutral: not a blocking error</span>
+      <span>field line: <code>hairline-warning</code> via <code>data-warning</code> · ring untouched, and an <code>aria-invalid</code> error outranks it</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled · non-editable">

@@ -30,6 +30,7 @@ patchTheme({
 
                 // Focus and invalid states.
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
             ],
         },

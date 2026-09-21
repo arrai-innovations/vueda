@@ -545,6 +545,14 @@ line" cue from paper forms, so it cannot be mistaken for an outline button.
 - **Invalid:** the same line recolours to `--destructive`
   (`aria-invalid:hairline-destructive`), and the ring turns destructive too once
   the field takes focus.
+- **Warning:** the line recolours to `--warning`
+  (`data-[warning=true]:not-aria-invalid:hairline-warning`). A widget writes
+  `data-warning` beside `aria-invalid` from `useWidget`'s `validationState`,
+  which never sets both. Warnings do not block a submit, so they leave the ring
+  alone. The `not-aria-invalid` half is what makes an error outrank a warning on
+  a control that is marked both ways, such as a hand-authored form. Cascade order
+  does not settle it: Tailwind emits the arbitrary `data-[...]` variant after the
+  built-in `aria-invalid` one, so an unscoped warning would win.
 - **Read-only:** no fill and a `--border` line (`hairline-border`), so a
   read-only field reads like the read view's display rows rather than an
   editable field. Read view rows must keep that subtle line, never

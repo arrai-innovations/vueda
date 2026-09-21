@@ -37,6 +37,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `alpha.3` gave editable fields a `--field` fill on a bottom-only `field-line`, then restored the four-sided hairline on focus and invalid. A field therefore changed shape twice per interaction, and the restored edge sat inside the focus ring, so a focused field carried two full perimeters. Focus and invalid now keep the resting shape and recolor that one line: `--ring` on focus, `--destructive` on invalid. The focus ring is unchanged and remains the only mark that goes all the way round a field.
       _An application that patched one of these recipes to remove the restored `hairline`, or that added its own bottom-only focus treatment on top of it, can drop that override. A recipe that deliberately wants a four-sided focus edge should add `focus-visible:hairline` back._
 
+- **Fields show a warning state (`hairline-warning`, `data-warning`, `useWidget`)**:
+    - A field carrying a warning rendered amber `FieldMessage` text over a neutral control, so the control itself said nothing. The field's bottom line now recolors to `--warning`, through the new `hairline-warning` utility and a `data-warning` attribute the widget writes beside `aria-invalid`. Warnings do not block a submit, so the focus ring is unchanged.
+    - `useWidget`'s `validationState.warning` now excludes the invalid case in both branches. Inside a field context it already meant "has messages and no errors"; a standalone widget given both `invalid` and `warning` props reported both, and now reports only `invalid`. The recipes enforce the same precedence in their selectors (`not-aria-invalid`), so a hand-authored control marked both ways still shows the error.
+    - Covers `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger.
+      _A custom widget that wants the warning line should bind `:data-warning="widgetContext.state.validationState.warning || undefined"` beside its `aria-invalid`. A custom field recipe picks the state up with `data-[warning=true]:not-aria-invalid:hairline-warning`; keep the `not-aria-invalid` half, because Tailwind emits the arbitrary data variant after the built-in `aria-invalid` one, so an unscoped warning outranks an error._
+
 ### Fixes
 
 - **Bulk action and workflow transition links**:

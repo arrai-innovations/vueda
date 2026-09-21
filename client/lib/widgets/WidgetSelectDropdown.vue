@@ -59,6 +59,7 @@ const computedPlaceholder = computed(
         <SelectTrigger
             :id="fieldContext?.state.fieldId"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+            :data-warning="widgetContext.state.validationState.warning || undefined"
             :aria-required="widgetContext.state.required || undefined"
             data-qa="widget-select-dropdown"
             @blur="widgetContext.blur"

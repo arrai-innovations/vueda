@@ -130,6 +130,7 @@ const focusFirstInput = () => {
                         <NumberFieldDecrement />
                         <NumberFieldInput
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-days"
                         />
@@ -151,6 +152,7 @@ const focusFirstInput = () => {
                         <NumberFieldDecrement />
                         <NumberFieldInput
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-hours"
                         />
@@ -172,6 +174,7 @@ const focusFirstInput = () => {
                         <NumberFieldDecrement />
                         <NumberFieldInput
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-minutes"
                         />
@@ -193,6 +196,7 @@ const focusFirstInput = () => {
                         <NumberFieldDecrement />
                         <NumberFieldInput
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-seconds"
                         />

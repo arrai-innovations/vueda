@@ -363,6 +363,22 @@ describe("lib/use/useWidget.js", () => {
                     },
                 );
 
+                scopedIt("should carry props.invalid and props.warning with no field context", () => {
+                    const { widget } = mountWidgetNoContext({ warning: true });
+                    expect(widget.state.validationState).toEqual({
+                        invalid: false,
+                        warning: true,
+                    });
+                });
+
+                scopedIt("should drop props.warning when props.invalid is also set", () => {
+                    const { widget } = mountWidgetNoContext({ invalid: true, warning: true });
+                    expect(widget.state.validationState).toEqual({
+                        invalid: true,
+                        warning: false,
+                    });
+                });
+
                 scopedIt(
                     "should return { invalid: false, warning: true } if there are no errors but there are messages",
                     async () => {

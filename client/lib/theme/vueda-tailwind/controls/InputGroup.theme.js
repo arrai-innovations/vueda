@@ -35,6 +35,7 @@ patchTheme({
 
                 // Focus and invalid states.
                 "has-[[data-slot=input-group-control]:focus-visible]:hairline-ring has-[[data-slot=input-group-control]:focus-visible]:focus-ring-shadow",
+                "has-[[data-slot][data-warning=true]]:not-has-[[data-slot][aria-invalid=true]]:hairline-warning",
                 "has-[[data-slot][aria-invalid=true]]:hairline-destructive has-[[data-slot][aria-invalid=true]:focus-visible]:focus-ring-shadow-destructive",
             ],
         },

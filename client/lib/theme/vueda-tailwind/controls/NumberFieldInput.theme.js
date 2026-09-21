@@ -21,6 +21,7 @@ patchTheme({
 
                 // Placeholder, focus, and invalid states.
                 "placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
 
                 // Disabled: an inert slab, not a faded field. See README section 7.6.
