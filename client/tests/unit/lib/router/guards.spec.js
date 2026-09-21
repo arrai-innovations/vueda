@@ -11,6 +11,20 @@ const getConfig = vi.fn();
 const fetchWorkflowTransition = vi.fn();
 
 class ModelInfoError extends Error {}
+class WorkflowError extends Error {
+    constructor(message, response, responseData) {
+        super(message);
+        this.name = "WorkflowError";
+        this.response = response;
+        this.responseData = responseData;
+    }
+}
+class WorkflowPermissionDeniedError extends WorkflowError {
+    constructor(message, response, responseData) {
+        super(message, response, responseData);
+        this.name = "WorkflowPermissionDeniedError";
+    }
+}
 
 vi.mock("@vueda/stores/storeUser.js", () => ({
     storeUser: () => userStore,
@@ -27,6 +41,8 @@ vi.mock("@vueda/stores/storeModelConfig.js", () => ({
 
 vi.mock("@vueda/stores/storeWorkflow.js", () => ({
     storeWorkflow: () => workflowStore,
+    WorkflowError,
+    WorkflowPermissionDeniedError,
 }));
 
 vi.mock("@vueda/utils/actionMap.js", () => ({
@@ -197,6 +213,52 @@ describe("lib/router/guards.js", () => {
         expect(result).toBe(false);
         expect(toastMock.error).not.toHaveBeenCalled();
         expect(router.resolve).not.toHaveBeenCalled();
+    });
+
+    scopedIt("requireModelInfo redirects with feedback when workflow discovery is denied", async () => {
+        fetchWorkflowTransition.mockRejectedValue(
+            new WorkflowPermissionDeniedError(
+                "Failed to fetch workflow transitions for model",
+                { status: 403 },
+                { detail: "nope" },
+            ),
+        );
+        const router = { resolve: vi.fn((r) => r) };
+        const instance = {};
+        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+
+        expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+        expect(result).toEqual({ name: "nf" });
+        expect(fetchModelInfo).not.toHaveBeenCalled();
+    });
+
+    scopedIt("requireModelInfo falls back to a generic description when the denial carries none", async () => {
+        fetchWorkflowTransition.mockRejectedValue(
+            new WorkflowPermissionDeniedError("Failed to fetch workflow transitions for model", { status: 403 }),
+        );
+        const router = { resolve: vi.fn((r) => r) };
+        const instance = {};
+        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+
+        expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", {
+            description: "You do not have permission to perform this action.",
+            duration: 15000,
+        });
+    });
+
+    scopedIt("requireModelInfo rethrows a workflow failure that is not a permission denial", async () => {
+        const error = new WorkflowError("Failed to fetch workflow transitions for model", { status: 500 });
+        fetchWorkflowTransition.mockRejectedValue(error);
+        const router = { resolve: vi.fn((r) => r) };
+        const instance = {};
+        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+        await expect(guards.requireModelInfo(instance, { name: "nf" }, to, router, {})).rejects.toBe(error);
+        expect(toastMock.error).not.toHaveBeenCalled();
     });
 
     scopedIt("requireModelInfo redirects when action not found", async () => {

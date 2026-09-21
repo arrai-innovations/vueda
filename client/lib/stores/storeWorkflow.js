@@ -127,7 +127,7 @@ export function getUsingVuedaWorkflow() {
  * An error for use from the model info store.
  * @extends {FetchError}
  */
-class WorkflowError extends FetchError {
+export class WorkflowError extends FetchError {
     /**
      * Creates an instance of WorkflowError.
      * @param {string} messagePrefix - The prefix for the error message.
@@ -137,6 +137,25 @@ class WorkflowError extends FetchError {
     constructor(messagePrefix, response, responseData) {
         super(messagePrefix, response, responseData);
         this.name = "WorkflowError";
+    }
+}
+
+/**
+ * A `WorkflowError` for a request the server denied with a 403: the authenticated user is not
+ * permitted to discover or act on this model's workflow.
+ *
+ * @extends {WorkflowError}
+ */
+export class WorkflowPermissionDeniedError extends WorkflowError {
+    /**
+     * Creates an instance of WorkflowPermissionDeniedError.
+     * @param {string} messagePrefix - The prefix for the error message.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
+    constructor(messagePrefix, response, responseData) {
+        super(messagePrefix, response, responseData);
+        this.name = "WorkflowPermissionDeniedError";
     }
 }
 
@@ -361,6 +380,14 @@ export const storeWorkflow = defineStore("workflow", {
                     WorkflowError,
                     undefined,
                     "marker",
+                    (response, data) =>
+                        response.status === 403
+                            ? new WorkflowPermissionDeniedError(
+                                  "Failed to fetch workflow transitions for model",
+                                  response,
+                                  data,
+                              )
+                            : new WorkflowError("Failed to fetch workflow transitions for model", response, data),
                 )
                     .then((data) => {
                         if (!isCurrentAuthScope()) {

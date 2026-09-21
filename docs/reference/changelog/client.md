@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **CRUD routes handle a denied workflow discovery request (`requireModelInfo`, new `WorkflowPermissionDeniedError`)**:
+    - Opening a CRUD URL for a model whose workflow discovery request the server denied with a 403 left the route guard rejecting the navigation uncaught. The application shell rendered no page content and no explanation: a fresh load stayed on Vue Router's initial location, and navigating there from another route left the previous page on screen. `requireModelInfo` now catches that denial, shows a "Permission Denied" toast, and sends the navigation to the route's configured `actionRedirect`, the same destination an unlisted action already uses.
+    - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
+    - A workflow discovery request that fails for a reason other than a 403 still resolves to a plain `WorkflowError`, and `requireModelInfo` rethrows it rather than treating it as a permission denial.
+
 - **The destroy view contributes a page title (`ViewDestroy`, `useViewDestroy`)**:
     - A Destroy route went straight from the shell breadcrumb to the danger card, with no page heading, because neither `ViewDestroy` nor `useViewDestroy` called `usePageTitle` while Create, Update, Read, List, and the action confirmations all do. `useViewDestroy` now exposes `titleStr` and `pageLoading`, and the view registers them, so the layout's `PageTitle` renders a heading here too.
     - The title reads "Delete Widget", and counts and pluralizes a bulk destroy as "Delete 3 Widgets". It says Delete rather than Destroy: the route action names the operation, the heading says what the operator is doing, matching the danger banner below it.

@@ -82,6 +82,34 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(store.promises.workflowTransitions[key]).toBeUndefined();
     });
 
+    scopedIt("fetchWorkflowTransition maps a 403 response to WorkflowPermissionDeniedError", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.fetchWorkflowTransition("app", "model").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const error = errorResolver({ status: 403 }, { detail: "nope" });
+
+        expect(error.name).toBe("WorkflowPermissionDeniedError");
+        expect(error.response).toEqual({ status: 403 });
+        expect(error.responseData).toEqual({ detail: "nope" });
+        expect(error).toBeInstanceOf(storeWorkflowModule.WorkflowError);
+    });
+
+    scopedIt("fetchWorkflowTransition maps a non-403 response to plain WorkflowError", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.fetchWorkflowTransition("app", "model").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const error = errorResolver({ status: 500 }, { detail: "server error" });
+
+        expect(error.name).toBe("WorkflowError");
+        expect(error).not.toBeInstanceOf(storeWorkflowModule.WorkflowPermissionDeniedError);
+    });
+
     scopedIt("caches errors for fetchWorkflowTransition", async () => {
         const error = new Error("boom");
         mockedFetchHelper.mockRejectedValue(error);

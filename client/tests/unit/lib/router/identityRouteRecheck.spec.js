@@ -42,6 +42,23 @@ const toastMock = { error: vi.fn(), warning: vi.fn(), success: vi.fn(), info: vi
 vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 /**
+ * A rejection matching what `storeWorkflow.fetchWorkflowTransition` produces for a model whose
+ * workflow discovery the server denied: a `WorkflowPermissionDeniedError` carrying the 403 response.
+ * Imported dynamically so this module loads after `@vueda/utils/fetchSupport.js` is mocked above, the
+ * way every other store import in this file does via `beforeEach`.
+ *
+ * @returns {Promise<never>} A promise that rejects with the denial.
+ */
+const workflowDenied = async () => {
+    const { WorkflowPermissionDeniedError } = await import("@vueda/stores/storeWorkflow.js");
+    throw new WorkflowPermissionDeniedError(
+        "Failed to fetch workflow transitions for model",
+        { status: 403 },
+        { detail: "nope" },
+    );
+};
+
+/**
  * A model-info payload in the shape the server sends it.
  *
  * @param {string} model - The model name.
@@ -259,6 +276,33 @@ describe("lib/router/makeCrud.js", () => {
             expect(isNavigationFailure(failure, NavigationFailureType.aborted)).toBe(true);
             expect(router.currentRoute.value.path).toBe("/");
             expect(toastMock.error).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Workflow discovery denial", () => {
+        scopedIt("sends a fresh load of a denied URL to the configured redirect with visible feedback", async () => {
+            respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            await startAs({ id: 1 });
+
+            await router.push("/blog/purchaseorder/list/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+        });
+
+        scopedIt("denies navigation to a denied URL entered from another route record", async () => {
+            // a detail route and a list route are different route records, so entering the second
+            // from the first runs `beforeEnter` the normal way navigation within one record would not
+            modelAllows("post", ["update"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/update/1");
+            expect(router.currentRoute.value.name).toBe("actionrouter.detailview");
+
+            respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            await router.push("/blog/purchaseorder/list/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
         });
     });
 });
