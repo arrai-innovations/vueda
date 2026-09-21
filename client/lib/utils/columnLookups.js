@@ -29,6 +29,9 @@ export const availableColumns = {
     ColumnDateTime: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDateTime.vue")).default),
     ),
+    ColumnDuration: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDuration.vue")).default),
+    ),
     ColumnModelLink: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLink.vue")).default),
     ),

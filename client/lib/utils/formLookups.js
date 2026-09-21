@@ -82,6 +82,9 @@ export const availableWidgets = {
     WidgetDateTimeReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDateTimeReadOnly.vue")).default),
     ),
+    WidgetDurationReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDurationReadOnly.vue")).default),
+    ),
     WidgetReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default),
     ),

@@ -149,6 +149,34 @@ the {@api theme-key:WidgetDuration} `unitLabel` slot.
   </DemoCard>
 </VuedaDemo>
 
+### Read-only durations
+
+Read-only duration fields select {@api vue:component:WidgetDurationReadOnly},
+which names the units the value holds instead of printing the interval the server
+sent. A `DurationField` sends `2 08:00:00`; the read row says "2 days, 8 hours". A
+`DurationSecondsField` sends a plain number of seconds, and the same widget reads
+it. Units holding zero are left out, and an empty value renders the same dash an
+empty date does. A list cell uses {@api vue:component:ColumnDuration}, which wraps
+the same display, so one field reads one way in both places.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['leadTime']"
+    :initial-values="{ leadTime: '2 08:00:00' }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Lead time: the stored <code>2 08:00:00</code> reads as named units, and a zero unit is left out rather than printed</span>
+    <span>a duration of zero still names its smallest unit, because a recorded zero is not the same as no value</span>
+    <span>theme key: {@api theme-key:DurationDisplay}, whose <code>dash</code> slot holds the empty value</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 ## Choice
 
 Choices reach three different widgets. A single choice renders a select, which

@@ -89,12 +89,16 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetDuration,
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
+            // DurationDisplay reads a number as seconds and a string as Django's
+            // duration format, so both duration types share one read-only widget.
+            readOnlyWidget: availableWidgets.WidgetDurationReadOnly,
             default: true,
         },
     },
     DurationField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
+            readOnlyWidget: availableWidgets.WidgetDurationReadOnly,
             default: true,
         },
     },

@@ -14,6 +14,7 @@ import "./ConstraintsBar.theme.js";
 import "./DateRangeDisplay.theme.js";
 import "./DateTimeDisplay.theme.js";
 import "./DiagnosticStrip.theme.js";
+import "./DurationDisplay.theme.js";
 import "./ErrorDisplay.theme.js";
 import "./FieldPickerMenuList.theme.js";
 import "./Kbd.theme.js";
@@ -34,6 +35,7 @@ export default {
     // ---------- Date and time ----------
     DateRangeDisplay: {},
     DateTimeDisplay: {},
+    DurationDisplay: {},
     // ---------- Text utilities ----------
     BooleanDisplay: {},
     ErrorDisplay: {},

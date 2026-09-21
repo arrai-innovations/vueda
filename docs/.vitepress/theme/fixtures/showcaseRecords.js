@@ -520,9 +520,9 @@ export const CUSTOMER_HISTORY = [
 /**
  * Rows for the wide-model list demo, against the field-type model in
  * `showcaseFieldTypes.js`. The customer fixture is five short populated columns, which
- * hides what a real model does to a list: a dozen columns that overflow sideways, a
- * duration and a JSON blob with no column adapter of their own, and empty values of
- * every type. These rows carry all three on purpose.
+ * hides what a real model does to a list: a dozen columns that overflow sideways, a JSON
+ * blob and two ranges with no column adapter of their own, and empty values of every
+ * type. These rows carry all three on purpose.
  *
  * Nulls are spread rather than clustered: every nullable column is empty in at least
  * one row, and row 12 is empty in all of them, so the widest and the emptiest cases are

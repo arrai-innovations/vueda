@@ -12,6 +12,20 @@ Integrator-facing changes for the `@arrai-innovations/vueda` npm package.
 Use this page for changes that affect client package consumers: public Vue components, composables, routes,
 stores, theme behavior, build integration, dependency expectations, and migration notes.
 
+## v3.0.0-alpha.6 (unreleased)
+
+### Breaking Changes
+
+### Features
+
+### Fixes
+
+- **Durations render in named units, not the stored literal (`fieldMappings`, `columnMappings`, new `WidgetDurationReadOnly`, `ColumnDuration`, and `DurationDisplay`)**:
+    - A read view printed a duration exactly as the server sent it, so a two-year delivery window read `730 00:00:00`. A list cell did the same through `ColumnText`. `DurationField` and `DurationSecondsField` now name `WidgetDurationReadOnly` in `fieldMappings` and `ColumnDuration` in `columnMappings`, so a list and a read view word one field one way.
+    - `DurationDisplay` names only the units a value holds ("730 days", "2 hours, 30 minutes"), takes both serialized shapes (DRF's `[-]D HH:MM:SS[.ffffff]` string and the seconds count `DurationSecondsField` sends), and gives a null, undefined, or unparseable value the same dash `DateTimeDisplay` shows for an empty date. A duration of zero keeps a unit ("0 seconds"), because it is a recorded measurement rather than an absent one. Set `format: "short"` through `readOnlyWidgetProps` or `columnProps` for the abbreviated wording ("2h 30m").
+    - `normalizeDuration` is new in `utils/duration.js`. It reduces either serialized shape to a total and splits it back into whole units, carrying the sign separately so a negative duration reads as its magnitude. Sub-second precision is dropped.
+      _Read-only durations and duration list cells change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` or `ColumnText` to word durations itself, should re-check it._
+
 ## v3.0.0-alpha.5 (2026-09-21)
 
 ### Features
