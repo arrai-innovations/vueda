@@ -26,8 +26,8 @@ patchTheme({
                 "data-[disabled]:bg-disabled data-[disabled]:text-disabled-foreground data-[disabled]:hairline-border",
 
                 // Focus and invalid states.
-                "has-[input:focus-visible]:hairline has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
-                "aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:has-[input:focus-visible]:hairline-destructive [&[aria-invalid=true]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
+                "has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning aria-invalid:hairline-destructive aria-invalid:has-[input:focus-visible]:hairline-destructive [&[aria-invalid=true]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
             ],
         },
     },

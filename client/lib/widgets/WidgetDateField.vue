@@ -98,6 +98,7 @@ const icon = useIcons("WidgetDateField", props);
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+            :data-warning="widgetContext.state.validationState.warning || undefined"
             :aria-required="widgetContext.state.required || undefined"
             v-bind="$attrs"
             data-qa="widget-date-field"

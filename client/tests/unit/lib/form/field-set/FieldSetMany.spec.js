@@ -98,6 +98,7 @@ afterEach(() => {
 describe("lib/form/field-set/FieldSetMany.vue", () => {
     scopedIt("warns when value is not an array", async () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: {}, help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
@@ -114,6 +115,7 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
 
     scopedIt("adds items and computes names", async () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: [1], help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
@@ -130,6 +132,7 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
 
     scopedIt("destroys items when remove clicked", async () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
@@ -143,20 +146,22 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
     });
 
-    scopedIt("renders the first-entry remove disabled rather than hidden", () => {
+    scopedIt("allows removing the first entry", () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
         const wrapper = mount(FieldSetMany, { props: { name: "nums", manyComponent: ManyComponentStub } });
         const removes = wrapper.findAll('[data-qa="field-set-many-remove"] [data-size="icon-sm"]');
         expect(removes).toHaveLength(2);
-        expect(removes[0].attributes("data-disabled")).toBe("true");
+        expect(removes[0].attributes("data-disabled")).toBeUndefined();
         expect(removes[1].attributes("data-disabled")).toBeUndefined();
     });
 
     scopedIt("handles undefined value for add and destroy", async () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: undefined, help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
@@ -169,11 +174,13 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
         fieldContext.state.value = undefined;
         wrapper.vm.onDestroy(0);
         await vue.nextTick();
-        expect(fieldContext.state.value).toEqual([]);
+        expect(fieldContext.state.value).toBeUndefined();
+        expect(wrapper.findAll('[data-qa="many-component"]')).toHaveLength(0);
     });
 
     scopedIt("renders field-set-level-chores slot when provided", () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({
                 name: "nums",
                 label: "Nums",
@@ -198,6 +205,7 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
 
     scopedIt("destroys items when slot clicked", async () => {
         const fieldContext = {
+            blur: vi.fn(),
             state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
         };
         useFieldMock.mockReturnValue(fieldContext);
@@ -214,9 +222,18 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
         expect(wrapper.findAll('[data-qa="many-component"]').length).toBe(1);
     });
 
-    scopedIt("passes disabled slot prop to destroy slot for first entry", () => {
+    scopedIt("passes the read-only state to every destroy slot", () => {
         const fieldContext = {
-            state: reactive({ name: "nums", label: "Nums", value: [1, 2], help: "", errors: {}, messages: {} }),
+            blur: vi.fn(),
+            state: reactive({
+                name: "nums",
+                label: "Nums",
+                value: [1, 2],
+                readOnly: true,
+                help: "",
+                errors: {},
+                messages: {},
+            }),
         };
         useFieldMock.mockReturnValue(fieldContext);
         const seen = [];
@@ -231,7 +248,7 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
         });
         expect(seen).toEqual([
             { disabled: true, index: 0 },
-            { disabled: false, index: 1 },
+            { disabled: true, index: 1 },
         ]);
     });
 });

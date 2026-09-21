@@ -97,6 +97,32 @@ describe("lib/form/field-set/FieldSetRange.vue", () => {
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
     });
 
+    scopedIt("compares numeric strings numerically and permits open-ended ranges", async () => {
+        fieldContext.state.value = { min: "2.5", max: "10.25" };
+        mount(FieldSetRange, { props: { type: "number", suffixes: ["min", "max"] } });
+        expect(fieldContext.updateError).not.toHaveBeenCalled();
+        fieldContext.state.value = { min: "10.25", max: "2.5" };
+        await nextTick();
+        expect(fieldContext.updateError).toHaveBeenCalledWith(
+            "range",
+            "The first value must be less than or equal to the second value.",
+        );
+        for (const value of [
+            { min: "0", max: "0" },
+            { min: "2.5", max: "" },
+            { min: "", max: "-1" },
+            { min: null, max: "0" },
+            { min: "0" },
+        ]) {
+            fieldContext.updateError.mockClear();
+            fieldContext.deleteError.mockClear();
+            fieldContext.state.value = value;
+            await nextTick();
+            expect(fieldContext.updateError).not.toHaveBeenCalled();
+            expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+        }
+    });
+
     scopedIt("clears errors for empty range object", async () => {
         fieldContext.state.value = { lower: 1, upper: 2 };
         mount(FieldSetRange, { props: {} });

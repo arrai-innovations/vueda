@@ -17,7 +17,14 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
-## v3.0.0a2 (unreleased)
+## v3.0.0a3 (unreleased)
+
+### Fixes
+
+- **`available_actions` and model metadata now treat every object-permission refusal as an unavailable action**:
+    - Action discovery's `check_action_permission()` only caught `rest_framework.exceptions.PermissionDenied` and `Http404` from a viewset's `check_object_permissions()` hook. `APIView.permission_denied()` raises `NotAuthenticated` rather than `PermissionDenied` for a requester whose authenticators none succeeded, so an anonymous requester's per-action check escaped uncaught and failed the whole response instead of leaving just that action out. A viewset's own `check_object_permissions()` override raising Django's `PermissionDenied`, a separate class from the DRF exception of the same name, escaped the same way. Both refusals are now caught alongside the two this already handled, so the surrounding response keeps its own status and reports the remaining actions, with only the refused one missing from `available_actions` and model metadata. A permission class or override that raises any other error, such as `TypeError` from its own bug, still surfaces rather than being read as a refusal.
+
+## v3.0.0a2 (2026-09-18)
 
 ### Breaking Changes
 

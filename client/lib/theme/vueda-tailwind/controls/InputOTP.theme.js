@@ -9,17 +9,13 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * One-time-password input rendered as a row of fixed-width slots. Slots
-     * focus independently; the active slot is highlighted by the ring.
+     * One-time-password input rendered as a row of fixed-width slots. A single input
+     * manages focus; the active character slot is highlighted by the ring.
      */
     InputOTP: {
-        /** The container for a row of fixed-width character slots. Owns the focus-ring contract for the active slot: a single `focus-ring` paints around whichever slot carries `data-active=true` (and swaps to destructive on `aria-invalid`), rather than each slot drawing its own ring. This keeps one ring sweeping across the row as the cursor advances. */
+        /** The container for character groups and separators. The `group/input-otp` marker lets visible slots read invalid and disabled state from the native input. Each active slot owns its focus ring. Disabled inputs use disabled text colors without fading the container or separator. */
         root: {
-            class: [
-                "flex items-center gap-2 has-disabled:opacity-50",
-                "has-[[data-active=true]]:focus-ring",
-                "aria-invalid:has-[[data-active=true]]:focus-ring-destructive",
-            ],
+            class: "group/input-otp flex items-center gap-2 has-disabled:text-disabled-foreground",
         },
     },
 });

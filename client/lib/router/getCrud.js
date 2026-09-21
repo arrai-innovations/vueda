@@ -24,6 +24,11 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
  * @throws {Error} If parentPk or pk is required but not provided.
  */
 export async function getCRUDForTo({ app, model, pk, view, throwOnUndefinedPk = false, query = undefined }) {
+    // Read array contents before awaiting metadata so reactive callers track
+    // selection changes and each pending route keeps its own PK snapshot.
+    if (Array.isArray(pk)) {
+        pk = [...pk];
+    }
     // ############################################################################################
     // # don't use useModelInfo here to avoid creating reactive effects outside a component scope #
     // ############################################################################################

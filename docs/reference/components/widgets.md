@@ -7,8 +7,12 @@ type: reference
 
 <script setup>
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import WidgetDuration from "@vueda/widgets/WidgetDuration.vue";
 import WidgetTimeRangeField from "@vueda/widgets/WidgetTimeRangeField.vue";
+import { ref } from "vue";
 import { SHOWCASE_FIELD_TYPES } from "../../.vitepress/theme/fixtures/showcaseFieldTypes.js";
+
+const duration = ref({ days: 1, hours: 2, minutes: 30, seconds: 0 });
 </script>
 
 # Form Widgets
@@ -116,8 +120,9 @@ nothing beside it.
 
 A duration is stored as one value and entered through one spinner per time unit,
 rather than as an interval string. The widget shows minutes only by default; the
-`showDays`, `showHours`, and `showSeconds` props add the rest. The spinners carry
-an `aria-label` for their unit but print no visible one.
+`showDays`, `showHours`, and `showSeconds` props add the rest. Each spinner has
+a visible unit label; clicking it focuses that input. Style the labels through
+the {@api theme-key:WidgetDuration} `unitLabel` slot.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -135,12 +140,28 @@ an `aria-label` for their unit but print no visible one.
 </VuedaDemo>
 </ClientOnly>
 
+<VuedaDemo>
+  <DemoCard title="All duration units">
+    <WidgetDuration v-model="duration" show-days show-hours show-seconds />
+    <template #footer>
+      <span>Each enabled unit has its own label and input; segments wrap when space is limited.</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
 ## Choice
 
 Choices reach three different widgets. A single choice renders a select, which
 the [CRUDL Views](/reference/components/views-crudl) demos already show. The two
 below are the cases those demos never reach: a many-valued choice, and a boolean
 that carries labels for its two states.
+
+{@api vue:component:WidgetSelectDropdown} treats empty-string, `null`, and
+`undefined` choices as no selection and omits them from the menu. Unless an
+explicit `placeholder` is supplied, it uses the first empty choice's label as
+the placeholder. Values `false` and `0` remain ordinary choices. Clear an active
+filter with its Remove control; in a custom form, reset the bound value to clear
+the selection.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">

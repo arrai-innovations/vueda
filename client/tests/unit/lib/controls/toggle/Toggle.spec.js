@@ -3,6 +3,40 @@ import { mount } from "@vue/test-utils";
 import Toggle from "@vueda/controls/toggle/Toggle.vue";
 
 describe("lib/controls/toggle/Toggle.vue", () => {
+    describe("pressed state", () => {
+        scopedIt("reflects controlled pressed changes and emits the requested next value", async () => {
+            const wrapper = mount(Toggle, { props: { pressed: true } });
+            expect(wrapper.attributes("data-state")).toBe("on");
+            expect(wrapper.attributes("aria-pressed")).toBe("true");
+
+            await wrapper.trigger("click");
+            expect(wrapper.emitted("update:pressed")).toEqual([[false]]);
+            expect(wrapper.attributes("data-state")).toBe("on");
+
+            await wrapper.setProps({ pressed: false });
+            expect(wrapper.attributes("data-state")).toBe("off");
+            expect(wrapper.attributes("aria-pressed")).toBe("false");
+        });
+
+        scopedIt("starts from defaultPressed and toggles without a controlled prop", async () => {
+            const wrapper = mount(Toggle, { props: { defaultPressed: true } });
+            expect(wrapper.attributes("data-state")).toBe("on");
+            await wrapper.trigger("click");
+            expect(wrapper.attributes("data-state")).toBe("off");
+            await wrapper.trigger("click");
+            expect(wrapper.attributes("data-state")).toBe("on");
+            expect(wrapper.emitted("update:pressed")).toEqual([[false], [true]]);
+        });
+
+        scopedIt("preserves a disabled pressed value without emitting a change", async () => {
+            const wrapper = mount(Toggle, { props: { defaultPressed: true, disabled: true } });
+            expect(wrapper.attributes("data-state")).toBe("on");
+            await wrapper.trigger("click");
+            expect(wrapper.attributes("data-state")).toBe("on");
+            expect(wrapper.emitted("update:pressed")).toBeUndefined();
+        });
+    });
+
     describe("rendering", () => {
         scopedIt("always has data-slot=toggle", () => {
             const wrapper = mount(Toggle);

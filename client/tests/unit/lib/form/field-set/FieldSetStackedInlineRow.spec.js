@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
-import { defineComponent, h, reactive } from "vue";
+import { Text, defineComponent, h, reactive } from "vue";
 
 const FieldRendererStub = defineComponent({
     name: "FieldRendererStub",
@@ -38,11 +38,14 @@ const ButtonStub = defineComponent({
     setup(_, { emit, slots }) {
         return () => {
             const children = slots.default?.();
-            const label = children?.[0]?.children;
+            const label = children
+                ?.filter((child) => child.type === Text)
+                .map((child) => child.children)
+                .join("");
             return h("button", {
                 "data-qa": "button-stub",
                 "data-label": typeof label === "string" ? label.trim() : undefined,
-                onClick: () => emit("click"),
+                onClick: (event) => emit("click", event),
                 onUpdateModelValue: (v) => emit("update:model-value", v),
             });
         };
@@ -92,6 +95,7 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
                 fieldName: "fs",
                 fieldSetContextState,
                 pk: options.pk,
+                readOnly: options.readOnly,
             },
             global: {
                 provide: { [FormModelSymbol]: formModel },
@@ -118,15 +122,39 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         const wrapper = mountWithContext({
             actions: [{ fieldName: "destroy", label: "Delete", value: 1 }],
         });
+        expect(wrapper.findAllComponents(ButtonStub)).toHaveLength(1);
         const btn = wrapper.get('[data-qa="button-stub"]');
         expect(btn.attributes("data-label")).toBe("Delete");
         await btn.trigger("click");
         expect(wrapper.emitted("destroy-row")[0]).toEqual([0]);
     });
 
+    scopedIt("removes an unsaved row without a destroy action", async () => {
+        const wrapper = mountWithContext();
+        await wrapper.get('[data-label="Delete"]').trigger("click");
+        expect(wrapper.emitted("destroy-row")).toEqual([[0]]);
+        expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+    });
+
+    scopedIt("does not offer removal for saved rows without a destroy action", () => {
+        for (const pk of [0, 1, "saved"]) {
+            const wrapper = mountWithContext({ pk });
+            expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+            expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+        }
+    });
+
+    scopedIt("does not offer removal for read-only unsaved rows", () => {
+        for (const actions of [[], [{ fieldName: "destroy", label: "Delete" }]]) {
+            const wrapper = mountWithContext({ readOnly: true, actions });
+            expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+            expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+        }
+    });
+
     scopedIt("emits update:selected from checkbox when pk present", async () => {
         const wrapper = mountWithContext({
-            pk: 1,
+            pk: 0,
             actions: [{ fieldName: "destroy", label: "Delete", value: 1 }],
         });
         const cb = wrapper.getComponent(WidgetCheckboxStub);
@@ -135,12 +163,39 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         expect(wrapper.emitted("update:selected")[0]).toEqual([true]);
     });
 
+    scopedIt("invokes the custom action with the current row and click event", async () => {
+        const callback = vi.fn();
+        const action = { fieldName: "inspect", label: "Inspect", action: callback };
+        const wrapper = mountWithContext({ actions: [action] });
+        await wrapper.setProps({ index: 2 });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback).toHaveBeenCalledExactlyOnceWith({
+            action,
+            fieldSetContextState: wrapper.props("fieldSetContextState"),
+            rowValueName: "fs[2]",
+            event: expect.any(MouseEvent),
+        });
+        // Indexes change when an earlier row is removed.
+        await wrapper.setProps({ index: 1 });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback.mock.calls[1][0].rowValueName).toBe("fs[1]");
+        expect(wrapper.emitted("destroy-row")).toBeUndefined();
+    });
+
+    scopedIt("uses the field path for a singular custom row action", async () => {
+        const callback = vi.fn();
+        const wrapper = mountWithContext({ actions: [{ fieldName: "inspect", label: "Inspect", action: callback }] });
+        await wrapper.setProps({ index: undefined, fieldName: "details" });
+        await wrapper.get('[data-label="Inspect"]').trigger("click");
+        expect(callback.mock.calls[0][0].rowValueName).toBe("details");
+    });
+
     scopedIt("forwards update:model-value from action button", async () => {
         const wrapper = mountWithContext({
             actions: [{ fieldName: "save", label: "Save", value: 2 }],
         });
-        const btn = wrapper.getComponent(ButtonStub);
-        expect(btn.attributes("data-label")).toBe("Save");
+        const btn = wrapper.findAllComponents(ButtonStub).find((button) => button.attributes("data-label") === "Save");
+        expect(wrapper.findAllComponents(ButtonStub)).toHaveLength(2);
         btn.vm.$emit("update:model-value", "v");
         await wrapper.vm.$nextTick();
         expect(wrapper.emitted("update:model-value")[0]).toEqual(["v"]);

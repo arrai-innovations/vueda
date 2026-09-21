@@ -191,12 +191,16 @@ const theme = useTheme(
     }),
 );
 
-// Restore theme classes on slot props so slot consumers can spread them and get the correct class.
+// Share placement sizing and theme classes with both default buttons and slot replacements.
 const themedButtonSlotProps = computed(() => {
     const result = {};
     for (const [key, value] of Object.entries(actions.buttonSlotProps)) {
         const isBulk = actions.bulkActions.has(key) || actions.availableTransitions.has(key);
-        result[key] = { ...value, class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton") };
+        result[key] = {
+            ...value,
+            ...(isBulk ? { size: "sm" } : {}),
+            class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton"),
+        };
     }
     return result;
 });

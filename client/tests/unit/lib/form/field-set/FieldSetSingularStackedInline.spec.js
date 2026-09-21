@@ -141,6 +141,17 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(fieldState.value).toBe(null);
     });
 
+    scopedIt("clears an unsaved object when its row emits destroy-row", async () => {
+        fieldState.value = { title: "Unsaved" };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        wrapper.getComponent(InlineRowStub).vm.$emit("destroy-row");
+        await vue.nextTick();
+        expect(fieldState.value).toBe(null);
+        expect(fieldSetContext.blur).toHaveBeenCalled();
+        expect(wrapper.findComponent(InlineRowStub).exists()).toBe(false);
+        expect(wrapper.get('[data-qa="button-stub"]').text()).toBe("Create");
+    });
+
     scopedIt("handleDeleteSingle toggles ignore", () => {
         const wrapper = mount(FieldSetSingularStackedInline);
         wrapper.vm.handleDeleteSingle([2]);

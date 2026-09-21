@@ -637,6 +637,15 @@ export const filterFieldMapping = {
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
+    RangeField: {
+        component: availableFields.FieldSetRange,
+        fieldProps: { type: "number", isFilter: true },
+        boundaryComponent: availableFields.FormField,
+        boundaryFieldProps: { validation: "decimal" },
+        boundaryWidget: availableWidgets.WidgetNumberInput,
+        // Keep fractional thresholds instead of snapping to integers or rounding the display to three places.
+        boundaryWidgetProps: { stepSnapping: false, formatOptions: { maximumFractionDigits: 20 } },
+    },
     DateRangeField: {
         component: availableFields.FieldSetRange,
         fieldProps: {

@@ -23,7 +23,11 @@ patchTheme({
         },
         /** Each duration segment stacks its label and control while sharing leftover width. */
         innerItem: {
-            class: ["flex flex-col flex-grow"],
+            class: ["flex flex-col flex-grow gap-1"],
+        },
+        /** The visible unit label above each spinner, associated with that unit's input. */
+        unitLabel: {
+            class: ["text-xs text-muted-foreground"],
         },
     },
 });
