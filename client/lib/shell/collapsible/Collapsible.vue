@@ -1,9 +1,8 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/shell/Collapsible.theme.js";
-import { useForwardPropsEmits } from "@vueda/use/useForwardPropsEmits.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { CollapsibleRoot } from "reka-ui";
+import { CollapsibleRoot, useForwardProps } from "reka-ui";
 
 /**
  * Root collapsible component built on Reka UI's CollapsibleRoot.
@@ -21,6 +20,8 @@ const props = defineProps({
     modelValue: { type: Boolean, default: undefined },
     /** The default open state. */
     defaultOpen: { type: Boolean, default: undefined },
+    /** Whether to unmount the content when closed. Set false to preserve form fields and their validation. */
+    unmountOnHide: { type: Boolean, default: true },
     /** Whether the collapsible is disabled. */
     disabled: { type: Boolean, default: undefined },
     /** The reading direction. */
@@ -35,8 +36,8 @@ const emits = defineEmits({
     "update:modelValue": null,
 });
 
-const delegatedProps = reactiveOmit(props, "class", "themeOverride");
-const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const delegatedProps = reactiveOmit(props, "class", "themeOverride", "modelValue");
+const forwarded = useForwardProps(delegatedProps);
 const theme = useTheme("Collapsible", props);
 </script>
 
@@ -45,8 +46,10 @@ const theme = useTheme("Collapsible", props);
         v-slot="slotProps"
         data-slot="collapsible"
         v-bind="forwarded"
+        :open="modelValue"
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
+        @update:open="emits('update:modelValue', $event)"
     >
         <slot v-bind="slotProps" />
     </CollapsibleRoot>

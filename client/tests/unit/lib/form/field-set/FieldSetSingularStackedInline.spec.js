@@ -73,7 +73,7 @@ const inlineState = reactive({
     selected: { value: [] },
 });
 const emptyObject = { empty: true };
-const toggleVisibility = vi.fn();
+const setVisibility = vi.fn();
 const updateInitialValue = vi.fn();
 const mockedUseFieldSetInline = vi.fn(() => ({
     state: inlineState,
@@ -85,7 +85,7 @@ const mockedUseFieldSetInline = vi.fn(() => ({
         "empty-state": { name: "empty-state" },
     },
     getEmptyFieldObject: () => emptyObject,
-    toggleVisibility,
+    setVisibility,
 }));
 vi.mock("@vueda/use/useFieldSetInline.js", () => ({
     FIELD_SET_INLINE_PROPS: {},
@@ -179,7 +179,7 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(fieldState.value).toBe(null);
     });
 
-    scopedIt("toggleVisibility called when slot button clicked", async () => {
+    scopedIt("requests visibility when the disclosure is clicked", async () => {
         inlineState.hidable = true;
         const wrapper = mount(FieldSetSingularStackedInline, {
             slots: {
@@ -188,6 +188,6 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         });
         await vue.nextTick();
         await wrapper.get('[data-qa="toggle-slot"]').trigger("click");
-        expect(toggleVisibility).toHaveBeenCalled();
+        expect(setVisibility).toHaveBeenCalledWith(false);
     });
 });

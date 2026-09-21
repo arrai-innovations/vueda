@@ -45,6 +45,9 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Collapsible**:
+    - Controlled `modelValue` now maps to Reka's open state and emits updates correctly. The new `unmountOnHide` prop defaults to true; set it to false to retain mounted content when collapsed. Trigger/content IDs are associated on the first render.
+
 - **Bulk action and workflow transition links**:
     - Links now follow changes to the selected rows, including additions and removals within the same selection array. Previously, a link could keep the first selection and open the action with outdated record IDs.
 
@@ -98,6 +101,8 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Empty-string and nullish choices no longer cause invalid select items. Their label supplies the placeholder when no explicit placeholder is provided; `false` and `0` remain selectable. Active filters can still be cleared through their Remove control.
 
 - **Inline fieldsets**:
+    - Stacked, singular stacked, and tabular inlines now use Collapsible for disclosure. Rows and empty states hide together while fields remain mounted, preserving values and validation; fieldset-level help and errors stay visible. The title is a native disclosure button beside Create. Initial `hiddenByDefault` settings are respected, non-hidable inlines stay open by default, and Create requests expansion through `update:visible` when visibility is controlled.
+      _Custom themes can style the new `titleTrigger` key; `titleBar` still styles the header, while `titleBarToggle` styles its trigger. Tabular body visibility no longer uses `objectsGridHidden`._
     - Create and Delete buttons in stacked, singular stacked, and tabular inlines no longer submit the containing form or trigger validation on unrelated fields.
     - Custom stacked row-action buttons now invoke their configured `action` callback and use small outline styling like tabular actions. Both layouts explicitly use non-submit buttons. Stacked callbacks receive `action`, `fieldSetContextState`, `rowValueName`, and `event`; singular stacked rows use the field name as their value path.
     - Unsaved-row Delete buttons now use a trash icon, destructive tone, and small sizing consistently across stacked, singular stacked, and tabular layouts. Customize the icon through `FieldSetStackedInlineRow.typeDeleted` or `FieldSetTabularInline.typeDeleted` in `iconOverride` (with `Default.typeDeleted` as the fallback), and extra classes through each component's `destroyButton` theme key.
