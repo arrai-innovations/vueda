@@ -51,6 +51,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - History views reset pagination and layout and fetch the new object's history even when only its key changes.
     - Metadata requests follow the latest model after rapid navigation and ignore obsolete results and errors.
 
+- **Update forms respect object-level action availability (`ViewUpdate`, `useDetailView`)**:
+    - The default update view now checks the fetched object's `available_actions` before rendering an editable form. When the object does not permit `update`, the view shows a notice explaining that editing is unavailable and a link to the readable object view, instead of an editable form and an enabled Submit button. A direct link to an update URL for such an object is affected the same way. An object that does permit updating keeps normal editing and submission.
+    - `ViewUpdate` gains an `update-unavailable` scoped slot to override that notice; it receives `app`, `model`, `pk`, and `verboseName`.
+    - `useDetailView`'s `instance` group gains `currentActionAvailable`, reflecting whether the fetched object's `available_actions` includes the current view's action; it is `true` (optimistic) until the object has loaded.
+      _The server continues to enforce permissions independently; this only affects what the update view offers before submission._
+
 - **Route loading keeps the current view until its destination is ready (`ViewActionRouter`)**:
     - Navigation retains the current component and its app, model, action, and primary-key props while destination metadata and the component load. The initial route still shows `ViewLoading`. Superseded component imports no longer replace the newer destination.
     - A destination resolving to the same component reuses its instance. Custom views must handle changes to their route props; switching to a different wrapper still replaces its children.

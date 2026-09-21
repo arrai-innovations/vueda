@@ -110,6 +110,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
  * @property {object} combinedFormProps - Merged FormModel props (model-config defaults overridden by explicit `formProps`).
+ * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
  */
 
 /**
@@ -255,6 +256,17 @@ export function useDetailView(options, formInitialValue) {
         return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
     });
 
+    // Whether the fetched object itself permits the current view's action, independent of
+    // whether the model allows it in general. Optimistic (true) until the object has loaded,
+    // so the view does not flash an unavailable state while the initial fetch is in flight.
+    const currentActionAvailable = computed(() => {
+        const object = instanceObject.state.object;
+        if (!object) return true;
+        const objectAvailableActions = object.available_actions;
+        if (!objectAvailableActions) return true;
+        return objectAvailableActions.includes(getActionName(options.viewName));
+    });
+
     const availableTransitions = computed(() => instanceObject.state.object?.valid_transitions?.map((t) => t.code));
 
     const detailActions = computed(() =>
@@ -295,6 +307,7 @@ export function useDetailView(options, formInitialValue) {
             combinedErrored,
             combinedWhileText,
             combinedFormProps,
+            currentActionAvailable,
         }),
         actions: reactive({
             nonDetailActions,
