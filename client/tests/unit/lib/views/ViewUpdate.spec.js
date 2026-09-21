@@ -221,6 +221,16 @@ describe("lib/views/ViewUpdate.vue", () => {
             expect(wrapper.get('[data-qa="field-warnings-list"]').text()).toContain("A negative count is unusual.");
         });
 
+        scopedIt("names a warned field by its label from the model config", async () => {
+            mockComposableResult.modelConfig.config.fieldDetails = { count: { label: "Units counted" } };
+            mockComposableResult.objectForm.confirmation.messages = { count: ["A negative count is unusual."] };
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.get('[data-qa="field-warnings-list"]').text()).toContain(
+                "Units counted: A negative count is unusual.",
+            );
+        });
+
         scopedIt("forwards the warning-entry slot to FieldWarningsList's entry slot", async () => {
             mockComposableResult.objectForm.confirmation.messages = { count: ["A negative count is unusual."] };
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");

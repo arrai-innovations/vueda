@@ -169,6 +169,7 @@ if (!injectedFormContext) {
 }
 
 const modelAction = useModelAction(props);
+const modelConfig = modelAction.modelConfig;
 const {
     pksAsString,
     pkCount,
@@ -407,8 +408,11 @@ const resolveWarningGroups = (warnings, bulk) => {
                             </template>
                         </widget-read-only>
                     </div>
-                    <field-warnings-list :messages="group.fieldMessages">
-                        <!-- @slot [warning-entry] Override one warned object's field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`) plus `pk`. -->
+                    <field-warnings-list
+                        :messages="group.fieldMessages"
+                        :field-details="modelConfig?.config?.fieldDetails"
+                    >
+                        <!-- @slot [warning-entry] Override one warned object's field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `label`, `messages`) plus `pk`. -->
                         <template v-if="$slots['warning-entry']" #entry="entrySlotProps">
                             <slot name="warning-entry" v-bind="{ ...entrySlotProps, pk: group.pk }" />
                         </template>

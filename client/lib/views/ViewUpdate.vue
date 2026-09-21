@@ -130,7 +130,7 @@ const emit = defineEmits(["object", "loading", "related-object", "calculated-obj
 
 const slots = useSlots();
 
-const { formContext, objectForm, instanceObject, instance, actions } = useViewUpdate(props);
+const { formContext, objectForm, instanceObject, instance, actions, modelConfig } = useViewUpdate(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -308,8 +308,8 @@ onMounted(() => {
             <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the object form's raw warnings mapping). Defaults to `FieldWarningsList`; a consumer that only wants to customize one field's entry can instead use the `warning-entry` slot below. -->
             <template #warnings="{ warnings }">
                 <slot name="form-confirm-dialog-warnings" :warnings="warnings">
-                    <FieldWarningsList :messages="warnings">
-                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`). -->
+                    <FieldWarningsList :messages="warnings" :field-details="modelConfig?.config?.fieldDetails">
+                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `label`, `messages`). -->
                         <template v-if="slots['warning-entry']" #entry="entrySlotProps">
                             <slot name="warning-entry" v-bind="entrySlotProps" />
                         </template>
