@@ -81,8 +81,10 @@ specify how.
 The identity palette is fixed in both modes: `--vueda-brand-blue`,
 `--vueda-brand-navy`, and `--vueda-brand-grey`. Supporting surfaces and
 text are explicit sRGB mixes of those colours with white or black.
-Status colours use their own OKLCH scale. See `base.css § Color
-palette: light` and `base.css § Color palette: dark`.
+All literal palette colours use OKLCH. The identity values come from the
+[brand colour audit](../../../../brand/color-audit.md) and round-trip to
+the canonical sRGB hex values. Status colours use their own OKLCH scale.
+See `base.css § Color palette: light` and `base.css § Color palette: dark`.
 
 ### 2.1 Identity, surfaces, and readable text
 
@@ -122,7 +124,10 @@ primary action.
 
 ### 2.3 Mix recipes
 
-Palette tokens use explicit `color-mix(in srgb, ...)` formulas. Component
+Palette tokens retain explicit `color-mix(in srgb, ...)` formulas to
+preserve the existing palette and how brand overrides affect it. OKLCH
+notation for the inputs does not change the interpolation space; changing
+that space would require a separate visual and contrast review. Component
 tints use Tailwind's slash-modifier alpha or `color-mix(in oklab, ...)`.
 The recurring recipes are:
 
@@ -338,12 +343,12 @@ VUEDA does not use elevation as a hierarchy device. Borders carry the
 work. Four shadow tokens, all defined in `base.css § Semantic shadow
 tokens`:
 
-| Token                    | Value                        | Use                                            |
-| ------------------------ | ---------------------------- | ---------------------------------------------- |
-| `--vueda-shadow-control` | `0 0 #0000` (none)           | controls; borders carry definition             |
-| `--vueda-shadow-card`    | `0 0 #0000` (none)           | cards; borders carry definition                |
-| `--vueda-shadow-popover` | 1px ring + 12px ambient drop | popover, dropdown, context menu, combobox list |
-| `--vueda-shadow-overlay` | heavier drop                 | dialogs, sheets, drawers                       |
+| Token                    | Value                         | Use                                            |
+| ------------------------ | ----------------------------- | ---------------------------------------------- |
+| `--vueda-shadow-control` | `0 0 oklch(0 0 0 / 0)` (none) | controls; borders carry definition             |
+| `--vueda-shadow-card`    | `0 0 oklch(0 0 0 / 0)` (none) | cards; borders carry definition                |
+| `--vueda-shadow-popover` | 1px ring + 12px ambient drop  | popover, dropdown, context menu, combobox list |
+| `--vueda-shadow-overlay` | heavier drop                  | dialogs, sheets, drawers                       |
 
 Cards never raise on hover. Raised surfaces are Popover, HoverCard, and
 Dialog only. Protection / fade gradients beneath floating UI are not used,
