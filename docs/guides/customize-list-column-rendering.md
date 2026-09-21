@@ -25,12 +25,13 @@ Before you begin, you have a model with a canonical registration and a working `
 
 ## How Default Columns Are Chosen
 
-Every `list` column renders through a **column adapter**: a small component that receives the grid cell's value-slot props and decides what to draw. VUEDA ships five:
+Every `list` column renders through a **column adapter**: a small component that receives the grid cell's value-slot props and decides what to draw. VUEDA ships six:
 
-- `ColumnText` is the universal fallback. It renders the cell's pre-formatted value as plain text, reproducing the historical cell output. Object and array values (an inlined related object, or a `JSON` field) render as compact JSON rather than `[object Object]`.
+- `ColumnText` is the universal fallback. It renders the cell's pre-formatted value as plain text, reproducing the historical cell output. Object and array values (an inlined related object, or a range) render as compact JSON rather than `[object Object]`.
 - `ColumnDateTime` wraps {@api vue:component:DateTimeDisplay} for date, time, and datetime columns.
 - `ColumnBoolean` wraps {@api vue:component:BooleanDisplay} to word a boolean column Yes or No.
 - `ColumnDuration` wraps {@api vue:component:DurationDisplay} to name a duration column's units.
+- `ColumnJson` wraps {@api vue:component:JsonDisplay} to render a `JSON` column compact and in the mono stack, truncated past `maxLength` (200 characters by default).
 - `ColumnModelLink` wraps {@api vue:component:LinkModelView} to render a foreign-key column as a link to the related row's detail view.
 
 The default adapter for a column is derived from the column's serializer field type, using the same metadata flow as form widgets. The mapping table lives in `columnMappings` (the `list`-column analogue of `fieldMappings`), keyed by `typeSerializer` then `typeModel`:
@@ -44,6 +45,7 @@ The default adapter for a column is derived from the column's serializer field t
 | `TimeField`              | `TimeField`                    | `ColumnDateTime`  | `{ format: "t", showRelative: false, showTooltip: false }` |
 | `DurationField`          | `DurationField`                | `ColumnDuration`  |                                                            |
 | `DurationSecondsField`   | `DurationField`                | `ColumnDuration`  |                                                            |
+| `JSONField`              | `JSONField`                    | `ColumnJson`      |                                                            |
 | `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | `ColumnModelLink` | `{ view: "read" }`                                         |
 
 Any type with no entry falls back to `ColumnText`, so columns you do not configure render exactly as before. This makes the whole system additive: adopting it changes nothing until a column matches a mapping or you configure an override.
@@ -77,7 +79,7 @@ import ColumnStatusBadge from "./ColumnStatusBadge.vue";
 modelConfigStore.setConfig({ app: "myapp", model: "widget" }, { columnComponents: { status: ColumnStatusBadge } });
 ```
 
-**String key** references a built-in adapter from the `availableColumns` registry by name (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnModelLink"`). Use this to apply a built-in adapter to a column that would not get it by type, or with different props:
+**String key** references a built-in adapter from the `availableColumns` registry by name (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). Use this to apply a built-in adapter to a column that would not get it by type, or with different props:
 
 ```js
 modelConfigStore.setConfig(
@@ -103,7 +105,7 @@ A few conventions keep custom adapters well-behaved:
 
 - **Declare only the props you consume**, and set `defineOptions({ inheritAttrs: false })`. The cell passes many context props; without `inheritAttrs: false`, the ones you do not declare leak onto your root element as DOM attributes. All three built-in adapters do this.
 - `value` is the raw field value; `formatted` is the server/grid pre-formatted string. `pk` is the **row's** primary key, not a foreign-key target. (`ColumnModelLink` derives the target pk from `value`, not `pk`, for exactly this reason.)
-- Render a sensible empty state. `ColumnText` renders an empty string for nullish values; `DateTimeDisplay`, `BooleanDisplay`, and `DurationDisplay` render a dash.
+- Render a sensible empty state. `ColumnText` renders an empty string for nullish values; `DateTimeDisplay`, `BooleanDisplay`, `DurationDisplay`, and `JsonDisplay` render a dash.
 
 A minimal custom adapter:
 
@@ -177,7 +179,9 @@ Many relations (`ManyToManyField`) and `SlugRelatedField` are not mapped to an a
 
 ### Object and JSON Columns
 
-A column whose value is an inlined object (an expanded relation rendered directly) or a `JSON` field has no type-specific adapter, so it falls back to `ColumnText`, which renders compact JSON, truncated when very large. Provide a custom adapter when such a column needs structured rendering.
+A `JSONField` column resolves to `ColumnJson`, which renders compact `JSON` in the mono stack and truncates past `maxLength`. A read view indents the same value over several lines through `WidgetJsonReadOnly`; a cell has one line, so the two differ in layout while printing the same `JSON`.
+
+A column whose value is an inlined object (an expanded relation rendered directly) or a range has no type-specific adapter, so it falls back to `ColumnText`, which renders compact JSON, truncated when very large. Provide a custom adapter when such a column needs structured rendering.
 
 ### Server Metadata Availability
 
@@ -199,7 +203,7 @@ After configuring column overrides, verify:
 
 **An override has no effect.** Check the column name matches the field name exactly, and that no higher-precedence surface is also set (a consumer `field(<col>)` slot beats the `columnComponents` prop, which beats model config). Register `setConfig` overrides at bootstrap, before the first CRUD navigation, for the same reason described in the [row-link guide](./link-list-rows-to-detail-views#step-2-opt-in-per-model-through-config).
 
-**A string-keyed adapter is ignored.** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnModelLink"`). An unknown key silently falls through to the type default. Pass a direct component reference for a custom adapter.
+**A string-keyed adapter is ignored.** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). An unknown key silently falls through to the type default. Pass a direct component reference for a custom adapter.
 
 **Surplus attributes appear on a custom adapter's root element.** Add `defineOptions({ inheritAttrs: false })` and declare only the cell props you consume.
 

@@ -222,6 +222,35 @@ the selection.
 </VuedaDemo>
 </ClientOnly>
 
+### Read-only JSON
+
+Read-only `JSON` fields select {@api vue:component:WidgetJsonReadOnly}, which
+indents the payload over several lines in the mono stack rather than printing it
+on one. A list cell has no room for that, so {@api vue:component:ColumnJson}
+renders the same value compact and truncates it past 200 characters. Both print
+the same `JSON` and give a null value the same dash an empty date gets.
+
+An empty object or array is a recorded value, so it reads as `{}` or `[]`. Only a
+null takes the dash.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['metadata']"
+    :initial-values="{ metadata: { sku: 'BRG-6204', revision: 3, channels: ['direct', 'partner'] } }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Metadata: the nesting is indented two spaces per level, and a long string value wraps rather than widening the row</span>
+    <span>size and leading are inherited, so the block keeps the read row's rhythm and a grid cell still follows <code>data-density</code></span>
+    <span>theme key: {@api theme-key:JsonDisplay}, whose <code>dash</code> slot holds the empty value</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 ## Files and images
 
 Both widgets pair an upload control with a display of what is already stored, so

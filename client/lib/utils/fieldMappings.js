@@ -173,6 +173,7 @@ export const defaultFieldMappings = {
     JSONField: {
         JSONField: {
             widget: availableWidgets.WidgetJson,
+            readOnlyWidget: availableWidgets.WidgetJsonReadOnly,
             default: true,
         },
     },
