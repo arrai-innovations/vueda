@@ -325,7 +325,7 @@ Theme keys: {@api theme-key:Menubar}, {@api theme-key:MenubarTrigger},
       <span>the check and radio indicators are the components' own, driven by <code>model-value</code>, not glyphs placed by hand</span>
       <span>"Open..." sits in a <code>ForceState</code> wrapper; "Close" carries the real <code>disabled</code> prop</span>
       <span>this panel is portal-based like DropdownMenu, so its side is pinned and it lands in the card's reserved space</span>
-      <span>Menubar item recipes must stay identical to the DropdownMenu keys; see [Overlays](./overlays.md)</span>
+      <span>Menubar item recipes must stay identical to the DropdownMenu keys; see <a href="./overlays.html" class="text-primary-text underline underline-offset-4">Overlays</a></span>
     </template>
   </DemoCard>
 </VuedaDemo>
