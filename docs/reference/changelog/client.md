@@ -45,6 +45,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Update-form save failures reach the visible error display (`useObjectForm`, `ViewUpdate`)**:
+    - A PUT rejected by the server (a permission refusal, an HTTP 500, or a network failure) previously stopped the submit spinner and left the form with no error shown, because the error only reached the submission's own object instance, which nothing displayed. An error that the submission hook does not recognize now becomes the form's own visible error, so it reaches the same error display as any other load failure while retaining the user's edited values. Field validation, warning confirmation, and hooks that already mark an error as handled are unaffected.
+      _A custom `onSubmissionError` override passed to `useObjectForm` that returns false (or a falsy resolution) now has that error promoted to `objectForm.state.error` instead of being left on the `instanceObject` passed in; that instance's error is cleared either way. This only matters for code built directly on `useObjectForm`, or on `useViewCreate` (which passes the same instance for both display and submission): a custom display bound to that instance's own error instead of `objectForm.state.error`/`instance.combinedError` should switch to the latter. `useViewUpdate`'s submission instance was never returned to callers, so there is nothing to migrate there._
+
 - **Collapsible**:
     - Controlled `modelValue` now maps to Reka's open state and emits updates correctly. The new `unmountOnHide` prop defaults to true; set it to false to retain mounted content when collapsed. Trigger/content IDs are associated on the first render.
 
