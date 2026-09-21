@@ -55,6 +55,9 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Dependency Management ***
  * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
+ *
+ * // *** Field Metadata ***
+ * @property {{[path: string]: string}} labels - Display labels registered by each rendered field, keyed by field path.
  */
 
 /**
@@ -140,7 +143,7 @@ const removeArrayItem = (state, name, index) => {
         if (Number(match[1]) === index) return null;
         return `${prefix}${Number(match[1]) - 1}]${match[2]}`;
     };
-    for (const collection of [state.errors, state.messages, state.touched, state.ignored]) {
+    for (const collection of [state.errors, state.messages, state.touched, state.ignored, state.labels]) {
         const entries = Object.entries(collection);
         for (const [path] of entries) {
             if (shiftedPath(path) !== path) delete collection[path];
@@ -522,6 +525,31 @@ const removeIgnore = (state, name) => {
 };
 
 /**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @param {string} label
+ * @private
+ */
+const registerLabel = (state, name, label) => {
+    validateName(name);
+    if (state.labels[name] !== label) {
+        state.labels[name] = label;
+    }
+};
+
+/**
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const unregisterLabel = (state, name) => {
+    validateName(name);
+    if (state.labels[name] !== undefined) {
+        del(state.labels, name);
+    }
+};
+
+/**
  * Get the first displayed field with an error.
  * @param {FormContextState} state - The form context state.
  * @param {string[]} displayFields - The list of fields being displayed.
@@ -629,6 +657,10 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Register a field's dependency paths for reactive value tracking.
  * @property {(registryId: string) => boolean} unregisterDependencyValues -
  *  Unregister a field from dependency value tracking.
+ *
+ * // *** Field Metadata ***
+ * @property {(name: string, label: string) => void} registerLabel - Register or update a rendered field's display label.
+ * @property {(name: string) => void} unregisterLabel - Remove a field's display label from the registry.
  */
 
 /**
@@ -761,6 +793,9 @@ export function useForm(props) {
 
         // *** Dependency Management ***
         dependencyValues: {},
+
+        // *** Field Metadata ***
+        labels: {},
     });
     const dependencyRegistry = useFieldDependencyValuesRegistry(state.values);
     state.dependencyValues = dependencyRegistry.dependencyValues;
@@ -844,6 +879,10 @@ export function useForm(props) {
         unregisterIsValidHook: validationHookRegistry.unregisterHook,
         registerDependencyValues: dependencyRegistry.register,
         unregisterDependencyValues: dependencyRegistry.unregister,
+
+        // *** Field Metadata ***
+        registerLabel: registerLabel.bind(null, state),
+        unregisterLabel: unregisterLabel.bind(null, state),
     };
     provide(FormContextSymbol, formContext);
     return formContext;

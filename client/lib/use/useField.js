@@ -534,6 +534,23 @@ export function useField(props, emit) {
     );
 
     watch(
+        toRef(state, "label"),
+        (newLabel) => {
+            const fc = unref(formContext);
+            if (fc) {
+                fc.registerLabel(props.name, newLabel);
+            }
+        },
+        { immediate: true },
+    );
+    onUnmounted(() => {
+        const fc = unref(formContext);
+        if (fc) {
+            fc.unregisterLabel(props.name);
+        }
+    });
+
+    watch(
         toRef(state, "valid"),
         (newValue) => {
             const fc = unref(formContext);

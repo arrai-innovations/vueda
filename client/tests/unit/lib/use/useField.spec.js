@@ -52,7 +52,7 @@ const getDefaultProps = (vue, name) => {
 };
 
 const getFormContextMock = (vue) => {
-    return {
+    const fc = {
         // *** Form State ***
         state: vue.reactive({
             // *** Values & Initial State ***
@@ -74,6 +74,9 @@ const getFormContextMock = (vue) => {
 
             // *** Dependency Management ***
             dependencyValues: {},
+
+            // *** Field Metadata ***
+            labels: {},
         }),
 
         // *** Form Reset & State Management ***
@@ -118,7 +121,16 @@ const getFormContextMock = (vue) => {
         unregisterIsValidHook: vi.fn(),
         registerDependencyValues: vi.fn(),
         unregisterDependencyValues: vi.fn(),
+
+        // *** Field Metadata ***
+        registerLabel: vi.fn((name, label) => {
+            fc.state.labels[name] = label;
+        }),
+        unregisterLabel: vi.fn((name) => {
+            delete fc.state.labels[name];
+        }),
     };
+    return fc;
 };
 
 describe("lib/use/useField.js", () => {
@@ -1800,6 +1812,39 @@ describe("lib/use/useField.js", () => {
                 });
             });
         });
+        describe("Field Metadata", () => {
+            describe("registerLabel (via label watcher)", () => {
+                scopedIt("should register the field's label immediately on mount", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField", label: "Test Field" });
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(1);
+                    expect(fc.registerLabel).toHaveBeenCalledWith("testField", "Test Field");
+                });
+
+                scopedIt("should register the field name as the label when no label is provided", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField" });
+                    expect(fc.registerLabel).toHaveBeenCalledWith("testField", "testField");
+                });
+
+                scopedIt("should re-register reactively when the label prop changes", async () => {
+                    const { fc, props } = mountFieldInContext({}, { name: "testField", label: "Initial Label" });
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(1);
+
+                    props.label = "Updated Label";
+                    await flushPromises();
+
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(2);
+                    expect(fc.registerLabel).toHaveBeenLastCalledWith("testField", "Updated Label");
+                });
+
+                scopedIt("should not register when contextless", () => {
+                    const { fc } = mountFieldInContext(
+                        {},
+                        { name: "testField", label: "Test Field", contextless: true },
+                    );
+                    expect(fc.registerLabel).not.toHaveBeenCalled();
+                });
+            });
+        });
         describe("Hook Registration", () => {
             describe("registerIsModifiedHook", () => {
                 scopedIt("should call the fc's method with args", async () => {
@@ -1888,6 +1933,7 @@ describe("lib/use/useField.js", () => {
                 expect(fc.registerIsModifiedHook).toHaveBeenCalledWith(props.name, expect.any(Function));
                 expect(fc.registerIsRequiredHook).toHaveBeenCalledWith(props.name, expect.any(Function));
                 expect(fc.registerIsValidHook).toHaveBeenCalledWith(props.name, expect.any(Function));
+                expect(fc.registerLabel).toHaveBeenCalledWith(props.name, props.name);
 
                 // fake unmount
                 for (const unmountFn of unmountedFunctions) {
@@ -1897,6 +1943,7 @@ describe("lib/use/useField.js", () => {
                 expect(fc.unregisterIsModifiedHook).toHaveBeenCalledWith("-1000");
                 expect(fc.unregisterIsRequiredHook).toHaveBeenCalledWith("-2000");
                 expect(fc.unregisterIsValidHook).toHaveBeenCalledWith("-3000");
+                expect(fc.unregisterLabel).toHaveBeenCalledWith(props.name);
             });
         });
     });

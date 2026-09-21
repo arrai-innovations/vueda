@@ -724,6 +724,8 @@ describe("lib/use/useForm.js", () => {
                     form.setTouched("rows[1].email");
                     form.ignore("rows[1].email");
                     form.focus("rows[1].email");
+                    form.registerLabel("rows[0].email", "Removed label");
+                    form.registerLabel("rows[1].email", "Surviving label");
                     form.removeArrayItem("rows", 0);
                     expect(form.state.values.rows).toEqual([{ email: "b" }]);
                     expect(form.state.initialValues.rows).toEqual([{ email: "a" }, { email: "b" }]);
@@ -732,6 +734,7 @@ describe("lib/use/useForm.js", () => {
                     expect(form.state.touched).toEqual({ "rows[0].email": true });
                     expect(form.state.ignored["rows[0].email"]).toBeTruthy();
                     expect(form.state.focused).toBe("rows[0].email");
+                    expect(form.state.labels).toEqual({ "rows[0].email": "Surviving label" });
                     form.removeArrayItem("rows", 0);
                     expect(form.state.values.rows).toEqual([]);
                     expect(form.state.errors).toEqual({});
@@ -739,6 +742,7 @@ describe("lib/use/useForm.js", () => {
                     expect(form.state.touched).toEqual({});
                     expect(form.state.ignored).toEqual({});
                     expect(form.state.focused).toBeNull();
+                    expect(form.state.labels).toEqual({});
                     expect(form.state.anyError).toBe(false);
                     expect(form.state.anyMessage).toBe(false);
                     expect(form.state.anyTouched).toBe(false);
@@ -2094,6 +2098,94 @@ describe("lib/use/useForm.js", () => {
                     const [stop, watchSpy] = testWatches(vue, formContext.state.ignored, "field1");
                     try {
                         formContext.removeIgnore("field1");
+                        await flushPromises();
+                        expect(watchSpy).not.toHaveBeenCalled();
+                    } finally {
+                        stop();
+                    }
+                });
+            });
+        });
+        describe("Field Metadata", () => {
+            describe("registerLabel", () => {
+                scopedIt("should require a name", () => {
+                    const { formContext } = getForm({});
+                    expect(() => formContext.registerLabel(undefined, "Some Label")).toThrow("No name provided");
+                });
+
+                scopedIt("should record the field's label", async () => {
+                    const { formContext } = getForm({});
+                    expect(formContext.state.labels).toEqual({});
+
+                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
+                    try {
+                        formContext.registerLabel("field1", "Field One");
+                        await flushPromises();
+                        expect(formContext.state.labels).toEqual({ field1: "Field One" });
+                        expect(watchSpy).toHaveBeenCalledTimes(1);
+                    } finally {
+                        stop();
+                    }
+                });
+
+                scopedIt("should update an already-registered label", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerLabel("field1", "Field One");
+                    await flushPromises();
+
+                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
+                    try {
+                        formContext.registerLabel("field1", "Updated Field One");
+                        await flushPromises();
+                        expect(formContext.state.labels).toEqual({ field1: "Updated Field One" });
+                        expect(watchSpy).toHaveBeenCalledTimes(1);
+                    } finally {
+                        stop();
+                    }
+                });
+
+                scopedIt("should not update if the label is unchanged", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerLabel("field1", "Field One");
+                    await flushPromises();
+
+                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
+                    try {
+                        formContext.registerLabel("field1", "Field One");
+                        await flushPromises();
+                        expect(watchSpy).not.toHaveBeenCalled();
+                    } finally {
+                        stop();
+                    }
+                });
+            });
+            describe("unregisterLabel", () => {
+                scopedIt("should require a name", () => {
+                    const { formContext } = getForm({});
+                    expect(() => formContext.unregisterLabel()).toThrow("No name provided");
+                });
+
+                scopedIt("should remove a field's label", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerLabel("field1", "Field One");
+                    await flushPromises();
+
+                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
+                    try {
+                        formContext.unregisterLabel("field1");
+                        await flushPromises();
+                        expect(formContext.state.labels).toEqual({});
+                        expect(watchSpy).toHaveBeenCalledTimes(1);
+                    } finally {
+                        stop();
+                    }
+                });
+
+                scopedIt("should do nothing if the field has no registered label", async () => {
+                    const { formContext } = getForm({});
+                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
+                    try {
+                        formContext.unregisterLabel("field1");
                         await flushPromises();
                         expect(watchSpy).not.toHaveBeenCalled();
                     } finally {

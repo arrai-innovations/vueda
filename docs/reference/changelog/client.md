@@ -20,6 +20,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **The action form validation summary names fields by their labels (`ActionForm`, `useForm`, `useField`)**:
+    - A failed action form named each summary row by the server's field key rather than the label shown above the corresponding input, so a `purchase_order` field labelled "Purchase order" reached the reader as `purchase_order`. `useField` now registers each rendered field's resolved label (the `label` prop, or the field name when none is given) with the form context it runs in, through the new `registerLabel`/`unregisterLabel` methods on `useForm`'s context and the new `state.labels` map it maintains. `ActionForm` looks up each error's field there, falling back to the key when no rendered field registered a label for it.
+      _The `validation-summary` slot's `entries` now carry a `label` alongside `field` and `messages`; an override that renders `entry.field` keeps working, and can switch to `entry.label` to show the same text `ActionForm` now shows._
+
 - **The empty state spans the grid width in table layout (`ObjectsGrid`)**:
     - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
       _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._
