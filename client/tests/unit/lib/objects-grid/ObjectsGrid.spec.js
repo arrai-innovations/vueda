@@ -152,6 +152,67 @@ describe("lib/objects-grid/ObjectsGrid.vue", () => {
             expect(wrapper.find('[data-qa="custom-empty"]').exists()).toBe(true);
         });
 
+        describe("spanning the grid width", () => {
+            // The row is a `display: table-row` in table layout, so only a real `td` with
+            // `colspan` reaches across the columns; a div became a first-column cell.
+            scopedIt("renders a td spanning every column in table layout", async () => {
+                tableRef.value = true;
+                const wrapper = mount(ObjectsGrid, {
+                    props: {
+                        fields: [{ name: "a" }, { name: "b" }, { name: "c" }],
+                        objectsInOrder: [],
+                        emptyText: "Nothing here.",
+                    },
+                });
+                await nextTick();
+                const cell = wrapper.find('[data-qa="objects-grid-empty"]');
+                expect(cell.element.tagName).toBe("TD");
+                expect(cell.attributes("colspan")).toBe("3");
+                expect(cell.attributes("aria-colspan")).toBe("3");
+                expect(cell.attributes("role")).toBe("cell");
+            });
+
+            scopedIt("counts only the columns that render, skipping a field with no name", async () => {
+                tableRef.value = true;
+                const wrapper = mount(ObjectsGrid, {
+                    props: { fields: [{ name: "a" }, {}, { name: "c" }], objectsInOrder: [] },
+                });
+                await nextTick();
+                expect(wrapper.find('[data-qa="objects-grid-empty"]').attributes("colspan")).toBe("2");
+            });
+
+            scopedIt("spans at least one column when no field has a name", async () => {
+                tableRef.value = true;
+                const wrapper = mount(ObjectsGrid, { props: { fields: [{}], objectsInOrder: [] } });
+                await nextTick();
+                expect(wrapper.find('[data-qa="objects-grid-empty"]').attributes("colspan")).toBe("1");
+            });
+
+            // Card layout is correct as it stands: the row is a grid item, so `col-span-full`
+            // on it is the right utility and a colspan would mean nothing.
+            scopedIt("keeps a plain div with no colspan in card layout", () => {
+                const wrapper = mount(ObjectsGrid, {
+                    props: { fields: [{ name: "a" }, { name: "b" }], objectsInOrder: [] },
+                });
+                const cell = wrapper.find('[data-qa="objects-grid-empty"]');
+                expect(cell.element.tagName).toBe("DIV");
+                expect(cell.attributes("colspan")).toBeUndefined();
+                expect(cell.attributes("aria-colspan")).toBeUndefined();
+            });
+
+            scopedIt("swaps the cell element when the layout changes", async () => {
+                const wrapper = mount(ObjectsGrid, {
+                    props: { fields: [{ name: "a" }, { name: "b" }], objectsInOrder: [] },
+                });
+                expect(wrapper.find('[data-qa="objects-grid-empty"]').element.tagName).toBe("DIV");
+                tableRef.value = true;
+                await nextTick();
+                const cell = wrapper.find('[data-qa="objects-grid-empty"]');
+                expect(cell.element.tagName).toBe("TD");
+                expect(cell.attributes("colspan")).toBe("2");
+            });
+        });
+
         scopedIt("renders the icon registered for the active variant via useIcons", async () => {
             const IconStub = defineComponent({
                 name: "IconStub",
