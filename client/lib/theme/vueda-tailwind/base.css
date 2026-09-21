@@ -130,9 +130,10 @@
  * hairline at `--field-line`, the paper-form "write on this line" cue. It
  * writes the same `--vueda-hairline-shadow` and box-shadow pair as `hairline`,
  * so `focus-ring-shadow` still composes on top, and a `hairline-*` colour
- * utility still recolours it (e.g. `read-only:hairline-border`). Field recipes
- * restore the four-sided `hairline` on focus and invalid so those states keep a
- * full edge. */
+ * utility still recolours it (e.g. `read-only:hairline-border`). Focus and
+ * invalid keep the bottom-only shape and recolour the line instead
+ * (`focus-visible:hairline-ring`, `aria-invalid:hairline-destructive`), so the
+ * separate focus ring stays the only full-perimeter mark on a field. */
 @utility field-line {
     --vueda-hairline-shadow: inset 0 calc(-1 * var(--vueda-hairline-width)) 0 0
         var(--vueda-hairline-color, var(--field-line));

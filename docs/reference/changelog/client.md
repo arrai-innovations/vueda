@@ -33,6 +33,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Status colors retain their red, amber, and green meanings with adjusted contrast for tinted labels and destructive button states. `--info-foreground`, `--success-foreground`, and `--warning-foreground` supply the labels already referenced by action-banner icon tiles.
       _Custom palettes should check `--primary-foreground` against primary fills and `--primary-text` against page and tinted surfaces. Custom recipes using `text-primary` for labels should use `text-primary-text`; labels on solid blue keep `text-primary-foreground`._
 
+- **Focused and invalid fields keep the bottom-only line (`Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, `WidgetCombobox`)**:
+    - `alpha.3` gave editable fields a `--field` fill on a bottom-only `field-line`, then restored the four-sided hairline on focus and invalid. A field therefore changed shape twice per interaction, and the restored edge sat inside the focus ring, so a focused field carried two full perimeters. Focus and invalid now keep the resting shape and recolor that one line: `--ring` on focus, `--destructive` on invalid. The focus ring is unchanged and remains the only mark that goes all the way round a field.
+      _An application that patched one of these recipes to remove the restored `hairline`, or that added its own bottom-only focus treatment on top of it, can drop that override. A recipe that deliberately wants a four-sided focus edge should add `focus-visible:hairline` back._
+
 ### Fixes
 
 - **Bulk action and workflow transition links**:

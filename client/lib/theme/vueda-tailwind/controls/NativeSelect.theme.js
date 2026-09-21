@@ -14,7 +14,7 @@ patchTheme({
      * touch devices, fallback contexts).
      */
     NativeSelect: {
-        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height, `bg-field` fill, bottom `field-line`, full-edge focus, and `aria-invalid` shell as {@api theme-key:Input.root}, with the shared `hover:bg-field-hover` step. `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
+        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height, `bg-field` fill, bottom `field-line`, recoloured focus line, and `aria-invalid` shell as {@api theme-key:Input.root}, with the shared `hover:bg-field-hover` step. `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
         root: {
             class: [
                 // Text selection and picker states.
@@ -29,8 +29,8 @@ patchTheme({
                 "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
 
                 // Focus and invalid states.
-                "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow",
-                "aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
             ],
         },
     },

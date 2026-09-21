@@ -34,8 +34,8 @@ patchTheme({
                 "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
 
                 // Focus and invalid states.
-                "has-[[data-slot=input-group-control]:focus-visible]:hairline has-[[data-slot=input-group-control]:focus-visible]:hairline-ring has-[[data-slot=input-group-control]:focus-visible]:focus-ring-shadow",
-                "has-[[data-slot][aria-invalid=true]]:hairline has-[[data-slot][aria-invalid=true]]:hairline-destructive has-[[data-slot][aria-invalid=true]:focus-visible]:focus-ring-shadow-destructive",
+                "has-[[data-slot=input-group-control]:focus-visible]:hairline-ring has-[[data-slot=input-group-control]:focus-visible]:focus-ring-shadow",
+                "has-[[data-slot][aria-invalid=true]]:hairline-destructive has-[[data-slot][aria-invalid=true]:focus-visible]:focus-ring-shadow-destructive",
             ],
         },
     },

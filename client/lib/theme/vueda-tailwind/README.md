@@ -539,9 +539,12 @@ line" cue from paper forms, so it cannot be mistaken for an outline button.
 
 - **Rest:** `field-line bg-field`, square `rounded-vueda-field` corners.
 - **Hover:** `hover:bg-field-hover`, a fill step; the line does not change.
-- **Focus and invalid:** the four-sided `hairline` returns alongside the ring
-  (`focus-visible:hairline focus-visible:hairline-ring
-focus-visible:focus-ring-shadow`), so those states keep a full edge.
+- **Focus:** the line stays bottom-only and recolours to `--ring`
+  (`focus-visible:hairline-ring focus-visible:focus-ring-shadow`). The ring is
+  the only mark that goes all the way round a field.
+- **Invalid:** the same line recolours to `--destructive`
+  (`aria-invalid:hairline-destructive`), and the ring turns destructive too once
+  the field takes focus.
 - **Read-only:** no fill and a `--border` line (`hairline-border`), so a
   read-only field reads like the read view's display rows rather than an
   editable field. Read view rows must keep that subtle line, never
