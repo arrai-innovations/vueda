@@ -25,6 +25,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
     - A workflow discovery request that fails for a reason other than a 403 still resolves to a plain `WorkflowError`, and `requireModelInfo` rethrows it rather than treating it as a permission denial.
 
+- **The empty state spans the grid width in table layout (`ObjectsGrid`)**:
+    - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
+      _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._
+
 - **The destroy view contributes a page title (`ViewDestroy`, `useViewDestroy`)**:
     - A Destroy route went straight from the shell breadcrumb to the danger card, with no page heading, because neither `ViewDestroy` nor `useViewDestroy` called `usePageTitle` while Create, Update, Read, List, and the action confirmations all do. `useViewDestroy` now exposes `titleStr` and `pageLoading`, and the view registers them, so the layout's `PageTitle` renders a heading here too.
     - The title reads "Delete Widget", and counts and pluralizes a bulk destroy as "Delete 3 Widgets". It says Delete rather than Destroy: the route action names the operation, the heading says what the operator is doing, matching the danger banner below it.

@@ -66,7 +66,7 @@ patchTheme({
                 },
             ],
         },
-        /** The empty-state cell wrapper. It centers the empty content inside the single full-width row created when the grid has no data. */
+        /** The empty-state cell wrapper. It centers the empty content inside the single row the grid renders when it has no data. That row spans the full width in both layouts, but by different means: in table layout the cell is a `td` carrying `colspan`, because a CSS table gives a non-cell child one column; in card layout it is a `div` inside a row that spans the card grid. A recipe here should therefore set no display or column utilities of its own. */
         emptyText: {
             class: ["text-center"],
         },
