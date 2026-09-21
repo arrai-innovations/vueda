@@ -111,7 +111,7 @@ describe("lib/use/useFieldSetInline.js", () => {
     });
 
     scopedIt("doCreate adds object and toggles visibility", async () => {
-        const { instance, fieldSetContext } = await mountFieldSet({ visible: false });
+        const { instance, fieldSetContext } = await mountFieldSet({ hiddenByDefault: "always" });
         await flushPromises();
         expect(instance.state.internalVisible).toBe(false);
         instance.doCreate();
@@ -120,6 +120,41 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.focusIndex).toBe(0);
         expect(instance.state.internalVisible).toBe(true);
         expect(instance.state.userHasToggled).toBe(true);
+    });
+
+    scopedIt("Create requests controlled visibility without overriding the prop", async () => {
+        const { instance, fieldSetContext, emit, props } = await mountFieldSet({ visible: false });
+        instance.doCreate();
+        expect(fieldSetContext.state.value).toHaveLength(1);
+        expect(emit).toHaveBeenCalledExactlyOnceWith("update:visible", true);
+        expect(instance.state.internalVisible).toBe(false);
+        props.visible = true;
+        await flushPromises();
+        expect(instance.state.internalVisible).toBe(true);
+    });
+
+    scopedIt.each([
+        [{ hiddenByDefault: "always" }, false],
+        [{ hiddenByDefault: "never" }, true],
+        [{ hidable: false, hiddenByDefault: "always" }, true],
+        [{ visible: true, hiddenByDefault: "always" }, true],
+        [{ visible: false, hiddenByDefault: "never" }, false],
+    ])("initializes visibility for %j", async (props, expected) => {
+        const { instance } = await mountFieldSet(props);
+        expect(instance.state.internalVisible).toBe(expected);
+    });
+
+    scopedIt("follows defaults until the user chooses visibility", async () => {
+        const { instance, props } = await mountFieldSet({ hiddenByDefault: "never" });
+        props.hiddenByDefault = "always";
+        await flushPromises();
+        expect(instance.state.internalVisible).toBe(false);
+        instance.setVisibility(true);
+        props.hiddenByDefault = "never";
+        await flushPromises();
+        props.hiddenByDefault = "always";
+        await flushPromises();
+        expect(instance.state.internalVisible).toBe(true);
     });
 
     scopedIt("handleSelected updates selected array", async () => {

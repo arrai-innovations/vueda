@@ -2,7 +2,8 @@
 import "@vueda/theme/vueda-tailwind/shell/CollapsibleTrigger.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { reactiveOmit } from "@vueuse/core";
-import { CollapsibleTrigger } from "reka-ui";
+import { CollapsibleTrigger, injectCollapsibleRootContext } from "reka-ui";
+import { useId } from "vue";
 
 /**
  * The trigger button that toggles a Collapsible open or closed.
@@ -24,6 +25,11 @@ const props = defineProps({
 
 const delegatedProps = reactiveOmit(props, "class", "themeOverride");
 const theme = useTheme("CollapsibleTrigger", props);
+// Reka 2.9.7 assigns the ID in Content, after an earlier Trigger has rendered.
+// Initialize it here so aria-controls is valid on the first render too.
+const rootContext = injectCollapsibleRootContext();
+const contentId = useId();
+rootContext.contentId ||= `vueda-collapsible-content-${contentId}`;
 </script>
 
 <template>

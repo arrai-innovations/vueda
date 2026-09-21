@@ -143,6 +143,7 @@ export function useSubForm({ parentPath }) {
         // *** Value & Initial Value Handling ***
         updateValue: buildFieldMethodProxy(parentFormContext.updateValue),
         deleteValue: buildFieldMethodProxy(parentFormContext.deleteValue),
+        removeArrayItem: buildFieldMethodProxy(parentFormContext.removeArrayItem),
         updateInitialValue: buildFieldMethodProxy(parentFormContext.updateInitialValue),
         deleteInitialValue: buildFieldMethodProxy(parentFormContext.deleteInitialValue),
 

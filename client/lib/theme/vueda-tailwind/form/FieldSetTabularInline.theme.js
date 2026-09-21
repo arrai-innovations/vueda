@@ -14,6 +14,10 @@ patchTheme({
      * controls.
      */
     FieldSetTabularInline: {
+        /** Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance comes from {@api theme-key:Button}. */
+        destroyButton: {
+            class: [],
+        },
         /** Card shell for tabular inline editing, including nested-fieldset inset chrome. */
         root: {
             class: [
@@ -37,6 +41,12 @@ patchTheme({
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
                 "text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
+            ],
+        },
+        /** Disclosure label and chevron, beside the independent Create action. */
+        titleTrigger: {
+            class: [
+                "flex flex-1 min-w-0 items-center gap-2 2xs:gap-3 text-left [font:inherit] [text-transform:inherit] tracking-[inherit] -ml-3 -my-2 px-3 py-2 self-stretch",
             ],
         },
         /** Interactive state layer for a hidable tabular title bar. See also: {@api theme-key:FieldSetStackedInline.titleBarToggle}. */
@@ -72,7 +82,7 @@ patchTheme({
         objectsGrid: {
             class: "w-full",
         },
-        /** Hidden grid state used when the empty invitation replaces the tabular body. */
+        /** Legacy grid visibility hook. CollapsibleContent now controls body visibility. */
         objectsGridHidden: {
             class: "hidden",
         },

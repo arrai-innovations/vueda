@@ -64,7 +64,12 @@ import { useRouter } from "vue-router";
  */
 
 /**
- * Type for handling errors during form submission.
+ * Type for handling errors during form submission. Return true once the error has been rendered into
+ * field/toast feedback, so it counts as ingested and does not also become the form's own visible
+ * error. Return false (or leave the promise resolving to a falsy value, as with an override that
+ * doesn't recognize the error) to have it become `state.error` instead, since `performAndHandle`
+ * clears it off the submission instance either way; do not rely on reading the error back off the
+ * submission `instanceObject` afterwards.
  * @typedef {(options: {
  *     error: Error,
  *     formContext: FormContext,
@@ -151,7 +156,9 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
  * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
- * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
+ * @returns {Promise<boolean>} - True if the error is a recognized, ingestible form error and has been
+ *  handled (rendered into field/toast feedback). False if it should instead surface as the form's
+ *  visible save-failure error (e.g. a permission refusal, server failure, or network failure).
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
     if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
@@ -168,6 +175,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
         }
         return true;
     }
+    return false;
 };
 
 /**
@@ -449,10 +457,17 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         }
         state.submitErrored = true;
         const handled = await returnObject.onSubmissionError({ error, formContext, toast, isUpdate, state });
-        if (handled && generation === targetGeneration) {
-            instanceObject.clearError();
+        if (generation !== targetGeneration) {
+            return;
         }
-        // otherwise, whatever is looking at instanceObject.state.error will handle it.
+        instanceObject.clearError();
+        if (!handled) {
+            // The hook only ingests errors it recognizes (field validation, by default). An error it
+            // doesn't recognize (permission refusal, server failure, network failure) still needs to
+            // reach the user, so it becomes the form's own visible error instead of sitting unread on
+            // the submission instance.
+            loadingError.setError(error);
+        }
     };
 
     const doSubmit = async () => {

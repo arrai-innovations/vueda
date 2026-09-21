@@ -200,6 +200,7 @@ const icon = useIcons("WidgetCombobox", props);
         />
         <span v-else>{{ closedStateLabel }}</span>
     </template>
+    <!-- Fields validate required values on submit; standalone widgets still need native validation. -->
     <Combobox
         v-else
         v-model="effectiveValue"
@@ -207,7 +208,7 @@ const icon = useIcons("WidgetCombobox", props);
         :disabled="widgetContext.state.disabled"
         :multiple="props.multiple"
         :name="widgetContext.state.combinedName"
-        :required="widgetContext.state.required"
+        :required="(!fieldContext || props.contextless) && widgetContext.state.required"
         :reset-search-term-on-select="!isApiMode"
         @update:open="handleOpenChange"
     >
@@ -215,6 +216,7 @@ const icon = useIcons("WidgetCombobox", props);
             <ComboboxTrigger
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                :data-warning="widgetContext.state.validationState.warning || undefined"
                 :aria-required="widgetContext.state.required || undefined"
                 :class="theme('trigger')"
                 data-qa="widget-combobox"

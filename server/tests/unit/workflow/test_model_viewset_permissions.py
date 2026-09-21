@@ -8,10 +8,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.permissions import BasePermission
+from rest_framework.response import Response
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import response_body
 from tests.store import models as store_models
 from tests.store import viewsets as store_viewsets
+from vueda.core.decorators import action
 from vueda.core.permissions import ObjectPermissions
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
@@ -286,6 +290,185 @@ class TestWorkflowModelViewSetPermissions:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response_body(response)
+
+    def test_history_list_defers_to_matching_state_grant(
+        self, api_client, user, permission_group, customer_order, workflow, content_type
+    ):
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+
+    def test_history_list_denies_user_with_no_grant_and_no_model_permission(self, api_client, user, customer_order):
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
+
+    def test_history_list_state_deny_overrides_model_permission(
+        self, api_client, user, permission_group, customer_order, workflow, content_type
+    ):
+        permission_group.permissions.add(
+            Permission.objects.get(content_type=content_type, codename="read_customerorder")
+        )
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+            grant=False,
+        )
+        api_client.force_authenticate(user)
+
+        response = api_client.get(
+            reverse("store.customerorder-history-list", kwargs={"pk": customer_order.pk}),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND, response_body(response)
+
+    def test_history_list_defers_to_a_matching_state_grant_for_a_subclass_with_its_own_workflow_object_permission_actions(
+        self, user, permission_group, customer_order, workflow, content_type
+    ):
+        """
+        A subclass declaring `workflow_object_permission_actions` for its own action must still
+        reach `history_list`.
+        """
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+
+        class SubclassViewSet(store_viewsets.CustomerOrderViewSet):
+            workflow_object_permission_actions = frozenset(("custom_object_action",))
+
+        request = APIRequestFactory().get(f"/store/customerorders/{customer_order.pk}/history/")
+        force_authenticate(request, user=user)
+
+        response = SubclassViewSet.as_view({"get": "history_list"})(request, pk=customer_order.pk)
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+    def test_history_list_defers_when_workflow_object_permission_actions_comes_from_a_mixin(
+        self, user, permission_group, customer_order, workflow, content_type
+    ):
+        """
+        A class that never declares `workflow_object_permission_actions` itself, and instead
+        inherits the collection from a mixin listed ahead of the `VuedaViewSet` chain, must still
+        gain `history_list`'s deferral -- not only a class that declares the attribute directly.
+        """
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+
+        class ActionsMixin:
+            workflow_object_permission_actions = frozenset(("custom_object_action",))
+
+        class MixedViewSet(ActionsMixin, store_viewsets.CustomerOrderViewSet):
+            pass
+
+        assert MixedViewSet.workflow_object_permission_actions == frozenset(("custom_object_action", "history_list"))
+
+        request = APIRequestFactory().get(f"/store/customerorders/{customer_order.pk}/history/")
+        force_authenticate(request, user=user)
+
+        response = MixedViewSet.as_view({"get": "history_list"})(request, pk=customer_order.pk)
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+    def test_history_list_defers_for_a_subclass_declaring_its_own_collection_alongside_a_mixin(
+        self, user, permission_group, customer_order, workflow, content_type
+    ):
+        """
+        A class that both inherits from a mixin supplying `workflow_object_permission_actions`
+        *and* declares its own value must still gain `history_list`'s deferral, and its own value
+        -- not the mixin's -- is what ordinary attribute lookup would have already picked.
+        """
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+
+        class ActionsMixin:
+            workflow_object_permission_actions = frozenset(("mixin_action",))
+
+        class MixedViewSet(ActionsMixin, store_viewsets.CustomerOrderViewSet):
+            workflow_object_permission_actions = frozenset(("own_action",))
+
+        assert MixedViewSet.workflow_object_permission_actions == frozenset(("own_action", "history_list"))
+        assert "mixin_action" not in MixedViewSet.workflow_object_permission_actions
+
+        request = APIRequestFactory().get(f"/store/customerorders/{customer_order.pk}/history/")
+        force_authenticate(request, user=user)
+
+        response = MixedViewSet.as_view({"get": "history_list"})(request, pk=customer_order.pk)
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+
+    def test_subclass_explicitly_removing_a_parents_custom_action_from_deferral_is_preserved(
+        self, user, permission_group, customer_order, workflow, content_type
+    ):
+        """
+        A subclass that overrides a parent's custom action so it no longer performs an object
+        permission check, and removes that action from `workflow_object_permission_actions` to
+        match, must not have that action silently restored just because `history_list` also needs
+        adding to the same collection. Restoring it would let a state grant -- which only speaks to
+        an object's current state -- admit a request whose action never checks that state at all.
+        """
+        self.add_state_permission(
+            workflow=workflow,
+            content_type=content_type,
+            group=permission_group,
+            codename="read_customerorder",
+        )
+
+        class ParentViewSet(store_viewsets.CustomerOrderViewSet):
+            workflow_object_permission_actions = frozenset(("custom_object_action",))
+
+            @action(detail=True, methods=["get"])
+            def custom_object_action(self, request, pk=None):
+                instance = self.get_object()
+                return Response({"id": instance.pk})
+
+        class ChildViewSet(ParentViewSet):
+            workflow_object_permission_actions = frozenset()
+
+            @action(detail=True, methods=["get"])
+            def custom_object_action(self, request, pk=None):
+                # Fetches straight from the queryset, relying on model permission alone -- no
+                # object permission check, so this action must not defer to a state grant.
+                instance = self.get_queryset().get(pk=pk)
+                return Response({"id": instance.pk})
+
+        assert ChildViewSet.workflow_object_permission_actions == frozenset(("history_list",))
+
+        request = APIRequestFactory().get(f"/store/customerorders/{customer_order.pk}/custom-object-action/")
+        force_authenticate(request, user=user)
+
+        response = ChildViewSet.as_view({"get": "custom_object_action"})(request, pk=customer_order.pk)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
 
     def test_additional_permission_class_denial_is_not_suppressed(
         self,

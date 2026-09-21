@@ -169,7 +169,7 @@ defineExpose({ addedFilters });
             <!-- Bulk clear only earns its place with more than one filter; a lone chip is removed by its own x. -->
             <Button
                 v-if="addedFilters.length > 1"
-                emphasis="ghost"
+                emphasis="outline"
                 size="sm"
                 :class="theme('clear')"
                 data-qa="filter-clear"

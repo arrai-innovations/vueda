@@ -12,7 +12,98 @@ Integrator-facing changes for the `@arrai-innovations/vueda` npm package.
 Use this page for changes that affect client package consumers: public Vue components, composables, routes,
 stores, theme behavior, build integration, dependency expectations, and migration notes.
 
-## v3.0.0-alpha.4 (unreleased)
+## v3.0.0-alpha.5 (2026-09-21)
+
+### Features
+
+- **Optional Unovis theme integration**:
+    - Import `theme/vueda-tailwind/unovis.css` and wrap charts in `unovis-vueda` to map axes, legends, crosshairs, and tooltips to VUEDA tokens. Five independent chart colors use an Okabe-Ito derivative with light and dark variants; single-series charts use the first color by default.
+    - Native Unovis components remain available directly. The integration does not load Unovis from VUEDA's common startup imports. See [Style Unovis Charts](../../guides/style-unovis-charts.md) for installation, coverage, and local overrides.
+
+- **Focused and invalid fields keep the bottom-only line (`Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, `WidgetCombobox`)**:
+    - `alpha.3` gave editable fields a `--field` fill on a bottom-only `field-line`, then restored the four-sided hairline on focus and invalid. A field therefore changed shape twice per interaction, and the restored edge sat inside the focus ring, so a focused field carried two full perimeters. Focus and invalid now keep the resting shape and recolor that one line: `--ring` on focus, `--destructive` on invalid. The focus ring is unchanged and remains the only mark that goes all the way round a field.
+      _An application that patched one of these recipes to remove the restored `hairline`, or that added its own bottom-only focus treatment on top of it, can drop that override. A recipe that deliberately wants a four-sided focus edge should add `focus-visible:hairline` back._
+
+- **Fields show a warning state (`hairline-warning`, `data-warning`, `useWidget`)**:
+    - A field carrying a warning rendered amber `FieldMessage` text over a neutral control, so the control itself said nothing. The field's bottom line now recolors to `--warning`, through the new `hairline-warning` utility and a `data-warning` attribute the widget writes beside `aria-invalid`. Warnings do not block a submit, so the focus ring is unchanged.
+    - `useWidget`'s `validationState.warning` now excludes the invalid case in both branches. Inside a field context it already meant "has messages and no errors"; a standalone widget given both `invalid` and `warning` props reported both, and now reports only `invalid`. The recipes enforce the same precedence in their selectors (`not-aria-invalid`), so a hand-authored control marked both ways still shows the error.
+    - Covers `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger.
+      _A custom widget that wants the warning line should bind `:data-warning="widgetContext.state.validationState.warning || undefined"` beside its `aria-invalid`. A custom field recipe picks the state up with `data-[warning=true]:not-aria-invalid:hairline-warning`; keep the `not-aria-invalid` half, because Tailwind emits the arbitrary data variant after the built-in `aria-invalid` one, so an unscoped warning outranks an error._
+
+### Fixes
+
+- **Update-form save failures reach the visible error display (`useObjectForm`, `ViewUpdate`)**:
+    - A PUT rejected by the server (a permission refusal, an HTTP 500, or a network failure) previously stopped the submit spinner and left the form with no error shown, because the error only reached the submission's own object instance, which nothing displayed. An error that the submission hook does not recognize now becomes the form's own visible error, so it reaches the same error display as any other load failure while retaining the user's edited values. Field validation, warning confirmation, and hooks that already mark an error as handled are unaffected.
+      _A custom `onSubmissionError` override passed to `useObjectForm` that returns false (or a falsy resolution) now has that error promoted to `objectForm.state.error` instead of being left on the `instanceObject` passed in; that instance's error is cleared either way. This only matters for code built directly on `useObjectForm`, or on `useViewCreate` (which passes the same instance for both display and submission): a custom display bound to that instance's own error instead of `objectForm.state.error`/`instance.combinedError` should switch to the latter. `useViewUpdate`'s submission instance was never returned to callers, so there is nothing to migrate there._
+
+- **Collapsible**:
+    - Controlled `modelValue` now maps to Reka's open state and emits updates correctly. The new `unmountOnHide` prop defaults to true; set it to false to retain mounted content when collapsed. Trigger/content IDs are associated on the first render.
+
+- **Bulk action and workflow transition links**:
+    - Links now follow changes to the selected rows, including additions and removals within the same selection array. Previously, a link could keep the first selection and open the action with outdated record IDs.
+
+- **useSignInFlow**:
+    - A post-login redirect that cannot happen is now reported instead of being announced as a success. The composable pushed its destination without awaiting or catching it, then showed the "Signed In" toast on the next line, so a navigation that rejected or threw left an unhandled error in the console, a success message on screen, and the person still on the sign-in form. The push is now awaited: on success the existing toast is unchanged, and on failure a `toast.error` says the sign-in worked but the next page could not be opened, with the destination and the error logged to the console for whoever owns the routes. Both failure shapes are covered, since Vue Router resolves the destination inside `push` and an unmatched route name throws synchronously while a rejecting guard does not.
+      _The most common cause is the default destination. With no `redirect` prop and no `?redirect` query parameter, the flow still pushes `{ name: "welcome" }`, which an application that names its landing route something else does not have. See [Build Auth Views](../../guides/build-auth-views) for the redirect chain._
+
+- **Booleans render a word, not the stored literal (`fieldMappings`, `columnMappings`, new `WidgetBooleanReadOnly`, `ColumnBoolean`, and `BooleanDisplay`)**:
+    - A read view printed `true` or `false` for every boolean field, because a field with no `readOnlyWidget` falls back to `WidgetReadOnly`, which prints the value the server sent. A list cell did the same through `ColumnText`. `BooleanField` and `NullBooleanField` now name `WidgetBooleanReadOnly` in `fieldMappings` (both the default and choice mappings, so the toggle, checkbox, and radio group all read back the same way) and `ColumnBoolean` in `columnMappings`, so a list and a read view word one field one way.
+    - `BooleanDisplay` renders the word for both, and a null, undefined, or empty value takes the same dash `DateTimeDisplay` already shows for an empty date. `trueLabel` and `falseLabel` change the wording through `readOnlyWidgetProps`, `columnProps`, or per field through `widgetProps` and `columnComponents`.
+      _Read-only booleans and boolean list cells change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` or `ColumnText` to word booleans itself, should re-check it._
+
+- **FieldWarningsList, ViewCreate, ViewUpdate, ModelActionForm**:
+    - A save confirmation named each warned field by its raw serializer key, so a dialog read `expected_arrival_date:` where the form above it read "Expected Arrival Date". `FieldWarningsList` takes a `fieldDetails` prop and resolves each field's label from it, falling back to the start-cased field name. The three views that render it pass their model config's `fieldDetails`, and the `entry` slot now also receives the resolved `label`.
+      _A consumer rendering `FieldWarningsList` directly should pass `fieldDetails` to get server labels; without it, fields now read as start-cased names rather than raw keys._
+
+- **ModelActionForm**:
+    - Confirmation screens now display fetched record names as visible links beside their primary keys. Records without fetched names show their primary key once. Per-record errors and warnings remain visible.
+
+- **WidgetCombobox**:
+    - Required pickers inside VUEDA fields now show field errors on submission instead of letting the browser focus a visually hidden input and block the submit handler. Required indicators and accessible required state remain intact, and VUEDA validation still blocks empty required values. Standalone and contextless pickers retain native required validation.
+
+- **InputOTP**:
+    - `aria-invalid="true"` on the input now gives all visible slots destructive borders and the active slot a destructive focus ring. The ring follows the active slot across groups. Disabled colors still take precedence.
+      _The focus ring is now styled through `InputOTPSlot.root`, rather than `InputOTP.root`. Update custom ring overrides if needed._
+
+- **Disabled Toggle, ToggleGroup, Slider, and InputOTP controls**:
+    - Disabled states use the existing disabled fill and foreground tokens at full opacity. Pressed toggles, slider ranges and thumb positions, and entered OTP digits remain visible in both themes.
+
+- **Toggle**:
+    - `pressed`, `defaultPressed`, and `update:pressed` now map to Reka's value API, restoring controlled and default pressed states without changing VUEDA's public API.
+
+- **Disabled checkbox, radio, and switch controls**:
+    - Disabled states now use the existing disabled fill and foreground tokens instead of reducing the whole control's opacity. Checkbox marks, radio dots, and switch-thumb positions preserve the value; disabled colors override active and invalid colors in both themes.
+
+- **FieldSetMany**:
+    - Any entry can be removed, including the first and last. Optional lists stay empty until Add is used; required lists validate their minimum of one entry. Every added entry requires a value, and read-only lists disable Add and Remove.
+    - Repeated labels remain accessible but are visually hidden. Remove buttons align with their controls even when validation messages appear. Indexed feedback follows surviving values through the new `useForm.removeArrayItem(name, index)` method.
+    - Remove-entry buttons now use destructive tone consistently with unsaved inline deletion. Add and Remove explicitly use non-submit buttons so editing the list does not submit its parent form.
+
+- **ViewList bulk-action sizing**:
+    - Bulk and workflow action buttons now use the small size consistently with the selection-bar convention. Their slot props include `size: "sm"`, so custom replacements that spread those props receive the same sizing.
+
+- **List filter and sort controls**:
+    - Clear filters and Reset sort now use small neutral outline buttons so they remain recognizable as controls before hover. Their existing theme hooks and clearing behavior are unchanged.
+
+- **Numeric range filters**:
+    - Filters with `typeFilter: "RangeField"` now render optional numeric minimum and maximum inputs. Decimal thresholds retain their fractional values, and numeric range validation compares string-backed values numerically, so a valid range such as `2.5` to `10.25` is accepted.
+
+- **WidgetSelectDropdown**:
+    - Empty-string and nullish choices no longer cause invalid select items. Their label supplies the placeholder when no explicit placeholder is provided; `false` and `0` remain selectable. Active filters can still be cleared through their Remove control.
+
+- **Inline fieldsets**:
+    - Stacked, singular stacked, and tabular inlines now use Collapsible for disclosure. Rows and empty states hide together while fields remain mounted, preserving values and validation; fieldset-level help and errors stay visible. The title is a native disclosure button beside Create. Initial `hiddenByDefault` settings are respected, non-hidable inlines stay open by default, and Create requests expansion through `update:visible` when visibility is controlled.
+      _Custom themes can style the new `titleTrigger` key; `titleBar` still styles the header, while `titleBarToggle` styles its trigger. Tabular body visibility no longer uses `objectsGridHidden`._
+    - Create and Delete buttons in stacked, singular stacked, and tabular inlines no longer submit the containing form or trigger validation on unrelated fields.
+    - Custom stacked row-action buttons now invoke their configured `action` callback and use small outline styling like tabular actions. Both layouts explicitly use non-submit buttons. Stacked callbacks receive `action`, `fieldSetContextState`, `rowValueName`, and `event`; singular stacked rows use the field name as their value path.
+    - Unsaved-row Delete buttons now use a trash icon, destructive tone, and small sizing consistently across stacked, singular stacked, and tabular layouts. Customize the icon through `FieldSetStackedInlineRow.typeDeleted` or `FieldSetTabularInline.typeDeleted` in `iconOverride` (with `Default.typeDeleted` as the fallback), and extra classes through each component's `destroyButton` theme key.
+    - Editable unsaved rows now show a Delete button even when the server supplies no `destroy` action. This applies to stacked, singular stacked, and tabular inlines. Deletion controls for saved rows still require the action metadata.
+    - The `destroy-button` slot also renders without a server action; its `action` and `value` props are then undefined, and its `label` defaults to `Delete`.
+
+- **Visible duration units (`WidgetDuration`)**:
+    - Each enabled spinner now shows its unit above the input. Clicking a unit label focuses its own input, including when several units are shown. Customize the labels through `WidgetDuration.unitLabel`.
+
+## v3.0.0-alpha.4 (2026-09-18)
 
 ### Breaking Changes
 

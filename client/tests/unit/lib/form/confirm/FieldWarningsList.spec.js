@@ -15,13 +15,13 @@ describe("lib/form/confirm/FieldWarningsList.vue", () => {
             expect(items[1].text()).toBe("Also this.");
         });
 
-        scopedIt("renders a single-message field inline as 'field: message', with no separate list", () => {
+        scopedIt("renders a single-message field inline as 'label: message', with no separate list", () => {
             const wrapper = mount(FieldWarningsList, {
                 props: { messages: { count: ["A negative count is unusual."] } },
             });
             expect(wrapper.find("ul").exists()).toBe(false);
             const item = wrapper.get('[data-qa="form-confirm-warning"]');
-            expect(item.text()).toBe("count: A negative count is unusual.");
+            expect(item.text()).toBe("Count: A negative count is unusual.");
         });
 
         scopedIt("renders a multi-message field as a sub-header plus its own list", () => {
@@ -29,7 +29,7 @@ describe("lib/form/confirm/FieldWarningsList.vue", () => {
                 props: { messages: { count: ["First issue.", "Second issue."] } },
             });
             const header = wrapper.get('[data-qa="form-confirm-warning-field"]');
-            expect(header.text()).toBe("count");
+            expect(header.text()).toBe("Count");
             const items = wrapper.findAll('[data-qa="form-confirm-warning"]');
             expect(items).toHaveLength(2);
             expect(items[0].text()).toBe("First issue.");
@@ -40,7 +40,40 @@ describe("lib/form/confirm/FieldWarningsList.vue", () => {
             const wrapper = mount(FieldWarningsList, {
                 props: { messages: { count: "A lone string message." } },
             });
-            expect(wrapper.get('[data-qa="form-confirm-warning"]').text()).toBe("count: A lone string message.");
+            expect(wrapper.get('[data-qa="form-confirm-warning"]').text()).toBe("Count: A lone string message.");
+        });
+
+        scopedIt("names a field by its label from fieldDetails", () => {
+            const wrapper = mount(FieldWarningsList, {
+                props: {
+                    messages: { quantity_on_hand: ["Above the maximum."] },
+                    fieldDetails: { quantity_on_hand: { label: "Units in stock" } },
+                },
+            });
+            expect(wrapper.get('[data-qa="form-confirm-warning"]').text()).toBe("Units in stock: Above the maximum.");
+        });
+
+        scopedIt("falls back to the start-cased field name when fieldDetails has no entry", () => {
+            const wrapper = mount(FieldWarningsList, {
+                props: {
+                    messages: { expected_arrival_date: ["Earlier than the lead time."] },
+                    fieldDetails: { some_other_field: { label: "Elsewhere" } },
+                },
+            });
+            expect(wrapper.get('[data-qa="form-confirm-warning"]').text()).toBe(
+                "Expected Arrival Date: Earlier than the lead time.",
+            );
+        });
+
+        scopedIt("leaves non_field_errors unlabelled even when fieldDetails names it", () => {
+            const wrapper = mount(FieldWarningsList, {
+                props: {
+                    messages: { non_field_errors: ["Form issue."] },
+                    fieldDetails: { non_field_errors: { label: "Should not appear" } },
+                },
+            });
+            expect(wrapper.find('[data-qa="form-confirm-warning-field"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="form-confirm-warning"]').text()).toBe("Form issue.");
         });
 
         scopedIt("sorts non_field_errors before other fields regardless of key order", () => {

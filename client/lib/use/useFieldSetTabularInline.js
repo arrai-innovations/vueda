@@ -14,7 +14,7 @@ import { computed, reactive, readonly, toRefs } from "vue";
 export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
 
 /** Array of Vue event names emitted by tabular inline field-set components. Pass to the `emits` option of a tabular inline field-set component. */
-export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS];
+export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS, "update:visible"];
 
 /**
  * @callback BoundHandleIsTableUpdate
@@ -56,7 +56,7 @@ const handleIsTableUpdate = (state, newValue) => {
  * @typedef {object} FieldSetTabularInlineRawState
  * @property {boolean} [isTable=true] - Whether the fieldset is displayed as a table.
  * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding actions.
- *  If any actions exist, includes a synthetic 'item-action-bar' field first.
+ *  Includes an 'item-action-bar' field first when actions exist or editable unsaved rows can be removed.
  * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
  *  model's field props.
  * @property {{ widgetContext: import('@vueda/use/useWidget.js').WidgetContext, props: import('vue').UnwrapNestedRefs<object> }[]} widgetContextItems - The widget
@@ -87,6 +87,7 @@ const handleIsTableUpdate = (state, newValue) => {
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.
+ * @property {(visible: boolean) => void} setVisibility - Set visibility, emitting update:visible when controlled.
  * @property {BoundToggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
  */
 
@@ -109,7 +110,12 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         isTable: true,
         computedFieldObjects: computed(() => {
             const objects = [];
-            if (state.actions.length) {
+            const hasRemovableRows =
+                !props.readOnly &&
+                !state.computedFieldProps.readOnly &&
+                Array.isArray(fieldSetContext.state.value) &&
+                fieldSetContext.state.value.some((row) => row?.id == null);
+            if (state.actions.length || hasRemovableRows) {
                 objects.push({
                     name: "item-action-bar",
                 });
@@ -119,7 +125,7 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
             return objects.filter((field) => !field.action);
         }),
         computedFieldProps: computed(() =>
-            merge(fieldSetInline.formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
+            merge({}, fieldSetInline.formModel.fieldProps[fieldSetContext.state.formModelName], props.fieldProps),
         ),
     });
 
@@ -137,6 +143,7 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
         handleSelected: fieldSetInline.handleSelected,
         refFn: fieldSetInline.refFn,
         removeObject: fieldSetInline.removeObject,
+        setVisibility: fieldSetInline.setVisibility,
         toggleVisibility: fieldSetInline.toggleVisibility,
     };
 }

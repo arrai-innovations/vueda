@@ -20,14 +20,15 @@ patchTheme({
                 "flex w-full items-center rounded-vueda-field field-line bg-field hover:bg-field-hover text-sm shadow-vueda-control transition-shadow",
 
                 // Focus, read-only, and disabled states.
-                "focus-within:hairline focus-within:hairline-ring focus-within:focus-ring-shadow",
+                "focus-within:hairline-ring focus-within:focus-ring-shadow",
 
                 // Disabled: an inert slab, not a faded field. The state is a data attribute on a
                 // wrapper element, which the `disabled:` variant (`:disabled`) never matches.
                 "data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed",
                 "data-[disabled]:bg-disabled data-[disabled]:text-disabled-foreground data-[disabled]:hairline-border",
                 "data-[readonly]:bg-transparent data-[readonly]:hover:bg-transparent data-[readonly]:hairline-border",
-                "aria-invalid:hairline aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
+                "aria-invalid:hairline-destructive focus-within:aria-invalid:focus-ring-shadow-destructive",
 
                 // Size classes.
                 {

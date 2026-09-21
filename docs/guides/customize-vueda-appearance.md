@@ -7,6 +7,8 @@ status: draft
 
 # Customize VUEDA Appearance
 
+For charts, see [Style Unovis Charts](style-unovis-charts.md) for the optional Unovis stylesheet and independent categorical palette.
+
 This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of your change. Reaching for a broader mechanism than you need is the most common way customizations leak into screens you did not mean to touch.
 
 For the conceptual model behind these mechanisms (what each scope means and how the layers interact), see [Theming and Customization](../core-concepts/theming-and-customization).

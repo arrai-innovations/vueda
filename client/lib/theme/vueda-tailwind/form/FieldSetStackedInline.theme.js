@@ -30,7 +30,7 @@ patchTheme({
         hr: {
             class: "hidden",
         },
-        /** Full-width eyebrow title bar that also acts as the disclosure trigger when the fieldset is hidable. */
+        /** Eyebrow title bar containing the disclosure trigger and a separate Create action. */
         titleBar: {
             class: [
                 // Layout and edge merge.
@@ -40,6 +40,12 @@ patchTheme({
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em] leading-none",
                 "text-muted-foreground",
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
+            ],
+        },
+        /** Disclosure label and chevron, beside the independent Create action. */
+        titleTrigger: {
+            class: [
+                "flex flex-1 min-w-0 items-center gap-2 2xs:gap-3 text-left [font:inherit] [text-transform:inherit] tracking-[inherit] -ml-3 -my-2 px-3 py-2 self-stretch",
             ],
         },
         /** Interactive state layer for hidable title bars. */
@@ -80,7 +86,7 @@ patchTheme({
         toggleButton: {
             class: [],
         },
-        /** Trailing action group in the title bar. Stops toggle propagation in the component. */
+        /** Trailing action group beside the disclosure trigger. */
         actionBar: {
             class: ["grow-0 flex gap-1 2xs:gap-2 2xl:gap-4", "ml-auto"],
         },

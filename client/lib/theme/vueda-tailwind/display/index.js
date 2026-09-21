@@ -7,6 +7,7 @@ import "./Avatar.theme.js";
 import "./AvatarFallback.theme.js";
 import "./AvatarImage.theme.js";
 import "./Badge.theme.js";
+import "./BooleanDisplay.theme.js";
 import "./ClickToCopyText.theme.js";
 import "./ConsequencesBullets.theme.js";
 import "./ConstraintsBar.theme.js";
@@ -34,6 +35,7 @@ export default {
     DateRangeDisplay: {},
     DateTimeDisplay: {},
     // ---------- Text utilities ----------
+    BooleanDisplay: {},
     ErrorDisplay: {},
     ClickToCopyText: {},
     // ---------- Badges and keyboard hints ----------

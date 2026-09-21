@@ -114,7 +114,7 @@ const WidgetReadOnlyStub = defineComponent({
 // header/list/inline layout logic getting in the way.
 const FieldWarningsListStub = defineComponent({
     name: "FieldWarningsListStub",
-    props: ["messages"],
+    props: ["messages", "fieldDetails"],
     setup(props, { slots }) {
         return () =>
             h(
@@ -557,6 +557,16 @@ describe("lib/views/ModelActionForm.vue", () => {
                 );
             },
         );
+
+        scopedIt("passes the model's fieldDetails through, so warned fields carry their labels", () => {
+            modelConfig.config.fieldDetails = { count: { label: "Units counted" } };
+            actionFormWarnings = { count: ["A negative count is unusual."] };
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+            expect(wrapper.getComponent(FieldWarningsListStub).props("fieldDetails")).toEqual({
+                count: { label: "Units counted" },
+            });
+        });
 
         scopedIt(
             "renders a single unkeyed group with no WidgetReadOnly label for a single-object action's flat warnings",

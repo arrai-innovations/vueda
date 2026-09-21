@@ -713,6 +713,45 @@ describe("lib/use/useForm.js", () => {
                     }
                 });
             });
+            describe("removeArrayItem", () => {
+                scopedIt("moves nested indexed state and clears flags when the last entry is removed", () => {
+                    const { formContext: form } = getForm({
+                        initialValues: { rows: [{ email: "a" }, { email: "b" }] },
+                    });
+                    form.updateError("rows[0].email", "validate", "Removed error");
+                    form.updateError("rows[1].email", "validate", "Surviving error");
+                    form.updateMessage("rows[1].email", "warning", "Surviving warning");
+                    form.setTouched("rows[1].email");
+                    form.ignore("rows[1].email");
+                    form.focus("rows[1].email");
+                    form.removeArrayItem("rows", 0);
+                    expect(form.state.values.rows).toEqual([{ email: "b" }]);
+                    expect(form.state.initialValues.rows).toEqual([{ email: "a" }, { email: "b" }]);
+                    expect(form.state.errors).toEqual({ "rows[0].email": { validate: "Surviving error" } });
+                    expect(form.state.messages).toEqual({ "rows[0].email": { warning: "Surviving warning" } });
+                    expect(form.state.touched).toEqual({ "rows[0].email": true });
+                    expect(form.state.ignored["rows[0].email"]).toBeTruthy();
+                    expect(form.state.focused).toBe("rows[0].email");
+                    form.removeArrayItem("rows", 0);
+                    expect(form.state.values.rows).toEqual([]);
+                    expect(form.state.errors).toEqual({});
+                    expect(form.state.messages).toEqual({});
+                    expect(form.state.touched).toEqual({});
+                    expect(form.state.ignored).toEqual({});
+                    expect(form.state.focused).toBeNull();
+                    expect(form.state.anyError).toBe(false);
+                    expect(form.state.anyMessage).toBe(false);
+                    expect(form.state.anyTouched).toBe(false);
+                    expect(form.state.anyIgnored).toBe(false);
+                });
+
+                scopedIt("ignores invalid indexes and non-array values", () => {
+                    const { formContext: form } = getForm({ initialValues: { rows: [1, 2], text: "abc" } });
+                    for (const index of [-1, 2, 0.5, NaN]) form.removeArrayItem("rows", index);
+                    form.removeArrayItem("text", 0);
+                    expect(form.state.values).toEqual({ rows: [1, 2], text: "abc" });
+                });
+            });
             describe("deleteValue", () => {
                 scopedIt("should result in the value being undefined, reactively", async () => {
                     const { formContext } = getForm({

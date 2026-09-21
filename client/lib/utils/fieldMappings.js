@@ -30,6 +30,7 @@ export const defaultFieldMappings = {
     BooleanField: {
         BooleanField: {
             widget: availableWidgets.WidgetToggle,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -235,6 +236,7 @@ export const defaultFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             widget: availableWidgets.WidgetCheckbox,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -329,6 +331,7 @@ export const choiceFieldMappings = {
         BooleanField: {
             widget: availableWidgets.WidgetRadioGroup,
             manyWidget: availableWidgets.WidgetRadioGroup,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -636,6 +639,15 @@ export const filterFieldMapping = {
         fieldProps: { hidden: true },
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
+    },
+    RangeField: {
+        component: availableFields.FieldSetRange,
+        fieldProps: { type: "number", isFilter: true },
+        boundaryComponent: availableFields.FormField,
+        boundaryFieldProps: { validation: "decimal" },
+        boundaryWidget: availableWidgets.WidgetNumberInput,
+        // Keep fractional thresholds instead of snapping to integers or rounding the display to three places.
+        boundaryWidgetProps: { stepSnapping: false, formatOptions: { maximumFractionDigits: 20 } },
     },
     DateRangeField: {
         component: availableFields.FieldSetRange,

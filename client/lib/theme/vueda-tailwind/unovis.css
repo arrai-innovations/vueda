@@ -1,0 +1,80 @@
+/**
+ * Optional Unovis 1.7 integration for vueda-tailwind. Import after base.css and
+ * apply .unovis-vueda to a wrapper containing the chart, legend, and tooltip.
+ * No Unovis JavaScript is imported by this file or VUEDA's common startup path.
+ *
+ * Five-color Okabe-Ito derivative, not the original palette. Starting sRGB colors:
+ * #0072B2, #E69F00, #009E73, #D55E00, #CC79A7. Convert to OKLCH, cap light-mode L at
+ * .66, raise dark-mode L to at least .72, preserve hue, and reduce chroma to stay
+ * in sRGB. Source and attribution: https://jfly.uni-koeln.de/color/
+ * Colors encode identity, not success/warning/error. Use labels and line patterns
+ * as well. See the Unovis guide for coverage, overrides, and portal placement.
+ */
+:root {
+    --vueda-chart-1: oklch(0.53193 0.13131 244.05);
+    --vueda-chart-2: oklch(0.66 0.13821 76.768);
+    --vueda-chart-3: oklch(0.61977 0.12952 165.459);
+    --vueda-chart-4: oklch(0.62128 0.17047 47.515);
+    --vueda-chart-5: oklch(0.66 0.11773 346.324);
+}
+
+.dark {
+    --vueda-chart-1: oklch(0.72 0.13131 244.05);
+    --vueda-chart-2: oklch(0.75266 0.15761 76.768);
+    --vueda-chart-3: oklch(0.72 0.12952 165.459);
+    --vueda-chart-4: oklch(0.72 0.17047 47.515);
+    --vueda-chart-5: oklch(0.72 0.11773 346.324);
+}
+
+.unovis-vueda {
+    --vis-font-family: var(--vueda-font-sans);
+
+    /* Five categorical slots. Applications assign stable keys to slots; status colors
+     * such as success and error remain separate. */
+    --vis-color-main: var(--vueda-chart-default, var(--vueda-chart-1));
+    --vis-color0: var(--vueda-chart-1);
+    --vis-color1: var(--vueda-chart-2);
+    --vis-color2: var(--vueda-chart-3);
+    --vis-color3: var(--vueda-chart-4);
+    --vis-color4: var(--vueda-chart-5);
+
+    /* Axes. Chrome recedes: hairline rules in the border colour, labels in the same
+     * muted ink the rest of the page uses for captions. Solid, never dashed, because a
+     * dashed rule reads as a threshold or a projection when it is only a grid. */
+    --vis-axis-font-family: var(--vueda-font-sans);
+    --vis-axis-tick-label-font-size: var(--vueda-text-supporting);
+    --vis-axis-tick-label-color: var(--muted-foreground);
+    --vis-axis-label-font-size: var(--vueda-text-supporting);
+    --vis-axis-label-color: var(--muted-foreground);
+    --vis-axis-tick-color: var(--border);
+    --vis-axis-domain-color: var(--border);
+    --vis-axis-grid-color: var(--border);
+    --vis-axis-grid-line-width: 1px;
+    --vis-axis-domain-line-width: 1px;
+    --vis-axis-tick-line-width: 1px;
+    --vis-axis-grid-line-dasharray: none;
+    --vis-axis-domain-line-dasharray: none;
+
+    /* Legends and crosshairs. Keep the legend within the activation scope. */
+    --vis-legend-font-family: var(--vueda-font-sans);
+    --vis-legend-label-color: var(--foreground);
+    --vis-legend-label-font-size: var(--vueda-text-supporting);
+    --vis-legend-item-spacing: 16px;
+    --vis-legend-vertical-item-spacing: 8px;
+    --vis-crosshair-line-stroke-color: var(--muted-foreground);
+
+    /* Tooltip. It is a floating surface, so it wears the popover tokens rather than the
+     * card's: VUEDA gives a popover its own background and shadow so it separates from
+     * whatever it covers. Unovis mounts the tooltip inside the chart container by
+     * default, which is a descendant of this class, so these reach it. A chart that
+     * passes `container: document.body` moves the tooltip out of this subtree and loses
+     * them, which is worth knowing before anybody reaches for that option. */
+    --vis-tooltip-background-color: var(--popover);
+    --vis-tooltip-text-color: var(--popover-foreground);
+    --vis-tooltip-border-color: var(--border);
+    --vis-tooltip-border-radius: var(--vueda-card-radius);
+    --vis-tooltip-box-shadow: var(--vueda-shadow-popover);
+    --vis-tooltip-padding: 0.375rem 0.5rem;
+    --vis-tooltip-backdrop-filter: none;
+    --vis-tooltip-transition-duration: var(--vueda-duration-interaction);
+}

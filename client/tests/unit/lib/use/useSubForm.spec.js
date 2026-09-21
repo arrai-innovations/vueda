@@ -40,6 +40,7 @@ const getFormContextMock = (vue) => {
         getFirstErrorField: vi.fn(),
         updateValue: vi.fn(),
         deleteValue: vi.fn(),
+        removeArrayItem: vi.fn(),
         updateInitialValue: vi.fn(),
         deleteInitialValue: vi.fn(),
         clearErrors: vi.fn(),
@@ -129,8 +130,10 @@ describe("lib/use/useSubForm.js", () => {
         const { subForm, fc } = mountSubForm();
         subForm.updateValue("foo", 1);
         subForm.updateValue("[0]", 2);
+        subForm.removeArrayItem("emails", 1);
         expect(fc.updateValue).toHaveBeenCalledWith("child.foo", 1);
         expect(fc.updateValue).toHaveBeenCalledWith("child[0]", 2);
+        expect(fc.removeArrayItem).toHaveBeenCalledWith("child.emails", 1);
     });
 
     scopedIt("maps focused state from parent", async () => {

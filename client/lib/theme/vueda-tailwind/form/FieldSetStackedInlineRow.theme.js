@@ -14,6 +14,10 @@ patchTheme({
      * selection controls.
      */
     FieldSetStackedInlineRow: {
+        /** Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance comes from {@api theme-key:Button}. */
+        destroyButton: {
+            class: [],
+        },
         /** Bordered row card with dirty and selected-for-destroy state chrome. */
         root: {
             class: [

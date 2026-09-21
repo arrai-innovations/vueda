@@ -75,7 +75,7 @@ what gives per-record server messages somewhere to land, as the third demo shows
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code>: a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
     <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
-    <span>records: each chip shows the primary key twice, as its label and as the trailing mono chip. There is nothing else to show: no fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to render names instead</span>
+    <span>records: each chip shows the primary key. No fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to show names alongside the keys</span>
     <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice: the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
     <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>

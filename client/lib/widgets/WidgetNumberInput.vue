@@ -64,6 +64,7 @@ const numericValue = computed({
                 <NumberFieldInput
                     :id="fieldContext?.state.fieldId"
                     :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                    :data-warning="widgetContext.state.validationState.warning || undefined"
                     :aria-required="widgetContext.state.required || undefined"
                     data-qa="widget-number-input"
                     @blur="widgetContext.blur"
@@ -80,6 +81,7 @@ const numericValue = computed({
             <NumberFieldInput
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                :data-warning="widgetContext.state.validationState.warning || undefined"
                 :aria-required="widgetContext.state.required || undefined"
                 data-qa="widget-number-input"
                 @blur="widgetContext.blur"

@@ -2,9 +2,9 @@
  * @module utils/columnMappings
  * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed `typeSerializer -> typeModel`.
  *
- * Date/time/datetime types resolve to `ColumnDateTime`; foreign-key relations
- * resolve to `ColumnModelLink`. Any unmapped type falls back to `ColumnText`,
- * reproducing the historical plain-text cell.
+ * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
+ * `ColumnDateTime`; foreign-key relations resolve to `ColumnModelLink`. Any unmapped
+ * type falls back to `ColumnText`, reproducing the historical plain-text cell.
  */
 import merge from "lodash-es/merge.js";
 
@@ -19,6 +19,18 @@ import merge from "lodash-es/merge.js";
 
 /** @type {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} */
 export const columnMappings = {
+    BooleanField: {
+        BooleanField: {
+            column: "ColumnBoolean",
+            default: true,
+        },
+    },
+    NullBooleanField: {
+        NullBooleanField: {
+            column: "ColumnBoolean",
+            default: true,
+        },
+    },
     DateField: {
         DateField: {
             column: "ColumnDateTime",
