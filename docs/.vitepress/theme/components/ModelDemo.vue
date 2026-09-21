@@ -25,6 +25,9 @@ import { onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
  *
  * The fixture builders in `fixtures/showcaseRecords.js` produce a matched pair, so a
  * page normally passes `:seed` and `:api` from the same scenario.
+ *
+ * The harness supplies `app`, `model`, and `pk` to every view, and `action` to a view
+ * that declares it. `viewProps` is merged last, so a demo can override any of them.
  */
 const props = defineProps({
     /** Loader for the view, e.g. `() => import("@vueda/views/ViewList.vue")`. */
@@ -39,9 +42,13 @@ const props = defineProps({
      * single `:pk` segment, receives it comma-joined.
      */
     pk: { type: [String, Number, Array], default: undefined },
-    /** Route `action` param, e.g. "list", "read", "destroy". Defaults from `pk`. */
+    /**
+     * Route `action` param, e.g. "list", "read", "destroy". Defaults from `pk`. Also passed
+     * to the view when the view declares an `action` prop, which `ViewAction`,
+     * `ViewExecuteTransition`, and the docs wrappers around them require.
+     */
     action: { type: String, default: undefined },
-    /** Extra props merged over the app / model / pk trio the harness supplies. */
+    /** Extra props merged over what the harness supplies, so a demo can override any of them. */
     viewProps: { type: Object, default: () => ({}) },
     /**
      * Offline endpoints for this demo, as `DemoRoute[]` (see `fixtures/demoApi.js`).
@@ -89,6 +96,22 @@ const ROUTES = [
     { path: "/:pathMatch(.*)*", name: "catch-all", component: NOOP },
 ];
 
+/**
+ * Whether a component declares `name` as a prop, in either the object or the array form.
+ *
+ * A view that does not declare `action` must not be handed one: it would fall through to
+ * `$attrs`, and the views that forward `$attrs` to `ModelActionForm` (`ViewDestroy`,
+ * `ViewActivate`) would overwrite the action they set for themselves.
+ *
+ * @param {import('vue').Component} component - The resolved view component.
+ * @param {string} name - Prop name to look for.
+ * @returns {boolean} True when the component declares that prop.
+ */
+function declaresProp(component, name) {
+    const declared = component?.props;
+    return Array.isArray(declared) ? declared.includes(name) : !!declared && name in declared;
+}
+
 const mountPoint = ref(null);
 const subApp = shallowRef(null);
 let unregisterApi = null;
@@ -107,12 +130,13 @@ onMounted(async () => {
     const app = await bootDemoSubApp({
         mountPoint: mountPoint.value,
         view: props.view,
-        viewProps: {
+        viewProps: (ViewComponent) => ({
             app: props.app,
             model: props.model,
             ...(viewPk === undefined ? {} : { pk: viewPk }),
+            ...(declaresProp(ViewComponent, "action") ? { action } : {}),
             ...props.viewProps,
-        },
+        }),
         routes: ROUTES,
         initialRoute: {
             name: viewPk === undefined ? "actionrouter.listview" : "actionrouter.detailview",

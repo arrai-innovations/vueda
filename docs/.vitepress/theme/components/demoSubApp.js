@@ -52,7 +52,9 @@ export async function installDefaultCrud() {
  * @param {object} options
  * @param {HTMLElement} options.mountPoint - Element the sub-app mounts into.
  * @param {() => Promise<any>} options.view - Loader for the view component.
- * @param {object} [options.viewProps] - Props passed to the view as the sub-app root props.
+ * @param {object|((component: import('vue').Component) => object)} [options.viewProps] - Props passed
+ *   to the view as the sub-app root props. A function receives the resolved component, so a caller
+ *   can decide what to pass by what the view declares (see `ModelDemo`'s `action` forwarding).
  * @param {import('vue-router').RouteRecordRaw[]} options.routes - Route table for the in-memory router.
  * @param {import('vue-router').RouteLocationRaw} options.initialRoute - Route pushed before mount.
  * @param {(pinia: import('pinia').Pinia) => void} [options.seed] - Runs against the fresh pinia before mount.
@@ -87,6 +89,7 @@ export async function bootDemoSubApp({
         return null;
     }
     const ViewComponent = viewModule?.default ?? viewModule;
+    const resolvedViewProps = typeof viewProps === "function" ? viewProps(ViewComponent) : viewProps;
 
     const pinia = createPinia();
     seed?.(pinia);
@@ -104,7 +107,7 @@ export async function bootDemoSubApp({
 
     const app = createApp({
         render: () => {
-            const view = h(ViewComponent, viewProps);
+            const view = h(ViewComponent, resolvedViewProps);
             const rendered = chrome ? h(chrome, null, { default: () => view }) : view;
             return SonnerComponent ? [rendered, h(SonnerComponent)] : rendered;
         },
