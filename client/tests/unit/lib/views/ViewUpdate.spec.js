@@ -88,6 +88,7 @@ beforeEach(async () => {
             combinedErrored: false,
             combinedWhileText: "",
             combinedFormProps: {},
+            currentActionAvailable: true,
         }),
         actions: reactive({
             nonDetailActions: [],
@@ -210,6 +211,47 @@ describe("lib/views/ViewUpdate.vue", () => {
             });
             const body = wrapper.find('[data-qa="update-form"]');
             expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5", "my-outer-class"]));
+        });
+    });
+
+    describe("editing unavailable", () => {
+        scopedIt("renders the form and submit button when currentActionAvailable is true", async () => {
+            mockComposableResult.instance.currentActionAvailable = true;
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find("form").exists()).toBe(true);
+            expect(wrapper.findComponent({ name: "Button" }).exists()).toBe(true);
+            expect(wrapper.find('[data-qa="update-unavailable-notice"]').exists()).toBe(false);
+        });
+
+        scopedIt(
+            "hides the form and submit button and shows a notice when currentActionAvailable is false",
+            async () => {
+                mockComposableResult.instance.currentActionAvailable = false;
+                const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+                const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+                expect(wrapper.find("form").exists()).toBe(false);
+                expect(wrapper.findComponent({ name: "Button" }).exists()).toBe(false);
+                const notice = wrapper.find('[data-qa="update-unavailable-notice"]');
+                expect(notice.exists()).toBe(true);
+                expect(notice.text()).toContain("can't be edited");
+            },
+        );
+
+        scopedIt("the update-unavailable slot overrides the default notice", async () => {
+            mockComposableResult.instance.currentActionAvailable = false;
+            mockComposableResult.modelConfig.config.verboseName = "purchase order";
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: {
+                    "update-unavailable": `<template #update-unavailable="{ app, model, pk, verboseName }">
+                        <div data-qa="custom-unavailable">{{ app }}/{{ model }}/{{ pk }}/{{ verboseName }}</div>
+                    </template>`,
+                },
+            });
+            expect(wrapper.find('[data-qa="update-unavailable-notice"]').exists()).toBe(false);
+            expect(wrapper.get('[data-qa="custom-unavailable"]').text()).toBe("a/m/1/purchase order");
         });
     });
 

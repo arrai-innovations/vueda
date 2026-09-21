@@ -88,6 +88,7 @@ describe("lib/{views,widgets}/*.vue", () => {
                                     pageLoading: false,
                                     combinedFormProps: {},
                                     computedWidgetProps: {},
+                                    currentActionAvailable: true,
                                 }),
                                 actions: reactive({
                                     nonDetailActions: [],
