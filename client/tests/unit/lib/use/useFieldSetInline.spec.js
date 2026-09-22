@@ -157,6 +157,17 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.internalVisible).toBe(true);
     });
 
+    scopedIt("preserves an explicit destroy descriptor and other row actions without duplicates", async () => {
+        const destroy = { fieldName: "destroy", action: true, label: "Remove", value: "custom" };
+        const inspect = { fieldName: "inspect", action: vi.fn(), label: "Inspect" };
+        const { instance, props } = await mountFieldSet({ fieldObjects: [destroy, inspect] });
+        expect(instance.state.actions).toEqual([destroy, inspect]);
+        props.readOnly = true;
+        expect(instance.state.actions).toEqual([inspect]);
+        props.readOnly = false;
+        expect(instance.state.actions).toEqual([destroy, inspect]);
+    });
+
     scopedIt("handleSelected updates selected array", async () => {
         const { instance, fieldSetContext } = await mountFieldSet();
         instance.handleSelected(true, 2);

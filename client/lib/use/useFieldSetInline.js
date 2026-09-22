@@ -152,7 +152,7 @@ const handleSelected = (state, fieldSetContext, isSelected, rowIndex) => {
  * @property {number[]} selected - The indices of the selected items.
  * @property {boolean} userHasToggled - Whether the user has toggled the visibility of the fieldset.
  * @property {import('vue').Ref<boolean|undefined>} visible - The visibility state of the fieldset.
- * @property {import('vue').ComputedRef<object[]>} actions - The field objects that are actions.
+ * @property {import('vue').ComputedRef<object[]>} actions - Row actions, including destroy when the inline is writable.
  * @property {import('vue').ComputedRef<string[]>} fieldNames - The field names to display for each object.
  * @property {import('vue').ComputedRef<FieldSetInlineFieldObject[]>} fieldObjects - The field objects to display.
  * @property {import('vue').ComputedRef<boolean>} isVisibleByDefault - Whether the fieldset is visible by default.
@@ -339,7 +339,25 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
             userHasToggled: false,
             visible: toRef(props, "visible"),
             actions: computed(() => {
-                return [...state.fieldObjects].filter((field) => field.action);
+                const actions = state.fieldObjects.filter((field) => field.action);
+                const readOnly =
+                    props.readOnly ||
+                    props.fieldProps?.readOnly ||
+                    formModel.fieldProps?.[fieldSetContext.state.formModelName]?.readOnly ||
+                    parentFormModel.view === "read";
+                if (readOnly) {
+                    return actions.filter((action) => action.fieldName !== "destroy");
+                }
+                // Nested updates delete omitted children through the parent, without a child destroy route.
+                if (!actions.some((action) => action.fieldName === "destroy")) {
+                    actions.push({
+                        fieldName: "destroy",
+                        name: `${fieldSetContext.state.formModelName}.destroy`,
+                        action: true,
+                        label: "Delete",
+                    });
+                }
+                return actions;
             }),
             fieldNames: computed(() => {
                 const prefix = `${fieldSetContext.state.formModelName}.`;
@@ -415,6 +433,16 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
     state.greaterOrEqualHiddenBreakpoint = breakpoints.greaterOrEqual(toRef(state, "hiddenByDefault"));
 
     watch(
+        () => fieldSetContext.state.initialValue,
+        () => {
+            for (const rowIndex of [...state.selected]) {
+                handleSelected(state, fieldSetContext, false, rowIndex);
+            }
+        },
+        { deep: true },
+    );
+
+    watch(
         [toRef(state, "itemRefs"), toRef(state, "focusIndex")],
         ([newItemRefs, newFocusIndex]) => {
             const newItem = newItemRefs?.find?.((el) => Number(el?.dataset?.rowIndex) === newFocusIndex);
@@ -463,7 +491,14 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
             refFn(state, el);
         },
         removeObject: (index) => {
+            const selected = state.selected.filter((rowIndex) => rowIndex !== index);
+            for (const rowIndex of [...state.selected]) {
+                handleSelected(state, fieldSetContext, false, rowIndex);
+            }
             removeObject(fieldSetContext, index);
+            for (const rowIndex of selected) {
+                handleSelected(state, fieldSetContext, true, rowIndex > index ? rowIndex - 1 : rowIndex);
+            }
         },
         setVisibility: (visible) => setVisibility(state, emit, visible),
         toggleVisibility: () => {
