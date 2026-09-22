@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Detail view titles wait for the model name (`useDetailView` `titleStr`, `PageTitle`, `usePageTitle`)**:
+    - `titleStr` had a fallback of "Read Item" or "Update Item" that could never apply. The expression before the fallback always produced a non-empty string, so a missing verbose name rendered as "Read " or "Update " with a trailing space. This showed on every cold load of a `DetailView`, `ViewRead`, or `ViewUpdate` mounted outside the CRUD routes, whose `requireModelInfo` guard prefetches model info.
+    - `titleStr` is now an empty string until the verbose name is known. `PageTitle` shows a skeleton in place of the `<h1>` while the active view's title is empty, themed by the new `titleSkeleton` key. The skeleton stays if the name never arrives, so a missing model config is visible instead of mislabelled. A `title` slot still takes precedence.
+      _A custom title display reading `usePageTitle().current` should render a placeholder when a view has registered an empty `title`. `current` is an empty object only when no view has registered one. See "Build a custom title display" in the page title guide._
+
 - **Edge, focus, and elevation vars stay on the element that sets them (`base.css` `--vueda-hairline-color`, `--vueda-hairline-shadow`, `--vueda-focus-shadow`, `--vueda-overlay-elevation`)**:
     - These custom properties inherited, so a container's value reached every descendant that reads them. A container that coloured its own hairline, such as a `FieldSetStackedInline` row, `AuthForm`, or `TypedConfirmField`, made the fields inside it paint `--border` instead of `--field-line`, so they looked lighter than the same fields outside the container. A control using `focus-ring-shadow` inside a `hairline` container, such as a `TableRowActions` button in a `Table`, painted the container's inset edge when it took focus. A wrapper's `focus-within:focus-ring-shadow` could likewise ring each `hairline` element inside it.
     - `base.css` now registers all four with `@property` and `inherits: false`. An element that does not set one itself falls back to its default. `--vueda-focus-ring-gap-color` still inherits, so a per-surface gap override on a card keeps working.

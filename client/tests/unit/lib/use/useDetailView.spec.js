@@ -203,6 +203,16 @@ describe("lib/use/useDetailView.js", () => {
             const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.titleStr).toBe("Update Widget");
         });
+
+        scopedIt("is empty until the model verbose name is known", async () => {
+            mockModelConfig.config.verboseName = "";
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.titleStr).toBe("");
+
+            mockModelConfig.config.verboseName = "widget";
+            await nextTick();
+            expect(instance.titleStr).toBe("Read Widget");
+        });
     });
 
     describe("formId", () => {
