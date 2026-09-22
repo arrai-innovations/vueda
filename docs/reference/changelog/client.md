@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **Edge, focus, and elevation vars stay on the element that sets them (`base.css` `--vueda-hairline-color`, `--vueda-hairline-shadow`, `--vueda-focus-shadow`, `--vueda-overlay-elevation`)**:
+    - These custom properties inherited, so a container's value reached every descendant that reads them. A container that coloured its own hairline, such as a `FieldSetStackedInline` row, `AuthForm`, or `TypedConfirmField`, made the fields inside it paint `--border` instead of `--field-line`, so they looked lighter than the same fields outside the container. A control using `focus-ring-shadow` inside a `hairline` container, such as a `TableRowActions` button in a `Table`, painted the container's inset edge when it took focus. A wrapper's `focus-within:focus-ring-shadow` could likewise ring each `hairline` element inside it.
+    - `base.css` now registers all four with `@property` and `inherits: false`. An element that does not set one itself falls back to its default. `--vueda-focus-ring-gap-color` still inherits, so a per-surface gap override on a card keeps working.
+      _An application that set any of these four vars on a wrapper to restyle the elements inside it must now set them on those elements directly._
+
 - **List controls follow the documented precedence (`ViewList` `allowColumnHiding` and `showTotalRecordNum`)**:
     - Each prop voted with the model config value instead of overriding it. `allowColumnHiding` combined them with `||`, so either source could show the column selector and neither could hide it. `showTotalRecordNum` used `&&`, so either could hide the record count and neither could show it. A prop passed on the component now wins over the model config, which wins over the framework default, matching the precedence documented for every other override.
       _A view passing `:allow-column-hiding="false"` against a model config that enables it now hides the selector, and one passing `:show-total-record-num="true"` against a config that disables it now shows the count. Omit the prop to keep the model config's answer._
