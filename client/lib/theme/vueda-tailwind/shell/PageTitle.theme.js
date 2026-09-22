@@ -48,6 +48,10 @@ patchTheme({
         title: {
             class: ["text-[22px] font-semibold leading-[1.2] tracking-[-0.005em]"],
         },
+        /** Placeholder shown in place of the `<h1>` while the active view has registered an empty title. Sized to one line of the display-role title. */
+        titleSkeleton: {
+            class: ["h-[26px] w-48"],
+        },
         /** Permanent space beside the title for the loading indicator, keeping the header stable when loading toggles. */
         loading: {
             class: ["flex size-5 shrink-0 items-center justify-center text-base"],
