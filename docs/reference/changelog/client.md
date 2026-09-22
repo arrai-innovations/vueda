@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **The action form validation summary names fields by their labels (`ActionForm`, `useForm`, `useField`)**:
+    - A failed action form named each summary row by the server's field key rather than the label shown above the corresponding input, so a `purchase_order` field labelled "Purchase order" reached the reader as `purchase_order`. Each rendered field now reports its resolved label (the `label` prop, or the field name when none is given) to the form context it runs in, and `ActionForm` names each error's field by that label, falling back to the key when no rendered field reports one. The label follows the rendered field: it updates when the `label` or `name` prop changes, survives the field's component instance being replaced, and stays with the surviving entries when a list entry is removed.
+    - `useForm`'s context gains `registerLabel(name, labelHook)`, which returns a registration id, `unregisterLabel(id)`, and a `state.labels` map keyed by field name. `useField` handles both calls, so this only concerns code that drives the form context directly.
+      _The `validation-summary` slot's `entries` now carry a `label` alongside `field` and `messages`; an override that renders `entry.field` keeps working, and can switch to `entry.label` to show the same text `ActionForm` now shows._
+
 - **Edge, focus, and elevation vars stay on the element that sets them (`base.css` `--vueda-hairline-color`, `--vueda-hairline-shadow`, `--vueda-focus-shadow`, `--vueda-overlay-elevation`)**:
     - These custom properties inherited, so a container's value reached every descendant that reads them. A container that coloured its own hairline, such as a `FieldSetStackedInline` row, `AuthForm`, or `TypedConfirmField`, made the fields inside it paint `--border` instead of `--field-line`, so they looked lighter than the same fields outside the container. A control using `focus-ring-shadow` inside a `hairline` container, such as a `TableRowActions` button in a `Table`, painted the container's inset edge when it took focus. A wrapper's `focus-within:focus-ring-shadow` could likewise ring each `hairline` element inside it.
     - `base.css` now registers all four with `@property` and `inherits: false`. An element that does not set one itself falls back to its default. `--vueda-focus-ring-gap-color` still inherits, so a per-surface gap override on a card keeps working.
@@ -40,7 +45,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _No integrator action. Every request to the server still carries its own authorization, so this closes a case where the client showed the wrong view rather than a case where a principal could read data they should not._
 
 - **The empty state spans the grid width in table layout (`ObjectsGrid`)**:
-    - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
+    - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over sei stillveral lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
       _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._
 
 - **The destroy view contributes a page title (`ViewDestroy`, `useViewDestroy`)**:

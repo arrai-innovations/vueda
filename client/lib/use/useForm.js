@@ -55,6 +55,9 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Dependency Management ***
  * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
+ *
+ * // *** Field Metadata ***
+ * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
  */
 
 /**
@@ -629,6 +632,12 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Register a field's dependency paths for reactive value tracking.
  * @property {(registryId: string) => boolean} unregisterDependencyValues -
  *  Unregister a field from dependency value tracking.
+ *
+ * // *** Field Metadata ***
+ * @property {(name: string, labelHook: () => string) => string} registerLabel -
+ *  Register a hook returning a rendered field's current label, grouped by field path; returns a registration id.
+ * @property {(id: string) => boolean} unregisterLabel -
+ *  Unregister a previously registered label hook by its registration id.
  */
 
 /**
@@ -711,6 +720,11 @@ export function useForm(props) {
     const modifiedHookRegistry = useReactiveHookRegistry();
     const requiredHookRegistry = useReactiveHookRegistry();
     const validationHookRegistry = useReactiveHookRegistry();
+    // Aggregates to the last-registered surviving hook for a path (rather than the default
+    // some-of-booleans aggregation), so a field being replaced under the same path is labelled by
+    // whichever instance registered most recently, not left labelless by the outgoing instance's
+    // unregister.
+    const labelHookRegistry = useReactiveHookRegistry((values) => values[values.length - 1]);
 
     /** @type {FormContextState} */
     const state = reactive({
@@ -761,6 +775,9 @@ export function useForm(props) {
 
         // *** Dependency Management ***
         dependencyValues: {},
+
+        // *** Field Metadata ***
+        labels: labelHookRegistry.computedAggregates,
     });
     const dependencyRegistry = useFieldDependencyValuesRegistry(state.values);
     state.dependencyValues = dependencyRegistry.dependencyValues;
@@ -844,6 +861,10 @@ export function useForm(props) {
         unregisterIsValidHook: validationHookRegistry.unregisterHook,
         registerDependencyValues: dependencyRegistry.register,
         unregisterDependencyValues: dependencyRegistry.unregister,
+
+        // *** Field Metadata ***
+        registerLabel: labelHookRegistry.registerHook,
+        unregisterLabel: labelHookRegistry.unregisterHook,
     };
     provide(FormContextSymbol, formContext);
     return formContext;

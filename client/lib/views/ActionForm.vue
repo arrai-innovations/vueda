@@ -131,19 +131,23 @@ const icon = useIcons("ActionForm", props);
 
 /**
  * Per-field validation entries derived from `formContext.state.errors`.
- * Each entry is `{ field, messages: string[] }`. Non-field errors are
- * surfaced separately via `<form-message type="error" />` and are excluded
- * from the per-field list.
+ * Each entry is `{ field, label, messages: string[] }`. `label` names the
+ * field the way its rendered form field labels it (via `formContext.state.labels`,
+ * which each rendered field registers through `useField`), falling back to
+ * `field` itself when no rendered field registered a label for that key.
+ * Non-field errors are surfaced separately via `<form-message type="error" />`
+ * and are excluded from the per-field list.
  */
 const validationEntries = computed(() => {
     const errors = formContext?.state?.errors || {};
+    const labels = formContext?.state?.labels || {};
     const entries = [];
     for (const [field, codes] of Object.entries(errors)) {
         if (field === NON_FIELD_ERRORS_KEY) continue;
         if (!codes || typeof codes !== "object") continue;
         const messages = Object.values(codes).filter(Boolean);
         if (messages.length === 0) continue;
-        entries.push({ field, messages });
+        entries.push({ field, label: labels[field] ?? field, messages });
     }
     return entries;
 });
@@ -177,7 +181,7 @@ const validationTitle = computed(() => {
                         handleCancelClick,
                     }"
                 />
-                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries`, `count`, and `title`. -->
+                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries` (each `{ field, label, messages }`), `count`, and `title`. -->
                 <slot
                     v-if="showValidation"
                     name="validation-summary"
@@ -208,7 +212,7 @@ const validationTitle = computed(() => {
                                     data-qa="action-form-validation-item"
                                 >
                                     <span :class="theme('validationField')" data-qa="action-form-validation-field">
-                                        {{ entry.field }}
+                                        {{ entry.label }}
                                     </span>
                                     <span :class="theme('validationMsg')">
                                         {{ entry.messages.join("; ") }}
