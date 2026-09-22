@@ -384,6 +384,9 @@ export function useViewList(options) {
         if (!fields.includes(unrefPKKey)) {
             fields.unshift(unrefPKKey);
         }
+        if (modelConfig.config.detailLinkField && !fields.includes("available_actions")) {
+            fields.push("available_actions");
+        }
         return fields;
     });
     const calculatedDisplayFields = computed(() => {

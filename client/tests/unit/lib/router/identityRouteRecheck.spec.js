@@ -248,6 +248,87 @@ describe("lib/router/makeCrud.js", () => {
         });
     });
 
+    describe("Recheck when navigation stays inside one route record", () => {
+        scopedIt("redirects a move from an allowed model to a denied one", async () => {
+            modelAllows("post", ["list"]);
+            modelAllows("comment", []);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+            expect(router.currentRoute.value.name).toBe("actionrouter.listview");
+
+            const failure = await router.push("/blog/comment/list/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+            expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
+            expect(failure).toBeUndefined();
+        });
+
+        scopedIt("redirects a move to an action the model config omits, leaving the model unchanged", async () => {
+            modelAllows("post", ["list"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+
+            await router.push("/blog/post/create/");
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+        });
+
+        scopedIt("runs no metadata check on a query-only change, and keeps the current view mounted", async () => {
+            modelAllows("post", ["list"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/list/");
+            fetchHelper.mockClear();
+
+            await router.push("/blog/post/list/?page=2");
+
+            expect(router.currentRoute.value.fullPath).toBe("/blog/post/list/?page=2");
+            expect(fetchHelper).not.toHaveBeenCalled();
+        });
+
+        scopedIt("behaves as entering the record from outside, including the auth redirect", async () => {
+            whoIs({});
+            buildRouter({ authRedirect: { name: "sign-in" } });
+            await storeUser(pinia).fetchCurrentUser();
+
+            await router.push("/blog/post/list/");
+
+            expect(router.currentRoute.value.name).toBe("sign-in");
+        });
+    });
+
+    describe("Identity recheck racing a navigation that crosses route records", () => {
+        scopedIt("preserves an identity denial when moving from bulk to detail update", async () => {
+            modelAllows("post", ["update"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/update/?pk=1,2");
+            expect(router.currentRoute.value.name).toBe("actionrouter.listview");
+
+            let releaseMetadata;
+            respond(
+                `${urls.infoModelInfo}blog/post/`,
+                () =>
+                    new Promise((resolve) => {
+                        releaseMetadata = () => resolve(modelInfoPayload("post", []));
+                    }),
+            );
+            whoIs({ id: 2 });
+            await storeUser(pinia).login({ username: "second", password: "second" });
+            await flushPromises();
+            expect(releaseMetadata).toBeTypeOf("function");
+
+            // this crosses from the list record to the detail record, which always reruns the checks,
+            // even though the identity recheck above is still waiting on its own copy of the same
+            // metadata
+            const navigation = router.push("/blog/post/update/2");
+            await flushPromises();
+            releaseMetadata();
+            await navigation;
+            await flushPromises();
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+        });
+    });
+
     describe("Metadata fetched for a user who has since been replaced", () => {
         scopedIt("does not let it approve the navigation that fetched it", async () => {
             let releasePost;

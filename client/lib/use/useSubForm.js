@@ -62,6 +62,9 @@ export function useSubForm({ parentPath }) {
 
         // *** Dependency Management ***
         dependencyValues: {},
+
+        // *** Field Metadata ***
+        labels: {},
     });
 
     for (const nestedValues of ["values", "initialValues"]) {
@@ -109,6 +112,7 @@ export function useSubForm({ parentPath }) {
         "valid",
         "ignored",
         "dependencyValues",
+        "labels",
     ]) {
         watch(
             () => Object.keys(parentState[flatList]).filter((key) => key.startsWith(unref(parentPath))),
@@ -178,6 +182,15 @@ export function useSubForm({ parentPath }) {
         unregisterIsValidHook: buildFieldMethodProxy(parentFormContext.unregisterIsValidHook),
         registerIsIgnoredHook: buildFieldMethodProxy(parentFormContext.registerIsIgnoredHook),
         unregisterIsIgnoredHook: buildFieldMethodProxy(parentFormContext.unregisterIsIgnoredHook),
+
+        // *** Field Metadata ***
+        registerLabel: (localName, labelHook) =>
+            parentFormContext.registerLabel(
+                `${unref(parentPath)}${localName.startsWith("[") ? "" : "."}${localName}`,
+                labelHook,
+            ),
+        // Takes the registration id returned by registerLabel, so there is no path to prefix.
+        unregisterLabel: parentFormContext.unregisterLabel,
     };
 
     provide(FormContextSymbol, returnObject);

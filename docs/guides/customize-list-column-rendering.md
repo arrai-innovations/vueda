@@ -167,9 +167,9 @@ VUEDA injects the resolved adapter as the _default_ content of each `field(<name
 These two affordances are easy to confuse, so be deliberate about which you want:
 
 - **`ColumnModelLink` (this guide)** links a foreign-key column to the **related** model's detail view. The `category` column on a widget list links to _that category's_ `read` page. It is automatic for writable foreign keys.
-- **Row self-links** ([Link List Rows to Read and Update Views](./link-list-rows-to-detail-views)) link a row to **its own** `read`/`update` view, using a synthetic action column and a hand-placed {@api vue:component:LinkModelView}. The row's `name` column links to _that widget's own_ `read` page.
+- **Row self-links** ([Link List Rows to Read and Update Views](./link-list-rows-to-detail-views)) link a row to **its own** `read`/`update` view, using `detailLinkField` on an existing identifying column, or a hand-placed {@api vue:component:LinkModelView} for custom content. The row's `name` column links to _that widget's own_ `read` page.
 
-They compose cleanly: a widget list can auto-link its `category`/`supplier` foreign-key columns (column links) while also linking its `name` column to the widget's own detail view (a row link in a model-specific view). Point the two at different targets so the affordances stay distinct.
+They compose cleanly: a widget list can auto-link its `category`/`supplier` foreign-key columns (column links) while also linking its `name` column to the widget's own detail view (a configured row link). A `ColumnModelLink` or custom adapter is not wrapped by `detailLinkField`; its existing controls keep their behavior. Explicit field slots also retain precedence.
 
 ## Edge Cases
 
@@ -201,7 +201,7 @@ After configuring column overrides, verify:
 
 **A foreign-key column renders text, not a link.** The related model's target is not resolving. Confirm the server emits `app_label`/`model` for that field in `model_fields`, or supply `columnProps: { <col>: { app, model } }`. Also confirm the value is a scalar pk or an object with `id`/`pk`; an array value (a many relation) intentionally does not link.
 
-**An override has no effect.** Check the column name matches the field name exactly, and that no higher-precedence surface is also set (a consumer `field(<col>)` slot beats the `columnComponents` prop, which beats model config). Register `setConfig` overrides at bootstrap, before the first CRUD navigation, for the same reason described in the [row-link guide](./link-list-rows-to-detail-views#step-2-opt-in-per-model-through-config).
+**An override has no effect.** Check the column name matches the field name exactly, and that no higher-precedence surface is also set (a consumer `field(<col>)` slot beats the `columnComponents` prop, which beats model config). Register `setConfig` overrides at bootstrap, before the first CRUD navigation, for the same reason described in the [row-link guide](./link-list-rows-to-detail-views#opt-in-through-model-config).
 
 **A string-keyed adapter is ignored.** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). An unknown key silently falls through to the type default. Pass a direct component reference for a custom adapter.
 

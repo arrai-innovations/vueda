@@ -97,6 +97,32 @@
  * directional strokes (e.g. top+bottom+right only), use the `border-*-hairline`
  * utilities below instead, which set `border-*-width` to the same DPR-keyed
  * token. Cannot mix `hairline` and `border-*` on the same element. */
+
+/* The edge, focus, and elevation vars below do not inherit. Each is set by a
+ * utility and read by the box-shadow on the same element. Inherited, a
+ * container's value would reach every descendant that reads the var: a card's
+ * `hairline-border` would recolour the `field-line` of each field inside it,
+ * and a wrapper's `focus-within:focus-ring-shadow` would ring each `hairline`
+ * child. With no `initial-value`, an element that does not set the var itself
+ * sees it as unset, so its `var()` fallback applies.
+ * `--vueda-focus-ring-gap-color` still inherits, because it is a documented
+ * per-surface override set on containers. */
+@property --vueda-hairline-color {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-hairline-shadow {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-focus-shadow {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-overlay-elevation {
+    syntax: "*";
+    inherits: false;
+}
 @utility hairline {
     --vueda-hairline-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
     box-shadow: var(--vueda-hairline-shadow), var(--vueda-focus-shadow, 0 0 0 0 transparent);

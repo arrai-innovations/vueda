@@ -835,5 +835,34 @@ export function useField(props, emit) {
             unref(formContext).unregisterDependencyValues(dependencyValuesId);
         }
     });
+
+    // Registered by name (not watched for label changes): the hook itself reads state.label, so the
+    // registry's aggregate updates reactively as the label changes without re-registering. Only a
+    // name change needs a fresh registration, since the registry groups hooks by name.
+    let labelHookId;
+    const registerLabelHook = () => {
+        const fc = unref(formContext);
+        if (fc) {
+            labelHookId = fc.registerLabel(props.name, () => state.label);
+        }
+    };
+    if (unref(formContext)) {
+        registerLabelHook();
+    }
+    watch(toRef(props, "name"), () => {
+        const fc = unref(formContext);
+        if (!fc) return;
+        if (labelHookId) {
+            fc.unregisterLabel(labelHookId);
+        }
+        registerLabelHook();
+    });
+    onUnmounted(() => {
+        const fc = unref(formContext);
+        if (fc && labelHookId) {
+            fc.unregisterLabel(labelHookId);
+        }
+    });
+
     return returnObj;
 }

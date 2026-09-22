@@ -1,5 +1,6 @@
 <script setup>
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import "@vueda/theme/vueda-tailwind/shell/PageTitle.theme.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
@@ -33,6 +34,9 @@ const theme = useTheme(
 const page = usePageTitle();
 const title = computed(() => page.current.value.title);
 const loading = computed(() => page.current.value.loading);
+// A view is registered (`current` is `{}` only when none is) but has no title yet. The skeleton stays
+// until the title arrives, so a view that never resolves one looks broken instead of mislabelled.
+const titlePending = computed(() => "title" in page.current.value && !title.value);
 
 // The element page actions teleport into. Bind the ref so the target resolves once mounted.
 const actionZone = ref(null);
@@ -44,7 +48,12 @@ page.bindActionZone(actionZone);
             <div :class="theme('titleContainer')">
                 <div :class="theme('titleWrapper')">
                     <div :class="theme('titleRow')">
-                        <h1 :class="theme('title')">
+                        <skeleton
+                            v-if="titlePending && !$slots.title"
+                            :class="theme('titleSkeleton')"
+                            data-qa="page-title-skeleton"
+                        />
+                        <h1 v-else :class="theme('title')">
                             <!-- Page title content rendered inside the `<h1>`; falls back to the active view's title. -->
                             <slot name="title">{{ title }}</slot>
                         </h1>

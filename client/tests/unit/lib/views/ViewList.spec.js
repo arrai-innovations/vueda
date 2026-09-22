@@ -591,9 +591,55 @@ describe("lib/views/ViewList.vue", () => {
             expect(pagination.attributes("total-records")).toBe("42");
             wrapper.unmount();
         });
+
+        scopedIt("lets the prop turn the record count on over the model config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.showTotalRecordNum = false;
+            instanceList.state.paginateInfo.totalRecords = 7;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", showTotalRecordNum: true },
+            });
+            await vue.nextTick();
+            expect(wrapper.get('[data-qa="view-list-pagination"]').attributes("show-total-record-num")).toBe("true");
+            wrapper.unmount();
+        });
+
+        scopedIt("falls back to the model config when the record count prop is unset", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.showTotalRecordNum = false;
+            instanceList.state.paginateInfo.totalRecords = 7;
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.get('[data-qa="view-list-pagination"]').attributes("show-total-record-num")).toBe("false");
+            wrapper.unmount();
+        });
     });
 
     describe("Column preferences", () => {
+        scopedIt("lets the prop turn the column selector off over the model config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.allowColumnHiding = true;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", allowColumnHiding: false },
+            });
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="select"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("renders column selector when the prop allows hiding and the model config does not", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.allowColumnHiding = false;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", allowColumnHiding: true },
+            });
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="select"]').exists()).toBe(true);
+            wrapper.unmount();
+        });
+
         scopedIt("renders column selector when column hiding allowed", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;

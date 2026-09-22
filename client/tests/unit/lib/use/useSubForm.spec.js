@@ -26,6 +26,7 @@ const getFormContextMock = (vue) => {
             valid: {},
             ignored: {},
             dependencyValues: {},
+            labels: {},
             containerPaths: [],
             focused: null,
             anyErrors: false,
@@ -67,6 +68,8 @@ const getFormContextMock = (vue) => {
         unregisterIsValidHook: vi.fn(),
         registerIsIgnoredHook: vi.fn(),
         unregisterIsIgnoredHook: vi.fn(),
+        registerLabel: vi.fn(() => "label-registration-id"),
+        unregisterLabel: vi.fn(),
     };
 };
 
@@ -134,6 +137,17 @@ describe("lib/use/useSubForm.js", () => {
         expect(fc.updateValue).toHaveBeenCalledWith("child.foo", 1);
         expect(fc.updateValue).toHaveBeenCalledWith("child[0]", 2);
         expect(fc.removeArrayItem).toHaveBeenCalledWith("child.emails", 1);
+    });
+
+    scopedIt("registers labels under the prefixed path and unregisters by the parent's id", () => {
+        const { subForm, fc } = mountSubForm();
+        const labelHook = () => "Email";
+        const id = subForm.registerLabel("email", labelHook);
+        expect(fc.registerLabel).toHaveBeenCalledWith("child.email", labelHook);
+        expect(id).toBe("label-registration-id");
+
+        subForm.unregisterLabel(id);
+        expect(fc.unregisterLabel).toHaveBeenCalledWith("label-registration-id");
     });
 
     scopedIt("maps focused state from parent", async () => {
