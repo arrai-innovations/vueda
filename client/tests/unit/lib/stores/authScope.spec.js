@@ -355,7 +355,7 @@ describe("lib/stores/authScope.js", () => {
             expect(refetched.verbose_name).toBe("Second");
         });
 
-        scopedIt("does not cache a workflow-transitions error that arrives after the crossing", async () => {
+        scopedIt("discards a workflow-transitions rejection that arrives after the crossing", async () => {
             whoIs({ id: 1 });
             const userStore = storeUser(pinia);
             const workflowStore = storeWorkflow(pinia);
@@ -368,7 +368,9 @@ describe("lib/stores/authScope.js", () => {
             await userStore.fetchCurrentUser();
             deferred.fail(new Error("Forbidden"));
 
-            await expect(inFlight).rejects.toThrow("Forbidden");
+            // the rejection was determined for the principal the crossing just replaced, so it must
+            // not reach the caller as-is, the same as a stale success response above
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
             expect(workflowStore.errors.workflowTransitions).toEqual({});
 
             respond(urls.workflowUserPermittedTransitions.split(":")[0], [{ code: "review", name: "Review" }]);
