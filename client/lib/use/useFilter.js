@@ -9,7 +9,7 @@ import { FilterFieldMappings, filterFieldMapping } from "@vueda/utils/fieldMappi
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import capitalize from "lodash-es/capitalize.js";
-import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
+import { provide, reactive, readonly, shallowReactive, toRaw, toRef, watch } from "vue";
 
 /**
  * Get the default widget for a given filter field object.
@@ -110,7 +110,9 @@ export function filterFieldEntries(filterName, filterDetails) {
  * What the client lacks to render an editable input for a filter. An empty result means the
  * filter type has value handling and every form field the filter mounts resolves a component,
  * through the same resolution `buildForm` applies when the field renders: a per-field override
- * first, then the type's default mapping. Nothing is inferred from the field or type name.
+ * first, then the type's default mapping. A widget that resolves to `WidgetUnmapped` counts as
+ * missing, since that component renders a diagnostic in place of an input. Nothing is inferred
+ * from the field or type name.
  *
  * @param {string} filterName - The filter field name.
  * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filterDetails - The filter configuration.
@@ -126,25 +128,38 @@ export function getMissingFilterInputSupport(filterName, filterDetails, override
     if (!FilterFieldMappings[typeFilter]) {
         missing.push(`value handling for filter type "${typeFilter}"`);
     }
-    const resolves = (candidate, lookup, kind, name) => {
+    // The component `buildForm` would mount for this reference, or null when it resolves none.
+    const resolve = (candidate, lookup, kind, name) => {
         try {
-            resolveComponent(candidate, lookup, { kind, fieldName: name });
-            return true;
+            return toRaw(resolveComponent(candidate, lookup, { kind, fieldName: name }));
         } catch {
-            return false;
+            return null;
         }
     };
+    const unmappedWidget = toRaw(availableWidgets.WidgetUnmapped);
     for (const { name, detail, needsWidget, suffix } of filterFieldEntries(filterName, filterDetails)) {
         const target = suffix
             ? `the "${suffix}" boundary of filter type "${typeFilter}"`
             : `filter type "${typeFilter}"`;
-        const field = overrides.fieldComponents?.[name] || getFieldComponent(detail);
-        if (!resolves(field, availableFields, "field", name)) {
+        const field = resolve(
+            overrides.fieldComponents?.[name] || getFieldComponent(detail),
+            availableFields,
+            "field",
+            name,
+        );
+        if (!field) {
             missing.push(`a field component for ${target}`);
         }
-        const widget = overrides.widgetComponents?.[name] || getWidgetComponent(detail);
-        if (needsWidget && !resolves(widget, availableWidgets, "widget", name)) {
-            missing.push(`a widget for ${target}`);
+        if (needsWidget) {
+            const widget = resolve(
+                overrides.widgetComponents?.[name] || getWidgetComponent(detail),
+                availableWidgets,
+                "widget",
+                name,
+            );
+            if (!widget || widget === unmappedWidget) {
+                missing.push(`a widget for ${target}`);
+            }
         }
     }
     return missing;

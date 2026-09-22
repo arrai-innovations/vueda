@@ -1256,6 +1256,43 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt.each([
+            [
+                "a function-wrapped widget that returns nothing",
+                { name: () => undefined },
+                'a widget for filter type "CharField"',
+            ],
+            ["the WidgetUnmapped diagnostic", { name: "WidgetUnmapped" }, 'a widget for filter type "CharField"'],
+            [
+                "a range boundary resolved to the WidgetUnmapped diagnostic",
+                { "created.before": "WidgetUnmapped" },
+                'a widget for the "before" boundary of filter type "DateRangeField"',
+            ],
+        ])("omits a visible filter whose override resolves %s and warns", async (_, widgetComponents, missing) => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "name", "created"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                name: { typeFilter: "CharField", label: "Name" },
+                created: { typeFilter: "DateRangeField", suffixes: ["after", "before"], label: "Created" },
+            };
+            modelConfig.config.widgetComponents = widgetComponents;
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const offered = wrapper.findComponent(FilterGroupStub).props().validFilterables;
+            const [omitted] = Object.keys(widgetComponents)[0].split(".");
+            expect(offered).not.toContain(omitted);
+            expect(offered).toContain("category");
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain(`Filter "${omitted}" on app.model`);
+            expect(warn.mock.calls[0][0]).toContain(missing);
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
         scopedIt("offers a custom filter type registered with both value handling and components", async () => {
             const { mergeFilterFieldMapping, filterFieldMapping, FilterFieldMappings } =
                 await import("@vueda/utils/fieldMappings.js");

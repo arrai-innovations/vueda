@@ -73,8 +73,9 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
 /**
  * Resolve a configured component reference to a mountable component, the way every form
  * and filter field does. A function wraps a component reference (to keep it out of reactive
- * state) and is called; a string names an entry in `lookup`; anything else truthy is the
- * component itself. Throws when nothing resolves, naming the field and its app and model.
+ * state) and is called for it; a string names an entry in `lookup`; anything else truthy is the
+ * component itself. Throws when nothing resolves, naming the field and its app and model: an
+ * absent reference, a name missing from `lookup`, or a function that returns no component.
  *
  * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or mapping value to resolve.
  * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in (`availableFields` or `availableWidgets`).
@@ -84,7 +85,11 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
 export function resolveComponent(candidate, lookup, { kind, fieldName, app, model }) {
     const where = `for field "${fieldName}" in app "${app}" model "${model}"`;
     if (typeof candidate === "function") {
-        return candidate();
+        const wrapped = candidate();
+        if (!wrapped) {
+            throw new Error(`No ${kind} component returned by the function configured ${where}`);
+        }
+        return wrapped;
     }
     if (typeof candidate === "string") {
         const named = lookup[candidate];
