@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **CRUD routes handle a denied workflow discovery request (`requireModelInfo`, new `WorkflowPermissionDeniedError`)**:
+    - Opening a CRUD URL for a model whose workflow discovery request the server denied with a 403 left the route guard rejecting the navigation uncaught. The application shell rendered no page content and no explanation: a fresh load stayed on Vue Router's initial location, and navigating there from another route left the previous page on screen. `requireModelInfo` now catches that denial, shows a "Permission Denied" toast, and sends the navigation to the route's configured `actionRedirect`, the same destination an unlisted action already uses.
+    - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
+    - A workflow discovery request that fails for a reason other than a 403 still resolves to a plain `WorkflowError`, and `requireModelInfo` rethrows it rather than treating it as a permission denial.
+
 - **The empty state spans the grid width in table layout (`ObjectsGrid`)**:
     - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
       _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._
