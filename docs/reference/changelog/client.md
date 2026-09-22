@@ -20,6 +20,10 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **List controls follow the documented precedence (`ViewList` `allowColumnHiding` and `showTotalRecordNum`)**:
+    - Each prop voted with the model config value instead of overriding it. `allowColumnHiding` combined them with `||`, so either source could show the column selector and neither could hide it. `showTotalRecordNum` used `&&`, so either could hide the record count and neither could show it. A prop passed on the component now wins over the model config, which wins over the framework default, matching the precedence documented for every other override.
+      _A view passing `:allow-column-hiding="false"` against a model config that enables it now hides the selector, and one passing `:show-total-record-num="true"` against a config that disables it now shows the count. Omit the prop to keep the model config's answer._
+
 - **CRUD routes handle a denied workflow discovery request (`requireModelInfo`, new `WorkflowPermissionDeniedError`)**:
     - Opening a CRUD URL for a model whose workflow discovery request the server denied with a 403 left the route guard rejecting the navigation uncaught. The application shell rendered no page content and no explanation: a fresh load stayed on Vue Router's initial location, and navigating there from another route left the previous page on screen. `requireModelInfo` now catches that denial, shows a "Permission Denied" toast, and sends the navigation to the route's configured `actionRedirect`, the same destination an unlisted action already uses.
     - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
