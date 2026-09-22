@@ -131,15 +131,22 @@ const props = defineProps({
         type: [Number, String],
         default: DEFAULT_PAGE_SIZE,
     },
-    /** When true, displays the total record count in the pagination bar. */
+    /**
+     * When true, displays the total record count in the pagination bar. Overrides the model
+     * config's `showTotalRecordNum`; when unset, the model config decides, defaulting to true.
+     */
     showTotalRecordNum: {
         type: Boolean,
-        default: true,
+        default: undefined,
     },
-    /** When true, shows a column-visibility selector so users can hide individual columns. */
+    /**
+     * When true, shows a column-visibility selector so users can hide individual columns.
+     * Overrides the model config's `allowColumnHiding`; when unset, the model config decides,
+     * defaulting to false.
+     */
     allowColumnHiding: {
         type: Boolean,
-        default: false,
+        default: undefined,
     },
     /** Action names promoted to the filled hero CTA in the page title; defaults to the `create` action. */
     primaryActions: {
@@ -321,7 +328,7 @@ onMounted(() => {
                         </InputGroup>
                     </slot>
                     <slot
-                        v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                        v-if="allowColumnHiding ?? modelConfig.config?.allowColumnHiding ?? false"
                         name="columns-select"
                         :columns="columns.columns"
                         :options="columns.columnOptions"
@@ -561,7 +568,7 @@ onMounted(() => {
                 :total-records="pagination.paginateInfo?.totalRecords"
                 :is-table="sort.isTable"
                 :page-size-options="pageSizeOptions"
-                :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+                :show-total-record-num="showTotalRecordNum ?? modelConfig.config?.showTotalRecordNum ?? true"
                 data-qa="view-list-pagination"
             >
                 <template v-for="(_, slot) in slots" #[slot]="slotProps">
