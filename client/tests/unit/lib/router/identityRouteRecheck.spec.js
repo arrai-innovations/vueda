@@ -279,6 +279,39 @@ describe("lib/router/makeCrud.js", () => {
         });
     });
 
+    describe("Identity recheck racing a navigation that crosses route records", () => {
+        scopedIt("preserves an identity denial when moving from bulk to detail update", async () => {
+            modelAllows("post", ["update"]);
+            await startAs({ id: 1 });
+            await router.push("/blog/post/update/?pk=1,2");
+            expect(router.currentRoute.value.name).toBe("actionrouter.listview");
+
+            let releaseMetadata;
+            respond(
+                `${urls.infoModelInfo}blog/post/`,
+                () =>
+                    new Promise((resolve) => {
+                        releaseMetadata = () => resolve(modelInfoPayload("post", []));
+                    }),
+            );
+            whoIs({ id: 2 });
+            await storeUser(pinia).login({ username: "second", password: "second" });
+            await flushPromises();
+            expect(releaseMetadata).toBeTypeOf("function");
+
+            // this crosses from the list record to the detail record, which always reruns the checks,
+            // even though the identity recheck above is still waiting on its own copy of the same
+            // metadata
+            const navigation = router.push("/blog/post/update/2");
+            await flushPromises();
+            releaseMetadata();
+            await navigation;
+            await flushPromises();
+
+            expect(router.currentRoute.value.name).toBe("not-found");
+        });
+    });
+
     describe("Metadata fetched for a user who has since been replaced", () => {
         scopedIt("does not let it approve the navigation that fetched it", async () => {
             let releasePost;

@@ -30,13 +30,15 @@ async function runAccessChecks(to, beforeEnter) {
 /**
  * Recheck access on a navigation that stays inside one of the generated route records.
  *
- * Vue Router runs `beforeEnter` only when a navigation enters a route record. Both generated records
- * are shared by every app, model, and action they route to, so a navigation that changes which app,
- * model, or action is targeted, for example from an allowed model to a denied one, can stay inside
- * the same record and never rerun `beforeEnter`. This registers the same checks as a `beforeEach`
- * guard instead, so they also run on that kind of navigation. A navigation that leaves the app, model,
- * and action unchanged, for example a query-only change or a primary key change on an otherwise
- * identical action, skips the checks, since nothing about the checked metadata depends on either.
+ * Vue Router runs `beforeEnter` only when a navigation enters a route record, so it already reruns
+ * the checks whenever a navigation crosses from one generated record to the other, for example from
+ * the list record to the detail record. This registers the same checks as a `beforeEach` guard as
+ * well, so they also rerun for the one case `beforeEnter` misses: a navigation that changes the app,
+ * model, or action but stays inside the *same* record, for example from an allowed model to a denied
+ * one without leaving the list record. A navigation that stays in the same record and leaves the app,
+ * model, and action unchanged, for example a query-only change or a primary key change on an
+ * otherwise identical action, skips the checks, since nothing about the checked metadata depends on
+ * either.
  *
  * @param {import('vue-router').RouteLocationNormalized} to - The target route.
  * @param {import('vue-router').RouteLocationNormalized} from - The route being left.
@@ -51,7 +53,7 @@ function recheckOnNavigation(to, from, beforeEnter, generatedRouteNames) {
         return true;
     }
     if (
-        generatedRouteNames.has(from.name) &&
+        to.name === from.name &&
         to.params.app === from.params.app &&
         to.params.model === from.params.model &&
         to.params.action === from.params.action

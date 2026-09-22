@@ -170,6 +170,21 @@ describe("lib/router/makeCrud.js", () => {
             expect(result).toBe(true);
         });
 
+        scopedIt(
+            "reruns the checks on a move from the list record to the detail record, even with the app, model, and action unchanged",
+            async () => {
+                makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+                const detailTo = {
+                    name: "actionrouter.detailview",
+                    params: { app: "blog", model: "post", action: "update", pk: "2" },
+                };
+
+                await registeredGuard()(detailTo, to("update"));
+
+                expect(requireModelInfo).toHaveBeenCalledWith(vueApp, actionRedirect, detailTo, router, pinia);
+            },
+        );
+
         scopedIt("redirects when the check for the new target denies it", async () => {
             requireModelInfo.mockResolvedValue(actionRedirect);
             makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
