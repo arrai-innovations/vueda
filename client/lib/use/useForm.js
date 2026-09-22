@@ -57,7 +57,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
  *
  * // *** Field Metadata ***
- * @property {{[path: string]: string}} labels - Display labels registered by each rendered field, keyed by field path.
+ * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
  */
 
 /**
@@ -525,31 +525,6 @@ const removeIgnore = (state, name) => {
 };
 
 /**
- * @param {FormContextState} state
- * @param {string} name
- * @param {string} label
- * @private
- */
-const registerLabel = (state, name, label) => {
-    validateName(name);
-    if (state.labels[name] !== label) {
-        state.labels[name] = label;
-    }
-};
-
-/**
- * @param {FormContextState} state
- * @param {string} name
- * @private
- */
-const unregisterLabel = (state, name) => {
-    validateName(name);
-    if (state.labels[name] !== undefined) {
-        del(state.labels, name);
-    }
-};
-
-/**
  * Get the first displayed field with an error.
  * @param {FormContextState} state - The form context state.
  * @param {string[]} displayFields - The list of fields being displayed.
@@ -659,8 +634,10 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Unregister a field from dependency value tracking.
  *
  * // *** Field Metadata ***
- * @property {(name: string, label: string) => void} registerLabel - Register or update a rendered field's display label.
- * @property {(name: string) => void} unregisterLabel - Remove a field's display label from the registry.
+ * @property {(name: string, labelHook: () => string) => string} registerLabel -
+ *  Register a hook returning a rendered field's current label, grouped by field path; returns a registration id.
+ * @property {(id: string) => boolean} unregisterLabel -
+ *  Unregister a previously registered label hook by its registration id.
  */
 
 /**
@@ -743,6 +720,11 @@ export function useForm(props) {
     const modifiedHookRegistry = useReactiveHookRegistry();
     const requiredHookRegistry = useReactiveHookRegistry();
     const validationHookRegistry = useReactiveHookRegistry();
+    // Aggregates to the last-registered surviving hook for a path (rather than the default
+    // some-of-booleans aggregation), so a field being replaced under the same path is labelled by
+    // whichever instance registered most recently, not left labelless by the outgoing instance's
+    // unregister.
+    const labelHookRegistry = useReactiveHookRegistry((values) => values[values.length - 1]);
 
     /** @type {FormContextState} */
     const state = reactive({
@@ -795,7 +777,7 @@ export function useForm(props) {
         dependencyValues: {},
 
         // *** Field Metadata ***
-        labels: {},
+        labels: labelHookRegistry.computedAggregates,
     });
     const dependencyRegistry = useFieldDependencyValuesRegistry(state.values);
     state.dependencyValues = dependencyRegistry.dependencyValues;
@@ -881,8 +863,8 @@ export function useForm(props) {
         unregisterDependencyValues: dependencyRegistry.unregister,
 
         // *** Field Metadata ***
-        registerLabel: registerLabel.bind(null, state),
-        unregisterLabel: unregisterLabel.bind(null, state),
+        registerLabel: labelHookRegistry.registerHook,
+        unregisterLabel: labelHookRegistry.unregisterHook,
     };
     provide(FormContextSymbol, formContext);
     return formContext;

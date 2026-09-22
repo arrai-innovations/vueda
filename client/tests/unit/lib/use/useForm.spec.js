@@ -724,8 +724,6 @@ describe("lib/use/useForm.js", () => {
                     form.setTouched("rows[1].email");
                     form.ignore("rows[1].email");
                     form.focus("rows[1].email");
-                    form.registerLabel("rows[0].email", "Removed label");
-                    form.registerLabel("rows[1].email", "Surviving label");
                     form.removeArrayItem("rows", 0);
                     expect(form.state.values.rows).toEqual([{ email: "b" }]);
                     expect(form.state.initialValues.rows).toEqual([{ email: "a" }, { email: "b" }]);
@@ -734,7 +732,6 @@ describe("lib/use/useForm.js", () => {
                     expect(form.state.touched).toEqual({ "rows[0].email": true });
                     expect(form.state.ignored["rows[0].email"]).toBeTruthy();
                     expect(form.state.focused).toBe("rows[0].email");
-                    expect(form.state.labels).toEqual({ "rows[0].email": "Surviving label" });
                     form.removeArrayItem("rows", 0);
                     expect(form.state.values.rows).toEqual([]);
                     expect(form.state.errors).toEqual({});
@@ -742,12 +739,40 @@ describe("lib/use/useForm.js", () => {
                     expect(form.state.touched).toEqual({});
                     expect(form.state.ignored).toEqual({});
                     expect(form.state.focused).toBeNull();
-                    expect(form.state.labels).toEqual({});
                     expect(form.state.anyError).toBe(false);
                     expect(form.state.anyMessage).toBe(false);
                     expect(form.state.anyTouched).toBe(false);
                     expect(form.state.anyIgnored).toBe(false);
                 });
+
+                scopedIt(
+                    "does not shift registered labels; each field's own hook stays keyed to its own name",
+                    async () => {
+                        const { formContext: form } = getForm({
+                            initialValues: { rows: [{ email: "a" }, { email: "b" }] },
+                        });
+                        form.registerLabel("rows[0].email", () => "Row 1 email");
+                        form.registerLabel("rows[1].email", () => "Row 2 email");
+                        await flushPromises();
+                        expect(form.state.labels).toEqual({
+                            "rows[0].email": "Row 1 email",
+                            "rows[1].email": "Row 2 email",
+                        });
+
+                        form.removeArrayItem("rows", 0);
+                        await flushPromises();
+
+                        // Labels are keyed by name and driven by each field's own hook (see
+                        // registerLabel), not shifted here: a caller that keeps a hook registered
+                        // under "rows[1].email" after removal (as this test does, deliberately not
+                        // simulating a real field's own re-registration) keeps reporting its own,
+                        // unrelated label under that name.
+                        expect(form.state.labels).toEqual({
+                            "rows[0].email": "Row 1 email",
+                            "rows[1].email": "Row 2 email",
+                        });
+                    },
+                );
 
                 scopedIt("ignores invalid indexes and non-array values", () => {
                     const { formContext: form } = getForm({ initialValues: { rows: [1, 2], text: "abc" } });
@@ -2108,89 +2133,82 @@ describe("lib/use/useForm.js", () => {
         });
         describe("Field Metadata", () => {
             describe("registerLabel", () => {
-                scopedIt("should require a name", () => {
+                scopedIt("should return a registration id", () => {
                     const { formContext } = getForm({});
-                    expect(() => formContext.registerLabel(undefined, "Some Label")).toThrow("No name provided");
+                    const id = formContext.registerLabel("field1", () => "Field One");
+                    expect(id).toBeTruthy();
                 });
 
                 scopedIt("should record the field's label", async () => {
                     const { formContext } = getForm({});
                     expect(formContext.state.labels).toEqual({});
 
-                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
-                    try {
-                        formContext.registerLabel("field1", "Field One");
-                        await flushPromises();
-                        expect(formContext.state.labels).toEqual({ field1: "Field One" });
-                        expect(watchSpy).toHaveBeenCalledTimes(1);
-                    } finally {
-                        stop();
-                    }
+                    formContext.registerLabel("field1", () => "Field One");
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Field One" });
                 });
 
-                scopedIt("should update an already-registered label", async () => {
+                scopedIt("should reflect the hook's current value reactively, without re-registering", async () => {
                     const { formContext } = getForm({});
-                    formContext.registerLabel("field1", "Field One");
+                    const label = vue.ref("Field One");
+                    formContext.registerLabel("field1", () => label.value);
                     await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Field One" });
 
-                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
-                    try {
-                        formContext.registerLabel("field1", "Updated Field One");
-                        await flushPromises();
-                        expect(formContext.state.labels).toEqual({ field1: "Updated Field One" });
-                        expect(watchSpy).toHaveBeenCalledTimes(1);
-                    } finally {
-                        stop();
-                    }
+                    label.value = "Updated Field One";
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Updated Field One" });
                 });
 
-                scopedIt("should not update if the label is unchanged", async () => {
+                scopedIt("should report the most recently registered hook when two share a name", async () => {
                     const { formContext } = getForm({});
-                    formContext.registerLabel("field1", "Field One");
+                    formContext.registerLabel("field1", () => "Outgoing label");
                     await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Outgoing label" });
 
-                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
-                    try {
-                        formContext.registerLabel("field1", "Field One");
-                        await flushPromises();
-                        expect(watchSpy).not.toHaveBeenCalled();
-                    } finally {
-                        stop();
-                    }
+                    // Models a replaced field instance: the incoming registration lands before
+                    // the outgoing instance's own unregister call runs.
+                    const incomingId = formContext.registerLabel("field1", () => "Incoming label");
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Incoming label" });
+
+                    expect(incomingId).toBeTruthy();
                 });
             });
             describe("unregisterLabel", () => {
-                scopedIt("should require a name", () => {
+                scopedIt("should remove a field's label when its only registration is unregistered", async () => {
                     const { formContext } = getForm({});
-                    expect(() => formContext.unregisterLabel()).toThrow("No name provided");
-                });
-
-                scopedIt("should remove a field's label", async () => {
-                    const { formContext } = getForm({});
-                    formContext.registerLabel("field1", "Field One");
+                    const id = formContext.registerLabel("field1", () => "Field One");
                     await flushPromises();
 
-                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
-                    try {
-                        formContext.unregisterLabel("field1");
-                        await flushPromises();
-                        expect(formContext.state.labels).toEqual({});
-                        expect(watchSpy).toHaveBeenCalledTimes(1);
-                    } finally {
-                        stop();
-                    }
+                    formContext.unregisterLabel(id);
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({});
                 });
 
-                scopedIt("should do nothing if the field has no registered label", async () => {
+                scopedIt("should leave a surviving registration's label in place", async () => {
                     const { formContext } = getForm({});
-                    const [stop, watchSpy] = testWatches(vue, formContext.state, "labels.field1");
-                    try {
-                        formContext.unregisterLabel("field1");
-                        await flushPromises();
-                        expect(watchSpy).not.toHaveBeenCalled();
-                    } finally {
-                        stop();
-                    }
+                    const outgoingId = formContext.registerLabel("field1", () => "Outgoing label");
+                    await flushPromises();
+                    formContext.registerLabel("field1", () => "Incoming label");
+                    await flushPromises();
+
+                    // The outgoing instance unregisters by its own id, so it cannot delete the
+                    // incoming instance's registration for the same name (see registerLabel's
+                    // "most recently registered" test above for the replacement this models).
+                    formContext.unregisterLabel(outgoingId);
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Incoming label" });
+                });
+
+                scopedIt("should do nothing for an unknown registration id", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerLabel("field1", () => "Field One");
+                    await flushPromises();
+
+                    expect(formContext.unregisterLabel("unknown-id")).toBe(false);
+                    await flushPromises();
+                    expect(formContext.state.labels).toEqual({ field1: "Field One" });
                 });
             });
         });
