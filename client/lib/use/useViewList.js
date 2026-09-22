@@ -155,7 +155,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string> | string} model - Django model name.
  *
  * Field configuration.
- * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the model config default when empty.
+ * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the `displayFields` keys, then the model config default, when empty.
  * @property {import('vue').Ref<{[key: string]: object}> | {[key: string]: object}} [displayFields] - Display field overrides; uses the model config default when empty.
  * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
  * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
@@ -376,6 +376,10 @@ export function useViewList(options) {
         let fields = [];
         if (options.listFields?.length) {
             fields = [...options.listFields];
+        } else if (Object.keys(options.displayFields || {}).length) {
+            // Columns passed in directly: the config's list fetch follows the config's own columns,
+            // so it can omit one of these.
+            fields = Object.keys(options.displayFields);
         } else if (modelConfig.config.fetchFields?.length) {
             fields = [...modelConfig.config.fetchFields];
         }

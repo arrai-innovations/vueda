@@ -16,6 +16,17 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Breaking Changes
 
+- **Default field lists differ by view (`storeModelConfig` `displayFields`, `fetchFields`, `submitFields`)**:
+    - Every view used to start from every non-PK, non-hidden field. A create form now defaults to writable fields only, so it no longer shows server-maintained values that a new record does not have yet. The update and read views still show every field.
+    - `submitFields` now leaves out read-only fields on every view. The server ignores input for them.
+    - A list now defaults to fields whose model info does not set `list_default: false`, and fetches only those columns. On a workflow model, that drops `workflow_state_code` and `valid_transitions` and keeps `workflow_state_name`. An unset list `fetchFields` follows the resolved `displayFields`, so a list fetches exactly the columns an integrator names.
+    - These defaults apply only when no model config names the field list or the `fields` shorthand. A model-wide `displayFields` still reaches every view unchanged.
+      _To show a read-only field on a create form or a flagged field in a list, name that view's `displayFields`. A custom list cell slot or combobox option slot that reads a field with no column must now name that field in `fetchFields`._
+
+- **`ViewList` fetches the columns its `displayFields` prop names**:
+    - When a page passes `displayFields` without `listFields`, the list request now asks for the `displayFields` keys instead of the model config's `fetchFields`. Without this, a column the prop added could arrive empty under the narrower list default.
+      _Pass `listFields` to fetch a different set._
+
 ### Features
 
 ### Fixes
