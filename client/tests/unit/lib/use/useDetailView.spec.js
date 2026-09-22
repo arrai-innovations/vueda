@@ -148,6 +148,7 @@ describe("lib/use/useDetailView.js", () => {
             expect(instance).toHaveProperty("combinedErrored");
             expect(instance).toHaveProperty("combinedWhileText");
             expect(instance).toHaveProperty("combinedFormProps");
+            expect(instance).toHaveProperty("currentActionAvailable");
         });
 
         scopedIt("actions group contains expected keys", async () => {
@@ -305,6 +306,51 @@ describe("lib/use/useDetailView.js", () => {
             mockInstanceObject.state.object.valid_transitions = undefined;
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toBeUndefined();
+        });
+    });
+
+    describe("currentActionAvailable", () => {
+        scopedIt(
+            "is true while the object is loading, then false once the loaded object excludes the current view's action",
+            async () => {
+                props.viewName = "update";
+                mockInstanceObject.state.object = null;
+                const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+                expect(instance.currentActionAvailable).toBe(true);
+                mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+                await nextTick();
+                expect(instance.currentActionAvailable).toBe(false);
+            },
+        );
+
+        scopedIt("is true when the loaded object has no available_actions field", async () => {
+            mockInstanceObject.state.object = { id: "42" };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("is true when the object's available_actions includes the current view's action", async () => {
+            props.viewName = "update";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve", "update"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("maps the 'read' viewName to the 'retrieve' action name", async () => {
+            props.viewName = "read";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("updates reactively when fresh object data changes available_actions", async () => {
+            props.viewName = "update";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve", "update"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+            await nextTick();
+            expect(instance.currentActionAvailable).toBe(false);
         });
     });
 

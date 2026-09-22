@@ -6,7 +6,7 @@ import { toast } from "@arrai-innovations/vue-sonner";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { ModelInfoError, storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeUser } from "@vueda/stores/storeUser.js";
-import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { WorkflowPermissionDeniedError, storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -281,13 +281,15 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * Require model info to be loaded before accessing the route.
  *
  * @param {import('vue').App} instance - The Vue app instance.
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found or action not allowed.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found, workflow
+ *  discovery is denied, or the action is not allowed.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} `true` when the model exists
- *  and the action is allowed, a redirect route when it does not, or `false` to cancel the navigation because
- *  the authenticated user changed while the metadata was being fetched.
+ *  and the action is allowed, a redirect route when it does not (including when the server denies workflow
+ *  discovery for this model with a 403), or `false` to cancel the navigation because the authenticated user
+ *  changed while the metadata was being fetched.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     try {
@@ -322,6 +324,17 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
         }
         if (e instanceof ModelInfoError) {
             toast.error("Model Not Found");
+            return resolveRedirect(redirectTo, router);
+        }
+        if (e instanceof WorkflowPermissionDeniedError) {
+            // The server denied workflow discovery for this model, so the transitions it would have
+            // contributed to `actions` are unknowable. Treat that denial the same as an action this
+            // user's `actions` list does not contain, rather than approving the route or leaving the
+            // navigation to fail uncaught.
+            toast.error("Permission Denied", {
+                description: e.responseData?.detail ?? "You do not have permission to perform this action.",
+                duration: 15000,
+            });
             return resolveRedirect(redirectTo, router);
         }
         throw e;

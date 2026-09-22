@@ -20,6 +20,11 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Fixes
 
+- **CRUD routes handle a denied workflow discovery request (`requireModelInfo`, new `WorkflowPermissionDeniedError`)**:
+    - Opening a CRUD URL for a model whose workflow discovery request the server denied with a 403 left the route guard rejecting the navigation uncaught. The application shell rendered no page content and no explanation: a fresh load stayed on Vue Router's initial location, and navigating there from another route left the previous page on screen. `requireModelInfo` now catches that denial, shows a "Permission Denied" toast, and sends the navigation to the route's configured `actionRedirect`, the same destination an unlisted action already uses.
+    - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
+    - A workflow discovery request that fails for a reason other than a 403 still resolves to a plain `WorkflowError`, and `requireModelInfo` rethrows it rather than treating it as a permission denial.
+
 - **A move between models or actions rechecks route access (`makeCRUDRoutes`)**:
     - `makeCRUDRoutes` generates two route records shared by every app, model, and action: one for list views and one for detail views. Vue Router runs `beforeEnter` only when a navigation enters a record, so a navigation between models or actions, which changes only the route's parameters, stayed inside the same record and ran no check at all. The client rendered "Action Not Found" for the new model instead of redirecting to `actionRedirect`, and the address bar kept the denied URL.
     - `makeCRUDRoutes` now also registers the configured checks as a `beforeEach` guard, so a navigation that changes the app, model, or action reruns `requireAuth`, `requireModelInfo`, and `requireGroups` and redirects to `authRedirect`, `actionRedirect`, or `groupsRedirect`, whether or not the navigation enters a different route record. A navigation that changes only the query string or the primary key skips the checks, since neither affects what they resolve.
@@ -175,6 +180,12 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - Model actions distinguish the app, model, action, and keys for dry-run validation. Typed confirmation resets for a new target; cancelled or superseded submissions cannot show success, retry warnings, or redirect the destination view.
     - History views reset pagination and layout and fetch the new object's history even when only its key changes.
     - Metadata requests follow the latest model after rapid navigation and ignore obsolete results and errors.
+
+- **Update forms respect object-level action availability (`ViewUpdate`, `useDetailView`)**:
+    - The default update view now checks the fetched object's `available_actions` before rendering an editable form. When the object does not permit `update`, the view shows a notice explaining that editing is unavailable and a link to the readable object view, instead of an editable form and an enabled Submit button. A direct link to an update URL for such an object is affected the same way. An object that does permit updating keeps normal editing and submission.
+    - `ViewUpdate` gains an `update-unavailable` scoped slot to override that notice; it receives `app`, `model`, `pk`, and `verboseName`.
+    - `useDetailView`'s `instance` group gains `currentActionAvailable`, reflecting whether the fetched object's `available_actions` includes the current view's action; it is `true` (optimistic) until the object has loaded.
+      _The server continues to enforce permissions independently; this only affects what the update view offers before submission._
 
 - **Route loading keeps the current view until its destination is ready (`ViewActionRouter`)**:
     - Navigation retains the current component and its app, model, action, and primary-key props while destination metadata and the component load. The initial route still shows `ViewLoading`. Superseded component imports no longer replace the newer destination.
