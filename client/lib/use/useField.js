@@ -211,6 +211,13 @@ export function defaultIsRequiredViolation(value) {
  */
 
 /**
+ * Options describing how the calling component renders the field.
+ *
+ * @typedef {object} UseFieldOptions
+ * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level summary can report the field's errors instead.
+ */
+
+/**
  * Determines whether a field's value is **unset** (i.e., it has not been explicitly set).
  *
  * Unlike `defaultIsRequiredViolation`, this function is used for **form state tracking** to determine
@@ -277,10 +284,12 @@ const setupFieldPropsForTest = (props, localFormContext) => {
  *
  * @param {FieldContextProps} props - The field context's reactive props.
  * @param {import('vue').EmitFn} emit - The component emit function.
+ * @param {UseFieldOptions} [options] - How the calling component renders the field.
  * @returns {FieldContext} The field context object.
  */
-export function useField(props, emit) {
+export function useField(props, emit, options = {}) {
     const id = useId();
+    const showsErrors = options.showsErrors ?? (() => true);
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const rawFormContext = inject(FormContextSymbol, null);
     const formContext = computed(() => (!props.contextless ? unref(rawFormContext) : null));
@@ -836,33 +845,39 @@ export function useField(props, emit) {
         }
     });
 
-    // Registered by name (not watched for label changes): the hook itself reads state.label, so the
-    // registry's aggregate updates reactively as the label changes without re-registering. Only a
-    // name change needs a fresh registration, since the registry groups hooks by name.
-    let labelHookId;
-    const registerLabelHook = () => {
-        const fc = unref(formContext);
-        if (fc) {
-            labelHookId = fc.registerLabel(props.name, () => state.label);
-        }
+    // Field metadata hooks are registered by name and read their value lazily, so the registry's
+    // aggregate follows the hook's current value without re-registering. Only a name change needs
+    // a fresh registration, since the registry groups hooks by name.
+    /**
+     * @param {"Label"|"ShowsErrors"} kind - The form context registration pair to use (`register<kind>` / `unregister<kind>`).
+     * @param {() => any} hook - The hook to register under the field's current name.
+     */
+    const registerMetadataHookByName = (kind, hook) => {
+        let hookId;
+        const register = () => {
+            const fc = unref(formContext);
+            if (fc) {
+                hookId = fc[`register${kind}`](props.name, hook);
+            }
+        };
+        register();
+        watch(toRef(props, "name"), () => {
+            const fc = unref(formContext);
+            if (!fc) return;
+            if (hookId) {
+                fc[`unregister${kind}`](hookId);
+            }
+            register();
+        });
+        onUnmounted(() => {
+            const fc = unref(formContext);
+            if (fc && hookId) {
+                fc[`unregister${kind}`](hookId);
+            }
+        });
     };
-    if (unref(formContext)) {
-        registerLabelHook();
-    }
-    watch(toRef(props, "name"), () => {
-        const fc = unref(formContext);
-        if (!fc) return;
-        if (labelHookId) {
-            fc.unregisterLabel(labelHookId);
-        }
-        registerLabelHook();
-    });
-    onUnmounted(() => {
-        const fc = unref(formContext);
-        if (fc && labelHookId) {
-            fc.unregisterLabel(labelHookId);
-        }
-    });
+    registerMetadataHookByName("Label", () => state.label);
+    registerMetadataHookByName("ShowsErrors", () => !!showsErrors());
 
     return returnObj;
 }

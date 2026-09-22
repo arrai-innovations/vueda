@@ -44,6 +44,15 @@ describe("lib/form/form-model/FormField.vue", () => {
             expect(useFieldMock).toHaveBeenCalledTimes(1);
         });
 
+        scopedIt("reports that it shows the field's errors inline unless hidden", async () => {
+            const wrapper = mount(FormField, { props: { name: "test" } });
+            const options = useFieldMock.mock.calls[0][2];
+            expect(options.showsErrors()).toBe(true);
+
+            await wrapper.setProps({ hidden: true });
+            expect(options.showsErrors()).toBe(false);
+        });
+
         scopedIt("dispatches validation type to useFieldValidation", () => {
             mount(FormField, { props: { name: "test", validation: "text" } });
             expect(useFieldValidationMock).toHaveBeenCalledWith("text", fieldContext, expect.any(Object));
