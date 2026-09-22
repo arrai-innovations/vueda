@@ -143,7 +143,7 @@ const removeArrayItem = (state, name, index) => {
         if (Number(match[1]) === index) return null;
         return `${prefix}${Number(match[1]) - 1}]${match[2]}`;
     };
-    for (const collection of [state.errors, state.messages, state.touched, state.ignored, state.labels]) {
+    for (const collection of [state.errors, state.messages, state.touched, state.ignored]) {
         const entries = Object.entries(collection);
         for (const [path] of entries) {
             if (shiftedPath(path) !== path) delete collection[path];

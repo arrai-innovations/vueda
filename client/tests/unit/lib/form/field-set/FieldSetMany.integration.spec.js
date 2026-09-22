@@ -175,6 +175,31 @@ describe("lib/form/field-set/FieldSetMany.vue", () => {
             expect(wrapper.findAll("input")).toHaveLength(0);
         });
 
+        scopedIt("keeps registered labels aligned with surviving rows after removing an entry", async () => {
+            const { wrapper, form } = renderMany([
+                "first@domain.invalid",
+                "second@domain.invalid",
+                "third@domain.invalid",
+            ]);
+            await flushPromises();
+            expect(form.state.labels).toEqual({
+                emails: "Emails",
+                "emails[0]": "Emails 1",
+                "emails[1]": "Emails 2",
+                "emails[2]": "Emails 3",
+            });
+            await removeButtons(wrapper)[0].trigger("click");
+            await flushPromises();
+            // Rows are keyed and labelled by position, so the two surviving rows still read
+            // "Emails 1" and "Emails 2" (not "Emails 2" and "Emails 3", which the removed row's
+            // former neighbors were labelled before the removal).
+            expect(form.state.labels).toEqual({
+                emails: "Emails",
+                "emails[0]": "Emails 1",
+                "emails[1]": "Emails 2",
+            });
+        });
+
         scopedIt("disables add and every remove action for read-only lists", async () => {
             const { wrapper, form } = renderMany(["first@domain.invalid"], { readOnly: true });
             expect(addButton(wrapper).element.disabled).toBe(true);
