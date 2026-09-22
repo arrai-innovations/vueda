@@ -71,6 +71,35 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  */
 
 /**
+ * Resolve a configured component reference to a mountable component, the way every form
+ * and filter field does. A function wraps a component reference (to keep it out of reactive
+ * state) and is called; a string names an entry in `lookup`; anything else truthy is the
+ * component itself. Throws when nothing resolves, naming the field and its app and model.
+ *
+ * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or mapping value to resolve.
+ * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in (`availableFields` or `availableWidgets`).
+ * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved, for the error message.
+ * @returns {import('vue').Component} The resolved component.
+ */
+export function resolveComponent(candidate, lookup, { kind, fieldName, app, model }) {
+    const where = `for field "${fieldName}" in app "${app}" model "${model}"`;
+    if (typeof candidate === "function") {
+        return candidate();
+    }
+    if (typeof candidate === "string") {
+        const named = lookup[candidate];
+        if (!named) {
+            throw new Error(`No ${kind} component named "${candidate}" ${where}`);
+        }
+        return named;
+    }
+    if (!candidate) {
+        throw new Error(`No ${kind} component found ${where}`);
+    }
+    return toRaw(candidate);
+}
+
+/**
  * Builds the form configuration by setting up state management for fields, components, and widgets.
  *
  * @param {import('vue').UnwrapNestedRefs<PropsRaw>} props - The reactive props object containing form metadata.
@@ -158,26 +187,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                             ? availableFields.FieldSetStackedInline
                             : availableFields.FieldSetSingularStackedInline
                         : getFieldComponent(detailObject));
-                if (typeof customField === "function") {
-                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
-                    return customField();
-                }
-                if (typeof customField === "string") {
-                    // let props and modelConfig not pass actual components
-                    const namedField = availableFields[customField];
-                    if (!namedField) {
-                        throw new Error(
-                            `No field component named "${customField}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                        );
-                    }
-                    return namedField;
-                }
-                if (!customField) {
-                    throw new Error(
-                        `No field component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                    );
-                }
-                return toRaw(customField);
+                return resolveComponent(customField, availableFields, {
+                    kind: "field",
+                    fieldName,
+                    app: props.app,
+                    model: props.model,
+                });
             });
         });
         return component;
@@ -241,26 +256,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     props.widgetComponents?.[fieldName] ||
                     modelConfig?.config?.widgetComponents?.[fieldName] ||
                     getWidgetComponent(detailObject);
-                if (typeof customWidget === "function") {
-                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
-                    return customWidget();
-                }
-                if (typeof customWidget === "string") {
-                    // Allow props and modelConfig to pass component names
-                    const namedWidget = availableWidgets[customWidget];
-                    if (!namedWidget) {
-                        throw new Error(
-                            `No widget component named "${customWidget}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                        );
-                    }
-                    return namedWidget;
-                }
-                if (!customWidget) {
-                    throw new Error(
-                        `No widget component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                    );
-                }
-                return toRaw(customWidget);
+                return resolveComponent(customWidget, availableWidgets, {
+                    kind: "widget",
+                    fieldName,
+                    app: props.app,
+                    model: props.model,
+                });
             });
         });
 

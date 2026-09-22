@@ -380,8 +380,9 @@ beforeEach(async () => {
             filterables: ["category", "id", "created"],
             filterableDetails: {
                 category: { typeFilter: "ChoiceField", label: "Category" },
-                // Server-hidden: an auto-injected deep-link filter with no editable widget.
-                id: { typeFilter: "DecimalInField", hidden: true },
+                // Server-hidden: an auto-injected deep-link filter whose type has neither a value
+                // mapping nor an input component. Its URL value travels without an editable widget.
+                id: { typeFilter: "UUIDField", hidden: true },
                 created: { typeFilter: "DateRangeField", suffixes: ["after", "before"], label: "Created" },
             },
         },
@@ -1154,6 +1155,152 @@ describe("lib/views/ViewList.vue", () => {
             expect(filterGroupProps.filterableDetails).toEqual(modelConfig.config.filterableDetails);
             // The hidden `id` filter is excluded from the presentable/valid list.
             expect(filterGroupProps.validFilterables).toEqual(["category", "created"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("omits a visible filter whose type has no value handling and warns once per visit", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            modelConfig.config.filterables = ["category", "token"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                token: { typeFilter: "UUIDField", label: "Token" },
+            };
+            route.query = { token: "abc" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+            // The URL value is neither presented as an applied filter nor sent with the request.
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            expect(wrapper.vm.list.listState.params.token).toBeUndefined();
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain('Filter "token" on app.model');
+            expect(warn.mock.calls[0][0]).toContain('value handling for filter type "UUIDField"');
+
+            // A later metadata change recomputes the offered list without repeating the warning.
+            modelConfig.config.filterableDetails.token.label = "Access token";
+            await vue.nextTick();
+            expect(warn).toHaveBeenCalledTimes(1);
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "warns for an unsupported filter on the next model when its metadata lands before the reset",
+            async () => {
+                const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+                mockedInject.mockReturnValueOnce({});
+                route.params = { app: "app", model: "model", action: "list" };
+                modelConfig.config.filterables = ["token"];
+                modelConfig.config.filterableDetails = { token: { typeFilter: "UUIDField", label: "Token" } };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(warn).toHaveBeenCalledTimes(1);
+                expect(warn.mock.calls[0][0]).toContain('Filter "token" on app.model');
+
+                // The next model reports a filter with the same name. Its metadata is written before the
+                // model prop changes, so the unsupported-filter check reruns before the target reset does.
+                route.params.model = "warehouse";
+                modelConfig.config.filterableDetails = { token: { typeFilter: "UUIDField", label: "Token" } };
+                await wrapper.setProps({ model: "warehouse" });
+                await vue.nextTick();
+
+                expect(warn).toHaveBeenCalledTimes(2);
+                expect(warn.mock.calls[1][0]).toContain('Filter "token" on app.warehouse');
+
+                warn.mockRestore();
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("omits a visible filter whose type has value handling but no input component", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "published"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                published: { typeFilter: "DateField", label: "Published" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain('Filter "published" on app.model');
+            expect(warn.mock.calls[0][0]).toContain('a field component for filter type "DateField"');
+            expect(warn.mock.calls[0][0]).toContain('a widget for filter type "DateField"');
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("offers a visible filter whose view config overrides supply the input components", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["published"];
+            modelConfig.config.filterableDetails = { published: { typeFilter: "DateField", label: "Published" } };
+            modelConfig.config.fieldComponents = { published: "FormField" };
+            modelConfig.config.widgetComponents = { published: "WidgetDateField" };
+            route.query = { published: "2024-01-01" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["published"]);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "published", value: "2024-01-01" });
+            expect(warn).not.toHaveBeenCalled();
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("offers a custom filter type registered with both value handling and components", async () => {
+            const { mergeFilterFieldMapping, filterFieldMapping, FilterFieldMappings } =
+                await import("@vueda/utils/fieldMappings.js");
+            mergeFilterFieldMapping({
+                ColorField: { component: "FormField", widget: "WidgetTextInput", initialValue: "" },
+            });
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["color"];
+            modelConfig.config.filterableDetails = { color: { typeFilter: "ColorField", label: "Color" } };
+            route.query = { color: "teal" };
+            try {
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["color"]);
+                expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "color", value: "teal" });
+                expect(warn).not.toHaveBeenCalled();
+                wrapper.unmount();
+            } finally {
+                warn.mockRestore();
+                delete filterFieldMapping.ColorField;
+                delete FilterFieldMappings.ColorField;
+            }
+        });
+
+        scopedIt("carries a hidden filter with an unmapped type to the request without offering it", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category", "created"]);
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            // Hidden filters have no input to render, so their support is never in question.
+            expect(warn).not.toHaveBeenCalled();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+            warn.mockRestore();
             wrapper.unmount();
         });
 

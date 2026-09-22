@@ -114,6 +114,7 @@
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
+import { getMissingFilterInputSupport } from "@vueda/use/useFilter.js";
 import { buildFilterFromQuery, filtersToParams, getFilterParams } from "@vueda/use/useFilterForm.js";
 import { useFilterables } from "@vueda/use/useFilterables.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
@@ -241,7 +242,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListFilterGroup
  * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
- * @property {string[]} validFilterables - `filterables` narrowed to fields with a usable, non-hidden filter type; the field list a filter UI should render as addable/editable. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters`, but its URL value still reaches `list.listState.params` -- see `list.listState`.
+ * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can render an editable input for: value handling plus a field component and widget (or, for a range, both boundary components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that. This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and reported once per list visit through a console warning naming the app, model, and filter; it is not restored from the URL. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
  * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
  */
 
@@ -443,18 +444,63 @@ export function useViewList(options) {
         }),
         filterablesState,
     );
-    // Filterables that resolved to a usable filter type; everything else is skipped. Server-hidden
-    // filters (e.g. the auto-injected `id` deep-link filter, an `in`-lookup whose widget is a
-    // HiddenInput) are excluded: they are programmatic, not user-entered, and have no mapped input
-    // widget, so they must not be restored from the URL as an editable filter. This is passed down
-    // to FilterGroup via `filter.validFilterables`, so it isn't recomputed there.
-    const validFilterables = computed(() => {
+    // The filters the reader can add and edit: visible filters the client can render an input
+    // for. Server-hidden filters (e.g. the auto-injected `id` deep-link filter, an `in`-lookup
+    // whose widget is a HiddenInput) are programmatic, not user-entered, so they stay out of the
+    // menu and are never restored from the URL as an editable filter; their URL value travels
+    // through `hiddenFilterParams` instead. A visible filter whose type lacks value handling or a
+    // component (checked against the view config's per-field overrides, so an override can supply
+    // what the default mapping lacks) is left out too: offering it would open a form that cannot
+    // mount. The developer learns about that through the warning below rather than the reader
+    // through a broken input. Passed down to FilterGroup via `filter.validFilterables`, so it
+    // isn't recomputed there.
+    const visibleFilterSupport = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
-        return (filterablesState.filterables || []).filter((fieldName) => {
+        const overrides = {
+            fieldComponents: modelConfig.config?.fieldComponents,
+            widgetComponents: modelConfig.config?.widgetComponents,
+        };
+        const supported = [];
+        const unsupported = [];
+        for (const fieldName of filterablesState.filterables || []) {
             const detail = filterableDetails[fieldName];
-            return detail && detail.typeFilter && !detail.hidden;
-        });
+            if (!detail || !detail.typeFilter || detail.hidden) {
+                continue;
+            }
+            const missing = getMissingFilterInputSupport(fieldName, detail, overrides);
+            if (missing.length) {
+                unsupported.push({ fieldName, missing });
+            } else {
+                supported.push(fieldName);
+            }
+        }
+        return { supported, unsupported };
     });
+    const validFilterables = computed(() => visibleFilterSupport.value.supported);
+    // One warning per unsupported filter per list visit, keyed by app, model, and filter so the
+    // record for one model never silences the same filter name on the next. Watching the target
+    // too reruns the check under the new model's name whichever order the metadata and the target
+    // change arrive in. `resetTarget` clears the record, so returning to a model is a new visit.
+    const warnedUnsupportedFilters = new Set();
+    watch(
+        [() => visibleFilterSupport.value.unsupported, appRef, modelRef],
+        ([unsupported, app, model]) => {
+            for (const { fieldName, missing } of unsupported) {
+                const key = `${app}.${model}.${fieldName}`;
+                if (warnedUnsupportedFilters.has(key)) {
+                    continue;
+                }
+                warnedUnsupportedFilters.add(key);
+                console.warn(
+                    `Filter "${fieldName}" on ${app}.${model} is not offered in the filter menu and is not ` +
+                        `restored from the URL: the client lacks ${missing.join(", ")}. Register the filter ` +
+                        `type with mergeFilterFieldMapping, or declare the filter hidden on the server so its ` +
+                        `URL value reaches the request without an input.`,
+                );
+            }
+        },
+        { immediate: true },
+    );
     // Server-hidden filterables (e.g. the auto-injected `id` deep-link filter) have no
     // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
     // Read with the same param-key resolution the editable filter form uses, so a hidden filter
@@ -1059,6 +1105,7 @@ export function useViewList(options) {
         isInitialized.sort = false;
         isInitialized.columns = false;
         isInitialized.filters = false;
+        warnedUnsupportedFilters.clear();
         selectedObjects.value = [];
         columns.value = [];
         addedFilters.value = [];

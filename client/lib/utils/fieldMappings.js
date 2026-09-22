@@ -4,6 +4,8 @@
  */
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import merge from "lodash-es/merge.js";
+import omit from "lodash-es/omit.js";
+import pick from "lodash-es/pick.js";
 
 /**
  * Describes how a DRF serializer field type maps to a Vue field component and widget.
@@ -717,19 +719,148 @@ export function mergeDefaultFieldMappings(customMappings) {
 }
 
 /**
- * Merge custom field mappings used when building filter forms.
+ * How a filter type's value behaves in the filter form and the URL.
  *
- * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
+ * @typedef {object} FilterValueMapping
+ * @property {any} [initialValue] - The empty value the filter form starts from.
+ * @property {boolean} [array] - Whether the filter carries a list of values.
+ * @property {boolean} [range] - Whether the filter is a range rendered as two boundary inputs.
+ */
+
+/**
+ * Per-filter-type value configuration: the empty/initial value a filter field
+ * starts from, and whether it is a range (suffix pair) or an array filter. The
+ * live filter form (`useFilterField`) and URL→filter restoration
+ * (`buildFilterFromQuery`) both read it, so query values coerce the same way in
+ * each. {@link filterFieldMapping} holds the components for the same types. A
+ * custom filter type registers its entry here through
+ * {@link mergeFilterFieldMapping}, alongside its components.
+ *
+ * @type {{[typeFilter: string]: FilterValueMapping}}
+ */
+export const FilterFieldMappings = {
+    DateRangeField: {
+        range: true,
+        initialValue: {
+            start: null, // Default to start and end, being overridden by the suffixes
+            end: null,
+        },
+    },
+    CharField: {
+        initialValue: "",
+    },
+    DateField: {
+        initialValue: null,
+    },
+    DateTimeField: {
+        initialValue: null,
+    },
+    IsoDateTimeField: {
+        initialValue: null,
+    },
+    DecimalField: {
+        initialValue: null,
+    },
+    DecimalInField: {
+        initialValue: [],
+        array: true,
+    },
+    DurationSecondsField: {
+        initialValue: null,
+    },
+    DurationField: {
+        initialValue: null,
+    },
+    FloatField: {
+        initialValue: null,
+    },
+    ChoiceField: {
+        initialValue: null,
+    },
+    ModelMultipleChoiceInField: {
+        initialValue: [],
+        array: true,
+    },
+    ModelChoiceInField: {
+        initialValue: [],
+        array: true,
+    },
+    ModelChoiceField: {
+        initialValue: null,
+    },
+    BooleanField: {
+        initialValue: null,
+    },
+    DateTimeRangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    RangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    ModelMultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    MultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    TimeField: {
+        initialValue: null,
+    },
+    TypedChoiceField: {
+        initialValue: null,
+    },
+    NullBooleanField: {
+        initialValue: null,
+    },
+};
+
+/**
+ * A filter type's registration: the components that render its input, plus the
+ * value handling the filter form and URL restoration need for it.
+ *
+ * @typedef {FieldMappingEntry & FilterValueMapping} FilterFieldMappingInput
+ */
+
+const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range"];
+
+/**
+ * Register custom filter types, or adjust existing ones, for filter forms. Each
+ * entry's components merge into {@link filterFieldMapping}; its `initialValue`,
+ * `array`, and `range` keys merge into the value table
+ * ({@link FilterFieldMappings}). A filter type needs both to be
+ * offered in a list's filter menu: the value table tells the form what an empty
+ * or URL-restored value looks like, and the component table tells it what to
+ * render.
+ *
+ * @param {{ [typeFilter: string]: FilterFieldMappingInput }} customMappings - Registrations keyed by filter type.
  * @returns {typeof filterFieldMapping} The updated filter field mappings.
  * @example
  * ```js
  * mergeFilterFieldMapping({
- *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget },
+ *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget, initialValue: null },
  * });
  * ```
  */
 export function mergeFilterFieldMapping(customMappings) {
-    return merge(filterFieldMapping, customMappings);
+    const componentMappings = {};
+    for (const [typeFilter, entry] of Object.entries(customMappings || {})) {
+        const valueMapping = pick(entry, FILTER_VALUE_MAPPING_KEYS);
+        if (Object.keys(valueMapping).length) {
+            FilterFieldMappings[typeFilter] = { ...FilterFieldMappings[typeFilter], ...valueMapping };
+        }
+        componentMappings[typeFilter] = omit(entry, FILTER_VALUE_MAPPING_KEYS);
+    }
+    return merge(filterFieldMapping, componentMappings);
 }
 
 /**
