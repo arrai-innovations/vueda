@@ -410,6 +410,53 @@ describe("lib/views/ActionForm.vue", () => {
         });
     });
 
+    describe("Validation summary", () => {
+        scopedIt("names a labelled field by its label, not its key", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { email: { invalid: "Enter a valid email address." } },
+                        labels: { email: "Email" },
+                    },
+                },
+            });
+            const field = wrapper.get('[data-qa="action-form-validation-field"]');
+            expect(field.text()).toBe("Email");
+        });
+
+        scopedIt("falls back to the field key when no field registered a label for it", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { purchase_order: { invalid: "This field is required." } },
+                        labels: {},
+                    },
+                },
+            });
+            const field = wrapper.get('[data-qa="action-form-validation-field"]');
+            expect(field.text()).toBe("purchase_order");
+        });
+
+        scopedIt("keeps an error keyed to a field the form does not render, identified by its key", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: {
+                            email: { invalid: "Enter a valid email address." },
+                            non_rendered_field: { server: "Unexpected server error." },
+                        },
+                        labels: { email: "Email" },
+                    },
+                },
+            });
+            const fields = wrapper.findAll('[data-qa="action-form-validation-field"]').map((f) => f.text());
+            expect(fields).toEqual(["Email", "non_rendered_field"]);
+        });
+    });
+
     describe("Warning confirmation", () => {
         scopedIt("mounts FormConfirmDialog wired to the confirmation controller", () => {
             const { wrapper } = mountActionForm();

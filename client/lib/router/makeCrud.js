@@ -7,11 +7,68 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { watch } from "vue";
 
 /**
+ * Run the configured checks against a target route, in order, and return the first result that is
+ * not an approval.
+ *
+ * @param {import('vue-router').RouteLocationNormalized} to - The target route.
+ * @param {((to: import('vue-router').RouteLocationNormalized) => any)[]} beforeEnter - The checks to run, in order.
+ * @returns {Promise<true|import('vue-router').RouteLocationNormalizedLoaded|false>} `true` when every
+ *  check approves the route, a redirect location from the first check that denies it, or `false` when
+ *  a check could not answer for the current user.
+ */
+async function runAccessChecks(to, beforeEnter) {
+    for (const check of beforeEnter) {
+        const result = await check(to);
+        if (result === true || result === undefined) {
+            continue;
+        }
+        return result;
+    }
+    return true;
+}
+
+/**
+ * Recheck access on a navigation that stays inside one of the generated route records.
+ *
+ * Vue Router runs `beforeEnter` only when a navigation enters a route record, so it already reruns
+ * the checks whenever a navigation crosses from one generated record to the other, for example from
+ * the list record to the detail record. This registers the same checks as a `beforeEach` guard as
+ * well, so they also rerun for the one case `beforeEnter` misses: a navigation that changes the app,
+ * model, or action but stays inside the *same* record, for example from an allowed model to a denied
+ * one without leaving the list record. A navigation that stays in the same record and leaves the app,
+ * model, and action unchanged, for example a query-only change or a primary key change on an
+ * otherwise identical action, skips the checks, since nothing about the checked metadata depends on
+ * either.
+ *
+ * @param {import('vue-router').RouteLocationNormalized} to - The target route.
+ * @param {import('vue-router').RouteLocationNormalized} from - The route being left.
+ * @param {((to: import('vue-router').RouteLocationNormalized) => any)[]} beforeEnter - The checks to run, in order.
+ * @param {Set<string>} generatedRouteNames - The names of the two generated route records.
+ * @returns {true|Promise<true|import('vue-router').RouteLocationNormalizedLoaded|false>} `true` when
+ *  the target is not a generated route, or the checks do not need to rerun; otherwise the checks'
+ *  result.
+ */
+function recheckOnNavigation(to, from, beforeEnter, generatedRouteNames) {
+    if (!generatedRouteNames.has(to.name)) {
+        return true;
+    }
+    if (
+        to.name === from.name &&
+        to.params.app === from.params.app &&
+        to.params.model === from.params.model &&
+        to.params.action === from.params.action
+    ) {
+        return true;
+    }
+    return runAccessChecks(to, beforeEnter);
+}
+
+/**
  * Run the generated routes' guard chain against the route the application is already on.
  *
- * Vue Router runs `beforeEnter` when a navigation enters a route record, and a change of
- * authenticated user is not a navigation. Nothing else rechecks the view on screen, so this reruns
- * the same checks in the same order and acts on the first one that denies the route.
+ * A `beforeEach` guard reruns the same checks on navigation, and a change of authenticated user is
+ * not a navigation. Nothing else rechecks the view on screen for that case, so this reruns the same
+ * checks in the same order and acts on the first one that denies the route.
  *
  * @param {import('vue-router').Router} router
  * @param {((to: import('vue-router').RouteLocationNormalized) => any)[]} beforeEnter
@@ -57,10 +114,12 @@ async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, use
  * Generate CRUD routes for a given app and model.
  *
  * Call this once during application setup and register the two records it returns. Besides building
- * them, it starts watching for a change of authenticated user. When one happens while the
- * application sits on one of these routes, it reruns the same guard chain against that route and
- * redirects if the new user may not use it. The guard chain otherwise runs only on route entry, so
- * without this the previous user's view stays on screen at a URL the new user cannot use.
+ * them, it registers the configured checks as a `beforeEach` guard, so a navigation that changes the
+ * app, model, or action reruns them even when it stays inside one of the two records, and it starts
+ * watching for a change of authenticated user. When one happens while the application sits on one of
+ * these routes, it reruns the same checks against that route and redirects if the new user may not
+ * use it. Neither of those reruns the checks for a navigation that only changes the query string or
+ * the primary key, since nothing about the checked metadata depends on either.
  *
  * @param {object} params - The parameters.
  * @param {object} params.component - The component to use for the routes.
@@ -147,7 +206,6 @@ export function makeCRUDRoutes({
         meta: {
             detail: true,
         },
-        beforeEnter,
     };
 
     const routeNonDetail = {
@@ -160,7 +218,6 @@ export function makeCRUDRoutes({
             action: route.params.action,
             pk: route.query?.pk?.split(","),
         }),
-        beforeEnter,
     };
 
     if (pathPrefix) {
@@ -169,6 +226,8 @@ export function makeCRUDRoutes({
     }
 
     const generatedRouteNames = new Set([routeDetail.name, routeNonDetail.name]);
+    router.beforeEach((to, from) => recheckOnNavigation(to, from, beforeEnter, generatedRouteNames));
+
     const userStore = storeUser(pinia);
     // The application registers these records once, so this watch is the only place that can notice a
     // user change on its behalf. It lives as long as the store it watches, which is the lifetime of
