@@ -15,7 +15,7 @@ hero:
     note: To try the demo, choose an account on its sign-in page.
     actions:
         - theme: brand
-          text: Start building →
+          text: Start building
           link: /tutorials/start-building.html
         - theme: alt
           text: Try the live demo

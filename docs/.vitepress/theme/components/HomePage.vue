@@ -30,7 +30,7 @@ import { withBase } from "vitepress";
                     <h3><span class="step-number" aria-hidden="true">3.</span>Get application screens</h3>
                     <p>The Vue client uses that metadata to generate routes, forms, lists, and detail views.</p>
                     <div class="step-visual step-image">
-                        <!-- Temporary screenshot. Replace once the generated form's action labels and workflow fields are cleaned up. -->
+                        <!-- Temporary screenshot with the action bar cut out. Replace once the generated form's action labels and workflow fields are cleaned up. -->
                         <img
                             v-for="theme in ['light', 'dark']"
                             :key="theme"
@@ -38,7 +38,7 @@ import { withBase } from "vitepress";
                             :src="withBase(`/assets/homepage-generated-form-${theme}.png`)"
                             alt="Generated purchase order form with reference, supplier, warehouse, and date fields above editable order lines."
                             width="876"
-                            height="568"
+                            height="515"
                             loading="lazy"
                         />
                     </div>
@@ -94,7 +94,7 @@ import { withBase } from "vitepress";
                             :src="withBase(`/assets/homepage-custom-dashboard-${theme}.png`)"
                             alt="Custom Widget Warehouse dashboard with a welcome message and summary cards for stock below reorder level, overdue arrivals, suppliers under review, and open order value."
                             width="1056"
-                            height="400"
+                            height="374"
                             loading="lazy"
                         />
                     </div>
@@ -213,11 +213,11 @@ h2 {
 .steps,
 .feature-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 2rem;
     margin-top: 2.25rem;
 }
 .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
     padding: 0;
     list-style: none;
 }
@@ -271,7 +271,7 @@ h2 {
     line-height: 1.55;
 }
 .step-image {
-    aspect-ratio: 876 / 568;
+    aspect-ratio: 876 / 515;
 }
 .step-image img,
 .feature-image img {
@@ -305,6 +305,7 @@ h3 {
     font-size: 0.875rem;
 }
 .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
 }
 .feature-grid article {
@@ -318,9 +319,6 @@ h3 {
 }
 .feature-grid p {
     flex-grow: 1;
-}
-.feature-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .feature-grid .feature-wide {
     display: grid;
@@ -338,7 +336,7 @@ h3 {
     overflow: hidden;
     border: 0.0625rem solid var(--vp-c-divider);
     border-radius: 0.375rem;
-    aspect-ratio: 1056 / 400;
+    aspect-ratio: 1056 / 374;
 }
 .get-started {
     display: flex;
@@ -439,5 +437,13 @@ a:focus-visible {
     .feature-grid article {
         padding: 1.5rem;
     }
+}
+</style>
+
+<style>
+/* The hero renders outside this component. The empty alt text keeps screen readers from announcing the arrow. */
+.arrai-wide-home .VPHero .VPButton.brand::after {
+    content: "→" / "";
+    margin-left: 1rem;
 }
 </style>
