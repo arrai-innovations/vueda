@@ -133,6 +133,12 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(updateInitialValue).toHaveBeenCalled();
     });
 
+    scopedIt("does not request a default destroy action for the singular row", () => {
+        mount(FieldSetSingularStackedInline);
+        expect(mockedUseFieldSetInline).toHaveBeenCalled();
+        expect(mockedUseFieldSetInline.mock.lastCall[0].addDestroyAction).toBeFalsy();
+    });
+
     scopedIt("clearField clears value and blurs", () => {
         const wrapper = mount(FieldSetSingularStackedInline);
         fieldState.value = { id: 1 };

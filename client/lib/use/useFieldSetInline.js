@@ -268,6 +268,7 @@ const refFn = (state, el) => {
  * @property {import('vue').EmitFn} emit - The emit function from the setup context.
  * @property {string[]} slotNames - The slot names to be resolved per field(x), fieldset-x or x.
  * @property {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context object.
+ * @property {boolean} [addDestroyAction=false] - Add a default destroy action to writable inlines that lack one.
  */
 
 /**
@@ -293,7 +294,7 @@ const refFn = (state, el) => {
  * @returns {FieldSetInlineInstance} An object containing reactive state, computed properties, and methods
  * to manage the tabular inline fieldset.
  */
-export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
+export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, addDestroyAction = false }) {
     const breakpoints = useBreakpoints(breakpointsVueda);
     const slots = useSlots();
     const resolvedSlotNames = slotNames.reduce((acc, name) => {
@@ -349,7 +350,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                     return actions.filter((action) => action.fieldName !== "destroy");
                 }
                 // Nested updates delete omitted children through the parent, without a child destroy route.
-                if (!actions.some((action) => action.fieldName === "destroy")) {
+                if (addDestroyAction && !actions.some((action) => action.fieldName === "destroy")) {
                     actions.push({
                         fieldName: "destroy",
                         name: `${fieldSetContext.state.formModelName}.destroy`,
