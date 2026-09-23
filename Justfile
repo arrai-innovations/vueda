@@ -9,6 +9,10 @@ set ignore-comments := true
 set dotenv-load := true
 set dotenv-filename := ".env.local"
 
+# List available recipes.
+default:
+  @just --list
+
 bootstrap: # for development environment setup
   # not concurrently for clarity in output
   cd {{justfile_directory()}} && pnpm install
