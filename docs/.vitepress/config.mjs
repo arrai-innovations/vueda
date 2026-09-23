@@ -1,4 +1,5 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
+import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
 import {
     formatApiMemberTitle,
     memberAnchorFromId,
@@ -863,6 +864,7 @@ export default defineConfig({
                 resolve: (id) => apiIndex.get(id),
                 strict: process.env.NODE_ENV === "production",
             });
+            md.use(changelogDraftPlugin, { render: (pkg) => renderUnreleased(pkg, repoRoot) });
             md.use(glossaryTermPlugin, {
                 resolve: (term) => glossaryIndex.get(normalizeTerm(stripInlineMarkdown(term))),
                 strict: process.env.NODE_ENV === "production",

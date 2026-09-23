@@ -45,7 +45,9 @@ build, ci, chore, content, docs, feat, fix, perf, refactor, remove, revert, styl
 ```
 
 The scope should identify the affected filename (without its extension),
-module, package, or concern. A scope is optional.
+module, package, or concern. A scope is optional. It names the code that
+changed, not the topic: the pull request's `topic:*` label and its changelog
+fragment carry the topic.
 
 The text after the prefix must describe the concrete outcome, not merely
 classify the work. The title should account for the whole branch.
@@ -74,9 +76,10 @@ meaning. Labels describe everything else:
 | Family                  | Labels                                                                                      |
 | ----------------------- | ------------------------------------------------------------------------------------------- |
 | Area                    | `area:client`, `area:server`, `area:docs`, `area:docs-tooling`, `area:templates`, `area:ci` |
-| Subsystem               | `feature:history`, `feature:workflow`                                                       |
+| Topic                   | `topic:*`, listed under [Topic labels](#topic-labels)                                       |
 | Work character          | `documentation`, `maintenance`, `investigation`, `release`                                  |
 | Impact                  | `impact:breaking`                                                                           |
+| Changelog               | `changelog:none`                                                                            |
 | Workflow state          | `status:needs-info`, `status:needs-decision`                                                |
 | Contributor suitability | `good first issue`, `help wanted`                                                           |
 | Resolution              | `resolution:duplicate`, `resolution:invalid`, `resolution:wontfix`, `resolution:superseded` |
@@ -87,19 +90,59 @@ implementation. Name that choice in a `## Decision required` section. A known
 dependency or follow-up does not need the label when work can proceed without
 the decision.
 
-### Subsystem labels
+### Topic labels
 
-A `feature:*` label names a subsystem that spans server, client, and
-documentation, which no single `area:*` label groups. Create a new one only
-when a concern meets all three conditions:
+A `topic:*` label names the part of VUEDA that an integrator would look in to
+notice a change. The same topics group each package's changelog, and a
+changelog fragment's directory repeats its label: `topic:lists` matches
+`changelog.d/client/lists/` and `changelog.d/server/lists/`.
 
-- It reaches more than one package, so `area:*` labels alone scatter it.
-- It names a subsystem that outlives the issue at hand.
+| Label                  | Covers                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `topic:lists`          | List views, columns, filtering, sorting, search, pagination, bulk-action controls, and server query parameters   |
+| `topic:forms`          | Create, update, and read forms, fieldsets and inlines, action forms, validation, warnings, and error responses   |
+| `topic:field-types`    | How a field type renders anywhere: field and column mappings, widgets, read-only displays, and serializer fields |
+| `topic:model-metadata` | Model info, model config, OpenAPI output, field lists, CRUD adapters, and metadata caches                        |
+| `topic:permissions`    | Who may see or do what: route access, action availability, `available_actions`, and object permissions           |
+| `topic:routing`        | CRUD routes and guards, view routing, page titles, sticky page chrome, and navigation                            |
+| `topic:auth`           | Sign-in and authentication forms, users, password reset, and sessions                                            |
+| `topic:workflow`       | Workflow states, transitions, their permissions, views, and migrations                                           |
+| `topic:history`        | Object history recording, the history API, and history views                                                     |
+| `topic:components`     | Generic components and the theme: controls, display, feedback, shell, tokens, theme keys, and icons              |
+| `topic:models`         | Model base classes, `formatted_name`, and the `class Vueda` feature policy                                       |
+| `topic:vdq`            | The VDQ queue app                                                                                                |
+| `topic:setup`          | Installation, dependencies, settings, supported versions, build integration, import paths, and packaging         |
+
+Give a change one topic. When more than one seems to fit, take the first rule
+that applies:
+
+1. A change that concerns only workflow or only history takes that topic,
+   including its permissions and confirmations.
+2. A change to who may see or do something takes `topic:permissions`.
+3. Otherwise, take the topic where an integrator notices the change. Filter
+   types leaving the filter menu belong to `topic:lists`, even though the
+   change edits field mappings.
+4. A change that several surfaces notice equally takes the lowest layer they
+   share. A change to field naming that every view sees belongs to
+   `topic:model-metadata`.
+5. A system check takes the topic of the feature it checks.
+
+An issue or pull request that spans two independent topics usually holds two
+changes. Split it, or label it with both and give each changelog fragment its
+own topic.
+
+Add a topic only when a concern meets all of these conditions:
+
+- The rules above place its changes in no existing topic, or scatter them
+  across several.
+- It names a part of VUEDA that outlives the issue at hand.
 - Enough work is coming to make filtering worthwhile. One issue does not need
   its own label.
 
-Otherwise, prefer the existing `area:*` labels. Give a new label a description
-when you create it, so its meaning does not depend on whoever added it.
+A new topic needs a label and a matching section in each package's
+`changelog.d/<package>.toml` in the same pull request. Give a new label a
+description when you create it, so its meaning does not depend on whoever added
+it.
 
 ### Pull request labels
 
@@ -110,13 +153,86 @@ request rather than in a later edit.
 - Carry every `area:*` label that matches a package the branch changes. A
   changelog entry alone does not earn `area:docs`; substantive pages under
   `docs/` do.
-- Keep the issue's work-character, impact, and subsystem labels when they still
+- Keep the issue's work-character, impact, and topic labels when they still
   describe the branch.
 - Drop `status:needs-decision`. A pull request that settles the decision no
   longer needs it, and the issue keeps its own copy until it closes.
 - Add a label the issue lacks when the branch grew into another package.
-- When a branch belongs to a subsystem with no `feature:*` label yet, weigh it
-  against the bar above. Create the label before opening the pull request.
+- When a branch fits no existing topic, weigh it against the bar above. Create
+  the label and changelog section before opening the pull request.
+- Add `changelog:none` when the branch needs no changelog entry. See
+  [Changelog entries](#changelog-entries).
+
+## Changelog entries
+
+Each package has an integrator-facing changelog:
+`docs/reference/changelog/client.md` and `docs/reference/changelog/server.md`.
+A pull request does not edit those pages. It adds a fragment file for each
+entry, and a release build writes the fragments into the page. Two pull
+requests then never edit the same changelog lines.
+
+[`docs/reference/changelog/README.md`](docs/reference/changelog/README.md)
+decides whether a change needs an entry and what the entry says. Most changes
+need none.
+
+### Add a fragment
+
+A fragment lives at `changelog.d/<package>/<topic>/<number>.<type>.md`:
+
+- `<package>` is `client` or `server`. A change that both packages' integrators
+  notice gets a fragment in each.
+- `<topic>` is the directory that matches the pull request's `topic:*` label.
+- `<number>` is the pull request number. A second fragment of the same type and
+  topic from one pull request adds a counter: `328.fix.1.md`. A change committed
+  without a pull request uses a name that starts with `+`, such as
+  `+cache-url.fix.md`, and renders without a link.
+- `<type>` is `breaking`, `feature`, or `fix`.
+
+`just changelog-new client` prompts for the number, type, and topic. The same
+recipe accepts them directly:
+
+```bash
+just changelog-new client 349.fix --section "Forms and validation"
+```
+
+The fragment holds one complete list entry in the format the changelog README
+describes. The release build adds the pull request link to its first line.
+
+A pre-commit hook drafts both changelogs whenever a commit touches
+`changelog.d/`, and rejects a fragment filename that does not match a type or
+topic.
+
+Preview the next release section with `just changelog-draft client
+3.0.0-alpha.6`. The documentation site also shows unreleased fragments at the
+top of each changelog page.
+
+To change an unreleased entry, edit its fragment. When a later pull request
+alters or reverts behavior that no release has shipped, edit the existing
+fragment instead of adding another.
+
+### When no entry is needed
+
+Add the `changelog:none` label to the pull request. CI fails a pull request
+that adds no fragment and lacks the label. Adding a label does not start a new
+CircleCI pipeline, so rerun the failed job after adding it. Commits to `main`
+and tag builds skip the check.
+
+### Release a package
+
+Before tagging a release, reread its fragments grouped by topic:
+
+```bash
+just changelog-draft-by-area client 3.0.0-alpha.6
+```
+
+Edit fragments that overlap or no longer describe the release. Then write the
+release section, dated today, and stage the removal of its fragments:
+
+```bash
+just changelog-build client 3.0.0-alpha.6
+```
+
+Commit the result with the version bump.
 
 ## Commit messages
 

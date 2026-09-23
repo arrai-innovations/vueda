@@ -72,49 +72,14 @@ The scope should reference the affected filename (sans extension), module, or co
 
 ## Changelog
 
-Public client changelog entries belong in `docs/reference/changelog/client.md`.
-Before adding or editing entries, consult
-`../docs/reference/changelog/README.md` for the shared authoring convention.
+Public client changelog entries are fragment files under
+`../changelog.d/client/`, not edits to `../docs/reference/changelog/client.md`. A
+release build writes them into that page. `../CONTRIBUTING.md` ("Changelog entries") covers where a fragment
+goes and how to name it.
 
-Add entries for changes that affect integrators: public components, composables,
-routes, stores, theme behavior, build integration, dependency expectations,
-documented behavior, and migration notes.
-
-For each release tag, use the following format:
-
-```md
-## vX.Y.Z (2025-MM-DD)
-
-### Breaking Changes
-
-### Features
-
-### Fixes
-
-- **File Name or Component Name**:
-    - individual notes
-    - _actions that consuming developers of the library should take_
-```
-
-When making changes, suggest changelog entries if they impact consuming
-applications or public components.
-
-**If there is no current unreleased section**, start a new one using the next version number and set the date to `unreleased`. For example:
-
-```markdown
-## v2.0.0-beta.1 (unreleased)
-
-### Breaking Changes
-
-- **ActionForm**:
-    - The `handleActionCompletion` prop has been removed. Redirection after action completion now uses the model config's `defaultView`, which prefers `update`, `read`, then `list` in that order.
-      _If your use case required a custom post-action redirect, update the model config accordingly._
-
-### Features
-
-### Fixes
-
-```
+`../docs/reference/changelog/README.md` decides whether a change needs an entry
+and what the entry says. Most changes need none. When a change meets its
+inclusion rule, suggest a fragment for it.
 
 ---
 
