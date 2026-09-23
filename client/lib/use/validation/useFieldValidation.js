@@ -29,6 +29,8 @@ const validators = {
  * @returns {void}
  */
 export function useFieldValidation(type, fieldContext, options) {
-    if (!type) return;
+    if (!type) {
+        return;
+    }
     validators[type]?.(fieldContext, options);
 }

@@ -64,7 +64,9 @@ const objectUpdated = (selected) => {
 };
 
 const objectPlaceholder = computed(() => {
-    if (typeValue.value == null) return "";
+    if (typeValue.value == null) {
+        return "";
+    }
     const opt = dropdownOptions.value.find((o) => o.value === typeValue.value);
     return opt ? `Search for a ${opt.label}...` : "";
 });

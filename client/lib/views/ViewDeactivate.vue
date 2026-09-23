@@ -75,7 +75,9 @@ const isSubmitting = ref(false);
 const submitError = ref(null);
 
 async function handleDeactivate() {
-    if (!confirmMatch.value || isSubmitting.value) return;
+    if (!confirmMatch.value || isSubmitting.value) {
+        return;
+    }
     isSubmitting.value = true;
     submitError.value = null;
     try {

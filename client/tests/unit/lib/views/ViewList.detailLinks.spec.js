@@ -222,7 +222,9 @@ describe("lib/views/ViewList.vue", () => {
                 }),
             );
             const columnComponents = { reference: Control };
-            if (source === "config") modelConfig.config.columnComponents = columnComponents;
+            if (source === "config") {
+                modelConfig.config.columnComponents = columnComponents;
+            }
             const { wrapper } = await mountList({ props: source === "prop" ? { columnComponents } : {} });
             expect(wrapper.findAll("a")).toHaveLength(0);
             await wrapper.get('[data-qa="inspect"]').trigger("click");

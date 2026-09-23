@@ -51,8 +51,12 @@ const props = defineProps({
 const theme = useTheme("LoadingHeartbeatStrip", props);
 
 const formattedElapsed = computed(() => {
-    if (props.elapsedMs === undefined) return undefined;
-    if (props.elapsedMs < 1000) return `${props.elapsedMs}ms`;
+    if (props.elapsedMs === undefined) {
+        return undefined;
+    }
+    if (props.elapsedMs < 1000) {
+        return `${props.elapsedMs}ms`;
+    }
     return `${(props.elapsedMs / 1000).toFixed(1)}s`;
 });
 

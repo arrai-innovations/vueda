@@ -30,10 +30,14 @@ vi.mock("@vueuse/core", async () => {
 });
 
 const runMountedHooks = () => {
-    for (const fn of mountedFns) fn();
+    for (const fn of mountedFns) {
+        fn();
+    }
 };
 const runDisposeHooks = () => {
-    for (const fn of disposeFns) fn();
+    for (const fn of disposeFns) {
+        fn();
+    }
 };
 
 const importModule = () => import("@vueda/use/useMaska.js");

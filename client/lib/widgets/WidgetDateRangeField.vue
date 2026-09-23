@@ -54,7 +54,9 @@ const popoverOpen = ref(false);
  * @returns {import('@internationalized/date').CalendarDate|import('@internationalized/date').CalendarDateTime|undefined}
  */
 function parseISOValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return raw.includes("T") ? parseDateTime(raw) : parseDate(raw);
     } catch {
@@ -65,10 +67,14 @@ function parseISOValue(raw) {
 const rangeValue = computed({
     get: () => {
         const raw = widgetContext.state.combinedValue;
-        if (!raw || typeof raw !== "object") return undefined;
+        if (!raw || typeof raw !== "object") {
+            return undefined;
+        }
         const start = parseISOValue(raw.lower);
         const end = parseISOValue(raw.upper);
-        if (!start && !end) return undefined;
+        if (!start && !end) {
+            return undefined;
+        }
         return { start, end };
     },
     set: (v) => {

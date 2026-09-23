@@ -10,7 +10,9 @@ describe("lib/**/*.vue", () => {
             const findings = [];
 
             for (const [path, source] of Object.entries(componentModules)) {
-                if (!source.includes('from "@vueda/use/useIcons.js"')) continue;
+                if (!source.includes('from "@vueda/use/useIcons.js"')) {
+                    continue;
+                }
 
                 if (!source.includes("ICON_OVERRIDE_PROPS")) {
                     findings.push(`${path}: missing ICON_OVERRIDE_PROPS import`);

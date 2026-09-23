@@ -308,9 +308,13 @@ export class TypeDocNormalizer extends Normalizer {
         }
 
         const resolveTypeRef = (type) => {
-            if (!type) return undefined;
+            if (!type) {
+                return undefined;
+            }
             const base = typeRef(type);
-            if (!base) return undefined;
+            if (!base) {
+                return undefined;
+            }
             if (type.type === "reference") {
                 const numericId = typeof type.target === "number" ? type.target : type.id;
                 if (numericId != null) {

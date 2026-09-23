@@ -40,7 +40,9 @@ const widgetContext = useWidget(props, emit);
  * @returns {import('@internationalized/date').Time|undefined}
  */
 function parseTimeValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return parseTime(raw);
     } catch {

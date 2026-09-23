@@ -132,7 +132,9 @@ const resolveSlotClassesSync = (componentName, slotKey, mergedOverride, context,
     nextVisited.add(ref);
 
     const defaultConfig = defaultTheme.value[componentName];
-    if (typeof defaultConfig === "function") return LOADER_PENDING;
+    if (typeof defaultConfig === "function") {
+        return LOADER_PENDING;
+    }
 
     const resolvedDefault = defaultConfig || {};
     const overrideConfig = mergedOverride?.[componentName] || {};
@@ -154,7 +156,9 @@ const resolveSlotClassesSync = (componentName, slotKey, mergedOverride, context,
             const refComp = composedRef.slice(0, dotIdx);
             const refSlot = composedRef.slice(dotIdx + 1);
             const composed = resolveSlotClassesSync(refComp, refSlot, mergedOverride, context, nextVisited);
-            if (composed === LOADER_PENDING) return LOADER_PENDING;
+            if (composed === LOADER_PENDING) {
+                return LOADER_PENDING;
+            }
             classes.push(...composed);
         }
     }
@@ -162,8 +166,12 @@ const resolveSlotClassesSync = (componentName, slotKey, mergedOverride, context,
     const defaultClass = isFunction(defaultSlot?.class) ? defaultSlot.class(context) : defaultSlot?.class;
     const overrideClass = isFunction(overrideSlot?.class) ? overrideSlot.class(context) : overrideSlot?.class;
 
-    if (defaultClass !== undefined && defaultClass !== null) classes.push(defaultClass);
-    if (overrideClass !== undefined && overrideClass !== null) classes.push(overrideClass);
+    if (defaultClass !== undefined && defaultClass !== null) {
+        classes.push(defaultClass);
+    }
+    if (overrideClass !== undefined && overrideClass !== null) {
+        classes.push(overrideClass);
+    }
 
     return classes;
 };
@@ -188,7 +196,9 @@ const resolveSlotClasses = async (componentName, slotKey, mergedOverride, contex
     if (typeof defaultConfig === "function") {
         await defaultConfig();
         defaultConfig = defaultTheme.value[componentName];
-        if (typeof defaultConfig === "function") defaultConfig = {};
+        if (typeof defaultConfig === "function") {
+            defaultConfig = {};
+        }
     }
     defaultConfig = defaultConfig || {};
 
@@ -218,8 +228,12 @@ const resolveSlotClasses = async (componentName, slotKey, mergedOverride, contex
     const defaultClass = isFunction(defaultSlot?.class) ? defaultSlot.class(context) : defaultSlot?.class;
     const overrideClass = isFunction(overrideSlot?.class) ? overrideSlot.class(context) : overrideSlot?.class;
 
-    if (defaultClass !== undefined && defaultClass !== null) classes.push(defaultClass);
-    if (overrideClass !== undefined && overrideClass !== null) classes.push(overrideClass);
+    if (defaultClass !== undefined && defaultClass !== null) {
+        classes.push(defaultClass);
+    }
+    if (overrideClass !== undefined && overrideClass !== null) {
+        classes.push(overrideClass);
+    }
 
     return classes;
 };
@@ -330,8 +344,12 @@ export function useTheme(componentName, props, context, keyFn) {
         let any = false;
         let everKnown = false;
         for (const r of loadingRefs) {
-            if (r.value === true) return true;
-            if (r.value !== undefined) everKnown = true;
+            if (r.value === true) {
+                return true;
+            }
+            if (r.value !== undefined) {
+                everKnown = true;
+            }
             any = true;
         }
         return any && everKnown ? false : undefined;
@@ -396,7 +414,9 @@ export function useTheme(componentName, props, context, keyFn) {
                     // second invocation through the async fallback's loader-
                     // awaiting path. The outer computed will re-run when
                     // `defaultTheme.value` changes (after probe's patchTheme).
-                    if (probeInFlight.value) return "";
+                    if (probeInFlight.value) {
+                        return "";
+                    }
                     if (!asyncRef) {
                         const slotEvaluating = ref(false);
                         loadingRefs.push(slotEvaluating);

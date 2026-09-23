@@ -17,7 +17,9 @@ function groupSlug(name) {
 }
 
 function formatThemeMapping(mapping) {
-    if (!mapping) return "";
+    if (!mapping) {
+        return "";
+    }
     const utility = mapping.utility || "";
     const property = mapping.property || "";
     return `${utility}: ${property}`;

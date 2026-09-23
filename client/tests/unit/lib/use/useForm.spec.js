@@ -776,7 +776,9 @@ describe("lib/use/useForm.js", () => {
 
                 scopedIt("ignores invalid indexes and non-array values", () => {
                     const { formContext: form } = getForm({ initialValues: { rows: [1, 2], text: "abc" } });
-                    for (const index of [-1, 2, 0.5, NaN]) form.removeArrayItem("rows", index);
+                    for (const index of [-1, 2, 0.5, NaN]) {
+                        form.removeArrayItem("rows", index);
+                    }
                     form.removeArrayItem("text", 0);
                     expect(form.state.values).toEqual({ rows: [1, 2], text: "abc" });
                 });

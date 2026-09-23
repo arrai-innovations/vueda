@@ -134,27 +134,41 @@ const deleteValue = (state, name) => {
 const removeArrayItem = (state, name, index) => {
     validateName(name);
     const values = get(state.values, name);
-    if (!Array.isArray(values) || !Number.isInteger(index) || index < 0 || index >= values.length) return;
+    if (!Array.isArray(values) || !Number.isInteger(index) || index < 0 || index >= values.length) {
+        return;
+    }
     const prefix = `${name}[`;
     /** @param {string} path @returns {string|null} */
     const shiftedPath = (path) => {
-        if (!path.startsWith(prefix)) return path;
+        if (!path.startsWith(prefix)) {
+            return path;
+        }
         const match = path.slice(prefix.length).match(/^(\d+)\](.*)$/);
-        if (!match || Number(match[1]) < index) return path;
-        if (Number(match[1]) === index) return null;
+        if (!match || Number(match[1]) < index) {
+            return path;
+        }
+        if (Number(match[1]) === index) {
+            return null;
+        }
         return `${prefix}${Number(match[1]) - 1}]${match[2]}`;
     };
     for (const collection of [state.errors, state.messages, state.touched, state.ignored]) {
         const entries = Object.entries(collection);
         for (const [path] of entries) {
-            if (shiftedPath(path) !== path) delete collection[path];
+            if (shiftedPath(path) !== path) {
+                delete collection[path];
+            }
         }
         for (const [path, value] of entries) {
             const nextPath = shiftedPath(path);
-            if (nextPath !== null && nextPath !== path) collection[nextPath] = value;
+            if (nextPath !== null && nextPath !== path) {
+                collection[nextPath] = value;
+            }
         }
     }
-    if (state.focused) state.focused = shiftedPath(state.focused);
+    if (state.focused) {
+        state.focused = shiftedPath(state.focused);
+    }
     state.anyError = Object.keys(state.errors).length > 0;
     state.anyMessage = Object.keys(state.messages).length > 0;
     state.anyTouched = Object.keys(state.touched).length > 0;

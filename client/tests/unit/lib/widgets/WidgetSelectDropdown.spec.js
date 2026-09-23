@@ -63,7 +63,9 @@ const ControlSelectItemStub = defineComponent({
     name: "ControlSelectItemStub",
     props: ["value"],
     setup(props, { slots, attrs }) {
-        if (props.value === "") throw new Error("SelectItem cannot have an empty-string value");
+        if (props.value === "") {
+            throw new Error("SelectItem cannot have an empty-string value");
+        }
         return () => h("div", { "data-stub": "select-item", "data-value": props.value, ...attrs }, slots.default?.());
     },
 });

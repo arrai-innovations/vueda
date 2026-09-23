@@ -155,11 +155,17 @@ export function renderOpenApiBundle(bundle) {
 
     const endpointsByGroup = new Map();
     for (const node of bundle.nodes) {
-        if (node.kind !== "endpoint") continue;
+        if (node.kind !== "endpoint") {
+            continue;
+        }
         const filePath = pathMap.get(node.id);
-        if (!filePath) continue;
+        if (!filePath) {
+            continue;
+        }
         const groupDir = path.posix.dirname(filePath);
-        if (!endpointsByGroup.has(groupDir)) endpointsByGroup.set(groupDir, []);
+        if (!endpointsByGroup.has(groupDir)) {
+            endpointsByGroup.set(groupDir, []);
+        }
         endpointsByGroup.get(groupDir).push(node);
     }
     for (const [groupDir, endpoints] of endpointsByGroup) {

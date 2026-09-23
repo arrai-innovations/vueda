@@ -59,7 +59,9 @@ const fieldProps = computed(() => {
         isRequiredViolation: (value) => value === null || value === undefined || value === "",
         modelValue: values[index],
         "onUpdate:modelValue": (value) => {
-            if (fieldContext.state.readOnly) return;
+            if (fieldContext.state.readOnly) {
+                return;
+            }
             const next = [...fieldContext.state.value];
             next[index] = value;
             fieldContext.state.value = next;
@@ -78,14 +80,18 @@ watchIfDev(
 );
 
 const onAdd = () => {
-    if (fieldContext.state.readOnly) return;
+    if (fieldContext.state.readOnly) {
+        return;
+    }
     fieldContext.blur();
     fieldContext.state.value = [...(fieldContext.state.value ?? []), undefined];
 };
 
 const onDestroy = (index) => {
     const values = fieldContext.state.value;
-    if (fieldContext.state.readOnly || !Array.isArray(values) || index < 0 || index >= values.length) return;
+    if (fieldContext.state.readOnly || !Array.isArray(values) || index < 0 || index >= values.length) {
+        return;
+    }
     fieldContext.blur();
 
     if (formContext.value) {
