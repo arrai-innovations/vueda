@@ -136,7 +136,10 @@ pre-commit:
             run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
         changelog-fragments:
             glob: "changelog.d/**"
-            run: uv run --group dev --no-sync python scripts/check_changelog_fragments.py --render-only
+            run: |
+                for package in client server; do
+                  uv run --group dev --no-sync towncrier build --config "changelog.d/$package.toml" --version check --draft > /dev/null || exit 1
+                done
         circleci-config:
             glob: ".circleci/*.yml"
             run: |

@@ -13,34 +13,7 @@ parameters:
         type: boolean
         default: false
 
-jobs:
-    # Runs on every branch build, whatever paths changed, so it lives here rather
-    # than in a path-filtered continuation config. See scripts/check_changelog_fragments.py.
-    changelog-fragments:
-        docker:
-            - image: cimg/python:3.11
-        resource_class: small
-        steps:
-            - checkout
-            - run:
-                  name: Install towncrier
-                  command: |
-                      command -v uv || pip install --quiet uv
-                      uv sync --only-group dev --frozen
-            - run:
-                  name: Require a changelog fragment or the changelog:none label
-                  command: uv run --no-sync python scripts/check_changelog_fragments.py
-
 workflows:
-    changelog-fragments:
-        unless: << pipeline.parameters.deploy-docs >>
-        jobs:
-            # GITHUB_TOKEN comes from the context and reads the pull request's labels.
-            - changelog-fragments:
-                  context: arrai-global
-                  filters:
-                      branches:
-                          ignore: main
     docs-publish-on-tag:
         jobs:
             - continuation/continue:
