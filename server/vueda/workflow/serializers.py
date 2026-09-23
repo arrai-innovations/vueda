@@ -33,7 +33,7 @@ class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
 
     def get_field_model_info(self, fields):
         """
-        workflow_state_code/workflow_state_name source through HasWorkflowModelMixin.workflow_state, a
+        workflow_state_code/workflow_state_name source through WorkflowModelMethods.workflow_state, a
         @property with no model field of its own, so resolve_serializer_field_model_field can never
         describe their type_db/type_model: State.code and State.name are always real CharFields.
         """

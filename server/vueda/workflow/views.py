@@ -11,6 +11,7 @@ __all__ = (
     "WorkflowTransitionEditView",
 )
 
+from django.apps import apps as django_apps
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
@@ -22,6 +23,7 @@ from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
 from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
@@ -67,7 +69,7 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
         )
         # organize workflows by app
         context["apps"] = {}
-        context["models_without_workflow_mixin"] = []
+        context["models_without_workflow_policy"] = []
         for workflow in workflows:
             app_label = workflow.content_type.app_label
             model_cls = workflow.content_type.model_class()
@@ -75,15 +77,16 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
                 context["apps"][app_label] = {}
             context["apps"][app_label][model_cls] = workflow
 
-            # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
-            if not issubclass(model_cls, models.HasWorkflowModelMixin):
-                context["models_without_workflow_mixin"].append(
+            # Warn about a workflow row whose model does not enable workflow in its class Vueda policy.
+            if not workflow_enabled(model_cls):
+                context["models_without_workflow_policy"].append(
                     (workflow.content_type.app_label, workflow.content_type.model, model_cls.__name__)
                 )
 
-        # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
+        # Warn about a model that enables workflow but has no workflow row.
         context["models_without_workflow_row"] = []
-        for model in models.HasWorkflowModelMixin.__subclasses__():
+        # A proxy shares its concrete model's workflow row, so only concrete models are listed.
+        for model in (model for model in django_apps.get_models() if workflow_enabled(model) and not model._meta.proxy):
             content_type = ContentType.objects.get_for_model(model)
             # Some models don't make sense having a workflow.
             if issubclass(model, CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT):

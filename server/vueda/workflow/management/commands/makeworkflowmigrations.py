@@ -60,6 +60,7 @@ from django.db.models import Q
 from django.db.transaction import atomic
 
 from vueda.core.audit import audited_action
+from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
@@ -1112,7 +1113,7 @@ class Command(BaseCommand):
 
             content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
-            if issubclass(model, models.HasWorkflowModelMixin):
+            if workflow_enabled(model):
                 app_config = django_apps.get_app_config(app_label)
                 migrations_path = get_migrations_path(app_config)
 

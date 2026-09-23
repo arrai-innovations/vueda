@@ -12,19 +12,19 @@
 <body>
 {% set has_perm = request.user.has_perm %}
 <div class="everything">
-    {% if models_without_workflow_row or models_without_workflow_mixin %}
+    {% if models_without_workflow_row or models_without_workflow_policy %}
         <div class="warnings">
-            {% if models_without_workflow_mixin %}
-                <p>Warning: The following models have workflow database rows, but the model class is not using <code class="python">HasWorkflowModelMixin</code>.</p>
+            {% if models_without_workflow_policy %}
+                <p>Warning: The following models have workflow database rows, but the model class does not declare <code class="python">class Vueda.Workflow</code> with <code class="python">enabled = True</code>.</p>
                 <ul class="warning-list">
-                    {% for (app_label, model, model_class_name) in models_without_workflow_mixin %}
+                    {% for (app_label, model, model_class_name) in models_without_workflow_policy %}
                         <li><code class="django">{{ app_label }}.{{ model }}</code>&emsp;<code
                                 class="python">{{ model_class_name }}</code></li>
                     {% endfor %}
                 </ul>
             {% endif %}
             {% if models_without_workflow_row %}
-                <p>Warning: The following models use <code class="python">HasWorkflowModelMixin</code>, but does not have workflow database rows.</p>
+                <p>Warning: The following models declare <code class="python">class Vueda.Workflow</code> with <code class="python">enabled = True</code>, but do not have workflow database rows.</p>
                 <ul class="warning-list">
                     {% for (app_label, model, model_class_name) in models_without_workflow_row %}
                         <li><code class="django">{{ app_label }}.{{ model }}</code>&emsp;<code

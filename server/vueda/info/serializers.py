@@ -36,6 +36,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.ordering import expand_ordering_pk
@@ -152,7 +153,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             return super().data
 
         # Local imports, because the workflow app is optional.
-        from vueda.workflow.models import HasWorkflowModelMixin
         from vueda.workflow.models import Workflow
         from vueda.workflow.serializers import HasWorkflowSerializerMixin
         from vueda.workflow.views import HasWorkflowViewMixin
@@ -163,8 +163,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         errors = []
 
-        if not issubclass(model, HasWorkflowModelMixin):
-            errors.append(f"{model.__name__} is missing HasWorkflowModelMixin inheritance.")
+        if not workflow_enabled(model):
+            errors.append(f"{model.__name__} does not enable class Vueda.Workflow.")
 
         if not issubclass(serializer, HasWorkflowSerializerMixin):
             errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")

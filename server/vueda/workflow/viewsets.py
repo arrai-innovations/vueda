@@ -15,13 +15,13 @@ from rest_framework.response import Response
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
-from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
 from vueda.workflow.permissions import WorkflowObjectPermissions
 from vueda.workflow.serializers import WorkflowSerializer
@@ -129,7 +129,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         # get_object has already checked this object's read permission, so reaching here means the
         # caller may read the object whose state this reports.
         instance = self.get_object()
-        if not isinstance(instance, HasWorkflowModelMixin):
+        if not workflow_enabled(instance):
             return Response(
                 data={"detail": "Object does not have a workflow."},
                 exception=Exception("Object does not have a workflow."),

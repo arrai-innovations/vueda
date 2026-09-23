@@ -284,13 +284,13 @@ class TestModelInfoWorkflowConfigurationErrs:
                     )
                 ),
             ),
-            (err_models.MxSoVoWo, True, frozenset(("MxSoVoWo is missing HasWorkflowModelMixin inheritance.",))),
+            (err_models.MxSoVoWo, True, frozenset(("MxSoVoWo does not enable class Vueda.Workflow.",))),
             (
                 err_models.MxSoVoWx,
                 True,
                 frozenset(
                     (
-                        "MxSoVoWx is missing HasWorkflowModelMixin inheritance.",
+                        "MxSoVoWx does not enable class Vueda.Workflow.",
                         "MxSoVoWx has no workflow configured.",
                     )
                 ),
@@ -300,7 +300,7 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSoVxWo is missing HasWorkflowModelMixin inheritance.",
+                        "MxSoVxWo does not enable class Vueda.Workflow.",
                         "MxSoVxWoViewSet is missing HasWorkflowViewMixin inheritance.",
                     )
                 ),
@@ -310,19 +310,19 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSoVxWx is missing HasWorkflowModelMixin inheritance.",
+                        "MxSoVxWx does not enable class Vueda.Workflow.",
                         "MxSoVxWxViewSet is missing HasWorkflowViewMixin inheritance.",
                         "MxSoVxWx has no workflow configured.",
                     )
                 ),
             ),
-            (err_models.MxSoVzWo, True, frozenset(("MxSoVzWo is missing HasWorkflowModelMixin inheritance.",))),
+            (err_models.MxSoVzWo, True, frozenset(("MxSoVzWo does not enable class Vueda.Workflow.",))),
             (
                 err_models.MxSoVzWx,
                 True,
                 frozenset(
                     (
-                        "MxSoVzWx is missing HasWorkflowModelMixin inheritance.",
+                        "MxSoVzWx does not enable class Vueda.Workflow.",
                         "MxSoVzWx has no workflow configured.",
                     )
                 ),
@@ -332,7 +332,7 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSxVoWo is missing HasWorkflowModelMixin inheritance.",
+                        "MxSxVoWo does not enable class Vueda.Workflow.",
                         "MxSxVoWoSerializer is missing HasWorkflowSerializerMixin inheritance.",
                     )
                 ),
@@ -342,7 +342,7 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSxVoWx is missing HasWorkflowModelMixin inheritance.",
+                        "MxSxVoWx does not enable class Vueda.Workflow.",
                         "MxSxVoWxSerializer is missing HasWorkflowSerializerMixin inheritance.",
                         "MxSxVoWx has no workflow configured.",
                     )
@@ -353,7 +353,7 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSxVxWo is missing HasWorkflowModelMixin inheritance.",
+                        "MxSxVxWo does not enable class Vueda.Workflow.",
                         "MxSxVxWoSerializer is missing HasWorkflowSerializerMixin inheritance.",
                         "MxSxVxWoViewSet is missing HasWorkflowViewMixin inheritance.",
                     )
@@ -365,7 +365,7 @@ class TestModelInfoWorkflowConfigurationErrs:
                 True,
                 frozenset(
                     (
-                        "MxSxVzWo is missing HasWorkflowModelMixin inheritance.",
+                        "MxSxVzWo does not enable class Vueda.Workflow.",
                         "MxSxVzWoSerializer is missing HasWorkflowSerializerMixin inheritance.",
                     )
                 ),

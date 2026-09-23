@@ -18,6 +18,7 @@ from django.http import Http404
 from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.utils import ActionView
 from vueda.core.utils import AvailableActionsRequest
@@ -40,11 +41,10 @@ def has_matching_state_grant(model, user, required_permissions) -> bool:
 
     from django.contrib.contenttypes.models import ContentType
 
-    from vueda.workflow.models import HasWorkflowModelMixin
     from vueda.workflow.models import StatePermission
     from vueda.workflow.models import Workflow
 
-    if not issubclass(model, HasWorkflowModelMixin):
+    if not workflow_enabled(model):
         return False
 
     workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
@@ -366,10 +366,9 @@ def has_row_dependent_authorization(model) -> bool:
     if "vueda.workflow" in settings.INSTALLED_APPS:
         from django.contrib.contenttypes.models import ContentType
 
-        from vueda.workflow.models import HasWorkflowModelMixin
         from vueda.workflow.models import Workflow
 
-        if issubclass(model, HasWorkflowModelMixin):
+        if workflow_enabled(model):
             return Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists()
 
     return False
@@ -410,11 +409,10 @@ def filter_rows_for_user(queryset, user, perm_type="list"):
     # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
     # Apply them even when the model does not define RowLevelPermissions.
     if "vueda.workflow" in settings.INSTALLED_APPS:
-        from vueda.workflow.models import HasWorkflowModelMixin
         from vueda.workflow.models import StatePermission
         from vueda.workflow.models import Workflow
 
-        if issubclass(model, HasWorkflowModelMixin):
+        if workflow_enabled(model):
             workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
             if workflow:
                 from django.contrib.contenttypes.models import ContentType

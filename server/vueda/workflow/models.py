@@ -1,7 +1,6 @@
 """Workflow state machine models: workflows, states, transitions, permissions, and object state tracking."""
 
 __all__ = (
-    "HasWorkflowModelMixin",
     "InitialState",
     "ObjectState",
     "ObjectStateProxy",
@@ -11,7 +10,9 @@ __all__ = (
     "TransitionPermission",
     "TransitionSource",
     "Workflow",
+    "WorkflowModelMethods",
     "WorkflowPermission",
+    "ensure_object_state",
 )
 
 from collections import defaultdict
@@ -467,7 +468,7 @@ class TransitionSource(models.Model):
 class ObjectStateProxy(models.Model):
     """
     A view that adds workflow's content type as a calculated field on object state.
-    Used for HasWorkflowMixin.object_states GenericRelation (reverse GenericForeignKey).
+    Used for the object_states_proxy GenericRelation that workflow adds to each workflow model (reverse GenericForeignKey).
     """
 
     workflow = models.ForeignKey(
@@ -548,7 +549,7 @@ track_model(ObjectState)
 
 
 def _permitted_transition_ids(
-    model: type["HasWorkflowModelMixin"],
+    model: type["WorkflowModelMethods"],
     transitions: list[Transition],
     state_by_object: dict[int, int],
     user: User,
@@ -585,40 +586,18 @@ def _permitted_transition_ids(
     return [transition.id for transition in transitions if transition.id in permitted_ids]
 
 
-class HasWorkflowModelMixin(models.Model):
+class WorkflowModelMethods:
     """
     Model-level utility methods for objects with workflow.
-    """
 
-    # there is no generic one to one, so this is plural despite the fact that there is only one
-    object_states_proxy = GenericRelation(
-        ObjectStateProxy,
-    )
+    A model does not subclass this directly. ``class Vueda.Workflow`` with ``enabled = True`` makes
+    the workflow app append it to the model's bases once Django prepares the model, so it sits last
+    in the method resolution order. A method the model or any of its bases defines takes precedence,
+    and an override can still call ``super()`` to reach the default here.
+    """
 
     # Populated only inside ``cached_workflow_state``; ``None`` means "read through to the database".
     _workflow_state_cache: dict | None = None
-
-    class Meta:
-        abstract = True
-
-    if django.VERSION >= (6, 0):
-
-        def save(self, **kwargs):
-            """
-            Save the object and create a workflow object if it doesn't exist.
-            """
-            super().save(**kwargs)
-            if not self.object_state:
-                self.create_object_state()
-    else:
-
-        def save(self, *args, **kwargs):
-            """
-            Save the object and create a workflow object if it doesn't exist.
-            """
-            super().save(*args, **kwargs)
-            if not self.object_state:
-                self.create_object_state()
 
     def create_object_state(self):
         """
@@ -727,7 +706,7 @@ class HasWorkflowModelMixin(models.Model):
     @classmethod
     def available_transitions_for(
         cls,
-        objs: list["HasWorkflowModelMixin"] | list[int] | QuerySet["HasWorkflowModelMixin"],
+        objs: list["WorkflowModelMethods"] | list[int] | QuerySet["WorkflowModelMethods"],
         user: User | None = None,
     ) -> QuerySet[Transition]:
         """
@@ -1045,3 +1024,15 @@ class HasWorkflowModelMixin(models.Model):
         """
         Override this method to add custom logic when a transition is intentionally ignored.
         """
+
+
+def ensure_object_state(sender, instance, raw=False, **kwargs):
+    """``post_save`` receiver that gives a saved workflow object its ``ObjectState`` if it has none.
+
+    It receives every model's saves, including a proxy's, whose sender is the proxy class. A raw save
+    loads a fixture, which carries its own object state rows, so it creates nothing.
+    """
+    if raw or not isinstance(instance, WorkflowModelMethods):
+        return
+    if not instance.object_state:
+        instance.create_object_state()
