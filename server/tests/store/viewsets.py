@@ -84,6 +84,13 @@ class ProductViewSet(VuedaViewSet):
     ordering_fields = ["distributor__name", "name", "disabled"]
 
 
+class ProductAutoDerivedFilterViewSet(ProductViewSet):
+    """Swaps in a filterset whose dotted public filter names are derived automatically, so that
+    mechanism can be exercised end to end alongside the explicit-override coverage above."""
+
+    filterset_class = my_filtersets.ProductAutoDerivedFilterSet
+
+
 class OptionTypeViewSet(VuedaViewSet):
     queryset = my_models.OptionType.objects.all()
     serializer_class = my_serializers.OptionTypeSerializer

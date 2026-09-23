@@ -906,7 +906,7 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
         self.register_viewsets()
 
-        response = self.list_carts(api_client, settings, "customer__formatted_name")
+        response = self.list_carts(api_client, settings, "customer.formatted_name")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         # One row per cart rather than one per matching cart item.
@@ -918,7 +918,7 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
         ]
         assert emails == ["test_customer_1@domain.invalid", "test_customer_2@domain.invalid"]
 
-        response = self.list_carts(api_client, settings, "-customer__formatted_name")
+        response = self.list_carts(api_client, settings, "-customer.formatted_name")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
@@ -984,11 +984,18 @@ class TestSearchDistinctPairsOnlyBareColumns:
 
         return api_client.get(reverse(url_name), data=data, format="json")
 
-    def test_a_function_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
+    def test_a_default_ordering_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
         """`ordering = [Lower("name")]` reads `name` and compiles to `LOWER("name")`, which
-        `distinct("name")` cannot match. A nonempty `?o=` that DRF rejects is what reaches it: the
-        rejected value leaves the default ordering on the queryset while still asking this backend
-        for explicit-order handling."""
+        `distinct("name")` cannot match.
+
+        An invalid `?o=` can no longer put this on the queryset while still asking this backend for
+        explicit-order handling — an invalid term rejects the whole request atomically rather than
+        silently falling back to the default — so this is now reached only by sending no `?o=` at
+        all: `ordering_requested` is then false, and `applied_ordering` is `None` without this
+        backend ever having to judge the term. The regression this guards against — the unhandled
+        `SELECT DISTINCT ON expressions must match initial ORDER BY expressions` this view's default
+        ordering used to produce — still needs a search that forces deduplication to reproduce.
+        """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_function_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -998,26 +1005,10 @@ class TestSearchDistinctPairsOnlyBareColumns:
             store_viewsets.ProductM2MSearchFunctionOrderingViewSet,
         )
 
-        response = self.list_url(
-            api_client,
-            settings,
-            "store.product-list",
-            self.PRODUCT_SEARCH_TERMS,
-            ordering="not_an_allowed_field",
-        )
+        response = self.list_url(api_client, settings, "store.product-list", self.PRODUCT_SEARCH_TERMS)
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
-
-        # The same request without `?o=` is the rank path this falls back to, so the two agree row
-        # for row. Asserting against it rather than a fixed order keeps this about the fallback
-        # rather than about which product happens to rank first.
-        ranked = self.list_url(api_client, settings, "store.product-list", self.PRODUCT_SEARCH_TERMS)
-
-        assert ranked.status_code == HTTPStatus.OK, response_body(ranked)
-        assert [result["id"] for result in response.data["results"]] == [
-            result["id"] for result in ranked.data["results"]
-        ]
 
     def test_a_relation_whose_related_model_orders_itself_falls_back_to_rank(
         self,
@@ -1150,6 +1141,11 @@ class TestFilteringOnRelatedFormattedName:
     Cart queryset being filtered rather than on the Customer rows it joins, so the declared path would
     raise `FieldError`. `FormattedNamePathFilterSetMixin` points the filter at
     `customer__data__formatted_name` on the filterset instance instead.
+
+    `customer_formatted_name`/`customer_formatted_name_icontains` have no `__` in their own declared
+    names, so `PublicFilterAliasMixin` derives nothing from them and a client keeps using those names
+    exactly as declared — see `tests.unit.info.test_model_filtering_dotted_alias` for a filter whose
+    name does get a dotted public alias derived from it.
     """
 
     def test_exact_filter_matches_the_related_lookup_column(

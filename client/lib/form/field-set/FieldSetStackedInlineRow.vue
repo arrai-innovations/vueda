@@ -1,7 +1,9 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import FieldSetInlineActionButton from "@vueda/form/field-set/FieldSetInlineActionButton.vue";
 import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInlineRow.theme.js";
+import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
@@ -11,8 +13,9 @@ import { computed, inject, unref, useSlots } from "vue";
 /**
  * Renders a single row within a stacked inline field set, including all
  * non-action fields and a row-level action bar. The action bar shows a delete
- * button for new (unsaved) rows and a destroy checkbox for existing rows, with
- * slot overrides available for each.
+ * button for editable new (unsaved) rows, even without a destroy action.
+ * Editable existing rows show a destroy checkbox supplied by the parent inline.
+ * Slot overrides are available for each.
  */
 defineOptions({});
 
@@ -48,12 +51,15 @@ const props = defineProps({
         required: true,
     },
     ...THEME_OVERRIDE_PROPS,
+    ...ICON_OVERRIDE_PROPS,
 });
 const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow", props);
+const icon = useIcons("FieldSetStackedInlineRow", props);
 
 const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
 const onDelete = () => emit("destroy-row", props.index);
+const rowValueName = computed(() => (props.index == null ? props.fieldName : `${props.fieldName}[${props.index}]`));
 
 const slots = useSlots();
 const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox", "item-action-button"];
@@ -70,11 +76,17 @@ const remainingSlotNames = computed(() => {
     return slotNames.filter((slotName) => !knownSlotNames.includes(slotName));
 });
 
+const isUnsaved = computed(() => props.pk === undefined || props.pk === null);
+const canRemove = computed(() => isUnsaved.value && !props.readOnly);
+const destroyAction = computed(() =>
+    props.fieldSetContextState.actions.find((action) => action.fieldName === "destroy"),
+);
+
 const rowState = computed(() => {
     if (props.fieldSetContextState?.selected?.includes?.(props.index)) {
         return "selected-for-destroy";
     }
-    if (props.pk === undefined || props.pk === null) {
+    if (isUnsaved.value) {
         return "dirty";
     }
     return null;
@@ -124,29 +136,44 @@ const rowState = computed(() => {
         </div>
         <slot name="item-action-bar">
             <div
-                v-if="fieldSetContextState.actions.length"
+                v-if="canRemove || fieldSetContextState.actions.length"
                 :class="theme('actionBarOuter')"
                 data-qa="field-set-tabular-inline-item-action-bar"
             >
+                <!-- @slot [destroy-button, fieldset-destroy-button] Button used to remove an editable unsaved row. The action prop is undefined when no destroy action is provided. -->
+                <slot
+                    v-if="canRemove"
+                    :action="destroyAction"
+                    :label="destroyAction?.label ?? 'Delete'"
+                    :name="fieldSetSlotNames['destroy-button'].name"
+                    :row-index="index"
+                    :selected="fieldSetContextState?.selected.includes(index)"
+                    :theme="theme"
+                    :value="destroyAction?.value"
+                    @click="onDelete"
+                >
+                    <Button
+                        type="button"
+                        tone="destructive"
+                        emphasis="ghost"
+                        size="sm"
+                        :class="theme('destroyButton')"
+                        @click="onDelete"
+                    >
+                        <component
+                            :is="icon('typeDeleted').component"
+                            v-if="icon('typeDeleted')"
+                            v-bind="icon('typeDeleted').props"
+                            aria-hidden="true"
+                        />
+                        Delete
+                    </Button>
+                </slot>
                 <template v-for="action in fieldSetContextState.actions">
                     <template v-if="action.fieldName === 'destroy'">
-                        <!-- @slot [destroy-button, fieldset-destroy-button] Button used to delete a new (unsaved) inline row. -->
-                        <slot
-                            v-if="!pk"
-                            :action="action"
-                            :label="action.label"
-                            :name="fieldSetSlotNames['destroy-button'].name"
-                            :row-index="index"
-                            :selected="fieldSetContextState?.selected.includes(index)"
-                            :theme="theme"
-                            :value="action.value"
-                            @click="onDelete"
-                        >
-                            <Button emphasis="ghost" @click="onDelete">Delete</Button>
-                        </slot>
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
-                            v-else
+                            v-if="!isUnsaved && !readOnly"
                             :skip-feedback="true"
                             :action="action"
                             :contextless="true"
@@ -159,18 +186,22 @@ const rowState = computed(() => {
                             :value="action.value"
                             @update:model-value="emit('update:selected', $event)"
                         >
-                            <widget-checkbox
-                                :skip-feedback="true"
-                                :contextless="true"
-                                :input-id="`selected-inline-row-${index}`"
-                                label="Destroy?"
-                                :model-value="fieldSetContextState?.selected.includes(index)"
-                                name="destroy-checkbox"
-                                :required="false"
-                                size="small"
-                                :value="index"
-                                @update:model-value="emit('update:selected', $event)"
-                            />
+                            <label :key="action.fieldName">
+                                <widget-checkbox
+                                    :aria-label="`Delete row ${index + 1} on save`"
+                                    :skip-feedback="true"
+                                    :contextless="true"
+                                    :input-id="`selected-inline-row-${index}`"
+                                    label="Destroy?"
+                                    :model-value="fieldSetContextState?.selected.includes(index)"
+                                    name="destroy-checkbox"
+                                    :required="false"
+                                    size="small"
+                                    :value="String(index)"
+                                    @update:model-value="emit('update:selected', $event)"
+                                />
+                                Delete?
+                            </label>
                         </slot>
                     </template>
                     <template v-else>
@@ -180,11 +211,15 @@ const rowState = computed(() => {
                             v-bind="{
                                 action,
                                 fieldSetContextState: fieldSetContextState,
-                                rowValueName: `${fieldName}[${index}]`,
+                                rowValueName,
                             }"
                             @update:model-value="emit('update:model-value', $event)"
                         >
-                            <Button @update:model-value="emit('update:model-value', $event)">{{ action.label }}</Button>
+                            <FieldSetInlineActionButton
+                                :action="action"
+                                :action-context="{ fieldSetContextState, rowValueName }"
+                                @update:model-value="emit('update:model-value', $event)"
+                            />
                         </slot>
                     </template>
                 </template>

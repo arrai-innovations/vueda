@@ -55,7 +55,7 @@ For how to change any of this, see [Customize VUEDA Appearance](../../guides/cus
 
 ## Table Layout
 
-The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overflow-x-auto`) carries no border or background; those come from the enclosing surface. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `h-[3.5rem] px-1 lg:px-2 align-middle`. The 56 px row height is the legacy source default. Rows divide from each other with a hairline on their cells, and the header band divides from the first data row the same way. The last row drops its divider, so the root edge closes the grid. {@api theme-key:ObjectsGrid} `table` fills the root and uses the separated border model, which does not paint borders on rows or row groups; that is why the dividers sit on cells. The demo forces table mode with `tableBreakpoint="xs"`.
+The root element ({@api theme-key:ObjectsGrid} `root`) carries the card fill in both layouts, and in table layout the radius and inset hairline that close the last row. A consumer supplying its own chrome suppresses them, as `ViewList` does. Header cells use {@api theme-key:ObjectsGridTableHeader} `root` and are display-only; sorting is driven by `SortControl` and active sort chips outside the grid. Body cells use {@api theme-key:ObjectsGridBodyCell} `root`, default `px-1 lg:px-2 align-middle`. Row height follows density: `h-8` default, `h-7` compact, `h-6` condensed. A table cell treats that height as a minimum, so a row holding a chip or an avatar renders taller than the class alone suggests. Rows divide from each other with a hairline on their cells, and the header band divides from the first data row the same way. The last row drops its divider, so the root edge closes the grid. {@api theme-key:ObjectsGrid} `table` fills the root and uses the separated border model, which does not paint borders on rows or row groups; that is why the dividers sit on cells. The demo forces table mode with `tableBreakpoint="xs"`.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -85,7 +85,7 @@ The root element ({@api theme-key:ObjectsGrid} `root`, default `max-w-full overf
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span class="whitespace-nowrap">header: <code>ObjectsGridTableHeader</code></span>
-    <span class="whitespace-nowrap">cells: <code>ObjectsGridBodyCell</code> · default <code>h-[3.5rem] px-1 lg:px-2</code></span>
+    <span class="whitespace-nowrap">cells: <code>ObjectsGridBodyCell</code> · default <code>px-1 lg:px-2</code>, height by density</span>
     <span class="whitespace-nowrap">dividers: <code>[&amp;>*]:border-b-hairline</code> on each row's cells</span>
     <span class="whitespace-nowrap">sorting: driven by toolbar controls outside the grid</span>
   </footer>
@@ -121,7 +121,7 @@ The card grid columns are not set by default. Projects supply `grid-cols-x` via 
 
 ## Loading and Empty
 
-While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the empty-state row renders inside {@api theme-key:ObjectsGrid} `emptyContent` — a flex column with an icon (resolved from `useIcons("ObjectsGrid")` keyed by the active variant), the `emptyText` prop as the title, and any consumer-provided description / CTA via the `empty` slot. The `emptyVariant` prop (`empty` | `loading` | `error` | `filtered`) drives `data-variant` on the content wrapper so the theme spins the icon on `loading` and recolors it to `--destructive` on `error`. Pass `:empty-text="null"` to suppress the empty-state row entirely (used by inline grids embedded in forms).
+While loading, each cell is replaced by a `Skeleton` sized to its field type: `h-6 w-24` for text, `h-6 w-16` for dates, `h-6 w-full` as the fallback. When there are no rows and loading is false, the empty-state row renders inside {@api theme-key:ObjectsGrid} `emptyContent` — a flex column with an icon (resolved from `useIcons("ObjectsGrid")` keyed by the active variant), the `emptyText` prop as the title, and any consumer-provided description / CTA via the `empty` slot. The `emptyVariant` prop (`empty` | `loading` | `error` | `filtered`) drives `data-variant` on the content wrapper so the theme spins the icon on `loading` and recolors it to `--destructive` on `error`. Pass `:empty-text="null"` to suppress the empty-state row entirely (used by inline grids embedded in forms). The row spans the full width in both layouts: in table layout its cell is a `td` carrying `colspan`, and in card layout the row spans the card grid.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="table skeletons">

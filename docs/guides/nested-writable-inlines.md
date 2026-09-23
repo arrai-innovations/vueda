@@ -86,6 +86,14 @@ When updating an existing parent object, reverse-relation handling follows a fix
 
 Treat this omission/deletion behaviour as contract-critical. Verify it per relation in your test suite, because the behaviour applies uniformly to all reverse collections; there is no per-field opt-out for deletion on omission.
 
+## Remove Saved Inline Rows
+
+On an editable form, `FieldSetStackedInline` and `FieldSetTabularInline` provide a deletion checkbox for each saved row in a writable inline. Checking it keeps the row visible in its marked state and excludes it from the submitted collection. Clear the checkbox to include the row again. Marking every row submits an empty collection.
+
+The client supplies the destroy action for writable inlines; model info does not need an `action` entry. Removal uses the parent's nested update, so the child does not need a destroy route or separate destroy permission. The server still enforces the parent's update permissions and nested-write rules. Read-only inlines and read forms offer no saved-row removal. Unsaved rows retain their immediate Delete button.
+
+Use the existing `destroy-checkbox` slot to customize the control in either layout. Its `action`, `rowIndex`, `modelValue`, and update handler remain available. An explicit destroy descriptor retains its custom properties and is not duplicated.
+
 ## Readonly Inline Patterns
 
 Use `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` for relations that should be expanded in `read` responses but must not participate in write operations. The mixin's `_extract_relations` method filters out these serializer types before nested write processing, so any data the client sends for these fields is silently dropped.
@@ -115,11 +123,11 @@ Nested validation errors surface in the response with key paths that identify th
 }
 ```
 
-On the client, `useForm` maps these nested error paths to form fields. The mapping currently supports one level of `__` split for nested expand paths. Ensure that:
+On the client, `useForm` maps these nested error paths to form fields. The mapping currently supports one level of `.` split for nested expand paths. Ensure that:
 
 - Backend nested keys (e.g., `items[1].description`) resolve to focusable form fields in the client.
 - The first error in a nested validation response is scrolled/focused correctly.
-- Nested error paths beyond one `__` split may not map correctly; test deep nesting explicitly if your form model uses it.
+- Nested error paths beyond one `.` split may not map correctly; test deep nesting explicitly if your form model uses it.
 
 Include a failing nested-write test path in your verification so that first-error selection behaviour is stable.
 
@@ -143,7 +151,7 @@ After implementing nested writes, verify the following:
 
 **Children unexpectedly deleted on update.** The omission-means-deletion contract is in effect. Existing children whose PKs are absent from the `update` payload are deleted. Include all children you want to keep, with their PKs.
 
-**Nested validation errors not appearing in the form.** Check that the client form model's field mapping supports the nested key path depth. `useForm` currently supports one level of `__` split for nested expand paths; deeper nesting may require custom error mapping.
+**Nested validation errors not appearing in the form.** Check that the client form model's field mapping supports the nested key path depth. `useForm` currently supports one level of `.` split for nested expand paths; deeper nesting may require custom error mapping.
 
 ## Relevant Implementation Surface
 

@@ -114,6 +114,7 @@
 import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@arrai-innovations/reactive-helpers";
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
+import { getMissingFilterInputSupport } from "@vueda/use/useFilter.js";
 import { buildFilterFromQuery, filtersToParams, getFilterParams } from "@vueda/use/useFilterForm.js";
 import { useFilterables } from "@vueda/use/useFilterables.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
@@ -144,7 +145,7 @@ import { useBreakpoints } from "@vueuse/core";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, inject, markRaw, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, effectScope, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -158,7 +159,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string> | string} model - Django model name.
  *
  * Field configuration.
- * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the model config default when empty.
+ * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the `displayFields` keys, then the model config default, when empty.
  * @property {import('vue').Ref<{[key: string]: object}> | {[key: string]: object}} [displayFields] - Display field overrides; uses the model config default when empty.
  * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
  * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
@@ -247,7 +248,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListFilterGroup
  * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
- * @property {string[]} validFilterables - `filterables` narrowed to fields with a usable, non-hidden filter type; the field list a filter UI should render as addable/editable. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters`, but its URL value still reaches `list.listState.params` -- see `list.listState`.
+ * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can render an editable input for: value handling plus a field component and widget (or, for a range, both boundary components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that. This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and reported once per list visit through a console warning naming the app, model, and filter; it is not restored from the URL. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
  * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
  */
 
@@ -288,6 +289,9 @@ export function useViewList(options) {
     const appRef = toRef(options, "app");
     const modelRef = toRef(options, "model");
 
+    const resettingTarget = ref(false);
+    // Register before metadata and list watchers so no request uses the previous model's state.
+    watch([appRef, modelRef], () => resetTarget());
     const modelConfig = useModelConfig(appRef, modelRef, VIEW_NAME);
 
     if (!inject(LookupContextSymbol, null)) {
@@ -295,14 +299,30 @@ export function useViewList(options) {
     }
 
     const validAndActive = computed(
-        () => !!(isActive.value && unref(appRef) && unref(modelRef) && modelConfig.loading === false),
+        () =>
+            !!(
+                isActive.value &&
+                ownsRoute.value &&
+                !resettingTarget.value &&
+                unref(appRef) &&
+                unref(modelRef) &&
+                modelConfig.loading === false
+            ),
     );
 
     const selectedObjects = ref([]);
     const workflow = useWorkflowTransitions(appRef, modelRef, isActive);
     const router = useRouter();
     const route = useRoute();
-    const restoreStoredPreferences = isEmpty(route.query);
+    // The action router can retain these props while the destination route already owns the URL.
+    const ownsRoute = computed(
+        () =>
+            isActive.value &&
+            (!route.params?.app || route.params.app === unref(appRef)) &&
+            (!route.params?.model || route.params.model === unref(modelRef)) &&
+            (!route.params?.action || route.params.action === VIEW_NAME),
+    );
+    let restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
     const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value]);
     const queryWithCurrentSort = (query, sorted) => {
@@ -338,6 +358,9 @@ export function useViewList(options) {
             sorted: [],
         },
         updateSorted: (sorted) => {
+            if (!ownsRoute.value) {
+                return;
+            }
             const sanitized = sanitizeSortFields(sorted, unref(sorting.state.sortables) || []);
             // An empty sort is not a distinct choice: the list already comes back in the
             // server's default order, so clearing sort chips down to nothing means the
@@ -360,12 +383,19 @@ export function useViewList(options) {
         let fields = [];
         if (options.listFields?.length) {
             fields = [...options.listFields];
+        } else if (Object.keys(options.displayFields || {}).length) {
+            // Columns passed in directly: the config's list fetch follows the config's own columns,
+            // so it can omit one of these.
+            fields = Object.keys(options.displayFields);
         } else if (modelConfig.config.fetchFields?.length) {
             fields = [...modelConfig.config.fetchFields];
         }
         const unrefPKKey = unref(pkKey);
         if (!fields.includes(unrefPKKey)) {
             fields.unshift(unrefPKKey);
+        }
+        if (modelConfig.config.detailLinkField && !fields.includes("available_actions")) {
+            fields.push("available_actions");
         }
         return fields;
     });
@@ -428,19 +458,64 @@ export function useViewList(options) {
         }),
         filterablesState,
     );
-    // Filterables that resolved to a usable filter type; everything else is skipped. Server-hidden
-    // filters (e.g. the auto-injected `id__in` deep-link filter, whose widget is a HiddenInput) are
-    // excluded: they are programmatic, not user-entered, and have no mapped input widget, so they
-    // must not be restored from the URL as an editable filter. This is passed down to FilterGroup
-    // via `filter.validFilterables`, so it isn't recomputed there.
-    const validFilterables = computed(() => {
+    // The filters the reader can add and edit: visible filters the client can render an input
+    // for. Server-hidden filters (e.g. the auto-injected `id` deep-link filter, an `in`-lookup
+    // whose widget is a HiddenInput) are programmatic, not user-entered, so they stay out of the
+    // menu and are never restored from the URL as an editable filter; their URL value travels
+    // through `hiddenFilterParams` instead. A visible filter whose type lacks value handling or a
+    // component (checked against the view config's per-field overrides, so an override can supply
+    // what the default mapping lacks) is left out too: offering it would open a form that cannot
+    // mount. The developer learns about that through the warning below rather than the reader
+    // through a broken input. Passed down to FilterGroup via `filter.validFilterables`, so it
+    // isn't recomputed there.
+    const visibleFilterSupport = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
-        return (filterablesState.filterables || []).filter((fieldName) => {
+        const overrides = {
+            fieldComponents: modelConfig.config?.fieldComponents,
+            widgetComponents: modelConfig.config?.widgetComponents,
+        };
+        const supported = [];
+        const unsupported = [];
+        for (const fieldName of filterablesState.filterables || []) {
             const detail = filterableDetails[fieldName];
-            return detail && detail.typeFilter && !detail.hidden;
-        });
+            if (!detail || !detail.typeFilter || detail.hidden) {
+                continue;
+            }
+            const missing = getMissingFilterInputSupport(fieldName, detail, overrides);
+            if (missing.length) {
+                unsupported.push({ fieldName, missing });
+            } else {
+                supported.push(fieldName);
+            }
+        }
+        return { supported, unsupported };
     });
-    // Server-hidden filterables (e.g. the auto-injected `id__in` deep-link filter) have no
+    const validFilterables = computed(() => visibleFilterSupport.value.supported);
+    // One warning per unsupported filter per list visit, keyed by app, model, and filter so the
+    // record for one model never silences the same filter name on the next. Watching the target
+    // too reruns the check under the new model's name whichever order the metadata and the target
+    // change arrive in. `resetTarget` clears the record, so returning to a model is a new visit.
+    const warnedUnsupportedFilters = new Set();
+    watch(
+        [() => visibleFilterSupport.value.unsupported, appRef, modelRef],
+        ([unsupported, app, model]) => {
+            for (const { fieldName, missing } of unsupported) {
+                const key = `${app}.${model}.${fieldName}`;
+                if (warnedUnsupportedFilters.has(key)) {
+                    continue;
+                }
+                warnedUnsupportedFilters.add(key);
+                console.warn(
+                    `Filter "${fieldName}" on ${app}.${model} is not offered in the filter menu and is not ` +
+                        `restored from the URL: the client lacks ${missing.join(", ")}. Register the filter ` +
+                        `type with mergeFilterFieldMapping, or declare the filter hidden on the server so its ` +
+                        `URL value reaches the request without an input.`,
+                );
+            }
+        },
+        { immediate: true },
+    );
+    // Server-hidden filterables (e.g. the auto-injected `id` deep-link filter) have no
     // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
     // Read with the same param-key resolution the editable filter form uses, so a hidden filter
     // that declares suffixes resolves to the same keys a visible one does. Independent of whether
@@ -478,9 +553,9 @@ export function useViewList(options) {
     // racing its route write against other query-driven watchers (e.g. sort) reading the same tick.
     const hiddenFilterParams = ref({});
     watch(
-        rawHiddenFilterParams,
-        (newValue) => {
-            if (!isEqual(hiddenFilterParams.value, newValue)) {
+        [rawHiddenFilterParams, ownsRoute, appRef, modelRef],
+        ([newValue]) => {
+            if (ownsRoute.value && !isEqual(hiddenFilterParams.value, newValue)) {
                 hiddenFilterParams.value = newValue;
             }
         },
@@ -510,13 +585,15 @@ export function useViewList(options) {
     watch(
         [sentSorted, filterParams, toRef(listState, "search"), hiddenFilterParams],
         ([newSorted, newFilterParams, newSearch], oldValues) => {
+            if (!ownsRoute.value) {
+                return;
+            }
             const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
             // Filter-derived effects -- the reset to page 1 and this change's contribution to
             // `listState.params` -- apply only while this is the active list view, matching this
             // composable's original filter-write behavior: a `ViewList` instance kept mounted
             // off-screen (e.g. mid route transition) must not touch the live route or preferences
-            // on a stray filter mutation. Sort and search changes have always pushed regardless of
-            // the active view, so neither is gated here.
+            // on a stray filter mutation. The route ownership guard also covers sort and search.
             const onListView = route.params?.action === VIEW_NAME;
             const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
             const searchChanged = !isEqual(newSearch, oldSearch);
@@ -533,6 +610,9 @@ export function useViewList(options) {
                     ...alwaysParamsKeys,
                     SEARCH_PARAM,
                 ]);
+            }
+            if (resettingTarget.value || modelConfig.loading !== false) {
+                return;
             }
             // Start from the current route so keys none of sort/filters/search own (any foreign
             // query param) pass through untouched. Each domain deletes only the key(s) it
@@ -575,19 +655,34 @@ export function useViewList(options) {
     // Rebuild the active-filter list from the URL on load and whenever the query changes externally
     // (e.g. browser navigation). Guarded so filters already applied in-memory, which carry richer
     // values than the URL (e.g. resolved choice objects), are not flattened back into the URL form.
-    const restoreFiltersFromQuery = () => {
+    const restoreFiltersFromQuery = (query = route.query) => {
+        if (!ownsRoute.value || modelConfig.loading !== false) {
+            return;
+        }
         const details = filterablesState.filterableDetails || {};
         const restored = (validFilterables.value || [])
-            .map((field) => buildFilterFromQuery(field, details[field], route.query))
+            .map((field) => buildFilterFromQuery(field, details[field], query))
             .filter(Boolean);
         if (!isEqual(filtersToParams(restored), filtersToParams(addedFilters.value))) {
             addedFilters.value = restored;
         }
     };
-    watch([() => route.query, validFilterables, () => filterablesState.filterableDetails], restoreFiltersFromQuery, {
-        immediate: true,
-        deep: true,
-    });
+    watch(
+        [
+            () => route.query,
+            validFilterables,
+            () => filterablesState.filterableDetails,
+            ownsRoute,
+            () => modelConfig.loading,
+            appRef,
+            modelRef,
+        ],
+        () => restoreFiltersFromQuery(),
+        {
+            immediate: true,
+            deep: true,
+        },
+    );
 
     const instanceListProps = reactive({
         target: {
@@ -611,7 +706,7 @@ export function useViewList(options) {
     });
 
     watch(computedShowAllPages, (newVal, oldVal) => {
-        if (newVal !== oldVal) {
+        if (newVal !== oldVal && validAndActive.value) {
             listState.currentPage = 1;
             instanceList.clearList();
             instanceList.list();
@@ -628,7 +723,9 @@ export function useViewList(options) {
         if (newPerPage === oldPerPage) {
             return;
         }
-        listPreferenceStore.setPerPage(preferenceArgs(), newPerPage);
+        if (!resettingTarget.value && ownsRoute.value) {
+            listPreferenceStore.setPerPage(preferenceArgs(), newPerPage);
+        }
         if (newPerPage === ALL_PAGES) {
             delete listState.params[PAGE_SIZE_PARAM];
             showingAllPages.value = true;
@@ -659,8 +756,11 @@ export function useViewList(options) {
         }
     });
     watch(
-        [() => route.query, () => modelConfig.loading],
+        [() => route.query, () => modelConfig.loading, ownsRoute, appRef, modelRef],
         ([newQuery]) => {
+            if (!ownsRoute.value) {
+                return;
+            }
             // Deferred until model metadata resolves (added as a watch source above so this
             // reruns once it does, even if route.query itself stays otherwise unchanged):
             // `hiddenFilterKeys` needs it to know which stored keys a hidden filterable owns, so a
@@ -670,7 +770,9 @@ export function useViewList(options) {
                 isInitialized.filters = true;
                 const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
-                    router.push({ query: omit(storedFilters, hiddenFilterKeys.value) });
+                    newQuery = omit(storedFilters, hiddenFilterKeys.value);
+                    restoreFiltersFromQuery(newQuery);
+                    router.push({ query: newQuery });
                 }
             }
             const searchQuery = newQuery[SEARCH_PARAM] || "";
@@ -740,16 +842,6 @@ export function useViewList(options) {
         return new Set(workflow.transitions.map((transition) => transition.code));
     });
 
-    const translateExpandedField = (field) => {
-        if (field?.name?.includes("__")) {
-            return {
-                ...field,
-                value: field.value || field.name.replace(/__/g, "."),
-            };
-        }
-        return field;
-    };
-
     const columns = ref([]);
     // The columns a reader sees before anyone has chosen any: every display field, minus the ones
     // this reader hid last time, and all of them when hiding would leave nothing to show.
@@ -769,14 +861,17 @@ export function useViewList(options) {
         return visible.length > 0 ? visible : [...fieldNames];
     });
     const effectiveColumns = computed(() => (isInitialized.columns ? columns.value : defaultVisibleColumns.value));
+    // A field's dotted `name` already is the path `unifiedGet` reads the row's value from
+    // (`useObjectGridCell` falls back to it whenever a field declares no `value` of its own), so
+    // nothing here needs to derive one.
     const computedFieldObjects = computed(() => {
         const result = [];
         for (const field of options.extraFieldObjects || []) {
-            result.push(translateExpandedField(field));
+            result.push(field);
         }
         for (const field of calculatedDisplayFields.value) {
             if (effectiveColumns.value.includes(field.name)) {
-                result.push(translateExpandedField(field));
+                result.push(field);
             }
         }
         return result;
@@ -1014,8 +1109,12 @@ export function useViewList(options) {
     });
 
     watch(
-        calculatedDisplayFields,
-        (newFields, oldFields) => {
+        [calculatedDisplayFields, () => modelConfig.loading, appRef, modelRef],
+        ([newFields], oldValues) => {
+            if (modelConfig.loading !== false) {
+                return;
+            }
+            const oldFields = oldValues?.[0] || [];
             if (!isInitialized.columns) {
                 // Empty only while there are no display fields yet, which is not a choice to record:
                 // leave the flag down so the next fields to arrive still seed the selection.
@@ -1037,9 +1136,16 @@ export function useViewList(options) {
         { immediate: true, deep: true },
     );
     watch(
-        [toRef(sorting.state, "sortables"), toRef(modelConfig, "loading"), () => route.query[ORDERING_PARAM]],
+        [
+            toRef(sorting.state, "sortables"),
+            toRef(modelConfig, "loading"),
+            () => route.query[ORDERING_PARAM],
+            ownsRoute,
+            appRef,
+            modelRef,
+        ],
         ([sortables, modelConfigLoading, querySorting]) => {
-            if (modelConfigLoading !== false || !Array.isArray(sortables)) {
+            if (!ownsRoute.value || modelConfigLoading !== false || !Array.isArray(sortables)) {
                 return;
             }
             if (!isInitialized.sort) {
@@ -1113,17 +1219,13 @@ export function useViewList(options) {
                 router.replace({ query: canonicalQuery });
             }
         },
-        // No `deep`: this watch only needs to run when `sortables`, `modelConfig.loading`,
-        // or `route.query[ORDERING_PARAM]`'s value actually changes. The post-init logic
-        // above is idempotent (guarded by `isEqual` checks), so a rerun triggered by an
-        // unrelated navigation that leaves all three values unchanged would be a no-op
-        // anyway; skipping it outright just avoids the redundant work.
+        // Only metadata, target, ownership, and the ordering query can change the active sort.
         { immediate: true },
     );
     watch(
         columns,
         (newColumns) => {
-            if (!isInitialized.columns) {
+            if (!isInitialized.columns || resettingTarget.value || !ownsRoute.value || modelConfig.loading !== false) {
                 return;
             }
             const fieldNames = calculatedDisplayFields.value.map((field) => field?.name);
@@ -1138,6 +1240,39 @@ export function useViewList(options) {
             value: field.name,
         }));
     });
+
+    const resetTarget = () => {
+        resettingTarget.value = true;
+        restoreStoredPreferences = isEmpty(route.query);
+        isInitialized.sort = false;
+        isInitialized.columns = false;
+        isInitialized.filters = false;
+        warnedUnsupportedFilters.clear();
+        selectedObjects.value = [];
+        columns.value = [];
+        addedFilters.value = [];
+        hiddenFilterParams.value = {};
+        sortIsChosen.value = false;
+        sorting.state.sorted = [];
+        mobileSortDrawerVisible.value = false;
+        listSearch.value = null;
+        listState.search = "";
+        listState.currentPage = 1;
+        const stored = restoreStoredPreferences ? listPreferenceStore.getPerPage(preferenceArgs()) : null;
+        const pageSizes = options.pageSizeOptions?.length ? options.pageSizeOptions : DEFAULT_PAGE_SIZE_OPTIONS;
+        listState.perPage = pageSizes.includes(stored) ? stored : (options.defaultPageSize ?? DEFAULT_PAGE_SIZE);
+        showingAllPages.value = listState.perPage === ALL_PAGES;
+        assignReactiveObject(listState.params, options.params || {}, [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM]);
+        if (!showingAllPages.value) {
+            listState.params[PAGE_SIZE_PARAM] = listState.perPage;
+        }
+        instanceList.clearError();
+        instanceList.clearList();
+        // Let parameter and metadata watchers settle before permitting another list request.
+        nextTick(() => {
+            resettingTarget.value = false;
+        });
+    };
 
     const paginateInfo = computed(() => instanceList.state.paginateInfo);
 

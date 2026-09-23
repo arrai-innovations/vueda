@@ -102,7 +102,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @typedef {object} DetailViewInstanceGroup
  *
  * @property {boolean} validAndActive - True when the component is mounted and all required props are set and model config has loaded.
- * @property {string} titleStr - Formatted page title derived from the view name and model verbose name.
+ * @property {string} titleStr - Formatted page title derived from the view name and model verbose name. Empty until the verbose name is known.
  * @property {boolean} pageLoading - Combined loading state (model config + instance fetch).
  * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
  * @property {object} computedWidgetProps - Merged widget props (explicit overrides + calculated object data).
@@ -110,6 +110,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
  * @property {object} combinedFormProps - Merged FormModel props (model-config defaults overridden by explicit `formProps`).
+ * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
  */
 
 /**
@@ -171,11 +172,12 @@ export function useDetailView(options, formInitialValue) {
     );
 
     const capitalizedViewName = computed(() => memoizedStartCase(options.viewName));
-    const titleStr = computed(
-        () =>
-            `${capitalizedViewName.value} ${memoizedStartCase(modelConfig.config?.verboseName)}` ||
-            `${capitalizedViewName.value} Item`,
-    );
+    // Empty until the model's verbose name is known, so PageTitle shows a skeleton instead of a
+    // guessed label. A skeleton that never resolves points at the missing model config.
+    const titleStr = computed(() => {
+        const verboseName = memoizedStartCase(modelConfig.config?.verboseName);
+        return verboseName ? `${capitalizedViewName.value} ${verboseName}` : "";
+    });
 
     const fetchFields = computed(() => options.fetchFields ?? modelConfig.config?.fetchFields);
     const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
@@ -255,6 +257,17 @@ export function useDetailView(options, formInitialValue) {
         return (filteredActions.actions || []).filter((n) => objectAvailableActions?.includes(n));
     });
 
+    // Whether the fetched object itself permits the current view's action, independent of
+    // whether the model allows it in general. Optimistic (true) until the object has loaded,
+    // so the view does not flash an unavailable state while the initial fetch is in flight.
+    const currentActionAvailable = computed(() => {
+        const object = instanceObject.state.object;
+        if (!object) return true;
+        const objectAvailableActions = object.available_actions;
+        if (!objectAvailableActions) return true;
+        return objectAvailableActions.includes(getActionName(options.viewName));
+    });
+
     const availableTransitions = computed(() => instanceObject.state.object?.valid_transitions?.map((t) => t.code));
 
     const detailActions = computed(() =>
@@ -264,8 +277,11 @@ export function useDetailView(options, formInitialValue) {
         }),
     );
 
+    // Non-detail actions (such as `create` and `list`) act on the model, not this object, so
+    // they come from the model-level action list. The server omits `create` from an object's
+    // `available_actions`, so filtering through it would hide the page-title Create link.
     const nonDetailActions = computed(() =>
-        availableActions.value.filter((n) => {
+        (filteredActions.actions || []).filter((n) => {
             const a = modelConfig.config?.actionDetails?.[n];
             return a && getActionName(options.viewName) !== n && !a.detail;
         }),
@@ -295,6 +311,7 @@ export function useDetailView(options, formInitialValue) {
             combinedErrored,
             combinedWhileText,
             combinedFormProps,
+            currentActionAvailable,
         }),
         actions: reactive({
             nonDetailActions,

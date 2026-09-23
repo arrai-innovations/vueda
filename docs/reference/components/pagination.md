@@ -154,7 +154,7 @@ Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:Pagination
   <DemoCard title="PaginationMeta" description="(mono supporting-text summary)">
     <div class="flex flex-col gap-2">
       <PaginationMeta>142 invoices</PaginationMeta>
-      <PaginationMeta>1–25 of 142 · page 1 of 6</PaginationMeta>
+      <PaginationMeta>Showing 1 to 25 of 142 · Page 1 of 6</PaginationMeta>
     </div>
     <template #footer>
       <span>mono, <code>--vueda-text-supporting</code>, <code>--muted-foreground</code></span>
@@ -165,7 +165,7 @@ Theme keys: {@api theme-key:NavigationPaginationBar}, {@api theme-key:Pagination
     <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip">
       <div class="px-3 py-6 text-center text-sm text-muted-foreground">grid / table body</div>
       <PaginationBar>
-        <PaginationMeta>1–25 of 142 · page 1 of 6</PaginationMeta>
+        <PaginationMeta>Showing 1 to 25 of 142 · Page 1 of 6</PaginationMeta>
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
             Rows

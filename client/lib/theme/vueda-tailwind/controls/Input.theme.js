@@ -14,7 +14,7 @@ patchTheme({
      * read-only and disabled states.
      */
     Input: {
-        /** The single-line input shell and the reference recipe for the input-shaped family. Carbon-style field edge: a `bg-field` fill on a bottom-only `field-line` at rest, a `hover:bg-field-hover` step, the full four-sided hairline restored on focus and invalid with the system focus-ring contract, control-height tier from `base.css § Control sizing`, and the cross-cutting `aria-invalid` swap that paints `--destructive` on the border and ring. Read-only drops the fill and softens the line to `--border`, so a read-only field reads as display rather than editable; the file-picker variant (`<input type=file>`) inherits `file:` classes so a bare file input reads as the same chip family as a button. */
+        /** The single-line input shell and the reference recipe for the input-shaped family. Carbon-style field edge: a `bg-field` fill on a bottom-only `field-line` at rest, a `hover:bg-field-hover` step, the same bottom-only line recoloured to `--ring` on focus, `--warning` under `data-warning`, and `--destructive` on invalid while the separate focus ring carries the full perimeter, control-height tier from `base.css § Control sizing`, and the cross-cutting `aria-invalid` swap that paints `--destructive` on the border and ring. Read-only drops the fill and softens the line to `--border`, so a read-only field reads as display rather than editable; the file-picker variant (`<input type=file>`) inherits `file:` classes so a bare file input reads as the same chip family as a button. */
         root: {
             class: [
                 // Text selection and surface.
@@ -35,8 +35,9 @@ patchTheme({
                 "disabled:[-webkit-text-fill-color:var(--disabled-foreground)]",
 
                 // Focus and invalid states.
-                "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow",
-                "aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
                 "read-only:bg-transparent read-only:hover:bg-transparent read-only:hairline-border read-only:cursor-default",
             ],
         },

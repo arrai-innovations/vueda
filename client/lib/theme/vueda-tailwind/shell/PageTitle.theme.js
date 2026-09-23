@@ -40,13 +40,21 @@ patchTheme({
         titleWrapper: {
             class: ["flex flex-col gap-1", "min-w-min"],
         },
-        /** Baseline-aligned row that holds the title. Wraps on narrow viewports. */
+        /** Row that keeps the title and its reserved loading indicator together. Its minimum height matches a standard control, so adding page actions does not increase the header height. The title text can wrap within the row. */
         titleRow: {
-            class: ["flex items-baseline flex-wrap gap-2"],
+            class: ["flex min-h-vueda-control items-center gap-2"],
         },
         /** The page `<h1>`. Display-role type: 22 px / 600 / 1.2 with a small negative tracking so the title reads as the highest-rank text on the page. */
         title: {
             class: ["text-[22px] font-semibold leading-[1.2] tracking-[-0.005em]"],
+        },
+        /** Placeholder shown in place of the `<h1>` while the active view has registered an empty title. Sized to one line of the display-role title. */
+        titleSkeleton: {
+            class: ["h-[26px] w-48"],
+        },
+        /** Permanent space beside the title for the loading indicator, keeping the header stable when loading toggles. */
+        loading: {
+            class: ["flex size-5 shrink-0 items-center justify-center text-base"],
         },
         /** Page-action zone on the right of the title row. `PageActions` in the active view teleports its buttons here. Wraps so a long action list folds onto a second line instead of crowding the title. */
         buttons: {

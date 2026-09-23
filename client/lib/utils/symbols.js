@@ -6,6 +6,9 @@
 /** @type {symbol} Injection key for the field context provided by a field component. */
 export const FieldContextSymbol = Symbol("fieldContext");
 
+/** @type {symbol} Injection key for whether an inline field set's rows are visible, provided by `useFieldSetInline`. */
+export const FieldSetContentVisibleSymbol = Symbol("fieldSetContentVisible");
+
 /** @type {symbol} Injection key for the form context provided by a form composable. */
 export const FormContextSymbol = Symbol("formContext");
 

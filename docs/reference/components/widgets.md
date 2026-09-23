@@ -7,8 +7,12 @@ type: reference
 
 <script setup>
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
+import WidgetDuration from "@vueda/widgets/WidgetDuration.vue";
 import WidgetTimeRangeField from "@vueda/widgets/WidgetTimeRangeField.vue";
+import { ref } from "vue";
 import { SHOWCASE_FIELD_TYPES } from "../../.vitepress/theme/fixtures/showcaseFieldTypes.js";
+
+const duration = ref({ days: 1, hours: 2, minutes: 30, seconds: 0 });
 </script>
 
 # Form Widgets
@@ -55,6 +59,53 @@ widgets render two segment groups and a separator in one shell.
 </VuedaDemo>
 </ClientOnly>
 
+### Read-only dates
+
+A read view, a computed field, or a read-only model config renders a field
+without its editing controls. Date, time, and datetime fields then select
+{@api vue:component:WidgetDateTimeReadOnly} rather than the plain
+{@api vue:component:WidgetReadOnly}, so the value reads as a formatted date
+instead of the raw string the server sent. The display options come from
+`readOnlyWidgetProps` in `fieldMappings.js`, which carry the same values as the
+`columnProps` a list column uses, so the same field reads the same way in a list
+and on a read view. An empty date renders the same dash both places.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['releaseDate', 'publishedAt', 'opensAt']"
+    :initial-values="{ releaseDate: '2026-06-01', publishedAt: '2026-08-25T17:21:56.906248Z', opensAt: '09:30:00' }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Release date: <code>showTime: false</code>, so the time is left off</span>
+    <span>Published at: <code>showTime: true</code>, with the relative time on hover</span>
+    <span>Opens at: <code>format: "t"</code>, and no relative text, which would reference today and mislead</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+An empty date is the case the raw string handled worst: it rendered a label with
+nothing beside it.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['releaseDate', 'publishedAt']"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>empty dates render the {@api theme-key:DateTimeDisplay} <code>dash</code> slot, matching a list cell</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 <VuedaDemo>
   <DemoCard title="Time range: invalid">
     <WidgetTimeRangeField :model-value="{ lower: '17:00:00', upper: '09:00:00' }" invalid />
@@ -69,8 +120,9 @@ widgets render two segment groups and a separator in one shell.
 
 A duration is stored as one value and entered through one spinner per time unit,
 rather than as an interval string. The widget shows minutes only by default; the
-`showDays`, `showHours`, and `showSeconds` props add the rest. The spinners carry
-an `aria-label` for their unit but print no visible one.
+`showDays`, `showHours`, and `showSeconds` props add the rest. Each spinner has
+a visible unit label; clicking it focuses that input. Style the labels through
+the {@api theme-key:WidgetDuration} `unitLabel` slot.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -88,12 +140,56 @@ an `aria-label` for their unit but print no visible one.
 </VuedaDemo>
 </ClientOnly>
 
+<VuedaDemo>
+  <DemoCard title="All duration units">
+    <WidgetDuration v-model="duration" show-days show-hours show-seconds />
+    <template #footer>
+      <span>Each enabled unit has its own label and input; segments wrap when space is limited.</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+### Read-only durations
+
+Read-only duration fields select {@api vue:component:WidgetDurationReadOnly},
+which names the units the value holds instead of printing the interval the server
+sent. A `DurationField` sends `2 08:00:00`; the read row says "2 days, 8 hours". A
+`DurationSecondsField` sends a plain number of seconds, and the same widget reads
+it. Units holding zero are left out, and an empty value renders the same dash an
+empty date does. A list cell uses {@api vue:component:ColumnDuration}, which wraps
+the same display, so one field reads one way in both places.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['leadTime']"
+    :initial-values="{ leadTime: '2 08:00:00' }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Lead time: the stored <code>2 08:00:00</code> reads as named units, and a zero unit is left out rather than printed</span>
+    <span>a duration of zero still names its smallest unit, because a recorded zero is not the same as no value</span>
+    <span>theme key: {@api theme-key:DurationDisplay}, whose <code>dash</code> slot holds the empty value</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 ## Choice
 
 Choices reach three different widgets. A single choice renders a select, which
 the [CRUDL Views](/reference/components/views-crudl) demos already show. The two
 below are the cases those demos never reach: a many-valued choice, and a boolean
 that carries labels for its two states.
+
+{@api vue:component:WidgetSelectDropdown} treats empty-string, `null`, and
+`undefined` choices as no selection and omits them from the menu. Unless an
+explicit `placeholder` is supplied, it uses the first empty choice's label as
+the placeholder. Values `false` and `0` remain ordinary choices. Clear an active
+filter with its Remove control; in a custom form, reset the bound value to clear
+the selection.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -122,6 +218,35 @@ that carries labels for its two states.
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>Metadata: <code>JSONField</code> / <code>JSONField</code> selects {@api vue:component:WidgetJson}</span>
     <span>theme key: {@api theme-key:WidgetJson}</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+### Read-only JSON
+
+Read-only `JSON` fields select {@api vue:component:WidgetJsonReadOnly}, which
+indents the payload over several lines in the mono stack rather than printing it
+on one. A list cell has no room for that, so {@api vue:component:ColumnJson}
+renders the same value compact and truncates it past 200 characters. Both print
+the same `JSON` and give a null value the same dash an empty date gets.
+
+An empty object or array is a recorded value, so it reads as `{}` or `[]`. Only a
+null takes the dash.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <DemoFormModel
+    :app="SHOWCASE_FIELD_TYPES.app"
+    :model="SHOWCASE_FIELD_TYPES.model"
+    view="read"
+    view-theme="ViewRead"
+    :fields="['metadata']"
+    :initial-values="{ metadata: { sku: 'BRG-6204', revision: 3, channels: ['direct', 'partner'] } }"
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>Metadata: the nesting is indented two spaces per level, and a long string value wraps rather than widening the row</span>
+    <span>size and leading are inherited, so the block keeps the read row's rhythm and a grid cell still follows <code>data-density</code></span>
+    <span>theme key: {@api theme-key:JsonDisplay}, whose <code>dash</code> slot holds the empty value</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>

@@ -14,7 +14,7 @@ import ActionForm from "@vueda/views/ActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
-import { computed, inject, provide, ref, unref, useSlots } from "vue";
+import { computed, inject, provide, ref, unref, useSlots, watch } from "vue";
 
 /**
  * Wraps `ActionForm` to execute a named action (such as delete or a custom
@@ -169,6 +169,7 @@ if (!injectedFormContext) {
 }
 
 const modelAction = useModelAction(props);
+const modelConfig = modelAction.modelConfig;
 const {
     pksAsString,
     pkCount,
@@ -190,6 +191,12 @@ const icon = useIcons("ModelActionForm", props);
 const slots = useSlots();
 
 const typedConfirmInput = ref("");
+watch(dryRunTarget, () => {
+    typedConfirmInput.value = "";
+    if (!injectedFormContext) {
+        formContext.reset();
+    }
+});
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
 
@@ -322,6 +329,7 @@ const resolveWarningGroups = (warnings, bulk) => {
                                 >
                                     <form-field
                                         :field-value="targetPk"
+                                        :hide-label="true"
                                         :label="targetPk"
                                         :name="targetPk"
                                         :read-only="true"
@@ -329,7 +337,6 @@ const resolveWarningGroups = (warnings, bulk) => {
                                         <widget-read-only
                                             :app="app"
                                             :foreign-key-obj="objectsMap.get(targetPk)"
-                                            :hidden="true"
                                             :invalid="false"
                                             :loading="combinedLoading"
                                             :model="model"
@@ -401,8 +408,11 @@ const resolveWarningGroups = (warnings, bulk) => {
                             </template>
                         </widget-read-only>
                     </div>
-                    <field-warnings-list :messages="group.fieldMessages">
-                        <!-- @slot [warning-entry] Override one warned object's field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`) plus `pk`. -->
+                    <field-warnings-list
+                        :messages="group.fieldMessages"
+                        :field-details="modelConfig?.config?.fieldDetails"
+                    >
+                        <!-- @slot [warning-entry] Override one warned object's field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `label`, `messages`) plus `pk`. -->
                         <template v-if="$slots['warning-entry']" #entry="entrySlotProps">
                             <slot name="warning-entry" v-bind="{ ...entrySlotProps, pk: group.pk }" />
                         </template>

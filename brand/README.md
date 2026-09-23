@@ -18,6 +18,12 @@ both modes through `--vueda-brand-blue` and `--primary` in
 (`#e5e5e5`) supply the supporting palette. Readable blue text uses a
 separate derived token; it does not change the identity blue.
 
+The hexadecimal values above are the canonical **sRGB** colours. Derive
+RGB and CSS OKLCH values from them, rather than sampling a rendered PDF
+or converting the guide's print specifications. See the
+[colour audit](color-audit.md) for conversions, PDF corrections, and the
+distinction between digital colours and CMYK/Pantone print references.
+
 ## Mark and wordmark
 
 Source materials for the VUEDA mark, the wordmark, and the Arrai

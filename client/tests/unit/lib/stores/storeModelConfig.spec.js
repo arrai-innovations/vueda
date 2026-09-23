@@ -178,11 +178,11 @@ const dummyModelInfo = {
         },
     ],
     ordering: {
-        default: ["week_start", "employee__last_name"],
+        default: ["week_start", "employee.last_name"],
         fields: [
             { name: "week_start", type: "date", ascending: false },
-            { name: "employee__last_name", type: "alpha", ascending: true },
-            { name: "employee__first_name", type: "alpha" },
+            { name: "employee.last_name", type: "alpha", ascending: true },
+            { name: "employee.first_name", type: "alpha" },
         ],
     },
     filtering: {
@@ -244,6 +244,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.verboseNamePlural).toBe("timesheets");
             expect(config.displayFields).toEqual(["name", "description"]);
             expect(config.fetchFields).toEqual(["name", "description"]);
+            expect(config.detailLinkField).toBeNull();
             expect(config.submitFields).toEqual(["name", "description"]);
 
             expect(config.expand).toEqual(["employee", "timesheet_days"]);
@@ -268,8 +269,8 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             // Filtering and ordering
             expect(config.filterables).toEqual(["name"]);
-            expect(config.sortables).toEqual(["week_start", "employee__last_name", "employee__first_name"]);
-            expect(config.sorted).toEqual(["-week_start", "employee__last_name"]);
+            expect(config.sortables).toEqual(["week_start", "employee.last_name", "employee.first_name"]);
+            expect(config.sorted).toEqual(["-week_start", "employee.last_name"]);
 
             // Column totals: the names a list request may ask for. The parameter that asks is a
             // client constant, not part of the config built from model info.
@@ -280,13 +281,13 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.fieldDetails).toHaveProperty("description");
 
             expect(config.fieldDetails).toHaveProperty("employee");
-            expect(config.fieldDetails).toHaveProperty("employee__id");
-            expect(config.fieldDetails).toHaveProperty("employee__username");
-            expect(config.fieldDetails).toHaveProperty("employee__email");
+            expect(config.fieldDetails).toHaveProperty("employee.id");
+            expect(config.fieldDetails).toHaveProperty("employee.username");
+            expect(config.fieldDetails).toHaveProperty("employee.email");
 
             expect(config.fieldDetails).toHaveProperty("timesheet_days");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days__id");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days__day");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.id");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
 
             expect(config.expandDetails).toHaveProperty("employee");
             expect(config.expandDetails).toHaveProperty("timesheet_days");
@@ -431,18 +432,18 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
             customModelInfo.ordering = {
-                default: ["employee__first_name", "week_start"],
+                default: ["employee.first_name", "week_start"],
                 fields: [
                     { name: "week_start", type: "date", ascending: false },
-                    { name: "employee__first_name", type: "alpha", ascending: true },
-                    { name: "employee__last_name", type: "alpha" },
+                    { name: "employee.first_name", type: "alpha", ascending: true },
+                    { name: "employee.last_name", type: "alpha" },
                 ],
             };
             mockedFetchModelInfo.mockResolvedValue(customModelInfo);
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             // Priority order follows `default`; direction follows each field's `ascending`.
-            expect(config.sorted).toEqual(["employee__first_name", "-week_start"]);
+            expect(config.sorted).toEqual(["employee.first_name", "-week_start"]);
         });
 
         scopedIt(
@@ -455,16 +456,16 @@ describe("lib/stores/storeModelConfig.js", () => {
 
                 const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
                 customModelInfo.ordering = {
-                    default: ["employee__last_name"],
+                    default: ["employee.last_name"],
                     // `ascending` is only ever omitted by the server for fields that aren't
                     // in `default`; a `default` entry missing it is a server contract bug.
-                    fields: [{ name: "employee__last_name", type: "alpha" }],
+                    fields: [{ name: "employee.last_name", type: "alpha" }],
                 };
                 mockedFetchModelInfo.mockResolvedValue(customModelInfo);
 
                 const config = await store.getConfig({ app: "testApp", model: "testModel" });
-                expect(config.sorted).toEqual(["employee__last_name"]);
-                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("employee__last_name"));
+                expect(config.sorted).toEqual(["employee.last_name"]);
+                expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("employee.last_name"));
 
                 consoleError.mockRestore();
             },
@@ -518,6 +519,17 @@ describe("lib/stores/storeModelConfig.js", () => {
     });
 
     describe("setConfig and config merging", () => {
+        scopedIt.each(["name", null])("lets the list override the generic detailLinkField with %s", async (value) => {
+            const store = storeModelConfig();
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { detailLinkField: "description" },
+                { list: { detailLinkField: value } },
+            );
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.detailLinkField).toBe(value);
+        });
+
         scopedIt("applies generic custom config overrides", async () => {
             const store = storeModelConfig();
             // Clear caches
@@ -644,7 +656,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                     },
                 },
                 fieldDetails: {
-                    employee__username: { placeholder: "Enter username" },
+                    "employee.username": { placeholder: "Enter username" },
                 },
             };
             const customSpecificConfig = {
@@ -657,7 +669,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                     },
                 },
                 fieldDetails: {
-                    employee__username: { placeholder: "Specific placeholder" },
+                    "employee.username": { placeholder: "Specific placeholder" },
                 },
             };
 
@@ -669,8 +681,8 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             expect(config.expandDetails.employee.extra).toBe("specific");
 
-            expect(config.fieldDetails["employee__username"].label).toBe("Specific Username");
-            expect(config.fieldDetails["employee__username"].placeholder).toBe("Specific placeholder");
+            expect(config.fieldDetails["employee.username"].label).toBe("Specific Username");
+            expect(config.fieldDetails["employee.username"].placeholder).toBe("Specific placeholder");
         });
 
         scopedIt("supports null specific config entries", async () => {
@@ -728,7 +740,203 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             expect(config.fieldDetails).toHaveProperty("employee");
-            expect(config.fieldDetails).not.toHaveProperty("employee__id");
+            expect(config.fieldDetails).not.toHaveProperty("employee.id");
+        });
+    });
+
+    describe("submitFields validation", () => {
+        scopedIt("rejects a submitFields entry that names an expand-flattened display field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { submitFields: ["name", "employee.username"] });
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
+                /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,
+            );
+        });
+
+        scopedIt("drops an expand-flattened field the fields shorthand names, rather than rejecting", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.fetchFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a list config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("builds a read config from a fields shorthand naming an expand-flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "read" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+
+        scopedIt("still rejects an explicitly declared submitFields entry naming a flattened field", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { fields: ["name"], submitFields: ["name", "employee.username"] },
+            );
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
+                /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,
+            );
+        });
+
+        scopedIt("allows the same expand-flattened field in displayFields and fetchFields", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    displayFields: ["name", "employee.username"],
+                    fetchFields: ["name", "employee.username"],
+                    submitFields: ["name"],
+                },
+            );
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.displayFields).toEqual(["name", "employee.username"]);
+            expect(config.fetchFields).toEqual(["name", "employee.username"]);
+            expect(config.submitFields).toEqual(["name"]);
+        });
+    });
+
+    describe("per-view field defaults", () => {
+        // A workflow model as model info reaches the store: camelCased, with server-maintained
+        // fields read-only and the server's `listDefault: false` on columns a list leaves out.
+        const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
+        const workflowModelInfo = {
+            ...dummyModelInfo,
+            fields: {
+                id: field("ID", { readOnly: true, pk: true }),
+                formatted_name: field("Formatted Name", { readOnly: true, hidden: true }),
+                reference: field("Reference", { required: true }),
+                order_date: field("Order Date"),
+                total_value: field("Total Value", { readOnly: true }),
+                workflow_state_code: field("Workflow State Code", { readOnly: true, listDefault: false }),
+                workflow_state_name: field("Workflow State Name", { readOnly: true }),
+                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, listDefault: false }),
+                created_at: field("Created At", { readOnly: true, listDefault: false }),
+                updated_at: field("Updated At", { readOnly: true, listDefault: false }),
+            },
+        };
+        const allFields = [
+            "reference",
+            "order_date",
+            "total_value",
+            "workflow_state_code",
+            "workflow_state_name",
+            "valid_transitions",
+            "created_at",
+            "updated_at",
+        ];
+        const writableFields = ["reference", "order_date"];
+        const listColumns = ["reference", "order_date", "total_value", "workflow_state_name"];
+
+        beforeEach(() => {
+            mockedFetchModelInfo.mockResolvedValue(workflowModelInfo);
+        });
+
+        const getConfig = (view, genericConfig, specificConfigs) => {
+            const store = storeModelConfig();
+            if (genericConfig || specificConfigs) {
+                store.setConfig({ app: "testApp", model: "testModel" }, genericConfig || {}, specificConfigs);
+            }
+            return store.getConfig({ app: "testApp", model: "testModel", view });
+        };
+
+        scopedIt("defaults a create form to writable fields", async () => {
+            const config = await getConfig("create");
+            expect(config.displayFields).toEqual(writableFields);
+            expect(config.submitFields).toEqual(writableFields);
+        });
+
+        scopedIt("defaults an update form to every field but submits only writable ones", async () => {
+            const config = await getConfig("update");
+            expect(config.displayFields).toEqual(allFields);
+            expect(config.fetchFields).toEqual(allFields);
+            expect(config.submitFields).toEqual(writableFields);
+        });
+
+        scopedIt("keeps every field on the read view and the view-independent config", async () => {
+            for (const view of ["read", null]) {
+                const config = await getConfig(view);
+                expect(config.displayFields).toEqual(allFields);
+                expect(config.fetchFields).toEqual(allFields);
+            }
+        });
+
+        scopedIt("defaults list columns to fields the server does not flag, and fetches only those", async () => {
+            const config = await getConfig("list");
+            expect(config.displayFields).toEqual(listColumns);
+            expect(config.displayFields).not.toEqual(
+                expect.arrayContaining(["workflow_state_code", "valid_transitions", "created_at", "updated_at"]),
+            );
+            expect(config.fetchFields).toEqual(listColumns);
+        });
+
+        scopedIt("gives a model-wide displayFields precedence over every per-view default", async () => {
+            const displayFields = ["reference", "created_at"];
+            for (const view of ["create", "list", "update"]) {
+                const config = await getConfig(view, { displayFields });
+                expect(config.displayFields).toEqual(displayFields);
+            }
+        });
+
+        scopedIt("fetches the columns an integrator names for a list when fetchFields is unset", async () => {
+            const config = await getConfig("list", {}, { list: { displayFields: ["reference", "created_at"] } });
+            expect(config.displayFields).toEqual(["reference", "created_at"]);
+            expect(config.fetchFields).toEqual(["reference", "created_at"]);
+        });
+
+        scopedIt("keeps an explicit list fetchFields", async () => {
+            const config = await getConfig("list", { fetchFields: ["reference", "workflow_state_code"] });
+            expect(config.displayFields).toEqual(listColumns);
+            expect(config.fetchFields).toEqual(["reference", "workflow_state_code"]);
+        });
+
+        scopedIt("keeps an explicit submitFields that names read-only fields", async () => {
+            const config = await getConfig("create", { submitFields: ["reference", "total_value"] });
+            expect(config.submitFields).toEqual(["reference", "total_value"]);
+        });
+
+        scopedIt("gives the fields shorthand precedence over every per-view default", async () => {
+            const fields = ["reference", "workflow_state_code"];
+            for (const view of ["create", "list"]) {
+                const config = await getConfig(view, { fields });
+                expect(config.displayFields).toEqual(fields);
+                expect(config.fetchFields).toEqual(fields);
+                expect(config.submitFields).toEqual(fields);
+            }
         });
     });
 

@@ -8,7 +8,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
-import { reactive, readonly, ref, toRef, unref, watch } from "vue";
+import { onScopeDispose, reactive, readonly, ref, toRef, unref, watch } from "vue";
 
 /**
  * The raw instance of a useModelInfo object.
@@ -51,13 +51,16 @@ export function useModelInfo(app, model, isActive) {
     // with its own seeded pinia, on one page.
     const modelInfoStore = storeModelInfo();
     const userStore = storeUser();
+    let generation = 0;
+    let disposed = false;
+    onScopeDispose(() => {
+        disposed = true;
+        generation += 1;
+    });
     const internalState = reactive({
         app,
         model,
-        lastFetchKey: null,
-        lastIdentityGeneration: userStore.identityGeneration,
-        // Set when the authenticated user changes while a fetch is in flight. That fetch is abandoned
-        // and writes nothing, so the one that settles starts another under the new user.
+        // Fetch the latest target when an earlier request settles.
         refetchOnSettle: false,
     });
     const returnObject = reactive(
@@ -84,27 +87,30 @@ export function useModelInfo(app, model, isActive) {
     );
 
     // Fetch for whatever app and model this instance holds now. The arguments are read here rather
-    // than passed in, so a refetch queued by a change of user asks for the current pair.
+    // than passed in, so a queued refetch asks for the latest target and user.
     const fetchInfo = () => {
         const app = internalState.app;
         const model = internalState.model;
-        if (!unref(isActive) || !app || !model) {
+        if (disposed || !unref(isActive) || !app || !model) {
             return; // the watch starts a fetch when that changes again
         }
+        const fetchGeneration = generation;
         loadingError.clearError();
         loadingError.setLoading();
         const args = { app, model };
         modelInfoStore
             .fetchModelInfo(args)
             .then(() => {
+                if (fetchGeneration !== generation) {
+                    return;
+                }
                 // WARNING: by assigning after awaiting, we KNOW the key is there, so there is no
                 //  reactivity issues not working when the key is not there initially
                 returnObject.info = toRef(modelInfoStore.infos, getAppModelDotName(args));
             })
             .catch((e) => {
-                if (e instanceof AuthScopeInvalidatedError) {
-                    // the authenticated user changed mid-fetch, so this response was discarded; the
-                    // refetch below asks again under the new user
+                if (fetchGeneration !== generation || e instanceof AuthScopeInvalidatedError) {
+                    // The target or authenticated user changed; the queued fetch serves the current one.
                     return;
                 }
                 loadingError.setError(e);
@@ -127,12 +133,9 @@ export function useModelInfo(app, model, isActive) {
             // the store drops its cache when the authenticated user changes, so refetch under the new one
             () => userStore.identityGeneration,
         ],
-        ([newActive, app, model, identityGeneration]) => {
-            const identityChanged = identityGeneration !== internalState.lastIdentityGeneration;
-            internalState.lastIdentityGeneration = identityGeneration;
-            if (identityChanged && returnObject.loading) {
-                // Queue the replacement even while inactive. Reactivation can happen before the
-                // abandoned request settles, when the loading guard still prevents a fetch.
+        ([newActive, app, model]) => {
+            generation += 1;
+            if (returnObject.loading) {
                 internalState.refetchOnSettle = true;
             }
             if (!newActive) {
@@ -144,7 +147,6 @@ export function useModelInfo(app, model, isActive) {
             }
             // we don't need to check if app and model have changed, vue does that checking for us
             //  on immutable primitive values
-            // todo: we could look at implementing cancelling of fetches if the app/model changes while loading
             if (returnObject.loading) {
                 return;
             }

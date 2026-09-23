@@ -97,6 +97,32 @@
  * directional strokes (e.g. top+bottom+right only), use the `border-*-hairline`
  * utilities below instead, which set `border-*-width` to the same DPR-keyed
  * token. Cannot mix `hairline` and `border-*` on the same element. */
+
+/* The edge, focus, and elevation vars below do not inherit. Each is set by a
+ * utility and read by the box-shadow on the same element. Inherited, a
+ * container's value would reach every descendant that reads the var: a card's
+ * `hairline-border` would recolour the `field-line` of each field inside it,
+ * and a wrapper's `focus-within:focus-ring-shadow` would ring each `hairline`
+ * child. With no `initial-value`, an element that does not set the var itself
+ * sees it as unset, so its `var()` fallback applies.
+ * `--vueda-focus-ring-gap-color` still inherits, because it is a documented
+ * per-surface override set on containers. */
+@property --vueda-hairline-color {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-hairline-shadow {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-focus-shadow {
+    syntax: "*";
+    inherits: false;
+}
+@property --vueda-overlay-elevation {
+    syntax: "*";
+    inherits: false;
+}
 @utility hairline {
     --vueda-hairline-shadow: inset 0 0 0 var(--vueda-hairline-width) var(--vueda-hairline-color, var(--input));
     box-shadow: var(--vueda-hairline-shadow), var(--vueda-focus-shadow, 0 0 0 0 transparent);
@@ -116,6 +142,9 @@
 @utility hairline-foreground {
     --vueda-hairline-color: var(--foreground);
 }
+@utility hairline-warning {
+    --vueda-hairline-color: var(--warning);
+}
 @utility hairline-destructive {
     --vueda-hairline-color: var(--destructive);
 }
@@ -130,9 +159,10 @@
  * hairline at `--field-line`, the paper-form "write on this line" cue. It
  * writes the same `--vueda-hairline-shadow` and box-shadow pair as `hairline`,
  * so `focus-ring-shadow` still composes on top, and a `hairline-*` colour
- * utility still recolours it (e.g. `read-only:hairline-border`). Field recipes
- * restore the four-sided `hairline` on focus and invalid so those states keep a
- * full edge. */
+ * utility still recolours it (e.g. `read-only:hairline-border`). Focus and
+ * invalid keep the bottom-only shape and recolour the line instead
+ * (`focus-visible:hairline-ring`, `aria-invalid:hairline-destructive`), so the
+ * separate focus ring stays the only full-perimeter mark on a field. */
 @utility field-line {
     --vueda-hairline-shadow: inset 0 calc(-1 * var(--vueda-hairline-width)) 0 0
         var(--vueda-hairline-color, var(--field-line));
@@ -415,16 +445,20 @@
     /* ---------- Color palette: light ----------
      * Fixed identity colours with supporting mixes. Primary fills and
      * readable primary text have separate roles in both modes. */
-    --vueda-brand-blue: #0077f7; /* identity blue inherited from Arrai; unchanged in dark mode. */
-    --vueda-brand-navy: #001c30; /* identity dark blue; the dark page surface and light text colour. */
-    --vueda-brand-grey: #e5e5e5; /* identity grey; dark body text and light supporting surfaces. */
+    --vueda-brand-blue: oklch(
+        0.59053715 0.21130455 257.19718572
+    ); /* identity blue inherited from Arrai; unchanged in dark mode. */
+    --vueda-brand-navy: oklch(
+        0.21742541 0.05238341 242.80769382
+    ); /* identity dark blue; the dark page surface and light text colour. */
+    --vueda-brand-grey: oklch(0.92190602 0 0); /* identity grey; dark body text and light supporting surfaces. */
 
     /* Surfaces */
-    --background: #ffffff; /* page surface. */
+    --background: oklch(1 0 0); /* page surface. */
     --foreground: var(--vueda-brand-navy); /* default text on the page. */
-    --card: #ffffff; /* card surface, separated by an edge rather than elevation. */
+    --card: oklch(1 0 0); /* card surface, separated by an edge rather than elevation. */
     --card-foreground: var(--foreground); /* text on a card. */
-    --popover: #ffffff; /* floating menus, popovers, and command lists. */
+    --popover: oklch(1 0 0); /* floating menus, popovers, and command lists. */
     --popover-foreground: var(--foreground); /* text on a floating surface. */
 
     /* Brand fills retain the canonical blue. Text adjusts independently. */
@@ -432,10 +466,10 @@
     --primary-foreground: color-mix(
         in srgb,
         var(--vueda-brand-navy) 50%,
-        black
+        oklch(0 0 0)
     ); /* dark labels on primary fills in both modes. */
-    --primary-hover: color-mix(in srgb, var(--primary) 90%, white); /* primary fill on hover. */
-    --primary-active: color-mix(in srgb, var(--primary) 82%, white); /* primary fill when pressed. */
+    --primary-hover: color-mix(in srgb, var(--primary) 90%, oklch(1 0 0)); /* primary fill on hover. */
+    --primary-active: color-mix(in srgb, var(--primary) 82%, oklch(1 0 0)); /* primary fill when pressed. */
     --primary-text: color-mix(
         in srgb,
         var(--primary) 72%,
@@ -448,7 +482,7 @@
     ); /* pressed primary link text. */
 
     /* Supporting surfaces derive from the brand grey and navy. */
-    --secondary: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* neutral filled controls. */
+    --secondary: color-mix(in srgb, var(--vueda-brand-grey) 36%, oklch(1 0 0)); /* neutral filled controls. */
     --secondary-foreground: var(--foreground); /* text on secondary fills. */
     --secondary-hover: var(--vueda-brand-grey); /* secondary fill on hover. */
     --secondary-active: color-mix(
@@ -456,8 +490,12 @@
         var(--vueda-brand-grey) 88%,
         var(--vueda-brand-navy)
     ); /* pressed secondary fill. */
-    --muted: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* subdued supporting surfaces. */
-    --muted-foreground: color-mix(in srgb, var(--vueda-brand-navy) 68%, white); /* captions and supporting labels. */
+    --muted: color-mix(in srgb, var(--vueda-brand-grey) 36%, oklch(1 0 0)); /* subdued supporting surfaces. */
+    --muted-foreground: color-mix(
+        in srgb,
+        var(--vueda-brand-navy) 68%,
+        oklch(1 0 0)
+    ); /* captions and supporting labels. */
     --accent: var(--vueda-brand-grey); /* menu hover and toggle selection; rows use half strength. */
     --accent-foreground: var(--foreground); /* text on neutral hover and selection surfaces. */
     --accent-active: color-mix(
@@ -468,39 +506,43 @@
 
     /* Status colours retain their semantic roles, independent of identity. */
     --destructive: oklch(0.5 0.18 27); /* destructive actions and error text; tinted surfaces use /10. */
-    --destructive-foreground: #ffffff; /* text on a destructive fill. */
+    --destructive-foreground: oklch(1 0 0); /* text on a destructive fill. */
     --destructive-hover: oklch(0.44 0.18 27); /* destructive fill on hover. */
     --destructive-active: oklch(0.37 0.16 27); /* destructive fill when pressed. */
     --success: oklch(0.45 0.12 155); /* success text; pair with /10 surfaces and /50 edges. */
-    --success-foreground: #ffffff; /* labels on solid success fills. */
+    --success-foreground: oklch(1 0 0); /* labels on solid success fills. */
     --warning: oklch(0.49 0.12 70); /* warning text; pair with /10 surfaces and /50 edges. */
-    --warning-foreground: #ffffff; /* labels on solid warning fills. */
+    --warning-foreground: oklch(1 0 0); /* labels on solid warning fills. */
     --info: var(--primary-text); /* informational text and tints use the readable blue. */
-    --info-foreground: #ffffff; /* labels on solid informational fills. */
+    --info-foreground: oklch(1 0 0); /* labels on solid informational fills. */
 
     /* Structure and editable fields */
-    --border: color-mix(in srgb, var(--vueda-brand-navy) 14%, white); /* separators and default edges. */
+    --border: color-mix(in srgb, var(--vueda-brand-navy) 14%, oklch(1 0 0)); /* separators and default edges. */
     --border-strong: color-mix(
         in srgb,
         var(--vueda-brand-navy) 26%,
-        white
+        oklch(1 0 0)
     ); /* resting outline controls and stronger edges. */
     --input: var(--border); /* default painted input edge. */
-    --field: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* editable field fill. */
-    --field-hover: color-mix(in srgb, var(--vueda-brand-grey) 72%, white); /* editable field fill on hover. */
+    --field: color-mix(in srgb, var(--vueda-brand-grey) 36%, oklch(1 0 0)); /* editable field fill. */
+    --field-hover: color-mix(in srgb, var(--vueda-brand-grey) 72%, oklch(1 0 0)); /* editable field fill on hover. */
     --disabled: var(--vueda-brand-grey); /* inert fill replacing a disabled control's tone. */
     --disabled-foreground: color-mix(
         in srgb,
         var(--vueda-brand-navy) 44%,
-        white
+        oklch(1 0 0)
     ); /* disabled labels on filled and transparent controls. */
     --field-line: var(--muted-foreground); /* editable field's bottom edge; read-only fields use --border. */
     --ring: var(--primary-text); /* focus colour with contrast independent of the primary fill. */
     --overlay: color-mix(in srgb, var(--vueda-brand-navy) 60%, transparent); /* modal scrim in either mode. */
-    --sunken: color-mix(in srgb, var(--vueda-brand-grey) 72%, white); /* recessed code and empty-state surfaces. */
+    --sunken: color-mix(
+        in srgb,
+        var(--vueda-brand-grey) 72%,
+        oklch(1 0 0)
+    ); /* recessed code and empty-state surfaces. */
 
     /* Sidebar uses its own surface and interaction tokens. */
-    --sidebar: color-mix(in srgb, var(--vueda-brand-grey) 36%, white); /* sidebar and app chrome. */
+    --sidebar: color-mix(in srgb, var(--vueda-brand-grey) 36%, oklch(1 0 0)); /* sidebar and app chrome. */
     --sidebar-foreground: var(--foreground); /* sidebar text. */
     --sidebar-primary: var(--primary); /* brand rail and selected icon colour. */
     --sidebar-primary-foreground: var(--primary-foreground); /* labels on sidebar primary fills. */
@@ -531,8 +573,8 @@
     /* ---------- Semantic shadow tokens ----------
      * Controls and cards carry zero shadow; borders do the work. Elevation
      * is reserved for surfaces that overlay other surfaces. */
-    --vueda-shadow-control: 0 0 #0000; /* zero elevation — controls carry definition through painted edges, not shadow. */
-    --vueda-shadow-card: 0 0 #0000; /* zero elevation — cards carry definition through a 1px border, not shadow. */
+    --vueda-shadow-control: 0 0 oklch(0 0 0 / 0); /* zero elevation; controls carry definition through painted edges, not shadow. */
+    --vueda-shadow-card: 0 0 oklch(0 0 0 / 0); /* zero elevation; cards carry definition through a 1px border, not shadow. */
     --vueda-shadow-popover:
         0 0 0 1px oklch(0.2 0.01 250 / 0.08), 0 4px 12px -2px oklch(0.15 0.02 250 / 0.12); /* 1px ring plus a 12px ambient drop — applied to popover, dropdown, context menu, and combobox list surfaces. */
     --vueda-shadow-overlay:
@@ -859,8 +901,8 @@
     --popover: color-mix(in srgb, var(--vueda-brand-navy) 92%, var(--vueda-brand-grey));
     --popover-foreground: var(--foreground);
 
-    --primary-text: color-mix(in srgb, var(--primary) 68%, white);
-    --primary-text-active: color-mix(in srgb, var(--primary) 56%, white);
+    --primary-text: color-mix(in srgb, var(--primary) 68%, oklch(1 0 0));
+    --primary-text-active: color-mix(in srgb, var(--primary) 56%, oklch(1 0 0));
 
     --secondary: color-mix(in srgb, var(--vueda-brand-navy) 88%, var(--vueda-brand-grey));
     --secondary-foreground: var(--foreground);
@@ -891,11 +933,11 @@
     --disabled-foreground: color-mix(in srgb, var(--vueda-brand-grey) 44%, var(--vueda-brand-navy));
     --field-line: var(--muted-foreground);
     --ring: var(--primary-text);
-    --sunken: color-mix(in srgb, var(--vueda-brand-navy) 85%, black);
+    --sunken: color-mix(in srgb, var(--vueda-brand-navy) 85%, oklch(0 0 0));
 
-    --sidebar: color-mix(in srgb, var(--vueda-brand-navy) 65%, black);
+    --sidebar: color-mix(in srgb, var(--vueda-brand-navy) 65%, oklch(0 0 0));
     --sidebar-foreground: var(--foreground);
-    --sidebar-primary-text: color-mix(in srgb, var(--sidebar-primary) 68%, white);
+    --sidebar-primary-text: color-mix(in srgb, var(--sidebar-primary) 68%, oklch(1 0 0));
     --sidebar-accent: color-mix(in srgb, var(--vueda-brand-navy) 92%, var(--vueda-brand-grey));
     --sidebar-accent-foreground: var(--foreground);
     --sidebar-accent-active: color-mix(in srgb, var(--vueda-brand-navy) 84%, var(--vueda-brand-grey));

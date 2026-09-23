@@ -4,6 +4,30 @@
 
 Use this guide when authoring pages under `docs/`.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [Docs Contributor Guide](#docs-contributor-guide)
+  - [Frontmatter Conventions](#frontmatter-conventions)
+    - [`title`](#title)
+    - [`status`](#status)
+    - [`audience`](#audience)
+    - [`type`](#type)
+  - [Diátaxis Types](#diátaxis-types)
+  - [Generated API docs](#generated-api-docs)
+  - [Changelog authoring](#changelog-authoring)
+    - [Theming IDs](#theming-ids)
+  - [Glossary links](#glossary-links)
+  - [Verifying VuedaDemo blocks](#verifying-vuedademo-blocks)
+    - [InputOTP dependency patch](#inputotp-dependency-patch)
+  - [HTML blocks inside VuedaDemo](#html-blocks-inside-vuedademo)
+  - [Callouts](#callouts)
+  - [Backticks vs Links](#backticks-vs-links)
+  - [Wording Cases](#wording-cases)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## Frontmatter Conventions
 
 ### `title`
@@ -156,6 +180,22 @@ When you write or edit a `VuedaDemo` block, confirm correctness by:
 3. Running `just check-eslint` and `just check-prettier` to pass linting and formatting.
 
 To check the rendered result, open the page on a running docs site (`just docs-serve`). Browser automation such as screenshots or computed-style checks is fine for this.
+
+### InputOTP dependency patch
+
+The workspace applies `patches/vue-input-otp@0.3.2.patch` through pnpm so OTP
+examples work inside VuedaDemo's shadow DOM. The patch reads focus from the
+input's own DOM root, listens for selection changes in that root and its
+document, and installs the native input's selection/autofill styles once per
+root. Other demos retain the same shadow boundary and style isolation.
+
+This is a repository dependency patch, not part of the published VUEDA package.
+Consuming applications do not inherit it. Remove it once an upstream version
+supports these behaviors; the published 0.4.0 package still uses the document-only
+focus check. `InputOTP.integration.spec.js` exercises the real installed
+component in document and shadow DOM. After changing the patch, also check
+focus, arrow keys, replacement, paste, blur, and disabled examples on the inputs
+reference page in the running docs site.
 
 ## HTML blocks inside VuedaDemo
 

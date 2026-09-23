@@ -19,6 +19,57 @@ This document references token _names_ and section headers; it never
 restates values. References use the section-header form (e.g. `see base.css
 § Control sizing`) so they survive file edits.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Default Theme](#vueda-default-theme)
+  - [1. Overview](#1-overview)
+    - [1.1 Audience](#11-audience)
+    - [1.2 Posture](#12-posture)
+    - [1.3 Relationship to shadcn-vue / Reka UI](#13-relationship-to-shadcn-vue--reka-ui)
+    - [1.4 Brand lineage](#14-brand-lineage)
+  - [2. Colors](#2-colors)
+    - [2.1 Identity, surfaces, and readable text](#21-identity-surfaces-and-readable-text)
+    - [2.2 Selection vs CTA: `--accent` vs `--primary`](#22-selection-vs-cta---accent-vs---primary)
+    - [2.3 Mix recipes](#23-mix-recipes)
+    - [2.4 Status colors](#24-status-colors)
+    - [2.5 Interactive state steps](#25-interactive-state-steps)
+  - [3. Typography](#3-typography)
+    - [3.1 Scale](#31-scale)
+    - [3.2 Mono usage](#32-mono-usage)
+    - [3.3 Eyebrow micro-text](#33-eyebrow-micro-text)
+  - [4. Layout](#4-layout)
+    - [4.1 Spacing: 4px grid](#41-spacing-4px-grid)
+    - [4.2 Control sizing](#42-control-sizing)
+    - [4.3 Density](#43-density)
+    - [4.4 Sidebar](#44-sidebar)
+    - [4.5 Breakpoints](#45-breakpoints)
+    - [4.6 Motion](#46-motion)
+  - [5. Elevation](#5-elevation)
+    - [5.1 Stacking order (z-index)](#51-stacking-order-z-index)
+  - [6. Shapes: radius scale](#6-shapes-radius-scale)
+    - [6.1 Slab vs pill](#61-slab-vs-pill)
+  - [7. Hairlines and DPR](#7-hairlines-and-dpr)
+    - [7.1 Why not `border`](#71-why-not-border)
+    - [7.2 Focus ring contract](#72-focus-ring-contract)
+    - [7.3 Directional `border-*-hairline` utilities](#73-directional-border--hairline-utilities)
+    - [7.4 Floating-surface edges: `overlay-hairline`](#74-floating-surface-edges-overlay-hairline)
+    - [7.5 Editable fields: `field-line`](#75-editable-fields-field-line)
+    - [7.6 Disabled controls: `--disabled`](#76-disabled-controls---disabled)
+    - [7.7 When a real `border` is still correct](#77-when-a-real-border-is-still-correct)
+  - [8. Cross-cutting attributes](#8-cross-cutting-attributes)
+  - [9. Components](#9-components)
+    - [9.1 Theme-key class authoring: each token appears once](#91-theme-key-class-authoring-each-token-appears-once)
+    - [9.2 Button tone and emphasis: placement vs meaning](#92-button-tone-and-emphasis-placement-vs-meaning)
+  - [10. Copy voice](#10-copy-voice)
+  - [11. Iconography](#11-iconography)
+  - [12. Dos and Don'ts](#12-dos-and-donts)
+    - [Do](#do)
+    - [Don't](#dont)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## 1. Overview
 
 ### 1.1 Audience
@@ -81,8 +132,10 @@ specify how.
 The identity palette is fixed in both modes: `--vueda-brand-blue`,
 `--vueda-brand-navy`, and `--vueda-brand-grey`. Supporting surfaces and
 text are explicit sRGB mixes of those colours with white or black.
-Status colours use their own OKLCH scale. See `base.css § Color
-palette: light` and `base.css § Color palette: dark`.
+All literal palette colours use OKLCH. The identity values come from the
+[brand colour audit](../../../../brand/color-audit.md) and round-trip to
+the canonical sRGB hex values. Status colours use their own OKLCH scale.
+See `base.css § Color palette: light` and `base.css § Color palette: dark`.
 
 ### 2.1 Identity, surfaces, and readable text
 
@@ -122,7 +175,10 @@ primary action.
 
 ### 2.3 Mix recipes
 
-Palette tokens use explicit `color-mix(in srgb, ...)` formulas. Component
+Palette tokens retain explicit `color-mix(in srgb, ...)` formulas to
+preserve the existing palette and how brand overrides affect it. OKLCH
+notation for the inputs does not change the interpolation space; changing
+that space would require a separate visual and contrast review. Component
 tints use Tailwind's slash-modifier alpha or `color-mix(in oklab, ...)`.
 The recurring recipes are:
 
@@ -338,12 +394,12 @@ VUEDA does not use elevation as a hierarchy device. Borders carry the
 work. Four shadow tokens, all defined in `base.css § Semantic shadow
 tokens`:
 
-| Token                    | Value                        | Use                                            |
-| ------------------------ | ---------------------------- | ---------------------------------------------- |
-| `--vueda-shadow-control` | `0 0 #0000` (none)           | controls; borders carry definition             |
-| `--vueda-shadow-card`    | `0 0 #0000` (none)           | cards; borders carry definition                |
-| `--vueda-shadow-popover` | 1px ring + 12px ambient drop | popover, dropdown, context menu, combobox list |
-| `--vueda-shadow-overlay` | heavier drop                 | dialogs, sheets, drawers                       |
+| Token                    | Value                         | Use                                            |
+| ------------------------ | ----------------------------- | ---------------------------------------------- |
+| `--vueda-shadow-control` | `0 0 oklch(0 0 0 / 0)` (none) | controls; borders carry definition             |
+| `--vueda-shadow-card`    | `0 0 oklch(0 0 0 / 0)` (none) | cards; borders carry definition                |
+| `--vueda-shadow-popover` | 1px ring + 12px ambient drop  | popover, dropdown, context menu, combobox list |
+| `--vueda-shadow-overlay` | heavier drop                  | dialogs, sheets, drawers                       |
 
 Cards never raise on hover. Raised surfaces are Popover, HoverCard, and
 Dialog only. Protection / fade gradients beneath floating UI are not used,
@@ -534,9 +590,20 @@ line" cue from paper forms, so it cannot be mistaken for an outline button.
 
 - **Rest:** `field-line bg-field`, square `rounded-vueda-field` corners.
 - **Hover:** `hover:bg-field-hover`, a fill step; the line does not change.
-- **Focus and invalid:** the four-sided `hairline` returns alongside the ring
-  (`focus-visible:hairline focus-visible:hairline-ring
-focus-visible:focus-ring-shadow`), so those states keep a full edge.
+- **Focus:** the line stays bottom-only and recolours to `--ring`
+  (`focus-visible:hairline-ring focus-visible:focus-ring-shadow`). The ring is
+  the only mark that goes all the way round a field.
+- **Invalid:** the same line recolours to `--destructive`
+  (`aria-invalid:hairline-destructive`), and the ring turns destructive too once
+  the field takes focus.
+- **Warning:** the line recolours to `--warning`
+  (`data-[warning=true]:not-aria-invalid:hairline-warning`). A widget writes
+  `data-warning` beside `aria-invalid` from `useWidget`'s `validationState`,
+  which never sets both. Warnings do not block a submit, so they leave the ring
+  alone. The `not-aria-invalid` half is what makes an error outrank a warning on
+  a control that is marked both ways, such as a hand-authored form. Cascade order
+  does not settle it: Tailwind emits the arbitrary `data-[...]` variant after the
+  built-in `aria-invalid` one, so an unscoped warning would win.
 - **Read-only:** no fill and a `--border` line (`hairline-border`), so a
   read-only field reads like the read view's display rows rather than an
   editable field. Read view rows must keep that subtle line, never

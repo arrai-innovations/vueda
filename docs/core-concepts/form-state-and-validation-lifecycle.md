@@ -121,9 +121,11 @@ Non-field feedback; validation messages that are not associated with a specific 
 
 Two components render this state. `FormMessage` is form-scope: placed inside a form context, it reads `formContext.state.errors[NON_FIELD_ERRORS_KEY]` (or `.messages[NON_FIELD_ERRORS_KEY]` when `type="message"`) and renders a single Alert containing the messages, listed when there is more than one. `FieldMessage` is field-scope: rendered automatically by `FormField` against `fieldContext.state.errors` and `.messages`, it produces a muted line of text under the control rather than an Alert.
 
+`ActionForm` adds a validation summary for field errors that no rendered field shows. Each field reports through `useField` whether the reader can see its own error messages, and the form collects those reports in `state.showsErrors`, keyed by field path. The summary renders above the fields, next to the non-field alert, and lists only the errors whose path has no `true` entry there: an error on a field rendered with `hidden`, on a field inside a collapsed inline field set, on a field whose renderer failed, or on a path no rendered field uses.
+
 Structured feedback objects (where a server error entry is an object rather than a string) have no wire-format template contract. The default `FormMessage` renderer iterates the object's entries and emits one `name: value` line per entry as a fallback. Consumers that need richer rendering override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the object's shape; see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for the pattern.
 
-`getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with `__`-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
+`getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with dot-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
 
 ## Observable Failure Signatures
 

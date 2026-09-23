@@ -586,7 +586,13 @@ _FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 def get_filterset_query_param_names(filterset_class, get_queryset):
     """
     The query parameter names a filterset accepts, including the suffixed names of multi-widget
-    filters and each filter's lookup expression form.
+    filters.
+
+    Each name is a filter's own key in ``self.filters`` — its declared name, or the dotted public
+    alias ``PublicFilterAliasMixin`` renamed it to — which is also the name django-filter's own form
+    binds request data under. Nothing wider than that is a recognized parameter: a filter's
+    ``lookup_expr`` decides which ORM lookup its value queries, not a second query parameter name a
+    client could send instead.
 
     Read the filters from an instance rather than from ``filterset_class.get_filters()``. That
     classmethod hands back the filter objects declared on the class itself, and ``Filter.field``
@@ -628,8 +634,6 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
                 names.add(f"{filter_name}_{suffix}")
         else:
             names.add(filter_name)
-        if hasattr(filter_obj, "lookup_expr"):
-            names.add(f"{filter_name}__{filter_obj.lookup_expr}")
 
     names = frozenset(names)
     _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names
@@ -1172,6 +1176,14 @@ class VuedaViewSet(
 
     detail_args = ["pk"]
 
+    # `history_list` (below) fetches its object unconditionally, so it can defer a model-scope
+    # denial to a matching workflow-state grant, the same way `retrieve` does -- see
+    # `vueda.core.permissions.ObjectPermissions._has_later_permission_decision`. `__init_subclass__`
+    # below adds this entry to every subclass's own resolved value, however that value was reached
+    # (a local override, a mixin supplying it, or plain inheritance), without disturbing anything
+    # else that value does or does not contain.
+    workflow_object_permission_actions = frozenset({"history_list"})
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         # Name what the request is doing inside the action the history middleware opened, so an
@@ -1216,6 +1228,18 @@ class VuedaViewSet(
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # `cls.workflow_object_permission_actions` here is already the fully-resolved value
+        # ordinary Python attribute lookup gives this class: its own override if it declared one
+        # (including an explicit, deliberate `frozenset()` that drops an action a parent declared,
+        # because that parent's implementation of the action no longer guarantees an object
+        # permission check), or a mixin's collection if one earlier in the MRO supplies it without
+        # this class overriding it, or plain inheritance otherwise. Adding only `history_list` on
+        # top preserves whatever that resolution already decided -- it never restores an action
+        # this class chose to leave out, and never depends on a mixin having been written as a
+        # `VuedaViewSet` subclass itself for its collection to be seen.
+        cls.workflow_object_permission_actions = frozenset(cls.workflow_object_permission_actions) | {"history_list"}
+
         if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
             warnings.warn(
                 f"{cls.__module__}.{cls.__name__} inherits from both VuedaViewSet and ReadOnlyModelViewSet. "
@@ -1286,17 +1310,12 @@ class VuedaViewSet(
         Override this function to change if a user is allowed to do a certain action.
 
         ``history_list`` is additionally gated on read authorization here, checked the same way an
-        object's own ``retrieve`` already is (:meth:`_read_permitted`). For a requester whose read
-        comes from a model-level permission, this agrees with the history endpoint's own
-        enforcement, so neither model metadata nor an object's own action list advertises a
-        history endpoint the direct request would refuse with a 403.
-
-        A requester whose read comes only from a workflow-state grant is the one exception:
-        :meth:`_read_permitted` defers a model-level read denial to that grant, but the history
-        endpoint enforces read as its own ``history_list`` action, which no viewset yet lists in
-        ``workflow_object_permission_actions`` and so does not defer the same way. Discovery
-        offers ``history-list`` to that requester, and the direct request still returns 403.
-        Tracked in #291.
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
+        ``workflow_object_permission_actions`` by default (see that attribute above), so a
+        requester whose read comes only from a matching workflow-state grant is offered
+        ``history-list`` here the same way a requester whose read comes from a model-level
+        permission already is, and both agree with what the history endpoint's own enforcement
+        answers for the same row.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():

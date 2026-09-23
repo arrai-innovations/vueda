@@ -4,7 +4,7 @@
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol, FieldSetContentVisibleSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -211,6 +211,13 @@ export function defaultIsRequiredViolation(value) {
  */
 
 /**
+ * Options describing how the calling component renders the field.
+ *
+ * @typedef {object} UseFieldOptions
+ * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level summary can report the field's errors instead. The field also reports its errors as not shown while an enclosing inline field set is collapsed, since its rows stay mounted out of sight.
+ */
+
+/**
  * Determines whether a field's value is **unset** (i.e., it has not been explicitly set).
  *
  * Unlike `defaultIsRequiredViolation`, this function is used for **form state tracking** to determine
@@ -277,12 +284,16 @@ const setupFieldPropsForTest = (props, localFormContext) => {
  *
  * @param {FieldContextProps} props - The field context's reactive props.
  * @param {import('vue').EmitFn} emit - The component emit function.
+ * @param {UseFieldOptions} [options] - How the calling component renders the field.
  * @returns {FieldContext} The field context object.
  */
-export function useField(props, emit) {
+export function useField(props, emit, options = {}) {
     const id = useId();
+    const showsErrors = options.showsErrors ?? (() => true);
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const rawFormContext = inject(FormContextSymbol, null);
+    // False while an enclosing inline field set is collapsed: its rows stay mounted but out of sight.
+    const enclosingFieldSetContentVisible = inject(FieldSetContentVisibleSymbol, null);
     const formContext = computed(() => (!props.contextless ? unref(rawFormContext) : null));
     const amIModified = () => {
         return !state.valueIsInitial && !state.ignored && !(state.initialValueUnset && state.valueUnset);
@@ -835,5 +846,43 @@ export function useField(props, emit) {
             unref(formContext).unregisterDependencyValues(dependencyValuesId);
         }
     });
+
+    // Field metadata hooks are registered by name and read their value lazily, so the registry's
+    // aggregate follows the hook's current value without re-registering. Only a name change needs
+    // a fresh registration, since the registry groups hooks by name.
+    /**
+     * @param {"Label"|"ShowsErrors"} kind - The form context registration pair to use (`register<kind>` / `unregister<kind>`).
+     * @param {() => any} hook - The hook to register under the field's current name.
+     */
+    const registerMetadataHookByName = (kind, hook) => {
+        let hookId;
+        const register = () => {
+            const fc = unref(formContext);
+            if (fc) {
+                hookId = fc[`register${kind}`](props.name, hook);
+            }
+        };
+        register();
+        watch(toRef(props, "name"), () => {
+            const fc = unref(formContext);
+            if (!fc) return;
+            if (hookId) {
+                fc[`unregister${kind}`](hookId);
+            }
+            register();
+        });
+        onUnmounted(() => {
+            const fc = unref(formContext);
+            if (fc && hookId) {
+                fc[`unregister${kind}`](hookId);
+            }
+        });
+    };
+    registerMetadataHookByName("Label", () => state.label);
+    registerMetadataHookByName(
+        "ShowsErrors",
+        () => !!showsErrors() && unref(enclosingFieldSetContentVisible) !== false,
+    );
+
     return returnObj;
 }

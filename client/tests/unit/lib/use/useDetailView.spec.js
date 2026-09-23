@@ -9,6 +9,9 @@ import { FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive, ref } from "vue";
 
+vi.mock("@vueda/use/useLeaveUnload.js", () => ({ useLeaveUnload: vi.fn() }));
+vi.mock("vue-router", async () => ({ ...(await vi.importActual("vue-router")), useRouter: () => ({ push: vi.fn() }) }));
+
 vi.mock("@vueda/use/useModelConfig.js", async () => {
     const actual = await vi.importActual("@vueda/use/useModelConfig.js");
     return { ...actual, useModelConfig: vi.fn() };
@@ -85,6 +88,43 @@ describe("lib/use/useDetailView.js", () => {
         vi.clearAllMocks();
     });
 
+    scopedIt("retrieves the next record after a missing record and a failed form submission", async () => {
+        const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+        const { useObject404: realUseObject404 } = await vi.importActual("@vueda/use/useObject404.js");
+        const { useObjectForm } = await import("@vueda/use/useObjectForm.js");
+        const { default: flushPromises } = await import("flush-promises");
+        const retrieve = vi.fn(async ({ pk }) => {
+            if (pk === "42") {
+                throw Object.assign(new Error("Missing"), { response: { status: 404 } });
+            }
+            return { id: pk, name: `Record ${pk}` };
+        });
+        useObject.mockImplementationOnce((options) => realUseObject({ ...options, handlers: { retrieve } }));
+        useObject404.mockImplementationOnce(realUseObject404);
+        const detail = await withSetup(() => {
+            const detail = useDetailView(props, formInitialValue);
+            props.objectForm = useObjectForm({
+                props,
+                formContext: { state: {}, reset: vi.fn() },
+                instanceObject: detail.instanceObject,
+            });
+            return detail;
+        });
+        await flushPromises();
+        expect(detail.instance.combinedError?.message).toContain("42");
+        props.pk = "43";
+        await flushPromises();
+        expect(detail.instance.combinedError).toBeNull();
+        expect(formInitialValue).toEqual({ id: "43", name: "Record 43" });
+        props.objectForm.state.submitErrored = true;
+        await nextTick();
+        props.pk = "44";
+        await flushPromises();
+        expect(props.objectForm.state.submitErrored).toBe(false);
+        expect(retrieve).toHaveBeenLastCalledWith(expect.objectContaining({ pk: "44" }));
+        expect(formInitialValue).toEqual({ id: "44", name: "Record 44" });
+    });
+
     describe("return shape", () => {
         scopedIt("returns modelConfig, instanceObject, instance group, and actions group", async () => {
             const result = await withSetup(() => useDetailView(props, formInitialValue));
@@ -108,6 +148,7 @@ describe("lib/use/useDetailView.js", () => {
             expect(instance).toHaveProperty("combinedErrored");
             expect(instance).toHaveProperty("combinedWhileText");
             expect(instance).toHaveProperty("combinedFormProps");
+            expect(instance).toHaveProperty("currentActionAvailable");
         });
 
         scopedIt("actions group contains expected keys", async () => {
@@ -161,6 +202,16 @@ describe("lib/use/useDetailView.js", () => {
             props.viewName = "update";
             const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.titleStr).toBe("Update Widget");
+        });
+
+        scopedIt("is empty until the model verbose name is known", async () => {
+            mockModelConfig.config.verboseName = "";
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.titleStr).toBe("");
+
+            mockModelConfig.config.verboseName = "widget";
+            await nextTick();
+            expect(instance.titleStr).toBe("Read Widget");
         });
     });
 
@@ -232,12 +283,30 @@ describe("lib/use/useDetailView.js", () => {
             mockFilteredActions.actions = ["create", "retrieve", "destroy"];
             mockInstanceObject.state.object = {
                 id: "42",
-                available_actions: ["create", "retrieve", "destroy"],
+                available_actions: ["retrieve", "destroy"],
             };
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.nonDetailActions).toContain("create");
             expect(actions.nonDetailActions).not.toContain("retrieve");
             expect(actions.nonDetailActions).not.toContain("destroy");
+        });
+
+        scopedIt("nonDetailActions includes model-level create on an update view", async () => {
+            // The server never lists `create` in an object's available_actions; the update
+            // view still offers it so a user can start the next record from the page title.
+            props.viewName = "update";
+            mockModelConfig.config.actionDetails = {
+                list: { detail: false },
+                create: { detail: false },
+                update: { detail: true },
+            };
+            mockFilteredActions.actions = ["list", "create", "update"];
+            mockInstanceObject.state.object = {
+                id: "42",
+                available_actions: ["list", "update"],
+            };
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(actions.nonDetailActions).toEqual(["list", "create"]);
         });
 
         scopedIt("detailActions excludes the current view and non-detail actions", async () => {
@@ -265,6 +334,51 @@ describe("lib/use/useDetailView.js", () => {
             mockInstanceObject.state.object.valid_transitions = undefined;
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.availableTransitions).toBeUndefined();
+        });
+    });
+
+    describe("currentActionAvailable", () => {
+        scopedIt(
+            "is true while the object is loading, then false once the loaded object excludes the current view's action",
+            async () => {
+                props.viewName = "update";
+                mockInstanceObject.state.object = null;
+                const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+                expect(instance.currentActionAvailable).toBe(true);
+                mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+                await nextTick();
+                expect(instance.currentActionAvailable).toBe(false);
+            },
+        );
+
+        scopedIt("is true when the loaded object has no available_actions field", async () => {
+            mockInstanceObject.state.object = { id: "42" };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("is true when the object's available_actions includes the current view's action", async () => {
+            props.viewName = "update";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve", "update"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("maps the 'read' viewName to the 'retrieve' action name", async () => {
+            props.viewName = "read";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+        });
+
+        scopedIt("updates reactively when fresh object data changes available_actions", async () => {
+            props.viewName = "update";
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve", "update"] };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.currentActionAvailable).toBe(true);
+            mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
+            await nextTick();
+            expect(instance.currentActionAvailable).toBe(false);
         });
     });
 

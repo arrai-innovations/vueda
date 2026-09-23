@@ -305,8 +305,8 @@ beforeEach(async () => {
         clearError: vi.fn(),
         info: { pk: "id" },
         config: {
-            displayFields: ["field__name"],
-            fieldDetails: { field__name: {} },
+            displayFields: ["field.name"],
+            fieldDetails: { "field.name": {} },
             verboseNamePlural: "items",
             actionDetails: {},
             fetchFields: [],
@@ -364,6 +364,70 @@ afterEach(() => {
 
 describe("lib/views/ViewList.vue", () => {
     describe("Route write race (real router)", () => {
+        scopedIt("fetches a reused model with destination preferences and preserves a later deep link", async () => {
+            const { useList } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const requests = [];
+            mockedUseList.mockImplementationOnce((options) =>
+                useList({
+                    ...options,
+                    handlers: {
+                        list: async ({ target, params }) => {
+                            requests.push({ target: { ...target }, params: { ...params } });
+                        },
+                    },
+                }),
+            );
+            modelConfig.config.sortables = ["name"];
+            modelConfig.config.displayFields = ["name"];
+            await router.push("/app/model/list");
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model" },
+                global: { plugins: [router] },
+            });
+            await flushPromises();
+            wrapper.vm.actions.selectedObjects.push(4);
+            listPreferenceStoreMock.getPerPage.mockReturnValue(50);
+            listPreferenceStoreMock.getSorting.mockReturnValue(["-code"]);
+            listPreferenceStoreMock.getFilters.mockReturnValue({ [SEARCH_PARAM]: "saved" });
+            await router.push("/app/warehouse/list");
+            await flushPromises();
+            expect(router.currentRoute.value.query).toEqual({});
+            modelConfig.loading = true;
+            await wrapper.setProps({ model: "warehouse" });
+            modelConfig.config.sortables = ["code"];
+            modelConfig.config.displayFields = ["code"];
+            modelConfig.loading = false;
+            await flushPromises();
+            await flushPromises();
+            expect(wrapper.vm.actions.selectedObjects).toEqual([]);
+            expect(router.currentRoute.value.query).toEqual({ [ORDERING_PARAM]: "-code", [SEARCH_PARAM]: "saved" });
+            expect(requests.at(-1)).toMatchObject({
+                target: { model: "warehouse" },
+                params: { ps: 50, [ORDERING_PARAM]: ["-code"], [SEARCH_PARAM]: "saved" },
+            });
+            const destinationRequests = requests.filter(({ target }) => target.model === "warehouse");
+            expect(
+                destinationRequests.every(({ params }) => params.ps === 50 && params[ORDERING_PARAM].includes("-code")),
+            ).toBe(true);
+            await router.push({
+                path: "/app/other/list",
+                query: { [ORDERING_PARAM]: "name", [SEARCH_PARAM]: "linked" },
+            });
+            await flushPromises();
+            expect(router.currentRoute.value.query).toEqual({ [ORDERING_PARAM]: "name", [SEARCH_PARAM]: "linked" });
+            modelConfig.loading = true;
+            await wrapper.setProps({ model: "other" });
+            modelConfig.config.sortables = ["name"];
+            modelConfig.loading = false;
+            await flushPromises();
+            await flushPromises();
+            expect(requests.at(-1)).toMatchObject({
+                target: { model: "other" },
+                params: { ps: 25, [ORDERING_PARAM]: ["name"], [SEARCH_PARAM]: "linked" },
+            });
+            wrapper.unmount();
+        });
+
         scopedIt.each([
             ["sort", "filter"],
             ["filter", "sort"],

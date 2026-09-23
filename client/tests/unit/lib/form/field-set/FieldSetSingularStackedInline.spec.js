@@ -73,7 +73,7 @@ const inlineState = reactive({
     selected: { value: [] },
 });
 const emptyObject = { empty: true };
-const toggleVisibility = vi.fn();
+const setVisibility = vi.fn();
 const updateInitialValue = vi.fn();
 const mockedUseFieldSetInline = vi.fn(() => ({
     state: inlineState,
@@ -85,7 +85,7 @@ const mockedUseFieldSetInline = vi.fn(() => ({
         "empty-state": { name: "empty-state" },
     },
     getEmptyFieldObject: () => emptyObject,
-    toggleVisibility,
+    setVisibility,
 }));
 vi.mock("@vueda/use/useFieldSetInline.js", () => ({
     FIELD_SET_INLINE_PROPS: {},
@@ -133,12 +133,29 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(updateInitialValue).toHaveBeenCalled();
     });
 
+    scopedIt("does not request a default destroy action for the singular row", () => {
+        mount(FieldSetSingularStackedInline);
+        expect(mockedUseFieldSetInline).toHaveBeenCalled();
+        expect(mockedUseFieldSetInline.mock.lastCall[0].addDestroyAction).toBeFalsy();
+    });
+
     scopedIt("clearField clears value and blurs", () => {
         const wrapper = mount(FieldSetSingularStackedInline);
         fieldState.value = { id: 1 };
         wrapper.vm.clearField();
         expect(fieldSetContext.blur).toHaveBeenCalled();
         expect(fieldState.value).toBe(null);
+    });
+
+    scopedIt("clears an unsaved object when its row emits destroy-row", async () => {
+        fieldState.value = { title: "Unsaved" };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        wrapper.getComponent(InlineRowStub).vm.$emit("destroy-row");
+        await vue.nextTick();
+        expect(fieldState.value).toBe(null);
+        expect(fieldSetContext.blur).toHaveBeenCalled();
+        expect(wrapper.findComponent(InlineRowStub).exists()).toBe(false);
+        expect(wrapper.get('[data-qa="button-stub"]').text()).toBe("Create");
     });
 
     scopedIt("handleDeleteSingle toggles ignore", () => {
@@ -168,7 +185,7 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(fieldState.value).toBe(null);
     });
 
-    scopedIt("toggleVisibility called when slot button clicked", async () => {
+    scopedIt("requests visibility when the disclosure is clicked", async () => {
         inlineState.hidable = true;
         const wrapper = mount(FieldSetSingularStackedInline, {
             slots: {
@@ -177,6 +194,6 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         });
         await vue.nextTick();
         await wrapper.get('[data-qa="toggle-slot"]').trigger("click");
-        expect(toggleVisibility).toHaveBeenCalled();
+        expect(setVisibility).toHaveBeenCalledWith(false);
     });
 });

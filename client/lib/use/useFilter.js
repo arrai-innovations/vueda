@@ -3,11 +3,13 @@
  * @description Builds and manages reactive filter form state, mapping model fields to their appropriate filter widgets and providing the filter context to child components.
  */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
-import { buildForm } from "@vueda/utils/buildForm.js";
-import { filterFieldMapping } from "@vueda/utils/fieldMappings.js";
+import { isRangeFilter } from "@vueda/use/useFilterForm.js";
+import { buildForm, resolveComponent } from "@vueda/utils/buildForm.js";
+import { FilterFieldMappings, filterFieldMapping } from "@vueda/utils/fieldMappings.js";
+import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { FilterModelSymbol } from "@vueda/utils/symbols.js";
 import capitalize from "lodash-es/capitalize.js";
-import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
+import { provide, reactive, readonly, shallowReactive, toRaw, toRef, watch } from "vue";
 
 /**
  * Get the default widget for a given filter field object.
@@ -55,6 +57,114 @@ const getFieldProps = (field) => {
         ? filterFieldMapping[field.typeFilter]?.boundaryFieldProps
         : filterFieldMapping[field.typeFilter]?.fieldProps;
 };
+
+/**
+ * @typedef {object} FilterFieldEntry
+ * @property {string} name - The form field name: the filter name, or `${filterName}.${suffix}` for a range boundary.
+ * @property {import('@vueda/stores/storeModelInfo.js').FilterInfo|{isBoundary: true, typeFilter: string, required: false, label: string}} detail - The detail the field and widget components resolve from.
+ * @property {boolean} needsWidget - Whether the entry mounts a widget of its own. The base field of a range does not: its two boundaries carry the inputs.
+ * @property {string} [suffix] - The range suffix a boundary entry renders; absent on the filter's own entry.
+ */
+
+/**
+ * The form fields one filter renders: the filter itself, plus one boundary field per suffix
+ * when it is a range. Shared by the component resolution below and by
+ * {@link getMissingFilterInputSupport}, so what is checked is what gets mounted.
+ *
+ * @param {string} filterName - The filter field name.
+ * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filterDetails - The filter configuration.
+ * @returns {FilterFieldEntry[]}
+ */
+export function filterFieldEntries(filterName, filterDetails) {
+    const isRange = isRangeFilter(filterDetails);
+    const entries = [{ name: filterName, detail: filterDetails, needsWidget: !isRange }];
+    if (isRange) {
+        for (const suffix of filterDetails.suffixes) {
+            entries.push({
+                name: `${filterName}.${suffix}`,
+                detail: {
+                    isBoundary: true,
+                    typeFilter: filterDetails.typeFilter,
+                    required: false,
+                    label: capitalize(suffix),
+                },
+                needsWidget: true,
+                suffix,
+            });
+        }
+    }
+    return entries;
+}
+
+/**
+ * Per-field component overrides consulted before the filter type's default mapping, in the
+ * shape `storeModelConfig` holds them for a view. A range boundary is keyed
+ * `${filterName}.${suffix}`.
+ *
+ * @typedef {object} FilterInputOverrides
+ * @property {{[name: string]: import('@vueda/utils/formLookups.js').FieldComponent|string|(() => import('vue').Component)}} [fieldComponents] - Field component overrides by field name.
+ * @property {{[name: string]: import('@vueda/utils/formLookups.js').WidgetComponent|string|(() => import('vue').Component)}} [widgetComponents] - Widget component overrides by field name.
+ */
+
+/**
+ * What the client lacks to render an editable input for a filter. An empty result means the
+ * filter type has value handling and every form field the filter mounts resolves a component,
+ * through the same resolution `buildForm` applies when the field renders: a per-field override
+ * first, then the type's default mapping. A widget that resolves to `WidgetUnmapped` counts as
+ * missing, since that component renders a diagnostic in place of an input. Nothing is inferred
+ * from the field or type name.
+ *
+ * @param {string} filterName - The filter field name.
+ * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filterDetails - The filter configuration.
+ * @param {FilterInputOverrides} [overrides] - Per-field component overrides from the view config.
+ * @returns {string[]} Descriptions of each missing piece; empty when the input can render.
+ */
+export function getMissingFilterInputSupport(filterName, filterDetails, overrides = {}) {
+    const typeFilter = filterDetails?.typeFilter;
+    if (!typeFilter) {
+        return ["a filter type"];
+    }
+    const missing = [];
+    if (!FilterFieldMappings[typeFilter]) {
+        missing.push(`value handling for filter type "${typeFilter}"`);
+    }
+    // The component `buildForm` would mount for this reference, or null when it resolves none.
+    const resolve = (candidate, lookup, kind, name) => {
+        try {
+            return toRaw(resolveComponent(candidate, lookup, { kind, fieldName: name }));
+        } catch {
+            return null;
+        }
+    };
+    const unmappedWidget = toRaw(availableWidgets.WidgetUnmapped);
+    for (const { name, detail, needsWidget, suffix } of filterFieldEntries(filterName, filterDetails)) {
+        const target = suffix
+            ? `the "${suffix}" boundary of filter type "${typeFilter}"`
+            : `filter type "${typeFilter}"`;
+        const field = resolve(
+            overrides.fieldComponents?.[name] || getFieldComponent(detail),
+            availableFields,
+            "field",
+            name,
+        );
+        if (!field) {
+            missing.push(`a field component for ${target}`);
+        }
+        if (needsWidget) {
+            const widget = resolve(
+                overrides.widgetComponents?.[name] || getWidgetComponent(detail),
+                availableWidgets,
+                "widget",
+                name,
+            );
+            if (!widget || widget === unmappedWidget) {
+                missing.push(`a widget for ${target}`);
+            }
+        }
+    }
+    return missing;
+}
+
 /**
  * @typedef {object} UseFilterStateRawState
  * @property {string} app - The app name to load form configuration for
@@ -136,8 +246,7 @@ export function useFilter(props) {
                 const fieldProps = {};
                 const widgetComponents = {};
                 const widgetProps = {};
-                const allFields = {};
-                const rangeFields = [];
+                const entries = [];
                 const missingDetails = [];
                 const unknownTypeFilters = [];
 
@@ -151,18 +260,7 @@ export function useFilter(props) {
                         unknownTypeFilters.push(fieldName);
                         continue;
                     }
-                    if (detail?.typeFilter.toLowerCase().includes("range") && detail.suffixes?.length === 2) {
-                        for (const lookup of detail.suffixes) {
-                            allFields[`${fieldName}__${lookup}`] = {
-                                isBoundary: true,
-                                typeFilter: detail.typeFilter,
-                                required: false,
-                                label: capitalize(lookup),
-                            };
-                        }
-                        rangeFields.push(fieldName);
-                    }
-                    allFields[fieldName] = detail;
+                    entries.push(...filterFieldEntries(fieldName, detail));
                 }
 
                 // Log any issues found during processing
@@ -176,10 +274,10 @@ export function useFilter(props) {
                     );
                 }
 
-                for (const [name, detail] of Object.entries(allFields)) {
+                for (const { name, detail, needsWidget } of entries) {
                     fieldComponents[name] = setFieldComponent(name, detail);
                     fieldProps[name] = setFieldComponentProps(name, detail);
-                    if (!rangeFields.includes(name)) {
+                    if (needsWidget) {
                         widgetComponents[name] = setWidgetComponent(name, detail);
                         widgetProps[name] = setWidgetComponentProps(name, detail);
                     }

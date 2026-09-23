@@ -3,104 +3,11 @@
  * @description Manages reactive filter form values, translating field-type-specific initial values and range fields into URL-ready query parameters.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { FilterFieldMappings } from "@vueda/utils/fieldMappings.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import { reactive, readonly, toRef, watch } from "vue";
-
-/**
- * Per-filter-type value configuration: the empty/initial value a filter field
- * starts from, and whether it is a range (suffix pair) or an array filter.
- * Exported so the central URL→filter restoration in {@link buildFilterFromQuery}
- * coerces query values the same way the live form does.
- *
- * @type {{[typeFilter: string]: {initialValue: any, range?: boolean, array?: boolean}}}
- */
-export const FilterFieldMappings = {
-    DateRangeField: {
-        range: true,
-        initialValue: {
-            start: null, // Default to start and end, being overridden by the suffixes
-            end: null,
-        },
-    },
-    CharField: {
-        initialValue: "",
-    },
-    DateField: {
-        initialValue: null,
-    },
-    DateTimeField: {
-        initialValue: null,
-    },
-    IsoDateTimeField: {
-        initialValue: null,
-    },
-    DecimalField: {
-        initialValue: null,
-    },
-    DecimalInField: {
-        initialValue: [],
-        array: true,
-    },
-    DurationSecondsField: {
-        initialValue: null,
-    },
-    DurationField: {
-        initialValue: null,
-    },
-    FloatField: {
-        initialValue: null,
-    },
-    ChoiceField: {
-        initialValue: null,
-    },
-    ModelMultipleChoiceInField: {
-        initialValue: [],
-        array: true,
-    },
-    ModelChoiceInField: {
-        initialValue: [],
-        array: true,
-    },
-    ModelChoiceField: {
-        initialValue: null,
-    },
-    BooleanField: {
-        initialValue: null,
-    },
-    DateTimeRangeField: {
-        range: true,
-        initialValue: {
-            start: null,
-            end: null,
-        },
-    },
-    RangeField: {
-        range: true,
-        initialValue: {
-            start: null,
-            end: null,
-        },
-    },
-    ModelMultipleChoiceField: {
-        initialValue: [],
-        array: true,
-    },
-    MultipleChoiceField: {
-        initialValue: [],
-        array: true,
-    },
-    TimeField: {
-        initialValue: null,
-    },
-    TypedChoiceField: {
-        initialValue: null,
-    },
-    NullBooleanField: {
-        initialValue: null,
-    },
-};
 
 /**
  * @typedef {object} UseFilterFieldProps
@@ -165,6 +72,19 @@ export function useFilterField(props, queryValue) {
         { immediate: true, deep: true },
     );
     return readonly(state);
+}
+
+/**
+ * Whether a filter renders as a range: its value mapping is a range and its
+ * metadata declares the two boundary suffixes. The value mapping is the
+ * authority, so a custom range type registered through `mergeFilterFieldMapping`
+ * with `range: true` is a range whatever its type is named.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} filterDetails - The filter configuration.
+ * @returns {boolean}
+ */
+export function isRangeFilter(filterDetails) {
+    return !!FilterFieldMappings[filterDetails?.typeFilter]?.range && filterDetails?.suffixes?.length === 2;
 }
 
 /**

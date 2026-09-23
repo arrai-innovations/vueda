@@ -1,6 +1,9 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
 import FieldSetStackedInlineRow from "@vueda/form/field-set/FieldSetStackedInlineRow.vue";
+import Collapsible from "@vueda/shell/collapsible/Collapsible.vue";
+import CollapsibleContent from "@vueda/shell/collapsible/CollapsibleContent.vue";
+import CollapsibleTrigger from "@vueda/shell/collapsible/CollapsibleTrigger.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInline.theme.js";
@@ -21,13 +24,14 @@ defineOptions({
     inheritAttrs: false,
 });
 const props = defineProps({ ...FIELD_SET_INLINE_PROPS, ...THEME_OVERRIDE_PROPS, ...ICON_OVERRIDE_PROPS });
-const emit = defineEmits([...FIELD_EMITS]);
+const emit = defineEmits([...FIELD_EMITS, "update:visible"]);
 const fieldSetContext = useField(props, emit);
 const fieldSetInline = useFieldSetInline({
     props,
     emit,
     slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title", "empty-state"],
     fieldSetContext,
+    addDestroyAction: true,
 });
 const theme = useTheme("FieldSetStackedInline", props);
 const icon = useIcons("FieldSetStackedInline", props);
@@ -62,51 +66,50 @@ watch(
 </script>
 
 <template>
-    <div :class="theme('root')" :style="theme.hideStyle?.value" data-vueda-fieldset v-bind="$attrs">
+    <Collapsible
+        :class="theme('root')"
+        :style="theme.hideStyle?.value"
+        :model-value="fieldSetInline.state.internalVisible"
+        :unmount-on-hide="false"
+        data-vueda-fieldset
+        v-bind="$attrs"
+        @update:model-value="fieldSetInline.setVisibility"
+    >
         <div :class="theme('inner')">
-            <div
-                :class="[theme('titleBar'), fieldSetInline.state.hidable ? theme('titleBarToggle') : '']"
-                :role="fieldSetInline.state.hidable ? 'button' : undefined"
-                :tabindex="fieldSetInline.state.hidable ? 0 : undefined"
-                :aria-expanded="fieldSetInline.state.hidable ? fieldSetInline.state.internalVisible : undefined"
-                data-qa="field-set-stacked-inline-title-bar"
-                @click="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
-                @keydown.space.prevent="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
-                @keydown.enter.prevent="fieldSetInline.state.hidable ? fieldSetInline.toggleVisibility() : undefined"
-            >
-                <span
-                    v-if="fieldSetInline.state.hidable"
-                    :class="[theme('toggleIndicator'), { '-rotate-90': !fieldSetInline.state.internalVisible }]"
-                    data-qa="field-set-stacked-inline-header-toggle"
-                    aria-hidden="true"
+            <div :class="theme('titleBar')">
+                <component
+                    :is="fieldSetInline.state.hidable ? CollapsibleTrigger : 'div'"
+                    :class="[theme('titleTrigger'), fieldSetInline.state.hidable ? theme('titleBarToggle') : '']"
+                    data-qa="field-set-stacked-inline-title-bar"
                 >
-                    <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Replaces the disclosure indicator inside the title bar. The bar itself drives the toggle. -->
-                    <slot
-                        :class="theme('toggleButton')"
-                        :field-props="fieldSetInline.state.computedFieldProps"
-                        :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
-                        :name="fieldSetInline.resolvedSlotNames['toggle-button'].name"
+                    <span
+                        v-if="fieldSetInline.state.hidable"
+                        :class="[theme('toggleIndicator'), { '-rotate-90': !fieldSetInline.state.internalVisible }]"
+                        data-qa="field-set-stacked-inline-header-toggle"
+                        aria-hidden="true"
                     >
-                        <component
-                            :is="icon('chevronDown').component"
-                            v-if="icon('chevronDown')"
-                            v-bind="icon('chevronDown').props"
-                        />
-                    </slot>
-                </span>
-                <div :class="theme('title')" data-qa="field-set-stacked-inline-title">
-                    <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
-                    <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
-                        {{ fieldSetContext.state.label }}
-                    </slot>
-                </div>
-                <div
-                    :class="theme('actionBar')"
-                    data-qa="fieldset-tabular-inline-action-bar"
-                    @click.stop
-                    @keydown.space.stop
-                    @keydown.enter.stop
-                >
+                        <!-- @slot [toggle-button, fieldset-toggle-button, field(fieldName)toggle-button] Replaces the disclosure indicator inside the title bar. The bar itself drives the toggle. -->
+                        <slot
+                            :class="theme('toggleButton')"
+                            :field-props="fieldSetInline.state.computedFieldProps"
+                            :label="fieldSetInline.state.internalVisible ? 'Hide' : 'Show'"
+                            :name="fieldSetInline.resolvedSlotNames['toggle-button'].name"
+                        >
+                            <component
+                                :is="icon('chevronDown').component"
+                                v-if="icon('chevronDown')"
+                                v-bind="icon('chevronDown').props"
+                            />
+                        </slot>
+                    </span>
+                    <span :class="theme('title')" data-qa="field-set-stacked-inline-title">
+                        <!-- @slot [title, fieldset-title, field(fieldName)title] Replaces the fieldset title/label. -->
+                        <slot :name="fieldSetInline.resolvedSlotNames['title'].name">
+                            {{ fieldSetContext.state.label }}
+                        </slot>
+                    </span>
+                </component>
+                <div :class="theme('actionBar')" data-qa="fieldset-tabular-inline-action-bar">
                     <!-- @slot [create-button, fieldset-create-button, field(fieldName)create-button] Button to add a new inline row. -->
                     <slot
                         v-if="fieldSetInline.state.showCreateButton"
@@ -117,6 +120,7 @@ watch(
                         @click="fieldSetInline.doCreate"
                     >
                         <Button
+                            type="button"
                             emphasis="outline"
                             size="sm"
                             :class="theme('createButton')"
@@ -127,48 +131,53 @@ watch(
                     </slot>
                 </div>
             </div>
-            <div v-if="!isEmpty" :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
-                <div
-                    v-for="(value, index) in fieldSetContext.state.value"
-                    :key="index"
-                    :class="theme('inlineRow')"
-                    data-qa="field-set-stacked-inline-inline-rows"
-                >
-                    <field-set-stacked-inline-row
-                        :field-name="fieldSetContext.state.name"
-                        :field-set-context-state="fieldSetInline.state"
-                        :index="index"
-                        :pk="value?.id"
-                        :read-only="props.readOnly"
-                        @destroy-row="fieldSetInline.removeObject(index)"
-                        @update:selected="fieldSetInline.handleSelected($event, index)"
+            <CollapsibleContent>
+                <div v-if="!isEmpty" :class="theme('inlineRows')" data-qa="field-set-stacked-inline-inline-rows">
+                    <div
+                        v-for="(value, index) in fieldSetContext.state.value"
+                        :key="index"
+                        :class="theme('inlineRow')"
+                        data-qa="field-set-stacked-inline-inline-rows"
                     >
-                        <template v-for="slotName in fieldSetInline.state.remainingSlotNames" #[slotName]="slotProps">
-                            <slot :name="slotName" v-bind="slotProps" />
-                        </template>
-                    </field-set-stacked-inline-row>
+                        <field-set-stacked-inline-row
+                            :field-name="fieldSetContext.state.name"
+                            :field-set-context-state="fieldSetInline.state"
+                            :index="index"
+                            :pk="value?.id"
+                            :read-only="props.readOnly"
+                            @destroy-row="fieldSetInline.removeObject(index)"
+                            @update:selected="fieldSetInline.handleSelected($event, index)"
+                        >
+                            <template
+                                v-for="slotName in fieldSetInline.state.remainingSlotNames"
+                                #[slotName]="slotProps"
+                            >
+                                <slot :name="slotName" v-bind="slotProps" />
+                            </template>
+                        </field-set-stacked-inline-row>
+                    </div>
                 </div>
-            </div>
-            <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when there are no rows. -->
-            <slot
-                v-if="isEmpty"
-                :class="theme('emptyState')"
-                :name="fieldSetInline.resolvedSlotNames['empty-state'].name"
-            >
-                <div :class="theme('emptyState')" data-qa="field-set-stacked-inline-empty-state">
-                    <component
-                        :is="icon('empty').component"
-                        v-if="icon('empty')"
-                        :class="theme('emptyStateIcon')"
-                        v-bind="icon('empty').props"
-                        aria-hidden="true"
-                    />
-                    <p :class="theme('emptyStateTitle')">No {{ fieldSetContext.state.label }} yet</p>
-                    <p v-if="fieldSetInline.state.showCreateButton" :class="theme('emptyStateDesc')">
-                        Click Create to add one.
-                    </p>
-                </div>
-            </slot>
+                <!-- @slot [empty-state, fieldset-empty-state, field(fieldName)empty-state] Replaces the dashed-border empty-state block shown when there are no rows. -->
+                <slot
+                    v-if="isEmpty"
+                    :class="theme('emptyState')"
+                    :name="fieldSetInline.resolvedSlotNames['empty-state'].name"
+                >
+                    <div :class="theme('emptyState')" data-qa="field-set-stacked-inline-empty-state">
+                        <component
+                            :is="icon('empty').component"
+                            v-if="icon('empty')"
+                            :class="theme('emptyStateIcon')"
+                            v-bind="icon('empty').props"
+                            aria-hidden="true"
+                        />
+                        <p :class="theme('emptyStateTitle')">No {{ fieldSetContext.state.label }} yet</p>
+                        <p v-if="fieldSetInline.state.showCreateButton" :class="theme('emptyStateDesc')">
+                            Click Create to add one.
+                        </p>
+                    </div>
+                </slot>
+            </CollapsibleContent>
             <div
                 v-if="hasChoresContent || fieldSetInline.resolvedSlotNames['field-set-level-chores'].exists"
                 :class="theme('choresPanel')"
@@ -188,5 +197,5 @@ watch(
                 </slot>
             </div>
         </div>
-    </div>
+    </Collapsible>
 </template>

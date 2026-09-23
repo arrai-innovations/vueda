@@ -9,7 +9,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, reactive, ref } from "vue";
+import { computed, inject, reactive, ref, useId } from "vue";
 
 /**
  * A duration input widget that renders separate numeric spinners for days, hours, minutes, and
@@ -46,6 +46,7 @@ const props = defineProps({
 });
 const emit = defineEmits([...WIDGET_EMITS]);
 const widgetContext = useWidget(props, emit);
+const id = useId();
 /** @type {import('@vueda/use/useField.js').FieldContext|null} */
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetDuration", props, widgetContext.state);
@@ -112,10 +113,12 @@ const focusFirstInput = () => {
             :aria-labelledby="fieldContext?.state.fieldId"
             :class="theme('inner')"
             data-qa="widget-duration-inner"
-            @click="focusFirstInput"
+            @click.self="focusFirstInput"
         >
             <div v-if="showDays" :class="theme('innerItem')">
+                <label :for="`${id}-days`" :class="theme('unitLabel')">Days</label>
                 <NumberField
+                    :id="`${id}-days`"
                     ref="daysInput"
                     :model-value="valueDay"
                     :min="0"
@@ -126,8 +129,8 @@ const focusFirstInput = () => {
                     <NumberFieldContent>
                         <NumberFieldDecrement />
                         <NumberFieldInput
-                            aria-label="days"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-days"
                         />
@@ -136,7 +139,9 @@ const focusFirstInput = () => {
                 </NumberField>
             </div>
             <div v-if="showHours" :class="theme('innerItem')">
+                <label :for="`${id}-hours`" :class="theme('unitLabel')">Hours</label>
                 <NumberField
+                    :id="`${id}-hours`"
                     ref="hoursInput"
                     :model-value="valueHour"
                     :min="0"
@@ -146,8 +151,8 @@ const focusFirstInput = () => {
                     <NumberFieldContent>
                         <NumberFieldDecrement />
                         <NumberFieldInput
-                            aria-label="hours"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-hours"
                         />
@@ -156,7 +161,9 @@ const focusFirstInput = () => {
                 </NumberField>
             </div>
             <div v-if="showMinutes" :class="theme('innerItem')">
+                <label :for="`${id}-minutes`" :class="theme('unitLabel')">Minutes</label>
                 <NumberField
+                    :id="`${id}-minutes`"
                     ref="minutesInput"
                     :model-value="valueMinute"
                     :min="0"
@@ -166,8 +173,8 @@ const focusFirstInput = () => {
                     <NumberFieldContent>
                         <NumberFieldDecrement />
                         <NumberFieldInput
-                            aria-label="minutes"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-minutes"
                         />
@@ -176,7 +183,9 @@ const focusFirstInput = () => {
                 </NumberField>
             </div>
             <div v-if="showSeconds" :class="theme('innerItem')">
+                <label :for="`${id}-seconds`" :class="theme('unitLabel')">Seconds</label>
                 <NumberField
+                    :id="`${id}-seconds`"
                     ref="secondsInput"
                     :model-value="valueSecond"
                     :min="0"
@@ -186,8 +195,8 @@ const focusFirstInput = () => {
                     <NumberFieldContent>
                         <NumberFieldDecrement />
                         <NumberFieldInput
-                            aria-label="seconds"
                             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                            :data-warning="widgetContext.state.validationState.warning || undefined"
                             :aria-required="widgetContext.state.required || undefined"
                             data-qa="duration-seconds"
                         />

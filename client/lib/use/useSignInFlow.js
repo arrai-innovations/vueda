@@ -40,6 +40,47 @@ import { useRoute, useRouter } from "vue-router";
  * @param {SignInFlowOptions} options
  * @returns {SignInFlowContext}
  */
+/**
+ * Route to `destination`, reporting a navigation that does not happen.
+ *
+ * The sign-in has already succeeded by the time this runs, so a failure here is not a
+ * failed login and the form has nothing to say about it. Left unreported, the user reads a
+ * success message while the page stays where it was. The most common cause is a missing
+ * route: the default destination is a route named `welcome`, which an application that
+ * names its landing route something else does not have.
+ *
+ * A rejected promise and a thrown error both reach the same place, because Vue Router
+ * resolves the destination inside `push` and an unmatched one throws synchronously, while
+ * a guard that rejects does so asynchronously.
+ *
+ * @param {import('vue-router').Router} router - The router instance.
+ * @param {import('vue-router').RouteLocationRaw} destination - Where to go.
+ * @returns {Promise<boolean>} Whether the navigation happened. It never rejects: a failure
+ *  is reported here rather than left as an unhandled rejection, so a caller can announce
+ *  arrival on the happy path without handling the failure a second time.
+ */
+function navigate(router, destination) {
+    let navigation;
+    try {
+        navigation = Promise.resolve(router.push(destination));
+    } catch (error) {
+        navigation = Promise.reject(error);
+    }
+    return navigation.then(
+        () => true,
+        (error) => {
+            toast.error("Signed in, but could not open the next page", {
+                description: "You are signed in. Use the navigation to continue.",
+                duration: 10000,
+            });
+            // The destination is a configuration detail rather than something the person
+            // signing in can act on, so it goes to the console for whoever owns the routes.
+            console.error("[vueda] Sign-in redirect failed for", destination, error);
+            return false;
+        },
+    );
+}
+
 export function useSignInFlow(options) {
     const formContext = useForm(options.formProps);
     const router = useRouter();
@@ -57,13 +98,16 @@ export function useSignInFlow(options) {
             }
             if (newActive && newLoggedIn && (!options.requireRecentLogin || recentlyLoggedIn)) {
                 if (route.query?.redirect) {
-                    router.push(route.query?.redirect);
+                    navigate(router, route.query?.redirect);
                     return;
                 }
-                router.push(options.redirect || { name: "welcome" });
-                toast.success("Signed In", {
-                    description: "You are now signed in and have been redirected.",
-                    duration: 10000,
+                navigate(router, options.redirect || { name: "welcome" }).then((arrived) => {
+                    if (arrived) {
+                        toast.success("Signed In", {
+                            description: "You are now signed in and have been redirected.",
+                            duration: 10000,
+                        });
+                    }
                 });
             }
         },

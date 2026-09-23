@@ -267,16 +267,60 @@ describe("lib/use/useModelAction.js", () => {
     });
 
     describe("dryRunTarget", () => {
+        scopedIt("distinguishes actions and models sharing the same primary key", async () => {
+            const props = reactive({ app: "app", model: "person", action: "archive", pk: "4" });
+            const action = await withSetup(() => useModelAction(props));
+            const first = action.state.dryRunTarget.value;
+            props.action = "activate";
+            const second = action.state.dryRunTarget.value;
+            props.model = "group";
+            expect(new Set([first, second, action.state.dryRunTarget.value]).size).toBe(3);
+        });
+
         scopedIt("identifies the current target and changes when the selection changes", async () => {
             const fetchState = createFetchState([{ id: 4 }, { id: 7 }]);
             const modelAction = await withSetup(() =>
                 useModelAction(reactive({ app: "app", model: "person", action: "archive", fetchState })),
             );
 
-            expect(modelAction.state.dryRunTarget.value).toBe("4,7");
+            expect(modelAction.state.dryRunTarget.value).toBe(JSON.stringify(["app", "person", "archive", ["4", "7"]]));
             fetchState.objectsInOrder = [{ id: 5 }];
-            expect(modelAction.state.dryRunTarget.value).toBe("5");
+            expect(modelAction.state.dryRunTarget.value).toBe(JSON.stringify(["app", "person", "archive", ["5"]]));
         });
+    });
+
+    scopedIt("preserves transport cancellation for action forms", async () => {
+        const request = Promise.resolve({});
+        request.cancel = vi.fn();
+        mocks.instanceObject.executeAction.mockReturnValueOnce(request);
+        const action = await withSetup(() =>
+            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "4" })),
+        );
+        const result = action.runAction();
+        result.cancel("target changed");
+        expect(request.cancel).toHaveBeenCalledWith("target changed");
+        await result;
+    });
+
+    scopedIt("does not consume the destination's instance error when a cancelled action settles", async () => {
+        let resolveRequest;
+        const request = new Promise((resolve) => {
+            resolveRequest = resolve;
+        });
+        request.cancel = vi.fn();
+        mocks.instanceObject.executeAction.mockReturnValueOnce(request);
+        const action = await withSetup(() =>
+            useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "4" })),
+        );
+        const result = action.runAction();
+        result.cancel();
+        const destinationError = new Error("Destination failed");
+        mocks.instanceObject.state.errored = true;
+        mocks.instanceObject.state.error = destinationError;
+        resolveRequest(false);
+        await result;
+        expect(mocks.instanceObject.clearError).not.toHaveBeenCalled();
+        expect(mocks.instanceObject.state.error).toBe(destinationError);
     });
 
     describe("redirectTo", () => {

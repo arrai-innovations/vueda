@@ -1,0 +1,55 @@
+diff --git a/dist/index.js b/dist/index.js
+index 9587caf78e7372277990fc47be1e2b81ea3b67e3..357825fd81e592a0f04157e62340a0251a464d3e 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -84,7 +84,7 @@ function usePasswordManagerBadge({ containerRef, inputRef, pushPasswordManagerSt
+ 		}
+ 		hasPWMBadge.value = true;
+ 		done.value = true;
+-		if (!pwmMetadata.value.refocused && document.activeElement === input) {
++		if (!pwmMetadata.value.refocused && input.getRootNode().activeElement === input) {
+ 			const sel = [input.selectionStart, input.selectionEnd];
+ 			input.blur();
+ 			input.focus();
+@@ -107,7 +107,7 @@ function usePasswordManagerBadge({ containerRef, inputRef, pushPasswordManagerSt
+ 	});
+ 	watch([isFocused, inputRef], (newValues, _, onInvalidate) => {
+ 		const [newIsFocused, newInputRef] = newValues;
+-		const _isFocused = newIsFocused || document.activeElement === newInputRef;
++		const _isFocused = newIsFocused || newInputRef?.getRootNode().activeElement === newInputRef;
+ 		if (pushPasswordManagerStrategy === "none" || !_isFocused) return;
+ 		const t1 = setTimeout(trackPWMBadge, 0);
+ 		const t2 = setTimeout(trackPWMBadge, 2e3);
+@@ -245,10 +245,14 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
+ 				input.selectionEnd,
+ 				input.selectionDirection ?? "none"
+ 			];
+-			const removeSelectionchangeListener = useEventListener(defaultDocument, "selectionchange", onDocumentSelectionChange, { capture: true });
++			const ownerDocument = input.ownerDocument;
++			const rootNode = input.getRootNode();
++			const root = "activeElement" in rootNode ? rootNode : ownerDocument;
++			const selectionTargets = root === ownerDocument ? [ownerDocument] : [ownerDocument, root];
++			const removeSelectionchangeListener = useEventListener(selectionTargets, "selectionchange", onDocumentSelectionChange, { capture: true });
+ 			function onDocumentSelectionChange() {
+ 				if (!input) return;
+-				if (defaultDocument?.activeElement !== input) {
++				if (root.activeElement !== input) {
+ 					mirrorSelectionStart.value = null;
+ 					mirrorSelectionEnd.value = null;
+ 					return;
+@@ -300,11 +304,11 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
+ 				];
+ 			}
+ 			onDocumentSelectionChange();
+-			if (defaultDocument?.activeElement === input) isFocused.value = true;
+-			if (!defaultDocument?.getElementById("input-otp-style")) {
+-				const styleEl = defaultDocument?.createElement("style");
++			if (root.activeElement === input) isFocused.value = true;
++			if (!root.getElementById("input-otp-style")) {
++				const styleEl = ownerDocument.createElement("style");
+ 				styleEl.id = "input-otp-style";
+-				defaultDocument?.head.appendChild(styleEl);
++				(root === ownerDocument ? ownerDocument.head : root).appendChild(styleEl);
+ 				if (styleEl.sheet) {
+ 					const autofillStyles = "background: transparent !important; color: transparent !important; border-color: transparent !important; opacity: 0 !important; box-shadow: none !important; -webkit-box-shadow: none !important; -webkit-text-fill-color: transparent !important;";
+ 					safeInsertRule(styleEl.sheet, "[data-input-otp]::selection { background: transparent !important; color: transparent !important; }");

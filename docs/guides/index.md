@@ -15,6 +15,8 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 ## Client Setup & Theming
 
+- [Style Unovis Charts](style-unovis-charts.md): Optional chart palette and mappings for VUEDA typography, surfaces, and dark mode.
+
 - [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
 - [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.
 - [Customize VUEDA Appearance](customize-vueda-appearance.md): Concrete recipes for the four customization scopes: instance, component, family, and brand.

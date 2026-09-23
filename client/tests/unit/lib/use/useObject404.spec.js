@@ -33,6 +33,21 @@ describe("lib/use/useObject404.js", () => {
         errorRef = ref(null);
     });
 
+    scopedIt("clears a missing-object error when the target changes or retrieval retries", async () => {
+        useObject404(props, instance, modelConfig, errorRef);
+        instance.state.error = { response: { status: 404 } };
+        await nextTick();
+        expect(errorRef.value).toBeInstanceOf(Error);
+        props.pk = "43";
+        await nextTick();
+        expect(errorRef.value).toBeNull();
+        instance.state.error = { response: { status: 404 } };
+        await nextTick();
+        instance.state.loading = true;
+        await nextTick();
+        expect(errorRef.value).toBeNull();
+    });
+
     scopedIt("sets an error when a 404 is detected", async () => {
         useObject404(props, instance, modelConfig, errorRef);
 

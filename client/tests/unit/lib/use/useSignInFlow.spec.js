@@ -78,6 +78,54 @@ describe("lib/use/useSignInFlow.js", () => {
             expect(toastMock.success).not.toHaveBeenCalled();
         });
 
+        scopedIt("reports a rejected navigation instead of announcing success", async () => {
+            // The sign-in has already succeeded by here, so the form has nothing to say
+            // about a redirect that does not happen. Unreported, the person reads "Signed
+            // In" while the page stays on the sign-in form.
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            routerPush.mockRejectedValueOnce(new Error('No match for {"name":"welcome"}'));
+            useSignInFlow({ formProps: {} });
+            isActiveRef.value = true;
+            store.loggedIn = true;
+            await flushPromises();
+            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(toastMock.error).toHaveBeenCalledWith(
+                "Signed in, but could not open the next page",
+                expect.any(Object),
+            );
+            expect(consoleError).toHaveBeenCalled();
+            consoleError.mockRestore();
+        });
+
+        scopedIt("reports a navigation that throws rather than rejects", async () => {
+            // Vue Router resolves the destination inside push, so an unmatched route name
+            // throws synchronously rather than rejecting. Both reach the same report.
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            routerPush.mockImplementationOnce(() => {
+                throw new Error('No match for {"name":"welcome"}');
+            });
+            useSignInFlow({ formProps: {} });
+            isActiveRef.value = true;
+            store.loggedIn = true;
+            await flushPromises();
+            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(toastMock.error).toHaveBeenCalled();
+            consoleError.mockRestore();
+        });
+
+        scopedIt("reports a failed ?redirect navigation too", async () => {
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            routeQuery = { redirect: "/gone" };
+            routerPush.mockRejectedValueOnce(new Error("No match for /gone"));
+            useSignInFlow({ redirect: { name: "dashboard" }, formProps: {} });
+            isActiveRef.value = true;
+            store.loggedIn = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith("/gone");
+            expect(toastMock.error).toHaveBeenCalled();
+            consoleError.mockRestore();
+        });
+
         scopedIt("does not redirect when component is not active", async () => {
             useSignInFlow({ redirect: "/home", formProps: {} });
             isActiveRef.value = false;

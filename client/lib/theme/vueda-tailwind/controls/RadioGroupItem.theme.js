@@ -13,7 +13,7 @@ patchTheme({
      * slots paint the SVG circle dot inside the ring.
      */
     RadioGroupItem: {
-        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract; the dark rest edge uses `--border-strong` (parity with {@api theme-key:Checkbox.root}) so the ring stays visible on hovered list rows. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. */
+        /** The individual radio chit inside a {@api theme-key:RadioGroup.root}. 24px circle, paired with the 24px {@api theme-key:Checkbox.root} square so the two single-select families share a row height. `hairline` edge on an input-tinted surface (`dark:bg-input/30`) with the standard focus + `aria-invalid` ring contract; the dark rest edge uses `--border-strong` (parity with {@api theme-key:Checkbox.root}) so the ring stays visible on hovered list rows. Selected state is carried by the inner {@api theme-key:RadioGroupItem.dot} via `text-primary` on the root (the dot inherits the colour through `bg-current`); `aria-invalid` recolours the dot to `--destructive` the same way. Disabled controls use `--disabled` fill, `--border` edge, and `--disabled-foreground` indicators at full opacity, including when invalid. */
         root: {
             class: [
                 // Surface and shape.
@@ -23,8 +23,11 @@ patchTheme({
                 // clears the row-hover accent band that opaque --input sinks into.
                 "dark:hairline-border-strong",
 
+                // Disabled colors override checked, invalid, and dark-mode recipes without fading the value.
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
+
                 // Disabled, focus, and invalid states.
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                "disabled:cursor-not-allowed",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:text-destructive",
             ],
