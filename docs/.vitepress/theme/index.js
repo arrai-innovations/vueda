@@ -32,7 +32,9 @@ setIcons(fontAwesomeFreeIcons);
 
 const DarkModeTransitionGuard = defineComponent({
     setup() {
-        if (typeof window === "undefined") return () => null;
+        if (typeof window === "undefined") {
+            return () => null;
+        }
         const { isDark } = useData();
         const clear = () => document.documentElement.classList.remove("no-transition");
         const throttledClear = throttle(clear, 150, { leading: false, trailing: true });

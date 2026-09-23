@@ -76,7 +76,9 @@ export class ThemeKeysNormalizer extends Normalizer {
             // First-encountered group/description wins for the component
             // (the component-level description is whatever annotated the
             // banner-introduced component key).
-            if (!comp.group && entry.group) comp.group = entry.group;
+            if (!comp.group && entry.group) {
+                comp.group = entry.group;
+            }
 
             const callbackSource = entry.callbackSource ?? null;
             const defaultClasses = Array.isArray(entry.staticClass) ? entry.staticClass : null;

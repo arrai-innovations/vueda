@@ -67,13 +67,20 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js, lib/**/*.vue", () => {
 
             for (const partial of captured) {
                 for (const [comp, slots] of Object.entries(partial)) {
-                    if (!slots || typeof slots !== "object") continue;
+                    if (!slots || typeof slots !== "object") {
+                        continue;
+                    }
                     for (const [slotName, slotDef] of Object.entries(slots)) {
                         for (const [path, def] of slotDefs(slotDef, `${comp}.${slotName}`)) {
                             const raw = rawBorders(slotTokens(def));
-                            if (!raw.length) continue;
-                            if (ALLOWLIST[path]) usedAllowlist.add(path);
-                            else themeFindings.push(`${path}: ${raw.join(", ")}`);
+                            if (!raw.length) {
+                                continue;
+                            }
+                            if (ALLOWLIST[path]) {
+                                usedAllowlist.add(path);
+                            } else {
+                                themeFindings.push(`${path}: ${raw.join(", ")}`);
+                            }
                         }
                     }
                 }
@@ -83,9 +90,14 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js, lib/**/*.vue", () => {
                 const name = file.replace(/^(\.\.\/)+/, "");
                 for (const m of templateOf(source).matchAll(/(?:^|\s)class="([^"]*)"/g)) {
                     const raw = rawBorders(tokens(m[1]));
-                    if (!raw.length) continue;
-                    if (ALLOWLIST[name]) usedAllowlist.add(name);
-                    else componentFindings.push(`${name}: ${raw.join(", ")}`);
+                    if (!raw.length) {
+                        continue;
+                    }
+                    if (ALLOWLIST[name]) {
+                        usedAllowlist.add(name);
+                    } else {
+                        componentFindings.push(`${name}: ${raw.join(", ")}`);
+                    }
                 }
             }
         });

@@ -166,7 +166,9 @@ vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default:
 vi.mock("reka-ui", () => ({
     useFilter: () => ({
         contains: (string, substring) => {
-            if (!substring) return true;
+            if (!substring) {
+                return true;
+            }
             return string.toLowerCase().includes(substring.toLowerCase());
         },
     }),

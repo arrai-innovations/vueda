@@ -865,7 +865,9 @@ export function useField(props, emit, options = {}) {
         register();
         watch(toRef(props, "name"), () => {
             const fc = unref(formContext);
-            if (!fc) return;
+            if (!fc) {
+                return;
+            }
             if (hookId) {
                 fc[`unregister${kind}`](hookId);
             }

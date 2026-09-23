@@ -94,7 +94,9 @@ function makeNormalizerWithFiles(fileMap, repoRoot = "/fake") {
     return new VueDocgenNormalizer({
         repoRoot,
         fileResolver: (filePath) => {
-            if (filePath in fileMap) return fileMap[filePath];
+            if (filePath in fileMap) {
+                return fileMap[filePath];
+            }
             throw new Error(`Unexpected file read: ${filePath}`);
         },
     });

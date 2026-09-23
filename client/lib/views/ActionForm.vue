@@ -155,11 +155,19 @@ const validationEntries = computed(() => {
     const showsErrors = formContext?.state?.showsErrors || {};
     const entries = [];
     for (const [field, codes] of Object.entries(errors)) {
-        if (field === NON_FIELD_ERRORS_KEY) continue;
-        if (showsErrors[field]) continue;
-        if (!codes || typeof codes !== "object") continue;
+        if (field === NON_FIELD_ERRORS_KEY) {
+            continue;
+        }
+        if (showsErrors[field]) {
+            continue;
+        }
+        if (!codes || typeof codes !== "object") {
+            continue;
+        }
         const messages = Object.values(codes).filter(Boolean);
-        if (messages.length === 0) continue;
+        if (messages.length === 0) {
+            continue;
+        }
         entries.push({ field, label: labels[field] ?? field, messages });
     }
     return entries;
@@ -169,7 +177,9 @@ const showValidation = computed(() => !!formContext?.state?.anyError && validati
 const validationCount = computed(() => validationEntries.value.length);
 const validationTitle = computed(() => {
     const n = validationCount.value;
-    if (n === 0) return "Cannot run action";
+    if (n === 0) {
+        return "Cannot run action";
+    }
     return `Cannot run action — ${n} ${n === 1 ? "field needs" : "fields need"} attention`;
 });
 </script>

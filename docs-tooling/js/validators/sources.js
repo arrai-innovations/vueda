@@ -12,7 +12,9 @@
 
 function parseComposeRef(ref) {
     const idx = ref.indexOf(".");
-    if (idx <= 0) return null;
+    if (idx <= 0) {
+        return null;
+    }
     return { target: ref.slice(0, idx), slot: ref.slice(idx + 1) };
 }
 
@@ -36,8 +38,12 @@ export function validateThemeKeysPayload(payload) {
     // Index every (component, slot) pair that exists.
     const slotIndex = new Map();
     for (const entry of entries) {
-        if (!entry.component) continue;
-        if (!slotIndex.has(entry.component)) slotIndex.set(entry.component, new Set());
+        if (!entry.component) {
+            continue;
+        }
+        if (!slotIndex.has(entry.component)) {
+            slotIndex.set(entry.component, new Set());
+        }
         slotIndex.get(entry.component).add(entry.slot);
     }
 
@@ -85,7 +91,9 @@ export function validateThemeKeysPayload(payload) {
  * undefined or empty, returns the input unchanged.
  */
 export function filterDiagnosticsByFiles(diagnostics, files) {
-    if (!files || files.length === 0) return diagnostics;
+    if (!files || files.length === 0) {
+        return diagnostics;
+    }
     const set = new Set(files);
     return diagnostics.filter((d) => set.has(d.file));
 }

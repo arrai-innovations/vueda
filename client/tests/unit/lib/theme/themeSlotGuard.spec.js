@@ -46,7 +46,9 @@ const THEME_BINDING = /\b(?:const|let|var)\s+(\w+)\s*=\s*(?:useTheme|useWidgetTh
 const slotReads = (source, varName) => {
     const found = new Set();
     const pattern = new RegExp(String.raw`\b${varName}\(\s*["'](\w+)["']`, "g");
-    for (const m of source.matchAll(pattern)) found.add(m[1]);
+    for (const m of source.matchAll(pattern)) {
+        found.add(m[1]);
+    }
     return found;
 };
 
@@ -67,9 +69,13 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js, lib/**/*.{vue,js}", () => {
 
             for (const partial of captured) {
                 for (const [component, slots] of Object.entries(partial)) {
-                    if (!slots || typeof slots !== "object") continue;
+                    if (!slots || typeof slots !== "object") {
+                        continue;
+                    }
                     registered[component] ??= new Set();
-                    for (const slotName of Object.keys(slots)) registered[component].add(slotName);
+                    for (const slotName of Object.keys(slots)) {
+                        registered[component].add(slotName);
+                    }
                 }
             }
 
@@ -79,16 +85,24 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js, lib/**/*.{vue,js}", () => {
                     checkedComponents.add(component);
                     const entry = registered[component];
                     if (!entry) {
-                        if (ALLOWLIST[component]) usedAllowlist.add(component);
-                        else missingEntry.push(`${name}: useTheme("${component}") but no theme registers it`);
+                        if (ALLOWLIST[component]) {
+                            usedAllowlist.add(component);
+                        } else {
+                            missingEntry.push(`${name}: useTheme("${component}") but no theme registers it`);
+                        }
                         continue;
                     }
                     for (const slotName of slotReads(source, varName)) {
                         readCount += 1;
-                        if (entry.has(slotName)) continue;
+                        if (entry.has(slotName)) {
+                            continue;
+                        }
                         const path = `${component}.${slotName}`;
-                        if (ALLOWLIST[path]) usedAllowlist.add(path);
-                        else missingSlot.push(`${path}: read in ${name}, not registered`);
+                        if (ALLOWLIST[path]) {
+                            usedAllowlist.add(path);
+                        } else {
+                            missingSlot.push(`${path}: read in ${name}, not registered`);
+                        }
                     }
                 }
             }

@@ -26,10 +26,14 @@ vi.mock("@vueda/stores/storeModelInfo.js", () => ({
 
 vi.mock("string-similarity-js", () => ({
     stringSimilarity: (a, b) => {
-        if (!a || !b) return 0;
+        if (!a || !b) {
+            return 0;
+        }
         let i = 0;
         for (; i < Math.min(a.length, b.length); i++) {
-            if (a[i] !== b[i]) break;
+            if (a[i] !== b[i]) {
+                break;
+            }
         }
         return i;
     },

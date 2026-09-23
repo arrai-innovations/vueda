@@ -38,13 +38,17 @@ watch([isActive, hasTotpdevices], async ([newActive, newHasTotpdevices]) => {
 });
 
 const codesText = computed(() => {
-    if (!recoveryCodes.value) return "";
+    if (!recoveryCodes.value) {
+        return "";
+    }
     return Array.isArray(recoveryCodes.value) ? recoveryCodes.value.join("\n") : recoveryCodes.value;
 });
 
 const downloadCodes = () => {
     const text = codesText.value.trim();
-    if (!text) return;
+    if (!text) {
+        return;
+    }
     const blob = new Blob([text + "\n"], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

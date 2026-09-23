@@ -86,8 +86,12 @@ const stepDefs = [
 ];
 
 const stepState = (id) => {
-    if (id < step.value) return "done";
-    if (id === step.value) return "current";
+    if (id < step.value) {
+        return "done";
+    }
+    if (id === step.value) {
+        return "current";
+    }
     return "upcoming";
 };
 

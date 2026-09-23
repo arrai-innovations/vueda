@@ -67,18 +67,26 @@ describe("lib/theme/vueda-tailwind/**/*.theme.js", () => {
 
             for (const partial of captured) {
                 for (const [comp, slots] of Object.entries(partial)) {
-                    if (!slots || typeof slots !== "object") continue;
+                    if (!slots || typeof slots !== "object") {
+                        continue;
+                    }
                     for (const [slotName, slotDef] of Object.entries(slots)) {
                         for (const [path, def] of slotDefs(slotDef, `${comp}.${slotName}`)) {
                             const classTokens = slotTokens(def);
-                            if (!classTokens.includes("field-line")) continue;
+                            if (!classTokens.includes("field-line")) {
+                                continue;
+                            }
                             fieldSlots++;
                             const restored = restoredEdges(classTokens);
-                            if (restored.length) findings.push(`${path}: ${restored.join(", ")}`);
+                            if (restored.length) {
+                                findings.push(`${path}: ${restored.join(", ")}`);
+                            }
                             const warns = warningTokens(classTokens);
-                            if (!warns.length) missingWarning.push(path);
-                            else if (!warns.every(excludesInvalid))
+                            if (!warns.length) {
+                                missingWarning.push(path);
+                            } else if (!warns.every(excludesInvalid)) {
                                 unscopedWarning.push(`${path}: ${warns.join(", ")}`);
+                            }
                         }
                     }
                 }

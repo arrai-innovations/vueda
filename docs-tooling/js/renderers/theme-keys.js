@@ -34,25 +34,35 @@ function familyPagePath(familyName) {
 }
 
 function firstSentence(text) {
-    if (!text) return "";
+    if (!text) {
+        return "";
+    }
     const trimmed = String(text).trim();
     const firstLine = trimmed.split(/\r?\n/, 1)[0] || "";
     return firstLine.trim();
 }
 
 function formatSourceLine(source) {
-    if (!source?.file) return null;
-    if (source.line) return `${source.file}:${source.line}`;
+    if (!source?.file) {
+        return null;
+    }
+    if (source.line) {
+        return `${source.file}:${source.line}`;
+    }
     return source.file;
 }
 
 function renderComposesChips(composes) {
-    if (!composes || composes.length === 0) return "";
+    if (!composes || composes.length === 0) {
+        return "";
+    }
     return composes.map((ref) => renderCodeInline(ref)).join(" ");
 }
 
 function renderDefaultClasses(defaultClasses) {
-    if (!defaultClasses || defaultClasses.length === 0) return null;
+    if (!defaultClasses || defaultClasses.length === 0) {
+        return null;
+    }
     if (defaultClasses.length === 1) {
         return renderCodeInline(defaultClasses[0]);
     }
@@ -61,9 +71,15 @@ function renderDefaultClasses(defaultClasses) {
 }
 
 function summariseDefaults(defaultClasses, valueShape) {
-    if (valueShape === "callback") return "callback";
-    if (!defaultClasses || defaultClasses.length === 0) return "";
-    if (defaultClasses.length === 1) return renderCodeInline(defaultClasses[0]);
+    if (valueShape === "callback") {
+        return "callback";
+    }
+    if (!defaultClasses || defaultClasses.length === 0) {
+        return "";
+    }
+    if (defaultClasses.length === 1) {
+        return renderCodeInline(defaultClasses[0]);
+    }
     return `${defaultClasses.length} classes`;
 }
 

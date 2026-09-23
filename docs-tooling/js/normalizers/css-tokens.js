@@ -66,7 +66,9 @@ export class CssTokensNormalizer extends Normalizer {
         }
 
         for (const name of orderedNames) {
-            if (!allNames.has(name)) continue;
+            if (!allNames.has(name)) {
+                continue;
+            }
             const rootRec = rootByName.get(name);
             const darkRec = darkByName.get(name);
             const primary = selectPrimaryRecord(rootRec, darkRec);
@@ -76,8 +78,12 @@ export class CssTokensNormalizer extends Normalizer {
             const mapping = themeMapping[bareName] || null;
 
             const variants = {};
-            if (rootRec) variants.light = rootRec.value;
-            if (darkRec) variants.dark = darkRec.value;
+            if (rootRec) {
+                variants.light = rootRec.value;
+            }
+            if (darkRec) {
+                variants.dark = darkRec.value;
+            }
 
             const description =
                 primary.description || (rootRec && rootRec.description) || (darkRec && darkRec.description) || null;

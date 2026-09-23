@@ -40,7 +40,9 @@ const resolvedInitials = computed(() => {
         return String(props.initials).toUpperCase();
     }
     const trimmed = (props.name || "").trim();
-    if (!trimmed) return "";
+    if (!trimmed) {
+        return "";
+    }
     const tokens = trimmed.split(/\s+/);
     if (tokens.length >= 2) {
         return (tokens[0][0] + tokens[tokens.length - 1][0]).toUpperCase();
