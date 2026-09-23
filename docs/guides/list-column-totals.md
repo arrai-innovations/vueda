@@ -126,6 +126,8 @@ This ordering is enforced by `ListRowLevelViewSetMixin.list`, which first calls 
 
 Each matched row is summed once, whatever the query had to join to match it, so a filter or a search that reaches across a reverse foreign key or a many-to-many does not multiply the totals the way it would multiply rows. `get_column_info` re-selects the matched rows by primary key before totalling a real column, and totals an annotation over a distinct `(primary key, value)` subquery, which reaches the same result for a value that cannot be moved off the queryset it was annotated onto. This is separate from the rule on declared paths above: that rule is about the path a total names, this is about how the request found its rows.
 
+A list queryset that picks one row per group with `distinct(...)` (a `DISTINCT ON` that leaves out the primary key) gets totals over the rows it lists. The re-selection keeps the queryset's ordering and distinct fields, which decide the row each group keeps. A `DISTINCT ON` that names a queryset annotation cannot be carried into that re-selection, so a totals request over such a queryset raises `NotImplementedError`.
+
 Totals need a paginated response to travel in. A viewset with `pagination_class = None` returns a bare array of rows, which has no `columnTotals` to carry, so no aggregation runs for one however the request asks. Such a viewset should not declare `column_totals`.
 
 ## Response Contract

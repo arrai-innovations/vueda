@@ -115,6 +115,22 @@ def _column_total_zero_for(model, path, annotation):
     return COLUMN_TOTAL_ZEROES.get(internal_type, 0)
 
 
+def _column_total_aliases(names, taken):
+    """
+    Map each total in ``names`` to an ``aggregate()`` alias that no name in ``taken`` can shadow.
+
+    ``aggregate()`` resolves each argument against the aliases already defined in the same call, so
+    ``aggregate(quantity=Sum("quantity"), duplicate=Sum("quantity"))`` sums the first aggregate a
+    second time and fails. A generated alias can collide the same way with an annotation the
+    viewset added. The prefix grows until no taken name starts with it, so no generated alias can
+    equal one.
+    """
+    prefix = "_column_total"
+    while any(name.startswith(prefix) for name in taken):
+        prefix = f"_{prefix}"
+    return {name: f"{prefix}_{index}" for index, name in enumerate(names)}
+
+
 class WarningConfirmationMixin:
     """
     Gate writes behind an explicit confirmation when they report advisory warnings.
@@ -380,46 +396,62 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             return {}
         declared = self.get_declared_column_totals()
         model = queryset.model
-        # `_base_manager`, not `_default_manager`: every visibility rule is already baked into the
-        # pks being selected, and a default manager that filters would subtract rows from a set the
-        # user was just shown.
-        #
-        # `.order_by().distinct()` reduces the subquery to "which rows matched". Both calls are
-        # load-bearing. A search across a many-to-many leaves the queryset ordered by a ranking
-        # annotation and deduplicated with `DISTINCT ON (combined_rank, pk)`; `.values("pk")` masks
-        # that annotation out of the select, and a `DISTINCT ON` naming a column no longer selected
-        # cannot be compiled -- so the distinct fields are reset to a plain `DISTINCT` before that
-        # can happen. The ordering goes with them: Postgres requires `DISTINCT ON` terms to lead the
-        # `ORDER BY`, and a subquery asked only for a set of ids has no use for either. Deduplicating
-        # by pk is what this subquery is for, so nothing is lost -- the annotation is still resolved
-        # where the search actually uses it, in the `WHERE` clause.
         annotations = queryset.query.annotations
         column_names = [name for name in requested_column_totals if declared[name] not in annotations]
         annotation_names = [name for name in requested_column_totals if declared[name] in annotations]
+        # Every total is aggregated under a generated alias and mapped back to its own name below.
+        # A total is normally named after what it sums, so `{"line_total": "line_total"}` is the
+        # ordinary spelling, and two totals may sum the same field. Either way a total's own name
+        # used as the alias would be what a later argument resolves to, instead of the field.
+        aliases = _column_total_aliases(
+            requested_column_totals,
+            {*annotations, *(declared[name].split("__")[0] for name in requested_column_totals)},
+        )
+
+        # A `DISTINCT ON` that leaves out the primary key picks one row per group, and the ordering
+        # decides which: the list shows those rows, so the totals have to cover the same ones.
+        # Selecting the pks through the list queryset unchanged keeps both, because Django leaves a
+        # subquery's ordering in place when it has distinct fields. A `DISTINCT ON` that includes
+        # the primary key, which is the only kind the search backend adds, keeps every matched row
+        # and only removes duplicates. That one, like a query with no distinct fields, reduces to
+        # "which rows matched", so its ordering and distinct fields are dropped from the subquery:
+        # they can name a ranking annotation that `.values("pk")` masks out of the select, and a
+        # `DISTINCT ON` naming a column no longer selected cannot be compiled.
+        distinct_fields = queryset.query.distinct_fields
+        pk_names = {"pk", model._meta.pk.name, model._meta.pk.attname}
+        if distinct_fields and pk_names.isdisjoint(distinct_fields):
+            masked = [field for field in distinct_fields if field.split("__")[0] in annotations]
+            if masked:
+                raise NotImplementedError(
+                    f"{type(self).__name__} cannot compute column totals over a queryset that selects "
+                    f"one row per group with distinct({', '.join(map(repr, distinct_fields))}): the "
+                    f"row selection names the annotation(s) {', '.join(map(repr, masked))}, which a "
+                    "primary key subquery cannot carry."
+                )
+            matched_pks = queryset.values("pk")
+            selects_one_per_group = True
+        else:
+            matched_pks = queryset.order_by().distinct().values("pk")
+            selects_one_per_group = False
 
         totals = {}
         if column_names:
-            matched_pks = queryset.order_by().distinct().values("pk")
+            # `_base_manager`, not `_default_manager`: every visibility rule is already baked into
+            # the pks being selected, and a default manager that filters would subtract rows from a
+            # set the user was just shown.
+            #
             # `db_manager`, so a queryset pinned to a replica with `.using()` keeps that connection.
             # Django refuses a subquery that spans two databases, and the router would otherwise be
             # free to answer with a different one than the pks are being selected from.
             rows = model._base_manager.db_manager(queryset.db).filter(pk__in=matched_pks)
-            totals.update(
-                rows.aggregate(
-                    **{
-                        name: Sum(declared[name], default=_column_total_zero(model, declared[name]))
-                        for name in column_names
-                    }
-                )
+            aggregated = rows.aggregate(
+                **{
+                    aliases[name]: Sum(declared[name], default=_column_total_zero(model, declared[name]))
+                    for name in column_names
+                }
             )
+            totals.update({name: aggregated[aliases[name]] for name in column_names})
         if annotation_names:
-            # Aggregated under a generated alias rather than the total's own name. A total is
-            # normally named after what it sums, so `{"line_total": "line_total"}` is the ordinary
-            # spelling -- and `aggregate(line_total=Sum("line_total"))` would resolve the argument
-            # to the alias being defined instead of to the annotation, emitting a bare
-            # `SUM("line_total")` that names no column the query selects. The alias is dropped again
-            # below, so nothing outside this call sees it.
-            aliases = {name: f"_column_total_{index}" for index, name in enumerate(annotation_names)}
             # Summed over `values(pk, ...).distinct()`, which Django compiles to the sum of a
             # subquery selecting each matched row's id beside the values being summed. A join that
             # matched a row more than once contributes one `(id, value)` pair, so the annotation
@@ -432,13 +464,15 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             # answer, and nothing could: it has a value per joined row rather than per row, so there
             # is no per-row total to compute. Exact duplicates still collapse.
             #
-            # Ordering is dropped for the same reason as above: `SELECT DISTINCT` requires its
-            # `ORDER BY` terms in the select list, and a search leaves the queryset ordered by a
-            # ranking annotation that is not among the values being summed.
+            # `.order_by().distinct()` replaces the list's own ordering and distinct fields, because
+            # `SELECT DISTINCT` requires its `ORDER BY` terms in the select list. A `DISTINCT ON`
+            # selection moves into the pk filter instead, so the same rows are summed.
+            rows = queryset.order_by().distinct()
+            if selects_one_per_group:
+                rows = rows.filter(pk__in=matched_pks)
             paths = list(dict.fromkeys(declared[name] for name in annotation_names))
             aggregated = (
-                queryset.order_by()
-                .values("pk", *paths)
+                rows.values("pk", *paths)
                 .distinct()
                 .aggregate(
                     **{
@@ -450,7 +484,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
                     }
                 )
             )
-            totals.update({name: aggregated[alias] for name, alias in aliases.items()})
+            totals.update({name: aggregated[aliases[name]] for name in annotation_names})
 
         # Declaration order, whichever call each total came back from, so the response keys read the
         # same way `model_column_totals` advertises them however the two kinds were mixed.

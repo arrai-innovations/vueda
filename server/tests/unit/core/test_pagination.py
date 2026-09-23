@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 from django.db import connection
+from django.db.models import F
 from django.db.models import Sum
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -26,6 +27,7 @@ from tests.store.models import OptionType
 from tests.store.models import Product as StoreProduct
 from tests.store.models import ProductOption
 from tests.store.models import TangibleType
+from tests.store.viewsets import InventoryRecordViewSet
 from tests.timesheet.models import Timesheet
 from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.viewsets import TimesheetEntryViewSet
@@ -625,3 +627,65 @@ class TestFilteredColumnTotals(BaseTestCommonModelViewSet):
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         # The two added records: 6 * 9.99 + 12 * 20.01.
         assert response.data["columnTotals"] == {"line_total": Decimal("300.06")}, response_body(response)
+
+
+@pytest.mark.django_db
+class TestColumnTotalsQueryShapes:
+    """Totals over declarations and list querysets that `aggregate()` cannot take at face value.
+
+    These call `get_column_info` directly with a queryset built here, because each one needs a
+    declaration or a queryset shape that no registered viewset has a reason to carry.
+
+    The rows: reason A holds quantities 2 and 10 (in that insertion order), reason B holds 5.
+    """
+
+    ALL_QUANTITY = 17
+
+    @pytest.fixture
+    def records(self):
+        (option,) = create_product_options("1.00")
+        reason_a = InventoryRecordReason.objects.create(name="Shape A", code="shape_a", is_added_reason=True)
+        reason_b = InventoryRecordReason.objects.create(name="Shape B", code="shape_b", is_added_reason=True)
+        InventoryRecord.objects.create(product_option=option, reason=reason_a, is_added=True, quantity=2)
+        InventoryRecord.objects.create(product_option=option, reason=reason_a, is_added=True, quantity=10)
+        InventoryRecord.objects.create(product_option=option, reason=reason_b, is_added=True, quantity=5)
+        return InventoryRecord.objects.all()
+
+    @staticmethod
+    def column_info(column_totals, queryset):
+        viewset = InventoryRecordViewSet()
+        viewset.column_totals = column_totals
+        return viewset.get_column_info(queryset, tuple(column_totals))
+
+    @pytest.mark.parametrize(
+        "column_totals",
+        [{"quantity": "quantity", "duplicate": "quantity"}, {"duplicate": "quantity", "quantity": "quantity"}],
+        ids=["own-name-first", "own-name-second"],
+    )
+    def test_two_totals_over_one_field(self, records, column_totals):
+        """A total named after its field must not become what another total over that field sums."""
+        assert self.column_info(column_totals, records) == dict.fromkeys(column_totals, self.ALL_QUANTITY)
+
+    def test_an_annotation_named_like_a_generated_alias(self, records):
+        queryset = records.annotate(_column_total_0=F("quantity") * 2)
+
+        assert self.column_info({"value": "_column_total_0"}, queryset) == {"value": self.ALL_QUANTITY * 2}
+
+    def test_one_row_per_group_totals_the_rows_listed(self, records):
+        """`DISTINCT ON (reason)` keeps the newest record per reason, 10 and 5, so the totals must
+        cover those two rather than every record that matched."""
+        queryset = records.annotate(double_quantity=F("quantity") * 2).order_by("reason", "-id").distinct("reason")
+        assert [record.quantity for record in queryset] == [10, 5]
+
+        assert self.column_info({"quantity": "quantity", "double_quantity": "double_quantity"}, queryset) == {
+            "quantity": 15,
+            "double_quantity": 30,
+        }
+
+    def test_one_row_per_group_by_an_annotation_is_rejected(self, records):
+        """A primary key subquery cannot carry an annotation the selection is made by, so such a
+        request fails naming the cause rather than totalling rows the list does not show."""
+        queryset = records.annotate(bucket=F("quantity") / 6).order_by("bucket", "-id").distinct("bucket")
+
+        with pytest.raises(NotImplementedError, match="'bucket'"):
+            self.column_info({"quantity": "quantity"}, queryset)
