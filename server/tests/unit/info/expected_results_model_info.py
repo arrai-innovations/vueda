@@ -1460,6 +1460,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "choices": False,
                     "hidden": False,
+                    "list_default": False,
                 },
                 "when": {
                     "label": "Date / Time",
@@ -1482,6 +1483,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "choices": False,
                     "hidden": False,
+                    "list_default": False,
                 },
                 "workflow_state_name": {
                     "label": "Workflow State Name",

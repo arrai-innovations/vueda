@@ -141,6 +141,7 @@ describe("lib/**/*.vue", () => {
                     ignored: {},
                     dependencyValues: {},
                     labels: {},
+                    showsErrors: {},
                     focused: null,
                     anyError: false,
                     submittingValues: {},
@@ -170,6 +171,8 @@ describe("lib/**/*.vue", () => {
                 unregisterDependencyValues: vi.fn(),
                 registerLabel: vi.fn(),
                 unregisterLabel: vi.fn(),
+                registerShowsErrors: vi.fn(),
+                unregisterShowsErrors: vi.fn(),
             };
             mockedUseViewDestroy.mockImplementation(() => ({
                 modelConfig,

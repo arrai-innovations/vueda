@@ -374,6 +374,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "type_model": field_type_model,
                 "type_serializer": field_type_serializer,
             }
+            # Sent only when a serializer field sets it, like the optional constraint keys below.
+            if "list_default" in field.style:
+                field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
             obj = serializer
             if not field.read_only:
@@ -1766,6 +1769,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                         },
                                                     ],
                                                 },
+                                                "list_default": {
+                                                    "type": "boolean",
+                                                    "readOnly": True,
+                                                    "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
+                                                    "example": "False",
+                                                },
                                                 "pk": {
                                                     "type": "integer",
                                                     "readOnly": True,
@@ -1958,6 +1967,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 ),
                                             },
                                         ],
+                                    },
+                                    "list_default": {
+                                        "type": "boolean",
+                                        "readOnly": True,
+                                        "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
+                                        "example": "False",
                                     },
                                     "pk": {
                                         "type": "integer",

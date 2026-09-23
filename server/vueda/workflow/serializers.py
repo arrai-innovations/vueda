@@ -20,9 +20,13 @@ from vueda.workflow.models import Workflow
 
 
 class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    workflow_state_code = drf_serializers.CharField(source="workflow_state.code", read_only=True)
+    # A default list shows the state's name. Its code repeats that as a machine value, and the
+    # per-record transitions belong on the detail view.
+    workflow_state_code = drf_serializers.CharField(
+        source="workflow_state.code", read_only=True, style={"list_default": False}
+    )
     workflow_state_name = drf_serializers.CharField(source="workflow_state.name", read_only=True)
-    valid_transitions = AvailableTransitionField()
+    valid_transitions = AvailableTransitionField(style={"list_default": False})
 
     class Meta:
         fields = ["workflow_state_code", "workflow_state_name", "valid_transitions"]

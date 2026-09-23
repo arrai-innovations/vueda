@@ -1,6 +1,6 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
-import { ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { FIELDS_PARAM, ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -2020,6 +2020,34 @@ describe("lib/views/ViewList.vue", () => {
             const readout = wrapper.find('[data-qa="view-list-selection-count"]');
             expect(readout.exists()).toBe(true);
             expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
+
+    describe("Fetched fields", () => {
+        scopedIt("fetches the model config's list fields plus the primary key", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name", "code"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "code"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("fetches the columns a displayFields prop names when listFields is empty", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name"];
+            const wrapper = mount(ViewList, {
+                props: {
+                    app: "app",
+                    model: "model",
+                    displayFields: { name: { name: "name" }, created_at: { name: "created_at" } },
+                },
+            });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "created_at"]);
             wrapper.unmount();
         });
     });

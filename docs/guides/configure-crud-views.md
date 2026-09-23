@@ -25,8 +25,10 @@ The model is registered with both a serializer and a viewset, and model-info ret
 
 The defaults are:
 
-- `displayFields` and `fetchFields`: all non-PK fields from the serializer's field list.
-- `submitFields`: all non-PK fields from the serializer's field list.
+- `displayFields` and `fetchFields`: every serializer field except the PK and fields marked `hidden`. Two views narrow this default:
+    - `create` displays only writable fields. A new record has no value yet for a read-only field, and the server ignores input for one.
+    - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. `HasWorkflowSerializerMixin` sets it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
+- `submitFields`: the same fields minus read-only ones.
 - `expand`: all expandable field names declared on the serializer.
 - `routeActions` and `actions`: all action names from model-info.
 - `filterables`: all keys from the filterset definition.
@@ -60,6 +62,25 @@ storeModelConfig().setConfig(
 
 Generic overrides apply to every view. View-specific overrides are merged on top and take precedence for that view. If you set an empty array for `displayFields`, `fetchFields`, or `submitFields`, the config falls back to the model-info-derived defaults rather than producing an empty field set.
 
+The narrower `create` and `list` defaults apply only when no override names that field list or the `fields` shorthand. A generic `displayFields` therefore reaches the `create` and `list` views unchanged. For `list`, an unset `fetchFields` follows the resolved `displayFields`, so naming list columns is enough to fetch them.
+
+### Restore the full field list
+
+Before these defaults, every view started from every non-PK, non-hidden field, and `submitFields` included read-only fields. To bring a read-only field back to a create form, or a flagged field back to a list, name the fields for that view:
+
+```js
+storeModelConfig().setConfig(
+    { app: "myapp", model: "purchaseorder" },
+    {},
+    {
+        create: { displayFields: ["reference", "supplier", "total_value"] },
+        list: { displayFields: ["reference", "workflow_state_code", "workflow_state_name"] },
+    },
+);
+```
+
+To change the list default for one field in every project that uses a serializer, set the flag in the serializer field's `style`. `style={"list_default": False}` leaves a field out of the default list, and `style={"list_default": True}` keeps a field the mixin would leave out.
+
 To consume the resolved config in a component, use {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}:
 
 ```js
@@ -80,7 +101,7 @@ const modelConfig = useModelConfig(
 
 Each view consumes a different subset of the config's field properties. Aligning your overrides to what each view actually reads prevents surprises.
 
-**`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
+**`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. A custom cell slot that reads a field with no column needs that field named in `fetchFields`. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
 
 **`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand.subfield` keys for expanded relation fields.
 

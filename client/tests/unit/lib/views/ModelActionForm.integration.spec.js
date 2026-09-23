@@ -106,6 +106,28 @@ describe("lib/views/ModelActionForm.vue", () => {
             }
         });
 
+        scopedIt("shows no validation summary for a per-record rejection its chip already shows", async () => {
+            const { wrapper, form } = await renderConfirmation();
+            try {
+                form.handleServerFormValidationError({
+                    errors: { 4: "This order cannot be deleted.", 5: "This order is already closed." },
+                    messages: {},
+                });
+                form.setAllTouched();
+                await flushPromises();
+                // Each record's chip is a rendered FormField reporting its own error beside the
+                // record's name, so the summary above the form has nothing left to report. A
+                // bulk action over many records gets no second index of the rejected ones.
+                const rows = wrapper.findAll(rowSelector);
+                expect(rows[0].text()).toContain("This order cannot be deleted.");
+                expect(rows[1].text()).toContain("This order is already closed.");
+                expect(wrapper.find('[data-qa="action-form-validation"]').exists()).toBe(false);
+                expect(wrapper.text().split("This order cannot be deleted.")).toHaveLength(2);
+            } finally {
+                wrapper.unmount();
+            }
+        });
+
         scopedIt("keeps one visible ID when no fetched name is available", async () => {
             const { wrapper } = await renderConfirmation({ objects: [] });
             try {

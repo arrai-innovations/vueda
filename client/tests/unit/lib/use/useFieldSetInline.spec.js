@@ -1,8 +1,8 @@
 import { mockProvideInject, scopedIt, withSetup } from "@tests/unit/utils.js";
-import { FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
+import { FieldSetContentVisibleSymbol, FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
-const { mockedProvide, mockedInject } = mockProvideInject(vi);
+const { provideStore, mockedProvide, mockedInject } = mockProvideInject(vi);
 
 const breakpointsMock = { greaterOrEqual: vi.fn(() => ({ value: true })) };
 
@@ -230,6 +230,16 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.internalVisible).toBe(!start);
         expect(instance.state.userHasToggled).toBe(true);
         expect(emit).not.toHaveBeenCalled();
+    });
+
+    scopedIt("provides whether its rows are visible", async () => {
+        const { instance } = await mountFieldSet();
+        const rowsVisible = provideStore.get(FieldSetContentVisibleSymbol);
+        expect(rowsVisible.value).toBe(true);
+        instance.toggleVisibility();
+        expect(rowsVisible.value).toBe(false);
+        instance.toggleVisibility();
+        expect(rowsVisible.value).toBe(true);
     });
 
     scopedIt("toggleVisibility emits update when visible prop used", async () => {

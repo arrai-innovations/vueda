@@ -48,7 +48,8 @@ const props = defineProps({
 const emit = defineEmits([...FIELD_EMITS]);
 const attrs = useAttrs();
 const slots = useSlots();
-const fieldContext = useField(props, emit);
+// A hidden field renders its widget alone, so its errors have no inline row and stay with the form-level summary.
+const fieldContext = useField(props, emit, { showsErrors: () => !props.hidden });
 useFieldValidation(props.validation, fieldContext, attrs);
 const fieldId = fieldContext.state.fieldId;
 const fieldName = computed(() => fieldContext.state.name);

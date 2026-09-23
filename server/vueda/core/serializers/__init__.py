@@ -505,9 +505,9 @@ class VuedaExpandableFieldsSerializerMixin:
         ``ModelInfoSerializer.get_model_fields_data`` and corrected by ``get_expand_model_info``/
         ``get_field_model_info``) to what an OpenAPI schema needs: a label, the DRF field type (renamed from
         ``type_serializer`` to ``type``), whether the value is required, and its choices. Drops the database/model
-        type detail (``type_db``/``type_model``), the ``many``/``read_only`` flags, the ``hidden`` flag, help text,
-        and constraint bookkeeping (``max_value``, ``min_value``, ``max_length``, ``min_length``, ``max_digits``,
-        ``decimal_places``, ``pk``) that ``/info/`` also reports but the schema does not need.
+        type detail (``type_db``/``type_model``), the ``many``/``read_only`` flags, the ``hidden`` and ``list_default``
+        flags, help text, and constraint bookkeeping (``max_value``, ``min_value``, ``max_length``, ``min_length``,
+        ``max_digits``, ``decimal_places``, ``pk``) that ``/info/`` also reports but the schema does not need.
 
         Handles three shapes: a flat ``model_fields``-style dict keyed by field name (from ``get_schema_fields``);
         a list of ``model_expands``-style descriptors with nested per-field metadata under the
@@ -523,6 +523,7 @@ class VuedaExpandableFieldsSerializerMixin:
             "many",
             "read_only",
             "hidden",
+            "list_default",
             "help_text",
             "max_value",
             "min_value",

@@ -58,6 +58,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Field Metadata ***
  * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
+ * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from one a field already shows.
  */
 
 /**
@@ -638,6 +639,10 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *  Register a hook returning a rendered field's current label, grouped by field path; returns a registration id.
  * @property {(id: string) => boolean} unregisterLabel -
  *  Unregister a previously registered label hook by its registration id.
+ * @property {(name: string, showsErrorsHook: () => boolean) => string} registerShowsErrors -
+ *  Register a hook reporting whether a rendered field displays its own error messages, grouped by field path; returns a registration id.
+ * @property {(id: string) => boolean} unregisterShowsErrors -
+ *  Unregister a previously registered shows-errors hook by its registration id.
  */
 
 /**
@@ -725,6 +730,9 @@ export function useForm(props) {
     // whichever instance registered most recently, not left labelless by the outgoing instance's
     // unregister.
     const labelHookRegistry = useReactiveHookRegistry((values) => values[values.length - 1]);
+    // Default some-of-booleans aggregation: a path shows its errors when any rendered
+    // instance for it does.
+    const showsErrorsHookRegistry = useReactiveHookRegistry();
 
     /** @type {FormContextState} */
     const state = reactive({
@@ -778,6 +786,7 @@ export function useForm(props) {
 
         // *** Field Metadata ***
         labels: labelHookRegistry.computedAggregates,
+        showsErrors: showsErrorsHookRegistry.computedAggregates,
     });
     const dependencyRegistry = useFieldDependencyValuesRegistry(state.values);
     state.dependencyValues = dependencyRegistry.dependencyValues;
@@ -865,6 +874,8 @@ export function useForm(props) {
         // *** Field Metadata ***
         registerLabel: labelHookRegistry.registerHook,
         unregisterLabel: labelHookRegistry.unregisterHook,
+        registerShowsErrors: showsErrorsHookRegistry.registerHook,
+        unregisterShowsErrors: showsErrorsHookRegistry.unregisterHook,
     };
     provide(FormContextSymbol, formContext);
     return formContext;
