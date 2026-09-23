@@ -4,48 +4,6 @@ import { withBase } from "vitepress";
 
 <template>
     <main class="vueda-home">
-        <section class="hero" aria-labelledby="home-title">
-            <div class="hero-copy">
-                <p class="eyebrow">VUEDA / Django + Vue</p>
-                <h1 id="home-title">Build business applications <span>with Django and Vue.</span></h1>
-                <p class="intro">
-                    Turn your Django models, serializers, and viewsets into Vue forms, lists, and detail screens. Add
-                    workflows, permissions, and audit history, with room to make the UI your own.
-                </p>
-                <div class="actions">
-                    <a class="button primary" :href="withBase('/tutorials/start-building.html')"
-                        >Start building <span aria-hidden="true">→</span></a
-                    >
-                    <a class="button secondary" href="https://github.com/arrai-innovations/vueda">View on GitHub</a>
-                </div>
-                <p class="hero-note">For Django teams building tools their business runs on.</p>
-            </div>
-            <figure class="preview">
-                <div class="preview-frame">
-                    <div class="preview-label">
-                        <span class="preview-dot" aria-hidden="true"></span> Widget Warehouse
-                        <span>Example application</span>
-                    </div>
-                    <img
-                        v-for="theme in ['light', 'dark']"
-                        :key="theme"
-                        :class="`theme-${theme}`"
-                        :src="withBase(`/assets/homepage-list-preview-${theme}.png`)"
-                        alt="Widget Warehouse widget list with sidebar navigation, filter and sort controls, search, and a table of widget records."
-                        width="1440"
-                        height="720"
-                        fetchpriority="high"
-                    />
-                </div>
-                <figcaption>
-                    A VUEDA application, from navigation to records.
-                    <a :href="withBase('/reference/components/views-crudl.html')"
-                        >Explore the views <span aria-hidden="true">→</span></a
-                    >
-                </figcaption>
-            </figure>
-        </section>
-
         <section class="how-it-works" aria-labelledby="how-title">
             <div class="section-heading">
                 <p class="eyebrow">How it works</p>
@@ -180,13 +138,6 @@ import { withBase } from "vitepress";
     margin: 0 auto;
     padding: 0 2.5rem;
 }
-.hero {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    align-items: center;
-    gap: 3rem;
-    padding: 5.5rem 0 5rem;
-}
 .eyebrow {
     margin: 0 0 1.25rem;
     color: var(--vp-c-brand-1);
@@ -196,40 +147,18 @@ import { withBase } from "vitepress";
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
-h1,
 h2,
 h3,
 p,
 figure {
     margin: 0;
 }
-h1,
 h2,
 h3 {
     font-family: var(--vp-font-family-heading);
     font-weight: 600;
     text-wrap: balance;
     letter-spacing: 0.03125rem;
-}
-h1 {
-    font-size: clamp(2.375rem, 3.6vw, 3.375rem);
-    line-height: 1.12;
-}
-h1 span {
-    color: var(--arrai-docs-brand);
-}
-.intro {
-    max-width: 33.75rem;
-    margin-top: 1.5rem;
-    color: var(--vp-c-text-2);
-    font-size: 1.125rem;
-    line-height: 1.65;
-}
-.actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.875rem;
 }
 .button {
     display: inline-flex;
@@ -258,68 +187,10 @@ h1 span {
     background: var(--vp-button-brand-active-bg);
     color: var(--vp-button-brand-active-text);
 }
-.secondary {
-    border-color: var(--vp-c-divider);
-    background: var(--vp-c-bg-soft);
-}
-.secondary:hover {
-    border-color: var(--vp-c-brand-1);
-}
-.hero-note {
-    margin-top: 1.125rem;
-    color: var(--vp-c-text-2);
-    font-size: 0.8125rem;
-    line-height: 1.6;
-}
-.preview {
-    min-width: 0;
-}
-.preview-frame {
-    overflow: hidden;
-    border: 0.0625rem solid var(--vp-c-divider);
-    border-radius: 0.625rem;
-    background: var(--vp-c-bg-soft);
-    box-shadow: 0 1.25rem 3.75rem -1.5rem rgb(0 77 160 / 30%);
-}
-.preview-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 0.0625rem solid var(--vp-c-divider);
-    color: var(--vp-c-text-1);
-    font-size: 0.75rem;
-}
-.preview-label > span:last-child {
-    margin-left: auto;
-    color: var(--vp-c-text-2);
-}
-.preview-dot {
-    width: 0.4375rem;
-    height: 0.4375rem;
-    border-radius: 50%;
-    background: var(--arrai-docs-brand);
-}
-.preview img {
-    display: block;
-    width: 100%;
-    height: auto;
-}
 .dark .theme-light,
 html:not(.dark) .theme-dark {
     display: none !important;
 }
-figcaption {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    color: var(--vp-c-text-2);
-    font-size: 0.75rem;
-    line-height: 1.6;
-}
-figcaption a,
 .text-link {
     color: var(--vp-c-brand-1);
     font-weight: 500;
@@ -513,7 +384,6 @@ a:focus-visible {
     outline-offset: 0.3125rem;
 }
 .text-link:hover,
-figcaption a:hover,
 .doc-links a:hover,
 .project-credit a:hover {
     text-decoration: underline;
@@ -540,15 +410,6 @@ figcaption a:hover,
     }
 }
 @media (max-width: 59.9375rem) {
-    .hero {
-        grid-template-columns: 1fr;
-        gap: 2.5rem;
-        padding: 3rem 0;
-    }
-    .hero-copy,
-    .intro {
-        max-width: 42.5rem;
-    }
     .steps,
     .feature-grid {
         gap: 1.5rem;
@@ -566,9 +427,6 @@ figcaption a:hover,
     .vueda-home {
         padding: 0 1.5rem;
     }
-    .intro {
-        font-size: 1rem;
-    }
     .steps {
         grid-template-columns: 1fr;
         gap: 1.75rem;
@@ -580,9 +438,6 @@ figcaption a:hover,
     .get-started,
     .feature-grid article {
         padding: 1.5rem;
-    }
-    .preview-label > span:last-child {
-        display: none;
     }
 }
 </style>
