@@ -112,7 +112,6 @@ onMounted(() => {
                 >
                     <link-model-view
                         :app="app"
-                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"

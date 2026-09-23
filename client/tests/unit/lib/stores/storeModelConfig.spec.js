@@ -241,6 +241,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.verboseNamePlural).toBe("timesheets");
             expect(config.displayFields).toEqual(["name", "description"]);
             expect(config.fetchFields).toEqual(["name", "description"]);
+            expect(config.detailLinkField).toBeNull();
             expect(config.submitFields).toEqual(["name", "description"]);
 
             expect(config.expand).toEqual(["employee", "timesheet_days"]);
@@ -477,6 +478,17 @@ describe("lib/stores/storeModelConfig.js", () => {
     });
 
     describe("setConfig and config merging", () => {
+        scopedIt.each(["name", null])("lets the list override the generic detailLinkField with %s", async (value) => {
+            const store = storeModelConfig();
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { detailLinkField: "description" },
+                { list: { detailLinkField: value } },
+            );
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.detailLinkField).toBe(value);
+        });
+
         scopedIt("applies generic custom config overrides", async () => {
             const store = storeModelConfig();
             // Clear caches
@@ -774,6 +786,116 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.displayFields).toEqual(["name", "employee.username"]);
             expect(config.fetchFields).toEqual(["name", "employee.username"]);
             expect(config.submitFields).toEqual(["name"]);
+        });
+    });
+
+    describe("per-view field defaults", () => {
+        // A workflow model as model info reaches the store: camelCased, with server-maintained
+        // fields read-only and the server's `listDefault: false` on columns a list leaves out.
+        const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
+        const workflowModelInfo = {
+            ...dummyModelInfo,
+            fields: {
+                id: field("ID", { readOnly: true, pk: true }),
+                formatted_name: field("Formatted Name", { readOnly: true, hidden: true }),
+                reference: field("Reference", { required: true }),
+                order_date: field("Order Date"),
+                total_value: field("Total Value", { readOnly: true }),
+                workflow_state_code: field("Workflow State Code", { readOnly: true, listDefault: false }),
+                workflow_state_name: field("Workflow State Name", { readOnly: true }),
+                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, listDefault: false }),
+                created_at: field("Created At", { readOnly: true, listDefault: false }),
+                updated_at: field("Updated At", { readOnly: true, listDefault: false }),
+            },
+        };
+        const allFields = [
+            "reference",
+            "order_date",
+            "total_value",
+            "workflow_state_code",
+            "workflow_state_name",
+            "valid_transitions",
+            "created_at",
+            "updated_at",
+        ];
+        const writableFields = ["reference", "order_date"];
+        const listColumns = ["reference", "order_date", "total_value", "workflow_state_name"];
+
+        beforeEach(() => {
+            mockedFetchModelInfo.mockResolvedValue(workflowModelInfo);
+        });
+
+        const getConfig = (view, genericConfig, specificConfigs) => {
+            const store = storeModelConfig();
+            if (genericConfig || specificConfigs) {
+                store.setConfig({ app: "testApp", model: "testModel" }, genericConfig || {}, specificConfigs);
+            }
+            return store.getConfig({ app: "testApp", model: "testModel", view });
+        };
+
+        scopedIt("defaults a create form to writable fields", async () => {
+            const config = await getConfig("create");
+            expect(config.displayFields).toEqual(writableFields);
+            expect(config.submitFields).toEqual(writableFields);
+        });
+
+        scopedIt("defaults an update form to every field but submits only writable ones", async () => {
+            const config = await getConfig("update");
+            expect(config.displayFields).toEqual(allFields);
+            expect(config.fetchFields).toEqual(allFields);
+            expect(config.submitFields).toEqual(writableFields);
+        });
+
+        scopedIt("keeps every field on the read view and the view-independent config", async () => {
+            for (const view of ["read", null]) {
+                const config = await getConfig(view);
+                expect(config.displayFields).toEqual(allFields);
+                expect(config.fetchFields).toEqual(allFields);
+            }
+        });
+
+        scopedIt("defaults list columns to fields the server does not flag, and fetches only those", async () => {
+            const config = await getConfig("list");
+            expect(config.displayFields).toEqual(listColumns);
+            expect(config.displayFields).not.toEqual(
+                expect.arrayContaining(["workflow_state_code", "valid_transitions", "created_at", "updated_at"]),
+            );
+            expect(config.fetchFields).toEqual(listColumns);
+        });
+
+        scopedIt("gives a model-wide displayFields precedence over every per-view default", async () => {
+            const displayFields = ["reference", "created_at"];
+            for (const view of ["create", "list", "update"]) {
+                const config = await getConfig(view, { displayFields });
+                expect(config.displayFields).toEqual(displayFields);
+            }
+        });
+
+        scopedIt("fetches the columns an integrator names for a list when fetchFields is unset", async () => {
+            const config = await getConfig("list", {}, { list: { displayFields: ["reference", "created_at"] } });
+            expect(config.displayFields).toEqual(["reference", "created_at"]);
+            expect(config.fetchFields).toEqual(["reference", "created_at"]);
+        });
+
+        scopedIt("keeps an explicit list fetchFields", async () => {
+            const config = await getConfig("list", { fetchFields: ["reference", "workflow_state_code"] });
+            expect(config.displayFields).toEqual(listColumns);
+            expect(config.fetchFields).toEqual(["reference", "workflow_state_code"]);
+        });
+
+        scopedIt("keeps an explicit submitFields that names read-only fields", async () => {
+            const config = await getConfig("create", { submitFields: ["reference", "total_value"] });
+            expect(config.submitFields).toEqual(["reference", "total_value"]);
+        });
+
+        scopedIt("gives the fields shorthand precedence over every per-view default", async () => {
+            const fields = ["reference", "workflow_state_code"];
+            for (const view of ["create", "list"]) {
+                const config = await getConfig(view, { fields });
+                expect(config.displayFields).toEqual(fields);
+                expect(config.fetchFields).toEqual(fields);
+                expect(config.submitFields).toEqual(fields);
+            }
         });
     });
 

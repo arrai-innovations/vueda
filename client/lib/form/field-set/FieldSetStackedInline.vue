@@ -31,6 +31,7 @@ const fieldSetInline = useFieldSetInline({
     emit,
     slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title", "empty-state"],
     fieldSetContext,
+    addDestroyAction: true,
 });
 const theme = useTheme("FieldSetStackedInline", props);
 const icon = useIcons("FieldSetStackedInline", props);

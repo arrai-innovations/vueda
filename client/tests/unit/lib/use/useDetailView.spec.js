@@ -203,6 +203,16 @@ describe("lib/use/useDetailView.js", () => {
             const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(instance.titleStr).toBe("Update Widget");
         });
+
+        scopedIt("is empty until the model verbose name is known", async () => {
+            mockModelConfig.config.verboseName = "";
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.titleStr).toBe("");
+
+            mockModelConfig.config.verboseName = "widget";
+            await nextTick();
+            expect(instance.titleStr).toBe("Read Widget");
+        });
     });
 
     describe("formId", () => {
@@ -273,12 +283,30 @@ describe("lib/use/useDetailView.js", () => {
             mockFilteredActions.actions = ["create", "retrieve", "destroy"];
             mockInstanceObject.state.object = {
                 id: "42",
-                available_actions: ["create", "retrieve", "destroy"],
+                available_actions: ["retrieve", "destroy"],
             };
             const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
             expect(actions.nonDetailActions).toContain("create");
             expect(actions.nonDetailActions).not.toContain("retrieve");
             expect(actions.nonDetailActions).not.toContain("destroy");
+        });
+
+        scopedIt("nonDetailActions includes model-level create on an update view", async () => {
+            // The server never lists `create` in an object's available_actions; the update
+            // view still offers it so a user can start the next record from the page title.
+            props.viewName = "update";
+            mockModelConfig.config.actionDetails = {
+                list: { detail: false },
+                create: { detail: false },
+                update: { detail: true },
+            };
+            mockFilteredActions.actions = ["list", "create", "update"];
+            mockInstanceObject.state.object = {
+                id: "42",
+                available_actions: ["list", "update"],
+            };
+            const { actions } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(actions.nonDetailActions).toEqual(["list", "create"]);
         });
 
         scopedIt("detailActions excludes the current view and non-detail actions", async () => {

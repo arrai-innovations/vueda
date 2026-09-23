@@ -86,6 +86,14 @@ When updating an existing parent object, reverse-relation handling follows a fix
 
 Treat this omission/deletion behaviour as contract-critical. Verify it per relation in your test suite, because the behaviour applies uniformly to all reverse collections; there is no per-field opt-out for deletion on omission.
 
+## Remove Saved Inline Rows
+
+On an editable form, `FieldSetStackedInline` and `FieldSetTabularInline` provide a deletion checkbox for each saved row in a writable inline. Checking it keeps the row visible in its marked state and excludes it from the submitted collection. Clear the checkbox to include the row again. Marking every row submits an empty collection.
+
+The client supplies the destroy action for writable inlines; model info does not need an `action` entry. Removal uses the parent's nested update, so the child does not need a destroy route or separate destroy permission. The server still enforces the parent's update permissions and nested-write rules. Read-only inlines and read forms offer no saved-row removal. Unsaved rows retain their immediate Delete button.
+
+Use the existing `destroy-checkbox` slot to customize the control in either layout. Its `action`, `rowIndex`, `modelValue`, and update handler remain available. An explicit destroy descriptor retains its custom properties and is not duplicated.
+
 ## Readonly Inline Patterns
 
 Use `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` for relations that should be expanded in `read` responses but must not participate in write operations. The mixin's `_extract_relations` method filters out these serializer types before nested write processing, so any data the client sends for these fields is silently dropped.

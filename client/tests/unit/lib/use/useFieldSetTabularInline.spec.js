@@ -61,6 +61,7 @@ describe("lib/use/useFieldSetTabularInline.js", () => {
             emit,
             slotNames: ["x"],
             fieldSetContext,
+            addDestroyAction: true,
         });
 
         expect(result.state.computedFieldObjects).toEqual([{ name: "item-action-bar" }, { name: "title" }]);
