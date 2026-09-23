@@ -72,6 +72,23 @@ class TestConfigurationError(BaseTestUserMixin):
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, response_body(response)
         assert response.data["detail"] == list(WorkflowNotConfiguredError(UNCONFIGURED).args)
 
+    def test_the_state_history_endpoint_reports_the_error(self, settings, api_client):
+        settings.ROOT_URLCONF = "tests.unit.history.urls_workflow_state_history"
+        # bulk_create skips post_save, which would otherwise raise before the object exists.
+        (instance,) = UNCONFIGURED.objects.bulk_create([UNCONFIGURED(name="probe")])
+        api_client.force_authenticate(self.users["superuser@domain.invalid"])
+
+        response = api_client.get(
+            reverse(
+                "workflow-state-history",
+                kwargs={"app_label": "erring", "model": UNCONFIGURED._meta.model_name, "object_id": instance.pk},
+            ),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, response_body(response)
+        assert response.data["detail"] == list(WorkflowNotConfiguredError(UNCONFIGURED).args)
+
 
 @pytest.mark.django_db
 class TestRowWithoutPolicy(BaseTestUserMixin):

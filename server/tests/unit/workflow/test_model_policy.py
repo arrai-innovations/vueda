@@ -253,3 +253,19 @@ class TestModelInfoFlag(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["workflow_enabled"] is expected
+
+
+@pytest.mark.django_db
+class TestSchema:
+    def test_the_schema_comes_from_the_model_policy_without_reading_workflow_rows(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        from drf_spectacular.generators import SchemaGenerator
+
+        with CaptureQueriesContext(connection) as queries:
+            schema = SchemaGenerator().get_schema(request=None, public=True)
+
+        assert not [query["sql"] for query in queries.captured_queries if "vueda_workflow" in query["sql"]]
+        list_parameters = schema["paths"]["/routes/vueda.vdq/queueitem/"]["get"]["parameters"]
+        assert "workflow_state" in {parameter["name"] for parameter in list_parameters}
+        assert set(WORKFLOW_SERIALIZER_FIELDS) <= set(schema["components"]["schemas"]["DefaultQueueItem"]["properties"])

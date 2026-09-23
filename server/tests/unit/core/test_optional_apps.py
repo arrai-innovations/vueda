@@ -141,7 +141,7 @@ def test_stale_optional_url_includes_are_empty_when_apps_are_absent():
         import vueda.vdq.urls
         import vueda.workflow.urls
 
-        assert vueda.history.urls.urlpatterns
+        assert vueda.history.urls.urlpatterns == []
         assert vueda.workflow.urls.urlpatterns == []
         assert vueda.vdq.urls.urlpatterns == []
         assert "vueda.workflow.models" not in sys.modules
