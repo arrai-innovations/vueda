@@ -16,8 +16,10 @@ import { computed, inject } from "vue";
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
  *
  * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
- * the form has unresolved per-field errors, a structured validation alert
- * sourced from `formContext.state.errors`. Also mounts a `FormConfirmDialog`
+ * the form has per-field errors that no rendered field shows beside itself, a
+ * structured validation alert sourced from `formContext.state.errors`. The
+ * alert sits with the non-field error block above the fields, so a reader meets
+ * it before the first field and the submit control. Also mounts a `FormConfirmDialog`
  * bound to the action's confirmation controller, so actions the server gates
  * behind warning acknowledgement (HTTP 409) can be confirmed and retried. `ActionForm` renders no
  * warnings content of its own; a consumer that needs to render them (e.g. a bulk action grouping
@@ -130,7 +132,16 @@ const theme = useTheme("ActionForm", props);
 const icon = useIcons("ActionForm", props);
 
 /**
- * Per-field validation entries derived from `formContext.state.errors`.
+ * Per-field validation entries derived from `formContext.state.errors`, limited
+ * to the errors no rendered field already shows beside itself. Each rendered
+ * field reports through `useField` whether the reader can see its own error
+ * messages (`formContext.state.showsErrors`); an error keyed to a field that
+ * reports `true` is dropped here because the reader already sees it under the
+ * field. Every other error stays: a field whose renderer failed, a field
+ * rendered with `hidden`, a field inside a collapsed inline field set, or a key
+ * the form does not render at all has no visible surface, and this list is the
+ * only place it appears.
+ *
  * Each entry is `{ field, label, messages: string[] }`. `label` names the
  * field the way its rendered form field labels it (via `formContext.state.labels`,
  * which each rendered field registers through `useField`), falling back to
@@ -141,9 +152,11 @@ const icon = useIcons("ActionForm", props);
 const validationEntries = computed(() => {
     const errors = formContext?.state?.errors || {};
     const labels = formContext?.state?.labels || {};
+    const showsErrors = formContext?.state?.showsErrors || {};
     const entries = [];
     for (const [field, codes] of Object.entries(errors)) {
         if (field === NON_FIELD_ERRORS_KEY) continue;
+        if (showsErrors[field]) continue;
         if (!codes || typeof codes !== "object") continue;
         const messages = Object.values(codes).filter(Boolean);
         if (messages.length === 0) continue;
@@ -167,21 +180,7 @@ const validationTitle = computed(() => {
         <div :class="theme('inner')" data-qa="action-form-inner">
             <div :class="theme('nonFieldErrorBlock')">
                 <form-message type="error" />
-                <form-message type="message" />
-            </div>
-            <form @submit.prevent="handleConfirm()">
-                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
-                <slot
-                    name="action-form-inner"
-                    v-bind="{
-                        loading: combinedLoading,
-                        error: combinedError,
-                        errored: combinedErrored,
-                        handleConfirm,
-                        handleCancelClick,
-                    }"
-                />
-                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries` (each `{ field, label, messages }`), `count`, and `title`. -->
+                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set and at least one field error has no rendered field showing it; receives `entries` (each `{ field, label, messages }`, limited to those errors), `count`, and `title`. -->
                 <slot
                     v-if="showValidation"
                     name="validation-summary"
@@ -202,7 +201,7 @@ const validationTitle = computed(() => {
                                 {{ validationTitle }}
                             </div>
                             <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
-                                Resolve the highlighted fields, then try again.
+                                These errors are not shown beside a field. Resolve them, then try again.
                             </p>
                             <ul :class="theme('validationList')" data-qa="action-form-validation-list">
                                 <li
@@ -222,6 +221,20 @@ const validationTitle = computed(() => {
                         </div>
                     </div>
                 </slot>
+                <form-message type="message" />
+            </div>
+            <form @submit.prevent="handleConfirm()">
+                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+                <slot
+                    name="action-form-inner"
+                    v-bind="{
+                        loading: combinedLoading,
+                        error: combinedError,
+                        errored: combinedErrored,
+                        handleConfirm,
+                        handleCancelClick,
+                    }"
+                />
                 <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"

@@ -9,12 +9,12 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import { FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
+import { FieldSetContentVisibleSymbol, FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUpdate, provide, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
 
 /**
  * Helper function to focus the first descendant element that can be focused.
@@ -489,6 +489,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, add
         },
         { immediate: true },
     );
+    // Collapsing keeps the rows mounted, so the fields inside read this to know whether the reader can
+    // see them.
+    provide(FieldSetContentVisibleSymbol, toRef(state, "internalVisible"));
     onBeforeUpdate(() => {
         state.itemRefs = [];
     });

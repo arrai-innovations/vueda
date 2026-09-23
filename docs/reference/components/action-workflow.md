@@ -84,7 +84,7 @@ what gives per-record server messages somewhere to land, as the third demo shows
 
 An action with input fills the `extra-fields` slot. The demo below is the real view with that one
 slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
-into Reason and submit, then clear it and submit again to see the validation summary.
+into Reason and submit, then clear it and submit again to see the error appear under the field.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -101,7 +101,7 @@ into Reason and submit, then clear it and submit again to see the validation sum
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
-    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors join the same validation summary a server 400 fills</span>
+    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors, whether from local validation or a server 400, appear under the field rather than in a separate summary</span>
     <span>input contract: the wrapper passes <code>has-input</code> and <code>transform-submit-data-fn</code> so slotted fields join validation and request-body construction. Use the same props when an action collects extra fields through <code>extra-fields</code></span>
     <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
@@ -129,8 +129,8 @@ records cannot take the action.
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
     <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
-    <span>where the messages land: keyed by primary key, so each one appears twice: in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
-    <span>the banner does not react: its text is generated from the action and model names. A summary of what the pre-flight found belongs in the validation alert, which writes itself</span>
+    <span>where the messages land: keyed by primary key, so each one appears once, beside the matching record chip. Each chip is a {@api vue:component:FormField} named for its primary key, so {@api theme-key:ActionForm.validation}'s summary above the fields has nothing left to report and stays hidden. It lists only errors no rendered field shows, such as a key that matches no selected record</span>
+    <span>the banner does not react: its text is generated from the action and model names. The pre-flight's findings belong beside the record chips, and in {@api theme-key:ActionForm.validation} for any error no field shows</span>
     <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -189,7 +189,7 @@ endpoint `ViewAction` uses.
 This confirmation does not explain source state, target state, or why a given object is or is not
 eligible for the transition. It confirms the transition's display name and the selected records
 only, the same as any other `ModelActionForm` confirmation. A dry-run rejection still identifies
-the rejected object ids in the field errors and validation summary; it just does not render a
+the rejected objects by showing each error beside its record chip; it just does not render a
 human-readable eligibility summary alongside them. A richer, transition-aware confirmation
 surface is a distinct, not-yet-built concern.
 :::

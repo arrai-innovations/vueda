@@ -54,14 +54,14 @@ patchTheme({
         listItem: {
             class: [],
         },
-        /** Non-field error block passthrough. Empty by default; the structured per-field validation alert below covers most cases, and consumers can opt into a richer block when they need free-form server errors above the form. */
+        /** Form-scope feedback block above the fields: the non-field error alert, the structured validation alert for field errors no rendered field shows, and the non-field warning alert. Empty by default, so the alerts are spaced by their own vertical margins; consumers can opt into a richer block when they need free-form server errors above the form. */
         nonFieldErrorBlock: {
             class: "",
         },
-        /** Structured per-field validation alert rendered when `formContext.state.anyError` is set and at least one field carries an error. Destructive 6%-mix fill with a destructive-tinted border; tone tracks danger via `data-tone="danger"` on the alert root so future skins can route through `group-data-[tone=danger]/action-form-validation:` variants. */
+        /** Structured per-field validation alert rendered above the fields when `formContext.state.anyError` is set and at least one field error has no rendered field showing it beside the input. Destructive 6%-mix fill with a destructive-tinted border; tone tracks danger via `data-tone="danger"` on the alert root so future skins can route through `group-data-[tone=danger]/action-form-validation:` variants. */
         validation: {
             class: [
-                "flex items-start gap-3 p-3 mb-2",
+                "flex items-start gap-3 p-3 my-2",
                 "rounded-vueda-card hairline [--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
                 "bg-[color-mix(in_oklab,var(--destructive)_6%,transparent)]",
             ],

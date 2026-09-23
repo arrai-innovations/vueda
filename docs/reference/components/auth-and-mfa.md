@@ -152,7 +152,7 @@ The two cards below are structural diagrams, not styled specimens: they label th
 
 `ViewChangePassword` puts three password fields in an `AuthForm` card: current password, new password, and confirmation. The fields are `FormField` rows wrapping `WidgetTextInput`, not hand-placed `Field` primitives, so they pick up the same validation wiring as any model form. The heading and subtitle come from `AuthForm`'s `header` and `subTitle` props, which the layout supplies. A page-level `PageTitle` sits above the card in a real shell (see [Chrome anatomy](#chrome-anatomy)); the card below is what the view itself renders.
 
-Submission, loading, per-field error mapping, and the form-scope validation summary all come from the inner `ActionForm`. Both demos render the live view through the `AuthDemo` harness, so submitting exercises the real paths.
+Submission, loading, per-field error mapping, and form-scope error reporting all come from the inner `ActionForm`. Both demos render the live view through the `AuthDemo` harness, so submitting exercises the real paths.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -169,11 +169,11 @@ Submission, loading, per-field error mapping, and the form-scope validation summ
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Error · confirm mismatch. Submit to see the per-field message and the validation summary.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Error · confirm mismatch. Submit to see the per-field message under the confirmation field.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewChangePassword.vue')" :view-props="changePasswordProps" :state="LOGGED_IN" route-name="welcome" :mocks="changePasswordRejects" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>a server field-error response maps onto the named field; the confirm row shows its own message</span>
-    <span>summary: <code>ActionForm.validation</code> renders a danger-toned block above the actions, listing every failing field</span>
+    <span>summary: <code>ActionForm.validation</code> stays hidden here because every error shows beside its field; it renders a danger-toned block above the first field only for errors no rendered field shows</span>
     <span>the submit button disables itself while <code>formContext.state.anyError</code> holds, so the guard is form-level, not decoration</span>
   </footer>
 </VuedaDemo>
