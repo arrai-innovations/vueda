@@ -23,6 +23,11 @@ labels classify proposed work.
 Use `Investigate` only when evidence gathering or a decision is itself the
 deliverable.
 
+The `Issue title` check fails an issue whose title has a Conventional Commit
+prefix, ends with a period, or starts with `Investigate` without the
+`investigation` label. It runs when the issue opens and each time its title or
+labels change. The other rules here need a reviewer.
+
 Examples:
 
 - `Reject invalid OpenAPI documents before publishing`
@@ -59,6 +64,9 @@ Examples:
 - `docs(configuration): explain MAILERS migration`
 
 Avoid titles such as `fix: server changes` or `chore: updates`.
+
+The `Pull request metadata` check runs commitlint on the title, with the same
+configuration as commit messages. It reruns whenever the title changes.
 
 ## Issue types and labels
 
@@ -150,11 +158,14 @@ Every pull request carries labels. Start from the linked issue's labels, then
 adjust them to the files the branch changes. Apply them when you open the pull
 request rather than in a later edit.
 
-- Carry every `area:*` label that matches a package the branch changes. A
-  changelog entry alone does not earn `area:docs`; substantive pages under
-  `docs/` do.
+- Carry every `area:*` label that matches a package the branch changes. The
+  `Pull request metadata` check adds any that are missing and never removes
+  one. A changelog fragment earns no area label, and neither do the changelog
+  pages under `docs/reference/changelog/`.
 - Keep the issue's work-character, impact, and topic labels when they still
-  describe the branch.
+  describe the branch. Every topic that a changelog fragment's directory names
+  needs its `topic:*` label. With no topic label, the check adds the fragments'
+  topics. If topic labels exist but miss a fragment's topic, the check fails.
 - Drop `status:needs-decision`. A pull request that settles the decision no
   longer needs it, and the issue keeps its own copy until it closes.
 - Add a label the issue lacks when the branch grew into another package.
@@ -185,7 +196,8 @@ A fragment lives at `changelog.d/<package>/<topic>/<number>.<type>.md`:
 - `<number>` is the pull request number. A second fragment of the same type and
   topic from one pull request adds a counter: `328.fix.1.md`. A change committed
   without a pull request uses a name that starts with `+`, such as
-  `+cache-url.fix.md`, and renders without a link.
+  `+cache-url.fix.md`, and renders without a link. The metadata check fails a
+  fragment whose package, topic, or name towncrier would not recognize.
 - `<type>` is `breaking`, `feature`, or `fix`.
 
 `just changelog-new client` prompts for the number, type, and topic. The same
@@ -212,10 +224,11 @@ fragment instead of adding another.
 
 ### When no entry is needed
 
-Add the `changelog:none` label to the pull request. CI fails a pull request
-that adds no fragment and lacks the label. Adding a label does not start a new
-CircleCI pipeline, so rerun the failed job after adding it. Commits to `main`
-and tag builds skip the check.
+Add the `changelog:none` label to the pull request. The `Pull request
+metadata` check fails a pull request that changes no fragment and lacks the
+label, and one that has both. It reruns when labels change. The check covers
+pull requests only, so a commit made directly to `main` adds its fragment by
+hand.
 
 ### Release a package
 

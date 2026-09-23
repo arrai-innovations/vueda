@@ -1,0 +1,51 @@
+name: Pull request metadata
+
+# pull_request_target runs with a token that can write labels, including for
+# pull requests from forks. It checks out the base branch, so every script here
+# is the base branch's own. Never check out or run code from the pull request.
+on:
+    pull_request_target:
+        types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+concurrency:
+    group: pull-request-metadata-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    labels-and-changelog:
+        name: Labels and changelog
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Check labels and changelog fragments
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: python3 scripts/check_pr_metadata.py
+
+    title:
+        name: Title
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Install commitlint
+              run: |
+                  dir="$RUNNER_TEMP/commitlint"
+                  mkdir -p "$dir"
+                  cp .commitlintrc.json "$dir/"
+                  cli="$(node -p "require('./package.json').devDependencies['@commitlint/cli']")"
+                  config="$(node -p "require('./package.json').devDependencies['@arrai-innovations/commitlint-config']")"
+                  npm install --prefix "$dir" --no-save --no-audit --no-fund --no-package-lock \
+                      "@commitlint/cli@$cli" "@arrai-innovations/commitlint-config@$config"
+            - name: Check the title against commitlint
+              env:
+                  # Passed through the environment so the title is never parsed as shell.
+                  TITLE: ${{ github.event.pull_request.title }}
+              run: printf '%s\n' "$TITLE" | "$RUNNER_TEMP/commitlint/node_modules/.bin/commitlint" --cwd "$RUNNER_TEMP/commitlint"
