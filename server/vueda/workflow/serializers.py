@@ -1,10 +1,13 @@
 """DRF serializers and mixins for workflow state and available transitions."""
 
 __all__ = (
-    "HasWorkflowSerializerMixin",
+    "WORKFLOW_SERIALIZER_FIELDS",
+    "WORKFLOW_STATE_FIELDS",
     "StateSerializer",
     "TransitionSerializer",
     "WorkflowSerializer",
+    "workflow_field_model_info",
+    "workflow_serializer_fields",
 )
 
 from django.conf import settings
@@ -19,30 +22,41 @@ from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
 
 
-class HasWorkflowSerializerMixin(metaclass=drf_serializers.SerializerMetaclass):
-    # A default list shows the state's name. Its code repeats that as a machine value, and the
-    # per-record transitions belong on the detail view.
-    workflow_state_code = drf_serializers.CharField(
-        source="workflow_state.code", read_only=True, style={"list_default": False}
-    )
-    workflow_state_name = drf_serializers.CharField(source="workflow_state.name", read_only=True)
-    valid_transitions = AvailableTransitionField(style={"list_default": False})
+# Fields a workflow model's serializers receive. They are read-only views of the object's current
+# state and the transitions from it.
+WORKFLOW_STATE_FIELDS = ("workflow_state_code", "workflow_state_name")
+WORKFLOW_SERIALIZER_FIELDS = (*WORKFLOW_STATE_FIELDS, "valid_transitions")
 
-    class Meta:
-        fields = ["workflow_state_code", "workflow_state_name", "valid_transitions"]
 
-    def get_field_model_info(self, fields):
-        """
-        workflow_state_code/workflow_state_name source through WorkflowModelMethods.workflow_state, a
-        @property with no model field of its own, so resolve_serializer_field_model_field can never
-        describe their type_db/type_model: State.code and State.name are always real CharFields.
-        """
-        fields = super().get_field_model_info(fields)
-        for field_name in ("workflow_state_code", "workflow_state_name"):
-            if field_name in fields:
-                fields[field_name]["type_db"] = "CharField"
-                fields[field_name]["type_model"] = "CharField"
-        return fields
+def workflow_serializer_fields():
+    """Return new instances of the fields that a workflow model's serializers receive.
+
+    ``WorkflowFieldsSerializerMixin`` adds them to each ``VuedaSerializer`` of a model that enables
+    ``class Vueda.Workflow``, unless its ``Meta`` sets ``workflow_fields = False``. A default list shows the state's name. Its code repeats that as a
+    machine value, and the per-record transitions belong on the detail view.
+    """
+    return {
+        "workflow_state_code": drf_serializers.CharField(
+            source="workflow_state.code", read_only=True, style={"list_default": False}
+        ),
+        "workflow_state_name": drf_serializers.CharField(source="workflow_state.name", read_only=True),
+        "valid_transitions": AvailableTransitionField(style={"list_default": False}),
+    }
+
+
+def workflow_field_model_info(fields):
+    """Fill in the database and model types of the workflow state fields in ``model_fields`` metadata.
+
+    ``workflow_state_code`` and ``workflow_state_name`` source through
+    ``WorkflowModelMethods.workflow_state``, a property with no model field of its own, so
+    ``resolve_serializer_field_model_field`` can never describe their ``type_db`` or ``type_model``.
+    ``State.code`` and ``State.name`` are always real ``CharField`` columns.
+    """
+    for field_name in WORKFLOW_STATE_FIELDS:
+        if field_name in fields:
+            fields[field_name]["type_db"] = "CharField"
+            fields[field_name]["type_model"] = "CharField"
+    return fields
 
 
 class StateSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, drf_serializers.ModelSerializer):

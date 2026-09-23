@@ -18,7 +18,6 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
-from vueda.workflow.views import HasWorkflowViewMixin
 
 
 class CustomerViewSet(VuedaViewSet):
@@ -435,7 +434,7 @@ class CustomerCartsBaseManagerViewSet(VuedaViewSet):
     serializer_class = my_serializers.CustomerCartsBaseManagerSerializer
 
 
-class CustomerOrderViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class CustomerOrderViewSet(VuedaViewSet):
     queryset = my_models.CustomerOrder.objects.all()
     serializer_class = my_serializers.CustomerOrderSerializer
     filterset_class = my_filtersets.CustomerOrderFilterSet

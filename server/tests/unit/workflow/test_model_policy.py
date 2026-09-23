@@ -9,17 +9,21 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.test.utils import isolate_apps
+from django_filters import rest_framework
 
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
 from vueda.core.checks import check_model_feature_declaration
+from vueda.core.filters import VuedaFilterSet
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.models import VuedaModel
+from vueda.core.serializers import VuedaSerializer
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 from vueda.workflow.models import ObjectStateProxy
 from vueda.workflow.models import WorkflowModelMethods
 from vueda.workflow.models import ensure_object_state
+from vueda.workflow.serializers import WORKFLOW_SERIALIZER_FIELDS
 
 
 class TestContribution:
@@ -165,3 +169,59 @@ class TestObjectStateOnSave(BaseTestUserMixin):
             order = CustomerOrderProxy.objects.create(**self._order_values())
 
             assert order.workflow_state.code == "new"
+
+
+class TestSerializerFields:
+    def test_every_serializer_of_an_enabled_model_receives_the_fields(self):
+        class SecondaryOrderSerializer(VuedaSerializer):
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.CustomerOrder
+                fields = ["id"]
+
+        assert set(WORKFLOW_SERIALIZER_FIELDS) <= set(SecondaryOrderSerializer().fields)
+
+    def test_a_serializer_that_opts_out_receives_none(self):
+        class CompactOrderSerializer(VuedaSerializer):
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.CustomerOrder
+                fields = ["id"]
+                workflow_fields = False
+
+        assert set(CompactOrderSerializer().fields) == {"id"}
+
+    def test_a_serializer_of_a_model_without_workflow_receives_none(self):
+        class CustomerSerializer(VuedaSerializer):
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.Customer
+                fields = ["id"]
+
+        assert not set(WORKFLOW_SERIALIZER_FIELDS) & set(CustomerSerializer().fields)
+
+
+class TestFilterSetFilter:
+    def test_a_filterset_of_an_enabled_model_receives_the_filter(self):
+        class OrderFilterSet(VuedaFilterSet):
+            class Meta:
+                model = store_models.CustomerOrder
+                fields = []
+
+        # base_filters is what drf-spectacular reads for the schema.
+        assert getattr(OrderFilterSet.base_filters.get("workflow_state"), "vueda_workflow_state", False)
+
+    def test_a_declared_filter_of_the_same_name_is_kept(self):
+        class OrderFilterSet(VuedaFilterSet):
+            workflow_state = rest_framework.CharFilter(field_name="object_states_proxy__state__code")
+
+            class Meta:
+                model = store_models.CustomerOrder
+                fields = []
+
+        assert isinstance(OrderFilterSet.base_filters["workflow_state"], rest_framework.CharFilter)
+
+    def test_a_filterset_of_a_model_without_workflow_receives_none(self):
+        class CustomerFilterSet(VuedaFilterSet):
+            class Meta:
+                model = store_models.Customer
+                fields = []
+
+        assert "workflow_state" not in CustomerFilterSet.base_filters

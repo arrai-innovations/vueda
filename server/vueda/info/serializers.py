@@ -37,7 +37,6 @@ from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_enabled
-from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
@@ -149,39 +148,16 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @property
     def data(self):
-        if not workflow_is_installed():
-            return super().data
+        model = self.canonical["serializer"].Meta.model
 
-        # Local imports, because the workflow app is optional.
-        from vueda.workflow.models import Workflow
-        from vueda.workflow.serializers import HasWorkflowSerializerMixin
-        from vueda.workflow.views import HasWorkflowViewMixin
+        if workflow_enabled(model):
+            # Local import, because the workflow app is optional.
+            from vueda.workflow.models import Workflow
 
-        serializer = self.canonical["serializer"]
-        viewset = self.canonical["viewset"]
-        model = serializer.Meta.model
+            if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
+                raise ImproperlyConfigured([f"{model.__name__} has no workflow configured."])
 
-        errors = []
-
-        if not workflow_enabled(model):
-            errors.append(f"{model.__name__} does not enable class Vueda.Workflow.")
-
-        if not issubclass(serializer, HasWorkflowSerializerMixin):
-            errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")
-
-        if viewset is not None and not issubclass(viewset, HasWorkflowViewMixin):
-            errors.append(f"{viewset.__name__} is missing HasWorkflowViewMixin inheritance.")
-
-        if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
-            errors.append(f"{model.__name__} has no workflow configured.")
-
-        # If the length of errors becomes 4 (everything errored) or 3 if no viewset,
-        # then workflow is not set up for this model.
-        if errors and len(errors) != (4 if viewset is not None else 3):
-            raise ImproperlyConfigured(errors)
-
-        ret = super().data
-        return ret
+        return super().data
 
     def get_model_permissions(self, instance):
         """

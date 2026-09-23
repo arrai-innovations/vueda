@@ -1,19 +1,14 @@
 from tests.erring import models as my_models
 from vueda.core.serializers import VuedaSerializer
-from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
 # Base Classes
-class HasWorkflow(HasWorkflowSerializerMixin, VuedaSerializer):
-    class Meta(HasWorkflowSerializerMixin.Meta, VuedaSerializer.Meta):
-        fields = (
-            [
-                "id",
-                "name",
-            ]
-            + VuedaSerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+class HasWorkflow(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        fields = [
+            "id",
+            "name",
+        ] + VuedaSerializer.Meta.fields
 
 
 class NoWorkflow(VuedaSerializer):

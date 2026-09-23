@@ -1,8 +1,6 @@
 """Django views for workflow administration and API integration."""
 
 __all__ = (
-    "HasWorkflowViewMixin",
-    "HasWorkflowViewSetMixin",
     "WorkflowAddView",
     "WorkflowDeleteView",
     "WorkflowEditView",
@@ -28,18 +26,6 @@ from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
 from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 from vueda.workflow.mixins import WorkflowUrlsMixin
-
-
-class HasWorkflowViewMixin:
-    """
-    Marker for REST framework views whose model participates in a workflow.
-
-    Permission classes own model-scope deferral. This mixin deliberately does not suppress
-    permission failures because the complete permission expression may contain unrelated gates.
-    """
-
-
-HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
 class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):

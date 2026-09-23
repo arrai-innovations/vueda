@@ -11,7 +11,6 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.user.serializers import UserSerializer
-from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
 class CustomerSerializer(VuedaSerializer):
@@ -429,22 +428,18 @@ class OrderItemSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
-class CustomerOrderSerializer(HasWorkflowSerializerMixin, VuedaSerializer):
+class CustomerOrderSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.CustomerOrder
-        fields = (
-            [
-                "id",
-                "order_number",
-                "when",
-                "customer",
-                "order_items",
-                "order_state",
-                "shipping_method",
-            ]
-            + VuedaSerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+        fields = [
+            "id",
+            "order_number",
+            "when",
+            "customer",
+            "order_items",
+            "order_state",
+            "shipping_method",
+        ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "customer": (
                 CustomerSerializer,
