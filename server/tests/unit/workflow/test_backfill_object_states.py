@@ -107,3 +107,4 @@ class TestSelection:
             )
 
         assert "The workflow of store.CustomerOrder has no initial state." in stderr.getvalue()
+        assert warnings_for(store_models.CustomerOrder) == ["vueda_workflow.W003"]

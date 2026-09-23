@@ -13,9 +13,10 @@ from vueda.core.installed_apps import workflow_enabled
 def check_workflow_definitions(app_configs=None, databases=None, **kwargs):
     """Report a workflow-enabled model whose definition or object states are missing.
 
-    ``vueda_workflow.W001`` names a model with no ``Workflow`` definition. ``vueda_workflow.W002``
-    names a model with objects that have no ``ObjectState`` row, which is what objects created by the
-    previous release during a deploy look like until ``backfillworkflowstates`` runs.
+    ``vueda_workflow.W001`` names a model with no ``Workflow`` definition, and ``vueda_workflow.W003``
+    one whose workflow has no initial state. ``vueda_workflow.W002`` names a model with objects that
+    have no ``ObjectState`` row, which is what objects created by the previous release during a deploy
+    look like until ``backfillworkflowstates`` runs.
 
     Registered with the ``database`` tag, so it runs only when a command names databases, which
     ``migrate`` does. Both are warnings rather than errors for that reason: an error would stop the
@@ -45,7 +46,7 @@ def check_workflow_definitions(app_configs=None, databases=None, **kwargs):
     # Keyed by label, because resolving each model's content type would create any that are missing.
     workflows = {
         (workflow.content_type.app_label, workflow.content_type.model): workflow
-        for workflow in Workflow.objects.using(alias).select_related("content_type")
+        for workflow in Workflow.objects.using(alias).select_related("content_type", "initial_state")
     }
     warnings = []
     for model in models:
@@ -61,6 +62,18 @@ def check_workflow_definitions(app_configs=None, databases=None, **kwargs):
                     ),
                     obj=model,
                     id="vueda_workflow.W001",
+                )
+            )
+        elif getattr(workflow, "initial_state", None) is None:
+            warnings.append(
+                CheckWarning(
+                    f"The workflow of {model._meta.label} has no initial state.",
+                    hint=(
+                        "Give the workflow an initial state and export it with makeworkflowmigrations. Until "
+                        "then, saving a new object fails and backfillworkflowstates cannot run."
+                    ),
+                    obj=model,
+                    id="vueda_workflow.W003",
                 )
             )
         elif model._meta.db_table in tables and objects_without_object_state(model, workflow).using(alias).exists():
