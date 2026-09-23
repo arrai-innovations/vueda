@@ -1,6 +1,6 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
-import { FIELDS_PARAM, ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { COLUMN_TOTALS_PARAM, FIELDS_PARAM, ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -146,6 +146,9 @@ const ObjectsGridStub = defineComponent({
                     };
                     return h("div", { "data-column": field.name }, slot(slotProps));
                 }),
+                // Mirror the real grid's totals slot, so the footer row ViewList injects into it is
+                // actually rendered rather than silently dropped.
+                slots["row-after-objects"] ? slots["row-after-objects"]({ class: "body-row" }) : null,
             ]);
     },
 });
@@ -717,6 +720,167 @@ describe("lib/views/ViewList.vue", () => {
                 "field1",
             ]);
             expect(hiddenPreference).toEqual(["field1"]);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Column totals", () => {
+        const withTotals = ({ totalables, displayFields = ["field__name"] }) => {
+            modelConfig.config.allowColumnHiding = true;
+            modelConfig.config.displayFields = displayFields;
+            modelConfig.config.fieldDetails = Object.fromEntries(displayFields.map((name) => [name, {}]));
+            modelConfig.config.totalables = totalables;
+        };
+
+        // Totals are a table-footer feature, so these mount at the one breakpoint that is always
+        // table. jsdom reports no media query as matching, which makes the default `lg` breakpoint
+        // seed card layout, where nothing asks for a total at all — the subject of its own test
+        // below rather than the starting state for the rest of them.
+        const mountInTableLayout = () =>
+            mount(ViewList, { props: { app: "app", model: "model", tableBreakpoint: "xs" } });
+
+        scopedIt("asks for nothing when the server advertises no totals", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("asks under COLUMN_TOTALS_PARAM", async () => {
+            // The parameter is a client constant, like every other query parameter this view sends.
+            // It has to match the server's `COLUMN_TOTALS_PARAM` setting, which the server does not
+            // report; parameter-name discovery lands after v3.0.0.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params[COLUMN_TOTALS_PARAM]).toEqual(["field__name"]);
+            expect(COLUMN_TOTALS_PARAM).toBe("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("has the totals parameter in place before the first list request", async () => {
+            // The totals are known from the display columns and the reader's stored hidden-column
+            // preference, both of which are available as soon as the model config is. So the
+            // parameter is written while the view is being set up, not a tick later: a tick later is
+            // after the first list request has already gone out, and the list would fetch a second
+            // time to add a parameter it could have carried the first time.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+
+            const wrapper = mountInTableLayout();
+
+            expect(wrapper.vm.list.listState.params[COLUMN_TOTALS_PARAM]).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("asks only for the totals its visible columns can render", async () => {
+            // A total for a column the reader cannot see is a `SUM` computed for no one, so hiding
+            // a totalled column stops asking for its total until the column comes back.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({
+                totalables: ["field__name"],
+                displayFields: ["field__name", "other_field"],
+            });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+
+            wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", ["other_field"]);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+
+            wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", ["field__name", "other_field"]);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("never asks in card layout, not even on the first request", async () => {
+            // `isTable` is seeded from the breakpoint rather than assumed true, so a phone-width
+            // load never puts the parameter in `listState.params` at all. Seeding it true meant the
+            // first request carried the parameter, the grid then reported card layout, the
+            // parameter was removed, and changing `listState.params` fetched the list a second
+            // time — a wasted round trip and a wasted aggregation per total.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+
+            // No `tableBreakpoint` override: jsdom matches no media query, so the default is card.
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("asks for nothing in card layout, and asks again on the way back", async () => {
+            // The totals row is a table footer. Below the grid's table breakpoint there is nowhere
+            // to render one, so a phone-width list should not be paying for the aggregation.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+
+            wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+
+            wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", true);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("reports an advertised total that matches no display column", async () => {
+            // `vueda_info.E011` validates the ORM path behind a total but cannot know what the
+            // client calls its columns, so a total keyed `prcie` passes every server-side rule and
+            // still renders nowhere. Nothing fails for it -- it is simply never requested -- which
+            // is why it is worth saying out loud here.
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name", "prcie"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("prcie"));
+            consoleError.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("renders the footer row keyed by display column name", async () => {
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            instanceList.state.columnTotals = { field__name: "42.50" };
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            const totalsRow = wrapper.find('[role="row"]');
+            expect(totalsRow.exists()).toBe(true);
+            expect(totalsRow.text()).toContain("42.50");
+            wrapper.unmount();
+        });
+
+        scopedIt("renders no footer row when no totals came back", async () => {
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.find('[role="row"]').exists()).toBe(false);
             wrapper.unmount();
         });
     });

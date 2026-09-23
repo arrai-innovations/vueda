@@ -92,7 +92,7 @@ If the viewset inherits from `VuedaViewSet`, queryset-level row filtering is alr
 
 The mixin deliberately does **not** apply row filtering in `get_queryset`. This is intentional: applying the filter in `get_queryset` would affect all viewset actions (retrieve, update, delete, custom actions), which may not be appropriate for every action. Row filtering in `list` targets list-specific visibility. Object-level access for other actions is handled by `check_instance` through the permission chain.
 
-If you override `list` on the viewset, ensure your implementation calls `apply_row_level_filter` at the correct point: after filter backends, before pagination and aggregation.
+If you override `list` on the viewset, ensure your implementation calls `apply_row_level_filter` at the correct point: after filter backends, and before both pagination and aggregation read the queryset.
 
 ## Verify Object-Level Enforcement
 
@@ -134,7 +134,7 @@ Test row-level denied retrieve attempts explicitly. The `404` response (not `403
 `apply_row_level_filter` runs before both pagination and `get_column_info`, so `totalRecords`, `totalPages`, and `columnTotals` all reflect only the visible row set. Verify:
 
 - A user with row-level restrictions sees `totalRecords` matching their visible row count, not the table total.
-- Column totals (when configured via `column_totals` on the viewset) aggregate only the filtered rows.
+- Column totals (declared in `column_totals` on the viewset and requested through the totals query parameter, `ct` by default) aggregate only the filtered rows.
 - Paginated navigation stays consistent; the user does not see "page 3 of 5" when their visible set has only 2 pages.
 
 ::: warning

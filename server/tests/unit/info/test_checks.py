@@ -1,4 +1,7 @@
+import warnings
+
 import pytest
+from django.db.models.sql.query import Query
 
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
@@ -6,6 +9,7 @@ from tests.erring import viewsets as err_viewsets
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from vueda import info
+from vueda.info import checks
 
 
 ORDERING_HINT = (
@@ -1300,3 +1304,269 @@ class TestFieldResolutionMechanics:
 
         assert isinstance(model_field, IntegerField)
         assert unresolved_path is None
+
+
+@pytest.mark.django_db
+class TestColumnTotalsChecks:
+    """`vueda_info.E011` on the `column_totals` declarations in `tests.store.viewsets`.
+
+    Each fixture viewset there carries a docstring saying what its declaration costs at runtime;
+    what is asserted here is that the check names the viewset, the total, and the problem.
+    """
+
+    @staticmethod
+    def check_errors(viewset, serializer=None):
+        from vueda.info.checks import check_column_totals_configuration
+
+        info.registration.get_empty_registry()
+        info.register(serializer or store_serializers.CartItemSerializer, viewset)
+
+        return check_column_totals_configuration(app_configs=None)
+
+    def test_valid_mapping_passes(self):
+        assert self.check_errors(store_viewsets.CartItemViewSet) == []
+
+    def test_duration_field_total_passes(self):
+        """A DurationField is an interval, which adds up; it is the one non-numeric column `Sum`
+        means something for."""
+        assert self.check_errors(store_viewsets.CartItemDurationColumnTotalsViewSet) == []
+
+    def test_viewset_without_column_totals_passes(self):
+        assert (
+            self.check_errors(store_viewsets.ProductOptionViewSet, serializer=store_serializers.ProductOptionSerializer)
+            == []
+        )
+
+    def test_list_form_is_reported(self):
+        errors = self.check_errors(store_viewsets.CartItemListColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].obj is store_viewsets.CartItemListColumnTotalsViewSet
+        assert errors[0].msg == "CartItemListColumnTotalsViewSet.column_totals is a list, not a dict."
+        assert "'quantity': 'quantity'" in errors[0].hint
+
+    def test_unresolvable_path_is_reported(self):
+        """The annotation allowance below is for annotations the queryset actually carries, not for
+        anything that fails to resolve: a typo'd path is still an error, which is most of what this
+        check is for."""
+        errors = self.check_errors(store_viewsets.CartItemUnresolvableColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemUnresolvableColumnTotalsViewSet.column_totals['quantity'] is 'no_such_field', but "
+            "CartItem has no such field or related field."
+        )
+
+    def test_unsummable_leaf_is_reported(self):
+        errors = self.check_errors(store_viewsets.CartItemUnsummableColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemUnsummableColumnTotalsViewSet.column_totals['product_name'] is "
+            "'product_option__name', which is a CharField and cannot be summed."
+        )
+
+    def test_relation_leaf_is_reported(self):
+        errors = self.check_errors(store_viewsets.CartItemRelationColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemRelationColumnTotalsViewSet.column_totals['product_option'] is 'product_option', "
+            "which names a relation rather than a column."
+        )
+
+    def test_reverse_foreign_key_path_is_reported(self):
+        """The case nothing else catches: it raises no error and returns wrong numbers, for every
+        total in the same `aggregate()` call."""
+        errors = self.check_errors(
+            store_viewsets.InvoiceReverseColumnTotalsViewSet, serializer=store_serializers.InvoiceSerializer
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "InvoiceReverseColumnTotalsViewSet.column_totals['line_amount'] is 'invoice_lines__amount', "
+            "which reaches through a relation that can match more than one row."
+        )
+
+    def test_many_to_many_path_is_reported(self):
+        errors = self.check_errors(
+            store_viewsets.ProductManyToManyColumnTotalsViewSet, serializer=store_serializers.ProductSerializer
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "ProductManyToManyColumnTotalsViewSet.column_totals['special_care_id'] is 'special_care__id', "
+            "which reaches through a relation that can match more than one row."
+        )
+
+    def test_annotation_path_passes(self):
+        """A path naming an annotation the viewset's own `get_queryset` adds resolves for
+        `aggregate()` but not through `_meta`, so the check defers to the queryset for it -- the
+        same allowance `_validate_ordering_declarations` makes for an ordering term."""
+        errors = self.check_errors(
+            store_viewsets.InventoryRecordAnnotatedColumnTotalsViewSet,
+            serializer=store_serializers.InventoryRecordSerializer,
+        )
+
+        assert errors == []
+
+    def test_wildcard_name_is_reported(self):
+        errors = self.check_errors(store_viewsets.CartItemWildcardColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemWildcardColumnTotalsViewSet.column_totals declares a total named '*', which is a wildcard value."
+        )
+
+    def test_name_carrying_a_separator_is_reported(self):
+        """VUEDA's half of the name rule: the query parameter could not carry this name back."""
+        errors = self.check_errors(store_viewsets.CartItemBadNameColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemBadNameColumnTotalsViewSet.column_totals declares a total named 'total,quantity', "
+            "which contains a comma."
+        )
+
+    def test_name_django_refuses_as_an_alias_is_reported(self):
+        """Django's half, quoted from Django, so the hint says what the installed version objects to."""
+        errors = self.check_errors(store_viewsets.CartItemAliasUnsafeNameColumnTotalsViewSet)
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].msg == (
+            "CartItemAliasUnsafeNameColumnTotalsViewSet.column_totals declares a total named 'total quantity', "
+            "which Django will not accept as a column alias."
+        )
+        assert "whitespace" in errors[0].hint
+
+    def test_valid_column_totals_pass_manage_py_check(self):
+        from django.core.management import call_command
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartItemSerializer, store_viewsets.CartItemViewSet)
+
+        call_command("check", databases=["default"])
+
+
+class TestColumnTotalName:
+    """What `vueda_info.E011` makes of a `column_totals` key, per class of name.
+
+    The rule is two questions, and the tests follow that split. Django answers whether the name can
+    be the alias `queryset.aggregate()` is called with, and VUEDA asks that of Django rather than
+    restating it, so the answer is whatever the installed Django says. VUEDA answers whether a
+    client can ask for the name, which is only about the query parameter that carries it.
+
+    No test here touches the database.
+    """
+
+    # Names VUEDA adds nothing to and Django accepts, so the check has nothing to say. `foo__bar` is
+    # the form the client uses for a column reached through an expanded object; the rest are names
+    # the old identifier-shaped rule refused for reasons neither half of the contract has.
+    ACCEPTED = ("hours", "product_price", "foo__bar", "_leading", "a1", "X", "_", "a.b", "1x", "*a", "**", "load~all")
+
+    # One representative per class Django's own blocklist covers. Asserted against Django too, so a
+    # sample cannot quietly stop standing for the rule it was chosen for.
+    DJANGO_FORBIDDEN = (
+        "a'b",
+        "a`b",
+        'a"b',
+        "a[b",
+        "a]b",
+        "a;b",
+        "a b",
+        "a\tb",
+        "a\nb",
+        # Trailing rather than interior: the rule this stands for is the one an anchored `$` pattern
+        # silently let through, since `$` also matches before a final newline.
+        "trailing\n",
+        "a\x00b",
+        "a\x7fb",
+        "a#b",
+        "a--b",
+        "a/*b",
+        "a*/b",
+    )
+
+    # Django accepts these; VUEDA does not, because the name also has to survive being read back out
+    # of the query parameter that carries it -- which splits on commas and drops empties -- and two
+    # spellings are reserved for asking for every total.
+    OURS_ONLY = ("a,b", "", "*", "~all")
+
+    @staticmethod
+    def check_errors(name):
+        return checks._validate_column_total_name(store_viewsets.CartItemViewSet, name)
+
+    def test_accepted_names_pass_and_are_usable_aggregate_aliases(self):
+        for name in self.ACCEPTED:
+            assert self.check_errors(name) == [], name
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                Query(None).check_alias(name)
+
+    def test_names_django_refuses_are_errors(self):
+        for name in self.DJANGO_FORBIDDEN:
+            messages = self.check_errors(name)
+            assert [message.id for message in messages] == ["vueda_info.E011"], name
+            with pytest.raises(ValueError):
+                Query(None).check_alias(name)
+
+    def test_names_only_vueda_refuses_are_errors(self):
+        """Django has no objection to these, so the check has to carry them itself."""
+        for name in self.OURS_ONLY:
+            messages = self.check_errors(name)
+            assert [message.id for message in messages] == ["vueda_info.E011"], name
+            Query(None).check_alias(name)
+
+    def test_a_non_string_name_is_an_error(self):
+        messages = self.check_errors(3)
+
+        assert [message.id for message in messages] == ["vueda_info.E011"]
+        assert "not a string" in messages[0].msg
+
+    def test_percent_sign_follows_the_installed_django(self):
+        """A percent sign in an alias is whatever the installed Django says it is, and so is VUEDA.
+
+        Django added the deprecation in 6.0 and removes it in 7.0, and this package supports 5.2
+        through 6.1 -- so the same name is accepted silently on 5.2, deprecated on 6.0 and 6.1, and
+        an error later. Asserting any one of those outcomes would pin the test to one row of the CI
+        matrix, which is the opposite of what the check is for: a project is held to the rule its
+        own Django enforces. So Django is asked here too, directly rather than through
+        ``_django_alias_problem``, and VUEDA is held to the same answer.
+
+        RemovedInDjango70Warning: when Django folds the percent sign into its own blocklist the
+        error branch is the only one left, and this collapses back to asserting `vueda_info.E011`.
+        """
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            try:
+                Query(None).check_alias("a%b")
+            except ValueError:
+                django_refuses, django_deprecates = True, False
+            else:
+                django_refuses, django_deprecates = False, bool(caught)
+
+        messages = self.check_errors("a%b")
+
+        if django_refuses:
+            assert [message.id for message in messages] == ["vueda_info.E011"]
+        elif django_deprecates:
+            assert [message.id for message in messages] == ["vueda_info.W002"]
+            assert "percent" in messages[0].hint.lower()
+        else:
+            assert messages == [], "Django accepts it, so VUEDA has nothing to say about it"
+
+    def test_the_empty_name_says_so(self):
+        """Its own message, because `{name!r}` reads as nothing at all for this one."""
+        messages = self.check_errors("")
+
+        assert [message.id for message in messages] == ["vueda_info.E011"]
+        assert "empty name" in messages[0].msg

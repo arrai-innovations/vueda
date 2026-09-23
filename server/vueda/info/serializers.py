@@ -133,6 +133,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             "model_expands": serializers.SerializerMethodField,
             "model_ordering": serializers.SerializerMethodField,
             "model_filtering": serializers.SerializerMethodField,
+            "model_column_totals": serializers.SerializerMethodField,
         }
 
     @cached_property
@@ -558,6 +559,48 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 expand["type_serializer"] = "GenericForeignKeySerializer"
 
         return expands
+
+    def get_model_column_totals(self, instance):
+        """
+        The column totals a ``list`` request may ask for.
+
+        A section of its own rather than a flag on each entry of ``model_fields``, because the two
+        don't line up: ``model_fields`` is built from the canonical serializer, while
+        ``column_totals`` lives on the viewset and names its totals after the client's columns. A
+        total named ``product_price`` that no serializer field matches would have nowhere to be
+        reported, and a client's display columns include ``foo__bar`` names ``model_fields`` doesn't
+        carry either.
+
+        ``fields`` are the declared total names, in declaration order; a client asks for the ones
+        its visible columns can render.
+
+        The section reports which totals exist, not the parameter that asks for them. A client
+        sends the parameter from its own constant, so a project that changes
+        ``settings.COLUMN_TOTALS_PARAM`` needs a matching client change. Reporting the parameter
+        name here is part of the wider parameter-name discovery work, which lands after v3.0.0
+        rather than a parameter at a time.
+
+        A viewset with no ``column_totals``, or one whose declaration isn't a mapping, reports no
+        fields -- the same thing its ``list`` action offers. ``vueda_info.E011`` reports the
+        misconfigured declaration itself.
+
+        Read from the ``column_totals`` attribute rather than through
+        ``VuedaViewSet.get_declared_column_totals()``, which is what ``list`` and the OpenAPI schema
+        call. Registration stores the viewset class, and that hook is an instance method whose
+        override is free to depend on the request -- there is no instance here to ask, and no
+        request to ask about. So ``column_totals`` is the advertised set: a viewset narrowing its
+        totals per request through that hook still advertises everything it declares, and a client
+        asking for one the hook withheld gets the 400 that ``get_requested_column_totals`` raises.
+        A total that no declaration carries cannot be advertised here at all.
+        """
+        viewset = self.canonical["viewset"]
+        column_totals = getattr(viewset, "column_totals", None) if viewset is not None else None
+        if not isinstance(column_totals, dict):
+            column_totals = {}
+
+        return {
+            "fields": list(column_totals),
+        }
 
     def get_ordering_data(self, model, order_by, *, include_ascending=True):
         """
@@ -2354,6 +2397,36 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 },
                             },
                         },
+                    }
+
+                    # Model Column Totals
+                    data["content"]["application/json"]["schema"]["properties"]["model_column_totals"] = {
+                        "type": "object",
+                        "title": "Column Totals Data",
+                        "properties": {
+                            "fields": {
+                                "type": "array",
+                                "description": (
+                                    "The total names a client may request, in declaration order. Each is the "
+                                    "key the value comes back under in the paginated response's "
+                                    "`columnTotals`, and is named after the column it renders under rather "
+                                    "than after the server-side field path it sums. They are requested "
+                                    "through the `COLUMN_TOTALS_PARAM` query parameter, documented on each "
+                                    "`list` operation that declares totals; a wildcard value (`*` or `~all`) "
+                                    "requests every declared total, and naming none requests none, which "
+                                    "runs no aggregation query."
+                                ),
+                                "items": {
+                                    "type": "string",
+                                    "readOnly": True,
+                                    "description": "Column total to request.",
+                                    "example": "product_price",
+                                },
+                            },
+                        },
+                        "required": [
+                            "fields",
+                        ],
                     }
 
                     # Model Permissions

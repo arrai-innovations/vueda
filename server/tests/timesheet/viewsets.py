@@ -88,7 +88,10 @@ class TimesheetWithToAttrPrefetchedEntriesViewSet(viewsets.VuedaViewSet):
 class TimesheetEntryViewSet(VuedaViewSet):
     queryset = models.TimesheetEntry.objects.all()
     serializer_class = serializers.TimesheetEntrySerializer
-    column_totals = ["hours"]
+    # The simple case: a total named after the column it renders under, summing the column of the
+    # same name. `tests.store.viewsets.CartItemViewSet` covers the case the mapping exists for,
+    # where the two are spelled differently.
+    column_totals = {"hours": "hours"}
 
 
 class TimesheetDataViewSet(viewsets.VuedaReadOnlyViewSet):
