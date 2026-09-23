@@ -489,7 +489,6 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, add
         },
         { immediate: true },
     );
-    console.log('toRef(state, "internalVisible"): ', toRef(state, "internalVisible"));
     // Collapsing keeps the rows mounted, so the fields inside read this to know whether the reader can
     // see them.
     provide(FieldSetContentVisibleSymbol, toRef(state, "internalVisible"));
