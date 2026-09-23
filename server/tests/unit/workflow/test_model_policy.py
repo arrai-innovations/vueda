@@ -5,11 +5,13 @@ from typing import ClassVar
 from unittest.mock import Mock
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.test.utils import isolate_apps
 from django_filters import rest_framework
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.reverse import reverse
 
@@ -19,6 +21,7 @@ from tests.store import models as store_models
 from tests.unit.info.test_model_info import register_model
 from vueda import info
 from vueda.core.checks import check_model_feature_declaration
+from vueda.core.filters import ModelChoiceArrayFilter
 from vueda.core.filters import VuedaFilterSet
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.models import VuedaModel
@@ -26,6 +29,7 @@ from vueda.core.serializers import VuedaSerializer
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 from vueda.workflow.models import ObjectStateProxy
+from vueda.workflow.models import State
 from vueda.workflow.models import WorkflowModelMethods
 from vueda.workflow.models import ensure_object_state
 from vueda.workflow.serializers import WORKFLOW_SERIALIZER_FIELDS
@@ -109,6 +113,24 @@ class TestFieldConflicts:
                     app_label = "features"
 
             assert check_model_feature_declaration(OwnsWorkflowField) == []
+
+    def test_a_child_of_an_enabled_parent_is_not_checked_again(self):
+        with isolate_apps("tests.features"):
+
+            class EnabledParent(VuedaModel):
+                class Vueda:
+                    class Workflow:
+                        enabled = True
+
+                class Meta:
+                    app_label = "features"
+
+            class InheritingChild(EnabledParent):
+                class Meta:
+                    app_label = "features"
+
+            # The child inherits the parent's object_states_proxy relation, which is workflow's own.
+            assert check_model_feature_declaration(InheritingChild) == []
 
 
 class TestWorkflowEnabled:
@@ -203,6 +225,16 @@ class TestSerializerFields:
 
         assert not set(WORKFLOW_SERIALIZER_FIELDS) & set(CustomerSerializer().fields)
 
+    def test_a_workflow_field_the_serializer_lists_and_declares_is_its_own(self):
+        class RelabelledOrderSerializer(VuedaSerializer):
+            workflow_state_name = serializers.CharField(source="workflow_state.name", read_only=True, label="Stage")
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.CustomerOrder
+                fields = ["id", "workflow_state_name"]
+
+        assert RelabelledOrderSerializer().fields["workflow_state_name"].label == "Stage"
+
 
 class TestFilterSetFilter:
     def test_a_filterset_of_an_enabled_model_receives_the_filter(self):
@@ -223,6 +255,29 @@ class TestFilterSetFilter:
                 fields = []
 
         assert isinstance(OrderFilterSet.base_filters["workflow_state"], rest_framework.CharFilter)
+
+    @pytest.mark.django_db
+    def test_a_declared_filter_keeps_its_own_choices(self):
+        declared_queryset = State.objects.filter(code="declared-only")
+
+        class OrderFilterSet(VuedaFilterSet):
+            workflow_state = ModelChoiceArrayFilter(field_name="object_states_proxy__state", queryset=declared_queryset)
+
+            class Meta:
+                model = store_models.CustomerOrder
+                fields = []
+
+        # An order in a state is what makes narrowing run for the default filter.
+        user = get_user_model().objects.create(email="filter-probe@domain.invalid", name="Filter Probe")
+        store_models.CustomerOrder.objects.create(
+            order_number=Decimal("3001"),
+            customer=store_models.Customer.objects.create(user=user),
+            order_state=store_models.OrderState.objects.create(code="order_state_probe", name="Probe"),
+        )
+        filterset = OrderFilterSet(queryset=store_models.CustomerOrder.objects.all())
+
+        # The filterset works on a deep copy of its filters, so compare what the queryset selects.
+        assert str(filterset.filters["workflow_state"].queryset.query) == str(declared_queryset.query)
 
     def test_a_filterset_of_a_model_without_workflow_receives_none(self):
         class CustomerFilterSet(VuedaFilterSet):

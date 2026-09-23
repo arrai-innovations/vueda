@@ -94,3 +94,16 @@ class TestSelection:
 
         assert "store.CustomerOrder: created 0 object state(s)." in stdout.getvalue()
         assert f"{erring_models.MoSoVoWx._meta.label} enables class Vueda.Workflow" in stderr.getvalue()
+
+    def test_an_app_without_workflow_models_selects_nothing(self):
+        assert "No workflow-enabled models selected." in backfill("vueda_user")
+
+    def test_a_workflow_without_an_initial_state_is_reported(self):
+        store_models.CustomerOrder.get_content_type().workflow.initial_state.delete()
+
+        with pytest.raises(CommandError, match=r"model\(s\) could not be backfilled"):
+            call_command(
+                "backfillworkflowstates", "store.CustomerOrder", stdout=StringIO(), stderr=(stderr := StringIO())
+            )
+
+        assert "The workflow of store.CustomerOrder has no initial state." in stderr.getvalue()

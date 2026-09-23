@@ -142,3 +142,8 @@ class TestDefinitionCheck:
 
     def test_does_not_run_without_a_database(self):
         assert check_workflow_definitions(databases=None) == []
+
+    def test_limits_itself_to_the_given_apps(self):
+        from django.apps import apps
+
+        assert check_workflow_definitions(app_configs=[apps.get_app_config("vueda_user")], databases=["default"]) == []
