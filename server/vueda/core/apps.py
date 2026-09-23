@@ -14,10 +14,10 @@ class CoreConfig(AppConfig):
         from django.core.checks import Tags
         from django.core.checks import register
 
-        from .checks import check_exclude_fields_serializer_usage
-        from .checks import check_expandable_fields_configuration
-        from .checks import check_model_feature_policy
-        from .checks import check_session_cache_is_shared
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+        from vueda.core.checks import check_expandable_fields_configuration
+        from vueda.core.checks import check_model_feature_policy
+        from vueda.core.checks import check_session_cache_is_shared
 
         register(check_expandable_fields_configuration)
         register(check_exclude_fields_serializer_usage)

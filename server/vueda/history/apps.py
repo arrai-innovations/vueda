@@ -162,6 +162,6 @@ class HistoryConfig(AppConfig):
     def ready(self):
         from django.core.checks import register
 
-        from .checks import check_history_middleware
+        from vueda.history.checks import check_history_middleware
 
         register(check_history_middleware)
