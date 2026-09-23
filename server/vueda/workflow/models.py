@@ -14,6 +14,7 @@ __all__ = (
     "WorkflowPermission",
     "ensure_object_state",
     "get_workflow_for_model",
+    "objects_without_object_state",
 )
 
 from collections import defaultdict
@@ -561,6 +562,17 @@ def get_workflow_for_model(model) -> Workflow:
     if workflow is None:
         raise WorkflowNotConfiguredError(model._meta.concrete_model)
     return workflow
+
+
+def objects_without_object_state(model, workflow):
+    """Return the objects of ``model`` that have no ``ObjectState`` row in ``workflow``.
+
+    Read through the base manager, so a default manager that hides rows does not hide them here. An
+    object in this queryset has no current state, which leaves it out of state filters and state
+    grants and makes its transitions fail. ``backfillworkflowstates`` gives each one the initial state.
+    """
+    with_state = ObjectState.objects.filter(workflow=workflow).values("object_id")
+    return model._base_manager.exclude(pk__in=with_state)
 
 
 def _permitted_transition_ids(
