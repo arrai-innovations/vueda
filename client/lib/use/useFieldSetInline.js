@@ -9,7 +9,7 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import { FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
@@ -195,16 +195,34 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
  * @returns {void}
  */
 /**
- * Removes an object from the fieldset.
+ * Removes an object from the fieldset, moving selection and per-row form state
+ * with the remaining rows.
  *
+ * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context.
+ * @param {import('@vueda/use/useForm.js').FormContext|null} formContext - The form context, or null when contextless.
  * @param {number} index - The index of the object to remove.
  */
-const removeObject = (fieldSetContext, index) => {
+const removeObject = (state, fieldSetContext, formContext, index) => {
     fieldSetContext.blur();
+    const selected = state.selected
+        .filter((rowIndex) => rowIndex !== index)
+        .map((rowIndex) => (rowIndex > index ? rowIndex - 1 : rowIndex));
+    if (formContext) {
+        // Shifts values, errors, messages, touched, ignored, and focus together.
+        formContext.removeArrayItem(fieldSetContext.state.name, index);
+        state.selected = selected;
+        return;
+    }
+    for (const rowIndex of [...state.selected]) {
+        handleSelected(state, fieldSetContext, false, rowIndex);
+    }
     fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
     fieldSetContext.clearErrors(index);
     fieldSetContext.clearMessages(index);
+    for (const rowIndex of selected) {
+        handleSelected(state, fieldSetContext, true, rowIndex);
+    }
 };
 
 /**
@@ -325,6 +343,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, add
         widgetProps: computed(() => merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
     });
     const formModel = useFormModel(mergedFormModelProps);
+    /** @type {import('@vueda/use/useForm.js').FormContext|null} */
+    const providedFormContext = inject(FormContextSymbol, null);
+    const formContext = computed(() => (props.contextless ? null : unref(providedFormContext)));
 
     /** @type {FieldSetInlineState} */
     const state = reactive(
@@ -491,16 +512,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, add
         refFn: (el) => {
             refFn(state, el);
         },
-        removeObject: (index) => {
-            const selected = state.selected.filter((rowIndex) => rowIndex !== index);
-            for (const rowIndex of [...state.selected]) {
-                handleSelected(state, fieldSetContext, false, rowIndex);
-            }
-            removeObject(fieldSetContext, index);
-            for (const rowIndex of selected) {
-                handleSelected(state, fieldSetContext, true, rowIndex > index ? rowIndex - 1 : rowIndex);
-            }
-        },
+        removeObject: (index) => removeObject(state, fieldSetContext, formContext.value, index),
         setVisibility: (visible) => setVisibility(state, emit, visible),
         toggleVisibility: () => {
             setVisibility(state, emit, !state.internalVisible);

@@ -50,7 +50,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _The `validation-summary` slot's `entries` now carry a `label` alongside `field` and `messages`; an override that renders `entry.field` keeps working, and can switch to `entry.label` to show the same text `ActionForm` now shows._
 - **Saved rows can be removed from writable inlines (`FieldSetStackedInline`, `FieldSetTabularInline`)**:
     - Editable inlines now show a deletion checkbox on saved rows without requiring a child destroy action in model metadata. Marked rows stay visible until submission, and clearing the mark keeps them in the payload. The parent update deletes omitted children using the existing nested-write behavior; child destroy permissions are not required.
-    - Read-only inlines and read forms offer no saved-row removal. Unsaved rows still use the immediate Delete button. Removing an unsaved row keeps existing deletion marks attached to the correct rows.
+    - Read-only inlines and read forms offer no saved-row removal. Unsaved rows still use the immediate Delete button. Removing an unsaved row keeps existing deletion marks, errors, messages, and touched state attached to the correct rows.
       _No configuration change is required. Existing `destroy-checkbox` slots and explicit destroy descriptors continue to work._
 
 - **Edge, focus, and elevation vars stay on the element that sets them (`base.css` `--vueda-hairline-color`, `--vueda-hairline-shadow`, `--vueda-focus-shadow`, `--vueda-overlay-elevation`)**:

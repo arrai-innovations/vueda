@@ -186,5 +186,17 @@ describe("lib/form/field-set/FieldSet*Inline.vue", () => {
             expect(form.state.submittingValues.lines).toEqual(savedRows);
             wrapper.unmount();
         });
+
+        scopedIt("keeps row errors on their rows after an unsaved row is removed", async () => {
+            const rows = [{ name: "Unsaved" }, ...savedRows];
+            const { wrapper, form } = await mountInline(layout, { rows });
+            form.updateError("lines[1].name", "custom", "First line error");
+            const deleteButton = wrapper.findAll("button").find((button) => button.text() === "Delete");
+            await deleteButton.trigger("click");
+            await flushPromises();
+            expect(form.state.values.lines).toEqual(savedRows);
+            expect(Object.keys(form.state.errors)).toEqual(["lines[0].name"]);
+            wrapper.unmount();
+        });
     });
 });
