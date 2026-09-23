@@ -10,6 +10,7 @@ import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import ConstraintsBar from "@vueda/display/constraints-bar/ConstraintsBar.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import ScopeGroup from "@vueda/display/scope/ScopeGroup.vue";
 import SortControl from "@vueda/display/sort/SortControl.vue";
 import SortGroup from "@vueda/display/sort/SortGroup.vue";
 import FilterGroup from "@vueda/form/filter/FilterGroup.vue";
@@ -95,6 +96,17 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    /**
+     * Declares which `params` keys are shown as scopes in the constraints band, keyed by `params` key:
+     * `{ [key]: { label?, clearable? } }`. A declared key is shown while `params` carries a value for
+     * it. `label` defaults to the filter's metadata label (or the key) with its value; `clearable`
+     * defaults to true. Clearing emits `clear-scope`; the caller removes those keys from `params`.
+     * Undeclared `params` keys stay plain request parameters.
+     */
+    scopes: {
+        type: Object,
+        default: () => ({}),
+    },
     // as long as there are no collisions, $attrs can be used to pass through any other props to objects-grid
     /** Tailwind breakpoint at which the layout switches from card to table view. */
     tableBreakpoint: {
@@ -157,7 +169,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination, filter } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination, filter, scope } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -197,10 +209,10 @@ const detailLinkView = (name, resolved, cell) => {
 // state stays owned by FilterGroup.
 const filterTriggerZone = ref(null);
 
-// The shared constraints band hosts both the filter chips and the sort chips.
-// `hasFilters` drives band visibility and the divider; it reads the active
-// filter list directly rather than threading a count. Each group owns its own
-// clear control.
+// The shared constraints band hosts the scope chips, the filter chips, and the
+// sort chips. `hasScopes`, `hasFilters`, and `hasSorts` drive band visibility and
+// the dividers. Each group owns its own clear control.
+const hasScopes = computed(() => scope.scopes.length > 0);
 const hasFilters = computed(() => (filter.state.addedFilters?.length || 0) > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
@@ -266,9 +278,30 @@ const emit = defineEmits([
     "query-change",
     /** Forwarded from FilterGroup when a filter form popover should close. */
     "hide-filter-form",
+    /**
+     * Emitted with `{ name, keys }` when the reader clears a `params` key declared through the `scopes` prop.
+     * The prop is left unchanged: the caller removes `keys` from `params`, which removes the scope
+     * from the request and the constraints band.
+     */
+    "clear-scope",
 ]);
 
 const route = useRoute();
+
+// URL scopes are removed from the route here; params scopes belong to the caller, which is asked
+// to remove their keys from `params`. A scope declared with `clearable: false` stays in place.
+const clearScopes = (scopes) => {
+    const clearable = scopes.filter((s) => s.clearable);
+    const urlScopeNames = clearable.filter((s) => s.source === "url").map((s) => s.name);
+    if (urlScopeNames.length) {
+        scope.clearUrlScopes(urlScopeNames);
+    }
+    for (const s of clearable) {
+        if (s.source === "params") {
+            emit("clear-scope", { name: s.name, keys: [...s.keys] });
+        }
+    }
+};
 
 onMounted(() => {
     emit(
@@ -382,12 +415,19 @@ onMounted(() => {
                 </div>
             </div>
         </sticky-chrome>
-        <!-- Active-constraints band: filter chips and sort chips share one sticky strip, told apart
-             by tint. Each group teleports its add/edit trigger into the toolbar zone above; their
-             chips render here, hosted bare so the band owns the chrome. The band collapses when
-             nothing is active; each group owns its own clear control. -->
+        <!-- Active-constraints band: scope, filter, and sort chips share one sticky strip, told apart
+             by tint. The filter and sort groups teleport their add/edit triggers into the toolbar
+             zone above; all chips render here, hosted bare so the band owns the chrome. The band
+             collapses when nothing is active; each group owns its own clear control. -->
         <sticky-chrome zone="top" reveal="scroll-up">
-            <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts">
+            <constraints-bar :scopes-active="hasScopes" :filters-active="hasFilters" :sorts-active="hasSorts">
+                <template #scopes>
+                    <scope-group hosted :scopes="scope.scopes" @clear="clearScopes">
+                        <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </scope-group>
+                </template>
                 <template #filters>
                     <filter-group
                         v-model="filter.state.addedFilters"

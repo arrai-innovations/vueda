@@ -25,6 +25,7 @@ vi.mock("@vueda/use/useTheme.js", () => ({
 let ConstraintsBar;
 
 const slots = {
+    scopes: () => h("div", { "data-qa": "slot-scopes" }, "scopes"),
     filters: () => h("div", { "data-qa": "slot-filters" }, "filters"),
     sort: () => h("div", { "data-qa": "slot-sort" }, "sort"),
 };
@@ -41,18 +42,19 @@ afterEach(() => {
 const openState = (wrapper) => wrapper.get('[data-qa="constraints-bar"]').attributes("data-open");
 
 describe("lib/display/constraints-bar/ConstraintsBar.vue", () => {
-    scopedIt("renders the filters and sort slots", () => {
+    scopedIt("renders the scopes, filters, and sort slots", () => {
         const wrapper = mount(ConstraintsBar, {
-            props: { filtersActive: true, sortsActive: true },
+            props: { scopesActive: true, filtersActive: true, sortsActive: true },
             slots,
         });
+        expect(wrapper.find('[data-qa="slot-scopes"]').exists()).toBe(true);
         expect(wrapper.find('[data-qa="slot-filters"]').exists()).toBe(true);
         expect(wrapper.find('[data-qa="slot-sort"]').exists()).toBe(true);
     });
 
     scopedIt("stays collapsed when no constraint is active", () => {
         const wrapper = mount(ConstraintsBar, {
-            props: { filtersActive: false, sortsActive: false },
+            props: { scopesActive: false, filtersActive: false, sortsActive: false },
             slots,
         });
         expect(openState(wrapper)).toBe("false");
@@ -66,10 +68,24 @@ describe("lib/display/constraints-bar/ConstraintsBar.vue", () => {
         expect(openState(wrapper)).toBe("true");
     });
 
+    scopedIt("opens when only a scope is active", () => {
+        const wrapper = mount(ConstraintsBar, { props: { scopesActive: true }, slots });
+        expect(openState(wrapper)).toBe("true");
+    });
+
     scopedIt("shows the divider only when both groups are active", () => {
         const both = mount(ConstraintsBar, { props: { filtersActive: true, sortsActive: true }, slots });
         expect(both.find('[data-qa="constraints-bar-divider"]').exists()).toBe(true);
         const filtersOnly = mount(ConstraintsBar, { props: { filtersActive: true, sortsActive: false }, slots });
         expect(filtersOnly.find('[data-qa="constraints-bar-divider"]').exists()).toBe(false);
+    });
+
+    scopedIt("places one divider between each pair of adjacent active groups", () => {
+        const dividers = (props) =>
+            mount(ConstraintsBar, { props, slots }).findAll('[data-qa="constraints-bar-divider"]').length;
+        expect(dividers({ scopesActive: true })).toBe(0);
+        expect(dividers({ scopesActive: true, filtersActive: true })).toBe(1);
+        expect(dividers({ scopesActive: true, sortsActive: true })).toBe(1);
+        expect(dividers({ scopesActive: true, filtersActive: true, sortsActive: true })).toBe(2);
     });
 });

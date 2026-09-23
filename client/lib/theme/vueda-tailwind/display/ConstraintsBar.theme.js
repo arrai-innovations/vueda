@@ -9,7 +9,7 @@ import { patchTheme } from "@vueda/use/themeRegistry.js";
 
 patchTheme({
     /**
-     * The active-constraints band: filter chips and sort chips on one line.
+     * The active-constraints band: scope, filter, and sort chips on one line.
      * Muted tint a tier below the card-toned toolbar, sharing the page-chrome
      * rhythm and a bottom hairline. Rendered only when a constraint is active.
      */
@@ -26,14 +26,14 @@ patchTheme({
         inner: {
             class: ["overflow-hidden min-h-0"],
         },
-        /** The band wrapper. A single flex row that the hosted filter and sort groups flow into. */
+        /** The band wrapper. A single flex row that the hosted scope, filter, and sort groups flow into. */
         root: {
             class: [
                 "w-full flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-[10px]",
                 "border-b-hairline bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))] text-foreground",
             ],
         },
-        /** Hairline divider between the filters group and the sort group; shown only when both are active. */
+        /** Hairline divider between two active groups. */
         divider: {
             class: ["h-5 w-hairline self-center bg-border"],
         },

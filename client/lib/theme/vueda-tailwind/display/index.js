@@ -23,6 +23,8 @@ import "./KbdGroup.theme.js";
 import "./LoadingHeartbeatStrip.theme.js";
 import "./LoadingSkeletonGhost.theme.js";
 import "./ResponsiveMenu.theme.js";
+import "./ScopeChip.theme.js";
+import "./ScopeGroup.theme.js";
 import "./SortChip.theme.js";
 import "./SortGroup.theme.js";
 import "./SuggestionList.theme.js";
@@ -64,6 +66,9 @@ export default {
     FieldPickerMenuList: {},
     // ---------- Constraints band ----------
     ConstraintsBar: {},
+    // ---------- Scopes ----------
+    ScopeChip: {},
+    ScopeGroup: {},
     // ---------- Sorting ----------
     SortChip: {},
     SortGroup: {},
