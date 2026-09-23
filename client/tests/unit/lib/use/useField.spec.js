@@ -1,6 +1,6 @@
 import { del } from "@arrai-innovations/reactive-helpers";
 import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt } from "@tests/unit/utils.js";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol, FieldSetContentVisibleSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -1889,6 +1889,31 @@ describe("lib/use/useField.js", () => {
                     hidden.value = false;
                     expect(showsErrorsHook()).toBe(true);
                     expect(fc.registerShowsErrors).toHaveBeenCalledTimes(1);
+                });
+
+                scopedIt(
+                    "should report its errors as not shown while an enclosing inline field set is collapsed",
+                    () => {
+                        const enclosingVisible = vue.ref(false);
+                        const fc = getFormContextMock(vue);
+                        mockedProvide(FormContextSymbol, fc);
+                        mockedProvide(FieldSetContentVisibleSymbol, enclosingVisible);
+                        useField(vue.readonly(getDefaultProps(vue, "lines[0].note")), emit);
+
+                        const showsErrorsHook = fc.registerShowsErrors.mock.calls[0][1];
+                        expect(showsErrorsHook()).toBe(false);
+                        enclosingVisible.value = true;
+                        expect(showsErrorsHook()).toBe(true);
+                    },
+                );
+
+                scopedIt("should report its errors as not shown when hidden, even inside an expanded field set", () => {
+                    const fc = getFormContextMock(vue);
+                    mockedProvide(FormContextSymbol, fc);
+                    mockedProvide(FieldSetContentVisibleSymbol, vue.ref(true));
+                    useField(vue.readonly(getDefaultProps(vue, "lines[0].note")), emit, { showsErrors: () => false });
+
+                    expect(fc.registerShowsErrors.mock.calls[0][1]()).toBe(false);
                 });
 
                 scopedIt("should not register when contextless", () => {

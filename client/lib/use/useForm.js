@@ -58,7 +58,7 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Field Metadata ***
  * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
- * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages, keyed by field path. True when any live registration for the path reports that it renders them. A path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from one a field already shows.
+ * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from one a field already shows.
  */
 
 /**

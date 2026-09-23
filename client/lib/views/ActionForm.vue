@@ -134,12 +134,13 @@ const icon = useIcons("ActionForm", props);
 /**
  * Per-field validation entries derived from `formContext.state.errors`, limited
  * to the errors no rendered field already shows beside itself. Each rendered
- * field reports through `useField` whether it renders its own error messages
- * (`formContext.state.showsErrors`); an error keyed to a field that reports
- * `true` is dropped here because the reader already sees it under the field.
- * An error whose key has no such report stays: a field whose renderer failed, a
- * field rendered with `hidden`, or a key the form does not render at all has
- * no other surface, and this list is the only place it appears.
+ * field reports through `useField` whether the reader can see its own error
+ * messages (`formContext.state.showsErrors`); an error keyed to a field that
+ * reports `true` is dropped here because the reader already sees it under the
+ * field. Every other error stays: a field whose renderer failed, a field
+ * rendered with `hidden`, a field inside a collapsed inline field set, or a key
+ * the form does not render at all has no visible surface, and this list is the
+ * only place it appears.
  *
  * Each entry is `{ field, label, messages: string[] }`. `label` names the
  * field the way its rendered form field labels it (via `formContext.state.labels`,

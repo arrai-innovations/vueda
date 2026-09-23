@@ -4,7 +4,7 @@
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol, FieldSetContentVisibleSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import get from "lodash-es/get.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -214,7 +214,7 @@ export function defaultIsRequiredViolation(value) {
  * Options describing how the calling component renders the field.
  *
  * @typedef {object} UseFieldOptions
- * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level summary can report the field's errors instead.
+ * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level summary can report the field's errors instead. The field also reports its errors as not shown while an enclosing inline field set is collapsed, since its rows stay mounted out of sight.
  */
 
 /**
@@ -292,6 +292,8 @@ export function useField(props, emit, options = {}) {
     const showsErrors = options.showsErrors ?? (() => true);
     /** @type {import('@vueda/use/useForm.js').FormContext|null} */
     const rawFormContext = inject(FormContextSymbol, null);
+    // False while an enclosing inline field set is collapsed: its rows stay mounted but out of sight.
+    const enclosingFieldSetContentVisible = inject(FieldSetContentVisibleSymbol, null);
     const formContext = computed(() => (!props.contextless ? unref(rawFormContext) : null));
     const amIModified = () => {
         return !state.valueIsInitial && !state.ignored && !(state.initialValueUnset && state.valueUnset);
@@ -877,7 +879,10 @@ export function useField(props, emit, options = {}) {
         });
     };
     registerMetadataHookByName("Label", () => state.label);
-    registerMetadataHookByName("ShowsErrors", () => !!showsErrors());
+    registerMetadataHookByName(
+        "ShowsErrors",
+        () => !!showsErrors() && unref(enclosingFieldSetContentVisible) !== false,
+    );
 
     return returnObj;
 }
