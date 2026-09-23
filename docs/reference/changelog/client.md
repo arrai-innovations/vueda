@@ -16,6 +16,13 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Breaking Changes
 
+- **Filter types need both value handling and components to be offered (`useViewList`, `fieldMappings`, `useFilterForm`)**:
+    - The add-filter menu now offers a visible filter only when its type has value handling in `FilterFieldMappings` and a field component and widget in `filterFieldMapping` (both boundary components for a range), or per-field `fieldComponents`/`widgetComponents` overrides in the list view config. See the matching entry under Fixes.
+    - Several built-in filter types have value handling but no default filter components, so filters of these types leave the menu and log a warning: `DateField`, `DateTimeField`, `TimeField`, `DurationField`, `DurationSecondsField`, `FloatField`, `DecimalInField`, `MultipleChoiceField`, `ModelMultipleChoiceField`, and `TypedChoiceField`. `PositiveDecimalField` has components but no value handling, so it leaves the menu too. Picking any of these before this release opened an input that failed to render.
+    - `FilterFieldMappings` moved from `@vueda/use/useFilterForm.js` to `@vueda/utils/fieldMappings.js`, next to `filterFieldMapping`.
+    - `mergeFilterFieldMapping` now also writes an entry's `initialValue`, `array`, and `range` keys to `FilterFieldMappings`. A filter is a range when its `FilterFieldMappings` entry sets `range: true` and its metadata declares two suffixes. The type name no longer matters.
+      _Check the browser console on each list view for `is not offered in the filter menu` warnings after upgrading. To bring back a filter of one of the types above, either register the type once with `mergeFilterFieldMapping` (for example `DateField: { component: "FormField", widget: "WidgetDateField" }`), or set `fieldComponents`/`widgetComponents` overrides for that filter in the list view config. Register `PositiveDecimalField` with `initialValue: null`. A custom filter type needs one `mergeFilterFieldMapping` call carrying both its components and its value keys. Add `range: true` to a custom range type, whose name no longer makes it a range. Import `FilterFieldMappings` from `@vueda/utils/fieldMappings.js`._
+
 ### Features
 
 - **ViewList**:
@@ -24,6 +31,14 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _To replace a manual row link, configure `detailLinkField` and remove the corresponding field slot or synthetic action column. See [Link List Rows to Read and Update Views](../../guides/link-list-rows-to-detail-views)._
 
 ### Fixes
+
+- **The filter menu offers only filters the client can render (`useViewList`, `fieldMappings`, `useFilter`)**:
+    - A model whose filtering metadata reported a type with no client mapping, such as the `UUIDField` a `UUIDFilter` declares, still had that filter offered in the add-filter menu. Picking it threw `Missing mapping for filter type`, and a type with value handling but no input component rendered a failure where the input belongs. `validFilterables` now checks each visible filter for value handling and for a field component and widget (both boundary components for a range), counting the view config's per-field `fieldComponents`/`widgetComponents` overrides, and leaves out filters that fail. A URL value for an omitted filter is no longer restored as an applied filter.
+    - An omitted filter is reported once per list visit through a `console.warn` naming the app, model, filter, and the missing pieces. Readers see no error.
+    - Hidden filters are unchanged: a filter declared with a `HiddenInput` widget stays out of the menu and chips regardless of its type, and its URL value still reaches the list request through visible-filter, sort, and search changes.
+    - New `getMissingFilterInputSupport(filterName, filterDetails, overrides)` in `use/useFilter` exposes the same check for custom list shells. It resolves components through the same path `buildForm` uses when a field renders, so a shape `buildForm` accepts is one the check accepts. A widget that resolves to `WidgetUnmapped` counts as missing, because that component shows a diagnostic instead of an input.
+    - A function-wrapped `fieldComponents`/`widgetComponents` override that returns no component now fails with an error naming the field, app, and model, the same as an override naming an unregistered component. Previously, a form mounted nothing for such a field component and showed the `WidgetUnmapped` diagnostic for such a widget.
+    - `mergeFilterFieldMapping` now also registers value handling, so one call fully registers a custom filter type. The built-in types this leaves out of the menu, the move of `FilterFieldMappings`, and the migration steps are under Breaking Changes.
 
 - **Detail view titles wait for the model name (`useDetailView` `titleStr`, `PageTitle`, `usePageTitle`)**:
     - `titleStr` had a fallback of "Read Item" or "Update Item" that could never apply. The expression before the fallback always produced a non-empty string, so a missing verbose name rendered as "Read " or "Update " with a trailing space. This showed on every cold load of a `DetailView`, `ViewRead`, or `ViewUpdate` mounted outside the CRUD routes, whose `requireModelInfo` guard prefetches model info.

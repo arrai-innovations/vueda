@@ -56,6 +56,35 @@ describe("lib/use/useFilter.js", () => {
         expect(state.widgetComponents.created).toBeUndefined();
     });
 
+    scopedIt("builds boundary fields for a custom range type registered with range value handling", async () => {
+        const { mergeFilterFieldMapping } = await import("@vueda/utils/fieldMappings.js");
+        mergeFilterFieldMapping({ SpanField: { range: true, initialValue: { start: null, end: null } } });
+        const props = reactive({
+            app: "a",
+            model: "b",
+            filterables: ["span"],
+            filterableDetails: { span: { typeFilter: "SpanField", suffixes: ["min", "max"] } },
+        });
+        const state = await withSetup(() => useFilter(props));
+        await nextTick();
+        expect(state.fieldComponents).toHaveProperty("span.min");
+        expect(state.fieldComponents).toHaveProperty("span.max");
+        expect(state.widgetComponents.span).toBeUndefined();
+    });
+
+    scopedIt("does not treat a filter as a range because of its type name", async () => {
+        const props = reactive({
+            app: "a",
+            model: "b",
+            filterables: ["arrangement"],
+            filterableDetails: { arrangement: { typeFilter: "ArrangementField", suffixes: ["min", "max"] } },
+        });
+        const state = await withSetup(() => useFilter(props));
+        await nextTick();
+        expect(state.fieldComponents).not.toHaveProperty("arrangement.min");
+        expect(state.widgetComponents.arrangement).toBe("arrangement-widget");
+    });
+
     scopedIt("warns for unknown filter detail", async () => {
         const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 

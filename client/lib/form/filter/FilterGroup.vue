@@ -69,8 +69,8 @@ const props = defineProps({
         required: true,
     },
     /**
-     * `filterables` narrowed to fields with a usable, non-hidden filter type (e.g.
-     * `useViewList`'s `filter.validFilterables`); the field list rendered as addable/editable.
+     * `filterables` narrowed to non-hidden fields the client can render an editable input for
+     * (e.g. `useViewList`'s `filter.validFilterables`); the field list rendered as addable/editable.
      */
     validFilterables: {
         type: Array,
