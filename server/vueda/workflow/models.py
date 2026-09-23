@@ -13,6 +13,7 @@ __all__ = (
     "WorkflowModelMethods",
     "WorkflowPermission",
     "ensure_object_state",
+    "get_workflow_for_model",
 )
 
 from collections import defaultdict
@@ -39,6 +40,7 @@ from vueda.history.apps import track_model
 from vueda.history.revision import object_revision
 from vueda.history.snapshots import last_recorded
 from vueda.workflow.exceptions import InvalidTransitionError
+from vueda.workflow.exceptions import WorkflowNotConfiguredError
 
 
 User = get_user_model()
@@ -548,6 +550,19 @@ track_model(TransitionSource)
 track_model(ObjectState)
 
 
+def get_workflow_for_model(model) -> Workflow:
+    """Return the ``Workflow`` of ``model``, which enables ``class Vueda.Workflow``.
+
+    Every read of a workflow model's definition goes through here, so a missing one raises
+    ``WorkflowNotConfiguredError`` wherever it is first needed instead of reading as "no workflow".
+    A proxy resolves to its concrete model's definition.
+    """
+    workflow = Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).first()
+    if workflow is None:
+        raise WorkflowNotConfiguredError(model._meta.concrete_model)
+    return workflow
+
+
 def _permitted_transition_ids(
     model: type["WorkflowModelMethods"],
     transitions: list[Transition],
@@ -604,12 +619,11 @@ class WorkflowModelMethods:
         Create a workflow object for this object.
         """
         workflow = self.workflow
-        if workflow:
-            ObjectState.objects.create(
-                workflow=workflow,
-                object_id=self.id,
-                state=workflow.initial_state.state,
-            )
+        ObjectState.objects.create(
+            workflow=workflow,
+            object_id=self.id,
+            state=workflow.initial_state.state,
+        )
 
     @classmethod
     def get_content_type(cls) -> ContentType:
@@ -642,12 +656,12 @@ class WorkflowModelMethods:
             self._workflow_state_cache = None
 
     @property
-    def workflow(self) -> Workflow | None:
-        """Return the ``Workflow`` configured for this model, or ``None`` if none exists."""
+    def workflow(self) -> Workflow:
+        """Return the ``Workflow`` configured for this model. Raises ``WorkflowNotConfiguredError`` if none exists."""
         cache = self._workflow_state_cache
         if cache is not None and "workflow" in cache:
             return cache["workflow"]
-        workflow = Workflow.objects.filter(content_type=self.get_content_type()).first()
+        workflow = get_workflow_for_model(type(self))
         if cache is not None:
             cache["workflow"] = workflow
         return workflow
@@ -678,12 +692,9 @@ class WorkflowModelMethods:
         current state, and state rules are read once rather than once per candidate transition.
         """
         with self.cached_workflow_state():
-            if (
-                user is not None
-                and not WorkflowPermission.objects.filter(
-                    workflow__content_type=self.get_content_type(),
-                ).exists()
-            ):
+            # Resolved first, so a missing definition is reported as one rather than as a denial.
+            workflow = self.workflow
+            if user is not None and not WorkflowPermission.objects.filter(workflow=workflow).exists():
                 raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
             transitions = self.fast_available_transitions()
             return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
@@ -720,7 +731,7 @@ class WorkflowModelMethods:
         depends on the object it receives. This classmethod therefore loads the concrete instances
         and asks each candidate object rather than asking the model class.
         """
-        workflow = Workflow.objects.get(content_type=cls.get_content_type())
+        workflow = get_workflow_for_model(cls)
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in workflow.workflow_permissions.values_list(
@@ -770,7 +781,7 @@ class WorkflowModelMethods:
         # programmatic use
         if user is None:
             return True
-        workflow = Workflow.objects.get(content_type=cls.get_content_type())
+        workflow = get_workflow_for_model(cls)
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in WorkflowPermission.objects.filter(
@@ -873,16 +884,10 @@ class WorkflowModelMethods:
         what is wanted.
         """
         with self.cached_workflow_state():
-            if (
-                user is not None
-                and not WorkflowPermission.objects.filter(
-                    workflow__content_type=self.get_content_type(),
-                ).exists()
-            ):
-                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            # Resolved first, so a missing definition is reported as one rather than as a denial.
             workflow = self.workflow
-            if workflow is None:
-                return False
+            if user is not None and not WorkflowPermission.objects.filter(workflow=workflow).exists():
+                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
             # The single-transition form of the source-state filter in fast_available_transitions.
             if not TransitionSource.objects.filter(
                 transition=transition,

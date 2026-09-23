@@ -89,9 +89,14 @@ class WorkflowConfig(AppConfig):
     verbose_name = "VUEDA Workflow"
 
     def ready(self):
+        from django.core.checks import Tags
+        from django.core.checks import register
         from django.db.models.signals import post_save
 
+        from vueda.workflow.checks import check_workflow_definitions
         from vueda.workflow.models import ensure_object_state
+
+        register(check_workflow_definitions, Tags.database)
 
         # Connected once for every sender rather than per model, because saving a proxy sends the
         # proxy class, which never passes through the feature-policy contributor.

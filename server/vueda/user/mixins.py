@@ -50,6 +50,7 @@ class VUEDAPermissionsMixin(PermissionsMixin):
         if "vueda.workflow" in settings.INSTALLED_APPS:
             from vueda.core.installed_apps import workflow_enabled
 
+            # Reading ``workflow`` raises WorkflowNotConfiguredError when the model has no definition.
             if obj is not None and workflow_enabled(obj) and obj.workflow:
                 has_workflow = True
                 grant_or_deny = obj.check_state_permission(perm, self.groups.all(), caller=self)

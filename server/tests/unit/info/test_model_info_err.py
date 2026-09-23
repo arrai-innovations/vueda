@@ -16,6 +16,7 @@ from tests.erring import viewsets as err_viewsets
 from tests.utils import use_test_router
 from vueda import info
 from vueda.core.routers import IncludeAppInRouteNameRouter
+from vueda.workflow.exceptions import WorkflowNotConfiguredError
 
 
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -218,12 +219,12 @@ class TestModelInfoWorkflowConfigurationErrs:
     @pytest.mark.parametrize(
         ("model", "will_err", "expected_error"),
         [
-            # Only a model that enables workflow and has no workflow row is misconfigured. A workflow
+            # Only a model that enables workflow and has no workflow definition is misconfigured. A workflow
             # row alone does not opt a model in, and the serializer and viewset no longer take part.
             (
                 model,
                 model.__name__.startswith("Mo") and model.__name__.endswith("Wx"),
-                frozenset((f"{model.__name__} has no workflow configured.",))
+                frozenset(WorkflowNotConfiguredError(model).args)
                 if model.__name__.startswith("Mo") and model.__name__.endswith("Wx")
                 else RESULT_KEYS,
             )

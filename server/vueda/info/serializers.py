@@ -24,7 +24,6 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
-from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
@@ -151,11 +150,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         model = self.canonical["serializer"].Meta.model
 
         if workflow_enabled(model):
-            # Local import, because the workflow app is optional.
-            from vueda.workflow.models import Workflow
+            # Local import, because the workflow app is optional. Raises WorkflowNotConfiguredError,
+            # which the exception handler reports, when the model has no workflow definition.
+            from vueda.workflow.models import get_workflow_for_model
 
-            if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
-                raise ImproperlyConfigured([f"{model.__name__} has no workflow configured."])
+            get_workflow_for_model(model)
 
         return super().data
 
