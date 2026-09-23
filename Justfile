@@ -93,6 +93,25 @@ types-client:
 manage *args:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py {{args}}
 
+# Changelog fragments. See "Changelog entries" in CONTRIBUTING.md. `package` is
+# `client` or `server`.
+
+# Create a fragment. With no other arguments, prompts for number, type, and area.
+changelog-new package *args:
+  cd {{justfile_directory()}} && uv run --no-sync towncrier create --config changelog.d/{{package}}.toml {{args}}
+
+# Preview the next release section without writing anything.
+changelog-draft package version:
+  cd {{justfile_directory()}} && uv run --no-sync towncrier build --config changelog.d/{{package}}.toml --version {{version}} --date unreleased --draft
+
+# Preview the same fragments grouped by area, for redrafting before a release.
+changelog-draft-by-area package version:
+  cd {{justfile_directory()}} && uv run --no-sync towncrier build --config changelog.d/{{package}}.toml --version {{version}} --date unreleased --name by-area --draft
+
+# Write the release section into the changelog and stage removal of its fragments.
+changelog-build package version:
+  cd {{justfile_directory()}} && uv run --no-sync towncrier build --config changelog.d/{{package}}.toml --version {{version}}
+
 # VUEDA Documentation
 docs-rebuild:
   rm -rf {{justfile_directory()}}/docs/.vitepress/.temp {{justfile_directory()}}/docs/.vitepress/cache

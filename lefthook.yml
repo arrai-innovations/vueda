@@ -114,6 +114,7 @@ pre-commit:
                 - "docs/.vitepress/.temp/**"
                 - "docs-tooling/.generated/**"
                 - "docs/public/assets/mermaid/mermaid.min.js"
+                - "changelog.d/template.md"
                 - "**/AGENT.md"
                 - "**/AGENTS.md"
             run: pnpm exec prettier --write {staged_files}
