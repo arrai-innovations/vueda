@@ -2,6 +2,29 @@
 
 Internal tooling for extracting, normalizing, and rendering API documentation into the VitePress site in `docs/`.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Docs Tooling](#vueda-docs-tooling)
+  - [Pipeline](#pipeline)
+  - [Sources](#sources)
+  - [Structure](#structure)
+  - [CLI](#cli)
+    - [Extract](#extract)
+    - [Normalize](#normalize)
+    - [Render](#render)
+  - [Workflow](#workflow)
+  - [Install](#install)
+  - [Source Annotations](#source-annotations)
+  - [Theme keys and CSS tokens](#theme-keys-and-css-tokens)
+    - [Theme keys](#theme-keys)
+    - [CSS tokens](#css-tokens)
+    - [Cross-references between sources](#cross-references-between-sources)
+  - [Tests](#tests)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## Pipeline
 
 1. Extract raw data from source tools.

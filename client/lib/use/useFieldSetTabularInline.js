@@ -102,7 +102,7 @@ export function useFieldSetTabularInline({ props, emit, slotNames }) {
     const theme = useTheme("FieldSetTabularInline", props);
     const fieldSetContext = useField(props, emit);
     const breakpoints = useBreakpoints(breakpointsVueda);
-    const fieldSetInline = useFieldSetInline({ props, emit, slotNames, fieldSetContext });
+    const fieldSetInline = useFieldSetInline({ props, emit, slotNames, fieldSetContext, addDestroyAction: true });
     const baseState = toRefs(fieldSetInline.state);
     /** @type {FieldSetTabularInlineState} */
     const state = reactive({

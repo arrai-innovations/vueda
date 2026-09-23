@@ -46,6 +46,7 @@ import { defineStore } from "pinia";
  * @property {string} verboseName - the human-readable name of the model
  * @property {string} verboseNamePlural - the human-readable plural name of the model
  * @property {string[]} displayFields - field names to display by default
+ * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch by default
  * @property {string[]} submitFields - field names to submit on create/update by default
  * @property {string[]} expand - field names to expand by default
@@ -80,6 +81,7 @@ import { defineStore } from "pinia";
  * @property {string} [verboseName] - the human-readable name of the model
  * @property {string} [verboseNamePlural] - the human-readable plural name of the model
  * @property {string[]} [displayFields] - field names to display by default
+ * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
  * @property {string[]} [fetchFields] - field names to fetch by default
  * @property {string[]} [submitFields] - field names to submit on create/update by default
  * @property {string[]} [expand] - field names to expand by default
@@ -164,6 +166,7 @@ const getDefaultFromModelInfo = (modelInfo) => {
             verboseName: modelInfo.verbose_name,
             verboseNamePlural: modelInfo.verbose_name_plural,
             displayFields: fields,
+            detailLinkField: null,
             fetchFields: fields,
             submitFields: writableFields,
             expand: expandFields,

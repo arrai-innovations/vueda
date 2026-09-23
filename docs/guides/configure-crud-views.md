@@ -105,7 +105,9 @@ Each view consumes a different subset of the config's field properties. Aligning
 
 **`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand.subfield` keys for expanded relation fields.
 
-**`ViewCreate`** and **`ViewUpdate`** submit using `submitFields`. The PK is injected into the request payload automatically for update operations. The form model is built from `fieldDetails` for the fields in `submitFields`, which controls labels, types, required flags, and validation constraints.
+**`ViewCreate`** and **`ViewUpdate`** render the fields in `displayFields` by default. Explicit `FormModel` field props can override that selection. `fieldDetails` supplies labels, types, required flags, and validation constraints. Create also uses `displayFields` to derive initial form values.
+
+`submitFields` controls the `f` query parameter on create and update requests, selecting fields in the save response. Both views add the PK to that selection. It does not filter the request body: submission sends the form's values, excluding fields marked ignored. Changing only `submitFields` therefore neither hides a form field nor prevents its value from being sent. The server still validates writes against the serializer's writable fields.
 
 When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
 
@@ -148,8 +150,8 @@ With config overrides in place, verify the surface end-to-end:
 
 - `list` view renders only the columns specified in `displayFields` and fetches the fields specified in `fetchFields`. The PK column is included in the fetch even if it's omitted from the config.
 - `read` view renders all expected fields, including expanded sub-fields if `expand` is configured.
-- `create` form contains only the fields specified in `submitFields` for the `create` view. Submission succeeds and redirects according to `actionRedirects`.
-- `update` form contains only the fields specified in `submitFields` for the `update` view. Submission succeeds and redirects correctly.
+- `create` form renders the fields specified in `displayFields` for the `create` view, unless explicit form field props override them. Submission succeeds and redirects according to `actionRedirects`.
+- `update` form renders the fields specified in `displayFields` for the `update` view, unless explicit form field props override them. Submission succeeds and redirects correctly.
 - Action buttons in `list` and `detail` views match the `actions` list. Detail actions, bulk actions, and targetless actions are classified correctly per `actionDetails`.
 - Navigating to an action excluded from `routeActions` produces an "Action Not Found" toast and redirects.
 - Filters and sort controls reflect the `filterables` and `sortables` overrides.
@@ -163,7 +165,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Entries in `routeActions` are compared against the server action names from `model_actions` (`retrieve`, `update`, `partial_update`, `destroy`, and so on). The only client route name that differs from its server action name is `read`, which the guard normalizes to `retrieve`; every other route segment (`update`, `destroy`, etc.) already matches its server action name. Use `retrieve` rather than `read` in `routeActions`.
 
-**Create/update form rejects a field on submission.** `submitFields` includes a field that the server serializer does not accept for write operations (for example, a read-only field or a field not in the serializer's `fields` list). The server returns a 400 with a field-keyed validation error. Align `submitFields` with the server serializer's writable fields.
+**Create/update form rejects a field on submission.** Check the field's error message and submitted value against the server serializer's validation rules. Changing `submitFields` changes the save response's field selection; it does not remove values from the request body or bypass required-field validation.
 
 **Action renders in the wrong category (detail vs. targetless).** The `actionDetails` entry for the action has incorrect `detail` or `bulk` flags. For example, setting `detail: false` on a per-object action moves it from the row-level action list to the targetless button area. Review the server's action metadata and adjust `actionDetails` overrides to match the intended classification.
 

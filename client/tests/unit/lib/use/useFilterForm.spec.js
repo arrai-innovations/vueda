@@ -50,17 +50,25 @@ describe("lib/use/useFilterForm.js", () => {
 });
 
 describe("lib/use/useFilterForm.js · query helpers", () => {
-    let getFilterParams, getFilterQueryValue, buildFilterFromQuery, filtersToParams;
+    let getFilterParams, getFilterQueryValue, buildFilterFromQuery, filtersToParams, isRangeFilter;
     beforeEach(async () => {
         const mod = await import("@vueda/use/useFilterForm.js");
         getFilterParams = mod.getFilterParams;
         getFilterQueryValue = mod.getFilterQueryValue;
         buildFilterFromQuery = mod.buildFilterFromQuery;
         filtersToParams = mod.filtersToParams;
+        isRangeFilter = mod.isRangeFilter;
     });
     afterEach(() => {
         vi.resetModules();
         vi.clearAllMocks();
+    });
+
+    scopedIt("isRangeFilter requires a range value mapping and two suffixes", () => {
+        expect(isRangeFilter({ typeFilter: "DateRangeField", suffixes: ["after", "before"] })).toBe(true);
+        expect(isRangeFilter({ typeFilter: "DateRangeField" })).toBe(false);
+        expect(isRangeFilter({ typeFilter: "CharField", suffixes: ["min", "max"] })).toBe(false);
+        expect(isRangeFilter(undefined)).toBe(false);
     });
 
     scopedIt("getFilterParams returns the bare name, or suffixed keys for ranges", () => {

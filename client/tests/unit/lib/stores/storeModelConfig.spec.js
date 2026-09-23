@@ -241,6 +241,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.verboseNamePlural).toBe("timesheets");
             expect(config.displayFields).toEqual(["name", "description"]);
             expect(config.fetchFields).toEqual(["name", "description"]);
+            expect(config.detailLinkField).toBeNull();
             expect(config.submitFields).toEqual(["name", "description"]);
 
             expect(config.expand).toEqual(["employee", "timesheet_days"]);
@@ -477,6 +478,17 @@ describe("lib/stores/storeModelConfig.js", () => {
     });
 
     describe("setConfig and config merging", () => {
+        scopedIt.each(["name", null])("lets the list override the generic detailLinkField with %s", async (value) => {
+            const store = storeModelConfig();
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { detailLinkField: "description" },
+                { list: { detailLinkField: value } },
+            );
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.detailLinkField).toBe(value);
+        });
+
         scopedIt("applies generic custom config overrides", async () => {
             const store = storeModelConfig();
             // Clear caches

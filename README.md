@@ -18,6 +18,22 @@ changes, with control over your application's views and appearance.
 
 _Widget Warehouse, an example VUEDA application._
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA](#vueda)
+  - [What you can build](#what-you-can-build)
+  - [How it works](#how-it-works)
+  - [Start an application](#start-an-application)
+  - [Develop VUEDA](#develop-vueda)
+    - [Server test database](#server-test-database)
+    - [Repository layout](#repository-layout)
+    - [Releases](#releases)
+  - [License](#license)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## What you can build
 
 VUEDA is for Django teams building custom business applications: inventory

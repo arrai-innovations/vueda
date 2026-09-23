@@ -14,7 +14,7 @@ import { computed, inject, unref, useSlots } from "vue";
  * Renders a single row within a stacked inline field set, including all
  * non-action fields and a row-level action bar. The action bar shows a delete
  * button for editable new (unsaved) rows, even without a destroy action.
- * Existing rows show a destroy checkbox only when that action is provided.
+ * Editable existing rows show a destroy checkbox supplied by the parent inline.
  * Slot overrides are available for each.
  */
 defineOptions({});
@@ -173,7 +173,7 @@ const rowState = computed(() => {
                     <template v-if="action.fieldName === 'destroy'">
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
-                            v-if="!isUnsaved"
+                            v-if="!isUnsaved && !readOnly"
                             :skip-feedback="true"
                             :action="action"
                             :contextless="true"
@@ -186,18 +186,22 @@ const rowState = computed(() => {
                             :value="action.value"
                             @update:model-value="emit('update:selected', $event)"
                         >
-                            <widget-checkbox
-                                :skip-feedback="true"
-                                :contextless="true"
-                                :input-id="`selected-inline-row-${index}`"
-                                label="Destroy?"
-                                :model-value="fieldSetContextState?.selected.includes(index)"
-                                name="destroy-checkbox"
-                                :required="false"
-                                size="small"
-                                :value="index"
-                                @update:model-value="emit('update:selected', $event)"
-                            />
+                            <label :key="action.fieldName">
+                                <widget-checkbox
+                                    :aria-label="`Delete row ${index + 1} on save`"
+                                    :skip-feedback="true"
+                                    :contextless="true"
+                                    :input-id="`selected-inline-row-${index}`"
+                                    label="Destroy?"
+                                    :model-value="fieldSetContextState?.selected.includes(index)"
+                                    name="destroy-checkbox"
+                                    :required="false"
+                                    size="small"
+                                    :value="String(index)"
+                                    @update:model-value="emit('update:selected', $event)"
+                                />
+                                Delete?
+                            </label>
                         </slot>
                     </template>
                     <template v-else>

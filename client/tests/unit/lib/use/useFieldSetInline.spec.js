@@ -1,5 +1,5 @@
 import { mockProvideInject, scopedIt, withSetup } from "@tests/unit/utils.js";
-import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import { FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 
 const { mockedProvide, mockedInject } = mockProvideInject(vi);
@@ -54,7 +54,7 @@ describe("lib/use/useFieldSetInline.js", () => {
         vi.clearAllMocks();
     });
 
-    const mountFieldSet = async (propsOverrides = {}, contextOverrides = {}) => {
+    const mountFieldSet = async (propsOverrides = {}, contextOverrides = {}, options = {}) => {
         const parentFormModel = vue.reactive({
             app: "app",
             model: "model",
@@ -70,6 +70,7 @@ describe("lib/use/useFieldSetInline.js", () => {
             ...contextOverrides.parentFormModel,
         });
         mockedProvide(FormModelSymbol, parentFormModel);
+        mockedProvide(FormContextSymbol, contextOverrides.formContext ?? null);
 
         const fieldSetContext = {
             state: vue.reactive({
@@ -100,6 +101,7 @@ describe("lib/use/useFieldSetInline.js", () => {
                 emit,
                 slotNames,
                 fieldSetContext,
+                ...options,
             }),
         );
         return { instance, props, fieldSetContext, emit };
@@ -157,6 +159,32 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(instance.state.internalVisible).toBe(true);
     });
 
+    scopedIt("preserves an explicit destroy descriptor and other row actions without duplicates", async () => {
+        const destroy = { fieldName: "destroy", action: true, label: "Remove", value: "custom" };
+        const inspect = { fieldName: "inspect", action: vi.fn(), label: "Inspect" };
+        const { instance, props } = await mountFieldSet({ fieldObjects: [destroy, inspect] });
+        expect(instance.state.actions).toEqual([destroy, inspect]);
+        props.readOnly = true;
+        expect(instance.state.actions).toEqual([inspect]);
+        props.readOnly = false;
+        expect(instance.state.actions).toEqual([destroy, inspect]);
+    });
+
+    scopedIt("adds a default destroy action only when requested", async () => {
+        const inspect = { fieldName: "inspect", action: vi.fn(), label: "Inspect" };
+        const { instance } = await mountFieldSet({ fieldObjects: [inspect] });
+        expect(instance.state.actions).toEqual([inspect]);
+        const { instance: withDestroy } = await mountFieldSet(
+            { fieldObjects: [inspect] },
+            {},
+            { addDestroyAction: true },
+        );
+        expect(withDestroy.state.actions).toEqual([
+            inspect,
+            { fieldName: "destroy", name: "fs.destroy", action: true, label: "Delete" },
+        ]);
+    });
+
     scopedIt("handleSelected updates selected array", async () => {
         const { instance, fieldSetContext } = await mountFieldSet();
         instance.handleSelected(true, 2);
@@ -179,6 +207,20 @@ describe("lib/use/useFieldSetInline.js", () => {
         expect(fieldSetContext.state.value).toEqual([{ id: 1 }, { id: 3 }]);
         expect(fieldSetContext.clearErrors).toHaveBeenCalledWith(1);
         expect(fieldSetContext.clearMessages).toHaveBeenCalledWith(1);
+    });
+
+    scopedIt("removeObject removes through the form context and shifts selection", async () => {
+        const formContext = { removeArrayItem: vi.fn() };
+        const { instance, fieldSetContext } = await mountFieldSet({}, { formContext });
+        instance.handleSelected(true, 0);
+        instance.handleSelected(true, 2);
+        fieldSetContext.ignore.mockClear();
+        instance.removeObject(1);
+        expect(fieldSetContext.blur).toHaveBeenCalled();
+        expect(formContext.removeArrayItem).toHaveBeenCalledExactlyOnceWith("fs", 1);
+        expect(instance.state.selected).toEqual([0, 1]);
+        expect(fieldSetContext.ignore).not.toHaveBeenCalled();
+        expect(fieldSetContext.removeIgnore).not.toHaveBeenCalled();
     });
 
     scopedIt("toggleVisibility modifies internal state when uncontrolled", async () => {

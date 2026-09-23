@@ -27,6 +27,7 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
 import { getCRUDName } from "@vueda/utils/case.js";
+import { availableColumns } from "@vueda/utils/columnLookups.js";
 import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
@@ -163,6 +164,33 @@ usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loa
 
 const slots = useSlots();
 const icon = useIcons("ViewList", props);
+
+// Only known display-only adapters can be wrapped. Relation links and custom
+// adapters may contain interactive controls and must keep their own navigation.
+const detailLinkAdapters = new Set([
+    availableColumns.ColumnText,
+    availableColumns.ColumnBoolean,
+    availableColumns.ColumnDateTime,
+    availableColumns.ColumnDuration,
+    availableColumns.ColumnJson,
+]);
+
+/**
+ * @param {string} name
+ * @param {import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn} resolved
+ * @param {{pk: string|number, obj?: {available_actions?: string[]}}} cell
+ * @returns {'update'|'read'|null}
+ */
+const detailLinkView = (name, resolved, cell) => {
+    if (name !== modelConfig.config.detailLinkField || !detailLinkAdapters.has(resolved.component) || cell.pk == null) {
+        return null;
+    }
+    const available = cell.obj?.available_actions;
+    if (!Array.isArray(available)) {
+        return null;
+    }
+    return available.includes("update") ? "update" : available.includes("retrieve") ? "read" : null;
+};
 
 // Teleport target in the under-actions bar that the FilterGroup's add-filter
 // trigger teleports into, so the trigger sits in the toolbar while its popover
@@ -434,6 +462,7 @@ onMounted(() => {
             :fields="list.computedFieldObjects"
             :loading="list.loading"
             :objects-in-order="list.instanceList.state.objectsInOrder"
+            :pk-key="list.pkKey"
             :related-objects="list.instanceList.state.relatedObjects"
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
@@ -454,7 +483,16 @@ onMounted(() => {
                  ObjectsGrid maps `field(<col>)` into both cell types. -->
             <template v-for="(resolved, name) in list.columnComponents" :key="name" #[`field(${name})`]="slotProps">
                 <slot :name="`field(${name})`" v-bind="slotProps">
-                    <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                    <link-model-view
+                        v-if="detailLinkView(name, resolved, slotProps)"
+                        :app="app"
+                        :model="model"
+                        :pk="String(slotProps.pk)"
+                        :view="detailLinkView(name, resolved, slotProps)"
+                    >
+                        <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                    </link-model-view>
+                    <component :is="resolved.component" v-else v-bind="{ ...slotProps, ...resolved.props }" />
                 </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
