@@ -176,21 +176,22 @@ import { withBase } from "vitepress";
 
 <style scoped>
 .vueda-home {
-    max-width: 1440px;
+    max-width: 90rem;
     margin: 0 auto;
-    padding: 0 40px;
+    padding: 0 2.5rem;
 }
 .hero {
     display: grid;
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     align-items: center;
-    gap: 48px;
-    padding: 88px 0 80px;
+    gap: 3rem;
+    padding: 5.5rem 0 5rem;
 }
 .eyebrow {
-    margin: 0 0 20px;
+    margin: 0 0 1.25rem;
     color: var(--vp-c-brand-1);
-    font-size: 12px;
+    font-family: var(--vp-font-family-heading);
+    font-size: 1rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -205,41 +206,41 @@ figure {
 h1,
 h2,
 h3 {
-    font-family: var(--vp-font-family-base);
+    font-family: var(--vp-font-family-heading);
     font-weight: 600;
     text-wrap: balance;
+    letter-spacing: 0.03125rem;
 }
 h1 {
-    font-size: clamp(38px, 3.6vw, 54px);
+    font-size: clamp(2.375rem, 3.6vw, 3.375rem);
     line-height: 1.12;
-    letter-spacing: -0.045em;
 }
 h1 span {
     color: var(--arrai-docs-brand);
 }
 .intro {
-    max-width: 540px;
-    margin-top: 24px;
+    max-width: 33.75rem;
+    margin-top: 1.5rem;
     color: var(--vp-c-text-2);
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1.65;
 }
 .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 30px;
+    gap: 0.75rem;
+    margin-top: 1.875rem;
 }
 .button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    min-height: 46px;
-    padding: 10px 20px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    font-size: 14px;
+    gap: 1rem;
+    min-height: 2.875rem;
+    padding: 0.625rem 1.25rem;
+    border: 0.0625rem solid transparent;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
     font-weight: 600;
     transition:
         background-color 0.15s,
@@ -265,9 +266,9 @@ h1 span {
     border-color: var(--vp-c-brand-1);
 }
 .hero-note {
-    margin-top: 18px;
+    margin-top: 1.125rem;
     color: var(--vp-c-text-2);
-    font-size: 13px;
+    font-size: 0.8125rem;
     line-height: 1.6;
 }
 .preview {
@@ -275,27 +276,27 @@ h1 span {
 }
 .preview-frame {
     overflow: hidden;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 10px;
+    border: 0.0625rem solid var(--vp-c-divider);
+    border-radius: 0.625rem;
     background: var(--vp-c-bg-soft);
-    box-shadow: 0 20px 60px -24px rgb(0 77 160 / 30%);
+    box-shadow: 0 1.25rem 3.75rem -1.5rem rgb(0 77 160 / 30%);
 }
 .preview-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--vp-c-divider);
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 0.0625rem solid var(--vp-c-divider);
     color: var(--vp-c-text-1);
-    font-size: 12px;
+    font-size: 0.75rem;
 }
 .preview-label > span:last-child {
     margin-left: auto;
     color: var(--vp-c-text-2);
 }
 .preview-dot {
-    width: 7px;
-    height: 7px;
+    width: 0.4375rem;
+    height: 0.4375rem;
     border-radius: 50%;
     background: var(--arrai-docs-brand);
 }
@@ -312,10 +313,10 @@ figcaption {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 0.5rem;
+    margin-top: 1rem;
     color: var(--vp-c-text-2);
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.6;
 }
 figcaption a,
@@ -325,17 +326,16 @@ figcaption a,
 }
 .how-it-works,
 .capabilities {
-    padding: 56px 0;
-    border-top: 1px solid var(--vp-c-divider);
+    padding: 3.5rem 0;
+    border-top: 0.0625rem solid var(--vp-c-divider);
 }
 h2 {
-    font-size: clamp(26px, 2.6vw, 36px);
+    font-size: clamp(1.625rem, 2.6vw, 2.25rem);
     line-height: 1.2;
-    letter-spacing: -0.03em;
 }
 .section-heading > p:last-child:not(.eyebrow) {
-    max-width: 660px;
-    margin-top: 16px;
+    max-width: 41.25rem;
+    margin-top: 1rem;
     color: var(--vp-c-text-2);
     line-height: 1.7;
 }
@@ -343,8 +343,8 @@ h2 {
 .feature-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 32px;
-    margin-top: 36px;
+    gap: 2rem;
+    margin-top: 2.25rem;
 }
 .steps {
     padding: 0;
@@ -355,7 +355,7 @@ h2 {
     flex-direction: column;
     min-width: 0;
 }
-@media (min-width: 1200px) {
+@media (min-width: 75rem) {
     /* Line up headings, text, and visuals across the columns. */
     .steps li {
         display: grid;
@@ -371,10 +371,10 @@ h2 {
 .step-visual {
     flex-grow: 1;
     min-height: 0;
-    margin-top: 20px;
+    margin-top: 1.25rem;
     overflow: hidden;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 8px;
+    border: 0.0625rem solid var(--vp-c-divider);
+    border-radius: 0.5rem;
     background: var(--vp-code-block-bg);
 }
 .step-code {
@@ -393,10 +393,10 @@ h2 {
 .step-code :deep(pre) {
     flex-grow: 1;
     margin: 0;
-    padding: 16px 18px;
+    padding: 1rem 1.125rem;
     overflow-x: auto;
     font-family: var(--vp-font-family-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.55;
 }
 .step-image {
@@ -417,32 +417,32 @@ h2 {
     font-weight: 500;
 }
 h3 {
-    font-size: 19px;
+    font-size: 1.1875rem;
     line-height: 1.4;
 }
 .steps p,
 .feature-grid p,
 .get-started p:not(.eyebrow) {
-    margin-top: 12px;
+    margin-top: 0.75rem;
     color: var(--vp-c-text-2);
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.7;
 }
 .text-link {
     display: inline-block;
-    margin-top: 24px;
-    font-size: 14px;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
 }
 .feature-grid {
-    gap: 16px;
+    gap: 1rem;
 }
 .feature-grid article {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 28px;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 8px;
+    padding: 1.75rem;
+    border: 0.0625rem solid var(--vp-c-divider);
+    border-radius: 0.5rem;
     background: var(--vp-c-bg-soft);
 }
 .feature-grid p {
@@ -456,7 +456,7 @@ h3 {
     grid-column: 1 / -1;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     align-items: center;
-    gap: 32px;
+    gap: 2rem;
 }
 .feature-text {
     display: flex;
@@ -465,71 +465,70 @@ h3 {
 }
 .feature-image {
     overflow: hidden;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 6px;
+    border: 0.0625rem solid var(--vp-c-divider);
+    border-radius: 0.375rem;
     aspect-ratio: 1056 / 400;
 }
 .get-started {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 32px;
-    margin: 16px 0 40px;
-    padding: 36px;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 8px;
+    gap: 2rem;
+    margin: 1rem 0 2.5rem;
+    padding: 2.25rem;
+    border: 0.0625rem solid var(--vp-c-divider);
+    border-radius: 0.5rem;
     background: var(--vp-c-brand-soft);
 }
 .get-started > div {
-    max-width: 720px;
+    max-width: 45rem;
 }
 .get-started .button {
     flex-shrink: 0;
 }
 .get-started .requirements {
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 .doc-links {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px 24px;
-    font-size: 14px;
+    gap: 0.75rem 1.5rem;
+    font-size: 0.875rem;
 }
 .project-credit {
-    margin-top: 20px;
+    margin-top: 1.25rem;
     color: var(--vp-c-text-2);
     text-align: center;
-    font-size: 12px;
 }
 .project-credit span {
-    margin: 0 8px;
+    margin: 0 0.5rem;
 }
 .project-credit .project-name {
     display: block;
-    margin: 0 0 8px;
+    margin: 0 0 0.5rem;
 }
 a:focus-visible {
-    outline: 2px solid var(--vp-c-brand-1);
-    outline-offset: 5px;
+    outline: 0.125rem solid var(--vp-c-brand-1);
+    outline-offset: 0.3125rem;
 }
 .text-link:hover,
 figcaption a:hover,
 .doc-links a:hover,
 .project-credit a:hover {
     text-decoration: underline;
-    text-underline-offset: 4px;
+    text-underline-offset: 0.25rem;
 }
-@media (min-width: 640px) and (max-width: 1199px) {
+@media (min-width: 40rem) and (max-width: 74.9375rem) {
     .steps {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 2.5rem;
     }
     .steps li {
         display: grid;
         grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
         grid-template-rows: auto 1fr;
-        column-gap: 32px;
+        column-gap: 2rem;
     }
     .steps li > :not(.step-visual) {
         grid-column: 1;
@@ -540,19 +539,19 @@ figcaption a:hover,
         margin-top: 0;
     }
 }
-@media (max-width: 959px) {
+@media (max-width: 59.9375rem) {
     .hero {
         grid-template-columns: 1fr;
-        gap: 40px;
-        padding: 48px 0;
+        gap: 2.5rem;
+        padding: 3rem 0;
     }
     .hero-copy,
     .intro {
-        max-width: 680px;
+        max-width: 42.5rem;
     }
     .steps,
     .feature-grid {
-        gap: 24px;
+        gap: 1.5rem;
     }
     .feature-grid,
     .feature-grid .feature-wide {
@@ -563,24 +562,24 @@ figcaption a:hover,
         flex-direction: column;
     }
 }
-@media (max-width: 639px) {
+@media (max-width: 39.9375rem) {
     .vueda-home {
-        padding: 0 24px;
+        padding: 0 1.5rem;
     }
     .intro {
-        font-size: 16px;
+        font-size: 1rem;
     }
     .steps {
         grid-template-columns: 1fr;
-        gap: 28px;
+        gap: 1.75rem;
     }
     .how-it-works,
     .capabilities {
-        padding: 36px 0;
+        padding: 2.25rem 0;
     }
     .get-started,
     .feature-grid article {
-        padding: 24px;
+        padding: 1.5rem;
     }
     .preview-label > span:last-child {
         display: none;
