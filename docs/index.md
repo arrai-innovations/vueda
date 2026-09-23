@@ -12,14 +12,14 @@ hero:
     name: Build business applications
     text: with Django and Vue.
     tagline: Turn your Django models, serializers, and viewsets into Vue forms, lists, and detail screens. Add workflows, permissions, and audit history, with room to make the UI your own.
-    note: For Django teams building tools their business runs on.
+    note: To try the demo, choose an account on its sign-in page.
     actions:
         - theme: brand
           text: Start building →
           link: /tutorials/start-building.html
         - theme: alt
-          text: View on GitHub
-          link: https://github.com/arrai-innovations/vueda
+          text: Try the live demo
+          link: https://www.widgetwarehouse.com/
           target: _self
 head:
     - - meta

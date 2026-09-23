@@ -1,6 +1,5 @@
 <script setup>
 import { ArraiPreview } from "@arrai-innovations/vitepress-theme";
-import { withBase } from "vitepress";
 import { VPImage } from "vitepress/theme-without-fonts";
 </script>
 
@@ -18,9 +17,9 @@ import { VPImage } from "vitepress/theme-without-fonts";
             fetchpriority="high"
         />
         <template #caption>
-            <span>A VUEDA application, from navigation to records.</span>
-            <a :href="withBase('/reference/components/views-crudl.html')"
-                >Explore the views <span aria-hidden="true">→</span></a
+            <span>Widget Warehouse, a working application built with VUEDA.</span>
+            <a href="https://github.com/arrai-innovations/widget-warehouse"
+                >View demo source <span aria-hidden="true">→</span></a
             >
         </template>
     </ArraiPreview>
