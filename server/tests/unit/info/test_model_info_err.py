@@ -180,7 +180,7 @@ class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
 
-RESULT_KEYS = frozenset({"id", "app_label", "model", "verbose_name", "verbose_name_plural"})
+RESULT_KEYS = frozenset({"id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"})
 
 
 @pytest.mark.django_db

@@ -10,12 +10,10 @@ from vueda.core.models import VuedaModel
 # Mo - Model enables class Vueda.Workflow
 # Mx - Model doesn't enable class Vueda.Workflow
 
-# So - Serializer inherits HasWorkflowSerializerMixin
-# Sx - Serializer doesn't inherit HasWorkflowSerializerMixin
-
-# Vo - Viewset inherits HasWorkflowViewMixin
-# Vx - Viewset doesn't inherit HasWorkflowViewMixin
+# So / Sx - Serializer once did / did not inherit a workflow serializer mixin
+# Vo / Vx - Viewset once did / did not inherit a workflow view mixin
 # Vz - No Viewset
+# Workflow no longer depends on the serializer or viewset, so So/Sx and Vo/Vx now behave the same.
 
 # Wo - Has Workflow
 # Wx - No Workflow

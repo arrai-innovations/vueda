@@ -10,9 +10,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.test.utils import isolate_apps
 from django_filters import rest_framework
+from rest_framework import status
+from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.store import models as store_models
+from tests.unit.info.test_model_info import register_model
+from vueda import info
 from vueda.core.checks import check_model_feature_declaration
 from vueda.core.filters import VuedaFilterSet
 from vueda.core.installed_apps import workflow_enabled
@@ -115,6 +120,7 @@ class TestWorkflowEnabled:
             (SentItem, True),
             (store_models.Customer, False),
             (ContentType, False),
+            (None, False),
         ],
     )
     def test_reports_the_model_policy(self, model, expected):
@@ -225,3 +231,25 @@ class TestFilterSetFilter:
                 fields = []
 
         assert "workflow_state" not in CustomerFilterSet.base_filters
+
+
+@pytest.mark.django_db
+class TestModelInfoFlag(BaseTestUserMixin):
+    users_to_create: ClassVar[dict] = {
+        "superuser@domain.invalid": {"name": "Superuser", "password": "password", "groups": [], "is_superuser": True},
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.mark.parametrize(("model_name", "expected"), [("customerorder", True), ("customer", False)])
+    def test_reports_whether_the_model_enables_workflow(self, api_client, model_name, expected):
+        register_model("store", model_name)
+        api_client.force_authenticate(self.users["superuser@domain.invalid"])
+
+        response = api_client.get(reverse("info.model_info-detail", args=("store", model_name)), format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["workflow_enabled"] is expected

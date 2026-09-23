@@ -21,15 +21,13 @@ class NoWorkflow(VuedaSerializer):
 
 # The following are used for these class names, so the names don't get to long:
 
-# Mo - Model inherits HasWorkflowSerializerMixin
-# Mx - Model doesn't inherit HasWorkflowSerializerMixin
+# Mo - Model enables class Vueda.Workflow
+# Mx - Model doesn't enable class Vueda.Workflow
 
-# So - Serializer inherits HasWorkflowSerializerMixin
-# Sx - Serializer doesn't inherit HasWorkflowSerializerMixin
-
-# Vo - Viewset inherits HasWorkflowViewMixin
-# Vx - Viewset doesn't inherit HasWorkflowViewMixin
+# So / Sx - Serializer once did / did not inherit a workflow serializer mixin
+# Vo / Vx - Viewset once did / did not inherit a workflow view mixin
 # Vz - No Viewset
+# Workflow no longer depends on the serializer or viewset, so So/Sx and Vo/Vx now behave the same.
 
 # Wo - Has Workflow
 # Wx - No Workflow

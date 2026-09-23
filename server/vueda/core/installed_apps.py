@@ -37,6 +37,9 @@ def workflow_enabled(model) -> bool:
     from vueda.core.models import supports_vueda_feature_policy
     from vueda.core.options import get_vueda_options
 
+    if model is None:
+        # A stale content type resolves to no model class.
+        return False
     if not isinstance(model, type):
         model = type(model)
     if not supports_vueda_feature_policy(model):

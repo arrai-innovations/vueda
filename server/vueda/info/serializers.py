@@ -121,10 +121,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     verbose_name = serializers.SerializerMethodField()
     verbose_name_plural = serializers.SerializerMethodField()
+    workflow_enabled = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentType
-        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural"]
+        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"]
         expandable_fields = {
             "model_permissions": serializers.SerializerMethodField,
             "model_fields": serializers.SerializerMethodField,
@@ -144,6 +145,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
+
+    def get_workflow_enabled(self, instance: object) -> bool:
+        """Whether the model enables ``class Vueda.Workflow``, so a client may offer workflow controls.
+
+        This describes the interface, not what the viewer may do. The workflow endpoints still decide
+        which transitions a user may see and take.
+        """
+        return workflow_enabled(instance.model_class())
 
     @property
     def data(self):
