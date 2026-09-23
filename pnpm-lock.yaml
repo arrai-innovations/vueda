@@ -331,8 +331,8 @@ importers:
         version: 2.9.7(vue@3.5.27(typescript@5.9.3))
     devDependencies:
       '@arrai-innovations/vitepress-theme':
-        specifier: ^1.2.0
-        version: 1.2.0(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.32.0)(postcss@8.5.25)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))
+        specifier: ^1.3.0
+        version: 1.3.0(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.32.0)(postcss@8.5.25)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))
       '@tailwindcss/vite':
         specifier: ^4.2.1
         version: 4.3.0(vite@6.4.3(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.9.0))
@@ -500,8 +500,8 @@ packages:
       lodash-es: '>=4.17.24'
       vue: ^3.5.13
 
-  '@arrai-innovations/vitepress-theme@1.2.0':
-    resolution: {integrity: sha512-s8jOFcIJMO6EROXjZicqP47DR99jVvVFzW7H5rcOheMuh9aSsdsPaQH3wlqm1vNcLaxwWrYz7hfF/kQucgHFyw==}
+  '@arrai-innovations/vitepress-theme@1.3.0':
+    resolution: {integrity: sha512-JPwo+x4sjYm4wqoPUvmrZau5W6pYxbaReJ1KkhcaGsxoc1TOCijA2jP1StyhE5VWpAU5n54xfFvTlTU/uACz9Q==}
     engines: {node: '>=22'}
     peerDependencies:
       vitepress: ^1.6.4
@@ -6329,7 +6329,7 @@ snapshots:
       lodash-es: 4.18.1
       vue: 3.5.27(typescript@5.9.3)
 
-  '@arrai-innovations/vitepress-theme@1.2.0(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.32.0)(postcss@8.5.25)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))':
+  '@arrai-innovations/vitepress-theme@1.3.0(vitepress@1.6.4(patch_hash=6a1324e11e2e26fdfb8b90c3125e7b01b3d1ae65696b90fee0f379eeed477267)(@algolia/client-search@5.48.2)(@types/node@25.0.9)(lightningcss@1.32.0)(postcss@8.5.25)(search-insights@2.17.3)(sortablejs@1.15.6)(typescript@5.9.3))(vue@3.5.27(typescript@5.9.3))':
     dependencies:
       '@fontsource-variable/darker-grotesque': 5.3.0
       '@fontsource-variable/ibm-plex-sans': 5.3.0
