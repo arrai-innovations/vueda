@@ -22,4 +22,39 @@ head:
 import HomePage from "./.vitepress/theme/components/HomePage.vue";
 </script>
 
-<HomePage />
+<HomePage>
+<template #define>
+
+```python
+class PurchaseOrder(VuedaModel):
+    reference = models.CharField(max_length=32)
+    supplier = models.ForeignKey(Supplier, ...)
+    order_date = models.DateField()
+
+
+class PurchaseOrderViewSet(VuedaViewSet):
+    queryset = PurchaseOrder.objects.all()
+    serializer_class = PurchaseOrderSerializer
+```
+
+</template>
+<template #describe>
+
+```json
+{
+  "verbose_name": "purchase order",
+  "model_fields": {
+    "supplier": {
+      "label": "Supplier",
+      "required": true,
+      "type_model": "ForeignKey",
+      "model": "supplier"
+    },
+    "order_date": { ... }
+  },
+  "model_actions": [{ "name": "update", ... }]
+}
+```
+
+</template>
+</HomePage>

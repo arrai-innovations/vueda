@@ -26,12 +26,14 @@ import { withBase } from "vitepress";
                         <span class="preview-dot" aria-hidden="true"></span> Widget Warehouse
                         <span>Example application</span>
                     </div>
-                    <!-- Temporary screenshot. Replace with the finalized default list view at the same asset path. -->
                     <img
-                        :src="withBase('/assets/homepage-list-preview.png')"
-                        alt="Widget Warehouse inventory application showing sidebar navigation, filters, search, and widget records."
-                        width="1022"
-                        height="498"
+                        v-for="theme in ['light', 'dark']"
+                        :key="theme"
+                        :class="`theme-${theme}`"
+                        :src="withBase(`/assets/homepage-list-preview-${theme}.png`)"
+                        alt="Widget Warehouse widget list with sidebar navigation, filter and sort controls, search, and a table of widget records."
+                        width="1440"
+                        height="720"
                         fetchpriority="high"
                     />
                 </div>
@@ -54,22 +56,34 @@ import { withBase } from "vitepress";
             </div>
             <ol class="steps">
                 <li>
-                    <span class="step-number" aria-hidden="true">01</span>
-                    <h3>Define your application</h3>
+                    <h3><span class="step-number" aria-hidden="true">1.</span>Define your application</h3>
                     <p>Build models, serializers, and viewsets with VUEDA's Django and REST framework base classes.</p>
+                    <div class="step-visual step-code"><slot name="define" /></div>
                 </li>
                 <li>
-                    <span class="step-number" aria-hidden="true">02</span>
-                    <h3>Let the server describe it</h3>
+                    <h3><span class="step-number" aria-hidden="true">2.</span>Let the server describe it</h3>
                     <p>
                         Register your models. VUEDA exposes metadata: information about their fields, actions, and
                         permissions.
                     </p>
+                    <div class="step-visual step-code"><slot name="describe" /></div>
                 </li>
                 <li>
-                    <span class="step-number" aria-hidden="true">03</span>
-                    <h3>Get application screens</h3>
+                    <h3><span class="step-number" aria-hidden="true">3.</span>Get application screens</h3>
                     <p>The Vue client uses that metadata to generate routes, forms, lists, and detail views.</p>
+                    <div class="step-visual step-image">
+                        <!-- Temporary screenshot. Replace once the generated form's action labels and workflow fields are cleaned up. -->
+                        <img
+                            v-for="theme in ['light', 'dark']"
+                            :key="theme"
+                            :class="`theme-${theme}`"
+                            :src="withBase(`/assets/homepage-generated-form-${theme}.png`)"
+                            alt="Generated purchase order form with reference, supplier, warehouse, and date fields above editable order lines."
+                            width="876"
+                            height="568"
+                            loading="lazy"
+                        />
+                    </div>
                 </li>
             </ol>
             <a class="text-link" :href="withBase('/core-concepts/architecture-overview.html')"
@@ -103,15 +117,29 @@ import { withBase } from "vitepress";
                         >Understand permissions <span aria-hidden="true">→</span></a
                     >
                 </article>
-                <article>
-                    <h3>Make the interface your own</h3>
-                    <p>
-                        Configure fields and list columns, add custom Vue views, and adjust the theme to fit your
-                        application.
-                    </p>
-                    <a class="text-link" :href="withBase('/guides/configure-crud-views.html')"
-                        >Customize your views <span aria-hidden="true">→</span></a
-                    >
+                <article class="feature-wide">
+                    <div class="feature-text">
+                        <h3>Make the interface your own</h3>
+                        <p>
+                            Configure fields and list columns, add custom Vue views, and adjust the theme to fit your
+                            application.
+                        </p>
+                        <a class="text-link" :href="withBase('/guides/configure-crud-views.html')"
+                            >Customize your views <span aria-hidden="true">→</span></a
+                        >
+                    </div>
+                    <div class="feature-image">
+                        <img
+                            v-for="theme in ['light', 'dark']"
+                            :key="theme"
+                            :class="`theme-${theme}`"
+                            :src="withBase(`/assets/homepage-custom-dashboard-${theme}.png`)"
+                            alt="Custom Widget Warehouse dashboard with a welcome message and summary cards for stock below reorder level, overdue arrivals, suppliers under review, and open order value."
+                            width="1056"
+                            height="400"
+                            loading="lazy"
+                        />
+                    </div>
                 </article>
             </div>
         </section>
@@ -249,7 +277,7 @@ h1 span {
     overflow: hidden;
     border: 1px solid var(--vp-c-divider);
     border-radius: 10px;
-    background: #0b1013;
+    background: var(--vp-c-bg-soft);
     box-shadow: 0 20px 60px -24px rgb(0 77 160 / 30%);
 }
 .preview-label {
@@ -257,13 +285,13 @@ h1 span {
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    border-bottom: 1px solid #303844;
-    color: #eef4fb;
+    border-bottom: 1px solid var(--vp-c-divider);
+    color: var(--vp-c-text-1);
     font-size: 12px;
 }
 .preview-label > span:last-child {
     margin-left: auto;
-    color: #a6b2c0;
+    color: var(--vp-c-text-2);
 }
 .preview-dot {
     width: 7px;
@@ -275,6 +303,10 @@ h1 span {
     display: block;
     width: 100%;
     height: auto;
+}
+.dark .theme-light,
+html:not(.dark) .theme-dark {
+    display: none !important;
 }
 figcaption {
     display: flex;
@@ -318,12 +350,71 @@ h2 {
     padding: 0;
     list-style: none;
 }
-.step-number {
+.steps li {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+@media (min-width: 1200px) {
+    /* Line up headings, text, and visuals across the columns. */
+    .steps li {
+        display: grid;
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+    /* The row height comes from the tallest visual; the screenshot fills it. */
+    .steps .step-image {
+        aspect-ratio: auto;
+    }
+}
+.step-visual {
+    flex-grow: 1;
+    min-height: 0;
+    margin-top: 20px;
+    overflow: hidden;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 8px;
+    background: var(--vp-code-block-bg);
+}
+.step-code {
+    display: flex;
+    flex-direction: column;
+}
+.step-code :deep(div[class*="language-"]) {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+}
+.step-code :deep(.copy),
+.step-code :deep(.lang) {
+    display: none;
+}
+.step-code :deep(pre) {
+    flex-grow: 1;
+    margin: 0;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-family: var(--vp-font-family-mono);
+    font-size: 12px;
+    line-height: 1.55;
+}
+.step-image {
+    aspect-ratio: 876 / 568;
+}
+.step-image img,
+.feature-image img {
     display: block;
-    margin-bottom: 14px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left top;
+}
+.step-number {
+    margin-right: 0.5rem;
     color: var(--vp-c-brand-1);
     font-family: var(--vp-font-family-mono);
-    font-size: 13px;
+    font-weight: 500;
 }
 h3 {
     font-size: 19px;
@@ -356,6 +447,27 @@ h3 {
 }
 .feature-grid p {
     flex-grow: 1;
+}
+.feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.feature-grid .feature-wide {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: center;
+    gap: 32px;
+}
+.feature-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+.feature-image {
+    overflow: hidden;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 6px;
+    aspect-ratio: 1056 / 400;
 }
 .get-started {
     display: flex;
@@ -408,6 +520,26 @@ figcaption a:hover,
     text-decoration: underline;
     text-underline-offset: 4px;
 }
+@media (min-width: 640px) and (max-width: 1199px) {
+    .steps {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    .steps li {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        grid-template-rows: auto 1fr;
+        column-gap: 32px;
+    }
+    .steps li > :not(.step-visual) {
+        grid-column: 1;
+    }
+    .steps .step-visual {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        margin-top: 0;
+    }
+}
 @media (max-width: 959px) {
     .hero {
         grid-template-columns: 1fr;
@@ -422,7 +554,8 @@ figcaption a:hover,
     .feature-grid {
         gap: 24px;
     }
-    .feature-grid {
+    .feature-grid,
+    .feature-grid .feature-wide {
         grid-template-columns: 1fr;
     }
     .get-started {

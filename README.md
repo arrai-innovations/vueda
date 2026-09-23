@@ -14,7 +14,12 @@ VUEDA turns your Django models, serializers, and viewsets into Vue forms, lists,
 and detail screens. Add workflows, enforce permissions on the server, and track
 changes, with control over your application's views and appearance.
 
-[![Widget Warehouse inventory application built with VUEDA](docs/public/assets/homepage-list-preview.png)](https://vueda.dev)
+<a href="https://vueda.dev">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/homepage-list-preview-dark.png">
+        <img src="docs/public/assets/homepage-list-preview-light.png" alt="Widget Warehouse inventory application built with VUEDA, showing a widget list with filters, sorting, and search.">
+    </picture>
+</a>
 
 _Widget Warehouse, an example VUEDA application._
 
