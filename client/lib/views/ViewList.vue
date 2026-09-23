@@ -55,7 +55,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field names to include as list columns; uses the model config default when empty. */
+    /** Field names to fetch; uses the `displayFields` keys, then the model config default, when empty. */
     listFields: {
         type: Array,
         default: () => [],

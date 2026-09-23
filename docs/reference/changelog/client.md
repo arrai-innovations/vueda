@@ -16,6 +16,16 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 ### Breaking Changes
 
+- **Default field lists differ by view (`storeModelConfig` `displayFields`, `fetchFields`, `submitFields`)**:
+    - Every view used to start from every non-PK, non-hidden field. A create form now defaults to writable fields only, so it no longer shows server-maintained values that a new record does not have yet. The update and read views still show every field.
+    - `submitFields` now leaves out read-only fields on every view. The server ignores input for them.
+    - A list now defaults to fields whose model info does not set `list_default: false`, and fetches only those columns. On a workflow model, that drops `workflow_state_code` and `valid_transitions` and keeps `workflow_state_name`. An unset list `fetchFields` follows the resolved `displayFields`, so a list fetches exactly the columns an integrator names.
+    - These defaults apply only when no model config names the field list or the `fields` shorthand. A model-wide `displayFields` still reaches every view unchanged.
+      _To show a read-only field on a create form or a flagged field in a list, name that view's `displayFields`. A custom list cell slot or combobox option slot that reads a field with no column must now name that field in `fetchFields`._
+
+- **`ViewList` fetches the columns its `displayFields` prop names**:
+    - When a page passes `displayFields` without `listFields`, the list request now asks for the `displayFields` keys instead of the model config's `fetchFields`. Without this, a column the prop added could arrive empty under the narrower list default.
+      _Pass `listFields` to fetch a different set._
 - **Filter types need both value handling and components to be offered (`useViewList`, `fieldMappings`, `useFilterForm`)**:
     - The add-filter menu now offers a visible filter only when its type has value handling in `FilterFieldMappings` and a field component and widget in `filterFieldMapping` (both boundary components for a range), or per-field `fieldComponents`/`widgetComponents` overrides in the list view config. See the matching entry under Fixes.
     - Several built-in filter types have value handling but no default filter components, so filters of these types leave the menu and log a warning: `DateField`, `DateTimeField`, `TimeField`, `DurationField`, `DurationSecondsField`, `FloatField`, `DecimalInField`, `MultipleChoiceField`, `ModelMultipleChoiceField`, and `TypedChoiceField`. `PositiveDecimalField` has components but no value handling, so it leaves the menu too. Picking any of these before this release opened an input that failed to render.

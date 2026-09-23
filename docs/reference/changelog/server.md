@@ -17,6 +17,15 @@ permissions, metadata responses, management commands, migrations, REST behavior,
 Earlier VUEDA server versions existed for internal or private use. The v3 prerelease series is the first
 public-facing documentation baseline.
 
+## v3.0.0a4 (unreleased)
+
+### Features
+
+- **Model info marks fields a default list leaves out (`list_default`)**:
+    - A `model_fields` entry now carries `list_default` when its serializer field's `style` sets it. The client's default list skips a field with `list_default: false`. A field without the key stays in the default list.
+    - `HasWorkflowSerializerMixin` sets `list_default: false` on `workflow_state_code` and `valid_transitions`, so a workflow model's default list shows `workflow_state_name` alone.
+      _To leave one of your own fields out of default lists, declare it with `style={"list_default": False}`. To keep a mixin field in them, redeclare it with `style={"list_default": True}`._
+
 ## v3.0.0a3 (2026-09-21)
 
 ### Fixes
