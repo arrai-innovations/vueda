@@ -161,5 +161,6 @@ in both starter templates' `server/pyproject.toml.jinja` files.
 
 ## License
 
-Built by [Arrai Innovations](https://arrai.com). Both the [server](server/LICENSE)
-and [client](client/LICENSE) are released under the BSD 3-Clause license.
+Built by [Arrai Innovations](https://arrai.com). The repository is released
+under the [BSD 3-Clause license](LICENSE). The [server](server/LICENSE) and
+[client](client/LICENSE) packages each ship an identical copy.
