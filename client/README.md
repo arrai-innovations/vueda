@@ -16,6 +16,19 @@ actions, and permissions.
 
 The npm package is [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha).
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Client](#vueda-client)
+  - [What it provides](#what-it-provides)
+  - [Get started](#get-started)
+    - [Integration requirements](#integration-requirements)
+  - [Customize a model's views](#customize-a-models-views)
+  - [Contributing](#contributing)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## What it provides
 
 - **Application views:** lists with filtering and pagination, create and edit

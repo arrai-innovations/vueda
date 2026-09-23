@@ -19,6 +19,57 @@ This document references token _names_ and section headers; it never
 restates values. References use the section-header form (e.g. `see base.css
 § Control sizing`) so they survive file edits.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Default Theme](#vueda-default-theme)
+  - [1. Overview](#1-overview)
+    - [1.1 Audience](#11-audience)
+    - [1.2 Posture](#12-posture)
+    - [1.3 Relationship to shadcn-vue / Reka UI](#13-relationship-to-shadcn-vue--reka-ui)
+    - [1.4 Brand lineage](#14-brand-lineage)
+  - [2. Colors](#2-colors)
+    - [2.1 Identity, surfaces, and readable text](#21-identity-surfaces-and-readable-text)
+    - [2.2 Selection vs CTA: `--accent` vs `--primary`](#22-selection-vs-cta---accent-vs---primary)
+    - [2.3 Mix recipes](#23-mix-recipes)
+    - [2.4 Status colors](#24-status-colors)
+    - [2.5 Interactive state steps](#25-interactive-state-steps)
+  - [3. Typography](#3-typography)
+    - [3.1 Scale](#31-scale)
+    - [3.2 Mono usage](#32-mono-usage)
+    - [3.3 Eyebrow micro-text](#33-eyebrow-micro-text)
+  - [4. Layout](#4-layout)
+    - [4.1 Spacing: 4px grid](#41-spacing-4px-grid)
+    - [4.2 Control sizing](#42-control-sizing)
+    - [4.3 Density](#43-density)
+    - [4.4 Sidebar](#44-sidebar)
+    - [4.5 Breakpoints](#45-breakpoints)
+    - [4.6 Motion](#46-motion)
+  - [5. Elevation](#5-elevation)
+    - [5.1 Stacking order (z-index)](#51-stacking-order-z-index)
+  - [6. Shapes: radius scale](#6-shapes-radius-scale)
+    - [6.1 Slab vs pill](#61-slab-vs-pill)
+  - [7. Hairlines and DPR](#7-hairlines-and-dpr)
+    - [7.1 Why not `border`](#71-why-not-border)
+    - [7.2 Focus ring contract](#72-focus-ring-contract)
+    - [7.3 Directional `border-*-hairline` utilities](#73-directional-border--hairline-utilities)
+    - [7.4 Floating-surface edges: `overlay-hairline`](#74-floating-surface-edges-overlay-hairline)
+    - [7.5 Editable fields: `field-line`](#75-editable-fields-field-line)
+    - [7.6 Disabled controls: `--disabled`](#76-disabled-controls---disabled)
+    - [7.7 When a real `border` is still correct](#77-when-a-real-border-is-still-correct)
+  - [8. Cross-cutting attributes](#8-cross-cutting-attributes)
+  - [9. Components](#9-components)
+    - [9.1 Theme-key class authoring: each token appears once](#91-theme-key-class-authoring-each-token-appears-once)
+    - [9.2 Button tone and emphasis: placement vs meaning](#92-button-tone-and-emphasis-placement-vs-meaning)
+  - [10. Copy voice](#10-copy-voice)
+  - [11. Iconography](#11-iconography)
+  - [12. Dos and Don'ts](#12-dos-and-donts)
+    - [Do](#do)
+    - [Don't](#dont)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## 1. Overview
 
 ### 1.1 Audience

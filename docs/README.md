@@ -4,6 +4,30 @@
 
 Use this guide when authoring pages under `docs/`.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [Docs Contributor Guide](#docs-contributor-guide)
+  - [Frontmatter Conventions](#frontmatter-conventions)
+    - [`title`](#title)
+    - [`status`](#status)
+    - [`audience`](#audience)
+    - [`type`](#type)
+  - [Diátaxis Types](#diátaxis-types)
+  - [Generated API docs](#generated-api-docs)
+  - [Changelog authoring](#changelog-authoring)
+    - [Theming IDs](#theming-ids)
+  - [Glossary links](#glossary-links)
+  - [Verifying VuedaDemo blocks](#verifying-vuedademo-blocks)
+    - [InputOTP dependency patch](#inputotp-dependency-patch)
+  - [HTML blocks inside VuedaDemo](#html-blocks-inside-vuedademo)
+  - [Callouts](#callouts)
+  - [Backticks vs Links](#backticks-vs-links)
+  - [Wording Cases](#wording-cases)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## Frontmatter Conventions
 
 ### `title`
