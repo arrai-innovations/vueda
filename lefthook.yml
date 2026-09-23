@@ -134,6 +134,9 @@ pre-commit:
             glob:
                 - "client/lib/theme/vueda-tailwind/**/*.js"
             run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
+        changelog-fragments:
+            glob: "changelog.d/**"
+            run: uv run --group dev --no-sync python scripts/check_changelog_fragments.py --render-only
         circleci-config:
             glob: ".circleci/*.yml"
             run: |

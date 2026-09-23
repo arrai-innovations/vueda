@@ -198,6 +198,10 @@ just changelog-new client 349.fix --section "Forms and validation"
 The fragment holds one complete list entry in the format the changelog README
 describes. The release build adds the pull request link to its first line.
 
+A pre-commit hook drafts both changelogs whenever a commit touches
+`changelog.d/`, and rejects a fragment filename that does not match a type or
+topic.
+
 Preview the next release section with `just changelog-draft client
 3.0.0-alpha.6`. The documentation site also shows unreleased fragments at the
 top of each changelog page.

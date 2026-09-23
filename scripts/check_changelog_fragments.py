@@ -8,7 +8,7 @@ render: an unrecognized filename fails the check. Tag builds and `main` skip it.
 
 CONTRIBUTING.md ("Changelog entries") describes the workflow. Reading labels
 needs a GitHub token in `GITHUB_TOKEN`; without one, only the fragment checks
-run.
+run. `--render-only` runs only the render check, for the pre-commit hook.
 """
 
 from __future__ import annotations
@@ -93,6 +93,9 @@ def pull_request_labels(branch: str, token: str) -> list[str] | None:
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--render-only"]:
+        return 0 if fragments_render() else 1
+
     branch = os.environ.get("CIRCLE_BRANCH") or git("rev-parse", "--abbrev-ref", "HEAD").strip()
     if os.environ.get("CIRCLE_TAG") or branch == BASE_BRANCH:
         print("Skipping the changelog fragment check on a tag or main build.")
