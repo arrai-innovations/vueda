@@ -133,6 +133,16 @@ const clearScope = ({ name }) => {
 
 A declared key is shown while `params` has a value for it. When the key names a filter with suffixes, the scope owns the suffixed keys, such as `created_after` and `created_before` for `created`, and is shown while any of them has a value. Only declared keys become scopes; any other `params` key stays a plain request parameter, including one that names a hidden filter.
 
+### When `params` Carries a Filter
+
+If `params` carries any key of a filter, visible or hidden, `params` supplies that filter's value. This applies whether or not the key is declared in `scopes`. For a filter with suffixes, one suffixed key in `params` is enough. While `params` carries the filter:
+
+- the add-filter menu stops offering it,
+- a URL value for it stays in the URL, but the list does not send it, restore it as a filter chip, or show it as a URL scope,
+- saved filter preferences neither store nor restore it.
+
+Once the caller removes the filter's keys from `params`, the filter works as usual again. The menu offers it, and a URL value still in the URL applies again as a filter chip or a URL scope. The sort, the search term, and other filters are unaffected throughout.
+
 ### Show a Fixed Constraint
 
 Set `clearable: false` for a constraint the reader must not remove, such as a list embedded on a record's page. The chip explains the constraint without offering a clear control:
@@ -151,6 +161,8 @@ Set `clearable: false` for a constraint the reader must not remove, such as a li
 The caller owns `params`, so `ViewList` does not change it. When the reader clears a declared scope, `ViewList` emits `clear-scope` with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in response. The updated prop removes the value from the request and the chip from the constraints band.
 
 If the handler leaves `params` unchanged, the scope stays applied and its chip stays visible.
+
+Once `params` no longer carries the key, a filter with that name is offered in the add-filter menu again. If the URL still has a value for that filter, the value applies, so clearing the scope does not always return the reader to the full list.
 
 ## Clear Scopes Together
 
