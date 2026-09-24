@@ -142,6 +142,7 @@ import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -169,6 +170,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<object> | object} [relatedObjectsRules] - Rules for fetching related objects alongside each row.
  * @property {import('vue').Ref<object> | object} [calculatedObjectsRules] - Rules for deriving calculated objects alongside each row.
  * @property {import('vue').Ref<object> | object} [params] - Extra query parameters merged into every API request.
+ * @property {import('vue').Ref<{[paramsKey: string]: ViewListScopeDeclaration}> | {[paramsKey: string]: ViewListScopeDeclaration}} [scopes] - Declares which `params` keys the reader sees as scopes in the constraints band, keyed by `params` key. A declared key that names a filter in the resolved filterables owns that filter's query keys, including suffixed keys. A scope is shown while `params` carries a value for any key it owns. Undeclared `params` keys stay plain request parameters, including keys that name hidden filters.
  *
  * Filter configuration.
  * @property {import('vue').Ref<string[]> | string[]} [filterables] - Field names to show as filters; overrides the model config's declared list when set.
@@ -186,9 +188,24 @@ const VIEW_NAME = "list";
  */
 
 /**
+ * @typedef {object} ViewListScopeDeclaration
+ * @property {string} [label] - Readable description shown on the scope chip, such as "2 selected records" or a batch name. Defaults to the filter's metadata label (or the `params` key) with its value, or with a value count when it has several.
+ * @property {boolean} [clearable] - When false, the chip has no clear control and Clear scopes leaves the scope in place. Defaults to true.
+ */
+
+/**
+ * @typedef {object} ViewListScope
+ * @property {string} name - A hidden filter's name (`source: "url"`) or a declared `params` key (`source: "params"`).
+ * @property {string} label - Readable description shown on the scope chip.
+ * @property {string[]} keys - The query keys (`"url"`) or `params` keys (`"params"`) the scope owns.
+ * @property {"url"|"params"} source - Where the scope's values come from, which decides who clears it: `useViewList` removes a URL scope's query keys; the caller removes a params scope's keys from `params`.
+ * @property {boolean} clearable - Whether the reader can clear the scope. Always true for a URL scope; a params scope's declaration can set it to false.
+ */
+
+/**
  * @typedef {object} ViewListListGroup
  * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`, `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
- * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across visible-filter, sort, and search changes until the URL itself drops it.
+ * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across visible-filter, sort, and search changes until the URL itself drops it (for example through `scope.clearUrlScopes`). When `params` carries any key a filter owns, visible or hidden, `params` supplies that filter's value: the URL value stays in the URL but is not sent, restored as a filter, shown as a scope, or saved to preferences.
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
@@ -248,8 +265,14 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListFilterGroup
  * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
- * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can render an editable input for: value handling plus a field component and widget (or, for a range, both boundary components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that. This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and reported once per list visit through a console warning naming the app, model, and filter; it is not restored from the URL. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
+ * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can render an editable input for: value handling plus a field component and widget (or, for a range, both boundary components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that. This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and reported once per list visit through a console warning naming the app, model, and filter; it is not restored from the URL. A field with any query key in `params` is left out too, because `params` supplies its value. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
  * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
+ */
+
+/**
+ * @typedef {object} ViewListScopeGroup
+ * @property {ViewListScope[]} scopes - Active scopes, empty until model metadata has loaded: one per server-hidden filter whose query keys carry a value and none of whose keys `params` carries, followed by one per declared `params` key that carries a value. A hidden filter's label is its `filterableDetails` label with its value, or with a value count when it has several; a params scope uses its declared `label`, falling back to the same form (with the key in place of a label when the key is not a filter).
+ * @property {(names: string[]) => void} clearUrlScopes - Removes the named URL scopes' query keys from the route in one navigation. The list refetches without those values and resets to page 1; visible filters, sort, search, and other scopes stay in place. Params scopes are cleared by the caller, which owns `params`.
  */
 
 /**
@@ -262,6 +285,7 @@ const VIEW_NAME = "list";
  * @property {import('vue').UnwrapNestedRefs<ViewListColumnsGroup>} columns - Column visibility state.
  * @property {import('vue').UnwrapNestedRefs<ViewListPaginationGroup>} pagination - Pagination display state.
  * @property {import('vue').UnwrapNestedRefs<ViewListFilterGroup>} filter - Filter state, restoration, and the resolved filterable field set.
+ * @property {import('vue').UnwrapNestedRefs<ViewListScopeGroup>} scope - Active scopes and the URL scope clear control.
  */
 
 /**
@@ -324,7 +348,8 @@ export function useViewList(options) {
     );
     let restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const preferenceQueryFrom = (query) => omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value]);
+    const preferenceQueryFrom = (query) =>
+        omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value, ...callerOwnedFilterKeys.value]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);
@@ -423,10 +448,19 @@ export function useViewList(options) {
     const showingAllPages = ref(seededPerPage === ALL_PAGES);
     const computedShowAllPages = computed(() => showingAllPages.value);
 
-    // The page-size and column-totals params are framework-managed (seeded here, updated by the
-    // perPage and totals watches), so they must survive the consumer-`params` reconciliation below
-    // the same way ordering, fields, and expand do.
-    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM, COLUMN_TOTALS_PARAM];
+    // Framework-managed params: ordering, fields, and expand are seeded here; page, search, page
+    // size, and column totals are written by their own watches from `listState` and the visible
+    // columns. The bulk reconciliations below leave them in place, so the request always agrees
+    // with the page, search term, and page size the list displays.
+    const alwaysParamsKeys = [
+        ORDERING_PARAM,
+        FIELDS_PARAM,
+        EXPAND_PARAM,
+        PAGE_PARAM,
+        SEARCH_PARAM,
+        PAGE_SIZE_PARAM,
+        COLUMN_TOTALS_PARAM,
+    ];
     const listState = reactive({
         currentPage: 1,
         perPage: seededPerPage,
@@ -458,6 +492,33 @@ export function useViewList(options) {
         }),
         filterablesState,
     );
+    /**
+     * @param {string} fieldName
+     * @param {import('@vueda/stores/storeModelInfo.js').FilterInfo} detail
+     * @returns {string[]}
+     */
+    const filterKeysOf = (fieldName, detail) => {
+        const paramKeys = getFilterParams(fieldName, detail);
+        return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+    };
+    // Filters the caller supplies through `params`: a filter with any of its query keys in `params`
+    // takes its value from `params` alone, whether it is visible or hidden. It is not offered in the
+    // filter menu, restored from the URL, shown as a URL scope, sent from the URL, or saved to or
+    // restored from preferences. Its URL value stays in the URL and applies again once `params`
+    // stops carrying the filter's keys. Returns the previous array while the content is unchanged,
+    // so a `params` change that leaves the set alone does not rerun what depends on it.
+    const callerOwnedFilterKeys = computed((previous) => {
+        const callerKeys = Object.keys(unref(options.params) || {});
+        const filterableDetails = filterablesState.filterableDetails || {};
+        const next = (filterablesState.filterables || [])
+            .filter((fieldName) => filterableDetails[fieldName]?.typeFilter)
+            .map((fieldName) => filterKeysOf(fieldName, filterableDetails[fieldName]))
+            .filter((keys) => keys.some((key) => callerKeys.includes(key)))
+            .flat();
+        return previous && isEqual(previous, next) ? previous : next;
+    });
+    const isCallerOwnedFilter = (fieldName, detail) =>
+        filterKeysOf(fieldName, detail).some((key) => callerOwnedFilterKeys.value.includes(key));
     // The filters the reader can add and edit: visible filters the client can render an input
     // for. Server-hidden filters (e.g. the auto-injected `id` deep-link filter, an `in`-lookup
     // whose widget is a HiddenInput) are programmatic, not user-entered, so they stay out of the
@@ -466,7 +527,8 @@ export function useViewList(options) {
     // component (checked against the view config's per-field overrides, so an override can supply
     // what the default mapping lacks) is left out too: offering it would open a form that cannot
     // mount. The developer learns about that through the warning below rather than the reader
-    // through a broken input. Passed down to FilterGroup via `filter.validFilterables`, so it
+    // through a broken input. A filter the caller supplies through `params` is left out as well:
+    // `params` decides its value. Passed down to FilterGroup via `filter.validFilterables`, so it
     // isn't recomputed there.
     const visibleFilterSupport = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
@@ -478,7 +540,7 @@ export function useViewList(options) {
         const unsupported = [];
         for (const fieldName of filterablesState.filterables || []) {
             const detail = filterableDetails[fieldName];
-            if (!detail || !detail.typeFilter || detail.hidden) {
+            if (!detail || !detail.typeFilter || detail.hidden || isCallerOwnedFilter(fieldName, detail)) {
                 continue;
             }
             const missing = getMissingFilterInputSupport(fieldName, detail, overrides);
@@ -522,18 +584,19 @@ export function useViewList(options) {
     // the URL currently carries a value for a key: used to keep a hidden filterable's keys out of
     // what gets read from or written to the saved filter preference, where a stored key can exist
     // with no matching URL value yet. `rawHiddenFilterParams` below is the value-bearing counterpart.
-    const hiddenFilterKeys = computed(() => {
+    const hiddenFilterables = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
         return (filterablesState.filterables || [])
             .filter((fieldName) => {
                 const detail = filterableDetails[fieldName];
                 return detail && detail.typeFilter && detail.hidden;
             })
-            .flatMap((fieldName) => {
-                const paramKeys = getFilterParams(fieldName, filterableDetails[fieldName]);
-                return Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+            .map((fieldName) => {
+                const detail = filterableDetails[fieldName];
+                return { fieldName, detail, keys: filterKeysOf(fieldName, detail) };
             });
     });
+    const hiddenFilterKeys = computed(() => hiddenFilterables.value.flatMap(({ keys }) => keys));
     const rawHiddenFilterParams = computed(() => {
         const params = {};
         for (const key of hiddenFilterKeys.value) {
@@ -561,12 +624,89 @@ export function useViewList(options) {
         },
         { immediate: true },
     );
+    // The hidden-filter URL values the list applies: those of hidden filters the caller does not
+    // supply through `params`. Returns the previous object while the content is unchanged, so the
+    // combined watch below reruns only when an applied value changes.
+    const appliedHiddenFilterParams = computed((previous) => {
+        const next = omit(hiddenFilterParams.value, callerOwnedFilterKeys.value);
+        return previous && isEqual(previous, next) ? previous : next;
+    });
     // Seeds the initial request with whatever hidden-filter values the mount URL already
     // carries; the combined watch below keeps this synchronized with later URL, sort, and
     // visible-filter changes, including a hidden value dropping out through external navigation.
     if (route.params?.action === VIEW_NAME) {
-        Object.assign(listState.params, hiddenFilterParams.value);
+        Object.assign(listState.params, appliedHiddenFilterParams.value);
     }
+
+    // Scopes: list constraints supplied by a link or by application code, with no editable input.
+    // A server-hidden filter with a URL value is a URL scope; a `params` key declared in the
+    // `scopes` option, with a value, is a params scope. Both render in the constraints band.
+    const hasScopeValue = (value) =>
+        value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && !value.length);
+    // An `in` lookup carries its values comma-separated in one query value.
+    const scopeValues = (detail, keys, source) =>
+        keys
+            .flatMap((key) => [source?.[key]].flat())
+            .filter(hasScopeValue)
+            .flatMap((value) => (detail?.lookupExprs?.includes("in") ? String(value).split(",") : [value]))
+            .filter(hasScopeValue);
+    // The filter's metadata label (or the key, for a `params` key that is not a filter) with its
+    // value, or with a value count when it has several.
+    const defaultScopeLabel = (name, detail, values) => {
+        const label = detail?.label ?? name;
+        return values.length === 1 ? `${label} · ${values[0]}` : `${label} · ${values.length} values`;
+    };
+    const urlScopes = computed(() => {
+        const scopes = [];
+        for (const { fieldName, detail, keys } of hiddenFilterables.value) {
+            const values = scopeValues(detail, keys, appliedHiddenFilterParams.value);
+            if (values.length) {
+                scopes.push({
+                    name: fieldName,
+                    label: defaultScopeLabel(fieldName, detail, values),
+                    keys,
+                    source: "url",
+                    clearable: true,
+                });
+            }
+        }
+        return scopes;
+    });
+    const paramsScopes = computed(() => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        const scopes = [];
+        for (const [name, declaration] of Object.entries(unref(options.scopes) || {})) {
+            const detail = filterableDetails[name];
+            const paramKeys = detail ? getFilterParams(name, detail) : name;
+            const keys = Array.isArray(paramKeys) ? paramKeys : [paramKeys];
+            const values = scopeValues(detail, keys, unref(options.params));
+            if (values.length) {
+                scopes.push({
+                    name,
+                    label: declaration?.label || defaultScopeLabel(name, detail, values),
+                    keys,
+                    source: "params",
+                    clearable: declaration?.clearable ?? true,
+                });
+            }
+        }
+        return scopes;
+    });
+    // Scopes appear once model metadata has loaded. Their keys and default labels come from
+    // `filterableDetails`, so both sources wait for it and appear together, with their final keys
+    // and labels, on the same render as the first list request.
+    const scopes = computed(() => (modelConfig.loading === false ? [...urlScopes.value, ...paramsScopes.value] : []));
+    const clearUrlScopes = (names) => {
+        if (!ownsRoute.value) {
+            return;
+        }
+        const keys = scopes.value
+            .filter((scope) => scope.source === "url" && names.includes(scope.name))
+            .flatMap((scope) => scope.keys);
+        if (keys.some((key) => key in route.query)) {
+            router.push({ query: omit(route.query, keys) });
+        }
+    };
 
     const addedFilters = ref([]);
     // A fresh plain object every recomputation, driven by whatever `addedFilters` fields the
@@ -583,21 +723,23 @@ export function useViewList(options) {
     // clear and a filter clear landing in the same tick are combined into exactly one push instead
     // of separate writes racing to patch the same not-yet-applied query.
     watch(
-        [sentSorted, filterParams, toRef(listState, "search"), hiddenFilterParams],
-        ([newSorted, newFilterParams, newSearch], oldValues) => {
+        [sentSorted, filterParams, toRef(listState, "search"), appliedHiddenFilterParams],
+        ([newSorted, newFilterParams, newSearch, newHiddenFilterParams], oldValues) => {
             if (!ownsRoute.value) {
                 return;
             }
-            const [oldSorted, oldFilterParams, oldSearch] = oldValues || [];
-            // Filter-derived effects -- the reset to page 1 and this change's contribution to
-            // `listState.params` -- apply only while this is the active list view, matching this
+            const [oldSorted, oldFilterParams, oldSearch, oldHiddenFilterParams] = oldValues || [];
+            // The reset to page 1 after a filter, scope, or sort change, and this change's
+            // contribution to `listState.params`, apply only while this is the active list view, matching this
             // composable's original filter-write behavior: a `ViewList` instance kept mounted
             // off-screen (e.g. mid route transition) must not touch the live route or preferences
             // on a stray filter mutation. The route ownership guard also covers sort and search.
             const onListView = route.params?.action === VIEW_NAME;
             const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
             const searchChanged = !isEqual(newSearch, oldSearch);
-            if (filtersChanged) {
+            const scopesChanged = onListView && !isEqual(newHiddenFilterParams, oldHiddenFilterParams);
+            const sortChanged = onListView && !isEqual(newSorted, oldSorted);
+            if (filtersChanged || scopesChanged || sortChanged) {
                 listState.currentPage = 1;
             }
             if (onListView) {
@@ -605,10 +747,9 @@ export function useViewList(options) {
                 // preserved key: sourced from the URL alone, they need no query-side reconciliation
                 // (they already are the URL), only carrying forward into the request whenever this
                 // merge runs -- including when they alone changed, e.g. external navigation.
-                assignReactiveObject(listState.params, { ...newFilterParams, ...hiddenFilterParams.value }, [
+                assignReactiveObject(listState.params, { ...newFilterParams, ...newHiddenFilterParams }, [
                     ...Object.keys(options.params || {}),
                     ...alwaysParamsKeys,
-                    SEARCH_PARAM,
                 ]);
             }
             if (resettingTarget.value || modelConfig.loading !== false) {
@@ -633,8 +774,12 @@ export function useViewList(options) {
                 delete routeQuery[SEARCH_PARAM];
             }
             if (onListView) {
+                // A filter that leaves `addedFilters` because the caller now supplies it keeps its
+                // URL value: `params` overrides it without rewriting the URL.
                 for (const key of Object.keys(oldFilterParams || {})) {
-                    delete routeQuery[key];
+                    if (!callerOwnedFilterKeys.value.includes(key)) {
+                        delete routeQuery[key];
+                    }
                 }
                 Object.assign(routeQuery, newFilterParams);
             }
@@ -770,7 +915,7 @@ export function useViewList(options) {
                 isInitialized.filters = true;
                 const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
                 if (storedFilters && isEmpty(newQuery)) {
-                    newQuery = omit(storedFilters, hiddenFilterKeys.value);
+                    newQuery = omit(storedFilters, [...hiddenFilterKeys.value, ...callerOwnedFilterKeys.value]);
                     restoreFiltersFromQuery(newQuery);
                     router.push({ query: newQuery });
                 }
@@ -783,16 +928,26 @@ export function useViewList(options) {
         },
         { immediate: true },
     );
+    // Compared by content, so a parent that passes an equal but new `params` object on every
+    // render does not reset the page.
     watch(
-        toRef(options, "params"),
-        () => {
-            assignReactiveObject(listState.params, options.params, [
-                ...Object.keys(filtersToParams(addedFilters.value)),
-                ...Object.keys(hiddenFilterParams.value),
+        () => cloneDeep(unref(options.params) || {}),
+        (newParams, oldParams) => {
+            // A changed constraint returns the list to page 1, as a filter change does.
+            if (oldParams && !isEqual(newParams, oldParams)) {
+                listState.currentPage = 1;
+            }
+            // Keys the caller supplies are always written from `params`, even while a reader's
+            // filter for them is still leaving `addedFilters`.
+            assignReactiveObject(listState.params, unref(options.params) || {}, [
+                ...Object.keys(filtersToParams(addedFilters.value)).filter(
+                    (key) => !callerOwnedFilterKeys.value.includes(key),
+                ),
+                ...Object.keys(appliedHiddenFilterParams.value),
                 ...alwaysParamsKeys,
             ]);
         },
-        { deep: true, immediate: true },
+        { immediate: true },
     );
 
     const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
@@ -1183,7 +1338,10 @@ export function useViewList(options) {
                     }
                     const canonicalQuery = queryWithCurrentSort(
                         {
-                            ...omit(listPreferenceStore.getFilters(preferenceArgs()), hiddenFilterKeys.value),
+                            ...omit(listPreferenceStore.getFilters(preferenceArgs()), [
+                                ...hiddenFilterKeys.value,
+                                ...callerOwnedFilterKeys.value,
+                            ]),
                             ...route.query,
                         },
                         sentSorted.value,
@@ -1332,6 +1490,10 @@ export function useViewList(options) {
             state: {
                 addedFilters,
             },
+        }),
+        scope: reactive({
+            scopes,
+            clearUrlScopes,
         }),
     };
 }
