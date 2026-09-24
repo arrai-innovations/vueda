@@ -1312,27 +1312,62 @@ class Command(BaseCommand):
 
         return self._compile_unversioned_references(values), references
 
-    def _reference_matches(self, event, field, expected):
+    @staticmethod
+    def _narrow_to_referenced_codes(candidates, references):
+        """Keep only the candidates whose references name a row that has ever carried the codes a change names.
+
+        Answering a reference takes a lookup per candidate, and the values a change can be filtered by
+        often leave many candidates alike: every permission for one group differs only in the state
+        or transition it names. A row that never carried the code cannot be the one the change means,
+        so narrowing to the rows that did first leaves the lookups only the candidates that differ in
+        when they carried it. This narrows and never decides: ``_reference_matches`` still answers
+        each reference at the moment its candidate was recorded.
+        """
+        for field, expected in references.items():
+            expected = get_id_values_from_item(expected, reversing=True)
+            if expected is None:
+                candidates = candidates.filter(**{f"{field}__isnull": True})
+                continue
+
+            carried = {
+                key: get_id_values_from_item(value, reversing=True)
+                for key, value in expected.items()
+                if key not in VERSIONED_REFERENCE_EVENT_MODELS
+            }
+            rows = VERSIONED_REFERENCE_EVENT_MODELS[field].objects.filter(**carried).values("id")
+            candidates = candidates.filter(**{f"{field}__in": rows})
+
+        return candidates
+
+    def _reference_matches(self, event, field, expected, recorded_at=None):
         """Say whether the row an event names held the codes a change names, when that event was recorded.
 
         The event records the id of the row it pointed at, which is exact, and the moment it was
         recorded. Together those answer what that row was called at the time, without choosing the
         newest row that ever carried the code and without reading a date recorded on another
         database.
+
+        A nested reference is answered at that same moment, not at the moment its parent row was
+        last recorded. A change names every row by the codes they held when it was made, so a
+        transition added after its workflow was renamed names its target state under the new
+        workflow code, even though the state's own last event predates the rename.
         """
+        if recorded_at is None:
+            recorded_at = event.pgh_created_at
+
         expected = get_id_values_from_item(expected, reversing=True)
         recorded_id = getattr(event, field)
 
         if recorded_id is None:
             return expected is None
 
-        record = self._get_history_record_at(VERSIONED_REFERENCE_EVENT_MODELS[field], recorded_id, event.pgh_created_at)
+        record = self._get_history_record_at(VERSIONED_REFERENCE_EVENT_MODELS[field], recorded_id, recorded_at)
         if record is None:
             return False
 
         for key, value in expected.items():
             if key in VERSIONED_REFERENCE_EVENT_MODELS:
-                if not self._reference_matches(record, key, value):
+                if not self._reference_matches(record, key, value, recorded_at):
                     return False
 
             elif getattr(record, key) != get_id_values_from_item(value, reversing=True):
@@ -1388,6 +1423,7 @@ class Command(BaseCommand):
         values, references = self._split_change_for_matching(changes)
 
         candidates = historical_queryset.filter(pgh_label=event_label).filter(**values)
+        candidates = self._narrow_to_referenced_codes(candidates, references)
         candidates = self._remove_previously_matched_pks(candidates, model_name)
 
         historical_obj = None
@@ -1464,17 +1500,24 @@ class Command(BaseCommand):
                     for migration_name, migration_data in migrations.items():
                         changed_data = migration_data["changes_by_model_name"].get(workflow_model_name, ())
 
-                        # A migration that ran here wrote these changes itself, under the action it
-                        # opened, so they are already accounted for and have nothing left to be
-                        # matched against: their own writes are not candidates. Offering them the
-                        # candidates that remain would let a change claim an edit someone made here
-                        # afterwards, and that edit would then be missing from the migration they
-                        # generate. Faking a migration writes nothing, so its changes still need
-                        # matching, which is what the author of a migration does.
-                        if recorded.filter(
-                            pgh_context__metadata__action=f"Workflow Migration - {migration_name}"
-                        ).exists():
-                            continue
+                        # A migration that ran here wrote its changes under the action it opened, and
+                        # those writes are not candidates. That it ran says nothing about whether the
+                        # edits it was generated from are here too: its author fakes it, and rolling
+                        # it back and forth afterwards runs it for real on top of those edits. So its
+                        # changes are still matched, but only against edits recorded before it first
+                        # ran. An edit someone made here afterwards cannot be one it was generated
+                        # from, and claiming it would leave it out of the migration they generate.
+                        # Faking a migration writes nothing, so its changes are matched against every
+                        # edit, which is what the author of a migration does.
+                        candidate_queryset = historical_queryset
+                        first_ran_at = (
+                            recorded.filter(pgh_context__metadata__action=f"Workflow Migration - {migration_name}")
+                            .order_by("pgh_created_at", "pgh_id")
+                            .values_list("pgh_created_at", flat=True)
+                            .first()
+                        )
+                        if first_ran_at is not None:
+                            candidate_queryset = historical_queryset.filter(pgh_created_at__lt=first_ran_at)
 
                         for changed_item in changed_data:
                             content_type = self._get_content_type_for_model(
@@ -1486,7 +1529,7 @@ class Command(BaseCommand):
                             history_obj = self._get_history_obj_from_change(
                                 workflow_model_name,
                                 changed_item,
-                                historical_queryset,
+                                candidate_queryset,
                                 workflow_model_field_names_to_attname[workflow_model_name],
                             )
                             if history_obj is not None:
