@@ -4,6 +4,8 @@ import django.contrib.postgres.indexes
 import django.db.models.deletion
 import django.db.models.functions.comparison
 import django.utils.timezone
+import pgtrigger.compiler
+import pgtrigger.migrations
 from django.conf import settings
 from django.contrib.postgres.operations import CreateCollation
 from django.contrib.postgres.operations import TrigramExtension
@@ -19,6 +21,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),
         ("contenttypes", "0002_remove_content_type_name"),
+        ("pghistory", "0007_auto_20250421_0444"),
     ]
 
     operations = [
@@ -114,66 +117,6 @@ class Migration(migrations.Migration):
                 "default_related_name": "employees",
             },
         ),
-        migrations.CreateModel(
-            name="HistoricalEmployee",
-            fields=[
-                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
-                ("employee_number", models.CharField(max_length=255)),
-                (
-                    "formatted_name",
-                    models.GeneratedField(
-                        db_persist=True,
-                        expression=django.db.models.functions.comparison.Cast(
-                            models.F("employee_number"), output_field=models.CharField()
-                        ),
-                        output_field=models.CharField(),
-                    ),
-                ),
-                ("history_id", models.AutoField(primary_key=True, serialize=False)),
-                ("history_date", models.DateTimeField(db_index=True)),
-                ("history_change_reason", models.CharField(max_length=100, null=True)),
-                (
-                    "history_type",
-                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
-                ),
-                (
-                    "history_relation",
-                    models.ForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="history_records",
-                        to="employee.employee",
-                    ),
-                ),
-                (
-                    "history_user",
-                    models.ForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="+",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "user",
-                    models.ForeignKey(
-                        blank=True,
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="+",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-            ],
-            options={
-                "verbose_name": "historical employee",
-                "verbose_name_plural": "historical employees",
-                "ordering": ("-history_date", "-history_id"),
-                "get_latest_by": ("history_date", "history_id"),
-            },
-            bases=(models.Model,),
-        ),
         TrigramExtension(),
         migrations.AddIndex(
             model_name="user",
@@ -185,6 +128,231 @@ class Migration(migrations.Migration):
             model_name="user",
             index=django.contrib.postgres.indexes.GinIndex(
                 fields=["name"], name="gin_name_idx", opclasses=["gin_trgm_ops"]
+            ),
+        ),
+        migrations.CreateModel(
+            name="EmployeeEvent",
+            fields=[
+                ("pgh_id", models.AutoField(primary_key=True, serialize=False)),
+                ("pgh_created_at", models.DateTimeField(auto_now_add=True)),
+                ("pgh_label", models.TextField(help_text="The event label.")),
+                ("id", models.IntegerField()),
+                ("employee_number", models.CharField(max_length=255)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True,
+                        expression=django.db.models.functions.comparison.Cast(
+                            models.F("employee_number"), output_field=models.CharField()
+                        ),
+                        output_field=models.CharField(),
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="UserEvent",
+            fields=[
+                ("pgh_id", models.AutoField(primary_key=True, serialize=False)),
+                ("pgh_created_at", models.DateTimeField(auto_now_add=True)),
+                ("pgh_label", models.TextField(help_text="The event label.")),
+                ("id", models.IntegerField()),
+                ("last_login", models.DateTimeField(blank=True, null=True, verbose_name="last login")),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                ("is_active", models.BooleanField(default=True, verbose_name="active")),
+                (
+                    "email",
+                    models.EmailField(db_collation="case_insensitive", max_length=254, verbose_name="email address"),
+                ),
+                ("name", models.CharField(max_length=255, verbose_name="name")),
+                ("date_joined", models.DateTimeField(default=django.utils.timezone.now, verbose_name="date joined")),
+                ("is_system", models.BooleanField(default=False, verbose_name="system")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("email"), output_field=models.CharField()
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.AddField(
+            model_name="employeeevent",
+            name="pgh_context",
+            field=models.ForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="pghistory.context",
+            ),
+        ),
+        migrations.AddField(
+            model_name="employeeevent",
+            name="pgh_obj",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="events",
+                to="employee.employee",
+            ),
+        ),
+        migrations.AddField(
+            model_name="employeeevent",
+            name="user",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                related_query_name="+",
+                to=settings.AUTH_USER_MODEL,
+            ),
+        ),
+        migrations.AddField(
+            model_name="userevent",
+            name="pgh_context",
+            field=models.ForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="pghistory.context",
+            ),
+        ),
+        migrations.AddField(
+            model_name="userevent",
+            name="pgh_obj",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="events",
+                to=settings.AUTH_USER_MODEL,
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="employee",
+            trigger=pgtrigger.compiler.Trigger(
+                name="insert_insert",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "employee_employeeevent" ("employee_number", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "user_id") VALUES (NEW."employee_number", NEW."id", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."user_id"); RETURN NULL;',
+                    hash="ae09b752c8f7b2e48809808dfeefed9940b798eb",
+                    operation="INSERT",
+                    pgid="pgtrigger_insert_insert_23d34",
+                    table="employee_employee",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="employee",
+            trigger=pgtrigger.compiler.Trigger(
+                name="update_update",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    condition="WHEN (OLD.* IS DISTINCT FROM NEW.*)",
+                    func='INSERT INTO "employee_employeeevent" ("employee_number", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "user_id") VALUES (NEW."employee_number", NEW."id", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."user_id"); RETURN NULL;',
+                    hash="12e1645482d4f62fa8d7cd8696d5e9e018104fe0",
+                    operation="UPDATE",
+                    pgid="pgtrigger_update_update_d11f3",
+                    table="employee_employee",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="employee",
+            trigger=pgtrigger.compiler.Trigger(
+                name="delete_delete",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "employee_employeeevent" ("employee_number", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "user_id") VALUES (OLD."employee_number", OLD."id", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."user_id"); RETURN NULL;',
+                    hash="50fb092849bd83556eb99baf2de10add45375102",
+                    operation="DELETE",
+                    pgid="pgtrigger_delete_delete_5c640",
+                    table="employee_employee",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="user",
+            trigger=pgtrigger.compiler.Trigger(
+                name="insert_insert",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "employee_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "last_login", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."last_login", NEW."name", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id"); RETURN NULL;',
+                    hash="fa324e5cd36ad9b1a71deb4d2910a641474f0b24",
+                    operation="INSERT",
+                    pgid="pgtrigger_insert_insert_ec6ff",
+                    table="employee_user",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="user",
+            trigger=pgtrigger.compiler.Trigger(
+                name="update_update",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    condition='WHEN (OLD."date_joined" IS DISTINCT FROM (NEW."date_joined") OR OLD."email" IS DISTINCT FROM (NEW."email") OR OLD."formatted_name" IS DISTINCT FROM (NEW."formatted_name") OR OLD."id" IS DISTINCT FROM (NEW."id") OR OLD."is_active" IS DISTINCT FROM (NEW."is_active") OR OLD."is_superuser" IS DISTINCT FROM (NEW."is_superuser") OR OLD."is_system" IS DISTINCT FROM (NEW."is_system") OR OLD."last_login" IS DISTINCT FROM (NEW."last_login") OR OLD."name" IS DISTINCT FROM (NEW."name"))',
+                    func='INSERT INTO "employee_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "last_login", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (NEW."date_joined", NEW."email", NEW."id", NEW."is_active", NEW."is_superuser", NEW."is_system", NEW."last_login", NEW."name", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id"); RETURN NULL;',
+                    hash="acf33fd56b58f77b5a8c6cf8a33049ac19df8191",
+                    operation="UPDATE",
+                    pgid="pgtrigger_update_update_c300a",
+                    table="employee_user",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="user",
+            trigger=pgtrigger.compiler.Trigger(
+                name="delete_delete",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "employee_userevent" ("date_joined", "email", "id", "is_active", "is_superuser", "is_system", "last_login", "name", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id") VALUES (OLD."date_joined", OLD."email", OLD."id", OLD."is_active", OLD."is_superuser", OLD."is_system", OLD."last_login", OLD."name", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id"); RETURN NULL;',
+                    hash="b8f21f0393253f41b8f90a6e59458bba55b3323d",
+                    operation="DELETE",
+                    pgid="pgtrigger_delete_delete_1eaf1",
+                    table="employee_user",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="employeeevent",
+            trigger=pgtrigger.compiler.Trigger(
+                name="append_only",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func="RAISE EXCEPTION 'pgtrigger: Cannot update or delete rows from % table', TG_TABLE_NAME;",
+                    hash="62baa36df703bada4b3ce550a1f7215ed3b96e1e",
+                    operation="UPDATE OR DELETE",
+                    pgid="pgtrigger_append_only_7df5b",
+                    table="employee_employeeevent",
+                    when="BEFORE",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="userevent",
+            trigger=pgtrigger.compiler.Trigger(
+                name="append_only",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func="RAISE EXCEPTION 'pgtrigger: Cannot update or delete rows from % table', TG_TABLE_NAME;",
+                    hash="4923747553a88bac8abc76232a91767d0853cb4c",
+                    operation="UPDATE OR DELETE",
+                    pgid="pgtrigger_append_only_41bfd",
+                    table="employee_userevent",
+                    when="BEFORE",
+                ),
             ),
         ),
     ]

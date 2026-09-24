@@ -4,6 +4,8 @@ import django.db.models.deletion
 import django.db.models.functions.comparison
 import django.db.models.functions.datetime
 import django.db.models.functions.text
+import pgtrigger.compiler
+import pgtrigger.migrations
 from django.conf import settings
 from django.db import migrations
 from django.db import models
@@ -13,8 +15,9 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("employee", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ("employee", "0001_initial"),
+        ("pghistory", "0007_auto_20250421_0444"),
     ]
 
     operations = [
@@ -41,68 +44,6 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
                 "default_related_name": "timesheets",
             },
-        ),
-        migrations.CreateModel(
-            name="HistoricalTimesheet",
-            fields=[
-                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
-                ("period_start", models.DateField()),
-                ("period_end", models.DateField()),
-                ("history_id", models.AutoField(primary_key=True, serialize=False)),
-                ("history_date", models.DateTimeField(db_index=True)),
-                ("history_change_reason", models.CharField(max_length=100, null=True)),
-                (
-                    "history_type",
-                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
-                ),
-                (
-                    "employee",
-                    models.ForeignKey(
-                        blank=True,
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="+",
-                        to="employee.employee",
-                    ),
-                ),
-                (
-                    "history_user",
-                    models.ForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="+",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "supervisor",
-                    models.ForeignKey(
-                        blank=True,
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="+",
-                        to="employee.employee",
-                    ),
-                ),
-                (
-                    "history_relation",
-                    models.ForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="history_records",
-                        to="timesheet.timesheet",
-                    ),
-                ),
-            ],
-            options={
-                "verbose_name": "historical timesheet",
-                "verbose_name_plural": "historical timesheets",
-                "ordering": ("-history_date", "-history_id"),
-                "get_latest_by": ("history_date", "history_id"),
-            },
-            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="TimesheetEntry",
@@ -148,9 +89,23 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="HistoricalTimesheetEntry",
+            name="TimesheetData",
             fields=[
-                ("id", models.IntegerField(auto_created=True, blank=True, db_index=True, verbose_name="ID")),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("formatted_name", models.CharField()),
+            ],
+            options={
+                "db_table": "timesheet_data",
+                "managed": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="TimesheetEntryEvent",
+            fields=[
+                ("pgh_id", models.AutoField(primary_key=True, serialize=False)),
+                ("pgh_created_at", models.DateTimeField(auto_now_add=True)),
+                ("pgh_label", models.TextField(help_text="The event label.")),
+                ("id", models.IntegerField()),
                 ("date", models.DateField()),
                 ("hours", models.DecimalField(decimal_places=2, max_digits=5)),
                 (
@@ -181,60 +136,213 @@ class Migration(migrations.Migration):
                         output_field=models.CharField(),
                     ),
                 ),
-                ("history_id", models.AutoField(primary_key=True, serialize=False)),
-                ("history_date", models.DateTimeField(db_index=True)),
-                ("history_change_reason", models.CharField(max_length=100, null=True)),
-                (
-                    "history_type",
-                    models.CharField(choices=[("+", "Created"), ("~", "Changed"), ("-", "Deleted")], max_length=1),
-                ),
-                (
-                    "history_user",
-                    models.ForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="+",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "timesheet",
-                    models.ForeignKey(
-                        blank=True,
-                        db_constraint=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="+",
-                        to="timesheet.timesheet",
-                    ),
-                ),
-                (
-                    "history_relation",
-                    models.ForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        related_name="history_records",
-                        to="timesheet.timesheetentry",
-                    ),
-                ),
             ],
             options={
-                "verbose_name": "historical timesheet entry",
-                "verbose_name_plural": "historical timesheet entrys",
-                "ordering": ("-history_date", "-history_id"),
-                "get_latest_by": ("history_date", "history_id"),
+                "abstract": False,
             },
-            bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name="TimesheetData",
+            name="TimesheetEvent",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("formatted_name", models.CharField()),
+                ("pgh_id", models.AutoField(primary_key=True, serialize=False)),
+                ("pgh_created_at", models.DateTimeField(auto_now_add=True)),
+                ("pgh_label", models.TextField(help_text="The event label.")),
+                ("id", models.IntegerField()),
+                ("period_start", models.DateField()),
+                ("period_end", models.DateField()),
             ],
             options={
-                "db_table": "timesheet_data",
-                "managed": False,
+                "abstract": False,
             },
+        ),
+        migrations.AddField(
+            model_name="timesheetentryevent",
+            name="pgh_context",
+            field=models.ForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="pghistory.context",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetentryevent",
+            name="pgh_obj",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="events",
+                to="timesheet.timesheetentry",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetentryevent",
+            name="timesheet",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                related_query_name="+",
+                to="timesheet.timesheet",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetevent",
+            name="employee",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                related_query_name="+",
+                to="employee.employee",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetevent",
+            name="pgh_context",
+            field=models.ForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="pghistory.context",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetevent",
+            name="pgh_obj",
+            field=models.ForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="events",
+                to="timesheet.timesheet",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetevent",
+            name="supervisor",
+            field=models.ForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                related_query_name="+",
+                to="employee.employee",
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheet",
+            trigger=pgtrigger.compiler.Trigger(
+                name="insert_insert",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
+                    hash="20d05125067551b3ecb159d195b00763ad429d9a",
+                    operation="INSERT",
+                    pgid="pgtrigger_insert_insert_cafc5",
+                    table="timesheet_timesheet",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheet",
+            trigger=pgtrigger.compiler.Trigger(
+                name="update_update",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    condition="WHEN (OLD.* IS DISTINCT FROM NEW.*)",
+                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
+                    hash="e54969091e463ff3e4647c51030e4a52a229ce66",
+                    operation="UPDATE",
+                    pgid="pgtrigger_update_update_cefc1",
+                    table="timesheet_timesheet",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheet",
+            trigger=pgtrigger.compiler.Trigger(
+                name="delete_delete",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (OLD."employee_id", OLD."id", OLD."period_end", OLD."period_start", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."supervisor_id"); RETURN NULL;',
+                    hash="dcb16e6db7d888b2a46486e5ac0d6271b21d1d75",
+                    operation="DELETE",
+                    pgid="pgtrigger_delete_delete_1ed36",
+                    table="timesheet_timesheet",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheetentry",
+            trigger=pgtrigger.compiler.Trigger(
+                name="insert_insert",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "timesheet_timesheetentryevent" ("date", "hours", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "timesheet_id") VALUES (NEW."date", NEW."hours", NEW."id", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."timesheet_id"); RETURN NULL;',
+                    hash="09f45e75923c76ffc331f567144394876d0c36ff",
+                    operation="INSERT",
+                    pgid="pgtrigger_insert_insert_5133e",
+                    table="timesheet_timesheetentry",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheetentry",
+            trigger=pgtrigger.compiler.Trigger(
+                name="update_update",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    condition="WHEN (OLD.* IS DISTINCT FROM NEW.*)",
+                    func='INSERT INTO "timesheet_timesheetentryevent" ("date", "hours", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "timesheet_id") VALUES (NEW."date", NEW."hours", NEW."id", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."timesheet_id"); RETURN NULL;',
+                    hash="b06cc305cc7d1587585123a1f8c7421c71829697",
+                    operation="UPDATE",
+                    pgid="pgtrigger_update_update_f51b8",
+                    table="timesheet_timesheetentry",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheetentry",
+            trigger=pgtrigger.compiler.Trigger(
+                name="delete_delete",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func='INSERT INTO "timesheet_timesheetentryevent" ("date", "hours", "id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "timesheet_id") VALUES (OLD."date", OLD."hours", OLD."id", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."timesheet_id"); RETURN NULL;',
+                    hash="38a5b48fa54a2785450e7fc6d500aa14411e5e6a",
+                    operation="DELETE",
+                    pgid="pgtrigger_delete_delete_7d5e8",
+                    table="timesheet_timesheetentry",
+                    when="AFTER",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheetentryevent",
+            trigger=pgtrigger.compiler.Trigger(
+                name="append_only",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func="RAISE EXCEPTION 'pgtrigger: Cannot update or delete rows from % table', TG_TABLE_NAME;",
+                    hash="1f27452a4ed6001dafdf8a802c58a5cbcc70cc1b",
+                    operation="UPDATE OR DELETE",
+                    pgid="pgtrigger_append_only_06519",
+                    table="timesheet_timesheetentryevent",
+                    when="BEFORE",
+                ),
+            ),
+        ),
+        pgtrigger.migrations.AddTrigger(
+            model_name="timesheetevent",
+            trigger=pgtrigger.compiler.Trigger(
+                name="append_only",
+                sql=pgtrigger.compiler.UpsertTriggerSql(
+                    func="RAISE EXCEPTION 'pgtrigger: Cannot update or delete rows from % table', TG_TABLE_NAME;",
+                    hash="870a8f5f51a3c0ff77f1b080a9b08fa30491bf4e",
+                    operation="UPDATE OR DELETE",
+                    pgid="pgtrigger_append_only_ff51f",
+                    table="timesheet_timesheetevent",
+                    when="BEFORE",
+                ),
+            ),
         ),
     ]

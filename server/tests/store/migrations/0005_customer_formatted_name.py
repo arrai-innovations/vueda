@@ -14,7 +14,7 @@ with open(os.path.join(sql_path, forward_sql_filename)) as f:
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("store", "0005_cart_item_formatted_name"),
+        ("store", "0004_cart_item_formatted_name"),
     ]
 
     operations = [

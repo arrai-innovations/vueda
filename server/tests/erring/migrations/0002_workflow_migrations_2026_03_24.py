@@ -2077,7 +2077,7 @@ class Migration(migrations.Migration):
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("auth", "0012_alter_user_first_name_max_length"),
         ("logging", "0001_initial"),
-        ("store", "0008_order_item_formatted_name"),
+        ("store", "0007_order_item_formatted_name"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0005_sync_group_changes"),
         ("vueda_workflow", "__latest__"),

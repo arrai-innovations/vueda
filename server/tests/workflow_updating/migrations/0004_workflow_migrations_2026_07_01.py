@@ -47,10 +47,10 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("auth", "0012_alter_user_first_name_max_length"),
-        ("confirmation", "0002_gadget"),
+        ("confirmation", "0001_initial"),
         ("erring", "0002_workflow_migrations_2026_03_24"),
         ("logging", "0001_initial"),
-        ("store", "0008_order_item_formatted_name"),
+        ("store", "0007_order_item_formatted_name"),
         ("vueda_release", "0001_initial"),
         ("vueda_user", "0005_sync_group_changes"),
         ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
