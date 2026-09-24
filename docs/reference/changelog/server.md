@@ -19,6 +19,77 @@ public-facing documentation baseline.
 
 <!-- towncrier release notes start -->
 
+## v3.0.0a4 (2026-09-24)
+
+### Breaking Changes
+
+#### Lists and querying
+
+- **`column_totals` is a mapping, and a `list` response carries only the totals its request names (`ListRowLevelViewSetMixin`)** ([#313](https://github.com/arrai-innovations/vueda/issues/313)):
+    - `column_totals` maps the column name a client requests to the ORM path it sums, such as `{"product_price": "product_option__price"}`, replacing the list of paths.
+    - A request names its totals in the totals parameter (`ct` by default, `*` for all). A request that names none gets `columnTotals: {}`.
+    - The new `vueda_info.E011` check rejects a path that crosses a reverse foreign key or a many-to-many, or ends on a field it cannot sum.
+      _Rewrite each `column_totals` list as a mapping keyed by the column that shows the total, then run `manage.py check`. A caller that read totals without asking must now send `ct`. Pass the requested names as the second argument to any `get_column_info` override, and call `get_extra_allowed_fields()` on a viewset instance rather than the class. See [Expose Aggregates in `list` Responses](../../guides/list-column-totals.md)._
+
+#### Field types
+
+- **A `timedelta` outside a serializer field renders as seconds (`VuedaJSONRenderer`)** ([#313](https://github.com/arrai-innovations/vueda/issues/313)):
+    - VUEDA's default `DEFAULT_RENDERER_CLASSES` now names `vueda.core.renderers.VuedaJSONRenderer`, which writes a `timedelta` as a number of seconds rather than DRF's string (`"3600.0"`). The main case is a column total over a `DurationField`. A `DurationField` on a serializer keeps its own representation.
+      _A project that sets `DEFAULT_RENDERER_CLASSES` itself, or names DRF's `JSONRenderer` in `renderer_classes`, keeps the string form until it switches to `VuedaJSONRenderer`. Update any client that parses the string form._
+
+#### Workflow
+
+- **`class Vueda.Workflow` replaces the workflow mixins** ([#360](https://github.com/arrai-innovations/vueda/issues/360)):
+    - A model opts into workflow with `class Vueda.Workflow` and `enabled = True`. Its serializers, filtersets, and viewsets then receive the workflow fields, the `workflow_state` filter, and the permission overlay without inheriting anything. This release removes `HasWorkflowModelMixin`, `HasWorkflowSerializerMixin`, `HasWorkflowViewMixin`, `HasWorkflowViewSetMixin`, and `HasWorkflowFilterSetMixin`.
+      _Remove the mixins from each workflow model, serializer, viewset, and filterset, and add `class Vueda.Workflow` to the model. Drop `HasWorkflowSerializerMixin.Meta.fields` and `HasWorkflowFilterSetMixin.Meta.fields` from explicit field lists. Replace mixin `issubclass` and `isinstance` checks with `vueda.core.installed_apps.workflow_enabled()`. Set `Meta.workflow_fields = False` on a secondary serializer that should not render workflow state. A model that listed `HasWorkflowModelMixin` first without its own `Meta` now inherits VUEDA's CRUDL default permissions, so run `makemigrations`._
+- **A workflow-enabled model without a workflow definition fails with `WorkflowNotConfiguredError`** ([#360](https://github.com/arrai-innovations/vueda/issues/360)):
+    - Saving an object, transition discovery, permission checks, model info, and the workflow endpoints all raise it. The API returns it as HTTP 500. A `Workflow` row alone no longer makes a model a workflow model.
+      _Apply the migration that creates a model's workflow before the release that enables it serves traffic. The `vueda_workflow.W001` check, which runs during `migrate`, names each enabled model without a definition. [Manage Workflows](../../guides/manage-workflows#enabling-workflow-on-a-model-with-existing-rows) gives the full deploy order._
+
+### Features
+
+#### Lists and querying
+
+- **Clients discover and request column totals (`COLUMN_TOTALS_PARAM`, `model_column_totals`)** ([#313](https://github.com/arrai-innovations/vueda/issues/313)):
+    - The new `COLUMN_TOTALS_PARAM` setting names the totals query parameter. Model info's new `model_column_totals` section lists each model's total names, and the OpenAPI schema lists them on each `list` operation.
+    - The new `vueda_info.W002` warning reports a total name containing `%`, which Django deprecated in 6.0 and removes in 7.0 for column aliases.
+      _A project that changes `COLUMN_TOTALS_PARAM` must change the client's `COLUMN_TOTALS_PARAM` constant to match._
+
+#### Model metadata and data loading
+
+- **Model info marks fields a default list leaves out (`list_default`)** ([#353](https://github.com/arrai-innovations/vueda/issues/353)):
+    - A `model_fields` entry now carries `list_default` when its serializer field's `style` sets it. The client's default list skips a field with `list_default: false`. A field without the key stays in the default list.
+    - A workflow model's serializers set `list_default: false` on `workflow_state_code` and `valid_transitions`, so its default list shows `workflow_state_name` alone.
+      _To leave one of your own fields out of default lists, declare it with `style={"list_default": False}`. To keep a workflow field in them, redeclare it with `style={"list_default": True}`._
+- **Model info reports `workflow_enabled`** ([#360](https://github.com/arrai-innovations/vueda/issues/360)):
+    - Model info detail and list responses include `workflow_enabled` by default, so a client can decide whether to request workflow controls for a model. The workflow endpoints still decide which transitions a user may see and take.
+
+#### Workflow
+
+- **`backfillworkflowstates` gives objects without a workflow state their initial state** ([#360](https://github.com/arrai-innovations/vueda/issues/360)):
+    - Objects created by the previous release while a deploy's migrations ran have no workflow state after cutover. The command creates the missing states and leaves existing ones alone, so it can run again safely. The `vueda_workflow.W002` check names each workflow model that still has objects without a state.
+
+### Fixes
+
+#### Lists and querying
+
+- **Column totals count each matched row once, and total `0` over no rows (`ListRowLevelViewSetMixin`)** ([#313](https://github.com/arrai-innovations/vueda/issues/313)):
+    - A filter, search, or row-level `Q` that joined a reverse foreign key or a many-to-many multiplied every total by the number of joined matches. Each matched row now counts once.
+    - A filter that matches no rows now totals `0` rather than `null`.
+    - A totals request on a queryset whose `distinct(...)` names an annotation now raises `NotImplementedError`.
+      _A client that special-cased a `null` total can drop that branch. An overridden `get_column_info` does not receive these fixes. See [Filter and Permission Semantics](../../guides/list-column-totals.md#filter-and-permission-semantics)._
+
+#### Workflow
+
+- **`makeworkflowmigrations` matches changes to the writes they describe** ([#294](https://github.com/arrai-innovations/vueda/issues/294)):
+    - Once a project reused a state or transition code, or moved a workflow code to another model, a generated migration could go wrong. It could hold another round's writes, omit its own, or send changes to the wrong app. The command now resolves each code to the row it named when the change happened. New migrations record `historical_app_label` and `historical_model` beside each workflow `code`.
+    - A round that deletes rows now carries their permissions and child rows. A migration applied rather than faked no longer hides later local edits from the next migration. A row added after a workflow rename no longer reappears in every new migration. Reversing a migration now restores a row's values from before the write it reverses.
+      _Existing migrations do not need `updateworkflowmigrations` for these fixes, which live in the command rather than in migration code. Review any older migration for a round that reused a state or transition code, because upgrading does not correct changes the old matching recorded. To make existing migrations name each workflow's app and model, see the `updateworkflowmigrations` entry below._
+- **`updateworkflowmigrations` names the workflow behind a reused code** ([#296](https://github.com/arrai-innovations/vueda/issues/296)):
+    - A migration generated before this release names each workflow by its code alone. Once another model takes that code over, the migration cannot say which workflow a change meant.
+    - The command now adds `historical_app_label` and `historical_model` to each workflow reference in `changed_data`. It never removes or alters a recorded value, and a second run changes nothing.
+      _Run `python manage.py updateworkflowmigrations <app_label> ...` once for your own apps as a development step, and commit the result. Always name the apps, because with none the command also rewrites VUEDA's own migrations. Before committing, restore any rewritten migration that depends on a `vueda_workflow` migration earlier than `0008_initialstateevent_objectstateevent_stateevent_and_more`, then run your formatter. See [Updating Existing Workflow Migrations](../../guides/manage-workflows.md#updating-existing-workflow-migrations)._
+
 ## v3.0.0a3 (2026-09-21)
 
 ### Fixes

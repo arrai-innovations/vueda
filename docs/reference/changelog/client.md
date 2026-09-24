@@ -14,6 +14,141 @@ stores, theme behavior, build integration, dependency expectations, and migratio
 
 <!-- towncrier release notes start -->
 
+## v3.0.0-alpha.6 (2026-09-24)
+
+### Breaking Changes
+
+#### Lists and querying
+
+- **The filter menu offers a filter type only when it has value handling and components (`useViewList`, `fieldMappings`, `useFilterForm`)** ([#351](https://github.com/arrai-innovations/vueda/issues/351)):
+    - These built-in types have no default filter components, so their filters leave the menu: `DateField`, `DateTimeField`, `TimeField`, `DurationField`, `DurationSecondsField`, `FloatField`, `DecimalInField`, `MultipleChoiceField`, `ModelMultipleChoiceField`, and `TypedChoiceField`. `PositiveDecimalField` has no value handling, so it leaves too. Picking any of them used to open an input that failed to render.
+    - `FilterFieldMappings` moved from `@vueda/use/useFilterForm.js` to `@vueda/utils/fieldMappings.js`. `mergeFilterFieldMapping` now also registers `initialValue`, `array`, and `range`, and only `range: true` makes a type a range.
+      _After upgrading, check each list view's console for `is not offered in the filter menu` warnings. To restore a filter, register its type with `mergeFilterFieldMapping`, such as `DateField: { component: "FormField", widget: "WidgetDateField" }`, or give it `fieldComponents`/`widgetComponents` overrides in the list view config. Register `PositiveDecimalField` with `initialValue: null`, and add `range: true` to a custom range type. See [Client Normalization and Cache Semantics](../../core-concepts/filtering-and-ordering-semantics.md#client-normalization-and-cache-semantics)._
+- **`ViewList` fetches the columns its `displayFields` prop names** ([#353](https://github.com/arrai-innovations/vueda/issues/353)):
+    - When a page passes `displayFields` without `listFields`, the list request now asks for the `displayFields` keys instead of the model config's `fetchFields`. Without this, a column the prop added could arrive empty under the narrower list default.
+      _Pass `listFields` to fetch a different set._
+
+#### Forms and validation
+
+- **Action forms stay locked after a success redirect (`ActionForm`, `useActionForm`)** ([#365](https://github.com/arrai-innovations/vueda/issues/365)):
+    - After a successful submit whose `redirectTo("success")` navigates away, the form ignores further submits until it unmounts. Its confirm and cancel buttons stay disabled and loading while the destination loads, so the action cannot run twice. The `confirm-button` slot's `disabled` prop now also covers loading, `cancel-button` gains `disabled`, and `action-bar` and `useActionForm` gain `confirmDisabled` and `cancelDisabled`.
+      _A custom `redirectTo` that can finish without navigating away must resolve `false`, or its form stays locked. A slot override that renders its own buttons should bind the new props. See [Transition UX and Redirects](../../guides/transition-ux-and-redirects.md)._
+
+#### Model metadata and data loading
+
+- **Default field lists differ by view (`storeModelConfig` `displayFields`, `fetchFields`, `submitFields`)** ([#353](https://github.com/arrai-innovations/vueda/issues/353)):
+    - Every view used to start from every non-PK, non-hidden field. A create form now defaults to writable fields only, so it no longer shows server-maintained values that a new record does not have yet. The update and read views still show every field.
+    - `submitFields` now leaves out read-only fields on every view. The server ignores input for them.
+    - A list now defaults to fields whose model info does not set `list_default: false`, and fetches only those columns. On a workflow model, that drops `workflow_state_code` and `valid_transitions` and keeps `workflow_state_name`. An unset list `fetchFields` follows the resolved `displayFields`, so a list fetches exactly the columns an integrator names.
+    - These defaults apply only when no model config names the field list or the `fields` shorthand. A model-wide `displayFields` still reaches every view unchanged.
+      _To show a read-only field on a create form or a flagged field in a list, name that view's `displayFields`. A custom list cell slot or combobox option slot that reads a field with no column must now name that field in `fetchFields`._
+
+#### Workflow
+
+- **`storeWorkflow` requests workflow data only for workflow models** ([#361](https://github.com/arrai-innovations/vueda/issues/361)):
+    - `fetchWorkflowTransition`, `fetchModelStates`, `fetchObjectState`, `fetchObjectTransitions`, and `fetchObjectHistory` first read the model's `workflow_enabled` flag from model info. For a model that reports `false` or omits the flag, they resolve to an empty array without a request. `requireModelInfo` and `useWorkflowTransitions` therefore send no workflow request for an ordinary model, and the model info response now carries `workflow_enabled`.
+      _Upgrade the server package with the client: a server that does not report `workflow_enabled` leaves every model without workflow controls._
+
+### Features
+
+#### Lists and querying
+
+- **List views request the column totals they display (`useViewList`, `ViewList`, `COLUMN_TOTALS_PARAM`)** ([#313](https://github.com/arrai-innovations/vueda/issues/313)):
+    - `useViewList` requests a total only for a visible column that the server lists in model info (`config.totalables`), and requests none in card layout. A total the server lists for no display column logs a `console.error`.
+    - `COLUMN_TOTALS_PARAM` (`"ct"`) joins the query parameter constants in `@vueda/utils/constants`.
+      _Upgrade the server package with the client: an older server lists no totals, so the footer row does not render. See the server changelog for the new `column_totals` form. A project that changes the server's `COLUMN_TOTALS_PARAM` must change this constant to match. A custom `row-after-objects` slot that shows totals in card layout must request them itself. A shell that calls `useViewList` directly should pass it the `tableBreakpoint` it gives `ObjectsGrid`._
+- **List rows link to their update or read view (`ViewList`, model config `detailLinkField`)** ([#348](https://github.com/arrai-innovations/vueda/issues/348)):
+    - Set the model config's `detailLinkField` to an existing identifying column to link each row to its available `update` view, falling back to `read` when the row permits `retrieve`. Rows with neither action remain unlinked. The list requests `available_actions` automatically without displaying it as a column.
+    - Built-in display adapters keep their formatting inside the link. Relation links, custom adapters, and explicit field slots keep their own rendering and interactions. The feature is opt-in; route guards and server permissions continue to enforce access.
+      _To replace a manual row link, configure `detailLinkField` and remove the corresponding field slot or synthetic action column. See [Link List Rows to Read and Update Views](../../guides/link-list-rows-to-detail-views)._
+- **List scopes (`ViewList`, `useViewList`, `ScopeGroup`, `ScopeChip`)** ([#362](https://github.com/arrai-innovations/vueda/issues/362)):
+    - `ViewList` shows a labeled chip in the constraints band for each hidden filter that a link supplies through the URL, such as `?id=1,2`. Clearing the chip removes that filter's query keys and returns the list to page 1.
+    - The new `scopes` prop marks `params` keys as scopes too. Each entry takes `{ label?, clearable? }`, and clearing emits `clear-scope` with `{ name, keys }`, so the caller can remove those keys from `params`.
+    - Custom list shells read `scope.scopes` and `scope.clearUrlScopes` from `useViewList`, and render them with `ScopeGroup` inside the new `ConstraintsBar` `scopes` slot.
+      _A list that already shows its own scope banner in the `before-list` slot now shows a scope chip as well. Remove the banner to rely on the chip, or keep both. See [Open a Scoped List](../../guides/scope-a-list)._
+
+### Fixes
+
+#### Lists and querying
+
+- **The empty state spans the grid width in table layout (`ObjectsGrid`)** ([#328](https://github.com/arrai-innovations/vueda/issues/328)):
+    - The empty row's cell was a `div`, which a CSS table wraps in an anonymous single-column cell, so "No records found." rendered at the first column's width and wrapped over several lines while the rest of the row stayed blank. The cell is now a `td` carrying `colspan`, and `aria-colspan` mirrors it for the ARIA table the grid declares. Card layout is unchanged: there the row is a grid item and `col-span-full` already spanned it.
+      _A theme recipe or selector that assumed a `div` for `ObjectsGrid` `emptyText` should expect a `td` in table layout. The new cell also carries `data-qa="objects-grid-empty"`._
+- **List controls follow the documented precedence (`ViewList` `allowColumnHiding` and `showTotalRecordNum`)** ([#331](https://github.com/arrai-innovations/vueda/issues/331)):
+    - Each prop voted with the model config value instead of overriding it. `allowColumnHiding` combined them with `||`, so either source could show the column selector and neither could hide it. `showTotalRecordNum` used `&&`, so either could hide the record count and neither could show it. A prop passed on the component now wins over the model config, which wins over the framework default, matching the precedence documented for every other override.
+      _A view passing `:allow-column-hiding="false"` against a model config that enables it now hides the selector, and one passing `:show-total-record-num="true"` against a config that disables it now shows the count. Omit the prop to keep the model config's answer._
+- **The filter menu offers only filters the client can render (`useViewList`, `useFilter`)** ([#351](https://github.com/arrai-innovations/vueda/issues/351)):
+    - A filter whose type had no client mapping, such as a `UUIDFilter`, appeared in the add-filter menu and threw `Missing mapping for filter type` when picked. The menu now leaves it out and logs one `console.warn` per list visit, and its URL value no longer applies as a filter.
+    - Custom list shells can run the same check with the new `getMissingFilterInputSupport` in `use/useFilter`.
+    - A function-wrapped `fieldComponents`/`widgetComponents` override that returns no component now throws an error naming the field, app, and model.
+- **Saved filter preferences hold only the reader's filters and search (`useViewList`)** ([#363](https://github.com/arrai-innovations/vueda/issues/363)):
+    - A query parameter that is not a filter of the list is no longer saved: opening `?not_a_valid_filter=true` and then changing any filter or the search used to save `not_a_valid_filter: "true"` with the reader's filters. It now stays in the URL for that visit only.
+    - A hidden filter left out by a `filterables` override is no longer saved: opening `?id=1,2` with `filterables: ["category"]` and adding `category=widgets` used to save `{ id: "1,2", category: "widgets" }`, and now saves `{ category: "widgets" }`.
+    - Restoring saved filters keeps only filters the list offers now and the search term, so values that earlier versions saved for unused query parameters or hidden filters do not come back into the URL or the request.
+
+#### Forms and validation
+
+- **The action form validation summary names fields by their labels (`ActionForm`, `useField`)** ([#332](https://github.com/arrai-innovations/vueda/issues/332)):
+    - A summary row named its field by the server's key, such as `purchase_order`, rather than the label shown above the input. It now uses the rendered field's label, and falls back to the key when no rendered field reports one.
+      _A `validation-summary` slot override can show `entry.label`, which each entry now carries beside `field` and `messages`._
+- **Saved rows can be removed from writable inlines (`FieldSetStackedInline`, `FieldSetTabularInline`)** ([#349](https://github.com/arrai-innovations/vueda/issues/349)):
+    - Editable inlines now show a deletion checkbox on saved rows without requiring a child destroy action in model metadata. Marked rows stay visible until submission, and clearing the mark keeps them in the payload. The parent update deletes omitted children using the existing nested-write behavior; child destroy permissions are not required.
+    - Read-only inlines and read forms offer no saved-row removal. Unsaved rows still use the immediate Delete button. Removing an unsaved row keeps existing deletion marks, errors, messages, and touched state attached to the correct rows. Existing `destroy-checkbox` slots and explicit destroy descriptors keep working.
+- **The action form validation summary lists only the errors no field shows (`ActionForm`, `useField`, `FormField`)** ([#354](https://github.com/arrai-innovations/vueda/issues/354)):
+    - The summary repeated every field error, including those shown beside their fields, and sat below the last field. It now lists only the errors no rendered field shows, and sits above the fields beside the non-field alert.
+    - A bulk model action shows each record's dry-run rejection on that record's chip, so it no longer shows a summary.
+      _A custom field component that renders no inline error messages should pass `{ showsErrors: () => false }` to `useField`, so its errors reach the summary. A `validation-summary` slot override now receives only the errors the summary lists. See [Action Form Validation Summary](../../guides/form-validation-and-errors.md#action-form-validation-summary)._
+
+#### Field types
+
+- **Durations render in named units, not the stored literal (`fieldMappings`, `columnMappings`, new `WidgetDurationReadOnly`, `ColumnDuration`, and `DurationDisplay`)** ([#328](https://github.com/arrai-innovations/vueda/issues/328)):
+    - A read view printed a duration exactly as the server sent it, so a two-year delivery window read `730 00:00:00`. A list cell did the same through `ColumnText`. `DurationField` and `DurationSecondsField` now name `WidgetDurationReadOnly` in `fieldMappings` and `ColumnDuration` in `columnMappings`, so a list and a read view word one field one way.
+    - `DurationDisplay` names only the units a value holds ("730 days", "2 hours, 30 minutes"), takes both serialized shapes (DRF's `[-]D HH:MM:SS[.ffffff]` string and the seconds count `DurationSecondsField` sends), and gives a null, undefined, or unparseable value the same dash `DateTimeDisplay` shows for an empty date. A duration of zero keeps a unit ("0 seconds"), because it is a recorded measurement rather than an absent one. Set `format: "short"` through `readOnlyWidgetProps` or `columnProps` for the abbreviated wording ("2h 30m").
+    - `normalizeDuration` is new in `utils/duration.js`. It reduces either serialized shape to a total and splits it back into whole units, carrying the sign separately so a negative duration reads as its magnitude. Sub-second precision is dropped.
+      _Read-only durations and duration list cells change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` or `ColumnText` to word durations itself, should re-check it._
+- **`JSON` renders as formatted text, not one line (`fieldMappings`, `columnMappings`, new `WidgetJsonReadOnly`, `ColumnJson`, and `JsonDisplay`)** ([#328](https://github.com/arrai-innovations/vueda/issues/328)):
+    - A read view printed a whole `JSON` payload on one line, because a field with no `readOnlyWidget` falls back to `WidgetReadOnly`. `JSONField` now names `WidgetJsonReadOnly` in `fieldMappings` and `ColumnJson` in `columnMappings`, so the type no longer relies on the `ColumnText` fallback either.
+    - `JsonDisplay` has two forms, and both use the mono stack. The block form the read view uses indents the payload two spaces per level and wraps a long string value; the inline form a list cell uses keeps it compact and truncates past `maxLength` (200 characters by default). Size and leading are inherited rather than set, so a read row keeps its rhythm and a grid cell still follows `data-density`. `indent` and `maxLength` reach the two through `readOnlyWidgetProps` and `columnProps`.
+    - A null renders the same dash `DateTimeDisplay` shows for an empty date. An empty object or array is a recorded value and renders as `{}` or `[]`; unlike the boolean and duration displays, the empty string is the `JSON` string scalar here and renders as `""`. A value that cannot be serialized falls back to plain coercion.
+      _Read-only `JSON` fields and `JSON` list cells change appearance. Like the other type adapters, `ColumnJson` reads the cell's `value`, where `ColumnText` read its `formatted`, so a `JSON` column whose field definition points `formatted` at a different key path now renders the `value` path instead. Set `columnComponents: { <col>: "ColumnText" }` to keep the old cell._
+
+#### Model metadata and data loading
+
+- **Model config stops loading when its arguments supersede a build (`useModelConfig`)** ([#366](https://github.com/arrai-innovations/vueda/issues/366)):
+    - Since 3.0.0-alpha.4, `useModelConfig` ignores a config build that finishes after its arguments changed. That build also stopped clearing `loading`, so a change that started no replacement build left `loading` true. A component that went inactive during a build reported `loading` until it became active again. Clearing `app` or `model` during a build left `loading` true until both had values again. The composable now clears `loading` when it abandons a build, and a replacement build sets it again.
+
+#### Permissions
+
+- **A move between models or actions rechecks route access (`makeCRUDRoutes`)** ([#331](https://github.com/arrai-innovations/vueda/issues/331)):
+    - `makeCRUDRoutes` generates two route records shared by every app, model, and action: one for list views and one for detail views. Vue Router runs `beforeEnter` only when a navigation enters a record, so a navigation between models or actions, which changes only the route's parameters, stayed inside the same record and ran no check at all. The client rendered "Action Not Found" for the new model instead of redirecting to `actionRedirect`, and the address bar kept the denied URL.
+    - `makeCRUDRoutes` now also registers the configured checks as a `beforeEach` guard, so a navigation that changes the app, model, or action reruns `requireAuth`, `requireModelInfo`, and `requireGroups` and redirects to `authRedirect`, `actionRedirect`, or `groupsRedirect`, whether or not the navigation enters a different route record. A navigation that changes only the query string or the primary key skips the checks, since neither affects what they resolve.
+    - The server still authorizes every request, so this fixed which view the client showed. It did not let anyone read data they could not read before.
+
+#### Routing and navigation
+
+- **The destroy view contributes a page title (`ViewDestroy`, `useViewDestroy`)** ([#328](https://github.com/arrai-innovations/vueda/issues/328)):
+    - A Destroy route went straight from the shell breadcrumb to the danger card, with no page heading, because neither `ViewDestroy` nor `useViewDestroy` called `usePageTitle` while Create, Update, Read, List, and the action confirmations all do. `useViewDestroy` now exposes `titleStr` and `pageLoading`, and the view registers them, so the layout's `PageTitle` renders a heading here too.
+    - The title reads "Delete Widget", and counts and pluralizes a bulk destroy as "Delete 3 Widgets". It says Delete rather than Destroy: the route action names the operation, the heading says what the operator is doing, matching the danger banner below it.
+      _An application that added its own heading above `ViewDestroy` to fill the gap will now show two. Remove the local one. An application that renders `PageTitle` only when its context carries a title will start showing the bar on this route._
+- **Detail view titles wait for the model name (`useDetailView` `titleStr`, `PageTitle`, `usePageTitle`)** ([#347](https://github.com/arrai-innovations/vueda/issues/347)):
+    - `titleStr` had a fallback of "Read Item" or "Update Item" that could never apply. The expression before the fallback always produced a non-empty string, so a missing verbose name rendered as "Read " or "Update " with a trailing space. This showed on every cold load of a `DetailView`, `ViewRead`, or `ViewUpdate` mounted outside the CRUD routes, whose `requireModelInfo` guard prefetches model info.
+    - `titleStr` is now an empty string until the verbose name is known. `PageTitle` shows a skeleton in place of the `<h1>` while the active view's title is empty, themed by the new `titleSkeleton` key. The skeleton stays if the name never arrives, so a missing model config is visible instead of mislabelled. A `title` slot still takes precedence.
+      _A custom title display reading `usePageTitle().current` should render a placeholder when a view has registered an empty `title`. `current` is an empty object only when no view has registered one. See "Build a custom title display" in the page title guide._
+
+#### Workflow
+
+- **CRUD routes handle a denied workflow discovery request (`requireModelInfo`, new `WorkflowPermissionDeniedError`)** ([#330](https://github.com/arrai-innovations/vueda/issues/330)):
+    - Opening a CRUD URL for a model whose workflow discovery request the server denied with a 403 left the route guard rejecting the navigation uncaught. The application shell rendered no page content and no explanation: a fresh load stayed on Vue Router's initial location, and navigating there from another route left the previous page on screen. `requireModelInfo` now catches that denial, shows a "Permission Denied" toast, and sends the navigation to the route's configured `actionRedirect`, the same destination an unlisted action already uses.
+    - `storeWorkflow.js` now classifies a 403 response to `fetchWorkflowTransition` as the new, exported `WorkflowPermissionDeniedError`. Integrators building custom guards can catch `WorkflowPermissionDeniedError` to recognize the same denial without inspecting `response.status` themselves.
+    - A workflow discovery request that fails for a reason other than a 403 still resolves to a plain `WorkflowError`, and `requireModelInfo` rethrows it rather than treating it as a permission denial.
+
+#### Components and theming
+
+- **Edge, focus, and elevation vars stay on the element that sets them (`base.css` `--vueda-hairline-color`, `--vueda-hairline-shadow`, `--vueda-focus-shadow`, `--vueda-overlay-elevation`)** ([#331](https://github.com/arrai-innovations/vueda/issues/331)):
+    - These custom properties inherited, so a container's value reached every descendant that reads them. A container that coloured its own hairline, such as a `FieldSetStackedInline` row, `AuthForm`, or `TypedConfirmField`, made the fields inside it paint `--border` instead of `--field-line`, so they looked lighter than the same fields outside the container. A control using `focus-ring-shadow` inside a `hairline` container, such as a `TableRowActions` button in a `Table`, painted the container's inset edge when it took focus. A wrapper's `focus-within:focus-ring-shadow` could likewise ring each `hairline` element inside it.
+    - `base.css` now registers all four with `@property` and `inherits: false`. An element that does not set one itself falls back to its default. `--vueda-focus-ring-gap-color` still inherits, so a per-surface gap override on a card keeps working.
+      _An application that set any of these four vars on a wrapper to restyle the elements inside it must now set them on those elements directly._
+
 ## v3.0.0-alpha.5 (2026-09-21)
 
 ### Features
