@@ -85,7 +85,8 @@ const VIEW_NAME = "create";
  * @property {string} model - Django model name.
  *
  * Optional form overrides.
- * @property {string[]} [submitFields] - Field names included in the submission payload; overrides the model config default.
+ * @property {string[]} [submitFields] - Field paths sent in the create request body; overrides the model config default when non-empty.
+ * @property {string[]} [fetchFields] - Field names the server returns in the create response; overrides the model config default when non-empty.
  * @property {'list'|'update'|'read'} [redirectAfter] - Named view to redirect to after a successful create.
  * @property {object} [formProps] - Extra props merged into the FormModel component.
  */
@@ -146,6 +147,13 @@ export function useViewCreate(options) {
     const formContextProps = reactive({ initialValues: modelInitialValues });
     const formContext = useForm(formContextProps);
 
+    const submitFields = computed(() =>
+        options.submitFields?.length ? options.submitFields : modelConfig.config?.submitFields,
+    );
+    const fetchFields = computed(() =>
+        options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
+    );
+
     const instanceObjectProps = reactive({
         target: {
             app: toRef(options, "app"),
@@ -155,7 +163,7 @@ export function useViewCreate(options) {
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         params: {
             [FIELDS_PARAM]: computed(() => {
-                const fields = [...(options.submitFields ?? modelConfig.config?.submitFields ?? [])];
+                const fields = [...(fetchFields.value ?? [])];
                 const pkKey = modelConfig.info?.pk ?? "id";
                 if (!fields.includes(pkKey)) {
                     fields.push(pkKey);
@@ -179,6 +187,7 @@ export function useViewCreate(options) {
         model: toRef(options, "model"),
         verboseName: computed(() => modelConfig.config?.verboseName),
         redirectAfter: toRef(options, "redirectAfter"),
+        submitFields,
     });
 
     const objectForm = useObjectForm({ props: objectFormProps, formContext, instanceObject });

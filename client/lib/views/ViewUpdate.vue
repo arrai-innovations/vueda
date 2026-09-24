@@ -45,7 +45,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field names included in the update submission payload; falls back to the model config's submitFields. */
+    /** Field paths sent in the update request body; falls back to the model config's submitFields when omitted or empty. */
     submitFields: {
         type: Array,
         default: undefined,
@@ -122,7 +122,7 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** Field names to request from the API when fetching the object; overrides the model config default. */
+    /** Field names to request from the API when fetching the object and in the update response; falls back to the model config's fetchFields when omitted or empty. */
     fetchFields: {
         type: Array,
         default: undefined,
