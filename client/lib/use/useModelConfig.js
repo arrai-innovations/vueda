@@ -138,6 +138,10 @@ export function useModelConfig(app, model, view) {
                 let current = true;
                 onCleanup(() => {
                     current = false;
+                    // a superseded build no longer clears loading when it settles, so clear it here. a
+                    //  rerun that starts a build sets it again before anything renders, and one that
+                    //  starts none (inactive, or app or model cleared) is not left loading
+                    loadingError.clearLoading();
                 });
                 if (!active) {
                     return; // we'll pick up again when the component is active
