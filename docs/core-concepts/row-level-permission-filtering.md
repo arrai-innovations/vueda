@@ -57,7 +57,7 @@ Row-level filtering runs at a specific point in the `list` response pipeline: af
 
 **Pagination metadata reflects the filtered count.** `totalRecords` and `totalPages` in the paginated response are computed from the filtered queryset, not the unfiltered base queryset. A user with row-level restrictions sees accurate pagination for their visible row set, as emitted by {@api py:function:vueda.core.pagination.VUEDAPageNumberPagination.get_paginated_response}.
 
-**Column totals reflect the filtered set.** When the viewset declares `column_totals`, aggregates are computed from the filtered queryset (before pagination). This means totals match the visible rows, not the full table. See [Expose Aggregates in `List` Responses](../guides/list-column-totals) for the column totals implementation.
+**Column totals reflect the filtered set.** When the viewset declares `column_totals` and a request asks for some of them, those aggregates are computed from the filtered queryset rather than from the page cut out of it. This means totals match the visible rows, not the full table, and stay the same on every page. See [Expose Aggregates in `List` Responses](../guides/list-column-totals) for the column totals implementation.
 
 When row filtering produces an empty result (e.g., `check_queryset` returns `False`), the `list` response is `200` with an empty `results` array and `totalRecords == 0`. The endpoint does not return `403`; row-level filtering is a visibility constraint, not an endpoint-level authorization rejection.
 

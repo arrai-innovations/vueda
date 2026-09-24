@@ -146,6 +146,10 @@ onMounted(() => {
 const icons = useIcons("ObjectsGrid", props);
 const emptyIconEntry = computed(() => icons(props.emptyVariant));
 
+// Rendered columns, which is what the empty row has to span. Both the header and the body
+// loops skip a field without a name, so `fields.length` can overcount.
+const columnCount = computed(() => Math.max(1, props.fields.filter((field) => field?.name).length));
+
 const themeContext = reactive({
     isTable,
     tableBreakpoint: toRef(props, "tableBreakpoint"),
@@ -258,7 +262,22 @@ watch(
                 role="rowgroup"
             >
                 <div :class="[theme('bodyRow'), 'col-span-full']" role="row">
-                    <div :class="theme('emptyText')" role="cell">
+                    <!--
+                        Table layout needs a real `td` carrying `colspan`. The row is a
+                        `display: table-row` there, so a `div` child becomes an anonymous
+                        single-column cell and the empty state renders in the first column at
+                        that column's width, wrapping to several lines. `col-span-full` is the
+                        card-layout answer (the row is a grid item) and does nothing in a table.
+                        `aria-colspan` mirrors the span for the ARIA table the grid declares.
+                    -->
+                    <component
+                        :is="isTable ? 'td' : 'div'"
+                        :aria-colspan="isTable ? columnCount : undefined"
+                        :class="theme('emptyText')"
+                        :colspan="isTable ? columnCount : undefined"
+                        data-qa="objects-grid-empty"
+                        role="cell"
+                    >
                         <div :class="theme('emptyContent')" :data-variant="emptyVariant">
                             <!-- @slot Replaces the default empty-state body. Receives `variant` (the resolved emptyVariant). Compose icon (with `data-slot="icon"`), title, description, and actions. -->
                             <slot name="empty" :variant="emptyVariant">
@@ -272,7 +291,7 @@ watch(
                                 <strong v-if="emptyText" class="font-semibold text-foreground">{{ emptyText }}</strong>
                             </slot>
                         </div>
-                    </div>
+                    </component>
                 </div>
             </div>
             <div v-else :class="theme('bodyRowGroup')" data-qa="objects-grid-body-row-group" role="rowgroup">

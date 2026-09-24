@@ -27,7 +27,6 @@ from django.core.exceptions import FieldError
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
-from django.http import Http404
 from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from django_filters.filters import AllValuesFilter
@@ -35,7 +34,6 @@ from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_is_installed
@@ -45,10 +43,11 @@ from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
-from vueda.core.utils import AvailableActionsRequest
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -134,6 +133,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             "model_expands": serializers.SerializerMethodField,
             "model_ordering": serializers.SerializerMethodField,
             "model_filtering": serializers.SerializerMethodField,
+            "model_column_totals": serializers.SerializerMethodField,
         }
 
     @cached_property
@@ -375,6 +375,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "type_model": field_type_model,
                 "type_serializer": field_type_serializer,
             }
+            # Sent only when a serializer field sets it, like the optional constraint keys below.
+            if "list_default" in field.style:
+                field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
             obj = serializer
             if not field.read_only:
@@ -440,6 +443,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         Get the actions for a model and their own metadata.
         Actions will be sorted by method action, followed by sorted extra actions.
+
+        Each CRUD action is checked against its own required permission through
+        :func:`vueda.core.permissions.check_action_permission`, called with no instance --
+        model-scope discovery decides through ``has_permission`` alone, the same model-level
+        check a CRUD action's own per-object discovery relies on before it ever reaches a row, so
+        a matching workflow-state grant can settle a model-level denial here too. A model-level
+        action describes what a requester might do on some instance of the model, not a guarantee
+        that holds for every instance; the per-object surfaces (an object's own
+        ``available_actions``) decide that separately, through ``has_object_permission``.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -459,24 +471,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         action_data = []
         for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
-            if user is not None:
-                skip_action = False
-                for method_action, method in METHOD_MAPPING.items():
-                    if method_action.lower() == action:
-                        fake_request = AvailableActionsRequest(
-                            authenticators=request.authenticators,
-                            method=method.upper(),
-                            successful_authenticator=request.successful_authenticator,
-                            user=user,
-                        )
-
-                        try:
-                            called_viewset.check_object_permissions(fake_request, None)
-                        except (PermissionDenied, Http404):
-                            skip_action = True
-
-                if skip_action:
-                    continue
+            if user is not None and not check_action_permission(called_viewset, request, None, action):
+                continue
 
             action_item_data = {
                 "name": action,
@@ -564,6 +560,48 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return expands
 
+    def get_model_column_totals(self, instance):
+        """
+        The column totals a ``list`` request may ask for.
+
+        A section of its own rather than a flag on each entry of ``model_fields``, because the two
+        don't line up: ``model_fields`` is built from the canonical serializer, while
+        ``column_totals`` lives on the viewset and names its totals after the client's columns. A
+        total named ``product_price`` that no serializer field matches would have nowhere to be
+        reported, and a client's display columns include ``foo__bar`` names ``model_fields`` doesn't
+        carry either.
+
+        ``fields`` are the declared total names, in declaration order; a client asks for the ones
+        its visible columns can render.
+
+        The section reports which totals exist, not the parameter that asks for them. A client
+        sends the parameter from its own constant, so a project that changes
+        ``settings.COLUMN_TOTALS_PARAM`` needs a matching client change. Reporting the parameter
+        name here is part of the wider parameter-name discovery work, which lands after v3.0.0
+        rather than a parameter at a time.
+
+        A viewset with no ``column_totals``, or one whose declaration isn't a mapping, reports no
+        fields -- the same thing its ``list`` action offers. ``vueda_info.E011`` reports the
+        misconfigured declaration itself.
+
+        Read from the ``column_totals`` attribute rather than through
+        ``VuedaViewSet.get_declared_column_totals()``, which is what ``list`` and the OpenAPI schema
+        call. Registration stores the viewset class, and that hook is an instance method whose
+        override is free to depend on the request -- there is no instance here to ask, and no
+        request to ask about. So ``column_totals`` is the advertised set: a viewset narrowing its
+        totals per request through that hook still advertises everything it declares, and a client
+        asking for one the hook withheld gets the 400 that ``get_requested_column_totals`` raises.
+        A total that no declaration carries cannot be advertised here at all.
+        """
+        viewset = self.canonical["viewset"]
+        column_totals = getattr(viewset, "column_totals", None) if viewset is not None else None
+        if not isinstance(column_totals, dict):
+            column_totals = {}
+
+        return {
+            "fields": list(column_totals),
+        }
+
     def get_ordering_data(self, model, order_by, *, include_ascending=True):
         """
         Metadata for one ordering term: the field name a client sends to request it, that field's
@@ -574,12 +612,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``Coalesce("nickname", Value(""))``. Ordering expressions are mentioned near the bottom of
         https://docs.djangoproject.com/en/5.2/ref/models/options/#ordering.
 
-        The name reported is the field path as declared, not the path it resolved through: a
-        ``formatted_name`` ordering is reported as ``formatted_name``, which is the name the client
-        sends back in ``?o=`` and the name the queryset annotation carries, not the lookup expression
-        behind it. The type comes from the column that path lands on, so it describes the field the
-        client orders by rather than what a function wrapped around it returns — ``Length("name")``
-        reports ``name`` as ``alpha``, not the integer the expression sorts on.
+        The name reported is the dotted public form of the field path as declared, not the path it
+        resolved through: a ``formatted_name`` ordering is reported as ``formatted_name``, which is
+        the name the client sends back in ``?o=`` (dotted, for a path that crosses a relation) and
+        the name the queryset annotation carries, not the lookup expression behind it. The type comes
+        from the column that path lands on, so it describes the field the client orders by rather
+        than what a function wrapped around it returns — ``Length("name")`` reports ``name`` as
+        ``alpha``, not the integer the expression sorts on.
 
         Raises ``UnnameableOrderingTermError`` for a term that references no field or more than one, since
         neither has a single name a client could send back.
@@ -592,7 +631,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         fields = ordering_fields_from_path(model, field_name)
         field = fields[-1]
 
-        ordering_data = {"name": field_name}
+        ordering_data = {"name": orm_ordering_path_to_public(field_name)}
 
         if include_ascending:
             ordering_data["ascending"] = ordering_term_is_ascending(order_by)
@@ -784,16 +823,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             # An annotation the loop above already resolved as a real field path — a `formatted_name`
             # reached through `formatted_name_lookup_expression` — keeps the type taken from that
             # path, which describes the column a client sorts on better than the annotation's own
-            # output field does. The rest are named here, since nothing else would report them.
+            # output field does. The rest are named here, since nothing else would report them. An
+            # annotation is a queryset-local name rather than a relation path, so it is not expected
+            # to carry `__`, but it is translated the same way every other name in `fields_by_name`
+            # is, so the two can never disagree about what an already-resolved name looks like.
             for annotation_name in annotation_names:
-                if annotation_name in fields_by_name:
+                public_name = orm_ordering_path_to_public(annotation_name)
+                if public_name in fields_by_name:
                     continue
 
                 data = {
-                    "name": annotation_name,
+                    "name": public_name,
                     "type": self.get_annotation_ordering_type(queryset, annotation_name),
                 }
-                fields_by_name[annotation_name] = data
+                fields_by_name[public_name] = data
                 ordering_data["fields"].append(data)
 
         # VuedaOrderingFilter accepts an explicit `?o=` request on a default-ordering field even when
@@ -1275,6 +1318,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     model_field = model_fields[-1]
 
                 # Label
+                #
+                # Read from `base_filters`, not `filter_obj` itself: `filter_obj` is the per-request
+                # bound instance copy, and reading its `.label` first (rather than through
+                # `get_model_filtering_label` below) could trigger a filter's lazy default-label
+                # generation and freeze it. `PublicFilterAliasMixin.get_filters()` renames
+                # `base_filters` itself, so it is keyed by the same public `filter_name` `filterset.
+                # filters` is.
                 declared_filter = declared_filters.get(filter_name)
                 label = self.get_model_filtering_label(
                     filter_obj, model, declared_filter.label if declared_filter is not None else None
@@ -1762,6 +1812,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                         },
                                                     ],
                                                 },
+                                                "list_default": {
+                                                    "type": "boolean",
+                                                    "readOnly": True,
+                                                    "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
+                                                    "example": "False",
+                                                },
                                                 "pk": {
                                                     "type": "integer",
                                                     "readOnly": True,
@@ -1954,6 +2010,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 ),
                                             },
                                         ],
+                                    },
+                                    "list_default": {
+                                        "type": "boolean",
+                                        "readOnly": True,
+                                        "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
+                                        "example": "False",
                                     },
                                     "pk": {
                                         "type": "integer",
@@ -2335,6 +2397,36 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 },
                             },
                         },
+                    }
+
+                    # Model Column Totals
+                    data["content"]["application/json"]["schema"]["properties"]["model_column_totals"] = {
+                        "type": "object",
+                        "title": "Column Totals Data",
+                        "properties": {
+                            "fields": {
+                                "type": "array",
+                                "description": (
+                                    "The total names a client may request, in declaration order. Each is the "
+                                    "key the value comes back under in the paginated response's "
+                                    "`columnTotals`, and is named after the column it renders under rather "
+                                    "than after the server-side field path it sums. They are requested "
+                                    "through the `COLUMN_TOTALS_PARAM` query parameter, documented on each "
+                                    "`list` operation that declares totals; a wildcard value (`*` or `~all`) "
+                                    "requests every declared total, and naming none requests none, which "
+                                    "runs no aggregation query."
+                                ),
+                                "items": {
+                                    "type": "string",
+                                    "readOnly": True,
+                                    "description": "Column total to request.",
+                                    "example": "product_price",
+                                },
+                            },
+                        },
+                        "required": [
+                            "fields",
+                        ],
                     }
 
                     # Model Permissions
@@ -2816,7 +2908,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                             "default": [],
                                             "fields": [
                                                 {"name": "order_number", "type": "numeric"},
-                                                {"name": "customer__user__email", "type": "alpha"},
+                                                {"name": "customer.user.email", "type": "alpha"},
                                                 {"name": "when", "type": "datetime"},
                                                 {"name": "order_state", "type": "alpha"},
                                             ],

@@ -12,7 +12,7 @@ import {
     faArrowUpFromBracket,
     faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
+import { customerScenario, fieldTypesScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
@@ -20,6 +20,7 @@ const listScenario = customerScenario({
     app: "showcaselist",
     viewConfigs: { list: { displayFields: ["account", "owner", "tier", "mrr", "currency"] } },
 });
+const wideListScenario = fieldTypesScenario({ app: "showcasewidelist" });
 const createScenario = customerScenario({ app: "showcasecreate" });
 const updateScenario = customerScenario({ app: "showcaseupdate" });
 const readScenario = customerScenario({ app: "showcaseread" });
@@ -132,6 +133,50 @@ rows, and page through it; every control is the real one.
 </VuedaDemo>
 </ClientOnly>
 
+### A wider model
+
+The demo above narrows the list to five short columns, which is the comfortable case. A
+real model is usually wider and emptier. This second demo is the same component against
+a twelve-column model with a value of every shape: dates, a datetime, two ranges, a
+duration, a multi-value choice, a JSON blob, file and image paths, and an IP address.
+Every nullable column is empty in at least one row, and the last row is empty in all of
+them.
+
+This demo forces table mode with `tableBreakpoint="xs"`, because the demo frame is
+narrower than the `lg` default at which the grid switches from cards to a table.
+
+Two things are visible here that the narrow demo cannot show. The grid runs wider than
+its frame and scrolls sideways inside its own card, rather than compressing columns to
+fit. Date, time, datetime, boolean, duration, and `JSON` fields have a column adapter of
+their own ({@api vue:component:ColumnDateTime}, {@api vue:component:ColumnBoolean},
+{@api vue:component:ColumnDuration}, and {@api vue:component:ColumnJson}); the two ranges
+and the multi-value choice fall through to {@api vue:component:ColumnText}, which prints
+the stored value, so a range reads as its raw `lower` and `upper` object.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view list - 12 records - every field type</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewList.vue')"
+    :app="wideListScenario.app"
+    :model="wideListScenario.model"
+    action="list"
+    :seed="wideListScenario.seed"
+    :api="wideListScenario.api"
+    :view-props="{ tableBreakpoint: 'xs' }"
+    page-title
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>columns: no <code>displayFields</code> override, so the config default applies and every non-pk field gets a column</span>
+    <span>layout: <code>tableBreakpoint="xs"</code> forces table mode. The demo frame is 688 px, below the <code>lg</code> default, so both list demos would otherwise render as cards</span>
+    <span>overflow: {@api theme-key:ObjectsGrid} <code>root</code> is the scroll surface. Columns size to content, and the header row stays on one line rather than wrapping to keep the table narrow</span>
+    <span>adapters: date, time, and datetime resolve to <code>ColumnDateTime</code>, boolean to <code>ColumnBoolean</code>, duration to <code>ColumnDuration</code>, and JSON to <code>ColumnJson</code>, all through <code>columnMappings.js</code>; range and choice have no entry and fall back to <code>ColumnText</code>. Handling is a boolean with choices, so <code>ColumnBoolean</code> words it Yes or No rather than using its choice labels</span>
+    <span>empty values: the four type adapters print a dash for a null, while <code>ColumnText</code> prints nothing at all. An empty container keeps its own mark: <code>ColumnJson</code> prints <code>{}</code>, and the empty choice list prints <code>[]</code> through <code>ColumnText</code>. Whether a list should carry one placeholder for the absent case everywhere is open, and read views have to answer it the same way</span>
+    <span>sorting: release date, published at, lead time, and handling carry ordering metadata; the rest are display-only</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 ## ViewCreate
 
 The create view is a page title, a sticky bar holding the submit action, and a form body
@@ -151,8 +196,8 @@ rendered from the model's configured fields. The demo below is the live componen
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>fields: no field list is passed here. The form renders the model config's <code>submitFields</code>, which defaults to every non-pk field, and each widget is chosen from the field's serializer and model types</span>
-    <span>the default layout is a single-column stack. Section grouping and multi-column grids are customizations; see [Forms](/reference/components/forms)</span>
-    <span>submit bar: a {@api vue:component:StickyBar} in <code>zone="top"</code>, which teleports into the layout's sticky stack. The docs harness has no stack, so it renders in place here; [Sticky Chrome](./sticky-chrome.md) covers the pinned behavior</span>
+    <span>the default layout is a single-column stack. Section grouping and multi-column grids are customizations; see <a href="./forms.html" class="text-primary-text underline underline-offset-4">Forms</a></span>
+    <span>submit bar: a {@api vue:component:StickyBar} in <code>zone="top"</code>, which teleports into the layout's sticky stack. The docs harness has no stack, so it renders in place here; <a href="./sticky-chrome.html" class="text-primary-text underline underline-offset-4">Sticky Chrome</a> covers the pinned behavior</span>
     <span>page actions: the view teleports a link per non-detail action into the title row, which is why List appears there and Create does not</span>
     <span>submitting posts the submit fields to the model's list url, then routes to the new record's update screen (<code>redirect-after</code> chooses list, update, or read)</span>
     <span>theme keys: {@api theme-key:ViewCreate}, {@api theme-key:StickyBar} · source: <code>ViewCreate.vue</code></span>
@@ -247,7 +292,8 @@ from the fetched instances, and an optional type-to-confirm phrase gates the sub
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>card: {@api theme-key:ViewDestroy} paints a <code>border-destructive/50</code> edge plus an 8 % destructive ring, and wraps the inner {@api theme-key:ModelActionForm} as <code>bare</code> so only this surface carries chrome</span>
-    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the title is generated from the record count and model verbose name</span>
+    <span>title: contributed through <code>usePageTitle</code> like the other CRUD views, and counted for a bulk destroy. It reads Delete, not Destroy: the route names the operation, the page says what the operator is doing</span>
+    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the banner title is generated from the record count and model verbose name</span>
     <span>consequences: the <code>linkedObjectCounts</code> prop becomes a {@api vue:component:ConsequencesBullets} list. With none supplied the banner falls back to a single "This action cannot be undone." line</span>
     <span>records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each row's <code>formatted_name</code> beside its primary key</span>
     <span>type-to-confirm: {@api vue:component:TypedConfirmField} holds its own value and gates submit; it is not a form field, so the phrase never reaches the request body</span>

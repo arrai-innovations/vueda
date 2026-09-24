@@ -3,13 +3,27 @@
  * @description VUEDA-specific list CRUD adaptors for single-page, all-page, bulk-delete, and execute-action operations.
  */
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
-import { PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { COLUMN_TOTALS_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { FetchError, ListFilterError } from "@vueda/utils/errors.js";
 import { actionRequestHeaders, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import isObject from "lodash-es/isObject.js";
 import omit from "lodash-es/omit.js";
 import pLimit from "p-limit";
+
+/**
+ * Request parameters that are never a filter, so a `400` naming one is not a filter error.
+ *
+ * A `400` keyed by a filter name belongs to the filter form, which renders the message against the
+ * widget that produced it -- that is what `ListFilterError` is for, and why `useViewList` leaves it
+ * out of the view's own error state. A parameter with no widget behind it has nowhere to render, so
+ * classifying one as a filter error hides it completely: the list comes back empty and nothing says
+ * why. The totals parameter is the case that matters, since a viewset can reject a total name the
+ * client asked for -- an overridden `totalables`, or a viewset narrowing its totals per request.
+ *
+ * @type {string[]}
+ */
+const NON_FILTER_PARAMS = [PAGE_PARAM, SEARCH_PARAM, COLUMN_TOTALS_PARAM];
 
 /**
  * Make a search params string from the given search params object.
@@ -80,7 +94,7 @@ export function singlePagePaginatedListCrudAdaptor({
 
         if (response.status !== 200) {
             if (isObject(responseData)) {
-                const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
+                const filterParams = Object.keys(omit(params || {}, NON_FILTER_PARAMS));
                 if (filterParams.some((key) => key in responseData)) {
                     throw new ListFilterError(response, responseData);
                 }
@@ -151,7 +165,7 @@ export function allPagePaginatedListCrudAdaptor({
         const firstData = await getJsonOrText(firstResp);
         if (firstResp.status !== 200) {
             if (isObject(firstData)) {
-                const filterParams = Object.keys(omit(params || {}, [PAGE_PARAM, SEARCH_PARAM]));
+                const filterParams = Object.keys(omit(params || {}, NON_FILTER_PARAMS));
                 if (filterParams.some((key) => key in firstData)) {
                     throw new ListFilterError(firstResp, firstData);
                 }
@@ -173,9 +187,14 @@ export function allPagePaginatedListCrudAdaptor({
         });
         setColumnTotals(firstData.columnTotals);
         if (totalPages > 1) {
+            // Totals are asked for once, on the first page. The server aggregates over the whole
+            // filtered set rather than the rows of one page, so every page would come back carrying
+            // the same numbers -- at the cost of a `SUM` per requested total, per page. Only
+            // `firstData.columnTotals` is read above, so the later pages ask for none.
+            const laterPageParams = omit(ourParams, COLUMN_TOTALS_PARAM);
             for (let page = 2; page <= totalPages; page++) {
-                ourParams[PAGE_PARAM] = page;
-                const nextUrl = `${baseUrl}${makeSearchParamsString(ourParams)}`;
+                laterPageParams[PAGE_PARAM] = page;
+                const nextUrl = `${baseUrl}${makeSearchParamsString(laterPageParams)}`;
 
                 running.push(
                     limit(async () => {

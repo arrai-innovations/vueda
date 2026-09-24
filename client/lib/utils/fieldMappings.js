@@ -4,6 +4,8 @@
  */
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import merge from "lodash-es/merge.js";
+import omit from "lodash-es/omit.js";
+import pick from "lodash-es/pick.js";
 
 /**
  * Describes how a DRF serializer field type maps to a Vue field component and widget.
@@ -11,6 +13,8 @@ import merge from "lodash-es/merge.js";
  * @typedef {object} FieldMappingEntry
  * @property {import('vue').Component|null} [component] - The field component override. Only used by filterFieldMapping; defaultFieldMappings and choiceFieldMappings rely on FormField as the hardcoded default.
  * @property {import('vue').Component|null} widget - The widget component, or null if none.
+ * @property {import('vue').Component} [readOnlyWidget] - The widget component used when the field renders read-only. Falls back to `WidgetReadOnly` when absent.
+ * @property {object} [readOnlyWidgetProps] - Extra props forwarded to `readOnlyWidget`, used in place of `widgetProps` when the field renders read-only.
  * @property {object} [fieldProps] - Extra props forwarded to the field component.
  * @property {object} [widgetProps] - Extra props forwarded to the widget component.
  * @property {import('vue').Component} [manyComponent] - Component for many-field wrappers.
@@ -28,6 +32,7 @@ export const defaultFieldMappings = {
     BooleanField: {
         BooleanField: {
             widget: availableWidgets.WidgetToggle,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -52,6 +57,11 @@ export const defaultFieldMappings = {
         DateField: {
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "date" },
+            // Read-only display options mirror the `columnProps` that
+            // columnMappings gives ColumnDateTime, so a read view and a list
+            // format the same field identically.
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { showTime: false },
             default: true,
         },
     },
@@ -60,6 +70,8 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetDateField,
             fieldProps: { validation: "datetime" },
             widgetProps: { granularity: "minute" },
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { showTime: true },
             default: true,
         },
     },
@@ -79,12 +91,16 @@ export const defaultFieldMappings = {
             widget: availableWidgets.WidgetDuration,
             // todo: mode for WidgetDuration to handle seconds directly
             widgetProps: { unit: "minutes" },
+            // DurationDisplay reads a number as seconds and a string as Django's
+            // duration format, so both duration types share one read-only widget.
+            readOnlyWidget: availableWidgets.WidgetDurationReadOnly,
             default: true,
         },
     },
     DurationField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
+            readOnlyWidget: availableWidgets.WidgetDurationReadOnly,
             default: true,
         },
     },
@@ -159,6 +175,7 @@ export const defaultFieldMappings = {
     JSONField: {
         JSONField: {
             widget: availableWidgets.WidgetJson,
+            readOnlyWidget: availableWidgets.WidgetJsonReadOnly,
             default: true,
         },
     },
@@ -226,6 +243,7 @@ export const defaultFieldMappings = {
     NullBooleanField: {
         NullBooleanField: {
             widget: availableWidgets.WidgetCheckbox,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -272,6 +290,10 @@ export const defaultFieldMappings = {
         TimeField: {
             widget: availableWidgets.WidgetTimeField,
             fieldProps: { validation: "time" },
+            // Time-only value: no date, and no relative or tooltip text, which
+            // would reference "today" and mislead.
+            readOnlyWidget: availableWidgets.WidgetDateTimeReadOnly,
+            readOnlyWidgetProps: { format: "t", showRelative: false, showTooltip: false },
             default: true,
         },
     },
@@ -316,6 +338,7 @@ export const choiceFieldMappings = {
         BooleanField: {
             widget: availableWidgets.WidgetRadioGroup,
             manyWidget: availableWidgets.WidgetRadioGroup,
+            readOnlyWidget: availableWidgets.WidgetBooleanReadOnly,
             default: true,
         },
     },
@@ -624,6 +647,15 @@ export const filterFieldMapping = {
         widget: availableWidgets.WidgetModel,
         widgetProps: { type: "multiSelect", isFilter: true },
     },
+    RangeField: {
+        component: availableFields.FieldSetRange,
+        fieldProps: { type: "number", isFilter: true },
+        boundaryComponent: availableFields.FormField,
+        boundaryFieldProps: { validation: "decimal" },
+        boundaryWidget: availableWidgets.WidgetNumberInput,
+        // Keep fractional thresholds instead of snapping to integers or rounding the display to three places.
+        boundaryWidgetProps: { stepSnapping: false, formatOptions: { maximumFractionDigits: 20 } },
+    },
     DateRangeField: {
         component: availableFields.FieldSetRange,
         fieldProps: {
@@ -687,19 +719,148 @@ export function mergeDefaultFieldMappings(customMappings) {
 }
 
 /**
- * Merge custom field mappings used when building filter forms.
+ * How a filter type's value behaves in the filter form and the URL.
  *
- * @param {{ [key: string]: unknown }} customMappings - Additional mappings keyed by field type.
+ * @typedef {object} FilterValueMapping
+ * @property {any} [initialValue] - The empty value the filter form starts from.
+ * @property {boolean} [array] - Whether the filter carries a list of values.
+ * @property {boolean} [range] - Whether the filter is a range rendered as two boundary inputs.
+ */
+
+/**
+ * Per-filter-type value configuration: the empty/initial value a filter field
+ * starts from, and whether it is a range (suffix pair) or an array filter. The
+ * live filter form (`useFilterField`) and URL→filter restoration
+ * (`buildFilterFromQuery`) both read it, so query values coerce the same way in
+ * each. {@link filterFieldMapping} holds the components for the same types. A
+ * custom filter type registers its entry here through
+ * {@link mergeFilterFieldMapping}, alongside its components.
+ *
+ * @type {{[typeFilter: string]: FilterValueMapping}}
+ */
+export const FilterFieldMappings = {
+    DateRangeField: {
+        range: true,
+        initialValue: {
+            start: null, // Default to start and end, being overridden by the suffixes
+            end: null,
+        },
+    },
+    CharField: {
+        initialValue: "",
+    },
+    DateField: {
+        initialValue: null,
+    },
+    DateTimeField: {
+        initialValue: null,
+    },
+    IsoDateTimeField: {
+        initialValue: null,
+    },
+    DecimalField: {
+        initialValue: null,
+    },
+    DecimalInField: {
+        initialValue: [],
+        array: true,
+    },
+    DurationSecondsField: {
+        initialValue: null,
+    },
+    DurationField: {
+        initialValue: null,
+    },
+    FloatField: {
+        initialValue: null,
+    },
+    ChoiceField: {
+        initialValue: null,
+    },
+    ModelMultipleChoiceInField: {
+        initialValue: [],
+        array: true,
+    },
+    ModelChoiceInField: {
+        initialValue: [],
+        array: true,
+    },
+    ModelChoiceField: {
+        initialValue: null,
+    },
+    BooleanField: {
+        initialValue: null,
+    },
+    DateTimeRangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    RangeField: {
+        range: true,
+        initialValue: {
+            start: null,
+            end: null,
+        },
+    },
+    ModelMultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    MultipleChoiceField: {
+        initialValue: [],
+        array: true,
+    },
+    TimeField: {
+        initialValue: null,
+    },
+    TypedChoiceField: {
+        initialValue: null,
+    },
+    NullBooleanField: {
+        initialValue: null,
+    },
+};
+
+/**
+ * A filter type's registration: the components that render its input, plus the
+ * value handling the filter form and URL restoration need for it.
+ *
+ * @typedef {FieldMappingEntry & FilterValueMapping} FilterFieldMappingInput
+ */
+
+const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range"];
+
+/**
+ * Register custom filter types, or adjust existing ones, for filter forms. Each
+ * entry's components merge into {@link filterFieldMapping}; its `initialValue`,
+ * `array`, and `range` keys merge into the value table
+ * ({@link FilterFieldMappings}). A filter type needs both to be
+ * offered in a list's filter menu: the value table tells the form what an empty
+ * or URL-restored value looks like, and the component table tells it what to
+ * render.
+ *
+ * @param {{ [typeFilter: string]: FilterFieldMappingInput }} customMappings - Registrations keyed by filter type.
  * @returns {typeof filterFieldMapping} The updated filter field mappings.
  * @example
  * ```js
  * mergeFilterFieldMapping({
- *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget },
+ *     MyCustomField: { component: MyCustomField, widget: MyCustomWidget, initialValue: null },
  * });
  * ```
  */
 export function mergeFilterFieldMapping(customMappings) {
-    return merge(filterFieldMapping, customMappings);
+    const componentMappings = {};
+    for (const [typeFilter, entry] of Object.entries(customMappings || {})) {
+        const valueMapping = pick(entry, FILTER_VALUE_MAPPING_KEYS);
+        if (Object.keys(valueMapping).length) {
+            FilterFieldMappings[typeFilter] = { ...FilterFieldMappings[typeFilter], ...valueMapping };
+        }
+        componentMappings[typeFilter] = omit(entry, FILTER_VALUE_MAPPING_KEYS);
+    }
+    return merge(filterFieldMapping, componentMappings);
 }
 
 /**

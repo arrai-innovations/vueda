@@ -125,7 +125,7 @@ python manage.py migrate myapp 0005_workflow_changes --fake
 
 Other environments that do not already have the changes should run the migration normally.
 
-Faking and running are not interchangeable, and `makeworkflowmigrations` treats them differently. A faked migration wrote nothing, so the edits you made by hand are the only record of its changes, and the command matches them there. A migration that ran wrote its own changes and recorded that it did, so the command leaves those changes alone and they cannot be confused with an edit made afterwards on that environment.
+Faking and running are not interchangeable, and `makeworkflowmigrations` treats them differently. A faked migration wrote nothing, so the edits you made by hand are the only record of its changes, and the command matches its changes against those edits. A migration that ran also recorded its own writes. The command still matches its changes, but only against edits made before it first ran on that environment. So rolling a faked migration back and applying it again is safe, and an edit made after the migration ran is never mistaken for one of its changes.
 
 ### Collaborative Workflows
 

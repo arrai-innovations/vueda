@@ -46,6 +46,7 @@ import { defineStore } from "pinia";
  * @property {string} verboseName - the human-readable name of the model
  * @property {string} verboseNamePlural - the human-readable plural name of the model
  * @property {string[]} displayFields - field names to display by default
+ * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch by default
  * @property {string[]} submitFields - field names to submit on create/update by default
  * @property {string[]} expand - field names to expand by default
@@ -56,6 +57,7 @@ import { defineStore } from "pinia";
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
+ * @property {string[]} totalables - column names that can carry a total in list view. A list request asks for the ones that are currently visible; totals are opt-in server-side, so asking for none costs no aggregation query. Requested under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`.
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
@@ -80,6 +82,7 @@ import { defineStore } from "pinia";
  * @property {string} [verboseName] - the human-readable name of the model
  * @property {string} [verboseNamePlural] - the human-readable plural name of the model
  * @property {string[]} [displayFields] - field names to display by default
+ * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
  * @property {string[]} [fetchFields] - field names to fetch by default
  * @property {string[]} [submitFields] - field names to submit on create/update by default
  * @property {string[]} [expand] - field names to expand by default
@@ -88,6 +91,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [filterables] - filters to display in list view
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view
+ * @property {string[]} [totalables] - column names that can carry a total in list view
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
@@ -125,12 +129,18 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 fieldDetails: {},
                 filterableDetails: {},
                 sortableDetails: {},
+                totalables: [],
             },
             {},
         ];
     }
     const pkField = modelInfo.pk;
     const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField && !modelInfo.fields[f]?.hidden);
+    // The server ignores read-only input, and a create form has no value to show for one yet.
+    const writableFields = fields.filter((f) => !modelInfo.fields[f]?.readOnly);
+    // The server flags fields that do not help tell one row from another (audit timestamps, a
+    // workflow state's machine code, per-record transitions) with `listDefault: false`.
+    const listFields = fields.filter((f) => modelInfo.fields[f]?.listDefault !== false);
     const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
@@ -159,14 +169,20 @@ const getDefaultFromModelInfo = (modelInfo) => {
             verboseName: modelInfo.verbose_name,
             verboseNamePlural: modelInfo.verbose_name_plural,
             displayFields: fields,
+            detailLinkField: null,
             fetchFields: fields,
-            submitFields: fields,
+            submitFields: writableFields,
             expand: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering || {}),
             sortables: orderingFields.map((o) => o.name),
             sorted: defaultSorted,
+            // The totals this model can carry, as the server reports them. An older server sends no
+            // `model_column_totals` section at all, which reads the same way as a model with no
+            // totals: nothing to offer, so nothing is asked for. The parameter that asks is
+            // `COLUMN_TOTALS_PARAM`, a client constant, and is not discovered here.
+            totalables: [...(modelInfo.columnTotals?.fields || [])],
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),
@@ -185,9 +201,20 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 default: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
             },
         },
-        {},
+        {
+            // Field lists here are fallbacks only: `mergeSimpleProperties` uses them when no custom
+            // config names the list or the `fields` shorthand, so they never override an integrator.
+            create: { displayFields: writableFields },
+            list: { displayFields: listFields },
+        },
     ];
 };
+
+/**
+ * Views whose `fetchFields` default to their resolved `displayFields`, so a list requests only the
+ * columns it renders, including columns an integrator named without naming `fetchFields`.
+ */
+const fetchFollowsDisplayViews = ["list"];
 
 const shallowObjectProperties = [
     "formProps",
@@ -216,6 +243,8 @@ const nonSimpleProperties = [...shallowObjectProperties, "expandDetails", ...dee
  * @param {OverridingModelConfig} customGenericConfig - The view-independent overriding configuration.
  * @param {OverridingModelConfig} defaultSpecificConfig - The default view-specific configuration.
  * @param {OverridingModelConfig} customSpecificConfig - The view-specific overriding configuration.
+ * @param {object} [options] - Merge options.
+ * @param {boolean} [options.fetchFollowsDisplay] - Default an unset `fetchFields` to the resolved `displayFields`.
  * @returns {ModelConfig} The merged configuration for simple properties.
  */
 const mergeSimpleProperties = (
@@ -223,27 +252,43 @@ const mergeSimpleProperties = (
     customGenericConfig,
     defaultSpecificConfig,
     customSpecificConfig,
+    { fetchFollowsDisplay = false } = {},
 ) => {
     const configs = [customGenericConfig, defaultSpecificConfig, customSpecificConfig];
-    const mergedConfig = omit(defaultGenericConfig, [
-        ...nonSimpleProperties,
-        "displayFields",
-        "fetchFields",
-        "submitFields",
-    ]);
+    const fieldKeys = ["displayFields", "fetchFields", "submitFields"];
+    const mergedConfig = omit(defaultGenericConfig, [...nonSimpleProperties, ...fieldKeys]);
     for (const config of configs) {
         for (const [key, value] of Object.entries(config)) {
-            if (!nonSimpleProperties.includes(key)) {
+            // A default view-specific field list is a fallback, applied below: merged in here, it
+            // would override a field list the integrator set in the model-wide config.
+            if (!nonSimpleProperties.includes(key) && !(config === defaultSpecificConfig && fieldKeys.includes(key))) {
                 mergedConfig[key] = value;
             }
         }
     }
 
-    for (const fieldKey of ["displayFields", "fetchFields", "submitFields"]) {
+    const expandNames = new Set(mergedConfig.expand || []);
+    for (const fieldKey of fieldKeys) {
         // use fields if displayFields, fetchFields, and submitFields are not set
         if (!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) {
             if (mergedConfig.fields) {
-                mergedConfig[fieldKey] = mergedConfig.fields;
+                // A field named by the shorthand can be display- and fetch-valid while being
+                // unsubmittable (an expand-flattened field, addressed by a dotted name whose prefix
+                // is an expand): dropped here rather than in `submitFields` itself, so a shorthand
+                // that's correct for `list`/`read` doesn't fail those views for a `create`/`update`
+                // restriction they never apply to. An explicitly declared `submitFields` entry still
+                // hits `validateSubmitFields` below.
+                mergedConfig[fieldKey] =
+                    fieldKey === "submitFields"
+                        ? mergedConfig.fields.filter((fieldName) => {
+                              const dotIndex = fieldName.indexOf(".");
+                              return dotIndex === -1 || !expandNames.has(fieldName.slice(0, dotIndex));
+                          })
+                        : mergedConfig.fields;
+            } else if (fieldKey === "fetchFields" && fetchFollowsDisplay) {
+                mergedConfig[fieldKey] = mergedConfig.displayFields;
+            } else if (defaultSpecificConfig[fieldKey]) {
+                mergedConfig[fieldKey] = defaultSpecificConfig[fieldKey];
             } else if (defaultGenericConfig[fieldKey]) {
                 mergedConfig[fieldKey] = defaultGenericConfig[fieldKey];
             }
@@ -259,7 +304,46 @@ const mergeSimpleProperties = (
 };
 
 /**
- * Merge and flatten expansion details into fieldDetails using double-underscore keys.
+ * Reject a declared `submitFields` entry that names an expand-flattened display field.
+ *
+ * Only a declared entry reaches this: `mergeSimpleProperties` already drops a flattened field when
+ * it derives `submitFields` from the `fields` shorthand, so a shorthand that is correct for display
+ * and fetch still builds a `list` or `read` config.
+ *
+ * `flattenExpansionDetails` only ever produces a dotted `expandName.subFieldName` entry for
+ * display and fetch purposes: it flattens whatever DRF-flex-fields expands for reading, and VUEDA
+ * has no mechanism to submit a nested value back through it. Writable nested data goes through a
+ * writable inline/array field instead, addressed by the expand's own plain name — never by one of
+ * its flattened dotted children — so a dotted `submitFields` entry whose prefix names an expanded
+ * field is always a misconfiguration rather than a legitimate way to submit a nested value.
+ *
+ * @param {ModelConfig} builtConfig - The built configuration, read for `expand` and `submitFields`.
+ * @param {{app: string, model: string}} args - Identifies the model being configured, for the error message.
+ * @throws {Error} If `submitFields` names an expand-flattened display field.
+ */
+const validateSubmitFields = (builtConfig, args) => {
+    const expandNames = new Set(builtConfig.expand || []);
+    if (!expandNames.size) {
+        return;
+    }
+
+    const invalidFields = (builtConfig.submitFields || []).filter((fieldName) => {
+        const dotIndex = fieldName.indexOf(".");
+        return dotIndex !== -1 && expandNames.has(fieldName.slice(0, dotIndex));
+    });
+
+    if (invalidFields.length) {
+        throw new Error(
+            `submitFields for ${args.app}.${args.model} names expand-flattened display field(s): ` +
+                `${invalidFields.join(", ")}. VUEDA does not support submitting a nested value through a ` +
+                "flattened display field. Remove them from submitFields, " +
+                "and use a writable inline/array field for anything the form must submit.",
+        );
+    }
+};
+
+/**
+ * Merge and flatten expansion details into fieldDetails using dotted keys.
  *
  * This function processes expandable field configurations by combining the expandDetails
  * from various configuration sources and then mapping them into the fieldDetails object.
@@ -279,8 +363,10 @@ const mergeSimpleProperties = (
  *
  *    b. Iterate over each sub-field defined in the merged expandDetails.f.
  *       For each sub-field, a flattened key is created using the pattern
- *       "expandName__subFieldName". The default configuration for this sub-field comes
- *       from the merged expandDetails.f, and any custom overrides provided via
+ *       "expandName.subFieldName" — the same dotted form the server reports for `f`/`e`/`o` and
+ *       filters, so a field an integrator overrides through `fieldComponents`/`sortables`/etc.
+ *       matches the name the server and the URL both use. The default configuration for this
+ *       sub-field comes from the merged expandDetails.f, and any custom overrides provided via
  *       customGenericConfig.fieldDetails or customSpecificConfig.fieldDetails for that key
  *       are merged in.
  *
@@ -352,7 +438,7 @@ const flattenExpansionDetails = (
         fieldDetails[expandName] = cloneDeep(omit(newExpandDetails, ["f"]));
 
         for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f || {})) {
-            const expandedFieldName = `${expandName}__${fieldName}`;
+            const expandedFieldName = `${expandName}.${fieldName}`;
             // any defaults are replaced by the expand details
             // but custom overrides are still merged
             const customGenericFieldDetails = customGenericConfig?.fieldDetails?.[expandedFieldName] || {};
@@ -570,7 +656,9 @@ export const storeModelConfig = defineStore("modelConfig", {
                     customGenericConfig,
                     defaultSpecificConfig,
                     customSpecificConfig,
+                    { fetchFollowsDisplay: fetchFollowsDisplayViews.includes(view) },
                 );
+                validateSubmitFields(builtConfig, args);
 
                 mergeDeepProperties(
                     builtConfig,

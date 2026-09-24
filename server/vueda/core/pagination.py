@@ -52,6 +52,14 @@ class VUEDAPageNumberPagination(PageNumberPagination):
                 "results": schema,
                 "columnTotals": {
                     "type": "object",
+                    "description": (
+                        "Aggregates for the column totals this request asked for, keyed by the total names "
+                        "the viewset declares in `column_totals` and `model_column_totals` advertises. "
+                        "Totals are opt-in: a request that names none gets `{}` here and costs no "
+                        "aggregation query. A total is always a number: one whose filtered set is empty "
+                        "is `0` rather than null, since the sum of nothing is zero. A duration total is a "
+                        "number of seconds."
+                    ),
                     "additionalProperties": {"type": "number"},
                     "example": {"hours": 8},
                 },

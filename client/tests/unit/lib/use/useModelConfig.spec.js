@@ -31,8 +31,12 @@ const mockLoadingError = {
     errored: ref(false),
     clearError: vi.fn(),
     setError: vi.fn(),
-    setLoading: vi.fn(),
-    clearLoading: vi.fn(),
+    setLoading: vi.fn(() => {
+        mockLoadingError.loading.value = true;
+    }),
+    clearLoading: vi.fn(() => {
+        mockLoadingError.loading.value = false;
+    }),
 };
 
 vi.mock("@arrai-innovations/reactive-helpers", async () => {
@@ -71,8 +75,151 @@ describe("lib/use/useModelConfig.js", () => {
 
     afterEach(async () => {
         vi.clearAllMocks();
+        mockLoadingError.loading.value = false;
         isActive.value = true;
         userStoreMock.identityGeneration = 0;
+    });
+
+    scopedIt("ignores an obsolete config completing after the destination config", async () => {
+        const app = ref("blog");
+        const model = ref("article");
+        let resolveFirst;
+        mockStore.getConfig.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirst = resolve;
+                }),
+        );
+        mockStore.getConfig.mockImplementationOnce(async ({ app, model }) => {
+            mockStore.builtConfigs[getAppModelDotName({ app, model })] = { fields: ["destination"] };
+        });
+        const result = useModelConfig(app, model);
+        model.value = "comment";
+        await flushPromises();
+        expect(result.config.fields).toEqual(["destination"]);
+        mockStore.builtConfigs[getAppModelDotName({ app: "blog", model: "article" })] = { fields: ["stale"] };
+        resolveFirst();
+        await flushPromises();
+        expect(result.config.fields).toEqual(["destination"]);
+    });
+
+    describe("overlapping builds", () => {
+        // holds each build pending until the test settles it, keyed by view
+        function deferBuilds() {
+            const builds = {};
+            mockStore.getConfig.mockImplementation(
+                (args) =>
+                    new Promise((resolve, reject) => {
+                        builds[args.view] = {
+                            resolve: () => {
+                                mockStore.builtConfigs[getAppModelViewDotName(args)] = { fields: [args.view] };
+                                resolve();
+                            },
+                            reject,
+                        };
+                    }),
+            );
+            return builds;
+        }
+
+        async function startCreateThenList() {
+            const builds = deferBuilds();
+            const view = ref("create");
+            const result = useModelConfig("blog", "article", view);
+            await flushPromises();
+            view.value = "list";
+            await flushPromises();
+            expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
+            expect(result.loading).toBe(true);
+            return { builds, result };
+        }
+
+        scopedIt("keeps the current config when the superseded build settles last", async () => {
+            const { builds, result } = await startCreateThenList();
+
+            builds.list.resolve();
+            await flushPromises();
+            expect(result.config.fields).toEqual(["list"]);
+            expect(result.loading).toBe(false);
+
+            builds.create.resolve();
+            await flushPromises();
+            expect(result.config.fields).toEqual(["list"]);
+            expect(result.loading).toBe(false);
+        });
+
+        scopedIt("stays loading when the superseded build settles first", async () => {
+            const { builds, result } = await startCreateThenList();
+
+            builds.create.resolve();
+            await flushPromises();
+            expect(result.config.fields).toBeUndefined();
+            expect(result.loading).toBe(true);
+
+            builds.list.resolve();
+            await flushPromises();
+            expect(result.config.fields).toEqual(["list"]);
+            expect(result.loading).toBe(false);
+        });
+
+        scopedIt("ignores an error from a superseded build", async () => {
+            const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+            const { builds, result } = await startCreateThenList();
+
+            builds.create.reject(new Error("superseded"));
+            await flushPromises();
+            expect(result.loading).toBe(true);
+
+            builds.list.resolve();
+            await flushPromises();
+            expect(result.config.fields).toEqual(["list"]);
+            expect(result.loading).toBe(false);
+            expect(mockLoadingError.setError).not.toHaveBeenCalled();
+            expect(logSpy).not.toHaveBeenCalled();
+            logSpy.mockRestore();
+        });
+
+        scopedIt("stops loading when deactivated mid-build and rebuilds on reactivation", async () => {
+            const builds = deferBuilds();
+            const result = useModelConfig("blog", "article", "create");
+            await flushPromises();
+            expect(result.loading).toBe(true);
+
+            isActive.value = false;
+            await flushPromises();
+            expect(result.loading).toBe(false);
+
+            builds.create.resolve();
+            await flushPromises();
+            expect(result.config.fields).toBeUndefined();
+
+            isActive.value = true;
+            await flushPromises();
+            expect(mockStore.getConfig).toHaveBeenCalledTimes(2);
+            expect(result.loading).toBe(true);
+
+            builds.create.resolve();
+            await flushPromises();
+            expect(result.config.fields).toEqual(["create"]);
+            expect(result.loading).toBe(false);
+        });
+
+        scopedIt("stops loading when the model is cleared mid-build", async () => {
+            const builds = deferBuilds();
+            const model = ref("article");
+            const result = useModelConfig("blog", model, "create");
+            await flushPromises();
+            expect(result.loading).toBe(true);
+
+            model.value = "";
+            await flushPromises();
+            expect(result.loading).toBe(false);
+
+            builds.create.resolve();
+            await flushPromises();
+            expect(result.config.fields).toBeUndefined();
+            expect(result.loading).toBe(false);
+        });
     });
 
     scopedIt("fetches config and sets it in returnObject", async () => {

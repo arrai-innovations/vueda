@@ -1,6 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, reactive } from "vue";
+import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { computed, defineComponent, h, reactive, ref } from "vue";
 
 const mockedUseViewDestroy = vi.fn();
 
@@ -180,6 +181,90 @@ describe("lib/views/ViewDestroy.vue", () => {
             const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
 
             expect(wrapper.getComponent(ModelActionFormStub).props("confirmText")).toBeUndefined();
+        });
+    });
+
+    describe("Page title", () => {
+        // A layout establishes the context above both its PageTitle display and the routed view,
+        // so mount the view under a host that takes the display role.
+        const mountUnderPageTitleHost = (overrides = {}) => {
+            let context;
+            const Host = defineComponent({
+                name: "PageTitleHost",
+                setup() {
+                    context = usePageTitle();
+                    return () => h(ViewDestroy, { app: "a", model: "thing", pk: "5", ...overrides });
+                },
+            });
+            const wrapper = mount(Host);
+            return { wrapper, context };
+        };
+
+        scopedIt("contributes the composable's title and loading state", () => {
+            const modelConfig = reactive({ info: { pk: "id" } });
+            mockedUseViewDestroy.mockReturnValue({
+                modelConfig,
+                handleDelete: vi.fn(),
+                instanceList: { state: reactive({}) },
+                titleStr: ref("Delete Widget"),
+                pageLoading: ref(false),
+            });
+
+            const { context } = mountUnderPageTitleHost();
+
+            expect(context.current.value).toEqual({ title: "Delete Widget", loading: false });
+        });
+
+        scopedIt("tracks the composable rather than snapshotting it at registration", async () => {
+            const modelConfig = reactive({ info: { pk: "id" } });
+            const loading = ref(true);
+            mockedUseViewDestroy.mockReturnValue({
+                modelConfig,
+                handleDelete: vi.fn(),
+                instanceList: { state: reactive({}) },
+                titleStr: computed(() => (loading.value ? "Delete Thing" : "Delete Widget")),
+                pageLoading: loading,
+            });
+
+            const { context } = mountUnderPageTitleHost();
+            expect(context.current.value).toEqual({ title: "Delete Thing", loading: true });
+
+            loading.value = false;
+            expect(context.current.value).toEqual({ title: "Delete Widget", loading: false });
+        });
+
+        // The spinner branch replaces the whole template, so the title has to come from the
+        // script, not from a themed element inside it.
+        scopedIt("contributes a title while the model info is still empty", () => {
+            const modelConfig = reactive({ info: {} });
+            mockedUseViewDestroy.mockReturnValue({
+                modelConfig,
+                handleDelete: vi.fn(),
+                instanceList: { state: reactive({}) },
+                titleStr: ref("Delete Thing"),
+                pageLoading: ref(true),
+            });
+
+            const { wrapper, context } = mountUnderPageTitleHost();
+
+            expect(wrapper.find('[data-qa="spinner"]').exists()).toBe(true);
+            expect(context.current.value).toEqual({ title: "Delete Thing", loading: true });
+        });
+
+        // A view mounted with no layout above it (a standalone harness) must not throw.
+        scopedIt("is a no-op with no page-title context above it", () => {
+            const modelConfig = reactive({ info: { pk: "id" } });
+            mockedUseViewDestroy.mockReturnValue({
+                modelConfig,
+                handleDelete: vi.fn(),
+                instanceList: { state: reactive({}) },
+                titleStr: ref("Delete Widget"),
+                pageLoading: ref(false),
+            });
+
+            const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
+
+            expect(wrapper.getComponent(ModelActionFormStub).exists()).toBe(true);
         });
     });
 

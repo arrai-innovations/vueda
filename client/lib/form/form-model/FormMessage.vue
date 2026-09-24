@@ -36,7 +36,9 @@ const formContext = inject(FormContextSymbol, null);
 const messages = computed(() => {
     const slice = props.type === "error" ? formContext?.state?.errors : formContext?.state?.messages;
     const entries = slice?.[NON_FIELD_ERRORS_KEY];
-    if (!entries) return [];
+    if (!entries) {
+        return [];
+    }
     return Object.values(entries).flatMap((value) => (Array.isArray(value) ? value : [value]));
 });
 

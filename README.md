@@ -14,9 +14,30 @@ VUEDA turns your Django models, serializers, and viewsets into Vue forms, lists,
 and detail screens. Add workflows, enforce permissions on the server, and track
 changes, with control over your application's views and appearance.
 
-[![Widget Warehouse inventory application built with VUEDA](docs/public/assets/homepage-list-preview.png)](https://vueda.dev)
+<a href="https://vueda.dev">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/homepage-list-preview-dark.png">
+        <img src="docs/public/assets/homepage-list-preview-light.png" alt="Widget Warehouse inventory application built with VUEDA, showing a widget list with filters, sorting, and search.">
+    </picture>
+</a>
 
 _Widget Warehouse, an example VUEDA application._
+
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA](#vueda)
+  - [What you can build](#what-you-can-build)
+  - [How it works](#how-it-works)
+  - [Start an application](#start-an-application)
+  - [Develop VUEDA](#develop-vueda)
+    - [Server test database](#server-test-database)
+    - [Repository layout](#repository-layout)
+    - [Releases](#releases)
+  - [License](#license)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
 
 ## What you can build
 
@@ -145,5 +166,6 @@ in both starter templates' `server/pyproject.toml.jinja` files.
 
 ## License
 
-Built by [Arrai Innovations](https://arrai.com). Both the [server](server/LICENSE)
-and [client](client/LICENSE) are released under the BSD 3-Clause license.
+Built by [Arrai Innovations](https://arrai.com). The repository is released
+under the [BSD 3-Clause license](LICENSE). The [server](server/LICENSE) and
+[client](client/LICENSE) packages each ship an identical copy.

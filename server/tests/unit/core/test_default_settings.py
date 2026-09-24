@@ -132,3 +132,40 @@ def test_omitting_the_history_app_is_rejected():
     # migration graph without it.
     with pytest.raises(ImproperlyConfigured, match=r"'vueda\.history' is required"):
         get_defaults(_env(VUEDA_APPS="vueda.core,vueda.info,vueda.user,vueda.release"))
+
+
+def test_cache_url_configures_the_default_cache():
+    # The URL carries the backend, the location, and the key prefix that separates two deployments
+    # sharing one instance, so no separate setting has to agree with it.
+    defaults = get_defaults(_env(CACHE_URL="redis://cache.invalid:6379/2?key_prefix=widgets-"))
+
+    assert defaults["CACHES"] == {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": "redis://cache.invalid:6379/2",
+            "KEY_PREFIX": "widgets-",
+        }
+    }
+    assert defaults["SESSION_ENGINE"] == "django.contrib.sessions.backends.cache"
+
+
+def test_cache_url_selects_the_backend_by_scheme():
+    # A deployment that cannot run a second service picks the database cache through the same key.
+    defaults = get_defaults(_env(CACHE_URL="db://vueda_cache"))
+
+    assert defaults["CACHES"] == {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "vueda_cache",
+        }
+    }
+
+
+def test_omitting_the_cache_url_is_rejected():
+    # Sessions live in this cache. Without the key, Django's own default would be a per-process
+    # LocMemCache, which divides sessions across worker processes instead of failing.
+    config = {**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")}
+    del config["CACHE_URL"]
+
+    with pytest.raises(KeyError, match="CACHE_URL"):
+        get_defaults(TomlEnv(config, environ={}))

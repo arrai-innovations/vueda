@@ -215,13 +215,26 @@ describe("renderPdocBundle with class members", () => {
         const bundle = normalizer.normalize(payload);
         const outputs = renderPdocBundle(bundle);
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
-        expect(classPage).toMatch(/## bare_method \{#bare_method\}/);
+        expect(classPage).toMatch(/## `bare_method` \{#bare_method\}/);
     });
 
     it("class page includes documented dunders", () => {
         const outputs = buildOutputs();
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
         expect(classPage).toContain("__str__");
+    });
+
+    it("hyphenates a dunder member's anchor, which markdown would otherwise emphasise", () => {
+        const outputs = buildOutputs();
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).toContain("## `__str__` {#--str--}");
+        expect(classPage).not.toContain("{#__str__}");
+    });
+
+    it("hyphenates a dunder member's subsection anchors too", () => {
+        const outputs = buildOutputs();
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).toContain("{#--str---signature}");
     });
 
     it("class page excludes undocumented dunders that pdoc marks public", () => {
@@ -233,7 +246,7 @@ describe("renderPdocBundle with class members", () => {
     it("inline member section uses anchor heading syntax", () => {
         const outputs = buildOutputs();
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
-        expect(classPage).toMatch(/## do_work \{#do_work\}/);
+        expect(classPage).toMatch(/## `do_work` \{#do_work\}/);
     });
 
     it("module page H1 uses last-two-segment qualified name", () => {
@@ -347,8 +360,8 @@ describe("renderPdocBundle module-level inlining", () => {
     it("inlines documented module-level members on the module page", () => {
         const outputs = buildModuleOutputs();
         const modulePage = outputs.get("py/vueda.mod.md");
-        expect(modulePage).toMatch(/## documented_helper \{#documented_helper\}/);
-        expect(modulePage).toMatch(/## DOC_CONST \{#DOC_CONST\}/);
+        expect(modulePage).toMatch(/## `documented_helper` \{#documented_helper\}/);
+        expect(modulePage).toMatch(/## `DOC_CONST` \{#DOC_CONST\}/);
     });
 
     it("filters undocumented non-class, non-module members from the module page", () => {
@@ -430,13 +443,13 @@ describe("renderPdocBundle anchor collision avoidance", () => {
 
     it("disambiguates Source heading when a member is named 'source'", () => {
         const page = renderCollisionCase("source");
-        expect(page).toContain("## source {#source}");
+        expect(page).toContain("## `source` {#source}");
         expect(page).toContain("## Source {#source-section}");
     });
 
     it("disambiguates Overview heading when a member is named 'overview'", () => {
         const page = renderCollisionCase("overview");
-        expect(page).toContain("## overview {#overview}");
+        expect(page).toContain("## `overview` {#overview}");
         expect(page).toContain("## Overview {#overview-section}");
     });
 

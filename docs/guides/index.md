@@ -10,9 +10,12 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 ## Environment & Networking
 
+- [Configure the Cache and Sessions](configure-cache-and-sessions.md): Choose a cache backend through `CACHE_URL`, keep sessions readable across worker processes, and verify the result.
 - [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
 
 ## Client Setup & Theming
+
+- [Style Unovis Charts](style-unovis-charts.md): Optional chart palette and mappings for VUEDA typography, surfaces, and dark mode.
 
 - [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
 - [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.
@@ -28,6 +31,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Lock Fields to Specific Write Actions](hide-fields-per-write-action.md): Use `ExcludeFieldsSerializerMixin` to make fields read-only on `create` or `update` without a full serializer split.
 - [Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md): Tune model config per view, including default fields/expands/actions.
 - [Link List Rows to Read and Update Views](link-list-rows-to-detail-views.md): Add a per-row link from a `list` view to that row's `read` or `update` view.
+- [Open a Scoped List](scope-a-list.md): Narrow a `list` view through a hidden-filter link or a declared `params` scope, and let the reader clear it.
 - [Customize List Column Rendering](customize-list-column-rendering.md): Override how `list` columns render with type-aware column adapters, model config, view props, or slots.
 - [Expose Aggregates in `list` Responses](list-column-totals.md): Use server column totals and render them in `list` views.
 

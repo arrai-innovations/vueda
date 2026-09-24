@@ -41,7 +41,7 @@ const mockedUseWidget = vi.fn(() => {
         state: reactive({
             combinedValue: "",
             disabled: false,
-            validationState: reactive({ invalid: false }),
+            validationState: reactive({ invalid: false, warning: false }),
             combinedName: "test-name",
             required: false,
         }),
@@ -134,6 +134,17 @@ describe("lib/widgets/WidgetTextInput.vue", () => {
 
         scopedIt("does not render aria-invalid='false' when valid", async () => {
             const wrapper = mount(WidgetTextInput);
+            expect(wrapper.get(QA_SEL).attributes("aria-invalid")).toBeUndefined();
+        });
+
+        scopedIt("applies data-warning when the field carries a warning", async () => {
+            const wrapper = mount(WidgetTextInput);
+            expect(wrapper.get(QA_SEL).attributes("data-warning")).toBeUndefined();
+            widgetContext.state.validationState.warning = true;
+            const { nextTick } = await vi.importActual("vue");
+            await nextTick();
+            expect(wrapper.get(QA_SEL).attributes("data-warning")).toBe("true");
+            // Warning is non-blocking, so it must not claim the invalid state too.
             expect(wrapper.get(QA_SEL).attributes("aria-invalid")).toBeUndefined();
         });
 

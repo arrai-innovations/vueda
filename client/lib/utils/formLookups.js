@@ -76,6 +76,18 @@ export const availableWidgets = {
     WidgetRadioGroup: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadioGroup.vue")).default),
     ),
+    WidgetBooleanReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetBooleanReadOnly.vue")).default),
+    ),
+    WidgetDateTimeReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDateTimeReadOnly.vue")).default),
+    ),
+    WidgetDurationReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDurationReadOnly.vue")).default),
+    ),
+    WidgetJsonReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetJsonReadOnly.vue")).default),
+    ),
     WidgetReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default),
     ),

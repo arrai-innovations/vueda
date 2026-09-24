@@ -6,7 +6,7 @@ defineProps({
 </script>
 
 <template>
-    <section class="flex flex-col gap-3 rounded-vueda-card border border-border p-4">
+    <section class="flex flex-col gap-3 border border-dashed border-border/60 p-4">
         <header v-if="title" class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {{ title
             }}<template v-if="description">

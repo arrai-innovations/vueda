@@ -9,12 +9,12 @@ import { getFieldInitialValue } from "@vueda/use/useModelInitialValues.js";
 import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { breakpointsVueda } from "@vueda/utils/breakpoints.js";
-import { FormModelSymbol } from "@vueda/utils/symbols.js";
+import { FieldSetContentVisibleSymbol, FormContextSymbol, FormModelSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, onBeforeUpdate, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
+import { computed, inject, onBeforeUpdate, provide, reactive, readonly, toRef, unref, useSlots, watch } from "vue";
 
 /**
  * Helper function to focus the first descendant element that can be focused.
@@ -152,7 +152,7 @@ const handleSelected = (state, fieldSetContext, isSelected, rowIndex) => {
  * @property {number[]} selected - The indices of the selected items.
  * @property {boolean} userHasToggled - Whether the user has toggled the visibility of the fieldset.
  * @property {import('vue').Ref<boolean|undefined>} visible - The visibility state of the fieldset.
- * @property {import('vue').ComputedRef<object[]>} actions - The field objects that are actions.
+ * @property {import('vue').ComputedRef<object[]>} actions - Row actions, including destroy when the inline is writable.
  * @property {import('vue').ComputedRef<string[]>} fieldNames - The field names to display for each object.
  * @property {import('vue').ComputedRef<FieldSetInlineFieldObject[]>} fieldObjects - The field objects to display.
  * @property {import('vue').ComputedRef<boolean>} isVisibleByDefault - Whether the fieldset is visible by default.
@@ -182,10 +182,6 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
     if (defaultValues) {
         defaultObject = { ...defaultObject, ...defaultValues };
     }
-    if (!state.internalVisible) {
-        state.internalVisible = true;
-        state.userHasToggled = true;
-    }
     fieldSetContext.blur();
     fieldSetContext.state.value = fieldSetContext.state.value
         ? [...cloneDeep(fieldSetContext.state.value), defaultObject]
@@ -199,32 +195,52 @@ const doCreate = (state, fieldSetContext, _e, defaultValues) => {
  * @returns {void}
  */
 /**
- * Removes an object from the fieldset.
+ * Removes an object from the fieldset, moving selection and per-row form state
+ * with the remaining rows.
  *
+ * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context.
+ * @param {import('@vueda/use/useForm.js').FormContext|null} formContext - The form context, or null when contextless.
  * @param {number} index - The index of the object to remove.
  */
-const removeObject = (fieldSetContext, index) => {
+const removeObject = (state, fieldSetContext, formContext, index) => {
     fieldSetContext.blur();
+    const selected = state.selected
+        .filter((rowIndex) => rowIndex !== index)
+        .map((rowIndex) => (rowIndex > index ? rowIndex - 1 : rowIndex));
+    if (formContext) {
+        // Shifts values, errors, messages, touched, ignored, and focus together.
+        formContext.removeArrayItem(fieldSetContext.state.name, index);
+        state.selected = selected;
+        return;
+    }
+    for (const rowIndex of [...state.selected]) {
+        handleSelected(state, fieldSetContext, false, rowIndex);
+    }
     fieldSetContext.state.value = cloneDeep(fieldSetContext.state.value).filter((_, i) => i !== index);
     fieldSetContext.clearErrors(index);
     fieldSetContext.clearMessages(index);
+    for (const rowIndex of selected) {
+        handleSelected(state, fieldSetContext, true, rowIndex);
+    }
 };
 
 /**
  * @callback BoundToggleVisibility
  */
 /**
- * Toggles the visibility of the fieldset.
+ * Sets visibility locally or requests a controlled visibility change.
  *
  * @param {FieldSetInlineRawState} state - The reactive state.
  * @param {import('vue').EmitFn} emit - The emit function.
+ * @param {boolean} visible - Whether the body should be open.
+ * @returns {void}
  */
-const toggleVisibility = (state, emit) => {
+const setVisibility = (state, emit, visible) => {
     if (state.visible !== undefined) {
-        emit("update:visible", !state.internalVisible);
+        emit("update:visible", visible);
     } else {
-        state.internalVisible = !state.internalVisible;
+        state.internalVisible = visible;
     }
     state.userHasToggled = true;
 };
@@ -270,6 +286,7 @@ const refFn = (state, el) => {
  * @property {import('vue').EmitFn} emit - The emit function from the setup context.
  * @property {string[]} slotNames - The slot names to be resolved per field(x), fieldset-x or x.
  * @property {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context object.
+ * @property {boolean} [addDestroyAction=false] - Add a default destroy action to writable inlines that lack one.
  */
 
 /**
@@ -284,6 +301,7 @@ const refFn = (state, el) => {
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.
+ * @property {(visible: boolean) => void} setVisibility - Set visibility, emitting update:visible when controlled.
  * @property {BoundToggleVisibility} toggleVisibility - The method to toggle the visibility of the fieldset.
  */
 
@@ -294,7 +312,7 @@ const refFn = (state, el) => {
  * @returns {FieldSetInlineInstance} An object containing reactive state, computed properties, and methods
  * to manage the tabular inline fieldset.
  */
-export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
+export function useFieldSetInline({ props, emit, slotNames, fieldSetContext, addDestroyAction = false }) {
     const breakpoints = useBreakpoints(breakpointsVueda);
     const slots = useSlots();
     const resolvedSlotNames = slotNames.reduce((acc, name) => {
@@ -325,6 +343,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         widgetProps: computed(() => merge(cloneDeep(parentFormModel.widgetProps), props.widgetProps)),
     });
     const formModel = useFormModel(mergedFormModelProps);
+    /** @type {import('@vueda/use/useForm.js').FormContext|null} */
+    const providedFormContext = inject(FormContextSymbol, null);
+    const formContext = computed(() => (props.contextless ? null : unref(providedFormContext)));
 
     /** @type {FieldSetInlineState} */
     const state = reactive(
@@ -340,10 +361,28 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
             userHasToggled: false,
             visible: toRef(props, "visible"),
             actions: computed(() => {
-                return [...state.fieldObjects].filter((field) => field.action);
+                const actions = state.fieldObjects.filter((field) => field.action);
+                const readOnly =
+                    props.readOnly ||
+                    props.fieldProps?.readOnly ||
+                    formModel.fieldProps?.[fieldSetContext.state.formModelName]?.readOnly ||
+                    parentFormModel.view === "read";
+                if (readOnly) {
+                    return actions.filter((action) => action.fieldName !== "destroy");
+                }
+                // Nested updates delete omitted children through the parent, without a child destroy route.
+                if (addDestroyAction && !actions.some((action) => action.fieldName === "destroy")) {
+                    actions.push({
+                        fieldName: "destroy",
+                        name: `${fieldSetContext.state.formModelName}.destroy`,
+                        action: true,
+                        label: "Delete",
+                    });
+                }
+                return actions;
             }),
             fieldNames: computed(() => {
-                const prefix = `${fieldSetContext.state.formModelName}__`;
+                const prefix = `${fieldSetContext.state.formModelName}.`;
 
                 if (props.fields) {
                     return props.fields.reduce((acc, fullFieldName) => {
@@ -386,7 +425,7 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
                     ? state.fieldNames?.map((name) => {
                           return {
                               fieldName: name,
-                              name: `${fieldSetContext.state.formModelName}__${name}`,
+                              name: `${fieldSetContext.state.formModelName}.${name}`,
                               ...fields[name],
                           };
                       })
@@ -416,6 +455,16 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
     state.greaterOrEqualHiddenBreakpoint = breakpoints.greaterOrEqual(toRef(state, "hiddenByDefault"));
 
     watch(
+        () => fieldSetContext.state.initialValue,
+        () => {
+            for (const rowIndex of [...state.selected]) {
+                handleSelected(state, fieldSetContext, false, rowIndex);
+            }
+        },
+        { deep: true },
+    );
+
+    watch(
         [toRef(state, "itemRefs"), toRef(state, "focusIndex")],
         ([newItemRefs, newFocusIndex]) => {
             const newItem = newItemRefs?.find?.((el) => Number(el?.dataset?.rowIndex) === newFocusIndex);
@@ -427,22 +476,22 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         },
         { deep: true, flush: "post" },
     );
-    watch(toRef(state, "isVisibleByDefault"), (newVal) => {
-        if (!state.userHasToggled && state.visible === undefined) {
-            state.internalVisible = newVal;
-        }
-    });
     watch(
-        [toRef(state, "visible"), toRef(state, "hidable")],
-        ([newVisibleVal, newHidable]) => {
-            if (newVisibleVal !== undefined) {
-                state.internalVisible = newVisibleVal;
-            } else if (newHidable === false || state.internalVisible === undefined) {
-                state.internalVisible = state.isVisibleByDefault;
+        [toRef(state, "visible"), toRef(state, "hidable"), toRef(state, "isVisibleByDefault")],
+        ([visible, hidable, defaultVisible]) => {
+            if (visible !== undefined) {
+                state.internalVisible = visible;
+            } else if (hidable === false) {
+                state.internalVisible = true;
+            } else if (!state.userHasToggled) {
+                state.internalVisible = defaultVisible;
             }
         },
         { immediate: true },
     );
+    // Collapsing keeps the rows mounted, so the fields inside read this to know whether the reader can
+    // see them.
+    provide(FieldSetContentVisibleSymbol, toRef(state, "internalVisible"));
     onBeforeUpdate(() => {
         state.itemRefs = [];
     });
@@ -452,6 +501,9 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         formModel,
         resolvedSlotNames,
         doCreate: (_e, defaultValues) => {
+            if (!state.internalVisible) {
+                setVisibility(state, emit, true);
+            }
             doCreate(state, fieldSetContext, _e, defaultValues);
         },
         getEmptyFieldObject: () => {
@@ -463,11 +515,10 @@ export function useFieldSetInline({ props, emit, slotNames, fieldSetContext }) {
         refFn: (el) => {
             refFn(state, el);
         },
-        removeObject: (index) => {
-            removeObject(fieldSetContext, index);
-        },
+        removeObject: (index) => removeObject(state, fieldSetContext, formContext.value, index),
+        setVisibility: (visible) => setVisibility(state, emit, visible),
         toggleVisibility: () => {
-            toggleVisibility(state, emit);
+            setVisibility(state, emit, !state.internalVisible);
         },
     };
 }

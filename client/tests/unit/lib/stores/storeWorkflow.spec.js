@@ -82,6 +82,34 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(store.promises.workflowTransitions[key]).toBeUndefined();
     });
 
+    scopedIt("fetchWorkflowTransition maps a 403 response to WorkflowPermissionDeniedError", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.fetchWorkflowTransition("app", "model").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const error = errorResolver({ status: 403 }, { detail: "nope" });
+
+        expect(error.name).toBe("WorkflowPermissionDeniedError");
+        expect(error.response).toEqual({ status: 403 });
+        expect(error.responseData).toEqual({ detail: "nope" });
+        expect(error).toBeInstanceOf(storeWorkflowModule.WorkflowError);
+    });
+
+    scopedIt("fetchWorkflowTransition maps a non-403 response to plain WorkflowError", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.fetchWorkflowTransition("app", "model").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const error = errorResolver({ status: 500 }, { detail: "server error" });
+
+        expect(error.name).toBe("WorkflowError");
+        expect(error).not.toBeInstanceOf(storeWorkflowModule.WorkflowPermissionDeniedError);
+    });
+
     scopedIt("caches errors for fetchWorkflowTransition", async () => {
         const error = new Error("boom");
         mockedFetchHelper.mockRejectedValue(error);
@@ -402,7 +430,7 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(store.objectTransitions).toEqual({});
         });
 
-        scopedIt("does not cache a transitions error that arrives after the clear", async () => {
+        scopedIt("converts a transitions error that arrives after the clear to AuthScopeInvalidatedError", async () => {
             const store = storeWorkflow();
             const key = getAppModelDotName({ app: "app", model: "model" });
             let rejectFetch;
@@ -416,7 +444,9 @@ describe("lib/stores/storeWorkflow.js", () => {
             store.clearAuthScoped();
             rejectFetch(new Error("Forbidden"));
 
-            await expect(inFlight).rejects.toThrow("Forbidden");
+            // the rejection was determined for the principal `clearAuthScoped` just discarded, so it
+            // must not reach the caller as-is -- not even a permission denial for that previous user
+            await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
             expect(store.errors.workflowTransitions[key]).toBeUndefined();
 
             mockedFetchHelper.mockResolvedValueOnce([{ code: "one", name: "One" }]);
@@ -424,5 +454,34 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(mockedFetchHelper).toHaveBeenCalledTimes(2);
             expect(store.workflowTransitions[key]).toEqual([{ code: "one", name: "One" }]);
         });
+
+        scopedIt(
+            "does not let a denial fetched for a replaced user surface as WorkflowPermissionDeniedError",
+            async () => {
+                const store = storeWorkflow();
+                const key = getAppModelDotName({ app: "app", model: "model" });
+                let rejectFetch;
+                mockedFetchHelper.mockReturnValueOnce(
+                    new Promise((resolve, reject) => {
+                        rejectFetch = reject;
+                    }),
+                );
+
+                const inFlight = store.fetchWorkflowTransition("app", "model");
+                store.clearAuthScoped();
+                rejectFetch(
+                    new storeWorkflowModule.WorkflowPermissionDeniedError(
+                        "Failed to fetch workflow transitions for model",
+                        { status: 403 },
+                        { detail: "nope" },
+                    ),
+                );
+
+                const error = await inFlight.catch((e) => e);
+                expect(error).toBeInstanceOf(AuthScopeInvalidatedError);
+                expect(error).not.toBeInstanceOf(storeWorkflowModule.WorkflowPermissionDeniedError);
+                expect(store.errors.workflowTransitions[key]).toBeUndefined();
+            },
+        );
     });
 });

@@ -11,7 +11,7 @@ import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallo
 
 /**
  * @typedef {object} PageTitleEntry
- * @property {string} [title] - The page title text.
+ * @property {string} [title] - The page title text. An empty title means the view has not resolved it yet, and the display shows a skeleton.
  * @property {boolean} [loading] - Whether the page is currently loading.
  */
 

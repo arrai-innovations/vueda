@@ -12,6 +12,7 @@
  * for the component itself and every slot so `{@api theme-key:<Component>}` and
  * `{@api theme-key:<Component>.<slot>}` references resolve here.
  */
+import { themeKeySlotAnchor } from "../utils/reference-index.js";
 import { renderCodeInline, renderFrontmatter, renderHeading, renderTable, slugify } from "./markdown.js";
 
 const UNGROUPED = "Ungrouped";
@@ -32,30 +33,36 @@ function familyPagePath(familyName) {
     return `theming/keys/family/${familySlug(familyName)}.md`;
 }
 
-function slotAnchorId(componentName, slotName) {
-    return `theme-key-${componentName}-${slotName}`;
-}
-
 function firstSentence(text) {
-    if (!text) return "";
+    if (!text) {
+        return "";
+    }
     const trimmed = String(text).trim();
     const firstLine = trimmed.split(/\r?\n/, 1)[0] || "";
     return firstLine.trim();
 }
 
 function formatSourceLine(source) {
-    if (!source?.file) return null;
-    if (source.line) return `${source.file}:${source.line}`;
+    if (!source?.file) {
+        return null;
+    }
+    if (source.line) {
+        return `${source.file}:${source.line}`;
+    }
     return source.file;
 }
 
 function renderComposesChips(composes) {
-    if (!composes || composes.length === 0) return "";
+    if (!composes || composes.length === 0) {
+        return "";
+    }
     return composes.map((ref) => renderCodeInline(ref)).join(" ");
 }
 
 function renderDefaultClasses(defaultClasses) {
-    if (!defaultClasses || defaultClasses.length === 0) return null;
+    if (!defaultClasses || defaultClasses.length === 0) {
+        return null;
+    }
     if (defaultClasses.length === 1) {
         return renderCodeInline(defaultClasses[0]);
     }
@@ -64,14 +71,20 @@ function renderDefaultClasses(defaultClasses) {
 }
 
 function summariseDefaults(defaultClasses, valueShape) {
-    if (valueShape === "callback") return "callback";
-    if (!defaultClasses || defaultClasses.length === 0) return "";
-    if (defaultClasses.length === 1) return renderCodeInline(defaultClasses[0]);
+    if (valueShape === "callback") {
+        return "callback";
+    }
+    if (!defaultClasses || defaultClasses.length === 0) {
+        return "";
+    }
+    if (defaultClasses.length === 1) {
+        return renderCodeInline(defaultClasses[0]);
+    }
     return `${defaultClasses.length} classes`;
 }
 
 function renderSlotDetail(component, slot, lines) {
-    lines.push(`<a id="${slotAnchorId(component.name, slot.name)}"></a>`);
+    lines.push(`<a id="${themeKeySlotAnchor(component.name, slot.name)}"></a>`);
     lines.push("");
     lines.push(renderHeading(2, slot.name));
     lines.push("");
@@ -161,7 +174,7 @@ function renderComponentPage(component, family, options) {
 
     const headers = ["Slot", "Default classes", "Description"];
     const rows = component.slots.map((slot) => [
-        `[${slot.name}](#${slotAnchorId(component.name, slot.name)})`,
+        `[${slot.name}](#${themeKeySlotAnchor(component.name, slot.name)})`,
         summariseDefaults(slot.defaultClasses, slot.valueShape),
         slot.description || "",
     ]);

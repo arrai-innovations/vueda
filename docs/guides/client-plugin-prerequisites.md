@@ -104,7 +104,7 @@ These must be called **before** any VUEDA store or composable attempts a data fe
 
 ## Controls and Widgets
 
-VUEDA's controls and widgets (`Button`, `WidgetSelect`, `WidgetDatePicker`, `WidgetInput`, `WidgetMultiSelect`, `WidgetCheckbox`, `WidgetRadio`, `WidgetSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
+VUEDA's controls and widgets (`Button`, `WidgetSelectDropdown`, `WidgetDateField`, `WidgetTextInput`, `WidgetCombobox`, `WidgetCheckbox`, `WidgetRadioGroup`, `WidgetRangeSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
 
 ## Toast Notifications
 

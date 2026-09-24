@@ -10,6 +10,7 @@ import SelectTrigger from "@vueda/controls/select/SelectTrigger.vue";
 import SelectValue from "@vueda/controls/select/SelectValue.vue";
 import ConstraintsBar from "@vueda/display/constraints-bar/ConstraintsBar.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import ScopeGroup from "@vueda/display/scope/ScopeGroup.vue";
 import SortControl from "@vueda/display/sort/SortControl.vue";
 import SortGroup from "@vueda/display/sort/SortGroup.vue";
 import FilterGroup from "@vueda/form/filter/FilterGroup.vue";
@@ -27,6 +28,7 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewList } from "@vueda/use/useViewList.js";
 import { getCRUDName } from "@vueda/utils/case.js";
+import { availableColumns } from "@vueda/utils/columnLookups.js";
 import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
@@ -54,7 +56,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field names to include as list columns; uses the model config default when empty. */
+    /** Field names to fetch; uses the `displayFields` keys, then the model config default, when empty. */
     listFields: {
         type: Array,
         default: () => [],
@@ -91,6 +93,17 @@ const props = defineProps({
     },
     /** Additional query parameters merged into every API request. */
     params: {
+        type: Object,
+        default: () => ({}),
+    },
+    /**
+     * Declares which `params` keys are shown as scopes in the constraints band, keyed by `params` key:
+     * `{ [key]: { label?, clearable? } }`. A declared key is shown while `params` carries a value for
+     * it. `label` defaults to the filter's metadata label (or the key) with its value; `clearable`
+     * defaults to true. Clearing emits `clear-scope`; the caller removes those keys from `params`.
+     * Undeclared `params` keys stay plain request parameters.
+     */
+    scopes: {
         type: Object,
         default: () => ({}),
     },
@@ -131,15 +144,22 @@ const props = defineProps({
         type: [Number, String],
         default: DEFAULT_PAGE_SIZE,
     },
-    /** When true, displays the total record count in the pagination bar. */
+    /**
+     * When true, displays the total record count in the pagination bar. Overrides the model
+     * config's `showTotalRecordNum`; when unset, the model config decides, defaulting to true.
+     */
     showTotalRecordNum: {
         type: Boolean,
-        default: true,
+        default: undefined,
     },
-    /** When true, shows a column-visibility selector so users can hide individual columns. */
+    /**
+     * When true, shows a column-visibility selector so users can hide individual columns.
+     * Overrides the model config's `allowColumnHiding`; when unset, the model config decides,
+     * defaulting to false.
+     */
     allowColumnHiding: {
         type: Boolean,
-        default: false,
+        default: undefined,
     },
     /** Action names promoted to the filled hero CTA in the page title; defaults to the `create` action. */
     primaryActions: {
@@ -149,7 +169,7 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 
-const { modelConfig, list, actions, search, sort, columns, pagination, filter } = useViewList(props);
+const { modelConfig, list, actions, search, sort, columns, pagination, filter, scope } = useViewList(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loading }));
@@ -157,15 +177,42 @@ usePageTitle(() => ({ title: list.titleStr, loading: list.instanceList.state.loa
 const slots = useSlots();
 const icon = useIcons("ViewList", props);
 
+// Only known display-only adapters can be wrapped. Relation links and custom
+// adapters may contain interactive controls and must keep their own navigation.
+const detailLinkAdapters = new Set([
+    availableColumns.ColumnText,
+    availableColumns.ColumnBoolean,
+    availableColumns.ColumnDateTime,
+    availableColumns.ColumnDuration,
+    availableColumns.ColumnJson,
+]);
+
+/**
+ * @param {string} name
+ * @param {import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn} resolved
+ * @param {{pk: string|number, obj?: {available_actions?: string[]}}} cell
+ * @returns {'update'|'read'|null}
+ */
+const detailLinkView = (name, resolved, cell) => {
+    if (name !== modelConfig.config.detailLinkField || !detailLinkAdapters.has(resolved.component) || cell.pk == null) {
+        return null;
+    }
+    const available = cell.obj?.available_actions;
+    if (!Array.isArray(available)) {
+        return null;
+    }
+    return available.includes("update") ? "update" : available.includes("retrieve") ? "read" : null;
+};
+
 // Teleport target in the under-actions bar that the FilterGroup's add-filter
 // trigger teleports into, so the trigger sits in the toolbar while its popover
 // state stays owned by FilterGroup.
 const filterTriggerZone = ref(null);
 
-// The shared constraints band hosts both the filter chips and the sort chips.
-// `hasFilters` drives band visibility and the divider; it reads the active
-// filter list directly rather than threading a count. Each group owns its own
-// clear control.
+// The shared constraints band hosts the scope chips, the filter chips, and the
+// sort chips. `hasScopes`, `hasFilters`, and `hasSorts` drive band visibility and
+// the dividers. Each group owns its own clear control.
+const hasScopes = computed(() => scope.scopes.length > 0);
 const hasFilters = computed(() => (filter.state.addedFilters?.length || 0) > 0);
 const hasSorts = computed(() => (sort.sorting.state.sorted?.length || 0) > 0);
 
@@ -191,12 +238,16 @@ const theme = useTheme(
     }),
 );
 
-// Restore theme classes on slot props so slot consumers can spread them and get the correct class.
+// Share placement sizing and theme classes with both default buttons and slot replacements.
 const themedButtonSlotProps = computed(() => {
     const result = {};
     for (const [key, value] of Object.entries(actions.buttonSlotProps)) {
         const isBulk = actions.bulkActions.has(key) || actions.availableTransitions.has(key);
-        result[key] = { ...value, class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton") };
+        result[key] = {
+            ...value,
+            ...(isBulk ? { size: "sm" } : {}),
+            class: isBulk ? theme("bulkActionButton") : theme("targetlessActionButton"),
+        };
     }
     return result;
 });
@@ -227,9 +278,30 @@ const emit = defineEmits([
     "query-change",
     /** Forwarded from FilterGroup when a filter form popover should close. */
     "hide-filter-form",
+    /**
+     * Emitted with `{ name, keys }` when the reader clears a `params` key declared through the `scopes` prop.
+     * The prop is left unchanged: the caller removes `keys` from `params`, which removes the scope
+     * from the request and the constraints band.
+     */
+    "clear-scope",
 ]);
 
 const route = useRoute();
+
+// URL scopes are removed from the route here; params scopes belong to the caller, which is asked
+// to remove their keys from `params`. A scope declared with `clearable: false` stays in place.
+const clearScopes = (scopes) => {
+    const clearable = scopes.filter((s) => s.clearable);
+    const urlScopeNames = clearable.filter((s) => s.source === "url").map((s) => s.name);
+    if (urlScopeNames.length) {
+        scope.clearUrlScopes(urlScopeNames);
+    }
+    for (const s of clearable) {
+        if (s.source === "params") {
+            emit("clear-scope", { name: s.name, keys: [...s.keys] });
+        }
+    }
+};
 
 onMounted(() => {
     emit(
@@ -317,7 +389,7 @@ onMounted(() => {
                         </InputGroup>
                     </slot>
                     <slot
-                        v-if="modelConfig.config?.allowColumnHiding || allowColumnHiding"
+                        v-if="allowColumnHiding ?? modelConfig.config?.allowColumnHiding ?? false"
                         name="columns-select"
                         :columns="columns.columns"
                         :options="columns.columnOptions"
@@ -343,12 +415,19 @@ onMounted(() => {
                 </div>
             </div>
         </sticky-chrome>
-        <!-- Active-constraints band: filter chips and sort chips share one sticky strip, told apart
-             by tint. Each group teleports its add/edit trigger into the toolbar zone above; their
-             chips render here, hosted bare so the band owns the chrome. The band collapses when
-             nothing is active; each group owns its own clear control. -->
+        <!-- Active-constraints band: scope, filter, and sort chips share one sticky strip, told apart
+             by tint. The filter and sort groups teleport their add/edit triggers into the toolbar
+             zone above; all chips render here, hosted bare so the band owns the chrome. The band
+             collapses when nothing is active; each group owns its own clear control. -->
         <sticky-chrome zone="top" reveal="scroll-up">
-            <constraints-bar :filters-active="hasFilters" :sorts-active="hasSorts">
+            <constraints-bar :scopes-active="hasScopes" :filters-active="hasFilters" :sorts-active="hasSorts">
+                <template #scopes>
+                    <scope-group hosted :scopes="scope.scopes" @clear="clearScopes">
+                        <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                            <slot :name="slot" v-bind="slotProps || {}" />
+                        </template>
+                    </scope-group>
+                </template>
                 <template #filters>
                     <filter-group
                         v-model="filter.state.addedFilters"
@@ -423,6 +502,7 @@ onMounted(() => {
             :fields="list.computedFieldObjects"
             :loading="list.loading"
             :objects-in-order="list.instanceList.state.objectsInOrder"
+            :pk-key="list.pkKey"
             :related-objects="list.instanceList.state.relatedObjects"
             :table-breakpoint="tableBreakpoint"
             :theme-override="themeOverride"
@@ -443,7 +523,16 @@ onMounted(() => {
                  ObjectsGrid maps `field(<col>)` into both cell types. -->
             <template v-for="(resolved, name) in list.columnComponents" :key="name" #[`field(${name})`]="slotProps">
                 <slot :name="`field(${name})`" v-bind="slotProps">
-                    <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                    <link-model-view
+                        v-if="detailLinkView(name, resolved, slotProps)"
+                        :app="app"
+                        :model="model"
+                        :pk="String(slotProps.pk)"
+                        :view="detailLinkView(name, resolved, slotProps)"
+                    >
+                        <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
+                    </link-model-view>
+                    <component :is="resolved.component" v-else v-bind="{ ...slotProps, ...resolved.props }" />
                 </slot>
             </template>
             <template v-for="field in extraFieldObjects" :key="field.name" #[`header(${field.name})`]="slotProps">
@@ -557,7 +646,7 @@ onMounted(() => {
                 :total-records="pagination.paginateInfo?.totalRecords"
                 :is-table="sort.isTable"
                 :page-size-options="pageSizeOptions"
-                :show-total-record-num="modelConfig.config?.showTotalRecordNum && showTotalRecordNum"
+                :show-total-record-num="showTotalRecordNum ?? modelConfig.config?.showTotalRecordNum ?? true"
                 data-qa="view-list-pagination"
             >
                 <template v-for="(_, slot) in slots" #[slot]="slotProps">

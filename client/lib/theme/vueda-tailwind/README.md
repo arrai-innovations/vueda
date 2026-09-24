@@ -19,6 +19,57 @@ This document references token _names_ and section headers; it never
 restates values. References use the section-header form (e.g. `see base.css
 § Control sizing`) so they survive file edits.
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Default Theme](#vueda-default-theme)
+  - [1. Overview](#1-overview)
+    - [1.1 Audience](#11-audience)
+    - [1.2 Posture](#12-posture)
+    - [1.3 Relationship to shadcn-vue / Reka UI](#13-relationship-to-shadcn-vue--reka-ui)
+    - [1.4 Brand lineage](#14-brand-lineage)
+  - [2. Colors](#2-colors)
+    - [2.1 Identity, surfaces, and readable text](#21-identity-surfaces-and-readable-text)
+    - [2.2 Selection vs CTA: `--accent` vs `--primary`](#22-selection-vs-cta---accent-vs---primary)
+    - [2.3 Mix recipes](#23-mix-recipes)
+    - [2.4 Status colors](#24-status-colors)
+    - [2.5 Interactive state steps](#25-interactive-state-steps)
+  - [3. Typography](#3-typography)
+    - [3.1 Scale](#31-scale)
+    - [3.2 Mono usage](#32-mono-usage)
+    - [3.3 Eyebrow micro-text](#33-eyebrow-micro-text)
+  - [4. Layout](#4-layout)
+    - [4.1 Spacing: 4px grid](#41-spacing-4px-grid)
+    - [4.2 Control sizing](#42-control-sizing)
+    - [4.3 Density](#43-density)
+    - [4.4 Sidebar](#44-sidebar)
+    - [4.5 Breakpoints](#45-breakpoints)
+    - [4.6 Motion](#46-motion)
+  - [5. Elevation](#5-elevation)
+    - [5.1 Stacking order (z-index)](#51-stacking-order-z-index)
+  - [6. Shapes: radius scale](#6-shapes-radius-scale)
+    - [6.1 Slab vs pill](#61-slab-vs-pill)
+  - [7. Hairlines and DPR](#7-hairlines-and-dpr)
+    - [7.1 Why not `border`](#71-why-not-border)
+    - [7.2 Focus ring contract](#72-focus-ring-contract)
+    - [7.3 Directional `border-*-hairline` utilities](#73-directional-border--hairline-utilities)
+    - [7.4 Floating-surface edges: `overlay-hairline`](#74-floating-surface-edges-overlay-hairline)
+    - [7.5 Editable fields: `field-line`](#75-editable-fields-field-line)
+    - [7.6 Disabled controls: `--disabled`](#76-disabled-controls---disabled)
+    - [7.7 When a real `border` is still correct](#77-when-a-real-border-is-still-correct)
+  - [8. Cross-cutting attributes](#8-cross-cutting-attributes)
+  - [9. Components](#9-components)
+    - [9.1 Theme-key class authoring: each token appears once](#91-theme-key-class-authoring-each-token-appears-once)
+    - [9.2 Button tone and emphasis: placement vs meaning](#92-button-tone-and-emphasis-placement-vs-meaning)
+  - [10. Copy voice](#10-copy-voice)
+  - [11. Iconography](#11-iconography)
+  - [12. Dos and Don'ts](#12-dos-and-donts)
+    - [Do](#do)
+    - [Don't](#dont)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## 1. Overview
 
 ### 1.1 Audience
@@ -63,7 +114,7 @@ starting point, **not a style guide**.
 - Where shadcn-vue and VUEDA disagree, **VUEDA wins**. Examples in code
   today: 2px control radius (shadcn larger), 32px default control height
   (shadcn 36/40), 1px hairline borders with no ambient shadow on cards or
-  controls, ease-out 120ms motion, cool-neutral 250° hue, single accent.
+  controls, ease-out 120ms motion, brand-derived surfaces, single blue accent.
 - Do adopt shadcn-vue's API shape and file organisation. The payoff is
   that future shadcn-vue updates remain mergeable.
 
@@ -78,116 +129,108 @@ specify how.
 
 ## 2. Colors
 
-VUEDA's palette is a near-monochrome cool-neutral scale plus one accent
-plus desaturated status colors. Every token is OKLCH (Tailwind v4 `@theme
-inline` mappings). See `base.css § Color palette: light` and
-`base.css § Color palette: dark`.
+The identity palette is fixed in both modes: `--vueda-brand-blue`,
+`--vueda-brand-navy`, and `--vueda-brand-grey`. Supporting surfaces and
+text are explicit sRGB mixes of those colours with white or black.
+All literal palette colours use OKLCH. The identity values come from the
+[brand colour audit](../../../../brand/color-audit.md) and round-trip to
+the canonical sRGB hex values. Status colours use their own OKLCH scale.
+See `base.css § Color palette: light` and `base.css § Color palette: dark`.
 
-### 2.1 Two axes: neutral + one accent
+### 2.1 Identity, surfaces, and readable text
 
-- **Neutral axis.** Hue 250°, chroma ≤ 0.015. Carries 98% of the UI:
-  every surface, border, and text colour resolves through `--background`,
-  `--foreground`, `--card`, `--popover`, `--muted`, `--secondary`,
-  `--accent`, `--border`, `--input`, `--sunken`, `--overlay`, and the
-  parallel `--sidebar-*` set.
-- **Accent axis.** VUEDA blue, anchored at `oklch(0.58 0.19 254)` =
-  `#0077f7`. Bound to `--primary`. Used for: the primary action in a
-  context, focus rings (`--ring` aliases `--primary`), selected-row
-  signals, the brand mark. Not used for: links in body copy, info
-  banners (info has its own token, see § 2.4), chart fills by default,
-  decorative tints.
+- **Surfaces and body text.** Light mode uses white surfaces and navy
+  text; dark mode uses navy surfaces and grey text. Cards and popovers
+  step lighter in dark mode, while the sidebar steps darker. Supporting
+  roles remain separate tokens (`--muted`, `--secondary`, `--accent`,
+  `--field`, `--border`, and the parallel `--sidebar-*` set), so applications
+  can tune their UI without replacing component recipes.
+- **Brand fills.** `--primary` retains the identity blue in both modes.
+  Primary buttons, checked controls, and selected-row rails use this
+  colour. `--primary-foreground` supplies dark labels on solid fills;
+  `--primary-hover` and `--primary-active` are opaque white mixes.
+- **Readable blue text.** `--primary-text` is a shade in light mode and
+  a tint in dark mode. Links, primary outline/ghost labels, and text on
+  lightly tinted surfaces use it. `--primary-text-active` serves pressed
+  links. `--ring` follows the readable blue; it is independent of the fill.
+  Sidebar badges use `--sidebar-primary-text`, derived from the sidebar's
+  own primary colour. Informational status uses `--info` (see § 2.4).
 
-Dark mode is the primary target for operators; light mode is equally
-disciplined. Dark mode is one shade darker than `--background`; cards step
-up; sidebar is one shade darker than background to read as chrome, not
-content.
+These roles separate identity from contrast adjustments. Do not lighten
+the brand fill to fix a small text label. Check the text/background pair
+in its actual component and state, including tints behind the label.
 
 ### 2.2 Selection vs CTA: `--accent` vs `--primary`
 
-A pressed Toggle, a "this view is active" segmented-control state, a
-selected menu item: all use `--accent` (neutral surface hover). A primary
-Button, the `--ring`, a selected table row's chromatic edge: those use
-`--primary`. They must not compete: never reach for Button to express
-toggle semantics, and never tint a passive-selection surface with primary.
+A pressed Toggle, an active segmented control, and a selected menu item
+use `--accent`, a supporting surface. A primary Button and a selected
+table row's chromatic edge use `--primary`. Checkbox, radio, switch, and
+calendar selection also use primary to identify the selected value.
 
-Half-strength accent (`bg-accent/50`) is the canonical "current section"
-treatment and the row-hover rung; full `bg-accent` is menu / list hover and
-the toggle-on fill. The half-strength rule prevents a persistent active
-marker from competing with hover. `--accent` (and `--sidebar-accent`) are
-tuned to sit a perceptible lightness step below the page surface so these
-neutral highlights clear the glance threshold (see § 2.5); do not retune
-them back toward the surface.
+Half-strength accent (`bg-accent/50`) is the row-hover treatment; full
+`bg-accent` is menu/list hover and toggle-on. Sidebar controls have their
+own `--sidebar-accent` and `--sidebar-accent-active` steps. Keep these
+surfaces distinct from rest without giving them the weight of a filled
+primary action.
 
 ### 2.3 Mix recipes
 
-Surface tints derive from the base tokens via `color-mix(in oklch, …)` or
-Tailwind's slash-modifier alpha. The recipes that recur:
+Palette tokens retain explicit `color-mix(in srgb, ...)` formulas to
+preserve the existing palette and how brand overrides affect it. OKLCH
+notation for the inputs does not change the interpolation space; changing
+that space would require a separate visual and contrast review. Component
+tints use Tailwind's slash-modifier alpha or `color-mix(in oklab, ...)`.
+The recurring recipes are:
 
 - **Hover row.** `bg-accent/50`.
-- **Selected row.** Primary @ 6% tint plus an inset 2px primary border,
-  escalating to 9% on hover. The chromatic accent distinguishes selection
-  from hover (which would otherwise both read as a muted fill).
-- **Skeleton placeholder.** `bg-primary/10`. Stays neutral; not
-  `bg-accent`, which would tint skeletons brand-blue.
-- **Focus ring.** `--ring` at full opacity, 2px outline, 2px offset.
+- **Selected row.** Primary at 6% plus an inset 2px primary rail,
+  escalating to 9% on hover and 12% on press.
+- **Tinted blue label.** A low-alpha primary background with
+  `text-primary-text`; a solid primary fill uses `text-primary-foreground`.
+- **Skeleton placeholder.** `bg-primary/10`, a faint blue tint.
+- **Focus ring.** `--ring` at full opacity, with DPR-scaled width and
+  offset (see § 7.2).
 
 ### 2.4 Status colors
 
-Red / amber / green / blue exist as `--destructive`, `--warning`,
-`--success`, `--info`. Desaturated, used only when the user must act on
-state. All four are short-form names; long-form `--vueda-warning` /
-`--vueda-success` does **not** resolve. `--info` is an alias of
-`--primary`: info IS the accent.
+Red, amber, green, and blue exist as `--destructive`, `--warning`,
+`--success`, and `--info`. Use them to communicate state. All four are
+short-form names; `--vueda-warning` and `--vueda-success` do not resolve.
+`--info` aliases `--primary-text` so informational labels have the same
+contrast treatment as other blue text.
 
-`--destructive-foreground` is near-white (text **on** a destructive
-surface). Reach for `--destructive` for "destructive thing" and
-`--destructive-foreground` only for the text colour over a destructive
-fill. Conflating the two is a recurring source of bugs.
+Each status has a `-foreground` token for text on a solid fill. Success,
+warning, and info use white labels in light mode and dark labels in dark
+mode. Destructive fills keep white labels, including hover and press.
+Use the status token itself for text on a lightly tinted surface.
 
-Status surfaces (`Alert` family) follow a single recipe: `text-{stat}` +
-`border-{stat}/50` + `bg-{stat}/10`. Consumers never reach for external
-"callout" patterns.
+Status surfaces (`Alert` family) follow the recipe `text-{stat}` +
+`border-{stat}/50` + `bg-{stat}/10`. Check text contrast against the
+composited tint, not just the untinted page.
 
-The single use of strikethrough in VUEDA is on unavailable Calendar days
-in the destructive colour.
+Unavailable Calendar days use strikethrough in the destructive colour.
 
 ### 2.5 Interactive state steps
 
-Hover and active on a _filled_ control are explicit lightness steps, not
-alpha fades over the surface. An alpha fade's delta depends on whatever
-sits behind the control and collapses when the fill already sits near the
-page surface (secondary-on-background was effectively invisible). The
-§2.3 alpha recipes stay correct for _surface_ tints (rows, skeletons);
-filled controls use dedicated step tokens.
+Filled controls use opaque hover and active colours rather than alpha
+fades over whatever surface sits behind them. Each filled variant has
+`--<token>-hover` and `--<token>-active` tokens. Primary fills become
+lighter in both modes while retaining dark labels. Supporting fills
+darken in light mode and lighten in dark mode. Destructive controls keep
+their status-specific steps.
 
-Each filled variant carries `--<token>-hover` and `--<token>-active`
-(e.g. `--primary-hover`, `--secondary-active`); outline / ghost reuse
-`--accent` for hover and `--accent-active` for press. Rules of thumb:
+Primary link text has its own `--primary-text-active`; do not reuse the
+fill's active colour for text. Primary outline and ghost controls keep
+their text colour and add a primary tint on hover/press.
 
-- **Step lightness, not hue or alpha.** Lightness survives colour-vision
-  deficiency and degraded displays; hue alone does not.
-- **Target ΔL ≈ 0.10 (OKLCH L) at hover, ≈ 0.18 at active**, about the
-  "noticeable at a glance" threshold (~15 on a 0 to 100 scale).
-- **Light darkens, dark lightens.** Push the fill away from the page
-  surface; this also widens contrast against the variant's foreground.
-- **Ease chroma as lightness rises in dark mode** so the lighter step
-  stays inside the sRGB gamut.
-- **Small controls need the full step.** An alpha-on-token recipe whose
-  token is near the surface (dark `bg-input/*` on outline) caps the delta
-  below target and reads as no change at sm; reach for the step tokens.
+Supporting surfaces follow a depth ladder: `bg-accent/50` for row hover,
+`bg-accent` for menu/list/ghost hover and row press, then
+`bg-accent-active` for menu/ghost/control press. Sidebar controls mirror
+this with `--sidebar-accent` and `--sidebar-accent-active`.
 
-Neutral surfaces (menus, list rows, ghost controls) are transparent at rest,
-so instead of step tokens they ride an accent depth-ladder:
-`bg-accent/50` (row hover) → `bg-accent` (menu / list / ghost hover, and row
-press) → `bg-accent-active` (menu / ghost / control press). Sidebar controls
-mirror it with `--sidebar-accent` → `--sidebar-accent-active`, since the
-sidebar owns its own accent. Selected rows ride the chromatic ladder instead:
-`primary/[0.06]` rest → `/[0.09]` hover → `/[0.12]` press.
-
-Every clickable control gets a press one step past its hover. The exceptions
-are interactions that are not presses: text / date / time field segments
-(focus marks the segment being edited) and Slider (drag) carry no `active:`
-fill.
+Every clickable control gets a press state past its hover. Text, date,
+and time field segments use focus instead; Slider uses drag. Check
+state differences in both modes at the component's actual size.
 
 ## 3. Typography
 
@@ -351,12 +394,12 @@ VUEDA does not use elevation as a hierarchy device. Borders carry the
 work. Four shadow tokens, all defined in `base.css § Semantic shadow
 tokens`:
 
-| Token                    | Value                        | Use                                            |
-| ------------------------ | ---------------------------- | ---------------------------------------------- |
-| `--vueda-shadow-control` | `0 0 #0000` (none)           | controls; borders carry definition             |
-| `--vueda-shadow-card`    | `0 0 #0000` (none)           | cards; borders carry definition                |
-| `--vueda-shadow-popover` | 1px ring + 12px ambient drop | popover, dropdown, context menu, combobox list |
-| `--vueda-shadow-overlay` | heavier drop                 | dialogs, sheets, drawers                       |
+| Token                    | Value                         | Use                                            |
+| ------------------------ | ----------------------------- | ---------------------------------------------- |
+| `--vueda-shadow-control` | `0 0 oklch(0 0 0 / 0)` (none) | controls; borders carry definition             |
+| `--vueda-shadow-card`    | `0 0 oklch(0 0 0 / 0)` (none) | cards; borders carry definition                |
+| `--vueda-shadow-popover` | 1px ring + 12px ambient drop  | popover, dropdown, context menu, combobox list |
+| `--vueda-shadow-overlay` | heavier drop                  | dialogs, sheets, drawers                       |
 
 Cards never raise on hover. Raised surfaces are Popover, HoverCard, and
 Dialog only. Protection / fade gradients beneath floating UI are not used,
@@ -489,10 +532,11 @@ or when browser zoom is adjusted.
 ### 7.2 Focus ring contract
 
 `focus-ring` is the canon. Solid 2px outline (after DPR scaling), 2px
-offset, in `--ring` (= `--primary`). Destructive controls swap to
+offset, in `--ring` (which follows `--primary-text`). Destructive controls swap to
 `--destructive` via `focus-ring-destructive`. WCAG 2.2 SC 2.4.13 (AAA)
-is satisfied at every DPR step because `--vueda-focus-ring-width` is
-always 2× `--vueda-hairline-width`, never below the 2px CSS minimum.
+sets a minimum ring area; the width is never below 2px CSS because
+`--vueda-focus-ring-width` is always 2× `--vueda-hairline-width`. Colour
+contrast must also be checked against the adjacent surface.
 
 `focus-ring-shadow` is the inset-box-shadow variant for cases where an
 outline would clip (overflow contexts, `Reka` portal mounts). Its gap
@@ -546,9 +590,20 @@ line" cue from paper forms, so it cannot be mistaken for an outline button.
 
 - **Rest:** `field-line bg-field`, square `rounded-vueda-field` corners.
 - **Hover:** `hover:bg-field-hover`, a fill step; the line does not change.
-- **Focus and invalid:** the four-sided `hairline` returns alongside the ring
-  (`focus-visible:hairline focus-visible:hairline-ring
-focus-visible:focus-ring-shadow`), so those states keep a full edge.
+- **Focus:** the line stays bottom-only and recolours to `--ring`
+  (`focus-visible:hairline-ring focus-visible:focus-ring-shadow`). The ring is
+  the only mark that goes all the way round a field.
+- **Invalid:** the same line recolours to `--destructive`
+  (`aria-invalid:hairline-destructive`), and the ring turns destructive too once
+  the field takes focus.
+- **Warning:** the line recolours to `--warning`
+  (`data-[warning=true]:not-aria-invalid:hairline-warning`). A widget writes
+  `data-warning` beside `aria-invalid` from `useWidget`'s `validationState`,
+  which never sets both. Warnings do not block a submit, so they leave the ring
+  alone. The `not-aria-invalid` half is what makes an error outrank a warning on
+  a control that is marked both ways, such as a hand-authored form. Cascade order
+  does not settle it: Tailwind emits the arbitrary `data-[...]` variant after the
+  built-in `aria-invalid` one, so an unscoped warning would win.
 - **Read-only:** no fill and a `--border` line (`hairline-border`), so a
   read-only field reads like the read view's display rows rather than an
   editable field. Read view rows must keep that subtle line, never
@@ -559,7 +614,59 @@ focus-visible:focus-ring-shadow`), so those states keep a full edge.
 with it. Do not apply `read-only:` to a `<select>` or `<button>` trigger: the
 `:read-only` pseudo-class matches every non-editable element.
 
-### 7.6 When a real `border` is still correct
+### 7.6 Disabled controls: `--disabled`
+
+A disabled control changes kind, it does not fade. `disabled:opacity-50` can only
+be as legible as the resting contrast is high, and a cell with no fill has almost
+none to halve: on the pagination steppers the disabled edge measured 1.26 contrast
+against the page and the enabled edge 1.67, a difference few people can see.
+
+Two tokens carry the state. `--disabled` is the fill that replaces a filled
+control's tone, so a disabled primary and a disabled destructive read alike.
+`--disabled-foreground` is the ink, on that fill and on no fill at all; one token
+serves both because `--disabled` stays light enough for the same ink to read on it
+and on `--background`.
+
+The Button primitives apply it by emphasis, following Carbon:
+
+- **Fill** (`_ButtonDefault`, `_ButtonSecondary`, `_ButtonDestructive`):
+  `disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none`.
+  The tone is replaced, not faded.
+- **Outline** (`_ButtonOutline` and its primary and destructive siblings):
+  `disabled:!shadow-none disabled:bg-transparent disabled:text-disabled-foreground`.
+  The box goes entirely, which is the signal: a cluster shows which cells still act
+  without anyone reading the glyphs. The `!` is required because `hairline` and
+  `shadow-vueda-control` are single-class box-shadow utilities that `shadow-none`
+  would otherwise race in stylesheet order.
+- **Ghost and link**: `disabled:text-disabled-foreground`, since there is no fill
+  or box to remove. Links also drop the underline affordance.
+
+`_ButtonBase` keeps only `disabled:pointer-events-none`. Carbon uses no opacity for
+disabled anywhere in its button or text-input styles.
+
+Editable fields take the same posture, with the fill doing the work. A disabled
+field paints the `--disabled` fill, softens its rule to `--border`, and inks its
+value with `--disabled-foreground`, so the three field states read as three kinds:
+
+| state     | fill         | rule           | ink                     |
+| --------- | ------------ | -------------- | ----------------------- |
+| editable  | `--field`    | `--field-line` | `--foreground`          |
+| read-only | none         | `--border`     | `--foreground`          |
+| disabled  | `--disabled` | `--border`     | `--disabled-foreground` |
+
+Two mechanics matter. The `:read-only` pseudo-class also matches a **disabled**
+element, so the disabled declarations on `Input` and `Textarea` carry `!` to beat
+the read-only ones whatever the stylesheet order. And `DateField`, `TimeField`,
+`DateRangeField`, and `TagsInput` mark state with a `data-disabled` attribute on a
+wrapper element, which `disabled:` (`:disabled`) never matches, so those recipes
+use `data-[disabled]:`. A field with no fill to replace, such as the search input
+inside a combobox or command panel, recolors its ink only.
+
+Selection controls (checkboxes, radios, switches, toggles, sliders) and menu rows
+still use `disabled:opacity-50`. A menu row has no surface of its own, so alpha
+may remain right there; the selection controls have not been decided.
+
+### 7.7 When a real `border` is still correct
 
 The edge-as-box-shadow rule has principled exceptions, where a real
 `border` (or the DPR-tracked `border-hairline` / `border-*-hairline`) is

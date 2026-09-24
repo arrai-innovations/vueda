@@ -55,10 +55,18 @@ function defaultSources() {
 }
 
 function literalKeyName(key) {
-    if (!key) return null;
-    if (key.type === "Identifier") return key.name;
-    if (key.type === "StringLiteral") return key.value;
-    if (key.type === "Literal" && typeof key.value === "string") return key.value;
+    if (!key) {
+        return null;
+    }
+    if (key.type === "Identifier") {
+        return key.name;
+    }
+    if (key.type === "StringLiteral") {
+        return key.value;
+    }
+    if (key.type === "Literal" && typeof key.value === "string") {
+        return key.value;
+    }
     return null;
 }
 
@@ -72,9 +80,13 @@ function bannerText(commentValue) {
 }
 
 function extractJsDocText(comment) {
-    if (!comment || comment.type !== "CommentBlock") return null;
+    if (!comment || comment.type !== "CommentBlock") {
+        return null;
+    }
     const raw = comment.value || "";
-    if (!raw.startsWith("*")) return null;
+    if (!raw.startsWith("*")) {
+        return null;
+    }
     const lines = raw
         .split("\n")
         .map((line) => line.replace(/^\s*\*\s?/, "").replace(/\s+$/, ""))
@@ -83,7 +95,9 @@ function extractJsDocText(comment) {
 }
 
 function pickJsDocComment(comments) {
-    if (!comments || comments.length === 0) return null;
+    if (!comments || comments.length === 0) {
+        return null;
+    }
     for (let i = comments.length - 1; i >= 0; i--) {
         const c = comments[i];
         if (c.type === "CommentBlock" && (c.value || "").startsWith("*")) {
@@ -94,18 +108,26 @@ function pickJsDocComment(comments) {
 }
 
 function pickBannerFromComments(comments) {
-    if (!comments || comments.length === 0) return null;
+    if (!comments || comments.length === 0) {
+        return null;
+    }
     for (let i = comments.length - 1; i >= 0; i--) {
         const c = comments[i];
-        if (c.type !== "CommentLine") continue;
+        if (c.type !== "CommentLine") {
+            continue;
+        }
         const banner = bannerText(c.value);
-        if (banner) return banner;
+        if (banner) {
+            return banner;
+        }
     }
     return null;
 }
 
 function sourceSlice(source, node) {
-    if (!node || typeof node.start !== "number" || typeof node.end !== "number") return null;
+    if (!node || typeof node.start !== "number" || typeof node.end !== "number") {
+        return null;
+    }
     return source.slice(node.start, node.end);
 }
 
@@ -130,13 +152,17 @@ function warnUnsupportedClassNode(node, context = {}) {
  * text. Unknown nodes are skipped.
  */
 function flattenClassNode(node, sink, context = {}) {
-    if (!node) return;
+    if (!node) {
+        return;
+    }
     switch (node.type) {
         case "StringLiteral":
             sink.push(node.value);
             return;
         case "Literal":
-            if (typeof node.value === "string") sink.push(node.value);
+            if (typeof node.value === "string") {
+                sink.push(node.value);
+            }
             return;
         case "TemplateLiteral":
             if (node.expressions.length === 0) {
@@ -144,12 +170,18 @@ function flattenClassNode(node, sink, context = {}) {
             }
             return;
         case "ArrayExpression":
-            for (const el of node.elements) flattenClassNode(el, sink, context);
+            for (const el of node.elements) {
+                flattenClassNode(el, sink, context);
+            }
             return;
         case "ObjectExpression":
             for (const prop of node.properties) {
-                if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
-                if (prop.computed) continue;
+                if (prop.type !== "ObjectProperty" && prop.type !== "Property") {
+                    continue;
+                }
+                if (prop.computed) {
+                    continue;
+                }
                 const name = literalKeyName(prop.key);
                 if (name !== null && name !== undefined) {
                     sink.push(name);
@@ -166,10 +198,14 @@ function flattenClassNode(node, sink, context = {}) {
 }
 
 function extractComposes(arrayExpr) {
-    if (!arrayExpr || arrayExpr.type !== "ArrayExpression") return [];
+    if (!arrayExpr || arrayExpr.type !== "ArrayExpression") {
+        return [];
+    }
     const out = [];
     for (const el of arrayExpr.elements) {
-        if (!el) continue;
+        if (!el) {
+            continue;
+        }
         if (el.type === "StringLiteral") {
             out.push(el.value);
         } else if (el.type === "Literal" && typeof el.value === "string") {
@@ -201,10 +237,15 @@ function parseSlotValue(valueNode, source, context = {}) {
     let classNode = null;
     let composesNode = null;
     for (const prop of valueNode.properties) {
-        if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
+        if (prop.type !== "ObjectProperty" && prop.type !== "Property") {
+            continue;
+        }
         const name = literalKeyName(prop.key);
-        if (name === "class") classNode = prop.value;
-        else if (name === "composes") composesNode = prop.value;
+        if (name === "class") {
+            classNode = prop.value;
+        } else if (name === "composes") {
+            composesNode = prop.value;
+        }
     }
 
     const composes = extractComposes(composesNode);
@@ -259,13 +300,23 @@ function familyFromSourceRel(sourceRel) {
 function findPatchThemeProperties(ast) {
     const props = [];
     for (const node of ast.program.body) {
-        if (node.type !== "ExpressionStatement") continue;
+        if (node.type !== "ExpressionStatement") {
+            continue;
+        }
         const expr = node.expression;
-        if (!expr || expr.type !== "CallExpression") continue;
-        if (!expr.callee || expr.callee.type !== "Identifier" || expr.callee.name !== "patchTheme") continue;
+        if (!expr || expr.type !== "CallExpression") {
+            continue;
+        }
+        if (!expr.callee || expr.callee.type !== "Identifier" || expr.callee.name !== "patchTheme") {
+            continue;
+        }
         const arg = expr.arguments && expr.arguments[0];
-        if (!arg || arg.type !== "ObjectExpression") continue;
-        for (const prop of arg.properties) props.push(prop);
+        if (!arg || arg.type !== "ObjectExpression") {
+            continue;
+        }
+        for (const prop of arg.properties) {
+            props.push(prop);
+        }
     }
     return props;
 }
@@ -281,16 +332,24 @@ function findPatchThemeProperties(ast) {
 function buildManifestFromAst(ast) {
     const obj = findDefaultExportObject(ast);
     const manifest = [];
-    if (!obj) return manifest;
+    if (!obj) {
+        return manifest;
+    }
 
     let currentGroup = null;
     for (const prop of obj.properties) {
-        if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
+        if (prop.type !== "ObjectProperty" && prop.type !== "Property") {
+            continue;
+        }
         // Walk this property's leading comments to refresh the group banner.
         const refreshed = pickBannerFromComments(prop.leadingComments || []);
-        if (refreshed) currentGroup = refreshed;
+        if (refreshed) {
+            currentGroup = refreshed;
+        }
         const componentName = literalKeyName(prop.key);
-        if (!componentName) continue;
+        if (!componentName) {
+            continue;
+        }
         manifest.push({ component: componentName, group: currentGroup });
     }
     return manifest;
@@ -307,21 +366,31 @@ function buildManifestFromAst(ast) {
 function buildComponentDataMap(props, source, sourceRel) {
     const map = new Map();
     for (const prop of props) {
-        if (prop.type !== "ObjectProperty" && prop.type !== "Property") continue;
+        if (prop.type !== "ObjectProperty" && prop.type !== "Property") {
+            continue;
+        }
         const componentName = literalKeyName(prop.key);
-        if (!componentName) continue;
+        if (!componentName) {
+            continue;
+        }
 
         const valueNode = prop.value;
-        if (!valueNode || valueNode.type !== "ObjectExpression") continue;
+        if (!valueNode || valueNode.type !== "ObjectExpression") {
+            continue;
+        }
 
         const componentDescription = extractJsDocText(pickJsDocComment(prop.leadingComments || []));
         const kind = componentName.startsWith("_") ? "primitive" : "key";
 
         const slots = [];
         for (const slotProp of valueNode.properties) {
-            if (slotProp.type !== "ObjectProperty" && slotProp.type !== "Property") continue;
+            if (slotProp.type !== "ObjectProperty" && slotProp.type !== "Property") {
+                continue;
+            }
             const slotName = literalKeyName(slotProp.key);
-            if (!slotName) continue;
+            if (!slotName) {
+                continue;
+            }
 
             const slotDescription = extractJsDocText(pickJsDocComment(slotProp.leadingComments || []));
             const parsed = parseSlotValue(slotProp.value, source, {
@@ -380,7 +449,9 @@ export async function extractThemeKeysPayload({ sources, repoRoot } = {}) {
             const themeAst = babelParse(themeCode, { sourceType: "module", attachComment: true, tokens: false });
             const fileMap = buildComponentDataMap(findPatchThemeProperties(themeAst), themeCode, themeRel);
             for (const [key, value] of fileMap) {
-                if (!dataMap.has(key)) dataMap.set(key, value);
+                if (!dataMap.has(key)) {
+                    dataMap.set(key, value);
+                }
             }
         }
 

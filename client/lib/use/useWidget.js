@@ -169,7 +169,7 @@ export const WIDGET_EMITS = [
  *
  * // *** Validation ***
  * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
- * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags.
+ * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags. `warning` excludes the invalid case, so the two are never both set.
  *
  * // *** Value Handling ***
  * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective form value (local or contextual).
@@ -309,6 +309,10 @@ export function useWidget(props, emit) {
             }
             return !!props.required;
         }),
+        // `warning` means "carries a warning and is not invalid", in both branches. A
+        // control paints one state line, and an error outranks a non-blocking warning,
+        // so the precedence is settled here rather than left to the order two theme
+        // variants happen to be generated in.
         validationState: computed(() => {
             const fc = unref(fieldContext);
             if (fc) {
@@ -321,7 +325,7 @@ export function useWidget(props, emit) {
             }
             return {
                 invalid: !!props.invalid,
-                warning: !!props.warning,
+                warning: !!props.warning && !props.invalid,
             };
         }),
 

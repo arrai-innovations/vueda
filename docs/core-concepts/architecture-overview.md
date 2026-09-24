@@ -124,7 +124,7 @@ The architecture assumes a specific infrastructure stack. These are not pluggabl
 
 **PostgreSQL** provides the relational database. The schema uses PostgreSQL-specific capabilities, including array fields, range types, GIN indexes, and generated columns. Substituting a different database engine would require changes beyond settings.
 
-**Redis** serves as shared cache and session coordination across web and worker processes. It is the mechanism by which these processes share a transient state without direct communication.
+**A shared cache** holds sessions, the forgot-password cooldown, allauth's sign-in and password reset rate limits, and DRF throttle counters. Every web and worker process has to reach the same one, and it is the one dependency a deployment picks for itself. `CACHE_URL` names the instance, and its scheme selects the backend. The choices are Redis, a database cache table, and a per-process cache for one process. [Configure the Cache and Sessions](../guides/configure-cache-and-sessions) covers the URL forms and the key prefix that separates two deployments sharing one Redis instance. It also covers the `check --deploy` rule reporting a cache that workers cannot share.
 
 A **message broker** (RabbitMQ or Redis) connects the web process to the worker process for async task dispatch. Without it, VDQ queue items are created in the database but never processed.
 

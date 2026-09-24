@@ -2,6 +2,7 @@
 import { parseTime } from "@internationalized/date";
 import TimeField from "@vueda/controls/time-field/TimeField.vue";
 import TimeFieldInput from "@vueda/controls/time-field/TimeFieldInput.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetTimeRangeField.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
@@ -42,7 +43,9 @@ const widgetContext = useWidget(props, emit);
  * @returns {import('@internationalized/date').Time|undefined}
  */
 function parseTimeValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return parseTime(raw);
     } catch {
@@ -58,7 +61,9 @@ function useBoundaryValue(key) {
     return computed({
         get: () => {
             const raw = widgetContext.state.combinedValue;
-            if (!raw || typeof raw !== "object") return undefined;
+            if (!raw || typeof raw !== "object") {
+                return undefined;
+            }
             return parseTimeValue(raw[key]);
         },
         set: (v) => {
@@ -90,6 +95,7 @@ const theme = useTheme("WidgetTimeRangeField", props);
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_lower' : undefined"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+            :data-warning="widgetContext.state.validationState.warning || undefined"
             :aria-required="widgetContext.state.required || undefined"
             :class="theme('field')"
             @blur="widgetContext.blur"
@@ -114,6 +120,8 @@ const theme = useTheme("WidgetTimeRangeField", props);
             :hour-cycle="hourCycle"
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName ? widgetContext.state.combinedName + '_upper' : undefined"
+            :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+            :data-warning="widgetContext.state.validationState.warning || undefined"
             :class="theme('field')"
             @blur="widgetContext.blur"
             @focus="widgetContext.focus"

@@ -19,11 +19,17 @@ __all__ = (
     "resolve_relation_path",
 )
 
+import datetime
 import warnings
 import weakref
+from functools import cache
 
 import pghistory
 from django.conf import settings
+from django.contrib.admin.utils import NotRelationField
+from django.contrib.admin.utils import get_fields_from_path
+from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
@@ -47,6 +53,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
@@ -58,6 +65,70 @@ from vueda.history.queries import events_in_groups
 from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
+
+
+# The zero a column total falls back to when its filtered set is empty, by column type. Django hands
+# an aggregate's `default` to `Value(default, <the aggregate's own output field>)`, so the zero has
+# to be the type being summed: a plain `0` adapted as an interval is not something a database will
+# accept. `DurationField` is the only summable column that isn't a number, so it is the only entry.
+COLUMN_TOTAL_ZEROES = {"DurationField": datetime.timedelta(0)}
+
+
+@cache
+def _column_total_zero(model, path):
+    """
+    The zero to total ``path`` down to when nothing matched, cached per model and path.
+
+    Resolving the leaf field is `_meta` walking rather than a query, and `column_totals` is declared
+    on the class, so the answer never changes for a given pair and is worked out once per process.
+
+    A path that doesn't resolve gets the numeric zero, which is never used: ``aggregate()`` raises
+    ``FieldError`` for it on the same call, and ``vueda_info.E011`` reports it at check time. A path
+    naming a queryset annotation is the exception -- it resolves against the query rather than
+    ``_meta``, so :func:`_column_total_zero_for` handles that one before this is reached.
+    """
+    try:
+        field = get_fields_from_path(model, path)[-1]
+    except (FieldDoesNotExist, NotRelationField):
+        return 0
+    return COLUMN_TOTAL_ZEROES.get(field.get_internal_type(), 0)
+
+
+def _column_total_zero_for(model, path, annotation):
+    """
+    The zero for ``path``, reading ``annotation``'s own output field when the path names one.
+
+    A queryset annotation has no entry in ``_meta`` to walk to, so the cached lookup above would
+    fall back to the numeric zero for it -- wrong for an annotation that computes a duration, where
+    the database is handed a plain ``0`` as an interval. The annotation carries the type itself.
+
+    Not cached, because the annotation belongs to a queryset rather than to the class. An expression
+    that can't name a single output field (mixed types, which Django refuses to guess at) falls back
+    to the numeric zero, and the aggregate raises for it on the same call the way it always did.
+    """
+    if annotation is None:
+        return _column_total_zero(model, path)
+    try:
+        internal_type = annotation.output_field.get_internal_type()
+    except (FieldError, AttributeError):
+        return 0
+    return COLUMN_TOTAL_ZEROES.get(internal_type, 0)
+
+
+def _column_total_aliases(names, taken):
+    """
+    Map each total in ``names`` to an ``aggregate()`` alias that no name in ``taken`` can shadow.
+
+    ``aggregate()`` resolves each argument against the aliases already defined in the same call, so
+    ``aggregate(quantity=Sum("quantity"), duplicate=Sum("quantity"))`` sums the first aggregate a
+    second time and fails. A generated alias can collide the same way with an annotation the
+    viewset added. The prefix grows until no taken name starts with it, so no generated alias can
+    equal one.
+    """
+    prefix = "_column_total"
+    while any(name.startswith(prefix) for name in taken):
+        prefix = f"_{prefix}"
+    return {name: f"{prefix}_{index}" for index, name in enumerate(names)}
 
 
 class WarningConfirmationMixin:
@@ -180,9 +251,32 @@ class AtomicModelViewSet(
 
 
 class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.GenericViewSet):
-    """Filter out rows the user cannot access and expose column aggregates."""
+    """Filter out rows the user cannot access and expose column aggregates.
 
-    column_totals: list[str] = []
+    ``column_totals`` maps a client-facing column name to the ORM field path aggregated for it::
+
+        column_totals = {"hours": "hours", "product_price": "product_option__price"}
+
+    The key is what a client asks for in the column totals query parameter
+    (``settings.COLUMN_TOTALS_PARAM``, ``ct`` by default) and the key it gets back under in the
+    response's ``columnTotals``; the value is a server-side detail no client ever sees. Keeping the
+    two apart is what lets a total sit under the column name that renders it, whatever the ORM path
+    behind it is spelled like.
+
+    Totals are opt-in. A ``list`` request that names none gets ``columnTotals: {}`` and runs no
+    aggregation query at all; one that names some aggregates exactly those, one ``SUM`` each. A
+    wildcard value (``*`` or ``~all``, the same spellings ``?e=`` and ``?f=`` take) asks for every
+    declared total.
+
+    Every value is summed, so every value has to name a summable column, reached (if at all) through
+    relations that match at most one related row. A relation that can match several -- a reverse
+    foreign key, a many-to-many -- joins a row per related object and would inflate *every* total in
+    the same ``aggregate()`` call, not just its own, which is why such a path is rejected outright
+    rather than aggregated on its own. The ``vueda_info.E011`` system check reports a declaration
+    that breaks any of these rules; see ``vueda.info.checks``.
+    """
+
+    column_totals: dict[str, str] = {}
     applies_workflow_state_list_filter = True
 
     def apply_row_level_filter(self, queryset, perm_type="list"):
@@ -193,12 +287,208 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         """
         return filter_rows_for_user(queryset, self.request.user, perm_type=perm_type)
 
-    def get_column_info(self, queryset):
-        """Return aggregated totals for any fields listed in ``column_totals``."""
-        if not self.column_totals:
+    def get_declared_column_totals(self):
+        """
+        This viewset's ``column_totals`` mapping, or ``{}`` when it declares none.
+
+        Anything that isn't a mapping reads as "none declared" rather than raising here: a
+        misconfigured declaration is the ``vueda_info.E011`` system check's to report, and a request
+        is not the place to find out about it. The effect is that such a viewset offers no totals at
+        all, which is also what its metadata advertises.
+
+        An override may narrow the mapping per request, and ``list`` and the OpenAPI schema both
+        honor it. Metadata cannot: ``model_column_totals`` is built from the registered viewset
+        *class*, so it advertises the ``column_totals`` attribute. Keep every total an override
+        might return in that attribute -- one that isn't there is never advertised, so no client
+        learns to ask for it.
+        """
+        column_totals = getattr(self, "column_totals", None)
+        return column_totals if isinstance(column_totals, dict) else {}
+
+    def get_requested_column_totals(self, request):
+        """
+        The declared total names this ``list`` request asked for, in declaration order.
+
+        The names arrive in ``settings.COLUMN_TOTALS_PARAM``. Repeating the parameter and
+        comma-separating within one value mean the same thing, matching how ``?e=`` and ``?f=`` are
+        read; empty values and duplicates are dropped, so ``?ct=`` on its own asks for nothing.
+
+        A wildcard (``*`` or ``~all``) asks for every declared total. It does not excuse an unknown
+        name sent alongside it: a name that isn't declared is a mistake in the request whatever else
+        it carries, so it is still reported.
+
+        Raises :class:`~vueda.core.exceptions.VuedaValidationError` (HTTP 400) naming the valid
+        totals for any name this viewset doesn't declare.
+        """
+        param = settings.COLUMN_TOTALS_PARAM
+        declared = self.get_declared_column_totals()
+
+        requested = set()
+        unknown = []
+        wildcard = False
+        for raw_value in request.query_params.getlist(param):
+            for name in raw_value.split(","):
+                name = name.strip()
+                if not name:
+                    continue
+                if name in WILDCARD_VALUES:
+                    wildcard = True
+                elif name in declared:
+                    requested.add(name)
+                elif name not in unknown:
+                    unknown.append(name)
+
+        if unknown:
+            if declared:
+                valid = (
+                    f"Valid column totals are {', '.join(sorted(declared))}. "
+                    f"Or use a wildcard to request all: {', '.join(sorted(WILDCARD_VALUES))}."
+                )
+            else:
+                valid = "This endpoint declares no column totals."
+            raise VuedaValidationError({param: [f"Invalid column total '{name}'.  {valid}" for name in unknown]})
+
+        if wildcard:
+            return tuple(declared)
+
+        # Declaration order rather than request order, so the same set of names always comes back
+        # keyed the same way regardless of how the client spelled the request.
+        return tuple(name for name in declared if name in requested)
+
+    def get_column_info(self, queryset, requested_column_totals=()):
+        """
+        Aggregate the requested column totals over ``queryset``, keyed by their declared names.
+
+        ``requested_column_totals`` comes from :meth:`get_requested_column_totals`. An empty one
+        returns ``{}`` without touching the database -- a declared total costs nothing until a
+        client asks for it.
+
+        Each total carries a zero as its ``default``, so a filter matching no rows totals ``0``
+        rather than ``null``. ``SUM`` over no rows is ``NULL`` in SQL, but the sum of nothing is
+        zero everywhere a reader would think about it, and a footer cell is the wrong place to
+        explain the difference. It also means a client never has to tell "no rows" apart from "no
+        total": the response says a total is a number, and it always is one.
+
+        The sum runs over the matched rows re-selected by primary key rather than over ``queryset``
+        itself. ``SUM`` counts a row once per joined match, so a query that reached through a
+        multi-valued relation would total a row's value as many times as it has related rows --
+        silently, as a number that looks plausible. ``vueda_info.E011`` keeps the declared *path*
+        single-valued, but the join can arrive from somewhere the check cannot see: a
+        ``filterset_class`` filter spanning a reverse FK or M2M, or a ``RowLevelPermissions``
+        ``Q`` doing the same. Re-selecting by pk means a row is summed once however it was matched,
+        which is what "the same filtered, permission-limited set" has to mean for a total to be
+        worth showing.
+
+        A total over an annotation the viewset's own ``get_queryset`` adds cannot follow that route,
+        so it is aggregated over ``queryset`` itself and the two kinds are summed in separate calls.
+        The annotation belongs to the queryset being replaced, and it cannot be moved: the
+        expressions in ``query.annotations`` are already resolved, and their ``Col`` leaves hold the
+        aliases of the query they were resolved against. Re-applying one to another queryset adds no
+        join -- ``Col`` has no ``resolve_expression`` of its own -- so an annotation reaching through
+        a relation would compile to SQL naming a table the query never joined.
+
+        The consequence is that an annotation total is not protected from the row multiplication
+        described above: it is summed over the filtered queryset with whatever joins matched it. A
+        total over a real column is the one that carries the guarantee, which is the other reason to
+        prefer a ``GeneratedField`` or a database view where the value could be a column.
+        """
+        if not requested_column_totals:
             return {}
-        aggregations = {column: Sum(column) for column in self.column_totals}
-        return queryset.aggregate(**aggregations)
+        declared = self.get_declared_column_totals()
+        model = queryset.model
+        annotations = queryset.query.annotations
+        column_names = [name for name in requested_column_totals if declared[name] not in annotations]
+        annotation_names = [name for name in requested_column_totals if declared[name] in annotations]
+        # Every total is aggregated under a generated alias and mapped back to its own name below.
+        # A total is normally named after what it sums, so `{"line_total": "line_total"}` is the
+        # ordinary spelling, and two totals may sum the same field. Either way a total's own name
+        # used as the alias would be what a later argument resolves to, instead of the field.
+        aliases = _column_total_aliases(
+            requested_column_totals,
+            {*annotations, *(declared[name].split("__")[0] for name in requested_column_totals)},
+        )
+
+        # A `DISTINCT ON` that leaves out the primary key picks one row per group, and the ordering
+        # decides which: the list shows those rows, so the totals have to cover the same ones.
+        # Selecting the pks through the list queryset unchanged keeps both, because Django leaves a
+        # subquery's ordering in place when it has distinct fields. A `DISTINCT ON` that includes
+        # the primary key, which is the only kind the search backend adds, keeps every matched row
+        # and only removes duplicates. That one, like a query with no distinct fields, reduces to
+        # "which rows matched", so its ordering and distinct fields are dropped from the subquery:
+        # they can name a ranking annotation that `.values("pk")` masks out of the select, and a
+        # `DISTINCT ON` naming a column no longer selected cannot be compiled.
+        distinct_fields = queryset.query.distinct_fields
+        pk_names = {"pk", model._meta.pk.name, model._meta.pk.attname}
+        if distinct_fields and pk_names.isdisjoint(distinct_fields):
+            masked = [field for field in distinct_fields if field.split("__")[0] in annotations]
+            if masked:
+                raise NotImplementedError(
+                    f"{type(self).__name__} cannot compute column totals over a queryset that selects "
+                    f"one row per group with distinct({', '.join(map(repr, distinct_fields))}): the "
+                    f"row selection names the annotation(s) {', '.join(map(repr, masked))}, which a "
+                    "primary key subquery cannot carry."
+                )
+            matched_pks = queryset.values("pk")
+            selects_one_per_group = True
+        else:
+            matched_pks = queryset.order_by().distinct().values("pk")
+            selects_one_per_group = False
+
+        totals = {}
+        if column_names:
+            # `_base_manager`, not `_default_manager`: every visibility rule is already baked into
+            # the pks being selected, and a default manager that filters would subtract rows from a
+            # set the user was just shown.
+            #
+            # `db_manager`, so a queryset pinned to a replica with `.using()` keeps that connection.
+            # Django refuses a subquery that spans two databases, and the router would otherwise be
+            # free to answer with a different one than the pks are being selected from.
+            rows = model._base_manager.db_manager(queryset.db).filter(pk__in=matched_pks)
+            aggregated = rows.aggregate(
+                **{
+                    aliases[name]: Sum(declared[name], default=_column_total_zero(model, declared[name]))
+                    for name in column_names
+                }
+            )
+            totals.update({name: aggregated[aliases[name]] for name in column_names})
+        if annotation_names:
+            # Summed over `values(pk, ...).distinct()`, which Django compiles to the sum of a
+            # subquery selecting each matched row's id beside the values being summed. A join that
+            # matched a row more than once contributes one `(id, value)` pair, so the annotation
+            # gets the same "each matched row counts once" guarantee the re-selection above gives a
+            # real column -- by deduplicating in the subquery rather than by moving the annotation,
+            # which cannot be moved. The id is what makes it work: two different rows sharing a
+            # value stay two rows.
+            #
+            # An annotation reading the multi-valued side of the join is the case this does not
+            # answer, and nothing could: it has a value per joined row rather than per row, so there
+            # is no per-row total to compute. Exact duplicates still collapse.
+            #
+            # `.order_by().distinct()` replaces the list's own ordering and distinct fields, because
+            # `SELECT DISTINCT` requires its `ORDER BY` terms in the select list. A `DISTINCT ON`
+            # selection moves into the pk filter instead, so the same rows are summed.
+            rows = queryset.order_by().distinct()
+            if selects_one_per_group:
+                rows = rows.filter(pk__in=matched_pks)
+            paths = list(dict.fromkeys(declared[name] for name in annotation_names))
+            aggregated = (
+                rows.values("pk", *paths)
+                .distinct()
+                .aggregate(
+                    **{
+                        aliases[name]: Sum(
+                            declared[name],
+                            default=_column_total_zero_for(model, declared[name], annotations[declared[name]]),
+                        )
+                        for name in annotation_names
+                    }
+                )
+            )
+            totals.update({name: aggregated[aliases[name]] for name in annotation_names})
+
+        # Declaration order, whichever call each total came back from, so the response keys read the
+        # same way `model_column_totals` advertises them however the two kinds were mixed.
+        return {name: totals[name] for name in requested_column_totals}
 
     def list(self, request, *args, **kwargs):
         """
@@ -206,17 +496,26 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
          with other drf actions, specifically encountered with create
          not finding it's created object
         """
+        # Validated before any query runs, so an unknown total name is a 400 rather than a page of
+        # rows with a total quietly missing from it.
+        requested_column_totals = self.get_requested_column_totals(request)
+
         # future: when updating drf, check that the copied code is still the same
         # code from drf
         queryset = self.filter_queryset(self.get_queryset())
         # our addition
 
         queryset = self.apply_row_level_filter(queryset)
-        column_totals = self.get_column_info(queryset)
         # end addition
 
         page = self.paginate_queryset(queryset)
         if page is not None:
+            # Aggregated here rather than before paginating, because only a paginated response has
+            # somewhere to carry totals: an unpaginated one is a bare list of rows. Computing them
+            # for such a viewset would run a `SUM` per requested total and then drop every one of
+            # them. Still aggregated over `queryset` rather than `page`, so a total covers the whole
+            # filtered set and not just the rows on this page.
+            column_totals = self.get_column_info(queryset, requested_column_totals)
             serializer = self.get_serializer(page, many=True)
             if hasattr(self, "paginator"):
                 self.paginator.column_totals = column_totals
@@ -321,7 +620,13 @@ _FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 def get_filterset_query_param_names(filterset_class, get_queryset):
     """
     The query parameter names a filterset accepts, including the suffixed names of multi-widget
-    filters and each filter's lookup expression form.
+    filters.
+
+    Each name is a filter's own key in ``self.filters`` — its declared name, or the dotted public
+    alias ``PublicFilterAliasMixin`` renamed it to — which is also the name django-filter's own form
+    binds request data under. Nothing wider than that is a recognized parameter: a filter's
+    ``lookup_expr`` decides which ORM lookup its value queries, not a second query parameter name a
+    client could send instead.
 
     Read the filters from an instance rather than from ``filterset_class.get_filters()``. That
     classmethod hands back the filter objects declared on the class itself, and ``Filter.field``
@@ -363,8 +668,6 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
                 names.add(f"{filter_name}_{suffix}")
         else:
             names.add(filter_name)
-        if hasattr(filter_obj, "lookup_expr"):
-            names.add(f"{filter_name}__{filter_obj.lookup_expr}")
 
     names = frozenset(names)
     _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names
@@ -579,13 +882,28 @@ class NoExtraFieldsForViewSetMixin:
     `retrieve` does not recognize.
 
     `list` recognizes filterset fields (from `filterset_class`, when declared) plus pagination,
-    ordering, search, and REST Flex Fields params (`get_extra_allowed_fields()`). A viewset with no
-    `filterset_class` recognizes only the latter set. `retrieve` recognizes only the expand, fields and omit params.
+    ordering, search, column totals, and REST Flex Fields params (`get_extra_allowed_fields()`). A
+    viewset with no `filterset_class` recognizes only the latter set. `retrieve` recognizes only the
+    expand, fields and omit params -- column totals are a `list` concept, so the totals param is
+    rejected there.
     """
 
-    @staticmethod
-    def get_extra_allowed_fields():
-        return (
+    def get_extra_allowed_fields(self):
+        """
+        The query parameters ``list`` recognizes beyond this viewset's filterset fields.
+
+        The totals parameter is among them only when something on this viewset reads it. It is
+        ``ListRowLevelViewSetMixin.list`` that validates the names it carries and answers 400 for an
+        undeclared one, so on a viewset without that mixin recognizing the parameter would mean
+        accepting any value for it and doing nothing, which is the one thing this mixin exists to
+        prevent.
+
+        The test is whether the mixin is present, not whether ``list`` actually reaches it. A
+        subclass that overrides ``list`` and never delegates still recognizes the parameter and then
+        ignores it. That case is left alone deliberately: an override calling ``super().list()`` is
+        ordinary and does read the parameter, and nothing here can tell the two apart.
+        """
+        extra_allowed_fields = [
             settings.PAGE_QUERY_PARAM,
             settings.PAGE_SIZE_QUERY_PARAM,
             settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
@@ -593,7 +911,10 @@ class NoExtraFieldsForViewSetMixin:
             settings.REST_FLEX_FIELDS["OMIT_PARAM"],
             settings.REST_FRAMEWORK["SEARCH_PARAM"],
             settings.REST_FRAMEWORK["ORDERING_PARAM"],
-        )
+        ]
+        if hasattr(self, "get_declared_column_totals"):
+            extra_allowed_fields.insert(0, settings.COLUMN_TOTALS_PARAM)
+        return tuple(extra_allowed_fields)
 
     @staticmethod
     def get_retrieve_allowed_fields():
@@ -889,6 +1210,14 @@ class VuedaViewSet(
 
     detail_args = ["pk"]
 
+    # `history_list` (below) fetches its object unconditionally, so it can defer a model-scope
+    # denial to a matching workflow-state grant, the same way `retrieve` does -- see
+    # `vueda.core.permissions.ObjectPermissions._has_later_permission_decision`. `__init_subclass__`
+    # below adds this entry to every subclass's own resolved value, however that value was reached
+    # (a local override, a mixin supplying it, or plain inheritance), without disturbing anything
+    # else that value does or does not contain.
+    workflow_object_permission_actions = frozenset({"history_list"})
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         # Name what the request is doing inside the action the history middleware opened, so an
@@ -933,6 +1262,18 @@ class VuedaViewSet(
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # `cls.workflow_object_permission_actions` here is already the fully-resolved value
+        # ordinary Python attribute lookup gives this class: its own override if it declared one
+        # (including an explicit, deliberate `frozenset()` that drops an action a parent declared,
+        # because that parent's implementation of the action no longer guarantees an object
+        # permission check), or a mixin's collection if one earlier in the MRO supplies it without
+        # this class overriding it, or plain inheritance otherwise. Adding only `history_list` on
+        # top preserves whatever that resolution already decided -- it never restores an action
+        # this class chose to leave out, and never depends on a mixin having been written as a
+        # `VuedaViewSet` subclass itself for its collection to be seen.
+        cls.workflow_object_permission_actions = frozenset(cls.workflow_object_permission_actions) | {"history_list"}
+
         if issubclass(cls, drf_viewsets.ReadOnlyModelViewSet):
             warnings.warn(
                 f"{cls.__module__}.{cls.__name__} inherits from both VuedaViewSet and ReadOnlyModelViewSet. "
@@ -1001,12 +1342,39 @@ class VuedaViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``history_list`` is additionally gated on read authorization here, checked the same way an
+        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
+        ``workflow_object_permission_actions`` by default (see that attribute above), so a
+        requester whose read comes only from a matching workflow-state grant is offered
+        ``history-list`` here the same way a requester whose read comes from a model-level
+        permission already is, and both agree with what the history endpoint's own enforcement
+        answers for the same row.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():
+            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
+                continue
             allowed_actions.add(extra_action.url_name)
 
         return allowed_actions
+
+    def _read_permitted(self, request, instance):
+        """
+        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
+        is ``None`` -- through this viewset's own configured permission classes.
+
+        Checked as an ordinary "retrieve" read, through :func:`vueda.core.permissions.check_action_permission`,
+        the same function an object's own ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`)
+        and model metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
+        already call to check ``retrieve`` for the same row or model, on this same viewset
+        instance, within the same request. ``check_action_permission`` caches its answer per
+        ``(action, instance)`` on that viewset instance, so whichever of those two callers reaches
+        ``retrieve`` first pays for the permission pass, and this call reuses that answer instead
+        of paying for a second one. See ``check_action_permission`` for what "checked as an
+        action" means and why ``instance=None`` takes a different path than a specific object.
+        """
+        return check_action_permission(self, request, instance, "retrieve")
 
     def get_object(self):
         """
@@ -1082,6 +1450,11 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
+        unconditionally, including no read gate for ``history_list``: that action is defined only
+        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
+        nothing for a read gate to filter.
         """
         allowed_actions = set()
         for extra_action in self.get_extra_actions():

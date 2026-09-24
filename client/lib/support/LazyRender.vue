@@ -15,7 +15,9 @@ const isVisible = ref(false);
 useIntersectionObserver(
     target,
     ([entry]) => {
-        if (entry.isIntersecting) isVisible.value = true;
+        if (entry.isIntersecting) {
+            isVisible.value = true;
+        }
     },
     { once: true },
 );

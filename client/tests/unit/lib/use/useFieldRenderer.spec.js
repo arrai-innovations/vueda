@@ -43,12 +43,37 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.fieldSlotName.value).toBe("field(foo)");
         expect(result.widgetSlotName.value).toBe("widget(foo)");
         expect(result.widgetComponent.value).toEqual(availableWidgets.WidgetUnmapped);
+        // Outside a fieldset, a plain undotted identity has nothing to protect from lodash nesting,
+        // so it passes through unchanged: this is the same raw key `useForm`'s `errors`, `messages`,
+        // and `touched` maps use, so a server error or touched-state lookup for this field agrees
+        // with its value path.
         expect(result.fieldProps.value.name).toBe("foo");
         expect(result.fieldProps.value.modelValue).toBe("val");
         expect(result.fieldProps.value.hidden).toBe(false);
         expect(result.remainingSlots.value).toEqual(["custom"]);
         expect(result.fieldProps.value.themeOverride).toEqual({ a: 1, b: 2 });
         expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3, b: 2 });
+    });
+
+    scopedIt("overrides label visibility only on the field and otherwise preserves model configuration", async () => {
+        const props = vue.reactive({
+            formModelName: "quantity",
+            formModel: {
+                fieldComponents: {},
+                widgetComponents: {},
+                fieldDetails: { quantity: { label: "Quantity" } },
+                fieldProps: { quantity: { hideLabel: true } },
+                widgetProps: {},
+            },
+            objectGridFieldSlotProps: {},
+        });
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+        expect(result.fieldProps.value.hideLabel).toBe(true);
+        props.hideLabel = false;
+        expect(result.fieldProps.value.hideLabel).toBe(false);
+        props.hideLabel = true;
+        expect(result.fieldProps.value.hideLabel).toBe(true);
+        expect(result.widgetProps.value).not.toHaveProperty("hideLabel");
     });
 
     scopedIt("reports a component resolution failure as field error state", async () => {
@@ -95,15 +120,15 @@ describe("lib/use/useFieldRenderer.js", () => {
     });
 
     scopedIt("computes fieldValuePath for object grid rows", async () => {
-        const fieldSetContext = { state: vue.reactive({ name: "items" }) };
+        const fieldSetContext = { state: vue.reactive({ name: "items", formModelName: "items" }) };
         const props = vue.reactive({
-            formModelName: "items__name",
+            formModelName: "items.name",
             formModel: {
-                fieldComponents: { items__name: "FieldString" },
+                fieldComponents: { "items.name": "FieldString" },
                 widgetComponents: {},
                 fieldDetails: {},
-                fieldProps: { items__name: {} },
-                widgetProps: { items__name: {} },
+                fieldProps: { "items.name": {} },
+                widgetProps: { "items.name": {} },
             },
             objectGridFieldSlotProps: { rowIndex: 2, value: "v" },
         });

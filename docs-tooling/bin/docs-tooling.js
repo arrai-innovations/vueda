@@ -16,6 +16,7 @@ import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
+import { validateClientSymbols } from "../js/validators/client-symbols.js";
 import { validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
@@ -241,10 +242,18 @@ function titleForDir(dirPath) {
     if (!last) {
         return "API Reference";
     }
-    if (last === "py") return "Python API";
-    if (last === "js") return "JavaScript API";
-    if (last === "rest") return "REST API";
-    if (last === "vue") return "Vue Components";
+    if (last === "py") {
+        return "Python API";
+    }
+    if (last === "js") {
+        return "JavaScript API";
+    }
+    if (last === "rest") {
+        return "REST API";
+    }
+    if (last === "vue") {
+        return "Vue Components";
+    }
     return last;
 }
 
@@ -278,7 +287,9 @@ function addIndexPages(outputs) {
             const parent = path.dirname(current);
             ensureDir(parent);
             dirChildren.get(parent).add(path.basename(current));
-            if (parent === current) break;
+            if (parent === current) {
+                break;
+            }
             current = parent;
         }
     }
@@ -302,10 +313,14 @@ function addIndexPages(outputs) {
         lines.push("---", `title: ${title}`, `id: ${indexIdForDir(dir)}`, "---", "");
         lines.push(`# ${title}`, "");
         for (const child of children) {
-            if (child === "index.md") continue;
+            if (child === "index.md") {
+                continue;
+            }
             // When both foo.md and foo/ exist for the same module, link only to
             // foo.md to avoid two identically-labelled entries in the index.
-            if (!child.endsWith(".md") && childrenSet.has(`${child}.md`)) continue;
+            if (!child.endsWith(".md") && childrenSet.has(`${child}.md`)) {
+                continue;
+            }
             const label = child.endsWith(".md") ? child.replace(/\.md$/, "") : child;
             const linkTarget = child.endsWith(".md") ? `./${child}` : `./${child}/`;
             lines.push(`- [${label}](${linkTarget})`);
@@ -490,12 +505,19 @@ async function runValidate(argv) {
 
     const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
 
+    const clientLibDir = path.join(repoRoot, "client", "lib");
+    const symbols = validateClientSymbols({ files, clientLibDir });
+    errors.push(...symbols.errors);
+
     console.error(
         `Checked ${files.length} file(s) against ${apiIndexSize} API ids and ${glossaryIndexSize} glossary terms`,
     );
+    console.error(
+        `Checked ${symbols.checkedFiles} authored file(s) against ${symbols.componentCount} client components`,
+    );
 
     if (errors.length > 0) {
-        for (const error of errors) {
+        for (const error of errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
             const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
             console.log(`${rel}:${error.line}: ${error.message}`);
         }

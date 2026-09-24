@@ -31,7 +31,7 @@ const getFieldComponent = (_field) => {
  */
 const getWidgetComponent = (field) => {
     if (field.readOnly) {
-        return availableWidgets.WidgetReadOnly;
+        return getTypeMapping(defaultFieldMappings, field)?.readOnlyWidget ?? availableWidgets.WidgetReadOnly;
     }
     const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let widget;
@@ -52,6 +52,9 @@ const getWidgetComponent = (field) => {
  */
 const getWidgetProps = (field) => {
     const defaultMapping = getTypeMapping(defaultFieldMappings, field);
+    if (field.readOnly && defaultMapping?.readOnlyWidget) {
+        return { ...defaultMapping.readOnlyWidgetProps };
+    }
     let baseProps;
     if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
         baseProps = defaultMapping?.[field.typeDb]?.widgetProps;
@@ -176,14 +179,14 @@ export function useFormModel(props) {
                     const item = {
                         fieldName,
                         fieldDetail: fieldDetails[fieldName],
-                        isExpandedField: fieldName.includes("__"),
+                        isExpandedField: fieldName.includes("."),
                         baseExpanded: unrefExpand.includes(fieldName),
                         expandName: null,
                     };
                     if (item.isExpandedField) {
                         anySpecifiedExpand = true;
                         // we don't deal with nested expand. we might need to in the future
-                        [item.expandName, item.expandFieldName] = fieldName.split("__", 2);
+                        [item.expandName, item.expandFieldName] = fieldName.split(".", 2);
                         item.expandDetail = expandDetails[item.expandName];
                         if (!item.expandDetail) {
                             throw new Error(
@@ -243,7 +246,7 @@ export function useFormModel(props) {
                         for (const [expandFieldName, expandFieldDetail] of Object.entries(
                             baseItem.expandDetail.f || {},
                         )) {
-                            const fieldName = `${expandName}__${expandFieldName}`;
+                            const fieldName = `${expandName}.${expandFieldName}`;
                             const item = {
                                 fieldName,
                                 fieldDetail: expandFieldDetail,

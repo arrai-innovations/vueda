@@ -587,3 +587,86 @@ class TestExcludeFieldsSerializerUsageChecks:
                 id="vueda_core.E007",
             )
         ]
+
+
+class TestSessionCacheChecks:
+    """`check_session_cache_is_shared` reports sessions kept in a cache workers cannot share."""
+
+    def _configure(self, settings, backend, *, debug=False, engine="django.contrib.sessions.backends.cache"):
+        settings.DEBUG = debug
+        settings.SESSION_ENGINE = engine
+        settings.CACHES = {"default": {"BACKEND": backend}}
+
+    def test_locmem_behind_cache_sessions_is_reported(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.locmem.LocMemCache")
+
+        warnings = check_session_cache_is_shared(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_core.W001"]
+        assert "LocMemCache" in warnings[0].msg
+        assert "CACHE_URL" in warnings[0].hint
+
+    def test_dummy_cache_behind_cache_sessions_is_reported(self, settings):
+        # DummyCache stores nothing, so it loses a session immediately rather than between workers.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.dummy.DummyCache")
+
+        assert [warning.id for warning in check_session_cache_is_shared(app_configs=None)] == ["vueda_core.W001"]
+
+    def test_shared_backend_passes(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.redis.RedisCache")
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_database_sessions_pass_on_a_per_process_cache(self, settings):
+        # The cache holds no sessions, so its reach does not matter to them.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(
+            settings,
+            "django.core.cache.backends.locmem.LocMemCache",
+            engine="django.contrib.sessions.backends.db",
+        )
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_cached_db_sessions_pass_on_a_per_process_cache(self, settings):
+        # cached_db writes through to the database, so a per-process cache costs reads, not sessions.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(
+            settings,
+            "django.core.cache.backends.locmem.LocMemCache",
+            engine="django.contrib.sessions.backends.cached_db",
+        )
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_debug_passes(self, settings):
+        # A single-process development server shares its cache with itself.
+        from vueda.core.checks import check_session_cache_is_shared
+
+        self._configure(settings, "django.core.cache.backends.locmem.LocMemCache", debug=True)
+
+        assert check_session_cache_is_shared(app_configs=None) == []
+
+    def test_session_cache_alias_is_followed(self, settings):
+        from vueda.core.checks import check_session_cache_is_shared
+
+        settings.DEBUG = False
+        settings.SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+        settings.SESSION_CACHE_ALIAS = "sessions"
+        settings.CACHES = {
+            "default": {"BACKEND": "django.core.cache.backends.redis.RedisCache"},
+            "sessions": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        }
+
+        warnings = check_session_cache_is_shared(app_configs=None)
+
+        assert [warning.id for warning in warnings] == ["vueda_core.W001"]
+        assert "'sessions'" in warnings[0].msg

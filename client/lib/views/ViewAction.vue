@@ -10,7 +10,7 @@ import { memoizedStartCase } from "@vueda/utils/case.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import omit from "lodash-es/omit.js";
-import { computed, inject, useSlots } from "vue";
+import { computed, inject, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -84,6 +84,13 @@ const initialValues = computed(() => {
 const formContext = useForm({
     initialValues,
 });
+
+watch(
+    () => JSON.stringify([props.app, props.model, props.action, props.pk]),
+    () => {
+        formContext.reset();
+    },
+);
 
 const handleReturnClick = () => {
     router.back();

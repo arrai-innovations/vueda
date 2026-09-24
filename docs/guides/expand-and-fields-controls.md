@@ -223,7 +223,7 @@ storeModelConfig().setConfig(
 );
 ```
 
-When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand__subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category__name"]` and `fieldDetails["category__description"]`. This allows display and field configuration to target expanded sub-fields directly. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand__subfield` keys will not be present in `fieldDetails`.
+When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category.name"]` and `fieldDetails["category.description"]`. This allows display and field configuration to target expanded sub-fields directly. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
 
 ## List and Detail Request Param Wiring
 
@@ -258,17 +258,17 @@ With expand and field controls configured, verify the surface end-to-end:
 - `retrieve` requests include `fetchFields`, `available_actions`, and the configured `expand` list. Expanded data is present for permitted expansions.
 - Requesting an expansion that is not in `permit_list_expands` on a `list` endpoint returns a 400 with a message identifying permitted expansions.
 - Requesting an unknown field name in `f` returns a 400 with a message listing valid field names.
-- Overriding `expand` to `[]` in client config disables expansion. No `expand__subfield` keys appear in `fieldDetails`, and expanded relation columns or detail fields are absent from the rendered UI.
+- Overriding `expand` to `[]` in client config disables expansion. No `expand.subfield` keys appear in `fieldDetails`, and expanded relation columns or detail fields are absent from the rendered UI.
 - View-specific expand overrides (for example, `list` with fewer expansions than `read`) produce different request parameters per view.
-- Expanded sub-fields are targetable in `displayFields` and `fieldDetails` using `expand__subfield` naming (e.g., `category__name`).
+- Expanded sub-fields are targetable in `displayFields` and `fieldDetails` using `expand.subfield` naming (e.g., `category.name`).
 
 ## Troubleshooting
 
 **`list` endpoint returns 400 on every request.** The most common cause is a mismatch between the client's default `expand` (all declared expansions) and the server's `permit_list_expands` (a subset). The client is requesting expansions that the server does not allow on `list`. Override the `expand` config for the `list` view to match the server's permitted list.
 
-**Expanded field columns show missing values.** `displayFields` includes an `expand__subfield` key, but the corresponding expansion is not in the `expand` config (or was removed by a view-specific override). Without the expansion, the `expand__subfield` keys are not populated in `fieldDetails`, and the values are never fetched.
+**Expanded field columns show missing values.** `displayFields` includes an `expand.subfield` key, but the corresponding expansion is not in the `expand` config (or was removed by a view-specific override). Without the expansion, the `expand.subfield` keys are not populated in `fieldDetails`, and the values are never fetched.
 
-**Expanded sub-field is not configurable in `fieldDetails`.** Expansion flattening only occurs when the `expand` config is non-empty. If `expand` is overridden to `[]`, `storeModelConfig` does not merge expansion field details, and `expand__subfield` keys will not exist. Set `expand` to include the relevant relation name to enable flattening.
+**Expanded sub-field is not configurable in `fieldDetails`.** Expansion flattening only occurs when the `expand` config is non-empty. If `expand` is overridden to `[]`, `storeModelConfig` does not merge expansion field details, and `expand.subfield` keys will not exist. Set `expand` to include the relevant relation name to enable flattening.
 
 **400 error surfaces as a form validation error.** This is expected behavior. The CRUDL helpers (`objectCrud`) wrap 400 responses as `FormValidationError` instances so they can be ingested by the form context. A 400 from invalid `f` or `e` parameters will appear in the form's error state rather than as a toast or console error.
 

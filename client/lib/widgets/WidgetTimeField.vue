@@ -40,7 +40,9 @@ const widgetContext = useWidget(props, emit);
  * @returns {import('@internationalized/date').Time|undefined}
  */
 function parseTimeValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return parseTime(raw);
     } catch {
@@ -68,6 +70,7 @@ const timeValue = computed({
         :disabled="widgetContext.state.disabled"
         :name="widgetContext.state.combinedName"
         :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+        :data-warning="widgetContext.state.validationState.warning || undefined"
         :aria-required="widgetContext.state.required || undefined"
         v-bind="$attrs"
         data-qa="widget-time-field"

@@ -1,5 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildTypedocPathMap } from "../utils/path-map.js";
+import { memberHeadingAnchor } from "../utils/reference-index.js";
 import {
     formatMembers,
     formatSource,
@@ -19,7 +20,9 @@ function memberRows(members) {
 }
 
 function renderTypeRef(typeRef, index, filePath) {
-    if (!typeRef?.name) return "";
+    if (!typeRef?.name) {
+        return "";
+    }
     if (typeRef.link) {
         const node = index.byId.get(typeRef.link);
         if (node) {
@@ -109,13 +112,13 @@ function inlineMemberAnchors(node, index) {
     }
     return {
         inlineChildren,
-        memberAnchors: new Set(inlineChildren.map((child) => slugify(child.name))),
+        memberAnchors: new Set(inlineChildren.map((child) => memberHeadingAnchor(child.name))),
     };
 }
 
 function renderPropertyDetail(node, index, filePath) {
     const lines = [];
-    lines.push(renderHeading(3, `${node.name} {#${slugify(node.name)}}`), "");
+    lines.push(renderHeading(3, `${node.name} {#${memberHeadingAnchor(node.name)}}`), "");
 
     const lifecycleBlock = renderLifecycle(node.lifecycle);
     if (lifecycleBlock) {
@@ -193,7 +196,9 @@ function renderChildrenSections(node, index, filePath) {
             }
             if (type.members?.length) {
                 const table = renderTable(["Name", "Type", "Description"], memberRows(type.members));
-                if (table) lines.push(table, "");
+                if (table) {
+                    lines.push(table, "");
+                }
             }
         }
     }

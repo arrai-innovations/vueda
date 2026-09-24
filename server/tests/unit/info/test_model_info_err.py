@@ -611,6 +611,7 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
             data={
                 settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
                     "model_actions",
+                    "model_column_totals",
                     "model_expands",
                     "model_fields",
                     "model_filtering",
@@ -628,6 +629,9 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
             "fields": [],
         }
         assert response.data["model_filtering"] == {}
+        # The section is still reported, empty, rather than omitted: a viewset-backed section with
+        # no viewset behind it has nothing to offer, the same as one declaring no totals.
+        assert response.data["model_column_totals"] == {"fields": []}
         # The serializer-backed sections still resolve.
         assert sorted(response.data["model_fields"].keys()) == [
             "available_actions",

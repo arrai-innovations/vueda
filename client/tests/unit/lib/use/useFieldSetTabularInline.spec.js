@@ -61,6 +61,7 @@ describe("lib/use/useFieldSetTabularInline.js", () => {
             emit,
             slotNames: ["x"],
             fieldSetContext,
+            addDestroyAction: true,
         });
 
         expect(result.state.computedFieldObjects).toEqual([{ name: "item-action-bar" }, { name: "title" }]);
@@ -97,6 +98,32 @@ describe("lib/use/useFieldSetTabularInline.js", () => {
         result.state.isTable = true;
         expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(expectReadOnlyFor("isTable")), expect.anything());
         warnSpy.mockRestore();
+    });
+
+    scopedIt("adds and removes the action column as editable unsaved rows change", () => {
+        const fieldSetContext = { state: vue.reactive({ formModelName: "fm", value: [{ id: 0 }] }) };
+        useField.mockReturnValue(fieldSetContext);
+        useFieldSetInline.mockReturnValue({
+            state: vue.reactive({ actions: [], fieldObjects: [{ name: "title" }] }),
+            formModel: { fieldProps: { fm: {} } },
+            resolvedSlotNames: {},
+        });
+        const props = vue.reactive({ readOnly: false, fieldProps: {} });
+        const result = useFieldSetTabularInline({ props, emit: vi.fn(), slotNames: [] });
+        const fieldNames = () => result.state.computedFieldObjects.map((field) => field.name);
+
+        expect(fieldNames()).toEqual(["title"]);
+        fieldSetContext.state.value.push({ title: "New" });
+        expect(fieldNames()).toEqual(["item-action-bar", "title"]);
+        props.readOnly = true;
+        expect(fieldNames()).toEqual(["title"]);
+        props.readOnly = false;
+        props.fieldProps.readOnly = true;
+        expect(fieldNames()).toEqual(["title"]);
+        props.fieldProps.readOnly = false;
+        expect(fieldNames()).toEqual(["item-action-bar", "title"]);
+        fieldSetContext.state.value.pop();
+        expect(fieldNames()).toEqual(["title"]);
     });
 
     scopedIt("omits action bar when there are no actions", () => {

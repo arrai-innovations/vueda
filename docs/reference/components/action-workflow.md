@@ -75,7 +75,7 @@ what gives per-record server messages somewhere to land, as the third demo shows
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code>: a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
     <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
-    <span>records: each chip shows the primary key twice, as its label and as the trailing mono chip. There is nothing else to show: no fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to render names instead</span>
+    <span>records: each chip shows the primary key. No fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to show names alongside the keys</span>
     <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice: the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
     <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>
@@ -84,7 +84,7 @@ what gives per-record server messages somewhere to land, as the third demo shows
 
 An action with input fills the `extra-fields` slot. The demo below is the real view with that one
 slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
-into Reason and submit, then clear it and submit again to see the validation summary.
+into Reason and submit, then clear it and submit again to see the error appear under the field.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -101,7 +101,7 @@ into Reason and submit, then clear it and submit again to see the validation sum
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
-    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors join the same validation summary a server 400 fills</span>
+    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors, whether from local validation or a server 400, appear under the field rather than in a separate summary</span>
     <span>input contract: the wrapper passes <code>has-input</code> and <code>transform-submit-data-fn</code> so slotted fields join validation and request-body construction. Use the same props when an action collects extra fields through <code>extra-fields</code></span>
     <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
   </footer>
@@ -129,8 +129,8 @@ records cannot take the action.
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
     <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
-    <span>where the messages land: keyed by primary key, so each one appears twice: in {@api theme-key:ActionForm.validation}'s summary at the bottom, and beside the matching record chip above. The form context seeded per primary key is what makes the second one possible</span>
-    <span>the banner does not react: its text is generated from the action and model names. A summary of what the pre-flight found belongs in the validation alert, which writes itself</span>
+    <span>where the messages land: keyed by primary key, so each one appears once, beside the matching record chip. Each chip is a {@api vue:component:FormField} named for its primary key, so {@api theme-key:ActionForm.validation}'s summary above the fields has nothing left to report and stays hidden. It lists only errors no rendered field shows, such as a key that matches no selected record</span>
+    <span>the banner does not react: its text is generated from the action and model names. The pre-flight's findings belong beside the record chips, and in {@api theme-key:ActionForm.validation} for any error no field shows</span>
     <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -189,7 +189,7 @@ endpoint `ViewAction` uses.
 This confirmation does not explain source state, target state, or why a given object is or is not
 eligible for the transition. It confirms the transition's display name and the selected records
 only, the same as any other `ModelActionForm` confirmation. A dry-run rejection still identifies
-the rejected object ids in the field errors and validation summary; it just does not render a
+the rejected objects by showing each error beside its record chip; it just does not render a
 human-readable eligibility summary alongside them. A richer, transition-aware confirmation
 surface is a distinct, not-yet-built concern.
 :::
@@ -267,19 +267,20 @@ Every action view is `ModelActionForm` underneath, so the same slots and props r
 - `confirm-button` replaces the submit button, including its label.
 - `selected-objects` replaces the whole selected-records panel, for a project that wants richer rows than a name and a primary key.
 
-The action banner, selected-objects panel, prompt block, and actions strip are all composed from tokens — there are no dedicated theme keys for them yet. Customization happens at the token level.
+The action banner, selected-objects panel, prompt block, and actions strip each have a theme key: {@api theme-key:ModelActionForm.banner}, {@api theme-key:ModelActionForm.selectedObjects}, {@api theme-key:ModelActionForm.message}, and {@api theme-key:ActionForm.buttons}. Patch a key to change a composition; set a token to change a value everywhere it appears.
 
-| Surface             | Key tokens                                                                                   |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| Info banner         | `--info`, `--info-foreground` via `bg-info/8`, `border-info/25`, `text-info`                 |
-| Success banner      | `--success`, `--success-foreground` via `bg-success/10`, `border-success/30`, `text-success` |
-| Warning banner      | `--warning`, `--warning-foreground` via `bg-warning/10`, `border-warning/25`, `text-warning` |
-| Destructive banner  | `--destructive` via `bg-destructive/5`, `border-destructive/20` (see CRUDL Views)            |
-| Prompt block        | `--border` (left rule), `--muted` (background tint via `bg-muted/8`)                         |
-| Object list         | `--border` (dividers, outer ring), `--radius-vueda-control`                                  |
-| Actions strip       | `--border` (top hairline)                                                                    |
-| Diff old            | `--destructive` via `bg-destructive/5`, `border-destructive/20`, `text-destructive`          |
-| Diff new            | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
-| Revision stripe     | `--primary` via `border-l-2 border-primary` on first cell of each revision group             |
-| Type pill (updated) | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                      |
-| Type pill (created) | `--success` via `bg-success/10`, `border-success/30`, `text-success`                         |
+| Surface                | Key tokens                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Info banner            | `--info` as a 6 % background mix; the border stays `--border`                                       |
+| Success banner         | `--success` as a 6 % background mix, `border-success/20`                                            |
+| Warning banner         | `--warning` as a 6 % background mix, `border-warning/20`                                            |
+| Destructive banner     | `--destructive` via `bg-destructive/[0.06]`, `border-destructive/20` (see CRUDL Views)              |
+| Prompt block           | `--primary` (2 px left rule at `border-primary/60`), `--muted` (background tint via `bg-muted/25`)  |
+| Selected-objects panel | `--muted` (`bg-muted/25`), `--border` (hairline), `--radius-vueda-card`                             |
+| Selected-object chip   | `--card` (fill), `--border` (hairline), `--radius-vueda-control`                                    |
+| Actions strip          | `--border` (top hairline), `--muted` (`bg-muted/25`)                                                |
+| Diff old               | `--destructive` as a 7 % background mix and the leading minus glyph; the value stays `--foreground` |
+| Diff new               | `--success` as an 8 % background mix and the leading plus glyph; the value stays `--foreground`     |
+| Revision stripe        | `--primary` via `border-l-2 border-primary` on first cell of each revision group                    |
+| Type pill (updated)    | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                             |
+| Type pill (created)    | `--success` via `bg-success/10`, `border-success/30`, `text-success`                                |

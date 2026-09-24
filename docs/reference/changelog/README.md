@@ -13,94 +13,57 @@ applications built on VUEDA, not every internal implementation step.
 - `client.md`: npm package changes for `@arrai-innovations/vueda`.
 - `server.md`: Python package changes for `vueda`.
 - Do not add a docs changelog unless docs releases become something integrators actively track.
-- If an entry affects both packages, add matching entries to both pages and cross-reference the related package only when that helps migration.
+- If a change affects both packages, add a fragment for each package and cross-reference the related package only when that helps migration.
 
-## When Entries Are Needed
+## Inclusion Rule
 
-Add a changelog entry when a change does at least one of these:
+An entry belongs in the public changelog only when an integrator upgrading from
+the previous published version would act differently after reading it. Default
+to no entry. Write one when at least one of these holds:
 
-- breaks an existing integration path, public API, documented behavior, import path, setting, route, endpoint, payload shape, component prop, slot, event, theme key, CSS token, or generated metadata contract
-- adds a new capability that an integrator could intentionally use
-- changes setup, dependencies, build requirements, package compatibility, migrations, management commands, or deployment assumptions
-- changes security-sensitive behavior, authorization behavior, validation behavior, data persistence, or data-loss risk
-- fixes a released or documented behavior that integrators may have worked around
+- The integrator must change code, configuration, dependencies, or data to
+  upgrade.
+- The integrator can now do something they could not do before.
+- Behavior changed that some integration could reasonably have treated as
+  intended and built on, so the change would surprise that integration.
 
-Do not add an entry for changes that are only:
+A fix for a defect that no integration could reasonably have relied on gets no
+entry, even when the defect was visible. Security and data-loss fixes are the
+exception, because integrators need to assess their exposure before upgrading.
 
-- internal refactors with no public behavior change
-- test-only changes
-- formatting, linting, or type cleanup
-- prose-only documentation edits
-- temporary CI or release plumbing
-- bug fixes for behavior that was never released, documented, or plausibly observed by an integrator
+Compare against the previous published version, not the previous commit. A
+change that alters or reverts behavior no release has shipped edits the
+existing fragment instead of adding another.
 
-## Fixes Threshold
+The author of a change is poorly placed to judge its importance to integrators.
+If you cannot name what an integrator would do differently after reading an
+entry, leave it out.
 
-Bug fixes are useful in changelogs when they change what an integrator can
-observe or rely on. They are noise when they only explain internal churn.
+## Entry Format
 
-Include fixes that affect:
+Each entry is a fragment file under `changelog.d/`. `CONTRIBUTING.md` covers
+where a fragment goes and how a release writes it into the page. A release
+section groups entries by change type (Breaking Changes, Features, Fixes) and
+then by topic.
 
-- runtime behavior in consuming applications
-- server responses, metadata, permissions, validation, or migrations
-- component rendering, events, slots, props, theming, or routing
-- security, compatibility, or dependency behavior
-- a documented feature or example that previously failed
-
-Skip fixes that only affect private implementation details, unreleased work,
-tests, local docs build issues, or typo-level cleanup.
-
-When in doubt, ask: "Would an integrator upgrading packages care, adjust code,
-remove a workaround, or understand a changed symptom from this note?" If yes,
-include it. If no, leave it out.
-
-## Release Section Template
+A fragment holds one list entry: a bold title naming the change, then at most
+three sentences as nested bullets. Add an italic action line when the
+integrator must act.
 
 ```md
-## vX.Y.Z (unreleased)
-
-### Breaking Changes
-
 - **Component, module, setting, endpoint, or behavior**:
     - Describe what changed in concrete terms.
       _If consuming applications must act, state the required action here._
-
-### Features
-
-- **Component, module, setting, endpoint, or behavior**:
-    - Describe the new capability.
-      _State adoption steps only when they are not obvious from the entry._
-
-### Fixes
-
-- **Component, module, setting, endpoint, or behavior**:
-    - Describe the user-visible or integrator-visible problem that is now fixed.
 ```
 
-## Empty Section Template
-
-Use this when scaffolding a release before entries exist.
-
-```md
-## vNext (unreleased)
-
-### Breaking Changes
-
-No entries yet.
-
-### Features
-
-No entries yet.
-
-### Fixes
-
-No entries yet.
-```
+Link a guide or reference page for detail the entry cannot hold. The release
+build links the issue or pull request that the fragment's name numbers.
 
 ## Entry Rules
 
 - Write for integrators, not maintainers.
 - Prefer concrete nouns: component names, setting names, endpoint names, management command names.
+- Name only public API that integrators touch. Internal functions, helpers, and code paths belong in the pull request.
 - Mark required consuming-application action in italics directly below the change it belongs to.
 - Do not include pure refactors unless they change public behavior, public API, compatibility, generated docs, or migration work.
 - Keep package versions independent below the major version.

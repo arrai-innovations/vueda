@@ -1,4 +1,4 @@
-import { scopedIt } from "@tests/unit/utils.js";
+import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
@@ -58,6 +58,62 @@ describe("lib/use/useObjectForm.js", () => {
         defaultOnSubmitAnyError = mod.defaultOnSubmitAnyError;
         defaultOnSubmissionSuccess = mod.defaultOnSubmissionSuccess;
         vi.clearAllMocks();
+    });
+
+    scopedIt("resets a reused form even when model defaults are equal and clears submission failure", async () => {
+        const { useForm } = await import("@vueda/use/useForm.js");
+        const props = reactive({ app: "catalog", model: "category" });
+        const instanceObject = { state: reactive({ pk: null }), clearError: vi.fn() };
+        const { formContext, objectForm } = await withSetup(() => {
+            const formContext = useForm(reactive({ initialValues: { name: "" } }));
+            return { formContext, objectForm: useObjectForm({ props, formContext, instanceObject }) };
+        });
+        formContext.updateValue("name", "old draft");
+        formContext.updateError("name", "validate", "Invalid");
+        expect(formContext.state.values.name).toBe("old draft");
+        expect(formContext.state.errors.name).toBeDefined();
+        formContext.setAllTouched();
+        objectForm.state.submitErrored = true;
+        props.model = "warehouse";
+        await flushPromises();
+        expect(objectForm.state.submitErrored).toBe(false);
+        expect(formContext.state.values).toEqual({ name: "" });
+        expect(formContext.state.errors).toEqual({});
+        expect(formContext.state.submitted).toBe(false);
+        expect(instanceObject.clearError).toHaveBeenCalled();
+        objectForm.state.submitErrored = true;
+        instanceObject.state.pk = "2";
+        await flushPromises();
+        expect(objectForm.state.submitErrored).toBe(false);
+    });
+
+    scopedIt("ignores a save completion after changing its target", async () => {
+        let resolveSave;
+        const request = new Promise((resolve) => {
+            resolveSave = resolve;
+        });
+        request.cancel = vi.fn();
+        const props = reactive({ app: "catalog", model: "category" });
+        const formContext = {
+            state: { anyModified: true, anyError: false, submittingValues: {} },
+            setAllTouched: vi.fn(),
+            reset: vi.fn(),
+        };
+        const instanceObject = {
+            state: reactive({ pk: "1", pkKey: "id", object: { id: "1" } }),
+            update: vi.fn(() => request),
+            clearError: vi.fn(),
+        };
+        const objectForm = useObjectForm({ props, formContext, instanceObject });
+        objectForm.onSubmissionSuccess = vi.fn();
+        const submission = objectForm.submit();
+        await flushPromises();
+        instanceObject.state.pk = "2";
+        await flushPromises();
+        resolveSave();
+        await submission;
+        expect(request.cancel).toHaveBeenCalled();
+        expect(objectForm.onSubmissionSuccess).not.toHaveBeenCalled();
     });
 
     scopedIt("defaultOnSubmitNotAnyModified shows toast and returns true", async () => {
@@ -210,7 +266,76 @@ describe("lib/use/useObjectForm.js", () => {
         expect(instanceObject.clearError).toHaveBeenCalled();
         expect(state.submitErrored).toBe(true);
         expect(routerPush).not.toHaveBeenCalled();
+        // A recognized, ingested error must not also become the form's generic visible error.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
     });
+
+    scopedIt(
+        "submit surfaces an error the submission hook does not recognize (e.g. a 403) as the form's visible error",
+        async () => {
+            class PermissionDeniedError extends Error {
+                constructor() {
+                    super("Failed to update object: 403 Forbidden");
+                    this.name = "FetchError";
+                    this.responseData = { detail: "You do not have permission to perform this action." };
+                }
+            }
+
+            const props = reactive({
+                app: "app",
+                model: "model",
+                verboseName: "model",
+                redirectAfter: "list",
+                firstErrorField: "name",
+            });
+            const formContext = {
+                state: reactive({
+                    anyModified: true,
+                    anyError: false,
+                    submittingValues: { name: "test" },
+                    errors: {},
+                    anyIgnored: false,
+                    ignored: {},
+                }),
+                setAllTouched: vi.fn(),
+                handleServerFormValidationError: vi.fn(),
+            };
+            const error = new PermissionDeniedError();
+            const instanceObject = {
+                state: reactive({
+                    pkKey: "id",
+                    pk: "7",
+                    object: { id: "7" },
+                    errored: false,
+                    error: null,
+                }),
+                create: vi.fn().mockResolvedValue(),
+                update: vi.fn(() => {
+                    instanceObject.state.errored = true;
+                    instanceObject.state.error = error;
+                    return Promise.resolve();
+                }),
+                clearError: vi.fn(() => {
+                    instanceObject.state.errored = false;
+                    instanceObject.state.error = null;
+                }),
+            };
+            const { state, submit } = useObjectForm({ props, formContext, instanceObject });
+
+            await submit();
+            await flushPromises();
+
+            // Not a recognized form error: the default hook leaves it unhandled.
+            expect(formContext.handleServerFormValidationError).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+            // Retains the submit instance's clean slate for the next attempt...
+            expect(instanceObject.clearError).toHaveBeenCalled();
+            // ...but the failure still reaches the form's own visible error state.
+            expect(mockLoadingError.setError).toHaveBeenCalledWith(error);
+            expect(state.submitErrored).toBe(true);
+            expect(routerPush).not.toHaveBeenCalled();
+        },
+    );
 
     const buildConfirmationScenario = () => {
         const props = reactive({
@@ -283,6 +408,9 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(false);
         expect(routerPush).toHaveBeenCalled();
+        // The warnings already rendered into the form via the confirmation dialog; no duplicate
+        // generic error should also appear.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
     });
 
     scopedIt("submit leaves the form unsaved when confirmation is cancelled", async () => {
@@ -303,6 +431,8 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(true);
         expect(routerPush).not.toHaveBeenCalled();
+        // The warnings stay visible in the dialog/form; no duplicate generic error should appear.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
     });
 
     scopedIt("fails closed when a 409 arrives with no confirmation consumer registered", async () => {
@@ -324,6 +454,8 @@ describe("lib/use/useObjectForm.js", () => {
         // The warnings still render on the form, and the set is recorded for the next round's clearing.
         expect(formContext.handleServerFormValidationError).toHaveBeenCalled();
         expect(objectForm.confirmation.messages).toEqual({ count: ["unusual"] });
+        // No duplicate generic error alongside the warnings already rendered on the form.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
         warnSpy.mockRestore();
     });
 
@@ -340,6 +472,8 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.confirmation.open).toBe(false);
         expect(objectForm.state.submitErrored).toBe(true);
         expect(warnSpy).toHaveBeenCalledTimes(1);
+        // Same "fails closed" treatment as above: no duplicate generic error.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
         warnSpy.mockRestore();
     });
 
@@ -370,6 +504,9 @@ describe("lib/use/useObjectForm.js", () => {
         expect(objectForm.state.submitErrored).toBe(true);
         expect(formContext.handleServerFormValidationError).not.toHaveBeenCalled();
         expect(routerPush).not.toHaveBeenCalled();
+        // No dialog and no field messages render for this fallthrough case, so it must reach the
+        // form's generic visible error like any other unhandled submission failure.
+        expect(mockLoadingError.setError).toHaveBeenCalledWith(noDigestError);
     });
 
     scopedIt("clears the previous round's warnings when a re-prompt carries a changed set", async () => {
@@ -422,5 +559,7 @@ describe("lib/use/useObjectForm.js", () => {
 
         expect(instanceObject.create).toHaveBeenCalledTimes(3);
         expect(routerPush).toHaveBeenCalled();
+        // Both rounds of warnings rendered into the form; no duplicate generic error alongside them.
+        expect(mockLoadingError.setError).not.toHaveBeenCalled();
     });
 });

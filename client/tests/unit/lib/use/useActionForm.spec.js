@@ -104,7 +104,8 @@ describe("lib/use/useActionForm.js", () => {
             expect(toastMock.success).toHaveBeenCalled();
             expect(redirectTo).toHaveBeenCalledWith("success");
             expect(actionForm.combinedErrored.value).toBe(false);
-            expect(actionForm.combinedLoading.value).toBe(false);
+            // The success redirect navigated away, so the form stays locked until it unmounts.
+            expect(actionForm.combinedLoading.value).toBe(true);
         });
 
         scopedIt(
@@ -228,8 +229,12 @@ describe("lib/use/useActionForm.js", () => {
             const round1 = makeConfirmationError("d1", { count: ["round one"] });
             const round2 = makeConfirmationError("d2", { name: ["round two"] });
             const runAction = vi.fn(({ acknowledgeWarnings }) => {
-                if (acknowledgeWarnings === "d2") return Promise.resolve("ok");
-                if (acknowledgeWarnings === "d1") return Promise.reject(round2);
+                if (acknowledgeWarnings === "d2") {
+                    return Promise.resolve("ok");
+                }
+                if (acknowledgeWarnings === "d1") {
+                    return Promise.reject(round2);
+                }
                 return Promise.reject(round1);
             });
             const props = reactive({ runAction });
@@ -330,6 +335,171 @@ describe("lib/use/useActionForm.js", () => {
             props.readyToDryRun = true;
             await flushPromises();
             expect(runAction).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    scopedIt("ignores an old completion while the new target's action is still pending", async () => {
+        const resolvers = [];
+        const promises = [];
+        const runAction = vi.fn(() => {
+            const promise = new Promise((resolve) => {
+                resolvers.push(resolve);
+            });
+            promise.cancel = vi.fn();
+            promises.push(promise);
+            return promise;
+        });
+        // Reports no navigation, so the form unlocks once the current target's action settles.
+        const redirectTo = vi.fn(async () => false);
+        const props = reactive({ runAction, redirectTo, dryRunTarget: "first" });
+        const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+        const first = actionForm.handleConfirm();
+        props.dryRunTarget = "second";
+        await flushPromises();
+        const second = actionForm.handleConfirm();
+        resolvers[0](false);
+        await first;
+        expect(promises[0].cancel).toHaveBeenCalled();
+        expect(redirectTo).not.toHaveBeenCalled();
+        expect(actionForm.combinedLoading.value).toBe(true);
+        resolvers[1]({});
+        await second;
+        expect(redirectTo).toHaveBeenCalledTimes(1);
+        expect(actionForm.combinedLoading.value).toBe(false);
+    });
+
+    scopedIt("closes old warning confirmation without retrying against the new target", async () => {
+        const runAction = makeGatedRunAction(makeConfirmationError());
+        const props = reactive({ runAction, dryRunTarget: "first" });
+        const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+        actionForm.confirmation.register();
+        const first = actionForm.handleConfirm();
+        await flushPromises();
+        expect(actionForm.confirmation.open).toBe(true);
+        props.dryRunTarget = "second";
+        await flushPromises();
+        await first;
+        expect(actionForm.confirmation.open).toBe(false);
+        expect(runAction).toHaveBeenCalledTimes(1);
+        expect(toastMock.success).not.toHaveBeenCalled();
+    });
+
+    describe("Success redirect lock", () => {
+        // The router keeps the submitting view mounted until the destination is ready, so a redirect
+        // that resolves leaves the form on screen for a while.
+        const setupRedirecting = async (redirectResult) => {
+            const formContext = createFormContext();
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const redirectTo = vi.fn(async (reason) => (reason === "success" ? redirectResult : undefined));
+            const props = reactive({ runAction, redirectTo, dryRunTarget: "first" });
+            const actionForm = await withSetup(() => useActionForm(formContext, props));
+            return { formContext, runAction, redirectTo, props, actionForm };
+        };
+
+        scopedIt("stays locked after a success redirect navigates away while the form stays mounted", async () => {
+            const { runAction, redirectTo, actionForm } = await setupRedirecting(undefined);
+
+            await actionForm.handleConfirm();
+
+            expect(redirectTo).toHaveBeenCalledWith("success");
+            expect(actionForm.combinedLoading.value).toBe(true);
+            expect(actionForm.confirmDisabled.value).toBe(true);
+            expect(actionForm.cancelDisabled.value).toBe(true);
+
+            await actionForm.handleConfirm();
+            await actionForm.handleCancelClick();
+
+            expect(runAction).toHaveBeenCalledTimes(1);
+            expect(redirectTo).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("unlocks when the success redirect resolves false", async () => {
+            const { runAction, actionForm } = await setupRedirecting(false);
+
+            await actionForm.handleConfirm();
+
+            expect(actionForm.combinedLoading.value).toBe(false);
+            expect(actionForm.confirmDisabled.value).toBe(false);
+            expect(actionForm.cancelDisabled.value).toBe(false);
+
+            await actionForm.handleConfirm();
+            expect(runAction).toHaveBeenCalledTimes(2);
+        });
+
+        scopedIt("unlocks when the target changes after the redirect", async () => {
+            const { runAction, props, actionForm } = await setupRedirecting(true);
+
+            await actionForm.handleConfirm();
+            expect(actionForm.combinedLoading.value).toBe(true);
+
+            props.dryRunTarget = "second";
+            await flushPromises();
+
+            expect(actionForm.combinedLoading.value).toBe(false);
+            await actionForm.handleConfirm();
+            expect(runAction).toHaveBeenCalledTimes(2);
+        });
+
+        scopedIt("keeps a form with a custom success handler submittable", async () => {
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const redirectTo = vi.fn();
+            const onSubmissionSuccessHandler = vi.fn();
+            const props = reactive({ runAction, redirectTo, onSubmissionSuccessHandler });
+            const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+
+            await actionForm.handleConfirm();
+            expect(actionForm.combinedLoading.value).toBe(false);
+            await actionForm.handleConfirm();
+
+            expect(onSubmissionSuccessHandler).toHaveBeenCalledTimes(2);
+            expect(runAction).toHaveBeenCalledTimes(2);
+            expect(redirectTo).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps the form submittable after a failed submit", async () => {
+            const runAction = vi.fn().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce("ok");
+            const redirectTo = vi.fn();
+            const props = reactive({ runAction, redirectTo });
+            const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+
+            await actionForm.handleConfirm();
+            expect(actionForm.combinedLoading.value).toBe(false);
+            expect(actionForm.confirmDisabled.value).toBe(false);
+            await actionForm.handleConfirm();
+
+            expect(runAction).toHaveBeenCalledTimes(2);
+            expect(redirectTo).toHaveBeenCalledWith("success");
+        });
+    });
+
+    describe("Re-entry", () => {
+        scopedIt("ignores confirm and cancel while an action is in flight", async () => {
+            let settle;
+            const runAction = vi.fn(() => new Promise((resolve) => (settle = resolve)));
+            const redirectTo = vi.fn(async () => false);
+            const props = reactive({ runAction, redirectTo });
+            const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+
+            const first = actionForm.handleConfirm();
+            await actionForm.handleConfirm();
+            await actionForm.handleCancelClick();
+
+            expect(runAction).toHaveBeenCalledTimes(1);
+            expect(redirectTo).not.toHaveBeenCalled();
+
+            settle("ok");
+            await first;
+            expect(redirectTo).toHaveBeenCalledTimes(1);
+            expect(redirectTo).toHaveBeenCalledWith("success");
+        });
+
+        scopedIt("disables confirm while the form has errors, but not cancel", async () => {
+            const formContext = createFormContext();
+            formContext.state.anyError = true;
+            const actionForm = await withSetup(() => useActionForm(formContext, reactive({ runAction: vi.fn() })));
+
+            expect(actionForm.confirmDisabled.value).toBe(true);
+            expect(actionForm.cancelDisabled.value).toBe(false);
         });
     });
 

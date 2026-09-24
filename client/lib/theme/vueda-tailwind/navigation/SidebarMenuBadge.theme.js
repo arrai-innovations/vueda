@@ -28,9 +28,9 @@ patchTheme({
 
                 // Tone classes.
                 {
-                    "bg-sidebar-accent text-sidebar-foreground peer-data-[active=true]/menu-button:bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] peer-data-[active=true]/menu-button:text-sidebar-primary":
+                    "bg-sidebar-accent text-sidebar-foreground peer-data-[active=true]/menu-button:bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] peer-data-[active=true]/menu-button:text-sidebar-primary-text":
                         !tone || tone === "neutral",
-                    "bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] text-sidebar-primary":
+                    "bg-[color-mix(in_oklab,var(--sidebar-primary)_14%,transparent)] text-sidebar-primary-text":
                         tone === "primary",
                     "bg-[color-mix(in_oklab,var(--destructive)_14%,transparent)] text-destructive":
                         tone === "destructive",

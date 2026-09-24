@@ -44,18 +44,22 @@ patchTheme({
                 "[[data-vueda-fieldset]_&]:bg-[color-mix(in_oklab,var(--muted)_20%,var(--card))]",
             ],
         },
+        /** Vertical spacing between repeated entries, including their validation messages. */
+        rows: {
+            class: ["flex flex-col gap-2"],
+        },
         /** One repeated value row with a full-width field track and a reveal-on-hover remove control. */
         row: {
-            class: ["group/many-row grid grid-cols-[1fr_auto] items-center gap-1 2xs:gap-2"],
+            class: ["group/many-row grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1 2xs:gap-2"],
         },
-        /** Field wrapper that lets the rendered control shrink without overflowing the row. */
+        /** Field wrapper that lets the control shrink. Repeated labels stay accessible but visually hidden under the fieldset heading; descriptions and validation messages remain in the field layout. */
         component: {
-            class: ["min-w-0"],
+            class: ["min-w-0 [&>[data-slot=field]>[data-slot=field-label]]:sr-only"],
         },
-        /** Remove-button cell that stays available to focus and appears on row hover or focus. */
+        /** Remove-button cell aligned with the first control-height of the row, independent of messages below it. Stays available to focus and appears on row hover or focus. */
         removeButton: {
             class: [
-                "flex items-center justify-center",
+                "flex h-vueda-control items-center justify-center",
                 "opacity-0 transition-opacity",
                 "group-hover/many-row:opacity-100 group-focus-within/many-row:opacity-100",
             ],

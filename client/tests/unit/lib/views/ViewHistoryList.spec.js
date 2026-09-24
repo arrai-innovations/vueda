@@ -1,5 +1,5 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -164,6 +164,8 @@ const CREATE_GROUP = {
     ],
 };
 
+enableAutoUnmount(afterEach);
+
 let ViewHistoryList, vue, modelConfig, mockInstanceList;
 
 beforeEach(async () => {
@@ -222,6 +224,38 @@ describe("lib/views/ViewHistoryList.vue", () => {
     });
 
     describe("Request", () => {
+        scopedIt("requests the new object's first history page even when its parameters are unchanged", async () => {
+            const { useList } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const { default: flushPromises } = await import("flush-promises");
+            const requests = [];
+            mockedUseList.mockImplementationOnce((options) =>
+                useList({
+                    ...options,
+                    handlers: {
+                        list: async ({ target, params }) => {
+                            requests.push({ target: { ...target }, params: { ...params } });
+                        },
+                    },
+                }),
+            );
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await flushPromises();
+            expect(requests.at(-1).target.pk).toBe("1");
+            const count = requests.length;
+            await wrapper.setProps({ pk: "2" });
+            await flushPromises();
+            expect(requests.length).toBeGreaterThan(count);
+            expect(requests.at(-1)).toMatchObject({ target: { pk: "2" }, params: { p: 1, ps: 25 } });
+            wrapper.vm.perPage = 50;
+            wrapper.vm.currentPage = 3;
+            wrapper.vm.setLayoutOverride("cards");
+            await flushPromises();
+            await wrapper.setProps({ pk: "3" });
+            await flushPromises();
+            expect(requests.at(-1)).toMatchObject({ target: { pk: "3" }, params: { p: 1, ps: 25 } });
+            expect(wrapper.vm.layoutOverride).toBe("auto");
+        });
+
         scopedIt("lists the history_list action keyed by the group id, with no expand parameter", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });

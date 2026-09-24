@@ -66,6 +66,55 @@ describe("escapeText", () => {
     it("converts non-string values to string first", () => {
         expect(escapeText(42)).toBe("42");
     });
+
+    it("leaves an inline code span verbatim", () => {
+        expect(escapeText("use `<field>_lookup` here")).toBe("use `<field>_lookup` here");
+    });
+
+    it("escapes prose on either side of a code span", () => {
+        expect(escapeText("<a> `<b>` <c>")).toBe("&lt;a&gt; `<b>` &lt;c&gt;");
+    });
+
+    it("leaves a fenced block verbatim", () => {
+        const source = ["prose <a>", "", "```py", "path('<str:model>/')", "```", "", "more <b>"].join("\n");
+        const escaped = escapeText(source);
+        expect(escaped).toContain("path('<str:model>/')");
+        expect(escaped).toContain("prose &lt;a&gt;");
+        expect(escaped).toContain("more &lt;b&gt;");
+    });
+
+    it("closes a fence only on a matching marker", () => {
+        const source = ["~~~text", "keep <a>", "```", "keep <b>", "~~~", "prose <c>"].join("\n");
+        const escaped = escapeText(source);
+        expect(escaped).toContain("keep <a>");
+        expect(escaped).toContain("keep <b>");
+        expect(escaped).toContain("prose &lt;c&gt;");
+    });
+
+    it("leaves a code span that wraps across lines verbatim", () => {
+        expect(escapeText("raises ``ValueError: '<lookup>' was\nalready seen`` when reused")).toBe(
+            "raises ``ValueError: '<lookup>' was\nalready seen`` when reused",
+        );
+    });
+
+    it("does not let a code span reach past a blank line", () => {
+        expect(escapeText("open ` <a>\n\n<b> ` close")).toBe("open ` &lt;a&gt;\n\n&lt;b&gt; ` close");
+    });
+
+    it("leaves an indented code block verbatim", () => {
+        const source = ["For example::", "", "    def meth(self) -> int:", "        ...", "", "prose <a>"].join("\n");
+        const escaped = escapeText(source);
+        expect(escaped).toContain("def meth(self) -> int:");
+        expect(escaped).toContain("prose &lt;a&gt;");
+    });
+
+    it("escapes an indented line that continues a paragraph", () => {
+        expect(escapeText("prose starts here\n    and wraps <a>")).toBe("prose starts here\n    and wraps &lt;a&gt;");
+    });
+
+    it("escapes an unpaired backtick as prose", () => {
+        expect(escapeText("a ` <b>")).toBe("a ` &lt;b&gt;");
+    });
 });
 
 describe("renderCodeInline", () => {

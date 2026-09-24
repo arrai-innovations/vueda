@@ -28,7 +28,10 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [actionState] - Action execution status.
  * @property {boolean} [hasInput] - Whether the form has input fields that must be validated before submission.
  * @property {boolean} [requireModified] - When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty (sign-in, forgot-password) where modification is not a meaningful concept.
- * @property {(reason: "success"|"cancel") => Promise<void>} [redirectTo] - Called after success or cancel.
+ * @property {(reason: "success"|"cancel") => Promise<boolean|void>} [redirectTo] - Called after success or cancel. After
+ *  success, the form stays locked until it unmounts, so the view it leaves cannot submit again while the destination
+ *  loads. Resolve `false` when the call did not navigate away, such as when there was no destination or the router
+ *  rejected the navigation, to unlock the form instead.
  * @property {(response: any) => void} [onSubmissionSuccessHandler] - Replaces the default success toast and redirect.
  * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} [onSubmissionErrorHandler] - Replaces the default error toast.
  * @property {(options: {
@@ -64,11 +67,18 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @property {import('vue').ComputedRef<Error|null>} combinedError - Fetch or action error, whichever is present.
  * @property {import('vue').ComputedRef<boolean>} combinedErrored - Whether any error is present.
  * @property {import('vue').ComputedRef<boolean|undefined>} combinedLoading - Combined fetch and action loading state.
+ *  Stays set after a successful submit whose success redirect navigated away.
+ * @property {import('vue').ComputedRef<boolean>} confirmDisabled - Whether the confirm control should be disabled:
+ *  while loading, or while the form has errors.
+ * @property {import('vue').ComputedRef<boolean>} cancelDisabled - Whether the cancel control should be disabled: while
+ *  loading.
  * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for
  *  the warning confirmation dialog (`ActionForm` binds a `FormConfirmDialog` to it; standalone callers must mount
  *  one, or warned submissions are cancelled).
- * @property {(dryRun?: boolean) => Promise<void>} handleConfirm - Validates and submits the form.
- * @property {(e?: Event) => Promise<void>} handleCancelClick - Cancels and redirects.
+ * @property {(dryRun?: boolean) => Promise<void>} handleConfirm - Validates and submits the form. Does nothing while
+ *  an action runs or after a successful submit navigated away.
+ * @property {(e?: Event) => Promise<void>} handleCancelClick - Cancels and redirects. Does nothing while an action runs
+ *  or after a successful submit navigated away.
  */
 
 /**
@@ -97,12 +107,18 @@ export function useActionForm(formContext, props) {
     const combinedError = computed(() => props.fetchState?.error || localActionState.error);
     const combinedErrored = computed(() => !!combinedError.value);
     const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
+    const confirmDisabled = computed(() => !!combinedLoading.value || !!formContext.state.anyError);
+    const cancelDisabled = computed(() => !!combinedLoading.value);
 
     let actionPromise = null;
-    // Set when the shell tears down mid-flight. reactive-helpers resolves a cancelled run rather than rejecting
+    // Invalidates completions when the shell or target changes.
+    // reactive-helpers resolves a cancelled run rather than rejecting
     // it (`false`, or `null` for `executeAction`, with no stored error), so without this a cancelled action would
     // read as a success and toast on its way out.
-    let actionCancelled = false;
+    let actionGeneration = 0;
+    // Set once a successful submit's redirect navigates away. The router keeps this view mounted until the
+    // destination is ready, so loading stays set and the handlers refuse input until the form unmounts.
+    let navigatedAway = false;
 
     const confirmation = useConfirmationController({
         noConsumerWarning:
@@ -113,15 +129,19 @@ export function useActionForm(formContext, props) {
             "confirmation.register()) so the action can be confirmed.",
     });
 
-    const handleError = async (error, dryRun) => {
+    const handleError = async (error, dryRun, generation) => {
         if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
             formContext.handleServerFormValidationError(error);
             return;
         }
-        if (dryRun) return;
+        if (dryRun) {
+            return;
+        }
         if (props.onSubmissionErrorHandler) {
             const handled = await props.onSubmissionErrorHandler({ error, formContext, toast });
-            if (handled) return;
+            if (handled || generation !== actionGeneration) {
+                return;
+            }
         }
         localActionState.errored = true;
         localActionState.error = error;
@@ -138,13 +158,16 @@ export function useActionForm(formContext, props) {
     // during the dry-run pre-flight (a pre-flight 409 is dropped by handleError's dry-run
     // early-return), and a 409 without a digest falls through to normal error handling, since
     // retrying without the acknowledgement header would just be gated again, forever.
-    const handleActionError = async (error, runArgs, dryRun) => {
+    const handleActionError = async (error, runArgs, dryRun, generation) => {
         if (!dryRun && error instanceof ConfirmationRequiredError && error.digest != null) {
             const onWarningsRequireConfirmation =
                 props.onSubmissionWarningsRequireConfirmation || defaultOnSubmissionWarningsRequireConfirmation;
             const confirmed = await onWarningsRequireConfirmation({ error, formContext, confirmation, toast });
+            if (generation !== actionGeneration) {
+                return;
+            }
             if (confirmed) {
-                await performAction({ ...runArgs, acknowledgeWarnings: error.digest }, dryRun);
+                await performAction({ ...runArgs, acknowledgeWarnings: error.digest }, dryRun, generation);
             } else {
                 // Cancelled: the action did not run, but it is not a failure to report. Flag errored
                 // (the analogue of useObjectForm's submitErrored) without an error, so no failure
@@ -153,20 +176,20 @@ export function useActionForm(formContext, props) {
             }
             return;
         }
-        await handleError(error, dryRun);
+        await handleError(error, dryRun, generation);
     };
 
     // Performs one action attempt and routes the outcome; handleActionError recurses back into this
     // for a confirmed retry.
-    const performAction = async (runArgs, dryRun) => {
+    const performAction = async (runArgs, dryRun, generation) => {
         try {
             actionPromise = props.runAction(runArgs);
             const response = await actionPromise;
-            if (actionCancelled) {
+            if (generation !== actionGeneration) {
                 return;
             }
             if (props.actionState?.errored) {
-                await handleActionError(props.actionState.error, runArgs, dryRun);
+                await handleActionError(props.actionState.error, runArgs, dryRun, generation);
                 return;
             }
             if (dryRun) {
@@ -179,27 +202,41 @@ export function useActionForm(formContext, props) {
                     duration: 15000,
                 });
                 if (props.redirectTo) {
-                    await props.redirectTo("success");
+                    const navigated = await props.redirectTo("success");
+                    if (generation === actionGeneration && navigated !== false) {
+                        navigatedAway = true;
+                    }
                 }
             }
         } catch (error) {
-            if (actionCancelled) {
+            if (generation !== actionGeneration) {
                 return;
             }
-            await handleActionError(error, runArgs, dryRun);
+            await handleActionError(error, runArgs, dryRun, generation);
         } finally {
-            actionPromise = null;
+            if (generation === actionGeneration) {
+                actionPromise = null;
+            }
         }
     };
 
     const handleConfirm = async (dryRun = false) => {
+        if (localActionState.loading) {
+            return;
+        }
+        const generation = actionGeneration;
         formContext.setAllTouched();
         localActionState.loading = true;
         if (props.hasInput && !dryRun) {
             await nextTick();
+            if (generation !== actionGeneration) {
+                return;
+            }
             if (props.requireModified !== false && !formContext.state.anyModified) {
                 await defaultOnSubmitNotAnyModified({ toast });
-                localActionState.loading = false;
+                if (generation === actionGeneration) {
+                    localActionState.loading = false;
+                }
                 return;
             }
             if (formContext.state.anyError) {
@@ -221,9 +258,11 @@ export function useActionForm(formContext, props) {
         localActionState.errored = false;
         localActionState.error = null;
         try {
-            await performAction({ formValues: formContext.state.submittingValues, dryRun }, dryRun);
+            await performAction({ formValues: formContext.state.submittingValues, dryRun }, dryRun, generation);
         } finally {
-            localActionState.loading = false;
+            if (generation === actionGeneration && !navigatedAway) {
+                localActionState.loading = false;
+            }
         }
     };
 
@@ -232,18 +271,25 @@ export function useActionForm(formContext, props) {
             e.preventDefault();
             e.stopPropagation();
         }
+        if (localActionState.loading) {
+            return;
+        }
         if (props.redirectTo) {
             await props.redirectTo("cancel");
         }
     };
 
     const cancelInFlightAction = () => {
-        if (!actionPromise) {
-            return;
-        }
-        actionCancelled = true;
-        actionPromise.cancel?.();
+        actionGeneration += 1;
+        navigatedAway = false;
+        actionPromise?.cancel?.();
+        actionPromise = null;
+        confirmation.cancel();
+        localActionState.loading = false;
+        localActionState.errored = false;
+        localActionState.error = null;
     };
+    watch(() => props.dryRunTarget, cancelInFlightAction);
     onDeactivated(cancelInFlightAction);
     onUnmounted(cancelInFlightAction);
 
@@ -268,5 +314,14 @@ export function useActionForm(formContext, props) {
         { immediate: true },
     );
 
-    return { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick };
+    return {
+        combinedError,
+        combinedErrored,
+        combinedLoading,
+        confirmDisabled,
+        cancelDisabled,
+        confirmation,
+        handleConfirm,
+        handleCancelClick,
+    };
 }

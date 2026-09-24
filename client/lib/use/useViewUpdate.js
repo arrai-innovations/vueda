@@ -114,7 +114,9 @@ export function useViewUpdate(options) {
             [FIELDS_PARAM]: computed(() => {
                 const fields = [...(unref(submitFields) ?? [])];
                 const pkKey = modelConfig.info?.pk ?? "id";
-                if (!fields.includes(pkKey)) fields.push(pkKey);
+                if (!fields.includes(pkKey)) {
+                    fields.push(pkKey);
+                }
                 return fields;
             }),
             [EXPAND_PARAM]: computed(() => {
@@ -127,6 +129,10 @@ export function useViewUpdate(options) {
         intendToRetrieve: false,
     });
 
+    // A separate object instance from the retrieval `instanceObject` above, so a save request never
+    // races or overwrites the displayed data. An error this instance raises during submission is not
+    // read directly; useObjectForm promotes an unhandled one onto objectForm.state.error, which
+    // useDetailView's combinedError already watches.
     const instanceObjectForSubmit = useObject({ props: instanceObjectProps });
 
     const arrayFields = computed(() => {

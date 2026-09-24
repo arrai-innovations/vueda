@@ -88,9 +88,9 @@ describe("lib/use/useModelInitialValues.js", () => {
         const result = useModelFilterInitialValues(ref("blog"), ref("post"));
         await flushPromises();
         expect(result.value).toEqual({
-            name__icontains: "",
-            name__exact: "",
-            active__exact: false,
+            "name.icontains": "",
+            "name.exact": "",
+            "active.exact": false,
         });
 
         mockModelInfo.info.filtering = {};

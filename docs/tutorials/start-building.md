@@ -12,6 +12,8 @@ If you already have an existing Django or Vue project, this guide is still usefu
 
 By the end of this guide, you will have a running Django API and Vue client connected via VUEDA, exposing a simple inventory model end-to-end.
 
+For a more complete example, try [Widget Warehouse](https://www.widgetwarehouse.com/), a VUEDA application with inventory, purchasing workflows, and custom dashboards. Its [repository](https://github.com/arrai-innovations/widget-warehouse) includes the source and a guided walkthrough.
+
 ## Prerequisites
 
 - [Python 3.11+](https://www.python.org/downloads/): for running the VUEDA Server

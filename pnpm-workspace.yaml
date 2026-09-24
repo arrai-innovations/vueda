@@ -6,6 +6,7 @@ packages:
 patchedDependencies:
   vitepress-plugin-diagrams@1.1.2: patches/vitepress-plugin-diagrams.patch
   vitepress@1.6.4: patches/vitepress.patch
+  vue-input-otp@0.3.2: patches/vue-input-otp@0.3.2.patch
 
 overrides:
   lodash-es: ">=4.17.24"
@@ -85,4 +86,5 @@ allowBuilds:
   protobufjs: false
 
 minimumReleaseAgeExclude:
-  - '@arrai-innovations/vitepress-theme@1.2.0'
+  - '@arrai-innovations/vitepress-theme@1.3.0'
+  - '@arrai-innovations/commitlint-config@3.1.0'

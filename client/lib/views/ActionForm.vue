@@ -16,8 +16,10 @@ import { computed, inject } from "vue";
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
  *
  * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
- * the form has unresolved per-field errors, a structured validation alert
- * sourced from `formContext.state.errors`. Also mounts a `FormConfirmDialog`
+ * the form has per-field errors that no rendered field shows beside itself, a
+ * structured validation alert sourced from `formContext.state.errors`. The
+ * alert sits with the non-field error block above the fields, so a reader meets
+ * it before the first field and the submit control. Also mounts a `FormConfirmDialog`
  * bound to the action's confirmation controller, so actions the server gates
  * behind warning acknowledgement (HTTP 409) can be confirmed and retried. `ActionForm` renders no
  * warnings content of its own; a consumer that needs to render them (e.g. a bulk action grouping
@@ -71,7 +73,7 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. */
+    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. After success, the form stays locked until it unmounts unless the function resolves `false` to report that it did not navigate away. */
     redirectTo: {
         type: Function,
         default: undefined,
@@ -124,26 +126,57 @@ if (!formContext) {
             "FormContextSymbol, or render ModelActionForm, which establishes one when none is injected.",
     );
 }
-const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
-    useActionForm(formContext, props);
+const {
+    combinedError,
+    combinedErrored,
+    combinedLoading,
+    confirmDisabled,
+    cancelDisabled,
+    confirmation,
+    handleConfirm,
+    handleCancelClick,
+} = useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);
 const icon = useIcons("ActionForm", props);
 
 /**
- * Per-field validation entries derived from `formContext.state.errors`.
- * Each entry is `{ field, messages: string[] }`. Non-field errors are
- * surfaced separately via `<form-message type="error" />` and are excluded
- * from the per-field list.
+ * Per-field validation entries derived from `formContext.state.errors`, limited
+ * to the errors no rendered field already shows beside itself. Each rendered
+ * field reports through `useField` whether the reader can see its own error
+ * messages (`formContext.state.showsErrors`); an error keyed to a field that
+ * reports `true` is dropped here because the reader already sees it under the
+ * field. Every other error stays: a field whose renderer failed, a field
+ * rendered with `hidden`, a field inside a collapsed inline field set, or a key
+ * the form does not render at all has no visible surface, and this list is the
+ * only place it appears.
+ *
+ * Each entry is `{ field, label, messages: string[] }`. `label` names the
+ * field the way its rendered form field labels it (via `formContext.state.labels`,
+ * which each rendered field registers through `useField`), falling back to
+ * `field` itself when no rendered field registered a label for that key.
+ * Non-field errors are surfaced separately via `<form-message type="error" />`
+ * and are excluded from the per-field list.
  */
 const validationEntries = computed(() => {
     const errors = formContext?.state?.errors || {};
+    const labels = formContext?.state?.labels || {};
+    const showsErrors = formContext?.state?.showsErrors || {};
     const entries = [];
     for (const [field, codes] of Object.entries(errors)) {
-        if (field === NON_FIELD_ERRORS_KEY) continue;
-        if (!codes || typeof codes !== "object") continue;
+        if (field === NON_FIELD_ERRORS_KEY) {
+            continue;
+        }
+        if (showsErrors[field]) {
+            continue;
+        }
+        if (!codes || typeof codes !== "object") {
+            continue;
+        }
         const messages = Object.values(codes).filter(Boolean);
-        if (messages.length === 0) continue;
-        entries.push({ field, messages });
+        if (messages.length === 0) {
+            continue;
+        }
+        entries.push({ field, label: labels[field] ?? field, messages });
     }
     return entries;
 });
@@ -152,7 +185,9 @@ const showValidation = computed(() => !!formContext?.state?.anyError && validati
 const validationCount = computed(() => validationEntries.value.length);
 const validationTitle = computed(() => {
     const n = validationCount.value;
-    if (n === 0) return "Cannot run action";
+    if (n === 0) {
+        return "Cannot run action";
+    }
     return `Cannot run action — ${n} ${n === 1 ? "field needs" : "fields need"} attention`;
 });
 </script>
@@ -163,21 +198,7 @@ const validationTitle = computed(() => {
         <div :class="theme('inner')" data-qa="action-form-inner">
             <div :class="theme('nonFieldErrorBlock')">
                 <form-message type="error" />
-                <form-message type="message" />
-            </div>
-            <form @submit.prevent="handleConfirm()">
-                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
-                <slot
-                    name="action-form-inner"
-                    v-bind="{
-                        loading: combinedLoading,
-                        error: combinedError,
-                        errored: combinedErrored,
-                        handleConfirm,
-                        handleCancelClick,
-                    }"
-                />
-                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set; receives `entries`, `count`, and `title`. -->
+                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set and at least one field error has no rendered field showing it; receives `entries` (each `{ field, label, messages }`, limited to those errors), `count`, and `title`. -->
                 <slot
                     v-if="showValidation"
                     name="validation-summary"
@@ -198,7 +219,7 @@ const validationTitle = computed(() => {
                                 {{ validationTitle }}
                             </div>
                             <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
-                                Resolve the highlighted fields, then try again.
+                                These errors are not shown beside a field. Resolve them, then try again.
                             </p>
                             <ul :class="theme('validationList')" data-qa="action-form-validation-list">
                                 <li
@@ -208,7 +229,7 @@ const validationTitle = computed(() => {
                                     data-qa="action-form-validation-item"
                                 >
                                     <span :class="theme('validationField')" data-qa="action-form-validation-field">
-                                        {{ entry.field }}
+                                        {{ entry.label }}
                                     </span>
                                     <span :class="theme('validationMsg')">
                                         {{ entry.messages.join("; ") }}
@@ -218,42 +239,55 @@ const validationTitle = computed(() => {
                         </div>
                     </div>
                 </slot>
-                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+                <form-message type="message" />
+            </div>
+            <form @submit.prevent="handleConfirm()">
+                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+                <slot
+                    name="action-form-inner"
+                    v-bind="{
+                        loading: combinedLoading,
+                        error: combinedError,
+                        errored: combinedErrored,
+                        handleConfirm,
+                        handleCancelClick,
+                    }"
+                />
+                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `confirmDisabled`, `cancelDisabled`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"
                     name="action-bar"
+                    :confirm-disabled="confirmDisabled"
+                    :cancel-disabled="cancelDisabled"
                     :handle-confirm="handleConfirm"
                     :handle-cancel-click="handleCancelClick"
                 >
                     <div :class="theme('buttons')" data-qa="action-form-buttons">
-                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. -->
+                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
                         <slot
                             label="Yes, continue"
                             :loading="combinedLoading"
                             name="confirm-button"
                             type="submit"
-                            :disabled="formContext.state.anyError"
+                            :disabled="confirmDisabled"
                         >
-                            <Button
-                                type="submit"
-                                tone="primary"
-                                :disabled="combinedLoading || formContext.state.anyError"
-                            >
+                            <Button type="submit" tone="primary" :disabled="confirmDisabled">
                                 <LoadingSpinnerInline v-if="combinedLoading" />
                                 Yes, continue
                             </Button>
                         </slot>
-                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
+                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, `verb`, and `disabled` as slot props. `disabled` is true while the action runs and after a successful submit navigates away. -->
                         <slot
                             label="Cancel, go back"
                             :loading="combinedLoading"
                             name="cancel-button"
+                            :disabled="cancelDisabled"
                             @click="handleCancelClick"
                         >
                             <Button
                                 type="button"
                                 emphasis="ghost"
-                                :disabled="combinedLoading"
+                                :disabled="cancelDisabled"
                                 @click="handleCancelClick"
                             >
                                 <LoadingSpinnerInline v-if="combinedLoading" />

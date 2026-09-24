@@ -62,6 +62,10 @@ export function useSubForm({ parentPath }) {
 
         // *** Dependency Management ***
         dependencyValues: {},
+
+        // *** Field Metadata ***
+        labels: {},
+        showsErrors: {},
     });
 
     for (const nestedValues of ["values", "initialValues"]) {
@@ -109,6 +113,8 @@ export function useSubForm({ parentPath }) {
         "valid",
         "ignored",
         "dependencyValues",
+        "labels",
+        "showsErrors",
     ]) {
         watch(
             () => Object.keys(parentState[flatList]).filter((key) => key.startsWith(unref(parentPath))),
@@ -126,10 +132,15 @@ export function useSubForm({ parentPath }) {
         );
     }
 
+    /**
+     * @param {string} localName - A field path relative to this sub-form.
+     * @returns {string} The same path relative to the parent form.
+     */
+    const prefixLocalName = (localName) => `${unref(parentPath)}${localName.startsWith("[") ? "" : "."}${localName}`;
+
     const buildFieldMethodProxy = (parentMethod) => {
         return (localName, ...args) => {
-            const fullPath = `${unref(parentPath)}${localName.startsWith("[") ? "" : "."}${localName}`;
-            parentMethod(fullPath, ...args);
+            parentMethod(prefixLocalName(localName), ...args);
         };
     };
 
@@ -143,6 +154,7 @@ export function useSubForm({ parentPath }) {
         // *** Value & Initial Value Handling ***
         updateValue: buildFieldMethodProxy(parentFormContext.updateValue),
         deleteValue: buildFieldMethodProxy(parentFormContext.deleteValue),
+        removeArrayItem: buildFieldMethodProxy(parentFormContext.removeArrayItem),
         updateInitialValue: buildFieldMethodProxy(parentFormContext.updateInitialValue),
         deleteInitialValue: buildFieldMethodProxy(parentFormContext.deleteInitialValue),
 
@@ -177,6 +189,15 @@ export function useSubForm({ parentPath }) {
         unregisterIsValidHook: buildFieldMethodProxy(parentFormContext.unregisterIsValidHook),
         registerIsIgnoredHook: buildFieldMethodProxy(parentFormContext.registerIsIgnoredHook),
         unregisterIsIgnoredHook: buildFieldMethodProxy(parentFormContext.unregisterIsIgnoredHook),
+
+        // *** Field Metadata ***
+        registerLabel: (localName, labelHook) => parentFormContext.registerLabel(prefixLocalName(localName), labelHook),
+        // Takes the registration id returned by registerLabel, so there is no path to prefix.
+        unregisterLabel: parentFormContext.unregisterLabel,
+        registerShowsErrors: (localName, showsErrorsHook) =>
+            parentFormContext.registerShowsErrors(prefixLocalName(localName), showsErrorsHook),
+        // Takes the registration id returned by registerShowsErrors, so there is no path to prefix.
+        unregisterShowsErrors: parentFormContext.unregisterShowsErrors,
     };
 
     provide(FormContextSymbol, returnObject);

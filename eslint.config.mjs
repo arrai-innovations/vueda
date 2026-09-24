@@ -113,7 +113,6 @@ const eslintConfig = [
             ...neostandardConfig.rules,
             ...restrictedImportsRules,
             ...disableImportXRules,
-            curly: "error",
             "no-console": process.env.NODE_ENV === "production" ? "error" : "off",
             "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
         },
@@ -171,6 +170,19 @@ const eslintConfig = [
     },
     eslintConfigPrettier,
     {
+        name: "always (after prettier)",
+        files: [
+            "client/**/*.{js,cjs,mjs,vue}",
+            "docs/**/*.{js,cjs,mjs,vue}",
+            "docs-tooling/**/*.{js,cjs,mjs,vue}",
+            "*.{js,cjs,mjs}",
+        ],
+        rules: {
+            // eslint-config-prettier turns curly off; re-enable it so every block needs braces.
+            curly: ["error", "all"],
+        },
+    },
+    {
         ignores: [
             ".git/**",
             ".uv-cache/**",
@@ -190,6 +202,7 @@ const eslintConfig = [
             "docs/.vitepress/cache/**",
             "docs/.vitepress/dist/**",
             "docs/.vitepress/.temp/**",
+            "docs/temp/**",
             "docs-tooling/.generated/**",
             "templates/**",
         ],

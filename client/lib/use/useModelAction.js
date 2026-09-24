@@ -7,7 +7,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import startCase from "lodash-es/startCase.js";
-import { computed, reactive, ref, toRef } from "vue";
+import { computed, reactive, ref, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /**
@@ -61,7 +61,7 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request right now
  *  (a target is present, dry-run is enabled, and the action instance is idle). Carries no per-target memory of its
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
- * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the current target (joined pks), for a
+ * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys, for a
  *  consumer to key its own "already dry-ran this one" bookkeeping off of.
  */
 
@@ -71,7 +71,8 @@ import { useRoute, useRouter } from "vue-router";
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
  *  crud handlers.
- * @property {(result: any) => Promise<void>} redirectTo - Redirects after success or cancel.
+ * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Resolves `false` when
+ *  the router reports a navigation failure, so `useActionForm` keeps the form usable.
  */
 
 /**
@@ -191,7 +192,21 @@ export function useModelAction(props) {
     // own -- the dry run itself toggles instance loading, so without a latch somewhere the readiness watcher would
     // retrigger for the same target. `dryRunTarget` gives a consumer (`useActionForm`'s dry-run watcher) an identity
     // to latch against instead.
-    const dryRunTarget = computed(() => pksAsString.value.join(","));
+    const lastRunPks = ref([]);
+    watch(
+        () => JSON.stringify([props.app, props.model, props.action, props.pk]),
+        () => {
+            lastRunPks.value = [];
+        },
+    );
+    const dryRunTarget = computed(() =>
+        JSON.stringify([
+            props.app,
+            props.model,
+            props.action,
+            (pks.value.length ? pks.value : lastRunPks.value).map(String),
+        ]),
+    );
     const readyToDryRun = computed(
         () =>
             !!(
@@ -205,15 +220,14 @@ export function useModelAction(props) {
     );
 
     // Keep the last real target for redirects because a successful bulk destroy may clear `pks` before redirecting.
-    const lastRunPks = ref([]);
     const redirectPks = computed(() => (lastRunPks.value.length > 0 ? lastRunPks.value : pks.value));
     const redirectBulk = computed(() => redirectPks.value.length > 1);
 
     const redirectTo = async (result) => {
         const returnPath = route.query?.returnPath;
+        // `router.push` resolves a navigation failure instead of throwing when it does not navigate.
         if (returnPath && typeof returnPath === "string") {
-            await router.push(returnPath);
-            return;
+            return !(await router.push(returnPath));
         }
 
         const redirects = modelConfig.config.actionRedirects || {};
@@ -226,16 +240,15 @@ export function useModelAction(props) {
         }
 
         if (redirectBulk.value || redirect === "list") {
-            await router.push({
+            return !(await router.push({
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: props.app, model: props.model, action: "list" },
-            });
-        } else {
-            await router.push({
-                name: DETAIL_VIEW_CRUD_NAME,
-                params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
-            });
+            }));
         }
+        return !(await router.push({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
+        }));
     };
 
     /**
@@ -248,42 +261,60 @@ export function useModelAction(props) {
      * @returns {Promise<any>} The handler's result.
      * @throws {Error} The instance's stored error, when the action failed.
      */
-    const runAction = async ({ formValues = {}, dryRun = false, acknowledgeWarnings } = {}) => {
-        const instance = actionInstance.value;
-        const isDestroy = props.action === "destroy";
-        const runPks = [...pks.value];
-        const shared = {
-            formData: props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined,
-            dryRun,
-            acknowledgeWarnings,
-        };
-        if (!dryRun) {
-            lastRunPks.value = runPks;
-        }
+    const runAction = ({ formValues = {}, dryRun = false, acknowledgeWarnings } = {}) => {
+        try {
+            const instance = actionInstance.value;
+            const runTarget = dryRunTarget.value;
+            let cancelled = false;
+            const isDestroy = props.action === "destroy";
+            const runPks = [...pks.value];
+            const shared = {
+                formData: props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined,
+                dryRun,
+                acknowledgeWarnings,
+            };
+            if (!dryRun) {
+                lastRunPks.value = runPks;
+            }
 
-        let result;
-        if (bulk.value) {
-            result = isDestroy
-                ? await instance.bulkDelete({ ...shared, pks: runPks, keepObjects: dryRun })
-                : await instance.executeAction({
-                      ...shared,
-                      action: props.action,
-                      pks: runPks,
-                      requestMethod: props.requestMethod,
-                  });
-        } else {
-            result = isDestroy
-                ? await instance.delete({ ...shared, keepObject: dryRun })
-                : await instance.executeAction({ ...shared, action: props.action, requestMethod: props.requestMethod });
-        }
+            let result;
+            if (bulk.value) {
+                result = isDestroy
+                    ? instance.bulkDelete({ ...shared, pks: runPks, keepObjects: dryRun })
+                    : instance.executeAction({
+                          ...shared,
+                          action: props.action,
+                          pks: runPks,
+                          requestMethod: props.requestMethod,
+                      });
+            } else {
+                result = isDestroy
+                    ? instance.delete({ ...shared, keepObject: dryRun })
+                    : instance.executeAction({ ...shared, action: props.action, requestMethod: props.requestMethod });
+            }
 
-        if (instance.state.errored) {
-            const error = instance.state.error;
-            // The form layer owns action errors; clear the instance copy so it does not also render as fetch failure.
-            instance.clearError();
-            throw error;
+            const promise = Promise.resolve(result).then((response) => {
+                if (cancelled || runTarget !== dryRunTarget.value) {
+                    return response;
+                }
+                if (instance.state.errored) {
+                    const error = instance.state.error;
+                    // The form layer owns action errors, rather than the fetch error display.
+                    instance.clearError();
+                    throw error;
+                }
+                return response;
+            });
+            if (result?.cancel) {
+                promise.cancel = (reason) => {
+                    cancelled = true;
+                    return result.cancel(reason);
+                };
+            }
+            return promise;
+        } catch (error) {
+            return Promise.reject(error);
         }
-        return result;
     };
 
     return {

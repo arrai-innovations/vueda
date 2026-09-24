@@ -34,7 +34,7 @@ patchTheme({
                 "data-[state=current]:text-primary-foreground",
                 "data-[state=current]:border-primary",
                 "data-[state=done]:bg-primary/15",
-                "data-[state=done]:text-primary",
+                "data-[state=done]:text-primary-text",
                 "data-[state=done]:border-primary/40",
             ],
         },
@@ -80,7 +80,7 @@ patchTheme({
         doneIcon: {
             class: [
                 "flex items-center justify-center",
-                "w-12 h-12 rounded-full bg-primary/15 text-primary",
+                "w-12 h-12 rounded-full bg-primary/15 text-primary-text",
                 "text-[24px] leading-none",
             ],
         },

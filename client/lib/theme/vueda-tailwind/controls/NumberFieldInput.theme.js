@@ -19,8 +19,15 @@ patchTheme({
                 // Input shell and type.
                 "flex h-vueda-control w-full rounded-vueda-field field-line bg-field hover:bg-field-hover font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow",
 
-                // Placeholder, focus, and disabled states.
-                "placeholder:text-muted-foreground focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow disabled:cursor-not-allowed disabled:opacity-50",
+                // Placeholder, focus, and invalid states.
+                "placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+
+                // Disabled: an inert slab, not a faded field. See README section 7.6.
+                "disabled:pointer-events-none disabled:cursor-not-allowed",
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
+                "disabled:[-webkit-text-fill-color:var(--disabled-foreground)]",
             ],
         },
     },

@@ -34,9 +34,9 @@ patchTheme({
                 "text-[18px] leading-none",
                 // info + loading: primary blue soft tint
                 "group-data-[tone=info]/system-message-card:bg-primary/[0.12]",
-                "group-data-[tone=info]/system-message-card:text-primary",
+                "group-data-[tone=info]/system-message-card:text-primary-text",
                 "group-data-[tone=loading]/system-message-card:bg-primary/[0.12]",
-                "group-data-[tone=loading]/system-message-card:text-primary",
+                "group-data-[tone=loading]/system-message-card:text-primary-text",
                 // warning: amber soft tint
                 "group-data-[tone=warning]/system-message-card:bg-warning/[0.14]",
                 "group-data-[tone=warning]/system-message-card:text-warning",

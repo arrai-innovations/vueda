@@ -31,7 +31,9 @@ const props = defineProps({
 const theme = useTheme("FieldMessage", props, reactive({ severity: toRef(props, "severity") }));
 
 const content = computed(() => {
-    if (!props.messages || props.messages.length === 0) return null;
+    if (!props.messages || props.messages.length === 0) {
+        return null;
+    }
 
     const flattenedMessages = props.messages.filter(Boolean).flatMap((msg) => (Array.isArray(msg) ? msg : [msg]));
 

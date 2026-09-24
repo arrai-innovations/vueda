@@ -2,10 +2,11 @@
  * @module use/useViewDestroy
  * @description Provides reactive instance deletion support for a view screen, including bulk delete and error handling.
  */
-import { useList } from "@arrai-innovations/reactive-helpers";
+import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { getPluralizedTitle, memoizedStartCase } from "@vueda/utils/case.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -17,6 +18,8 @@ import { computed, inject, reactive, toRef } from "vue";
  * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
  * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
+ * @property {import('vue').ComputedRef<string>} titleStr - Page title for the confirmation, counted and pluralized for a bulk destroy (e.g. "Delete Widget", "Delete 3 Widgets").
+ * @property {import('vue').ComputedRef<boolean|undefined>} pageLoading - Combined loading state (model config + the fetch of the records being confirmed).
  * @property {(options: { dryRun?: boolean, acknowledgeWarnings?: string }) => Promise<void>} handleDelete - Attempts
  *  to delete the instance(s) through the list's registered `bulkDelete` handler. Throws on failure, including a
  *  `ConfirmationRequiredError` when the server gates the delete behind warning acknowledgement (HTTP 409); pass the
@@ -64,6 +67,19 @@ export function useViewDestroy(props) {
         },
     });
 
+    // "Delete", not "Destroy": the route action names the operation, but the page says what the
+    // operator is doing, matching the banner below it and the copy convention for actions.
+    // Pluralized and counted for a bulk destroy, so the title carries the blast radius too.
+    const titleStr = computed(() => {
+        const count = Array.isArray(props.pk) ? props.pk.length : 1;
+        if (count > 1) {
+            const plural = modelConfig.config?.verboseNamePlural || getPluralizedTitle(props.model);
+            return `Delete ${count} ${memoizedStartCase(plural)}`;
+        }
+        return `Delete ${memoizedStartCase(modelConfig.config?.verboseName || props.model)}`;
+    });
+    const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceList.state.loading));
+
     const handleDelete = async ({ dryRun, acknowledgeWarnings }) => {
         // `keepObjects` on the dry run: a validation pass must not empty the list the operator is still confirming
         // against. A real delete leaves it off, so reactive-helpers removes the deleted rows.
@@ -84,6 +100,8 @@ export function useViewDestroy(props) {
         validAndActive,
         modelConfig,
         instanceList,
+        titleStr,
+        pageLoading,
         handleDelete,
     };
 }

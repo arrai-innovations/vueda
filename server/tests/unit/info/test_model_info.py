@@ -3,6 +3,8 @@ from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -12,6 +14,8 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
 from vueda import info
+from vueda.workflow.models import State
+from vueda.workflow.models import StatePermission
 
 
 ADMIN_PERMISSIONS = (
@@ -206,6 +210,7 @@ REGISTRATIONS_BY_MODEL = {
 
 EXPANDED_FIELDS = [
     "model_actions",
+    "model_column_totals",
     "model_expands",
     "model_fields",
     "model_filtering",
@@ -403,6 +408,17 @@ class BaseModelInfoDetail(BaseModelInfo):
                         )
 
     @staticmethod
+    def check_model_column_totals_data(response_data, expected_data, app_label, model_name):
+        """The totals a client may ask for.
+
+        Order is part of the contract: it is the order the viewset declares its totals in, and the
+        order they come back in. The section reports the names only -- the parameter that asks for
+        them is a client-side constant until parameter-name discovery ships.
+        """
+        data = response_data.data["model_column_totals"]
+        assert data["fields"] == expected_data, f'"{app_label}", "{model_name}" -> "expected_column_totals" -> "fields"'
+
+    @staticmethod
     def check_model_permissions_data(response_data, expected_data, app_label, model_name):
         data = response_data.data["model_permissions"]
         assert {frozenset(x) for x in data} == {frozenset(x) for x in expected_data}, (
@@ -457,6 +473,7 @@ class BaseModelInfoDetail(BaseModelInfo):
         self.check_model_fields_data(response, kwargs["expected_fields"], app_label, model_name)
         self.check_model_filtering_data(response, kwargs["expected_filtering"], app_label, model_name)
         self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
+        self.check_model_column_totals_data(response, kwargs["expected_column_totals"], app_label, model_name)
         self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
 
 
@@ -489,3 +506,293 @@ class TestModelInfoSerializerCustomer(BaseModelInfoDetail):
     test_data_class = CustomerTestData
     user_email = "test_customer_1@domain.invalid"
     expected_actions_key = "expected_actions_customer"
+
+
+@pytest.mark.django_db
+class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    ``history-list`` in a model's metadata follows read authorization rather than merely
+    existing, so a requester never sees an action the direct history request would refuse with a
+    403. Reproduces #280: a requester with no permission at all on a tracked model saw
+    ``history-list`` as its only reported action.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "No Distributor Permission": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+        ],
+        "Distributor Lister": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "list"),
+        ],
+        "Distributor Reader": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "no_permission@domain.invalid": {
+            "name": "No Permission",
+            "password": "testpass",
+            "groups": ["No Distributor Permission"],
+        },
+        "lister@domain.invalid": {
+            "name": "Lister",
+            "password": "testpass",
+            "groups": ["Distributor Lister"],
+        },
+        "reader@domain.invalid": {
+            "name": "Reader",
+            "password": "testpass",
+            "groups": ["Distributor Reader"],
+        },
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        register_model("store", "distributor")
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.fixture
+    def distributor(self):
+        return store_serializers.DistributorSerializer.Meta.model.objects.create(
+            name="Widget Co.", description="Fine widgets."
+        )
+
+    def model_actions(self, client):
+        response = client.get(
+            reverse("info.model_info-detail", args=("store", "distributor")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return response.data["model_actions"]
+
+    def test_no_permission_reports_no_actions_at_all(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["no_permission@domain.invalid"])
+
+        assert self.model_actions(api_client) == []
+
+    def test_list_permission_alone_does_not_grant_history_access(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["lister@domain.invalid"])
+
+        names = {action["name"] for action in self.model_actions(api_client)}
+
+        assert "history-list" not in names
+
+    def test_read_permission_grants_history_access(self, api_client, distributor):
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        names = {action["name"] for action in self.model_actions(api_client)}
+
+        assert "history-list" in names
+
+
+@pytest.mark.django_db
+class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    Model metadata's ``history-list`` decision folds in a workflow-state grant that can settle an
+    otherwise-denied model-level read, the same deferral every other CRUD action's own metadata
+    discovery already relies on (``ObjectPermissions.has_permission`` deferring to
+    ``has_matching_state_grant``). This is the ``instance=None`` branch of
+    ``VuedaViewSet._read_permitted``, distinct from the per-object branch covered by
+    ``TestHistoryActionObjectAvailabilityUnderWorkflowState`` in ``test_history_action_api.py``.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Order Metadata Viewer": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "viewer@domain.invalid": {
+            "name": "Viewer",
+            "password": "testpass",
+            "groups": ["Order Metadata Viewer"],
+        },
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        register_model("store", "customerorder")
+        yield
+        info.registration.get_empty_registry()
+
+    def model_actions(self, client):
+        response = client.get(
+            reverse("info.model_info-detail", args=("store", "customerorder")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return response.data["model_actions"]
+
+    def test_a_state_grant_settles_a_model_level_denial_in_metadata(self, api_client):
+        """
+        "Order Metadata Viewer" holds no ``read_customerorder`` permission at all. A state grant
+        on the workflow's own initial state is enough to settle the model-level denial for
+        metadata discovery, without any ``CustomerOrder`` row existing to check against.
+        """
+        api_client.force_authenticate(user=self.users["viewer@domain.invalid"])
+        StatePermission.objects.create(
+            state=State.objects.get(workflow__code="order_fulfillment", code="new"),
+            permission=Permission.objects.get(codename="read_customerorder", content_type__app_label="store"),
+            group=Group.objects.get(name="Order Metadata Viewer"),
+            grant_or_deny=True,
+        )
+
+        names = {action["name"] for action in self.model_actions(api_client)}
+
+        assert "history-list" in names
+        assert "retrieve" in names, (
+            "the state grant is registered under read_customerorder, so it must settle retrieve's "
+            "own model-level denial through the same has_permission deferral as history-list, not "
+            "only history-list's"
+        )
+
+
+@pytest.mark.django_db
+class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    Model metadata decides ``list`` and ``retrieve`` against their own required permissions, not
+    against whichever of the two the collision in ``ObjectPermissions.perms_map`` happened to
+    resolve. Reproduces #292 at the model-metadata discovery path: ``get_model_actions()`` never
+    set the viewset's ``action`` before checking either, so both resolved to ``read_*`` -- a
+    list-only requester was told ``retrieve`` was available, and a read-only requester was told
+    ``list`` was available.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Distributor Lister Only": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "list"),
+        ],
+        "Distributor Reader Only": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "read"),
+        ],
+        "Distributor Lister And Reader": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "Distributor", "list"),
+            ("store", "Distributor", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "lister@domain.invalid": {
+            "name": "Lister",
+            "password": "testpass",
+            "groups": ["Distributor Lister Only"],
+        },
+        "reader@domain.invalid": {
+            "name": "Reader",
+            "password": "testpass",
+            "groups": ["Distributor Reader Only"],
+        },
+        "both@domain.invalid": {
+            "name": "Both",
+            "password": "testpass",
+            "groups": ["Distributor Lister And Reader"],
+        },
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        register_model("store", "distributor")
+        yield
+        info.registration.get_empty_registry()
+
+    def model_actions(self, client):
+        response = client.get(
+            reverse("info.model_info-detail", args=("store", "distributor")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return {action["name"] for action in response.data["model_actions"]}
+
+    def test_list_permission_alone_does_not_grant_retrieve(self, api_client):
+        api_client.force_authenticate(user=self.users["lister@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert "list" in names
+        assert "retrieve" not in names
+
+    def test_read_permission_alone_does_not_grant_list(self, api_client):
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert "retrieve" in names
+        assert "list" not in names
+
+    def test_both_permissions_keep_both_entries(self, api_client):
+        api_client.force_authenticate(user=self.users["both@domain.invalid"])
+
+        names = self.model_actions(api_client)
+
+        assert {"list", "retrieve"}.issubset(names)
+
+
+@pytest.mark.django_db
+class TestModelColumnTotalsSection(BaseModelInfo):
+    """What the column totals section reports, beyond the per-model name lists.
+
+    The names themselves are checked per model in `BaseModelInfoDetail`. What is checked here is
+    what no per-model expectation can show: the section carries the declared names and nothing else,
+    and it is expanded rather than returned by default.
+    """
+
+    test_data_class = CustomerTestData
+    user_email = "test_customer_1@domain.invalid"
+
+    def get_section(self, authenticated_client):
+        response = authenticated_client.get(
+            reverse("info.model_info-detail", args=("store", "cartitem")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_column_totals"},
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return response.data["model_column_totals"], response
+
+    def test_section_reports_names_only(self, authenticated_client, settings):
+        """The parameter a client sends is its own constant, so renaming `COLUMN_TOTALS_PARAM`
+        changes what the server accepts without changing what this section reports. Reporting the
+        name here waits for parameter-name discovery, after v3.0.0."""
+        settings.COLUMN_TOTALS_PARAM = "totals"
+        register_model("store", "cartitem")
+
+        section, response = self.get_section(authenticated_client)
+
+        assert section == {"fields": ["quantity", "product_price"]}, response_body(response)
+
+    def test_total_name_need_not_be_a_serializer_field(self, authenticated_client):
+        """`product_price` sums `product_option__price` and names no field of the serializer, which
+        is what a flag on each `model_fields` entry could not have reported."""
+        register_model("store", "cartitem")
+
+        section, response = self.get_section(authenticated_client)
+
+        assert "product_price" in section["fields"], response_body(response)
+        assert "product_price" not in store_serializers.CartItemSerializer().fields
+
+    def test_section_is_not_returned_unless_expanded(self, authenticated_client):
+        register_model("store", "cartitem")
+
+        response = authenticated_client.get(
+            reverse("info.model_info-detail", args=("store", "cartitem")), format="json"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "model_column_totals" not in response.data

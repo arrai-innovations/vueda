@@ -65,6 +65,19 @@ export const PAGE_PARAM = "p";
 export const PAGE_SIZE_PARAM = "ps";
 
 /**
+ * Query string param used to request column totals on a list view, naming the totals to compute.
+ * A wildcard value (`*` or `~all`) requests every total the model declares; sending the param with
+ * no value requests none, which is also what omitting it does.
+ * e.g., `?ct=quantity,product_price`
+ *
+ * Must match the server's `COLUMN_TOTALS_PARAM` setting. A project that changes that setting needs
+ * a matching change here, as it does for every param in this file, until parameter-name discovery
+ * ships after v3.0.0. Which totals a model offers is discovered from model info; only the name of
+ * the param that asks for them lives here.
+ */
+export const COLUMN_TOTALS_PARAM = "ct";
+
+/**
  * Sentinel page-size value meaning "load every page at once" rather than a fixed
  * number of rows. Selected from the rows-per-page control; drives the all-pages
  * fetch path instead of sending a `ps` query param.

@@ -4,6 +4,8 @@ ALLOWED_HOSTS = "demo.vueda.dev"
 CSRF_TRUSTED_ORIGINS = "https://demo.vueda.dev"
 SECRET_KEY = "test-secret-key"
 DATABASE_URL = "postgresql://vueda@/vueda"
+# The suite runs in one process, so a per-process cache is the right one and needs no service.
+CACHE_URL = "locmem://unique-snowflake?key_prefix=vueda-"
 TEST_POSTGRES_DB = "dbname=postgres user=postgres"
 DATABASE_BACKUP_DIR = ""
 STATIC_ROOT = ""

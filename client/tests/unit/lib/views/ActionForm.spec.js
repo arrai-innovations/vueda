@@ -410,6 +410,152 @@ describe("lib/views/ActionForm.vue", () => {
         });
     });
 
+    describe("Validation summary", () => {
+        scopedIt("names a labelled field by its label, not its key", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { email: { invalid: "Enter a valid email address." } },
+                        labels: { email: "Email" },
+                    },
+                },
+            });
+            const field = wrapper.get('[data-qa="action-form-validation-field"]');
+            expect(field.text()).toBe("Email");
+        });
+
+        scopedIt("falls back to the field key when no field registered a label for it", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { purchase_order: { invalid: "This field is required." } },
+                        labels: {},
+                    },
+                },
+            });
+            const field = wrapper.get('[data-qa="action-form-validation-field"]');
+            expect(field.text()).toBe("purchase_order");
+        });
+
+        scopedIt("keeps an error keyed to a field the form does not render, identified by its key", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: {
+                            email: { invalid: "Enter a valid email address." },
+                            non_rendered_field: { server: "Unexpected server error." },
+                        },
+                        labels: { email: "Email" },
+                    },
+                },
+            });
+            const fields = wrapper.findAll('[data-qa="action-form-validation-field"]').map((f) => f.text());
+            expect(fields).toEqual(["Email", "non_rendered_field"]);
+        });
+
+        scopedIt("shows no summary when every field error is already shown beside its field", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: {
+                            email: { invalid: "Enter a valid email address." },
+                            password: { required: "This field is required." },
+                        },
+                        labels: { email: "Email", password: "Password" },
+                        showsErrors: { email: true, password: true },
+                    },
+                },
+            });
+            expect(wrapper.find('[data-qa="action-form-validation"]').exists()).toBe(false);
+        });
+
+        scopedIt("keeps an error on a field rendered without an inline message row", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { token: { invalid: "This token has expired." } },
+                        labels: { token: "Token" },
+                        showsErrors: { token: false },
+                    },
+                },
+            });
+            const fields = wrapper.findAll('[data-qa="action-form-validation-field"]').map((f) => f.text());
+            expect(fields).toEqual(["Token"]);
+        });
+
+        scopedIt("lists only the errors no field shows when shown and unshown errors mix", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: {
+                            email: { invalid: "Enter a valid email address." },
+                            token: { invalid: "This token has expired." },
+                            non_rendered_field: { server: "Unexpected server error." },
+                        },
+                        labels: { email: "Email", token: "Token" },
+                        showsErrors: { email: true, token: false },
+                    },
+                },
+            });
+            const fields = wrapper.findAll('[data-qa="action-form-validation-field"]').map((f) => f.text());
+            expect(fields).toEqual(["Token", "non_rendered_field"]);
+            expect(wrapper.get('[data-qa="action-form-validation-title"]').text()).toBe(
+                "Cannot run action — 2 fields need attention",
+            );
+        });
+
+        scopedIt("passes only the surviving errors to the validation-summary slot", () => {
+            const scope = vi.fn(() => h("div", { "data-qa": "custom-summary" }));
+            mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: {
+                            email: { invalid: "Enter a valid email address." },
+                            token: { invalid: "This token has expired." },
+                        },
+                        labels: { email: "Email", token: "Token" },
+                        showsErrors: { email: true, token: false },
+                    },
+                },
+                slots: { "validation-summary": scope },
+            });
+            expect(scope).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    count: 1,
+                    title: "Cannot run action — 1 field needs attention",
+                    entries: [{ field: "token", label: "Token", messages: ["This token has expired."] }],
+                }),
+            );
+        });
+
+        scopedIt("renders the summary above the form, in the non-field error block", () => {
+            const { wrapper } = mountActionForm({
+                formContext: {
+                    state: {
+                        anyError: true,
+                        errors: { token: { invalid: "This token has expired." } },
+                        showsErrors: { token: false },
+                    },
+                },
+            });
+            const summary = wrapper.get('[data-qa="action-form-validation"]').element;
+            const form = wrapper.get("form").element;
+            const [nonFieldError, nonFieldWarning] = wrapper.findAll('[data-qa="form-message"]').map((m) => m.element);
+            expect(form.contains(summary)).toBe(false);
+            expect(summary.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(nonFieldError.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(summary.compareDocumentPosition(nonFieldWarning) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(summary.parentElement).toBe(nonFieldError.parentElement);
+        });
+    });
+
     describe("Warning confirmation", () => {
         scopedIt("mounts FormConfirmDialog wired to the confirmation controller", () => {
             const { wrapper } = mountActionForm();
@@ -550,6 +696,90 @@ describe("lib/views/ActionForm.vue", () => {
                 expect(custom.attributes("data-bulk")).toBe("true");
             },
         );
+    });
+
+    describe("Disabled state", () => {
+        const submitButton = (wrapper) => wrapper.findAll("button").find((b) => b.attributes("type") === "submit");
+        const cancelButton = (wrapper) => wrapper.findAll("button").find((b) => b.attributes("type") === "button");
+
+        scopedIt("keeps both buttons disabled after a success redirect navigates away", async () => {
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const redirectTo = vi.fn(async () => undefined);
+            const { wrapper } = mountActionForm({ runAction, redirectTo });
+
+            await wrapper.get("form").trigger("submit");
+            await flushPromises();
+
+            expect(redirectTo).toHaveBeenCalledWith("success");
+            expect(submitButton(wrapper).attributes("disabled")).toBeDefined();
+            expect(cancelButton(wrapper).attributes("disabled")).toBeDefined();
+
+            await wrapper.get("form").trigger("submit");
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("passes the disabled flags to the confirm, cancel, and action-bar slots", async () => {
+            const seen = { confirm: [], cancel: [], bar: [] };
+            let settle;
+            const runAction = vi.fn(() => new Promise((resolve) => (settle = resolve)));
+            const { wrapper } = mountActionForm({
+                runAction,
+                redirectTo: vi.fn(async () => false),
+                slots: {
+                    "action-bar": (props) => {
+                        seen.bar.push({ confirm: props.confirmDisabled, cancel: props.cancelDisabled });
+                        return vue.h("div");
+                    },
+                },
+            });
+            const { wrapper: buttonsWrapper } = mountActionForm({
+                runAction,
+                slots: {
+                    "confirm-button": ({ disabled }) => {
+                        seen.confirm.push(disabled);
+                        return vue.h("button", { type: "submit" }, "Confirm");
+                    },
+                    "cancel-button": ({ disabled }) => {
+                        seen.cancel.push(disabled);
+                        return vue.h("button", { type: "button" }, "Cancel");
+                    },
+                },
+            });
+
+            expect(seen.bar.at(-1)).toEqual({ confirm: false, cancel: false });
+            expect(seen.confirm.at(-1)).toBe(false);
+            expect(seen.cancel.at(-1)).toBe(false);
+
+            await wrapper.get("form").trigger("submit");
+            await buttonsWrapper.get("form").trigger("submit");
+            await flushPromises();
+
+            expect(seen.bar.at(-1)).toEqual({ confirm: true, cancel: true });
+            expect(seen.confirm.at(-1)).toBe(true);
+            expect(seen.cancel.at(-1)).toBe(true);
+            settle("ok");
+        });
+
+        scopedIt("disables only the confirm slot while the form has errors", async () => {
+            const seen = { confirm: [], cancel: [] };
+            mountActionForm({
+                formContext: { state: { anyError: true } },
+                slots: {
+                    "confirm-button": ({ disabled }) => {
+                        seen.confirm.push(disabled);
+                        return vue.h("button", { type: "submit" }, "Confirm");
+                    },
+                    "cancel-button": ({ disabled }) => {
+                        seen.cancel.push(disabled);
+                        return vue.h("button", { type: "button" }, "Cancel");
+                    },
+                },
+            });
+
+            expect(seen.confirm.at(-1)).toBe(true);
+            expect(seen.cancel.at(-1)).toBe(false);
+        });
     });
 
     describe("Cancel flow", () => {

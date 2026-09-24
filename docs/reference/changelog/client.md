@@ -12,11 +12,227 @@ Integrator-facing changes for the `@arrai-innovations/vueda` npm package.
 Use this page for changes that affect client package consumers: public Vue components, composables, routes,
 stores, theme behavior, build integration, dependency expectations, and migration notes.
 
-## v3.0.0-alpha.2 (unreleased)
+<!-- towncrier release notes start -->
 
-- **Public npm distribution**:
-    - The client package publishes to public npm with the `alpha` dist-tag.
-      _Install `@arrai-innovations/vueda@alpha` to select the alpha channel._
+## v3.0.0-alpha.5 (2026-09-21)
+
+### Features
+
+- **Optional Unovis theme integration**:
+    - Import `theme/vueda-tailwind/unovis.css` and wrap charts in `unovis-vueda` to map axes, legends, crosshairs, and tooltips to VUEDA tokens. Five independent chart colors use an Okabe-Ito derivative with light and dark variants; single-series charts use the first color by default.
+    - Native Unovis components remain available directly. The integration does not load Unovis from VUEDA's common startup imports. See [Style Unovis Charts](../../guides/style-unovis-charts.md) for installation, coverage, and local overrides.
+
+- **Focused and invalid fields keep the bottom-only line (`Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, `WidgetCombobox`)**:
+    - `alpha.3` gave editable fields a `--field` fill on a bottom-only `field-line`, then restored the four-sided hairline on focus and invalid. A field therefore changed shape twice per interaction, and the restored edge sat inside the focus ring, so a focused field carried two full perimeters. Focus and invalid now keep the resting shape and recolor that one line: `--ring` on focus, `--destructive` on invalid. The focus ring is unchanged and remains the only mark that goes all the way round a field.
+      _An application that patched one of these recipes to remove the restored `hairline`, or that added its own bottom-only focus treatment on top of it, can drop that override. A recipe that deliberately wants a four-sided focus edge should add `focus-visible:hairline` back._
+
+- **Fields show a warning state (`hairline-warning`, `data-warning`, `useWidget`)**:
+    - A field carrying a warning rendered amber `FieldMessage` text over a neutral control, so the control itself said nothing. The field's bottom line now recolors to `--warning`, through the new `hairline-warning` utility and a `data-warning` attribute the widget writes beside `aria-invalid`. Warnings do not block a submit, so the focus ring is unchanged.
+    - `useWidget`'s `validationState.warning` now excludes the invalid case in both branches. Inside a field context it already meant "has messages and no errors"; a standalone widget given both `invalid` and `warning` props reported both, and now reports only `invalid`. The recipes enforce the same precedence in their selectors (`not-aria-invalid`), so a hand-authored control marked both ways still shows the error.
+    - Covers `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger.
+      _A custom widget that wants the warning line should bind `:data-warning="widgetContext.state.validationState.warning || undefined"` beside its `aria-invalid`. A custom field recipe picks the state up with `data-[warning=true]:not-aria-invalid:hairline-warning`; keep the `not-aria-invalid` half, because Tailwind emits the arbitrary data variant after the built-in `aria-invalid` one, so an unscoped warning outranks an error._
+
+### Fixes
+
+- **Update-form save failures reach the visible error display (`useObjectForm`, `ViewUpdate`)**:
+    - A PUT rejected by the server (a permission refusal, an HTTP 500, or a network failure) previously stopped the submit spinner and left the form with no error shown, because the error only reached the submission's own object instance, which nothing displayed. An error that the submission hook does not recognize now becomes the form's own visible error, so it reaches the same error display as any other load failure while retaining the user's edited values. Field validation, warning confirmation, and hooks that already mark an error as handled are unaffected.
+      _A custom `onSubmissionError` override passed to `useObjectForm` that returns false (or a falsy resolution) now has that error promoted to `objectForm.state.error` instead of being left on the `instanceObject` passed in; that instance's error is cleared either way. This only matters for code built directly on `useObjectForm`, or on `useViewCreate` (which passes the same instance for both display and submission): a custom display bound to that instance's own error instead of `objectForm.state.error`/`instance.combinedError` should switch to the latter. `useViewUpdate`'s submission instance was never returned to callers, so there is nothing to migrate there._
+
+- **Collapsible**:
+    - Controlled `modelValue` now maps to Reka's open state and emits updates correctly. The new `unmountOnHide` prop defaults to true; set it to false to retain mounted content when collapsed. Trigger/content IDs are associated on the first render.
+
+- **Bulk action and workflow transition links**:
+    - Links now follow changes to the selected rows, including additions and removals within the same selection array. Previously, a link could keep the first selection and open the action with outdated record IDs.
+
+- **useSignInFlow**:
+    - A post-login redirect that cannot happen is now reported instead of being announced as a success. The composable pushed its destination without awaiting or catching it, then showed the "Signed In" toast on the next line, so a navigation that rejected or threw left an unhandled error in the console, a success message on screen, and the person still on the sign-in form. The push is now awaited: on success the existing toast is unchanged, and on failure a `toast.error` says the sign-in worked but the next page could not be opened, with the destination and the error logged to the console for whoever owns the routes. Both failure shapes are covered, since Vue Router resolves the destination inside `push` and an unmatched route name throws synchronously while a rejecting guard does not.
+      _The most common cause is the default destination. With no `redirect` prop and no `?redirect` query parameter, the flow still pushes `{ name: "welcome" }`, which an application that names its landing route something else does not have. See [Build Auth Views](../../guides/build-auth-views) for the redirect chain._
+
+- **Booleans render a word, not the stored literal (`fieldMappings`, `columnMappings`, new `WidgetBooleanReadOnly`, `ColumnBoolean`, and `BooleanDisplay`)**:
+    - A read view printed `true` or `false` for every boolean field, because a field with no `readOnlyWidget` falls back to `WidgetReadOnly`, which prints the value the server sent. A list cell did the same through `ColumnText`. `BooleanField` and `NullBooleanField` now name `WidgetBooleanReadOnly` in `fieldMappings` (both the default and choice mappings, so the toggle, checkbox, and radio group all read back the same way) and `ColumnBoolean` in `columnMappings`, so a list and a read view word one field one way.
+    - `BooleanDisplay` renders the word for both, and a null, undefined, or empty value takes the same dash `DateTimeDisplay` already shows for an empty date. `trueLabel` and `falseLabel` change the wording through `readOnlyWidgetProps`, `columnProps`, or per field through `widgetProps` and `columnComponents`.
+      _Read-only booleans and boolean list cells change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` or `ColumnText` to word booleans itself, should re-check it._
+
+- **FieldWarningsList, ViewCreate, ViewUpdate, ModelActionForm**:
+    - A save confirmation named each warned field by its raw serializer key, so a dialog read `expected_arrival_date:` where the form above it read "Expected Arrival Date". `FieldWarningsList` takes a `fieldDetails` prop and resolves each field's label from it, falling back to the start-cased field name. The three views that render it pass their model config's `fieldDetails`, and the `entry` slot now also receives the resolved `label`.
+      _A consumer rendering `FieldWarningsList` directly should pass `fieldDetails` to get server labels; without it, fields now read as start-cased names rather than raw keys._
+
+- **ModelActionForm**:
+    - Confirmation screens now display fetched record names as visible links beside their primary keys. Records without fetched names show their primary key once. Per-record errors and warnings remain visible.
+
+- **WidgetCombobox**:
+    - Required pickers inside VUEDA fields now show field errors on submission instead of letting the browser focus a visually hidden input and block the submit handler. Required indicators and accessible required state remain intact, and VUEDA validation still blocks empty required values. Standalone and contextless pickers retain native required validation.
+
+- **InputOTP**:
+    - `aria-invalid="true"` on the input now gives all visible slots destructive borders and the active slot a destructive focus ring. The ring follows the active slot across groups. Disabled colors still take precedence.
+      _The focus ring is now styled through `InputOTPSlot.root`, rather than `InputOTP.root`. Update custom ring overrides if needed._
+
+- **Disabled Toggle, ToggleGroup, Slider, and InputOTP controls**:
+    - Disabled states use the existing disabled fill and foreground tokens at full opacity. Pressed toggles, slider ranges and thumb positions, and entered OTP digits remain visible in both themes.
+
+- **Toggle**:
+    - `pressed`, `defaultPressed`, and `update:pressed` now map to Reka's value API, restoring controlled and default pressed states without changing VUEDA's public API.
+
+- **Disabled checkbox, radio, and switch controls**:
+    - Disabled states now use the existing disabled fill and foreground tokens instead of reducing the whole control's opacity. Checkbox marks, radio dots, and switch-thumb positions preserve the value; disabled colors override active and invalid colors in both themes.
+
+- **FieldSetMany**:
+    - Any entry can be removed, including the first and last. Optional lists stay empty until Add is used; required lists validate their minimum of one entry. Every added entry requires a value, and read-only lists disable Add and Remove.
+    - Repeated labels remain accessible but are visually hidden. Remove buttons align with their controls even when validation messages appear. Indexed feedback follows surviving values through the new `useForm.removeArrayItem(name, index)` method.
+    - Remove-entry buttons now use destructive tone consistently with unsaved inline deletion. Add and Remove explicitly use non-submit buttons so editing the list does not submit its parent form.
+
+- **ViewList bulk-action sizing**:
+    - Bulk and workflow action buttons now use the small size consistently with the selection-bar convention. Their slot props include `size: "sm"`, so custom replacements that spread those props receive the same sizing.
+
+- **List filter and sort controls**:
+    - Clear filters and Reset sort now use small neutral outline buttons so they remain recognizable as controls before hover. Their existing theme hooks and clearing behavior are unchanged.
+
+- **Numeric range filters**:
+    - Filters with `typeFilter: "RangeField"` now render optional numeric minimum and maximum inputs. Decimal thresholds retain their fractional values, and numeric range validation compares string-backed values numerically, so a valid range such as `2.5` to `10.25` is accepted.
+
+- **WidgetSelectDropdown**:
+    - Empty-string and nullish choices no longer cause invalid select items. Their label supplies the placeholder when no explicit placeholder is provided; `false` and `0` remain selectable. Active filters can still be cleared through their Remove control.
+
+- **Inline fieldsets**:
+    - Stacked, singular stacked, and tabular inlines now use Collapsible for disclosure. Rows and empty states hide together while fields remain mounted, preserving values and validation; fieldset-level help and errors stay visible. The title is a native disclosure button beside Create. Initial `hiddenByDefault` settings are respected, non-hidable inlines stay open by default, and Create requests expansion through `update:visible` when visibility is controlled.
+      _Custom themes can style the new `titleTrigger` key; `titleBar` still styles the header, while `titleBarToggle` styles its trigger. Tabular body visibility no longer uses `objectsGridHidden`._
+    - Create and Delete buttons in stacked, singular stacked, and tabular inlines no longer submit the containing form or trigger validation on unrelated fields.
+    - Custom stacked row-action buttons now invoke their configured `action` callback and use small outline styling like tabular actions. Both layouts explicitly use non-submit buttons. Stacked callbacks receive `action`, `fieldSetContextState`, `rowValueName`, and `event`; singular stacked rows use the field name as their value path.
+    - Unsaved-row Delete buttons now use a trash icon, destructive tone, and small sizing consistently across stacked, singular stacked, and tabular layouts. Customize the icon through `FieldSetStackedInlineRow.typeDeleted` or `FieldSetTabularInline.typeDeleted` in `iconOverride` (with `Default.typeDeleted` as the fallback), and extra classes through each component's `destroyButton` theme key.
+    - Editable unsaved rows now show a Delete button even when the server supplies no `destroy` action. This applies to stacked, singular stacked, and tabular inlines. Deletion controls for saved rows still require the action metadata.
+    - The `destroy-button` slot also renders without a server action; its `action` and `value` props are then undefined, and its `label` defaults to `Delete`.
+
+- **Visible duration units (`WidgetDuration`)**:
+    - Each enabled spinner now shows its unit above the input. Clicking a unit label focuses its own input, including when several units are shown. Customize the labels through `WidgetDuration.unitLabel`.
+
+## v3.0.0-alpha.4 (2026-09-18)
+
+### Breaking Changes
+
+- **Dotted field, filter, and expand identities (`storeModelConfig`, `useFormModel`, `useFilter`, `useFieldSetInline`, `FieldSetRange`, `useViewList`)**:
+    - Every client-side identity that crosses a relation now uses dots instead of `__`: expand-flattened `fieldDetails` keys, `fieldComponents`/`widgetComponents`/`fieldProps`/`widgetProps` override keys, sortables, slot names (`field(employee.name)`), range-filter sub-field keys, and the `o`/filter query parameters sent to match the server's dotted `model_ordering`/`model_filtering` metadata. `useForm`'s value storage addresses a dotted, non-nested identity (a related filter, an expand-flattened display field) as one flat key rather than letting the dots nest it, so a filter or display field named `employee.name` never becomes a nested `employee` object in form state.
+    - `storeModelConfig` rejects a declared `submitFields` entry that names an expand-flattened display field, since VUEDA has no mechanism to submit a nested value back through one; use a writable inline/array field for anything the form must submit. A `fields` shorthand naming such a field still builds: the derived `submitFields` drops it, so a shorthand that is correct for display and fetch does not fail a `list` or `read` config.
+      _Update any application config that overrides `fieldComponents`, `sortables`, `filterableDetails`, `columnComponents`, or a `field(...)`/`widget(...)` slot for a field that crosses a relation, from the `__`-joined form to the dotted form. Saved list preferences (sort order, hidden columns, filters) stored under the old `__`-joined names in `localStorage` become stale and are dropped; users see default preferences once after upgrading. Move a dotted `fields`/`displayFields`/`fetchFields` entry for an expand-flattened field out of `submitFields` if it was there, since it now fails config validation instead of silently submitting broken nested data._
+
+### Features
+
+- **Brand palette in both color modes (`vueda-tailwind`)**:
+    - Primary fills retain the canonical blue in light and dark mode, with dark labels and lighter hover/pressed fills. Dark surfaces derive from the brand navy and grey; supporting surfaces, text, fields, and borders use explicit palette mixes.
+    - New `--primary-text`, `--primary-text-active`, and `--sidebar-primary-text` tokens keep blue text readable independently of solid primary fills. Links and tinted labels use these tokens; `--ring` and `--info` follow the readable blue.
+    - Status colors retain their red, amber, and green meanings with adjusted contrast for tinted labels and destructive button states. `--info-foreground`, `--success-foreground`, and `--warning-foreground` supply the labels already referenced by action-banner icon tiles.
+      _Custom palettes should check `--primary-foreground` against primary fills and `--primary-text` against page and tinted surfaces. Custom recipes using `text-primary` for labels should use `text-primary-text`; labels on solid blue keep `text-primary-foreground`._
+
+### Fixes
+
+- **Card layout draws one edge per card (`ObjectsGrid.root`, `ObjectsGrid.bodyRow`)**:
+    - Below `tableBreakpoint` the grid root drew a radius and an inset hairline around a grid of cards that each carry one, so every card sat 4 px inside a second frame. The root now takes the radius and hairline in table layout only, where it is the surface the rows sit on and its edge closes the last row.
+    - The root keeps its `--card` fill in both layouts, so the gutter between cards matches the chrome a consumer wraps around the grid. Card rows carry that fill themselves as well, so a card reads the same on any ground.
+      _A theme override that suppressed the root's edge for card layout can drop it. `ViewList` already suppressed the edge and looks the same as before._
+
+- **Wrapped list controls fill their row (`ViewList.listControlBar`)**:
+    - The search input and columns select stayed pushed to the right after the control strip wrapped them onto a row of their own, leaving a ragged gap on the left at phone widths. The cluster now grows to the full row below `sm` and keeps its right alignment from `sm` up.
+      _The recipe swaps between `grow` and `ml-auto` at the breakpoint rather than setting both, because an auto margin absorbs the free space before `flex-grow` can claim it._
+
+- **Stable title-bar loading indicator (`PageTitle`)**:
+    - The spinner occupies reserved space beside the heading, so toggling loading cannot wrap it onto another line or change the title bar's height. The reserved space is styled through `PageTitle.loading`.
+    - The title row reserves the standard control height (`--vueda-control-height`), keeping the header equally tall with or without a single row of default-size page actions. Longer titles and wrapped actions can still increase its height.
+
+- **State isolation when reusing model views**:
+    - Lists clear selection and transient state when the model changes, restore the destination model's saved preferences, and avoid rewriting its query while the previous route's props are retained.
+    - Create and update forms reset drafts, validation, and submission errors for a new target, including models with identical defaults. Missing-object errors clear on target changes and retries.
+    - Model actions distinguish the app, model, action, and keys for dry-run validation. Typed confirmation resets for a new target; cancelled or superseded submissions cannot show success, retry warnings, or redirect the destination view.
+    - History views reset pagination and layout and fetch the new object's history even when only its key changes.
+    - Metadata requests follow the latest model after rapid navigation and ignore obsolete results and errors.
+
+- **Update forms respect object-level action availability (`ViewUpdate`, `useDetailView`)**:
+    - The default update view now checks the fetched object's `available_actions` before rendering an editable form. When the object does not permit `update`, the view shows a notice explaining that editing is unavailable and a link to the readable object view, instead of an editable form and an enabled Submit button. A direct link to an update URL for such an object is affected the same way. An object that does permit updating keeps normal editing and submission.
+    - `ViewUpdate` gains an `update-unavailable` scoped slot to override that notice; it receives `app`, `model`, `pk`, and `verboseName`.
+    - `useDetailView`'s `instance` group gains `currentActionAvailable`, reflecting whether the fetched object's `available_actions` includes the current view's action; it is `true` (optimistic) until the object has loaded.
+      _The server continues to enforce permissions independently; this only affects what the update view offers before submission._
+
+- **Route loading keeps the current view until its destination is ready (`ViewActionRouter`)**:
+    - Navigation retains the current component and its app, model, action, and primary-key props while destination metadata and the component load. The initial route still shows `ViewLoading`. Superseded component imports no longer replace the newer destination.
+    - A destination resolving to the same component reuses its instance. Custom views must handle changes to their route props; switching to a different wrapper still replaces its children.
+
+- **Simpler route loading status (`ViewLoading`)**:
+    - The default presentation is a loading icon and label, without a card, skeleton bars, or elapsed-time strip. Optional request details and dependency counts still appear when supplied. The existing slow threshold, message, and action slot remain available; elapsed time pauses while the component is deactivated by `KeepAlive`.
+      _Style the status through `ViewLoading`; `SystemMessageCard` overrides and `ViewLoading.skeleton` no longer apply. Icon overrides now use `ViewLoading.loading` and `ViewLoading.hourglass`, with the usual `Default` fallback._
+
+- **`ObjectsGrid` table layout gets row dividers and fills its container (`ObjectsGrid.table`, `ObjectsGrid.headerRow`, `ObjectsGrid.bodyRowGroup`, `ObjectsGrid.bodyRow`)**:
+    - Table layout separated its rows by hover alone, so a dense list gave a reader nothing to track a row across on a wide viewport, and nothing at all on a touch device or in print. Rows now carry a hairline divider and the header band divides from the first data row. The dividers sit on cells (`[&>*]:border-b-hairline`), not on rows, because `ObjectsGrid.table` uses the separated border model, which does not paint borders on rows or row groups. `ObjectsGrid.bodyRowGroup` removes the divider from the last row's cells, so `ObjectsGrid.root` still closes the grid.
+    - `ObjectsGrid.table` also fills the root (`w-full`). Its columns previously sized to content, which left the dividers ending short of the card's right edge whenever the columns were narrower than their container. Columns now share the full width, matching `Table.table`. A table wider than the root still overflows into the root's horizontal scroll.
+    - Card layout is unchanged: all four recipes gate on table mode.
+      _Table-layout grids now show dividers and use the full container width. An application that patched `ObjectsGrid.bodyRow` or `ObjectsGrid.headerRow` with row borders should move them onto cells, or remove them if the defaults now suffice. An application that relied on content-width columns can set `w-auto` on `ObjectsGrid.table`._
+
+- **A hidden filter named in the URL reaches the list request (`useViewList`)**:
+    - A server-hidden filter (e.g. the deep-link `id` filter `IdInFilterSet` declares) is excluded from `validFilterables` and `filter.state.addedFilters`, but its URL value now reaches the `list` request from the first fetch onward, including when model metadata is still loading at mount. `useViewList` reads it straight from the mounted URL into `list.listState.params` and keeps it there through visible-filter, sort, and search changes; only a URL that stops carrying the hidden filter's key removes it from the request. Previously, a hidden filter's URL value never reached the request at all. It is kept out of the saved filter preference, so it constrains only the visit that carried it in the URL.
+      _No integrator action. A list URL carrying a hidden filter's key now constrains that visit's requests, and the key is still kept out of the saved filter preference._
+
+- **Read-only date fields render a formatted date, not the raw string (`fieldMappings`, `buildForm`, `useFormModel`, new `WidgetDateTimeReadOnly`)**:
+    - Every field that rendered read-only took `WidgetReadOnly`, whatever its type, and that widget prints the value the server sent. A read view showed `2026-08-25T17:21:56.906248Z` where the same field in a list showed `2026-08-25, 11:21 a.m. MDT`, because only the list had a type-aware adapter layer (`columnMappings`). Update forms showed the raw string too, for their read-only fields.
+    - `fieldMappings` entries take two new optional keys. `readOnlyWidget` names the widget a field takes when it renders read-only, and `readOnlyWidgetProps` supplies that widget's options in place of `widgetProps`, which belong to the editing widget. `DateField`, `DateTimeField`, and `TimeField` now name the new `WidgetDateTimeReadOnly`, whose options are the same values `columnMappings` gives `ColumnDateTime`, so a list and a read view format one field one way.
+    - `WidgetDateTimeReadOnly` wraps `WidgetReadOnly` and fills its value with `DateTimeDisplay`, so the row keeps its label association, theme slots, and lookup behavior. A field's own `widget(fieldName)default` slot still replaces the date rendering.
+    - An empty date now renders the dash `DateTimeDisplay` already showed in list cells. Other empty types still render nothing, matching `ColumnText`.
+      _Read-only dates change appearance. An application that parsed the rendered text, or that patched `WidgetReadOnly` to format dates itself, should re-check it. A type keeps `WidgetReadOnly` unless its mapping names a `readOnlyWidget`, so nothing else moves._
+
+## v3.0.0-alpha.3 (2026-09-16)
+
+### Features
+
+- **Editable fields have square corners (`--vueda-field-radius`)**:
+    - A new `--vueda-field-radius` token (0) and `rounded-vueda-field` utility give editable fields their own corner, separate from `--vueda-control-radius` (2px), which buttons and toggles keep. `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup` and its attached `InputGroupButton`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger now use it. Focus rings follow the element's corner, so a focused field's ring is square.
+      _An application that wants rounded fields can set `--vueda-field-radius` after the `base.css` import._
+
+- **Editable fields sit on a fill and a bottom line (`field-line`, `--field`, `--field-hover`, `--field-line`)**:
+    - Editable fields no longer share the outline button's four-sided edge. At rest a field paints a `--field` fill on a bottom-only line in `--field-line` (the new `field-line` utility), hovers to `--field-hover`, and restores the full four-sided hairline on focus and invalid. Read-only fields drop the fill and soften the line to `--border`. This applies to `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger, replacing their transparent fill, `dark:bg-input/30` tint, `bg-muted/50` read-only fill, and the pickers' `hairline-border-strong` hover edge.
+      _Override `--field`, `--field-hover`, or `--field-line` after the `base.css` import to retune fields. An application that patched these recipes for the old edge should re-check them against `field-line`._
+
+- **Disabled fields paint an inert surface, and five of them showed no disabled state at all (`Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `TagsInput`, `NumberFieldInput`, `DateField`, `DateRangeField`, `TimeField`, `WidgetCombobox`)**:
+    - A disabled field now takes the `--disabled` fill, softens its rule to `--border`, and inks its value with `--disabled-foreground`. The three field states read as three kinds: editable keeps the `--field` fill on a strong `--field-line`, read-only drops the fill and keeps a `--border` line, and disabled is an inert slab.
+    - `NativeSelect` and `TagsInput` had no visual disabled treatment whatsoever, and `DateField`, `DateRangeField`, and `TimeField` declared `disabled:opacity-50` on a wrapper element, which the `disabled:` variant (`:disabled`) can never match. A disabled control of any of those five types rendered identically to an editable one, and the date and time fields still lightened on hover because they kept `pointer-events: auto`. They now use `data-[disabled]:` against the attribute their wrapper actually carries.
+    - The disabled declarations on `Input` and `Textarea` are marked important, because the `:read-only` pseudo-class also matches a disabled element, so the read-only rules would otherwise race them. Both also set `-webkit-text-fill-color`, which Safari needs to honor a disabled input's text color.
+    - The combobox and command search inputs have no fill to replace, so they recolor their ink only.
+      _Override `--disabled` or `--disabled-foreground` after the `base.css` import to retune the state. An application that relied on a disabled field looking like a faded editable one should re-check it. Selection controls and menu rows still use `disabled:opacity-50`._
+
+- **Disabled buttons change kind instead of fading (`--disabled`, `--disabled-foreground`, `_ButtonBase`, and the `_Button*` tone and emphasis primitives)**:
+    - Every disabled control carried one blanket `disabled:opacity-50`, which can only be as legible as the resting contrast is high. On an outline button there is almost none to halve: the pagination steppers measured 1.26 contrast on the disabled edge against 1.67 on the enabled one. Two new tokens carry the state instead. `--disabled` is the fill that replaces a filled control's tone, so a disabled primary and a disabled destructive read alike, and `--disabled-foreground` is the ink on that fill and on no fill at all.
+    - Fill cells take `disabled:bg-disabled disabled:text-disabled-foreground disabled:shadow-none`. Outline cells drop their edge and micro-shadow entirely, so a disabled outline button has no box and a cluster shows which controls still act without reading their glyphs. Ghost and link cells recolor their label, and links drop the underline. `_ButtonBase` keeps only `disabled:pointer-events-none`.
+    - `--muted` no longer claims the disabled-fill role in its comment; nothing had ever used it that way.
+      _Override `--disabled` or `--disabled-foreground` after the `base.css` import to retune the state. An application that patched a `_Button*` primitive to strengthen its disabled treatment should re-check it. Control families outside the Button primitives, including toggles, switches, checkboxes, sliders, and the field recipes, still use `disabled:opacity-50`._
+
+### Fixes
+
+- **Inline grids share their fieldset's edge (`ObjectsGrid`)**:
+    - Grids beneath a `data-flush` ancestor now remove their inset hairline as well as their corner radius. Tabular inline fields no longer draw a second frame inside the fieldset; the fieldset retains its outer edge and help-panel separator.
+
+- **Filter and sort field lists show when more fields are available (`FieldPickerMenuList`)**:
+    - Overflowing field lists now keep a scrollbar visible, including on systems that hide native scrollbars. Short lists still fit their content without a scrollbar. The existing `list` theme key styles the scroll viewport.
+
+- **Sort-chip hover follows the visible controls (`SortChip`)**:
+    - The label's hover fill now rounds its right edge when the remove control is hidden. A single active sort therefore has a fully rounded hover fill instead of a square right edge.
+
+- **Sign-in uses the primary button tone (`ViewSignIn`)**:
+    - The default Sign In action now uses the primary fill instead of the neutral fill, distinguishing it from the surrounding form surfaces. It retains the disabled treatment while a sign-in attempt is loading.
+
+- **Current page has a distinct outline (`PaginationItem`)**:
+    - The active page number keeps a foreground-colored edge at rest, making it easier to distinguish from the lighter navigation button outlines. Disabled pagination items still drop their edges.
+    - Page items now honor their `size` prop, defaulting to 32px squares. Previously, the missing size classes let the outline crowd the page number.
+
+- **Tags input focus colors follow validation state (`TagsInput`)**:
+    - Focusing an invalid tags input now keeps both the field edge and outer focus ring destructive. An explicit `aria-invalid="false"` uses the normal focus color instead of incorrectly retaining a red ring.
+
+- **Input groups keep a single field edge (`InputGroupInput`, `InputGroupTextarea`)**:
+    - Child inputs and textareas no longer draw their own bottom line or invalid border inside the group's edge when unfocused. The group continues to own the field edge and keyboard focus ring around the control and its addons.
+
+- **Time-range errors mark both bounds (`WidgetTimeRangeField`)**:
+    - A range validation error now sets `aria-invalid` on both the start and end controls, giving both the error border and destructive focus ring. Previously only the start control showed the range error.
+
+- **Tabular inline fields show validation messages (`FieldSetTabularInline`, `FormField`, `FieldRenderer`)**:
+    - Errors and warnings now appear below each inline control in both table and card layouts. Table cells keep controls top-aligned and allow messages to wrap. Previously, the inline editor suppressed messages together with field labels.
+    - `FormField` and `FieldRenderer` accept `hideLabel` to suppress only the label while retaining help and validation feedback. The existing `hidden` behavior is unchanged.
+
+- **Invalid number fields show their error state (`NumberFieldInput`)**:
+    - Number inputs with `aria-invalid="true"` now paint a full destructive edge and a destructive keyboard focus ring, matching text inputs. Previously, an invalid numeric field kept its neutral bottom line even when its validation message was visible.
 
 - **`ViewList` renders its grid flush again (`ViewList`, `ViewList.objectsGrid`)**:
     - When the default theme moved `ObjectsGrid.root` from a `border` to the `hairline` inset box-shadow, the `border-0` in `ViewList.objectsGrid` stopped removing the grid's edge. The list grid drew a four-sided frame inside the page, doubling the sidebar edge and the constraints band's bottom rule. `ViewList.objectsGrid` now uses `!shadow-none` instead.
@@ -35,7 +251,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - `ViewList` always adds the synthetic `selected_` field, and in card layout its default label read "Selected" even when the list had no bulk actions or workflow transitions, so no checkbox rendered beside it. The label now appears only when a selection can be acted on. Without selectable actions, the `selected_` label and value are hidden in card layout, so each card starts with its first real field. A consumer `field(selected_)` slot keeps the column visible.
       _No action required. Table layout is unchanged._
 
-- **Remaining raw borders use the hairline width (`ComboboxInput`, `Sidebar`)**:
+- **Combobox and sidebar edges follow the hairline width (`ComboboxInput`, `Sidebar`)**:
     - The divider under the `ComboboxInput` search field and the floating `Sidebar` variant's edge used a plain 1px `border`, so at a device pixel ratio below 2 they drew thinner than every other VUEDA edge, which follows `--vueda-hairline-width`. Both now use the hairline border utilities.
     - The `border-hairline` and `border-{t,b,l,r,x,y}-hairline` utilities now set their border style as well as their width, like Tailwind's own `border-*` utilities. They relied on preflight for `border-style: solid` before, so they painted nothing in a stylesheet without preflight, such as one that loads only Tailwind's theme and utilities for portal content.
       _No action required. Application chrome drawn next to VUEDA surfaces should use `border-*-hairline` rather than `border` for the same reason; see Customize VUEDA Appearance._
@@ -44,13 +260,19 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - The neutral outline recipe drew its edge in `--foreground`, so outline chips (list toolbar triggers, page-title actions, pagination controls) carried the heaviest ink on the screen and outweighed the filled action beside them. The edge now rests on `--border-strong` and darkens to `--foreground` on hover. `_ButtonOutline.root` and `Toggle`'s outline variant use `hairline-border-strong hover:hairline-foreground`; `ToggleGroupItem`'s outline seams use `border-border-strong hover:border-foreground`. Everything that composes `_ButtonOutline.root` follows, including the pagination controls, the calendar previous and next buttons, and the `FileUpload` trigger.
       _An application that wants the previous weight can patch `_ButtonOutline.root` back to `hairline-foreground`._
 
-- **Editable fields have square corners (`--vueda-field-radius`)**:
-    - A new `--vueda-field-radius` token (0) and `rounded-vueda-field` utility give editable fields their own corner, separate from `--vueda-control-radius` (2px), which buttons and toggles keep. `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup` and its attached `InputGroupButton`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger now use it. Focus rings follow the element's corner, so a focused field's ring is square.
-      _An application that wants rounded fields can set `--vueda-field-radius` after the `base.css` import._
+- **`WidgetUnmapped` names the field it could not render (`WidgetUnmapped`)**:
+    - The fallback rendered `The name "" is not mapped to a widget component.` It interpolated its raw `name` prop, which defaults to `undefined`, so the diagnostic never identified the field. It now reads the surrounding field context first and falls back to the prop, matching how `useWidget` resolves a widget's name, and reads `Unmapped widget: the field "serverIp" has no widget component.` A field with no resolvable name reads "this field".
+    - The widget also had no theme entry while reading `root`, so the diagnostic inherited whatever typography surrounded it. It now paints as a destructive notice at supporting-text size, sized to sit in a field's content column.
+      _No action required. An application that asserted on the old message text should update it._
 
-- **Editable fields sit on a fill and a bottom line (`field-line`, `--field`, `--field-hover`, `--field-line`)**:
-    - Editable fields now follow Carbon instead of sharing the outline button's four-sided edge. At rest a field paints a `--field` fill on a bottom-only line in `--field-line` (the new `field-line` utility), hovers to `--field-hover`, and restores the full four-sided hairline on focus and invalid. Read-only fields drop the fill and soften the line to `--border`. This applies to `Input`, `Textarea`, `NativeSelect`, `SelectTrigger`, `InputGroup`, `DateField`, `DateRangeField`, `TimeField`, `TagsInput`, `NumberFieldInput`, and the `WidgetCombobox` trigger, replacing their transparent fill, `dark:bg-input/30` tint, `bg-muted/50` read-only fill, and the pickers' `hairline-border-strong` hover edge.
-      _Override `--field`, `--field-hover`, or `--field-line` after the `base.css` import to retune fields. An application that patched these recipes for the old edge should re-check them against `field-line`._
+- **`WidgetTimeRangeField` lays its two bounds on one row (`WidgetTimeRangeField`)**:
+    - The widget composes two separate `TimeField` shells around a separator, and had no theme entry, so `root`, `field`, `literal`, and `separator` all resolved to nothing. With no layout on the root the three children were block-level and stacked, leaving the en dash alone on its own line and the field reading as two unrelated time inputs. The new entry makes `root` a flex row, gives each bound `flex-1 min-w-0` so both stay on one line in a narrow column, and mutes the separator.
+      _An application that added its own layout around this widget can remove it._
+
+- **The date widgets are themed, and their fallback icon is monochrome (`WidgetDateField`, `WidgetDateRangeField`)**:
+    - Neither widget had a theme entry, so `field`, `literal`, `trigger`, `triggerIcon`, `popoverContent`, and the range widget's `separator` all resolved to nothing. The shell, segments, and popover surface still painted, because `DateField`, `DateRangeField`, `DateFieldInput`, and `PopoverContent` carry their own recipes, but the calendar trigger was an unstyled button. Both widgets now register a theme entry: the trigger sits at the field's end edge, muted at rest and inked on hover, matching where the `WidgetCombobox` trigger puts its chevron, and the range separator is muted and padded. The other keys are documented pass-through hooks that change no pixels.
+    - The trigger's fallback glyph, shown when the icon registry has no `calendar` entry, is a monochrome `▦` instead of a 📅 emoji. It inherits the trigger's color and size like the library's other fallback glyphs, rather than painting as a multi-color pictograph at the font's own size.
+      _An application that registers a `calendar` icon sees only the trigger's new placement; Font Awesome icons keep their own `em` sizing. Patch `WidgetDateField.trigger` to move the button back beside the segments._
 
 - **Generated form fields separate from each other (`FormModel.fields`, `FieldSetStackedInlineRow.fields`, `FieldRenderer`)**:
     - `FormModel` stacked its generated fields with no separation, so each label sat flush against the field above it while a 12px gap held it away from its own control. Proximity grouped every label with the wrong control. `FormModel.fields` now carries `flex w-full flex-col gap-7`, the rhythm `FieldGroup` already used for hand-written fields, and `FieldSetStackedInlineRow.fields` carries `flex flex-col gap-4` for the denser inline row. The `FormModel.fields` key was previously declared but never applied to an element.
@@ -61,13 +283,23 @@ stores, theme behavior, build integration, dependency expectations, and migratio
     - The light accent was `oklch(0.58 0.19 254)`, which renders `#0e78e6`, while the comment beside it named the token `#0077f7`. The light accent tokens are now `oklch(0.59 0.211 257.2)`, which round-trips to `#0077f7` inside sRGB, and the hover, active, and dark ramp steps take the same hue so the accent stays one chromatic family. The light accent gains a little chroma; the 3.2 degree hue shift is imperceptible.
       _No action required unless an application hardcodes the previous colour rather than reading `--primary`._
 
+- **Concurrent sort, filter, and search changes settle on one URL (`useViewList`)**:
+    - Each of the sort, filter, and search writers pushed a whole query object, so two of them changing in the same tick overwrote each other. Clearing a sort and a filter together, or choosing a sort while typing a search term, lost one of the two changes to the other's not-yet-applied navigation. Every writer now derives its keys from its own reactive state, and one shared writer deletes only the keys that writer last wrote before setting what it currently owns.
+    - A sort or filter with nothing chosen yet, for example while restoration still waits on model metadata, now reads as a foreign query param and stays untouched. A shared or reloaded URL keeps its sort and filters however slowly metadata loads.
+
+## v3.0.0-alpha.2 (2026-09-14)
+
+- **Public npm distribution**:
+    - The client package publishes to public npm with the `alpha` dist-tag.
+      _Install `@arrai-innovations/vueda@alpha` to select the alpha channel._
+
 - **A change of authenticated user rechecks the route on screen (`makeCRUDRoutes`, `requireModelInfo`)**:
     - The checks `makeCRUDRoutes` attaches run through `beforeEnter`, which Vue Router calls only when a navigation enters a route record. A change of authenticated user is not a navigation, so the previous user's view stayed on screen at its own URL. The stores dropped their caches and the composables refetched, which left `ViewActionNotFound` in place of the redirect the checks would have produced on entry. `makeCRUDRoutes` now watches `identityGeneration` and reruns the same checks, in the same order, against the route the application is on. A route the new user may still use keeps its URL and adds no history entry. A route they may not use gives way to the destination configured for the check that denied it: `authRedirect`, `actionRedirect`, or `groupsRedirect`.
     - `requireModelInfo` now returns `false` when the authenticated user changes while it is fetching metadata, which cancels that navigation. It returned `undefined` before, which Vue Router reads as approval, so a navigation checked against the previous user's metadata completed.
       _No action required. `makeCRUDRoutes` returns the same two route records, and an application registers them as it did before. An application calling `requireModelInfo` from a guard of its own now receives `false` rather than `undefined` when the user changes mid-fetch._
 
 - **Breaking: `useViewList` owns rich list filter state (`useViewList`, `FilterGroup`, `ViewList`, `useFilter`)**:
-    - `useViewList` is now the single owner of rich filter state, URL restoration, query parameter synchronization, and saved filter preferences. Its `list.listState` group loses `filterArgs` (the old flat query-param object); `useViewList` exposes a new `filter` group instead: `filter.state.addedFilters` (the active-filter list) and `filter.filterables` / `filter.filterableDetails` / `filter.validFilterables` (resolved from model config; `validFilterables` narrows the other two to fields with a usable, non-hidden filter type). `ViewList` binds `filter.state.addedFilters` to `FilterGroup`'s `v-model` and passes the three resolved values straight through as `FilterGroup`'s `filterables` / `filterableDetails` / `validFilterables` props. This removes a race where `FilterGroup` and `useViewList` each watched the route and could write back to the URL independently, and stops `FilterGroup` from recomputing what `useViewList` already resolved. It also closes a related race within `useViewList` itself: the sort, filter, and search writers now derive the pushed query from their own reactive state and settle through a single writer that deletes only the query keys each one previously wrote before setting whatever it currently owns, so two of them changing in the same tick (e.g. clearing a sort and a filter together, or choosing a sort while typing a search term) resolve to one consistent URL instead of one write silently overwriting the other's not-yet-applied navigation, and a sort or filter with nothing chosen yet (for example, while restoration is still waiting on model metadata) is indistinguishable from a foreign query param and left alone, so a shared or reloaded URL keeps its chosen sort and filters no matter how slowly metadata loads.
+    - `useViewList` is now the single owner of rich filter state, URL restoration, query parameter synchronization, and saved filter preferences. Its `list.listState` group loses `filterArgs` (the old flat query-param object); `useViewList` exposes a new `filter` group instead: `filter.state.addedFilters` (the active-filter list) and `filter.filterables` / `filter.filterableDetails` / `filter.validFilterables` (resolved from model config; `validFilterables` narrows the other two to fields with a usable, non-hidden filter type). `ViewList` binds `filter.state.addedFilters` to `FilterGroup`'s `v-model` and passes the three resolved values straight through as `FilterGroup`'s `filterables` / `filterableDetails` / `validFilterables` props. This removes a race where `FilterGroup` and `useViewList` each watched the route and could write back to the URL independently, and stops `FilterGroup` from recomputing what `useViewList` already resolved.
     - `FilterGroup`'s `filterables` and `filterableDetails` props change meaning: both are now required, and a new required `validFilterables` prop joins them. `FilterGroup` no longer fetches or merges model config for the filterable field list at all — it renders exactly what it's given. Standalone auto-discovery from server config (previously the behavior when `filterables`/`filterableDetails` were left unset) is gone; every `FilterGroup` usage must now supply all three, typically from `useViewList`'s `filter` group.
     - `FilterGroup`'s `v-model` now carries the rich active-filter array (the same shape `FilterMenu`, `FilterChip`, and `FilterFieldForm` already used) instead of a flat query-param object. `FilterGroup` no longer computes query params, watches the route, or restores filters from the URL itself; it is a presentation host that renders the active-filter list and threads add/edit/remove edits back through it, including clearing it. Its `filter-change` and `query-change` events are removed, since the state they bridged is now owned directly by `useViewList`. The `hide-filter-form` event is unchanged.
     - `ViewList`'s own `filter-change` event is renamed to `filtered` and, along with `query-change`, is now emitted once on mount as a live ref (`toRef(() => ...)`), matching the existing `objects` / `order` / `sorted` events, rather than as a repeated event fired with a plain value on every change.
@@ -374,7 +606,7 @@ stores, theme behavior, build integration, dependency expectations, and migratio
       _If you imported `FilterComponent` directly, or overrode the `FilterComponent` theme key or the `filter-component` / `filter-dropdown-button*` / `filter-clear-button*` slots, migrate to the new components and their slots / theme keys. Most consumers use these through `ViewList` and need no change._
     - `ViewList`: the filter trigger moved into the under-actions toolbar (teleported from `FilterGroup` into a new `filterTriggerZone`), the mobile sort affordance moved alongside it, and the active-filter chips render in a strip below. The standalone `StickyBar`-wrapped filter strip is gone, so the empty error band it used to reserve no longer appears. Theme keys `ViewList.filterGroupBar`, `ViewList.filterGroupBarEyebrow`, and `ViewList.sortComponentDiv` were removed; `ViewList.filterControls` and `ViewList.filterTriggerZone` were added. Filter errors now surface on the offending chip (destructive tint) and inline in its form rather than in a separate banner.
     - Added `getFilterParams`, `getFilterQueryValue`, and `buildFilterFromQuery` to `@vueda/use/useFilterForm.js` (and exported the `FilterFieldMappings` table) to support central URL→filter restoration.
-    - Server-hidden filters are now excluded from the add-filter menu and from chip restoration. The auto-injected `id__in` deep-link filter (from `VuedaFilterSet` / `IdInFilterSet`, whose widget is a `HiddenInput` and which the filter metadata reports as `hidden: true`) has no mapped input widget; opening its filter form previously threw `No field component found for field "id"`. It is now treated as programmatic only, so it never appears in the menu or as an editable chip, while still applying when present in the URL.
+    - Server-hidden filters are now excluded from the add-filter menu and from chip restoration. The auto-injected `id` deep-link filter (from `VuedaFilterSet` / `IdInFilterSet`, an `in`-lookup filter whose widget is a `HiddenInput` and which the filter metadata reports as `hidden: true`) has no mapped input widget; opening its filter form previously threw `No field component found for field "id"`. It is now treated as programmatic only, so it never appears in the menu or as an editable chip, while still applying when present in the URL.
     - Choice filters now work inside the add-filter menu and chip edit popovers. A choice widget's dropdown portals out of the popover's DOM, so opening it read as an outside interaction and dismissed the filter popover before a value could be chosen. The filter popovers now ignore outside-interaction dismissals that originate from a nested floating layer, via the new `keepOpenOverNestedPopper` helper (`@vueda/shell/popover/keepOpenOverNestedPopper.js`) wired to their content's `@interact-outside`.
     - Fixed a `cannot run an inactive effect scope` warning emitted when a filter form unmounted (drilling back, closing the popover, applying, or removing). `useReactiveHookRegistry` no longer runs its deferred aggregate update after its effect scope has been disposed, which also hardens any on-demand-mounted form built on `useForm`.
       _No action is required for default `ViewList` usage. Filter behavior (apply, edit, remove, clear, URL round-trip) is unchanged; only the presentation and component structure changed._

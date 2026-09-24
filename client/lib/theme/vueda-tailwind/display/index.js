@@ -7,19 +7,24 @@ import "./Avatar.theme.js";
 import "./AvatarFallback.theme.js";
 import "./AvatarImage.theme.js";
 import "./Badge.theme.js";
+import "./BooleanDisplay.theme.js";
 import "./ClickToCopyText.theme.js";
 import "./ConsequencesBullets.theme.js";
 import "./ConstraintsBar.theme.js";
 import "./DateRangeDisplay.theme.js";
 import "./DateTimeDisplay.theme.js";
 import "./DiagnosticStrip.theme.js";
+import "./DurationDisplay.theme.js";
 import "./ErrorDisplay.theme.js";
 import "./FieldPickerMenuList.theme.js";
+import "./JsonDisplay.theme.js";
 import "./Kbd.theme.js";
 import "./KbdGroup.theme.js";
 import "./LoadingHeartbeatStrip.theme.js";
 import "./LoadingSkeletonGhost.theme.js";
 import "./ResponsiveMenu.theme.js";
+import "./ScopeChip.theme.js";
+import "./ScopeGroup.theme.js";
 import "./SortChip.theme.js";
 import "./SortGroup.theme.js";
 import "./SuggestionList.theme.js";
@@ -33,8 +38,11 @@ export default {
     // ---------- Date and time ----------
     DateRangeDisplay: {},
     DateTimeDisplay: {},
+    DurationDisplay: {},
     // ---------- Text utilities ----------
+    BooleanDisplay: {},
     ErrorDisplay: {},
+    JsonDisplay: {},
     ClickToCopyText: {},
     // ---------- Badges and keyboard hints ----------
     Badge: {},
@@ -58,6 +66,9 @@ export default {
     FieldPickerMenuList: {},
     // ---------- Constraints band ----------
     ConstraintsBar: {},
+    // ---------- Scopes ----------
+    ScopeChip: {},
+    ScopeGroup: {},
     // ---------- Sorting ----------
     SortChip: {},
     SortGroup: {},

@@ -59,8 +59,12 @@ const dragging = ref(false);
  * @returns {boolean}
  */
 const isValidFile = (file) => {
-    if (!file) return false;
-    if (file.size > props.maxFileSize) return false;
+    if (!file) {
+        return false;
+    }
+    if (file.size > props.maxFileSize) {
+        return false;
+    }
     return true;
 };
 
@@ -68,23 +72,31 @@ const isValidFile = (file) => {
  * @param {File} file
  */
 const selectFile = (file) => {
-    if (props.disabled || !isValidFile(file)) return;
+    if (props.disabled || !isValidFile(file)) {
+        return;
+    }
     emit("update:modelValue", file);
 };
 
 const onInputChange = (event) => {
     const file = event.target.files?.[0];
-    if (file) selectFile(file);
+    if (file) {
+        selectFile(file);
+    }
     // Reset so re-selecting the same file still triggers change
     event.target.value = "";
 };
 
 const openFilePicker = () => {
-    if (!props.disabled) inputRef.value?.click();
+    if (!props.disabled) {
+        inputRef.value?.click();
+    }
 };
 
 const onDragOver = (event) => {
-    if (props.disabled || !props.dropzone) return;
+    if (props.disabled || !props.dropzone) {
+        return;
+    }
     event.preventDefault();
     dragging.value = true;
 };
@@ -94,11 +106,15 @@ const onDragLeave = () => {
 };
 
 const onDrop = (event) => {
-    if (props.disabled || !props.dropzone) return;
+    if (props.disabled || !props.dropzone) {
+        return;
+    }
     event.preventDefault();
     dragging.value = false;
     const file = event.dataTransfer?.files?.[0];
-    if (file) selectFile(file);
+    if (file) {
+        selectFile(file);
+    }
 };
 
 defineExpose({ openFilePicker });

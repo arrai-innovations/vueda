@@ -6,7 +6,9 @@ import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { mergeTheme } from "@vueda/use/useTheme.js";
+import { defaultFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
+import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import isObject from "lodash-es/isObject.js";
@@ -67,6 +69,40 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  *     fieldName?: string
  * ) => import('vue').ComputedRef<object>} setWidgetComponentProps - Set the widget props for a field.
  */
+
+/**
+ * Resolve a configured component reference to a mountable component, the way every form
+ * and filter field does. A function wraps a component reference (to keep it out of reactive
+ * state) and is called for it; a string names an entry in `lookup`; anything else truthy is the
+ * component itself. Throws when nothing resolves, naming the field and its app and model: an
+ * absent reference, a name missing from `lookup`, or a function that returns no component.
+ *
+ * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or mapping value to resolve.
+ * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in (`availableFields` or `availableWidgets`).
+ * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved, for the error message.
+ * @returns {import('vue').Component} The resolved component.
+ */
+export function resolveComponent(candidate, lookup, { kind, fieldName, app, model }) {
+    const where = `for field "${fieldName}" in app "${app}" model "${model}"`;
+    if (typeof candidate === "function") {
+        const wrapped = candidate();
+        if (!wrapped) {
+            throw new Error(`No ${kind} component returned by the function configured ${where}`);
+        }
+        return wrapped;
+    }
+    if (typeof candidate === "string") {
+        const named = lookup[candidate];
+        if (!named) {
+            throw new Error(`No ${kind} component named "${candidate}" ${where}`);
+        }
+        return named;
+    }
+    if (!candidate) {
+        throw new Error(`No ${kind} component found ${where}`);
+    }
+    return toRaw(candidate);
+}
 
 /**
  * Builds the form configuration by setting up state management for fields, components, and widgets.
@@ -156,26 +192,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                             ? availableFields.FieldSetStackedInline
                             : availableFields.FieldSetSingularStackedInline
                         : getFieldComponent(detailObject));
-                if (typeof customField === "function") {
-                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
-                    return customField();
-                }
-                if (typeof customField === "string") {
-                    // let props and modelConfig not pass actual components
-                    const namedField = availableFields[customField];
-                    if (!namedField) {
-                        throw new Error(
-                            `No field component named "${customField}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                        );
-                    }
-                    return namedField;
-                }
-                if (!customField) {
-                    throw new Error(
-                        `No field component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                    );
-                }
-                return toRaw(customField);
+                return resolveComponent(customField, availableFields, {
+                    kind: "field",
+                    fieldName,
+                    app: props.app,
+                    model: props.model,
+                });
             });
         });
         return component;
@@ -224,7 +246,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
         es.run(() => {
             widget = computed(() => {
                 if (getIsReadOnly(fieldName, detailObject.readOnly)) {
-                    return availableWidgets.WidgetReadOnly;
+                    // A field can render read-only without being read-only on the server (a
+                    // whole ViewRead, a computed field, a read-only model config), so the
+                    // per-type read-only widget resolves here as well as in getWidgetComponent.
+                    return (
+                        getTypeMapping(defaultFieldMappings, detailObject)?.readOnlyWidget ??
+                        availableWidgets.WidgetReadOnly
+                    );
                 }
                 if (baseExpanded) {
                     return null;
@@ -233,26 +261,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     props.widgetComponents?.[fieldName] ||
                     modelConfig?.config?.widgetComponents?.[fieldName] ||
                     getWidgetComponent(detailObject);
-                if (typeof customWidget === "function") {
-                    // If it's a function, it's a component reference wrapped in a fn to avoid reactivity issues
-                    return customWidget();
-                }
-                if (typeof customWidget === "string") {
-                    // Allow props and modelConfig to pass component names
-                    const namedWidget = availableWidgets[customWidget];
-                    if (!namedWidget) {
-                        throw new Error(
-                            `No widget component named "${customWidget}" for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                        );
-                    }
-                    return namedWidget;
-                }
-                if (!customWidget) {
-                    throw new Error(
-                        `No widget component found for field "${fieldName}" in app "${props.app}" model "${props.model}"`,
-                    );
-                }
-                return toRaw(customWidget);
+                return resolveComponent(customWidget, availableWidgets, {
+                    kind: "widget",
+                    fieldName,
+                    app: props.app,
+                    model: props.model,
+                });
             });
         });
 
@@ -265,8 +279,13 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
             widget = computed(() => {
                 const fieldLevelThemeOverride = getFieldLevelThemeOverride(fieldName, true);
                 const readOnly = getIsReadOnly(fieldName, detailObject.readOnly);
+                const readOnlyMapping = readOnly ? getTypeMapping(defaultFieldMappings, detailObject) : null;
                 const baseProps = {
-                    ...getWidgetProps(detailObject),
+                    // A read-only widget takes its own display options; the edit widget's props
+                    // (granularity, validation helpers) mean nothing to it.
+                    ...(readOnlyMapping?.readOnlyWidget
+                        ? readOnlyMapping.readOnlyWidgetProps
+                        : getWidgetProps(detailObject)),
                     ...(deepUnref(modelConfig.config?.widgetProps?.[fieldName]) || {}),
                     ...(deepUnref(props.widgetProps?.[fieldName]) || {}),
                 };
