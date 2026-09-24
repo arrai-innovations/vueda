@@ -54,7 +54,9 @@ const popoverOpen = ref(false);
  * @returns {import('@internationalized/date').CalendarDate|import('@internationalized/date').CalendarDateTime|undefined}
  */
 function parseISOValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return raw.includes("T") ? parseDateTime(raw) : parseDate(raw);
     } catch {

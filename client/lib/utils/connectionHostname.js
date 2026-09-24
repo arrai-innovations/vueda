@@ -12,7 +12,9 @@ const SSR_HOSTNAME = "localhost";
 const SSR_PROTOCOL = "http:";
 
 function getHostname() {
-    if (typeof window === "undefined") return SSR_HOSTNAME;
+    if (typeof window === "undefined") {
+        return SSR_HOSTNAME;
+    }
     const port = import.meta.env.VITE_DJANGO_CONNECTION_PORT;
     return (port && window.location.hostname + ":" + port) || window.location.hostname;
 }

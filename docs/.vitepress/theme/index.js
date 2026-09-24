@@ -5,6 +5,7 @@ import DemoRouterLink from "./components/DemoRouterLink.vue";
 import DemoTitleBar from "./components/DemoTitleBar.vue";
 import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
+import HomePreview from "./components/HomePreview.vue";
 import ModelDemo from "./components/ModelDemo.vue";
 import StateLabel from "./components/StateLabel.vue";
 import VersionFooter from "./components/VersionFooter.vue";
@@ -31,7 +32,9 @@ setIcons(fontAwesomeFreeIcons);
 
 const DarkModeTransitionGuard = defineComponent({
     setup() {
-        if (typeof window === "undefined") return () => null;
+        if (typeof window === "undefined") {
+            return () => null;
+        }
         const { isDark } = useData();
         const clear = () => document.documentElement.classList.remove("no-transition");
         const throttledClear = throttle(clear, 150, { leading: false, trailing: true });
@@ -49,6 +52,7 @@ const DarkModeTransitionGuard = defineComponent({
 
 const theme = createArraiTheme({
     layoutSlots: {
+        "home-hero-image": () => h(HomePreview),
         "layout-top": () => h(DarkModeTransitionGuard),
         "layout-bottom": () => h(VersionFooter),
     },

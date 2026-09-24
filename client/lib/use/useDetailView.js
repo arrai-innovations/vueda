@@ -262,9 +262,13 @@ export function useDetailView(options, formInitialValue) {
     // so the view does not flash an unavailable state while the initial fetch is in flight.
     const currentActionAvailable = computed(() => {
         const object = instanceObject.state.object;
-        if (!object) return true;
+        if (!object) {
+            return true;
+        }
         const objectAvailableActions = object.available_actions;
-        if (!objectAvailableActions) return true;
+        if (!objectAvailableActions) {
+            return true;
+        }
         return objectAvailableActions.includes(getActionName(options.viewName));
     });
 

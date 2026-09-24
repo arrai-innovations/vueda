@@ -52,8 +52,12 @@ const resolvedItems = computed(() =>
 );
 
 const toneClass = (tone) => {
-    if (tone === "warn") return theme("toneWarn");
-    if (tone === "danger") return theme("toneDanger");
+    if (tone === "warn") {
+        return theme("toneWarn");
+    }
+    if (tone === "danger") {
+        return theme("toneDanger");
+    }
     return undefined;
 };
 </script>

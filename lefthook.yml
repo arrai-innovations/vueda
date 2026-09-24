@@ -114,6 +114,7 @@ pre-commit:
                 - "docs/.vitepress/.temp/**"
                 - "docs-tooling/.generated/**"
                 - "docs/public/assets/mermaid/mermaid.min.js"
+                - "changelog.d/template.md"
                 - "**/AGENT.md"
                 - "**/AGENTS.md"
             run: pnpm exec prettier --write {staged_files}
@@ -133,6 +134,12 @@ pre-commit:
             glob:
                 - "client/lib/theme/vueda-tailwind/**/*.js"
             run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
+        changelog-fragments:
+            glob: "changelog.d/**"
+            run: |
+                for package in client server; do
+                  uv run --group dev --no-sync towncrier build --config "changelog.d/$package.toml" --version check --draft > /dev/null || exit 1
+                done
         circleci-config:
             glob: ".circleci/*.yml"
             run: |

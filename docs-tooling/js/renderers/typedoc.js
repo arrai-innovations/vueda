@@ -20,7 +20,9 @@ function memberRows(members) {
 }
 
 function renderTypeRef(typeRef, index, filePath) {
-    if (!typeRef?.name) return "";
+    if (!typeRef?.name) {
+        return "";
+    }
     if (typeRef.link) {
         const node = index.byId.get(typeRef.link);
         if (node) {
@@ -194,7 +196,9 @@ function renderChildrenSections(node, index, filePath) {
             }
             if (type.members?.length) {
                 const table = renderTable(["Name", "Type", "Description"], memberRows(type.members));
-                if (table) lines.push(table, "");
+                if (table) {
+                    lines.push(table, "");
+                }
             }
         }
     }

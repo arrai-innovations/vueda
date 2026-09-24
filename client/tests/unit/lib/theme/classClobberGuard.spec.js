@@ -43,8 +43,15 @@ const themeModules = import.meta.glob("../../../../lib/theme/vueda-tailwind/**/*
 const unionSet = (entries) => {
     const s = new Set();
     for (const e of entries) {
-        if (typeof e === "string") tokens(e).forEach((t) => s.add(t));
-        else for (const [k, v] of Object.entries(e)) if (v) tokens(k).forEach((t) => s.add(t));
+        if (typeof e === "string") {
+            tokens(e).forEach((t) => s.add(t));
+        } else {
+            for (const [k, v] of Object.entries(e)) {
+                if (v) {
+                    tokens(k).forEach((t) => s.add(t));
+                }
+            }
+        }
     }
     return s;
 };
@@ -53,8 +60,15 @@ const unionSet = (entries) => {
 const actualSet = (entries) => {
     const out = combineClasses(...entries);
     const s = new Set();
-    if (typeof out === "string") tokens(out).forEach((t) => s.add(t));
-    else for (const [k, v] of Object.entries(out)) if (v) tokens(k).forEach((t) => s.add(t));
+    if (typeof out === "string") {
+        tokens(out).forEach((t) => s.add(t));
+    } else {
+        for (const [k, v] of Object.entries(out)) {
+            if (v) {
+                tokens(k).forEach((t) => s.add(t));
+            }
+        }
+    }
     return s;
 };
 
@@ -72,24 +86,32 @@ describe("lib/theme/vueda-tailwind class-clobber guard", () => {
         const findings = [];
         for (const partial of captured) {
             for (const [comp, slots] of Object.entries(partial)) {
-                if (!slots || typeof slots !== "object") continue;
+                if (!slots || typeof slots !== "object") {
+                    continue;
+                }
                 for (const [slotName, slotDef] of Object.entries(slots)) {
                     const fns = [];
-                    if (typeof slotDef === "function") fns.push(slotDef);
+                    if (typeof slotDef === "function") {
+                        fns.push(slotDef);
+                    }
                     if (slotDef && typeof slotDef === "object" && typeof slotDef.class === "function") {
                         fns.push(slotDef.class);
                     }
                     const cands = candidateArgs(fns);
                     let n = 0;
                     for (const args of combos(cands)) {
-                        if (++n > 5000) break;
+                        if (++n > 5000) {
+                            break;
+                        }
                         let entries;
                         try {
                             entries = flatten(resolveClass(slotDef, args));
                         } catch {
                             continue;
                         }
-                        if (!entries.some((e) => typeof e === "object")) continue;
+                        if (!entries.some((e) => typeof e === "object")) {
+                            continue;
+                        }
                         const dropped = [...unionSet(entries)].filter((t) => !actualSet(entries).has(t));
                         if (dropped.length) {
                             const a = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));

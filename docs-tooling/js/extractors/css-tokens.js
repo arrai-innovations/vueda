@@ -201,7 +201,9 @@ function collectScope(root, selector, scopeKey, sourceRel, sourceLines) {
     const groups = [];
 
     root.walkRules((rule) => {
-        if (rule.selector !== selector) return;
+        if (rule.selector !== selector) {
+            return;
+        }
         const groupBoundaries = collectGroupBoundaries(rule, sourceLines);
         groups.push(
             ...groupBoundaries.map((group) => ({
@@ -217,7 +219,9 @@ function collectScope(root, selector, scopeKey, sourceRel, sourceLines) {
         );
 
         rule.walkDecls((decl) => {
-            if (!decl.prop.startsWith("--")) return;
+            if (!decl.prop.startsWith("--")) {
+                return;
+            }
             const description = lastTrailingComment(decl);
             const inlineGroup = leadingBannerComment(decl);
             const groupName = inlineGroup || findGroupForDecl(decl, groupBoundaries) || "Base";

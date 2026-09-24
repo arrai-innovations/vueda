@@ -49,7 +49,7 @@ Pair `readyToDryRun` with a `dry-run-target` identity: a string that changes whe
 
 **Cancel** calls `redirectTo("cancel")`, which resolves the cancel target through the same redirect precedence chain as success. The cancel path does not execute the action; it navigates away from the action view.
 
-`ViewExecuteTransition` shares this same submit, dry-run, and cancel flow. Its `run-action` forwards `ActionForm`'s `dryRun` and `acknowledgeWarnings` arguments straight to `storeWorkflow.executeTransition`, so dry-run validation errors surface through the same field errors and validation summary as any other model action, and an unacknowledged-warnings `409` drives the same `FormConfirmDialog` confirm-then-retry flow.
+`ViewExecuteTransition` shares this same submit, dry-run, and cancel flow. Its `run-action` forwards `ActionForm`'s `dryRun` and `acknowledgeWarnings` arguments straight to `storeWorkflow.executeTransition`, so dry-run validation errors appear beside the matching record chips, and in the validation summary for any error no field shows, as with any other model action, and an unacknowledged-warnings `409` drives the same `FormConfirmDialog` confirm-then-retry flow.
 
 ## Redirect Precedence and Route Targets
 

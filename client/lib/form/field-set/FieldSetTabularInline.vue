@@ -270,7 +270,11 @@ watch(
                                     <template v-if="action.fieldName === 'destroy'">
                                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox, field(fieldName)destroy-checkbox] Checkbox to mark an existing tabular inline row for deletion. -->
                                         <slot
-                                            v-if="objectGridFieldSlotProps.pk != null"
+                                            v-if="
+                                                objectGridFieldSlotProps.pk != null &&
+                                                !props.readOnly &&
+                                                !fieldSetTabularInline.state.computedFieldProps.readOnly
+                                            "
                                             :action="action"
                                             :contextless="true"
                                             label="Destroy?"
@@ -292,27 +296,31 @@ watch(
                                                     )
                                             "
                                         >
-                                            <widget-checkbox
-                                                :contextless="true"
-                                                :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
-                                                label="Destroy?"
-                                                :model-value="
-                                                    fieldSetTabularInline.state.selected.includes(
-                                                        objectGridFieldSlotProps.rowIndex,
-                                                    )
-                                                "
-                                                name="destroy-checkbox"
-                                                :required="false"
-                                                size="small"
-                                                :value="objectGridFieldSlotProps.rowIndex"
-                                                @update:model-value="
-                                                    (isSelected) =>
-                                                        fieldSetTabularInline.handleSelected(
-                                                            isSelected,
+                                            <label :key="action.fieldName">
+                                                <widget-checkbox
+                                                    :aria-label="`Delete row ${objectGridFieldSlotProps.rowIndex + 1} on save`"
+                                                    :contextless="true"
+                                                    :input-id="`selected-row-${objectGridFieldSlotProps.rowIndex}`"
+                                                    label="Destroy?"
+                                                    :model-value="
+                                                        fieldSetTabularInline.state.selected.includes(
                                                             objectGridFieldSlotProps.rowIndex,
                                                         )
-                                                "
-                                            />
+                                                    "
+                                                    name="destroy-checkbox"
+                                                    :required="false"
+                                                    size="small"
+                                                    :value="String(objectGridFieldSlotProps.rowIndex)"
+                                                    @update:model-value="
+                                                        (isSelected) =>
+                                                            fieldSetTabularInline.handleSelected(
+                                                                isSelected,
+                                                                objectGridFieldSlotProps.rowIndex,
+                                                            )
+                                                    "
+                                                />
+                                                Delete?
+                                            </label>
                                         </slot>
                                         <span
                                             v-if="

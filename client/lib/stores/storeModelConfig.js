@@ -57,6 +57,7 @@ import { defineStore } from "pinia";
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
+ * @property {string[]} totalables - column names that can carry a total in list view. A list request asks for the ones that are currently visible; totals are opt-in server-side, so asking for none costs no aggregation query. Requested under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`.
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
@@ -90,6 +91,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [filterables] - filters to display in list view
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view
+ * @property {string[]} [totalables] - column names that can carry a total in list view
  * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
@@ -127,12 +129,18 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 fieldDetails: {},
                 filterableDetails: {},
                 sortableDetails: {},
+                totalables: [],
             },
             {},
         ];
     }
     const pkField = modelInfo.pk;
     const fields = Object.keys(modelInfo.fields).filter((f) => f !== pkField && !modelInfo.fields[f]?.hidden);
+    // The server ignores read-only input, and a create form has no value to show for one yet.
+    const writableFields = fields.filter((f) => !modelInfo.fields[f]?.readOnly);
+    // The server flags fields that do not help tell one row from another (audit timestamps, a
+    // workflow state's machine code, per-record transitions) with `listDefault: false`.
+    const listFields = fields.filter((f) => modelInfo.fields[f]?.listDefault !== false);
     const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
@@ -163,13 +171,18 @@ const getDefaultFromModelInfo = (modelInfo) => {
             displayFields: fields,
             detailLinkField: null,
             fetchFields: fields,
-            submitFields: fields,
+            submitFields: writableFields,
             expand: expandFields,
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering || {}),
             sortables: orderingFields.map((o) => o.name),
             sorted: defaultSorted,
+            // The totals this model can carry, as the server reports them. An older server sends no
+            // `model_column_totals` section at all, which reads the same way as a model with no
+            // totals: nothing to offer, so nothing is asked for. The parameter that asks is
+            // `COLUMN_TOTALS_PARAM`, a client constant, and is not discovered here.
+            totalables: [...(modelInfo.columnTotals?.fields || [])],
             fieldDetails: cloneDeep(modelInfo.fields),
             expandDetails: cloneDeep(expandDetailsByName),
             actionDetails: cloneDeep(actionDetailsByName),
@@ -188,9 +201,20 @@ const getDefaultFromModelInfo = (modelInfo) => {
                 default: canUpdate ? "update" : canRetrieve ? "read" : canList ? "list" : null,
             },
         },
-        {},
+        {
+            // Field lists here are fallbacks only: `mergeSimpleProperties` uses them when no custom
+            // config names the list or the `fields` shorthand, so they never override an integrator.
+            create: { displayFields: writableFields },
+            list: { displayFields: listFields },
+        },
     ];
 };
+
+/**
+ * Views whose `fetchFields` default to their resolved `displayFields`, so a list requests only the
+ * columns it renders, including columns an integrator named without naming `fetchFields`.
+ */
+const fetchFollowsDisplayViews = ["list"];
 
 const shallowObjectProperties = [
     "formProps",
@@ -219,6 +243,8 @@ const nonSimpleProperties = [...shallowObjectProperties, "expandDetails", ...dee
  * @param {OverridingModelConfig} customGenericConfig - The view-independent overriding configuration.
  * @param {OverridingModelConfig} defaultSpecificConfig - The default view-specific configuration.
  * @param {OverridingModelConfig} customSpecificConfig - The view-specific overriding configuration.
+ * @param {object} [options] - Merge options.
+ * @param {boolean} [options.fetchFollowsDisplay] - Default an unset `fetchFields` to the resolved `displayFields`.
  * @returns {ModelConfig} The merged configuration for simple properties.
  */
 const mergeSimpleProperties = (
@@ -226,24 +252,23 @@ const mergeSimpleProperties = (
     customGenericConfig,
     defaultSpecificConfig,
     customSpecificConfig,
+    { fetchFollowsDisplay = false } = {},
 ) => {
     const configs = [customGenericConfig, defaultSpecificConfig, customSpecificConfig];
-    const mergedConfig = omit(defaultGenericConfig, [
-        ...nonSimpleProperties,
-        "displayFields",
-        "fetchFields",
-        "submitFields",
-    ]);
+    const fieldKeys = ["displayFields", "fetchFields", "submitFields"];
+    const mergedConfig = omit(defaultGenericConfig, [...nonSimpleProperties, ...fieldKeys]);
     for (const config of configs) {
         for (const [key, value] of Object.entries(config)) {
-            if (!nonSimpleProperties.includes(key)) {
+            // A default view-specific field list is a fallback, applied below: merged in here, it
+            // would override a field list the integrator set in the model-wide config.
+            if (!nonSimpleProperties.includes(key) && !(config === defaultSpecificConfig && fieldKeys.includes(key))) {
                 mergedConfig[key] = value;
             }
         }
     }
 
     const expandNames = new Set(mergedConfig.expand || []);
-    for (const fieldKey of ["displayFields", "fetchFields", "submitFields"]) {
+    for (const fieldKey of fieldKeys) {
         // use fields if displayFields, fetchFields, and submitFields are not set
         if (!mergedConfig[fieldKey] || mergedConfig[fieldKey].length === 0) {
             if (mergedConfig.fields) {
@@ -260,6 +285,10 @@ const mergeSimpleProperties = (
                               return dotIndex === -1 || !expandNames.has(fieldName.slice(0, dotIndex));
                           })
                         : mergedConfig.fields;
+            } else if (fieldKey === "fetchFields" && fetchFollowsDisplay) {
+                mergedConfig[fieldKey] = mergedConfig.displayFields;
+            } else if (defaultSpecificConfig[fieldKey]) {
+                mergedConfig[fieldKey] = defaultSpecificConfig[fieldKey];
             } else if (defaultGenericConfig[fieldKey]) {
                 mergedConfig[fieldKey] = defaultGenericConfig[fieldKey];
             }
@@ -627,6 +656,7 @@ export const storeModelConfig = defineStore("modelConfig", {
                     customGenericConfig,
                     defaultSpecificConfig,
                     customSpecificConfig,
+                    { fetchFollowsDisplay: fetchFollowsDisplayViews.includes(view) },
                 );
                 validateSubmitFields(builtConfig, args);
 

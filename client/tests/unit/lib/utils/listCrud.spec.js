@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { PAGE_PARAM } from "@vueda/utils/constants.js";
+import { COLUMN_TOTALS_PARAM, PAGE_PARAM } from "@vueda/utils/constants.js";
 
 const getDetailUrl = vi.fn();
 const getListUrl = vi.fn();
@@ -91,6 +91,31 @@ describe("lib/utils/listCrud.js", () => {
         expect(setColumnTotals).toHaveBeenCalledWith(undefined);
     });
 
+    scopedIt("singlePagePaginatedListCrudAdaptor raises a rejected total as a plain fetch error", async () => {
+        // A `400` keyed by a filter name is a `ListFilterError`, which the filter form renders
+        // against the widget that produced it and `useViewList` keeps out of the view's own error
+        // state. The totals parameter has no widget, so classifying its rejection that way would
+        // leave the list empty with nothing reporting why.
+        const { singlePagePaginatedListCrudAdaptor } = listCrud;
+        const { FetchError, ListFilterError } = await import("@vueda/utils/errors.js");
+        getListUrl.mockReturnValue("/list/");
+        getJsonOrText.mockResolvedValue({ [COLUMN_TOTALS_PARAM]: ["Invalid column total 'prcie'."] });
+        cancellableFetch.mockImplementation((url, options, transform) => Promise.resolve(transform({ status: 400 })));
+
+        const request = singlePagePaginatedListCrudAdaptor({
+            target: { app: "blog", model: "post", resultsKey: "items" },
+            params: { [COLUMN_TOTALS_PARAM]: ["prcie"] },
+            pushObjects: vi.fn(),
+            clearObjects: vi.fn(),
+            isCancelled: { value: false },
+            setPaginateInfo: vi.fn(),
+            setColumnTotals: vi.fn(),
+        });
+
+        await expect(request).rejects.toBeInstanceOf(FetchError);
+        await expect(request).rejects.not.toBeInstanceOf(ListFilterError);
+    });
+
     scopedIt("allPagePaginatedListCrudAdaptor fetches multiple pages", async () => {
         const { allPagePaginatedListCrudAdaptor } = listCrud;
         const target = { app: "blog", model: "post", resultsKey: "items" };
@@ -135,6 +160,36 @@ describe("lib/utils/listCrud.js", () => {
         expect(setPaginateInfo).toHaveBeenNthCalledWith(1, { totalRecords: 2, totalPages: 2, perPage: 1, page: 1 });
         expect(setPaginateInfo).toHaveBeenNthCalledWith(2, { totalRecords: 2, totalPages: 2, perPage: 1, page: 2 });
         expect(setColumnTotals).toHaveBeenCalledExactlyOnceWith({ hours: 3 });
+    });
+
+    scopedIt("allPagePaginatedListCrudAdaptor asks for column totals on the first page only", async () => {
+        // The server aggregates over the whole filtered set, so every page would come back with the
+        // same totals -- at the cost of a `SUM` per requested total, per page. Only the first
+        // response's totals are read, so the rest of the pages do not ask.
+        const { allPagePaginatedListCrudAdaptor } = listCrud;
+        const target = { app: "blog", model: "post", resultsKey: "items" };
+        getListUrl.mockReturnValue("/list");
+        global.fetch = vi.fn().mockResolvedValue({ status: 200 });
+        getJsonOrText
+            .mockResolvedValueOnce({ items: ["a"], totalRecords: 3, totalPages: 3, perPage: 1, columnTotals: {} })
+            .mockResolvedValue({ items: ["b"], totalRecords: 3, totalPages: 3, perPage: 1, columnTotals: {} });
+        await allPagePaginatedListCrudAdaptor({
+            target,
+            params: { [COLUMN_TOTALS_PARAM]: ["hours"] },
+            pushObjects: vi.fn(),
+            clearObjects: vi.fn(),
+            isCancelled: { value: false },
+            setPaginateInfo: vi.fn(),
+            setColumnTotals: vi.fn(),
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const urls = global.fetch.mock.calls.map(([url]) => url);
+        expect(urls).toHaveLength(3);
+        expect(urls[0]).toContain(`${COLUMN_TOTALS_PARAM}=hours`);
+        expect(urls[1]).not.toContain(`${COLUMN_TOTALS_PARAM}=`);
+        expect(urls[2]).not.toContain(`${COLUMN_TOTALS_PARAM}=`);
     });
 
     scopedIt("allPagePaginatedListCrudAdaptor clears objects before fetching", async () => {

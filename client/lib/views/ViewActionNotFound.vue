@@ -72,13 +72,17 @@ const closestApp = computed(() => {
 });
 
 const closestModel = computed(() => {
-    if (!closestApp.value) return null;
+    if (!closestApp.value) {
+        return null;
+    }
     const models = Object.keys(modelInfoStore.infos[closestApp.value] || {});
     return findClosestMatch(model.value, models);
 });
 
 const modelActions = computed(() => {
-    if (!closestApp.value || !closestModel.value) return [];
+    if (!closestApp.value || !closestModel.value) {
+        return [];
+    }
     const modelData = modelInfoStore.infos[closestApp.value][closestModel.value];
     return modelData?.actions || ["list", "create", "update", "read"];
 });

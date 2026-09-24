@@ -242,10 +242,18 @@ function titleForDir(dirPath) {
     if (!last) {
         return "API Reference";
     }
-    if (last === "py") return "Python API";
-    if (last === "js") return "JavaScript API";
-    if (last === "rest") return "REST API";
-    if (last === "vue") return "Vue Components";
+    if (last === "py") {
+        return "Python API";
+    }
+    if (last === "js") {
+        return "JavaScript API";
+    }
+    if (last === "rest") {
+        return "REST API";
+    }
+    if (last === "vue") {
+        return "Vue Components";
+    }
     return last;
 }
 
@@ -279,7 +287,9 @@ function addIndexPages(outputs) {
             const parent = path.dirname(current);
             ensureDir(parent);
             dirChildren.get(parent).add(path.basename(current));
-            if (parent === current) break;
+            if (parent === current) {
+                break;
+            }
             current = parent;
         }
     }
@@ -303,10 +313,14 @@ function addIndexPages(outputs) {
         lines.push("---", `title: ${title}`, `id: ${indexIdForDir(dir)}`, "---", "");
         lines.push(`# ${title}`, "");
         for (const child of children) {
-            if (child === "index.md") continue;
+            if (child === "index.md") {
+                continue;
+            }
             // When both foo.md and foo/ exist for the same module, link only to
             // foo.md to avoid two identically-labelled entries in the index.
-            if (!child.endsWith(".md") && childrenSet.has(`${child}.md`)) continue;
+            if (!child.endsWith(".md") && childrenSet.has(`${child}.md`)) {
+                continue;
+            }
             const label = child.endsWith(".md") ? child.replace(/\.md$/, "") : child;
             const linkTarget = child.endsWith(".md") ? `./${child}` : `./${child}/`;
             lines.push(`- [${label}](${linkTarget})`);

@@ -48,12 +48,18 @@ function slotId(componentIdValue, slotName) {
  * rather than a real kebab-case slot name.
  */
 function isExpressionArtifactSlotName(name) {
-    if (typeof name !== "string") return false;
+    if (typeof name !== "string") {
+        return false;
+    }
     // Property access chains (e.g., "resolvedSlotNames.clearButton.name")
-    if (name.includes(".")) return true;
+    if (name.includes(".")) {
+        return true;
+    }
     // camelCase variable names (e.g., "slotName", "fieldSlotName") -- has uppercase
     // but not at position 0. Bare lowercase words like "default", "title" are legitimate.
-    if (/^[a-zA-Z$_][a-zA-Z0-9$_]*$/.test(name) && /[A-Z]/.test(name)) return true;
+    if (/^[a-zA-Z$_][a-zA-Z0-9$_]*$/.test(name) && /[A-Z]/.test(name)) {
+        return true;
+    }
     // Generic loop variable used in pass-through slot forwarding patterns.
     return name === "slot";
 }
@@ -109,7 +115,9 @@ function resolveSlotFromDescription(slot) {
         return slot;
     }
     const match = slot.description.match(/^([a-z][a-z0-9-]*)(?:\s+([\s\S]*))?$/);
-    if (!match) return slot;
+    if (!match) {
+        return slot;
+    }
     return { ...slot, name: match[1], description: match[2] || undefined };
 }
 
@@ -132,11 +140,15 @@ function findBalancedEnd(source, pos, openChar, closeChar) {
                 i++;
                 continue;
             }
-            if (ch === stringChar) inString = false;
+            if (ch === stringChar) {
+                inString = false;
+            }
         } else if (ch === "/" && source[i + 1] === "*") {
             // Skip block comment (including JSDoc); apostrophes inside must not be treated as string delimiters.
             const end = source.indexOf("*/", i + 2);
-            if (end === -1) return -1;
+            if (end === -1) {
+                return -1;
+            }
             i = end + 1;
         } else if (ch === "/" && source[i + 1] === "/") {
             // Skip line comment.
@@ -149,7 +161,9 @@ function findBalancedEnd(source, pos, openChar, closeChar) {
             depth++;
         } else if (ch === closeChar) {
             depth--;
-            if (depth === 0) return i;
+            if (depth === 0) {
+                return i;
+            }
         }
     }
     return -1;
@@ -164,11 +178,15 @@ function findBalancedEnd(source, pos, openChar, closeChar) {
  * @returns {string}
  */
 export function extractScriptBlock(source, isSetup = false) {
-    if (!source.includes("<script")) return source;
+    if (!source.includes("<script")) {
+        return source;
+    }
 
     if (isSetup) {
         const match = /<script\b[^>]*\bsetup\b[^>]*>/i.exec(source);
-        if (!match) return "";
+        if (!match) {
+            return "";
+        }
         const start = match.index + match[0].length;
         const end = source.indexOf("</script>", start);
         return end === -1 ? source.slice(start) : source.slice(start, end);
@@ -199,20 +217,30 @@ export function extractScriptBlock(source, isSetup = false) {
 export function findSpreadIdentifiersInCall(source, callName, openChar, closeChar) {
     const re = new RegExp(`\\b${callName}\\s*\\(`);
     const m = re.exec(source);
-    if (!m) return [];
+    if (!m) {
+        return [];
+    }
 
     let pos = m.index + m[0].length;
-    while (pos < source.length && source[pos] !== openChar && source[pos] !== ")") pos++;
-    if (pos >= source.length || source[pos] === ")") return [];
+    while (pos < source.length && source[pos] !== openChar && source[pos] !== ")") {
+        pos++;
+    }
+    if (pos >= source.length || source[pos] === ")") {
+        return [];
+    }
 
     const end = findBalancedEnd(source, pos, openChar, closeChar);
-    if (end === -1) return [];
+    if (end === -1) {
+        return [];
+    }
 
     const content = source.slice(pos + 1, end);
     const ids = [];
     const spreadRe = /\.\.\.([\w$]+)/g;
     let sm;
-    while ((sm = spreadRe.exec(content)) !== null) ids.push(sm[1]);
+    while ((sm = spreadRe.exec(content)) !== null) {
+        ids.push(sm[1]);
+    }
     return ids;
 }
 
@@ -227,7 +255,9 @@ export function findCalledIdentifiers(source) {
     const ids = new Set();
     const re = /\b([\w$]+)\s*\(/g;
     let m;
-    while ((m = re.exec(source)) !== null) ids.add(m[1]);
+    while ((m = re.exec(source)) !== null) {
+        ids.add(m[1]);
+    }
     return [...ids];
 }
 
@@ -241,20 +271,28 @@ export function findCalledIdentifiers(source) {
  */
 export function findComponentTagValues(setupSource, tagName) {
     const defineOptionsMatch = /\bdefineOptions\s*\(/.exec(setupSource);
-    if (!defineOptionsMatch) return [];
+    if (!defineOptionsMatch) {
+        return [];
+    }
 
     const before = setupSource.slice(0, defineOptionsMatch.index);
     const allJsdocs = [...before.matchAll(/\/\*\*([\s\S]*?)\*\//g)];
     const lastJsdoc = allJsdocs.at(-1);
-    if (!lastJsdoc) return [];
+    if (!lastJsdoc) {
+        return [];
+    }
 
     const gap = before.slice(lastJsdoc.index + lastJsdoc[0].length);
-    if (/\S/.test(gap)) return [];
+    if (/\S/.test(gap)) {
+        return [];
+    }
 
     const tagPattern = new RegExp(`@${tagName}\\s+(\\S+)`, "g");
     const values = [];
     let m;
-    while ((m = tagPattern.exec(lastJsdoc[0])) !== null) values.push(m[1]);
+    while ((m = tagPattern.exec(lastJsdoc[0])) !== null) {
+        values.push(m[1]);
+    }
     return values;
 }
 
@@ -301,7 +339,9 @@ export function findImportPath(source, identifier) {
  * @returns {string|null}
  */
 export function resolveVuedaPath(importPath, repoRoot) {
-    if (!importPath.startsWith("@vueda/")) return null;
+    if (!importPath.startsWith("@vueda/")) {
+        return null;
+    }
     return path.join(repoRoot, "client", "lib", importPath.slice("@vueda/".length));
 }
 
@@ -371,7 +411,9 @@ function parsePropsEntries(objContent, nestedResolver = null) {
 
         // Single-line comment
         if (ch === "/" && objContent[i + 1] === "/") {
-            while (i < objContent.length && objContent[i] !== "\n") i++;
+            while (i < objContent.length && objContent[i] !== "\n") {
+                i++;
+            }
             continue;
         }
 
@@ -379,7 +421,9 @@ function parsePropsEntries(objContent, nestedResolver = null) {
         if (ch === "/" && objContent[i + 1] === "*") {
             const isJsdoc = objContent[i + 2] === "*";
             const end = objContent.indexOf("*/", i + 2);
-            if (end === -1) break;
+            if (end === -1) {
+                break;
+            }
             if (isJsdoc) {
                 pendingJsdoc =
                     objContent
@@ -399,7 +443,9 @@ function parsePropsEntries(objContent, nestedResolver = null) {
                 i += idMatch[1].length;
                 if (nestedResolver) {
                     const nestedEntries = nestedResolver(idMatch[1]);
-                    if (nestedEntries) entries.push(...nestedEntries);
+                    if (nestedEntries) {
+                        entries.push(...nestedEntries);
+                    }
                 }
             }
             pendingJsdoc = undefined;
@@ -457,14 +503,18 @@ function parseEmitsEntries(arrContent) {
         }
 
         if (ch === "/" && arrContent[i + 1] === "/") {
-            while (i < arrContent.length && arrContent[i] !== "\n") i++;
+            while (i < arrContent.length && arrContent[i] !== "\n") {
+                i++;
+            }
             continue;
         }
 
         if (ch === "/" && arrContent[i + 1] === "*") {
             const isJsdoc = arrContent[i + 2] === "*";
             const end = arrContent.indexOf("*/", i + 2);
-            if (end === -1) break;
+            if (end === -1) {
+                break;
+            }
             if (isJsdoc) {
                 pendingJsdoc =
                     arrContent
@@ -481,7 +531,9 @@ function parseEmitsEntries(arrContent) {
             const q = ch;
             let j = i + 1;
             while (j < arrContent.length && arrContent[j] !== q) {
-                if (arrContent[j] === "\\") j++;
+                if (arrContent[j] === "\\") {
+                    j++;
+                }
                 j++;
             }
             const emitName = arrContent.slice(i + 1, j);
@@ -523,14 +575,18 @@ function parseSlotArrayEntries(arrContent, nestedResolver = null) {
         }
 
         if (ch === "/" && arrContent[i + 1] === "/") {
-            while (i < arrContent.length && arrContent[i] !== "\n") i++;
+            while (i < arrContent.length && arrContent[i] !== "\n") {
+                i++;
+            }
             continue;
         }
 
         if (ch === "/" && arrContent[i + 1] === "*") {
             const isJsdoc = arrContent[i + 2] === "*";
             const end = arrContent.indexOf("*/", i + 2);
-            if (end === -1) break;
+            if (end === -1) {
+                break;
+            }
             if (isJsdoc) {
                 pendingJsdoc =
                     arrContent
@@ -550,7 +606,9 @@ function parseSlotArrayEntries(arrContent, nestedResolver = null) {
                 i += idMatch[1].length;
                 if (nestedResolver) {
                     const nestedEntries = nestedResolver(idMatch[1]);
-                    if (nestedEntries) entries.push(...nestedEntries);
+                    if (nestedEntries) {
+                        entries.push(...nestedEntries);
+                    }
                 }
             }
             pendingJsdoc = undefined;
@@ -562,7 +620,9 @@ function parseSlotArrayEntries(arrContent, nestedResolver = null) {
             const q = ch;
             let j = i + 1;
             while (j < arrContent.length && arrContent[j] !== q) {
-                if (arrContent[j] === "\\") j++;
+                if (arrContent[j] === "\\") {
+                    j++;
+                }
                 j++;
             }
             const slotName = arrContent.slice(i + 1, j);
@@ -594,13 +654,19 @@ function parseSlotArrayEntries(arrContent, nestedResolver = null) {
 export function parseSlotConstant(source, identifier, nestedResolver = null) {
     const exportPattern = new RegExp(`export\\s+const\\s+${identifier}\\s*=\\s*`);
     const exportMatch = exportPattern.exec(source);
-    if (!exportMatch) return null;
+    if (!exportMatch) {
+        return null;
+    }
 
     const valueStart = exportMatch.index + exportMatch[0].length;
-    if (source[valueStart] !== "[") return null;
+    if (source[valueStart] !== "[") {
+        return null;
+    }
 
     const closePos = findBalancedEnd(source, valueStart, "[", "]");
-    if (closePos === -1) return null;
+    if (closePos === -1) {
+        return null;
+    }
 
     const entries = parseSlotArrayEntries(source.slice(valueStart + 1, closePos), nestedResolver);
     return { kind: "slots", entries };
@@ -617,18 +683,26 @@ export function parseSlotConstant(source, identifier, nestedResolver = null) {
 export function parseSpreadFunctionAnnotation(source, identifier) {
     const exportPattern = new RegExp(`export\\s+const\\s+${identifier}\\s*=\\s*`);
     const exportMatch = exportPattern.exec(source);
-    if (!exportMatch) return null;
+    if (!exportMatch) {
+        return null;
+    }
 
     const before = source.slice(0, exportMatch.index);
     const allJsdocs = [...before.matchAll(/\/\*\*([\s\S]*?)\*\//g)];
     const lastJsdoc = allJsdocs.at(-1);
-    if (!lastJsdoc) return null;
+    if (!lastJsdoc) {
+        return null;
+    }
 
     const gap = before.slice(lastJsdoc.index + lastJsdoc[0].length);
-    if (/\S/.test(gap)) return null;
+    if (/\S/.test(gap)) {
+        return null;
+    }
 
     const kindMatch = lastJsdoc[0].match(/@vueda-spread\s+slots\s+([\w$]+)/);
-    if (!kindMatch) return null;
+    if (!kindMatch) {
+        return null;
+    }
 
     return { kind: "slots", constantName: kindMatch[1] };
 }
@@ -645,36 +719,52 @@ export function parseSpreadConstant(source, identifier, nestedResolver = null) {
     // Find the export declaration position first.
     const exportPattern = new RegExp(`export\\s+const\\s+${identifier}\\s*=\\s*`);
     const exportMatch = exportPattern.exec(source);
-    if (!exportMatch) return null;
+    if (!exportMatch) {
+        return null;
+    }
 
     // Find the last complete /** ... */ block before the export declaration.
     const before = source.slice(0, exportMatch.index);
     const allJsdocs = [...before.matchAll(/\/\*\*([\s\S]*?)\*\//g)];
     const lastJsdoc = allJsdocs.at(-1);
-    if (!lastJsdoc) return null;
+    if (!lastJsdoc) {
+        return null;
+    }
     // Require only whitespace between the JSDoc close and the export declaration.
     const gap = before.slice(lastJsdoc.index + lastJsdoc[0].length);
-    if (/\S/.test(gap)) return null;
+    if (/\S/.test(gap)) {
+        return null;
+    }
 
     const jsdoc = lastJsdoc[0];
     const kindMatch = jsdoc.match(/@vueda-spread\s+(props|emits)/);
-    if (!kindMatch) return null;
+    if (!kindMatch) {
+        return null;
+    }
 
     const kind = kindMatch[1];
     const valueStart = exportMatch.index + exportMatch[0].length;
 
     if (kind === "props") {
-        if (source[valueStart] !== "{") return null;
+        if (source[valueStart] !== "{") {
+            return null;
+        }
         const closePos = findBalancedEnd(source, valueStart, "{", "}");
-        if (closePos === -1) return null;
+        if (closePos === -1) {
+            return null;
+        }
         const entries = parsePropsEntries(source.slice(valueStart + 1, closePos), nestedResolver);
         return { kind, entries };
     }
 
     if (kind === "emits") {
-        if (source[valueStart] !== "[") return null;
+        if (source[valueStart] !== "[") {
+            return null;
+        }
         const closePos = findBalancedEnd(source, valueStart, "[", "]");
-        if (closePos === -1) return null;
+        if (closePos === -1) {
+            return null;
+        }
         const entries = parseEmitsEntries(source.slice(valueStart + 1, closePos));
         return { kind, entries };
     }
@@ -817,7 +907,9 @@ export class VueDocgenNormalizer extends Normalizer {
                 };
 
                 for (const entry of spreadSlotEntries) {
-                    if (injectedSlotNames.has(entry.name)) continue;
+                    if (injectedSlotNames.has(entry.name)) {
+                        continue;
+                    }
                     injectedSlotNames.add(entry.name);
                     const slotNode = makeSlotNode(entry, { fromSpread: true });
                     node.children.push(slotNode.id);
@@ -825,7 +917,9 @@ export class VueDocgenNormalizer extends Normalizer {
                 }
 
                 for (const entry of forwardedSlotEntries) {
-                    if (injectedSlotNames.has(entry.name)) continue;
+                    if (injectedSlotNames.has(entry.name)) {
+                        continue;
+                    }
                     injectedSlotNames.add(entry.name);
                     const slotNode = makeSlotNode(entry, { fromForward: true });
                     node.children.push(slotNode.id);
@@ -845,7 +939,9 @@ export class VueDocgenNormalizer extends Normalizer {
 
                 for (const slot of slotsToRender) {
                     // Skip slots already injected via spread or forward.
-                    if (injectedSlotNames.has(slot.name)) continue;
+                    if (injectedSlotNames.has(slot.name)) {
+                        continue;
+                    }
                     const slotNodeId = slotId(id, slot.name);
                     const slotNode = compact({
                         id: slotNodeId,
@@ -915,7 +1011,9 @@ export class VueDocgenNormalizer extends Normalizer {
      */
     _resolveComponentSpreads(filePath) {
         const empty = { propEntries: [], emitEntries: [] };
-        if (!filePath) return empty;
+        if (!filePath) {
+            return empty;
+        }
 
         let componentSource;
         try {
@@ -926,7 +1024,9 @@ export class VueDocgenNormalizer extends Normalizer {
         }
 
         const setupSource = extractScriptBlock(componentSource, true);
-        if (!setupSource) return empty;
+        if (!setupSource) {
+            return empty;
+        }
 
         const propSpreadIds = findSpreadIdentifiersInCall(setupSource, "defineProps", "{", "}");
         const emitSpreadIds = findSpreadIdentifiersInCall(setupSource, "defineEmits", "[", "]");
@@ -938,12 +1038,16 @@ export class VueDocgenNormalizer extends Normalizer {
 
         for (const identifier of propSpreadIds) {
             const result = this._resolveSpreadIdentifier(identifier, absFilePath, componentSource);
-            if (result?.kind === "props") propEntries.push(...result.entries);
+            if (result?.kind === "props") {
+                propEntries.push(...result.entries);
+            }
         }
 
         for (const identifier of emitSpreadIds) {
             const result = this._resolveSpreadIdentifier(identifier, absFilePath, componentSource);
-            if (result?.kind === "emits") emitEntries.push(...result.entries);
+            if (result?.kind === "emits") {
+                emitEntries.push(...result.entries);
+            }
         }
 
         return { propEntries, emitEntries };
@@ -965,7 +1069,9 @@ export class VueDocgenNormalizer extends Normalizer {
         let constantIdentifier = identifier;
 
         if (importMatch) {
-            if (!importMatch.importPath.startsWith("@vueda/")) return null;
+            if (!importMatch.importPath.startsWith("@vueda/")) {
+                return null;
+            }
             constantAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
             constantIdentifier = importMatch.importedName;
             try {
@@ -1005,7 +1111,9 @@ export class VueDocgenNormalizer extends Normalizer {
         let constantIdentifier = identifier;
 
         if (importMatch) {
-            if (!importMatch.importPath.startsWith("@vueda/")) return null;
+            if (!importMatch.importPath.startsWith("@vueda/")) {
+                return null;
+            }
             constantAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
             constantIdentifier = importMatch.importedName;
             try {
@@ -1033,7 +1141,9 @@ export class VueDocgenNormalizer extends Normalizer {
      * @returns {object[]} Slot entry objects `{ name, description? }`
      */
     _resolveComponentSlotSpreads(filePath) {
-        if (!filePath) return [];
+        if (!filePath) {
+            return [];
+        }
 
         let componentSource;
         try {
@@ -1044,7 +1154,9 @@ export class VueDocgenNormalizer extends Normalizer {
         }
 
         const setupSource = extractScriptBlock(componentSource, true);
-        if (!setupSource) return [];
+        if (!setupSource) {
+            return [];
+        }
 
         const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(this._repoRoot, filePath);
         const calledIds = findCalledIdentifiers(setupSource);
@@ -1052,7 +1164,9 @@ export class VueDocgenNormalizer extends Normalizer {
 
         for (const identifier of calledIds) {
             const result = this._resolveSlotSpreadFunction(identifier, absFilePath, componentSource);
-            if (result) entries.push(...result);
+            if (result) {
+                entries.push(...result);
+            }
         }
 
         return entries;
@@ -1068,7 +1182,9 @@ export class VueDocgenNormalizer extends Normalizer {
      */
     _resolveSlotSpreadFunction(identifier, componentAbsPath, componentFullSource) {
         const importMatch = findImportPath(componentFullSource, identifier);
-        if (!importMatch || !importMatch.importPath.startsWith("@vueda/")) return null;
+        if (!importMatch || !importMatch.importPath.startsWith("@vueda/")) {
+            return null;
+        }
 
         const funcAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
         let funcSource;
@@ -1082,7 +1198,9 @@ export class VueDocgenNormalizer extends Normalizer {
         const parseSource = isVue ? extractScriptBlock(funcSource, false) : funcSource;
 
         const annotation = parseSpreadFunctionAnnotation(parseSource, importMatch.importedName);
-        if (!annotation) return null;
+        if (!annotation) {
+            return null;
+        }
 
         return this._resolveSlotConstantEntries(annotation.constantName, funcAbsPath, funcSource);
     }
@@ -1120,7 +1238,9 @@ export class VueDocgenNormalizer extends Normalizer {
         let constantIdentifier = identifier;
 
         if (importMatch) {
-            if (!importMatch.importPath.startsWith("@vueda/")) return null;
+            if (!importMatch.importPath.startsWith("@vueda/")) {
+                return null;
+            }
             constantAbsPath = resolveVuedaPath(importMatch.importPath, this._repoRoot);
             constantIdentifier = importMatch.importedName;
             try {
@@ -1149,7 +1269,9 @@ export class VueDocgenNormalizer extends Normalizer {
      * @returns {object[]}
      */
     _resolveComponentSlotForwards(filePath, extractedSlotMap) {
-        if (!filePath) return [];
+        if (!filePath) {
+            return [];
+        }
 
         let componentSource;
         try {
@@ -1160,7 +1282,9 @@ export class VueDocgenNormalizer extends Normalizer {
         }
 
         const setupSource = extractScriptBlock(componentSource, true);
-        if (!setupSource) return [];
+        if (!setupSource) {
+            return [];
+        }
 
         const componentNames = findComponentTagValues(setupSource, "vueda-slot-forward");
         const entries = [];

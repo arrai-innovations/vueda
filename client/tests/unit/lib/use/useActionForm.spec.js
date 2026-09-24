@@ -228,8 +228,12 @@ describe("lib/use/useActionForm.js", () => {
             const round1 = makeConfirmationError("d1", { count: ["round one"] });
             const round2 = makeConfirmationError("d2", { name: ["round two"] });
             const runAction = vi.fn(({ acknowledgeWarnings }) => {
-                if (acknowledgeWarnings === "d2") return Promise.resolve("ok");
-                if (acknowledgeWarnings === "d1") return Promise.reject(round2);
+                if (acknowledgeWarnings === "d2") {
+                    return Promise.resolve("ok");
+                }
+                if (acknowledgeWarnings === "d1") {
+                    return Promise.reject(round2);
+                }
                 return Promise.reject(round1);
             });
             const props = reactive({ runAction });

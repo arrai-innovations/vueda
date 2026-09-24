@@ -6,12 +6,13 @@ from rest_framework import serializers
 
 
 class AvailableTransitionField(serializers.ListField):
-    def __init__(self):
+    def __init__(self, style=None):
         kwargs = {
             "child": serializers.DictField(read_only=True),
             "read_only": True,
             "required": False,
             "source": "*",
+            "style": style,
         }
         super().__init__(**kwargs)
 

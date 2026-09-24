@@ -17,6 +17,20 @@ fields, actions, and permissions.
 
 The Python package is [vueda on PyPI](https://pypi.org/project/vueda/).
 
+<!-- prettier-ignore-start -->
+<!--TOC-->
+
+- [VUEDA Server](#vueda-server)
+  - [What it provides](#what-it-provides)
+  - [Get started](#get-started)
+  - [Define a model and its API](#define-a-model-and-its-api)
+  - [Configure application behavior](#configure-application-behavior)
+    - [Optional email and SMS dispatch](#optional-email-and-sms-dispatch)
+  - [Contributing](#contributing)
+
+<!--TOC-->
+<!-- prettier-ignore-end -->
+
 ## What it provides
 
 - **Django and REST framework base classes:** models, serializers, viewsets,

@@ -1,4 +1,5 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
+import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
 import {
     formatApiMemberTitle,
     memberAnchorFromId,
@@ -103,15 +104,33 @@ const relativeTimingPath = (value) => {
 
 const timingSectionForPath = (value) => {
     const rel = relativeTimingPath(value).replace(/\.html$/, ".md");
-    if (rel.startsWith("reference/api/js/")) return "reference/api/js";
-    if (rel.startsWith("reference/api/vue/")) return "reference/api/vue";
-    if (rel.startsWith("reference/api/py/")) return "reference/api/py";
-    if (rel.startsWith("reference/api/rest/")) return "reference/api/rest";
-    if (rel.startsWith("reference/theming/")) return "reference/theming";
-    if (rel.startsWith("reference/")) return "reference/authored";
-    if (rel.startsWith("guides/")) return "guides";
-    if (rel.startsWith("tutorials/")) return "tutorials";
-    if (rel.startsWith("core-concepts/")) return "core-concepts";
+    if (rel.startsWith("reference/api/js/")) {
+        return "reference/api/js";
+    }
+    if (rel.startsWith("reference/api/vue/")) {
+        return "reference/api/vue";
+    }
+    if (rel.startsWith("reference/api/py/")) {
+        return "reference/api/py";
+    }
+    if (rel.startsWith("reference/api/rest/")) {
+        return "reference/api/rest";
+    }
+    if (rel.startsWith("reference/theming/")) {
+        return "reference/theming";
+    }
+    if (rel.startsWith("reference/")) {
+        return "reference/authored";
+    }
+    if (rel.startsWith("guides/")) {
+        return "guides";
+    }
+    if (rel.startsWith("tutorials/")) {
+        return "tutorials";
+    }
+    if (rel.startsWith("core-concepts/")) {
+        return "core-concepts";
+    }
     return "other";
 };
 
@@ -845,6 +864,7 @@ export default defineConfig({
                 resolve: (id) => apiIndex.get(id),
                 strict: process.env.NODE_ENV === "production",
             });
+            md.use(changelogDraftPlugin, { render: (pkg) => renderUnreleased(pkg, repoRoot) });
             md.use(glossaryTermPlugin, {
                 resolve: (term) => glossaryIndex.get(normalizeTerm(stripInlineMarkdown(term))),
                 strict: process.env.NODE_ENV === "production",

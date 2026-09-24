@@ -101,7 +101,9 @@ const effectivePlaceholder = computed(
 const closedStateLabel = computed(() => {
     const val = widgetContext.state.combinedValue;
     const isEmpty = val == null || val === "" || (Array.isArray(val) && val.length === 0);
-    if (isEmpty) return null;
+    if (isEmpty) {
+        return null;
+    }
 
     if (props.multiple) {
         const count = Array.isArray(val) ? val.length : 1;
@@ -154,7 +156,9 @@ const filteredDisplayOptions = computed(() => {
         return value !== "" && value != null;
     });
     const q = comboboxSearch.query;
-    if (!q) return opts;
+    if (!q) {
+        return opts;
+    }
     return opts.filter((opt) => {
         const label = opt[props.optionLabel];
         return label != null && contains(String(label), q);
@@ -168,7 +172,9 @@ const textContentFn = computed(() => {
 });
 
 const emptyMessage = computed(() => {
-    if (isApiMode.value) return comboboxSearch.emptyMessage;
+    if (isApiMode.value) {
+        return comboboxSearch.emptyMessage;
+    }
     return comboboxSearch.query ? "No matching results." : "No options available.";
 });
 

@@ -122,7 +122,9 @@ describe("lib/form/field-set/FieldSet*Inline*.vue", () => {
             expect(trigger(wrapper).attributes("aria-expanded")).toBe("false");
             expect(body(wrapper).attributes("hidden")).toBeDefined();
             expect(body(wrapper).text()).toContain(layout.cards ? "Create" : "No Lines yet");
-            if (layout.cards) await trigger(wrapper).trigger("click");
+            if (layout.cards) {
+                await trigger(wrapper).trigger("click");
+            }
             create(wrapper).element.click();
             await flushPromises();
             expect(trigger(wrapper).attributes("aria-expanded")).toBe("true");

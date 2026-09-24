@@ -14,10 +14,14 @@ export const parseFrontmatter = (raw) => {
     const lines = match[1].split(/\r?\n/);
     for (const line of lines) {
         const idx = line.indexOf(":");
-        if (idx <= 0) continue;
+        if (idx <= 0) {
+            continue;
+        }
         const key = line.slice(0, idx).trim();
         const value = line.slice(idx + 1).trim();
-        if (!key) continue;
+        if (!key) {
+            continue;
+        }
         if (value.startsWith('"') || value.startsWith("[")) {
             try {
                 frontmatter[key] = JSON.parse(value);

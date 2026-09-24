@@ -163,3 +163,46 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
         )
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert store_models.InvoiceLine.objects.filter(invoice=invoice).count() == 2  # noqa: PLR2004
+
+
+@pytest.mark.django_db
+class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Invoice Updater": [("store", "Invoice", "update")],
+    }
+    users_to_create: ClassVar[dict] = {
+        "invoice_updater@domain.invalid": {
+            "name": "Invoice Updater",
+            "password": "testpass",
+            "groups": ["Invoice Updater"],
+        },
+    }
+
+    @pytest.mark.parametrize("kept_indexes", [[1], [], [0, 1]], ids=["remove-one", "remove-all", "clear-mark"])
+    def test_parent_update_deletes_only_omitted_children(self, api_client, kept_indexes):
+        api_client.force_authenticate(user=self.users["invoice_updater@domain.invalid"])
+        invoice = store_models.Invoice.objects.create(name="Test Invoice")
+        lines = [
+            store_models.InvoiceLine.objects.create(invoice=invoice, name="First line", amount="10.00"),
+            store_models.InvoiceLine.objects.create(invoice=invoice, name="Second line", amount="20.00"),
+        ]
+        other_invoice = store_models.Invoice.objects.create(name="Other Invoice")
+        other_line = store_models.InvoiceLine.objects.create(invoice=other_invoice, name="Other line", amount="30.00")
+        # Marking a row omits it from the array; clearing the mark includes it again.
+        # This user can update the parent and has no child-model permissions.
+        payload = {
+            "invoice_lines": [
+                {"id": lines[index].pk, "name": lines[index].name, "amount": str(lines[index].amount)}
+                for index in kept_indexes
+            ],
+        }
+        response = api_client.patch(
+            reverse("store.invoice-detail", kwargs={"pk": invoice.pk}),
+            data=payload,
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert set(store_models.InvoiceLine.objects.filter(invoice=invoice).values_list("pk", flat=True)) == {
+            lines[index].pk for index in kept_indexes
+        }
+        assert store_models.InvoiceLine.objects.filter(pk=other_line.pk).exists()

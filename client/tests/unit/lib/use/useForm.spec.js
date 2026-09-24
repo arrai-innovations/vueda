@@ -776,7 +776,9 @@ describe("lib/use/useForm.js", () => {
 
                 scopedIt("ignores invalid indexes and non-array values", () => {
                     const { formContext: form } = getForm({ initialValues: { rows: [1, 2], text: "abc" } });
-                    for (const index of [-1, 2, 0.5, NaN]) form.removeArrayItem("rows", index);
+                    for (const index of [-1, 2, 0.5, NaN]) {
+                        form.removeArrayItem("rows", index);
+                    }
                     form.removeArrayItem("text", 0);
                     expect(form.state.values).toEqual({ rows: [1, 2], text: "abc" });
                 });
@@ -2209,6 +2211,77 @@ describe("lib/use/useForm.js", () => {
                     expect(formContext.unregisterLabel("unknown-id")).toBe(false);
                     await flushPromises();
                     expect(formContext.state.labels).toEqual({ field1: "Field One" });
+                });
+            });
+            describe("registerShowsErrors", () => {
+                scopedIt("should return a registration id", () => {
+                    const { formContext } = getForm({});
+                    const id = formContext.registerShowsErrors("field1", () => true);
+                    expect(id).toBeTruthy();
+                });
+
+                scopedIt("should record whether the field shows its own errors", async () => {
+                    const { formContext } = getForm({});
+                    expect(formContext.state.showsErrors).toEqual({});
+
+                    formContext.registerShowsErrors("field1", () => true);
+                    formContext.registerShowsErrors("field2", () => false);
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: true, field2: false });
+                });
+
+                scopedIt("should reflect the hook's current value reactively, without re-registering", async () => {
+                    const { formContext } = getForm({});
+                    const hidden = vue.ref(false);
+                    formContext.registerShowsErrors("field1", () => !hidden.value);
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: true });
+
+                    hidden.value = true;
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: false });
+                });
+
+                scopedIt("should report true when any registration for a name shows errors", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerShowsErrors("field1", () => false);
+                    formContext.registerShowsErrors("field1", () => true);
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: true });
+                });
+            });
+            describe("unregisterShowsErrors", () => {
+                scopedIt("should drop the field's entry when its only registration is unregistered", async () => {
+                    const { formContext } = getForm({});
+                    const id = formContext.registerShowsErrors("field1", () => true);
+                    await flushPromises();
+
+                    formContext.unregisterShowsErrors(id);
+                    await flushPromises();
+                    // No entry at all, as distinct from `false`: the form no longer knows of a
+                    // rendered field for this name.
+                    expect(formContext.state.showsErrors).toEqual({});
+                });
+
+                scopedIt("should leave a surviving registration in place", async () => {
+                    const { formContext } = getForm({});
+                    const outgoingId = formContext.registerShowsErrors("field1", () => true);
+                    formContext.registerShowsErrors("field1", () => true);
+                    await flushPromises();
+
+                    formContext.unregisterShowsErrors(outgoingId);
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: true });
+                });
+
+                scopedIt("should do nothing for an unknown registration id", async () => {
+                    const { formContext } = getForm({});
+                    formContext.registerShowsErrors("field1", () => true);
+                    await flushPromises();
+
+                    expect(formContext.unregisterShowsErrors("unknown-id")).toBe(false);
+                    await flushPromises();
+                    expect(formContext.state.showsErrors).toEqual({ field1: true });
                 });
             });
         });
