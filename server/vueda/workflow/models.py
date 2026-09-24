@@ -1,7 +1,6 @@
 """Workflow state machine models: workflows, states, transitions, permissions, and object state tracking."""
 
 __all__ = (
-    "HasWorkflowModelMixin",
     "InitialState",
     "ObjectState",
     "ObjectStateProxy",
@@ -11,7 +10,11 @@ __all__ = (
     "TransitionPermission",
     "TransitionSource",
     "Workflow",
+    "WorkflowModelMethods",
     "WorkflowPermission",
+    "ensure_object_state",
+    "get_workflow_for_model",
+    "objects_without_object_state",
 )
 
 from collections import defaultdict
@@ -38,6 +41,7 @@ from vueda.history.apps import track_model
 from vueda.history.revision import object_revision
 from vueda.history.snapshots import last_recorded
 from vueda.workflow.exceptions import InvalidTransitionError
+from vueda.workflow.exceptions import WorkflowNotConfiguredError
 
 
 User = get_user_model()
@@ -467,7 +471,7 @@ class TransitionSource(models.Model):
 class ObjectStateProxy(models.Model):
     """
     A view that adds workflow's content type as a calculated field on object state.
-    Used for HasWorkflowMixin.object_states GenericRelation (reverse GenericForeignKey).
+    Used for the object_states_proxy GenericRelation that workflow adds to each workflow model (reverse GenericForeignKey).
     """
 
     workflow = models.ForeignKey(
@@ -547,8 +551,32 @@ track_model(TransitionSource)
 track_model(ObjectState)
 
 
+def get_workflow_for_model(model) -> Workflow:
+    """Return the ``Workflow`` of ``model``, which enables ``class Vueda.Workflow``.
+
+    Every read of a workflow model's definition goes through here, so a missing one raises
+    ``WorkflowNotConfiguredError`` wherever it is first needed instead of reading as "no workflow".
+    A proxy resolves to its concrete model's definition.
+    """
+    workflow = Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).first()
+    if workflow is None:
+        raise WorkflowNotConfiguredError(model._meta.concrete_model)
+    return workflow
+
+
+def objects_without_object_state(model, workflow):
+    """Return the objects of ``model`` that have no ``ObjectState`` row in ``workflow``.
+
+    Read through the base manager, so a default manager that hides rows does not hide them here. An
+    object in this queryset has no current state, which leaves it out of state filters and state
+    grants and makes its transitions fail. ``backfillworkflowstates`` gives each one the initial state.
+    """
+    with_state = ObjectState.objects.filter(workflow=workflow).values("object_id")
+    return model._base_manager.exclude(pk__in=with_state)
+
+
 def _permitted_transition_ids(
-    model: type["HasWorkflowModelMixin"],
+    model: type["WorkflowModelMethods"],
     transitions: list[Transition],
     state_by_object: dict[int, int],
     user: User,
@@ -585,52 +613,29 @@ def _permitted_transition_ids(
     return [transition.id for transition in transitions if transition.id in permitted_ids]
 
 
-class HasWorkflowModelMixin(models.Model):
+class WorkflowModelMethods:
     """
     Model-level utility methods for objects with workflow.
-    """
 
-    # there is no generic one to one, so this is plural despite the fact that there is only one
-    object_states_proxy = GenericRelation(
-        ObjectStateProxy,
-    )
+    A model does not subclass this directly. ``class Vueda.Workflow`` with ``enabled = True`` makes
+    the workflow app append it to the model's bases once Django prepares the model, so it sits last
+    in the method resolution order. A method the model or any of its bases defines takes precedence,
+    and an override can still call ``super()`` to reach the default here.
+    """
 
     # Populated only inside ``cached_workflow_state``; ``None`` means "read through to the database".
     _workflow_state_cache: dict | None = None
-
-    class Meta:
-        abstract = True
-
-    if django.VERSION >= (6, 0):
-
-        def save(self, **kwargs):
-            """
-            Save the object and create a workflow object if it doesn't exist.
-            """
-            super().save(**kwargs)
-            if not self.object_state:
-                self.create_object_state()
-    else:
-
-        def save(self, *args, **kwargs):
-            """
-            Save the object and create a workflow object if it doesn't exist.
-            """
-            super().save(*args, **kwargs)
-            if not self.object_state:
-                self.create_object_state()
 
     def create_object_state(self):
         """
         Create a workflow object for this object.
         """
         workflow = self.workflow
-        if workflow:
-            ObjectState.objects.create(
-                workflow=workflow,
-                object_id=self.id,
-                state=workflow.initial_state.state,
-            )
+        ObjectState.objects.create(
+            workflow=workflow,
+            object_id=self.id,
+            state=workflow.initial_state.state,
+        )
 
     @classmethod
     def get_content_type(cls) -> ContentType:
@@ -663,12 +668,12 @@ class HasWorkflowModelMixin(models.Model):
             self._workflow_state_cache = None
 
     @property
-    def workflow(self) -> Workflow | None:
-        """Return the ``Workflow`` configured for this model, or ``None`` if none exists."""
+    def workflow(self) -> Workflow:
+        """Return the ``Workflow`` configured for this model. Raises ``WorkflowNotConfiguredError`` if none exists."""
         cache = self._workflow_state_cache
         if cache is not None and "workflow" in cache:
             return cache["workflow"]
-        workflow = Workflow.objects.filter(content_type=self.get_content_type()).first()
+        workflow = get_workflow_for_model(type(self))
         if cache is not None:
             cache["workflow"] = workflow
         return workflow
@@ -699,12 +704,9 @@ class HasWorkflowModelMixin(models.Model):
         current state, and state rules are read once rather than once per candidate transition.
         """
         with self.cached_workflow_state():
-            if (
-                user is not None
-                and not WorkflowPermission.objects.filter(
-                    workflow__content_type=self.get_content_type(),
-                ).exists()
-            ):
+            # Resolved first, so a missing definition is reported as one rather than as a denial.
+            workflow = self.workflow
+            if user is not None and not WorkflowPermission.objects.filter(workflow=workflow).exists():
                 raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
             transitions = self.fast_available_transitions()
             return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
@@ -727,7 +729,7 @@ class HasWorkflowModelMixin(models.Model):
     @classmethod
     def available_transitions_for(
         cls,
-        objs: list["HasWorkflowModelMixin"] | list[int] | QuerySet["HasWorkflowModelMixin"],
+        objs: list["WorkflowModelMethods"] | list[int] | QuerySet["WorkflowModelMethods"],
         user: User | None = None,
     ) -> QuerySet[Transition]:
         """
@@ -741,7 +743,7 @@ class HasWorkflowModelMixin(models.Model):
         depends on the object it receives. This classmethod therefore loads the concrete instances
         and asks each candidate object rather than asking the model class.
         """
-        workflow = Workflow.objects.get(content_type=cls.get_content_type())
+        workflow = get_workflow_for_model(cls)
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in workflow.workflow_permissions.values_list(
@@ -791,7 +793,7 @@ class HasWorkflowModelMixin(models.Model):
         # programmatic use
         if user is None:
             return True
-        workflow = Workflow.objects.get(content_type=cls.get_content_type())
+        workflow = get_workflow_for_model(cls)
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in WorkflowPermission.objects.filter(
@@ -894,16 +896,10 @@ class HasWorkflowModelMixin(models.Model):
         what is wanted.
         """
         with self.cached_workflow_state():
-            if (
-                user is not None
-                and not WorkflowPermission.objects.filter(
-                    workflow__content_type=self.get_content_type(),
-                ).exists()
-            ):
-                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            # Resolved first, so a missing definition is reported as one rather than as a denial.
             workflow = self.workflow
-            if workflow is None:
-                return False
+            if user is not None and not WorkflowPermission.objects.filter(workflow=workflow).exists():
+                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
             # The single-transition form of the source-state filter in fast_available_transitions.
             if not TransitionSource.objects.filter(
                 transition=transition,
@@ -1045,3 +1041,15 @@ class HasWorkflowModelMixin(models.Model):
         """
         Override this method to add custom logic when a transition is intentionally ignored.
         """
+
+
+def ensure_object_state(sender, instance, raw=False, **kwargs):
+    """``post_save`` receiver that gives a saved workflow object its ``ObjectState`` if it has none.
+
+    It receives every model's saves, including a proxy's, whose sender is the proxy class. A raw save
+    loads a fixture, which carries its own object state rows, so it creates nothing.
+    """
+    if raw or not isinstance(instance, WorkflowModelMethods):
+        return
+    if not instance.object_state:
+        instance.create_object_state()

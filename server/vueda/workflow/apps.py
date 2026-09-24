@@ -1,6 +1,7 @@
 """AppConfig for the vueda.workflow application, and its ``class Vueda`` feature section."""
 
 __all__ = (
+    "OBJECT_STATES_PROXY_FIELD",
     "WORKFLOW_SECTION",
     "WorkflowConfig",
 )
@@ -12,31 +13,63 @@ from vueda.core.features import FeatureSection
 from vueda.core.features import register_feature_section
 
 
-def _validate_workflow_section(model, options):
-    """Report an explicit workflow choice that this release cannot honour yet.
+# The generic relation to ``ObjectStateProxy`` that ``_contribute_workflow`` adds under this name.
+OBJECT_STATES_PROXY_FIELD = "object_states_proxy"
 
-    Workflow participation still follows ``HasWorkflowModelMixin`` inheritance together with the
-    matching serializer, view, and filterset mixins. Until the workflow integration derives from
-    this policy, an explicit ``enabled`` that disagrees with the model's base classes would be
-    accepted and then ignored, so it is a configuration error instead.
+
+def _workflow_attribute_names():
+    """Return every attribute name that an enabled model receives from the workflow app."""
+    from vueda.workflow.models import WorkflowModelMethods
+
+    names = {name for name in dir(WorkflowModelMethods) if not name.startswith("__")}
+    return names - set(dir(object)) | {OBJECT_STATES_PROXY_FIELD}
+
+
+def _validate_workflow_section(model, options):
+    """Report a model field whose name would hide a workflow attribute on an enabled model.
+
+    A method the model defines is an intentional override and stays allowed. A field is not: a
+    ``workflow`` foreign key, for example, would replace the property that workflow permission
+    checks read. A model that already inherits the workflow methods from an enabled concrete parent
+    received its generic relation from that parent, so it is not checked again.
     """
-    if not options.is_declared("enabled"):
+    if not options["enabled"]:
         return []
 
-    from vueda.workflow.models import HasWorkflowModelMixin
+    from vueda.workflow.models import WorkflowModelMethods
 
-    participates = issubclass(model, HasWorkflowModelMixin)
-    if options["enabled"] and not participates:
-        return [
-            f"{model.__name__} declares enabled = True but does not subclass HasWorkflowModelMixin, which is what "
-            "currently opts a model into workflow. Subclass HasWorkflowModelMixin as well."
-        ]
-    if not options["enabled"] and participates:
-        return [
-            f"{model.__name__} declares enabled = False but subclasses HasWorkflowModelMixin, which currently opts "
-            "a model into workflow regardless of this policy. Stop subclassing HasWorkflowModelMixin as well."
-        ]
-    return []
+    if issubclass(model, WorkflowModelMethods):
+        return []
+
+    meta = model._meta
+    field_names = {field.name for field in (*meta.fields, *meta.many_to_many, *meta.private_fields)}
+    return [
+        f"{model.__name__} declares a field named {name!r}, which workflow needs for itself. Rename the field."
+        for name in sorted(field_names & _workflow_attribute_names())
+    ]
+
+
+def _contribute_workflow(model, options):
+    """Give a model whose ``class Vueda.Workflow`` policy enables workflow its workflow behaviour.
+
+    ``WorkflowModelMethods`` goes last in the bases, so the model's own definitions and those of
+    its other bases take precedence, and an override reaches the default through ``super()``. A
+    child of an enabled concrete parent already inherits both the methods and the relation.
+    """
+    if not options["Workflow"]["enabled"]:
+        return
+
+    from django.contrib.contenttypes.fields import GenericRelation
+
+    from vueda.workflow.models import ObjectStateProxy
+    from vueda.workflow.models import WorkflowModelMethods
+
+    if not issubclass(model, WorkflowModelMethods):
+        model.__bases__ = (*model.__bases__, WorkflowModelMethods)
+
+    if not any(field.name == OBJECT_STATES_PROXY_FIELD for field in model._meta.private_fields):
+        # There is no generic one to one, so this is plural although each object has one state.
+        model.add_to_class(OBJECT_STATES_PROXY_FIELD, GenericRelation(ObjectStateProxy))
 
 
 WORKFLOW_SECTION = register_feature_section(
@@ -45,6 +78,7 @@ WORKFLOW_SECTION = register_feature_section(
         app_label="vueda_workflow",
         options={"enabled": FeatureOption(default=False, types=(bool,))},
         validate=_validate_workflow_section,
+        contribute=_contribute_workflow,
     )
 )
 
@@ -53,3 +87,17 @@ class WorkflowConfig(AppConfig):
     name = "vueda.workflow"
     label = "vueda_workflow"
     verbose_name = "VUEDA Workflow"
+
+    def ready(self):
+        from django.core.checks import Tags
+        from django.core.checks import register
+        from django.db.models.signals import post_save
+
+        from vueda.workflow.checks import check_workflow_definitions
+        from vueda.workflow.models import ensure_object_state
+
+        register(check_workflow_definitions, Tags.database)
+
+        # Connected once for every sender rather than per model, because saving a proxy sends the
+        # proxy class, which never passes through the feature-policy contributor.
+        post_save.connect(ensure_object_state, dispatch_uid="vueda.workflow.ensure_object_state")

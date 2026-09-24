@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework import status as drf_status
 from rest_framework.response import Response
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_open_api_parameter
 from vueda.core.views import DynamicObjectView
@@ -58,15 +59,21 @@ class WorkflowStateHistoryView(DynamicObjectView):
         responses={200: ObjectHistoryRecordSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
-        object_state = getattr(self.object, "object_state", None)
+        from vueda.workflow.models import State
+        from vueda.workflow.models import get_workflow_for_model
+
+        object_state = None
+        if workflow_enabled(self.object):
+            # Raises WorkflowNotConfiguredError for a missing definition, rather than reporting an
+            # object without history.
+            get_workflow_for_model(type(self.object))
+            object_state = self.object.object_state
         if object_state is None:
             return Response(
                 data={"detail": "Object does not have a workflow state history."},
                 exception=Exception("Object does not have a workflow state history."),
                 status=drf_status.HTTP_404_NOT_FOUND,
             )
-
-        from vueda.workflow.models import State
 
         event_model = type(object_state).pgh_event_model
         events = event_model.objects.filter(pgh_obj_id=object_state.pk).order_by("pgh_id")

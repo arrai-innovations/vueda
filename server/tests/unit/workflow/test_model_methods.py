@@ -24,7 +24,7 @@ from vueda.workflow.models import WorkflowPermission
 
 
 @pytest.mark.django_db
-class TestHasWorkflowModelMixin(BaseTestGroupMixin, BaseTestUserMixin):
+class TestWorkflowModelMethods(BaseTestGroupMixin, BaseTestUserMixin):
     groups_to_create: ClassVar[dict] = {"Order Workflow Managers": []}
     users_to_create: ClassVar[dict] = {
         "workflow-user@domain.invalid": {

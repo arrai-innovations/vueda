@@ -52,9 +52,9 @@ This registers two sets of endpoints under the `routes/` prefix:
 
 After registering the URLs, restart your server to apply the changes.
 
-## Add the Workflow Mixin to Your Model
+## Enable Workflow on Your Model
 
-To use workflow, add `HasWorkflowModelMixin` to your model. This mixin creates an `ObjectState` record on save, tracks state, and offers methods to query or execute transitions.
+To use workflow, declare `class Vueda.Workflow` with `enabled = True` on your model. VUEDA then creates an `ObjectState` record on save, tracks state, and adds methods to query or execute transitions. The model's serializers and filtersets receive the workflow fields and the `workflow_state` filter without further changes.
 
 Update your model in `server/your_project/inventory/models.py`:
 
@@ -62,21 +62,24 @@ Update your model in `server/your_project/inventory/models.py`:
 from django.db import models
 
 from vueda.core.models import BaseModelMeta, Lookup, VuedaModel
-from vueda.workflow.models import HasWorkflowModelMixin  # [!code ++]
 
 
-class Product(HasWorkflowModelMixin, VuedaModel):  # [!code ++]
+class Product(VuedaModel):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64, unique=True)
     description = models.TextField(blank=True)
+
+    class Vueda:  # [!code ++]
+        class Workflow:  # [!code ++]
+            enabled = True  # [!code ++]
 
     class Meta(BaseModelMeta):
         ordering = ["name", "id"]
 ```
 
-Place `HasWorkflowModelMixin` before `VuedaModel` in the inheritance list so its `save()` override runs first.
+Enabling workflow needs no new migration for your model. It adds no database columns, and it tracks per-instance state in the `ObjectState` table from the `vueda.workflow` migrations.
 
-Once the mixin is added, you can proceed without new migrations. The mixin is abstract and does not add database columns; it uses the existing `ObjectState` table (from `vueda.workflow` migrations) to track per-instance state via a generic relation.
+Until the model has a workflow definition, saving a `Product` raises `WorkflowNotConfiguredError`. Create the definition next.
 
 ## Create a Workflow Definition
 
@@ -91,7 +94,7 @@ Choose how you want to create your workflow definition. The following options ca
 
 ### Option A: Debug Admin UI
 
-When `DEBUG=True`, go to `http://localhost:8000/routes/vueda.workflow/overview/` in your browser. Log in as a superuser if needed. This page lists workflows and flags models that implement `HasWorkflowModelMixin` but have no workflow definition.
+When `DEBUG=True`, go to `http://localhost:8000/routes/vueda.workflow/overview/` in your browser. Log in as a superuser if needed. This page lists workflows and flags models that enable workflow but have no workflow definition.
 
 1. On the overview page, click **Add** to start a new workflow. Choose the content type for your model (for example, `inventory | product`). Enter a code and a descriptive name for the workflow, then save it.
 2. After creating the workflow, go to its edit page. Click **Add State** to define each state your model should support (for example, `draft` and `published`). Save each state as you add it.

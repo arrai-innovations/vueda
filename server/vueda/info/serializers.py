@@ -24,7 +24,6 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
-from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
@@ -36,7 +35,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
-from vueda.core.installed_apps import workflow_is_installed
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
@@ -122,10 +121,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     verbose_name = serializers.SerializerMethodField()
     verbose_name_plural = serializers.SerializerMethodField()
+    workflow_enabled = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentType
-        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural"]
+        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"]
         expandable_fields = {
             "model_permissions": serializers.SerializerMethodField,
             "model_fields": serializers.SerializerMethodField,
@@ -146,42 +146,26 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
 
+    def get_workflow_enabled(self, instance: object) -> bool:
+        """Whether the model enables ``class Vueda.Workflow``, so a client may offer workflow controls.
+
+        This describes the interface, not what the viewer may do. The workflow endpoints still decide
+        which transitions a user may see and take.
+        """
+        return workflow_enabled(instance.model_class())
+
     @property
     def data(self):
-        if not workflow_is_installed():
-            return super().data
+        model = self.canonical["serializer"].Meta.model
 
-        # Local imports, because the workflow app is optional.
-        from vueda.workflow.models import HasWorkflowModelMixin
-        from vueda.workflow.models import Workflow
-        from vueda.workflow.serializers import HasWorkflowSerializerMixin
-        from vueda.workflow.views import HasWorkflowViewMixin
+        if workflow_enabled(model):
+            # Local import, because the workflow app is optional. Raises WorkflowNotConfiguredError,
+            # which the exception handler reports, when the model has no workflow definition.
+            from vueda.workflow.models import get_workflow_for_model
 
-        serializer = self.canonical["serializer"]
-        viewset = self.canonical["viewset"]
-        model = serializer.Meta.model
+            get_workflow_for_model(model)
 
-        errors = []
-
-        if not issubclass(model, HasWorkflowModelMixin):
-            errors.append(f"{model.__name__} is missing HasWorkflowModelMixin inheritance.")
-
-        if not issubclass(serializer, HasWorkflowSerializerMixin):
-            errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")
-
-        if viewset is not None and not issubclass(viewset, HasWorkflowViewMixin):
-            errors.append(f"{viewset.__name__} is missing HasWorkflowViewMixin inheritance.")
-
-        if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
-            errors.append(f"{model.__name__} has no workflow configured.")
-
-        # If the length of errors becomes 4 (everything errored) or 3 if no viewset,
-        # then workflow is not set up for this model.
-        if errors and len(errors) != (4 if viewset is not None else 3):
-            raise ImproperlyConfigured(errors)
-
-        ret = super().data
-        return ret
+        return super().data
 
     def get_model_permissions(self, instance):
         """

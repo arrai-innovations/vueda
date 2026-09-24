@@ -1,41 +1,38 @@
 from tests.erring.models import workflow_mixins as my_models
 from tests.erring.serializers import workflow_mixins as my_serializers
 from vueda.core.viewsets import VuedaViewSet
-from vueda.workflow.views import HasWorkflowViewMixin
 
 
 # The following are used for these class names, so the names don't get to long:
 
-# Mo - Model inherits HasWorkflowSerializerMixin
-# Mx - Model doesn't inherit HasWorkflowSerializerMixin
+# Mo - Model enables class Vueda.Workflow
+# Mx - Model doesn't enable class Vueda.Workflow
 
-# So - Serializer inherits HasWorkflowSerializerMixin
-# Sx - Serializer doesn't inherit HasWorkflowSerializerMixin
-
-# Vo - Viewset inherits HasWorkflowViewMixin
-# Vx - Viewset doesn't inherit HasWorkflowViewMixin
+# So / Sx - Serializer once did / did not inherit a workflow serializer mixin
+# Vo / Vx - Viewset once did / did not inherit a workflow view mixin
 # Vz - No Viewset
+# Workflow no longer depends on the serializer or viewset, so So/Sx and Vo/Vx now behave the same.
 
 # Wo - Has Workflow
 # Wx - No Workflow
 
 
-class MoSoVoWoViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MoSoVoWoViewSet(VuedaViewSet):
     queryset = my_models.MoSoVoWo.objects.all()
     serializer_class = my_serializers.MoSoVoWoSerializer
 
 
-class MxSoVoWoViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MxSoVoWoViewSet(VuedaViewSet):
     queryset = my_models.MxSoVoWo.objects.all()
     serializer_class = my_serializers.MxSoVoWoSerializer
 
 
-class MoSxVoWoViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MoSxVoWoViewSet(VuedaViewSet):
     queryset = my_models.MoSxVoWo.objects.all()
     serializer_class = my_serializers.MoSxVoWoSerializer
 
 
-class MxSxVoWoViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MxSxVoWoViewSet(VuedaViewSet):
     queryset = my_models.MxSxVoWo.objects.all()
     serializer_class = my_serializers.MxSxVoWoSerializer
 
@@ -60,22 +57,22 @@ class MxSxVxWoViewSet(VuedaViewSet):
     serializer_class = my_serializers.MxSxVxWoSerializer
 
 
-class MoSoVoWxViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MoSoVoWxViewSet(VuedaViewSet):
     queryset = my_models.MoSoVoWx.objects.all()
     serializer_class = my_serializers.MoSoVoWxSerializer
 
 
-class MxSoVoWxViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MxSoVoWxViewSet(VuedaViewSet):
     queryset = my_models.MxSoVoWx.objects.all()
     serializer_class = my_serializers.MxSoVoWxSerializer
 
 
-class MoSxVoWxViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MoSxVoWxViewSet(VuedaViewSet):
     queryset = my_models.MoSxVoWx.objects.all()
     serializer_class = my_serializers.MoSxVoWxSerializer
 
 
-class MxSxVoWxViewSet(HasWorkflowViewMixin, VuedaViewSet):
+class MxSxVoWxViewSet(VuedaViewSet):
     queryset = my_models.MxSxVoWx.objects.all()
     serializer_class = my_serializers.MxSxVoWxSerializer
 

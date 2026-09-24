@@ -231,10 +231,14 @@ Override `get_warnings` itself instead when bulk needs different or bulk-optimiz
 
 A targetless custom action has no queryset and no single instance for either hook to key by; it calls `gate_warnings` directly from the action body instead (see the custom action example below), rather than overriding either hook here.
 
-**Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model using {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}:
+**Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model that enables workflow. The default comes from {@api py:class:vueda.workflow.models.WorkflowModelMethods}:
 
 ```python
-class Order(HasWorkflowModelMixin, models.Model):
+class Order(VuedaModel):
+    class Vueda:
+        class Workflow:
+            enabled = True
+
     def get_transition_warnings(self, transition, user=None):
         if transition.code == "cancel" and self.paid:
             return {"non_field_errors": ["Cancelling a paid order issues a refund."]}

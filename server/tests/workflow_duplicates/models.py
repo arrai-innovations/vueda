@@ -1,11 +1,14 @@
 from django.db import models
 
 from vueda.core.models import VuedaModel
-from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class WorkflowDuplicates(HasWorkflowModelMixin, VuedaModel):
+class WorkflowDuplicates(VuedaModel):
     name = models.CharField(max_length=50, blank=True)
+
+    class Vueda:
+        class Workflow:
+            enabled = True
 
     class Meta(VuedaModel.Meta):
         pass

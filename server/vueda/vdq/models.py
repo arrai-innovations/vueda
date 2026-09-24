@@ -46,7 +46,6 @@ from vueda.core.models import BaseModelMeta
 from vueda.core.models import VuedaModel
 from vueda.vdq.celery import cancel_task
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
-from vueda.workflow.models import HasWorkflowModelMixin
 
 
 class BaseSender(VuedaModel):
@@ -83,7 +82,7 @@ SEND_METHOD_CHOICES = (
 )
 
 
-class QueueItem(VuedaModel, HasWorkflowModelMixin):
+class QueueItem(VuedaModel):
     sender = models.ForeignKey(
         swapper.get_model_name("vueda_vdq", "Sender"),
         on_delete=models.PROTECT,
@@ -104,6 +103,10 @@ class QueueItem(VuedaModel, HasWorkflowModelMixin):
     done_since = models.DateTimeField(default=timezone.now)
     task_id = models.CharField(max_length=255, default="", blank=True)
     formatted_name = None
+
+    class Vueda:
+        class Workflow:
+            enabled = True
 
     class Meta(BaseModelMeta):
         default_related_name = "queue_items"

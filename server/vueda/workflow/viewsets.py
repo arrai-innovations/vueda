@@ -2,6 +2,7 @@
 
 __all__ = ("WorkflowViewSet",)
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
@@ -15,14 +16,15 @@ from rest_framework.response import Response
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
-from vueda.workflow.models import HasWorkflowModelMixin
 from vueda.workflow.models import Workflow
+from vueda.workflow.models import get_workflow_for_model
 from vueda.workflow.permissions import WorkflowObjectPermissions
 from vueda.workflow.serializers import WorkflowSerializer
 
@@ -53,11 +55,21 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return Workflow.objects.all()
 
     def get_workflow(self):
-        return get_object_or_404(
-            Workflow,
-            content_type__app_label=self.kwargs["app_label"],
-            content_type__model=self.kwargs["model"].replace("_", ""),
+        """Return the workflow of the model the request names.
+
+        A model that does not enable ``class Vueda.Workflow`` has no workflow here, whatever rows
+        exist, and raises ``Http404``. An enabled model without a definition raises
+        ``WorkflowNotConfiguredError``.
+        """
+        content_type = get_object_or_404(
+            ContentType,
+            app_label=self.kwargs["app_label"],
+            model=self.kwargs["model"].replace("_", ""),
         )
+        model = content_type.model_class()
+        if model is None or not workflow_enabled(model):
+            raise Http404("No workflow matches the given query.")
+        return get_workflow_for_model(model)
 
     def get_object(self):
         """Return the target object, checking its permissions, or the workflow the request names."""
@@ -129,7 +141,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         # get_object has already checked this object's read permission, so reaching here means the
         # caller may read the object whose state this reports.
         instance = self.get_object()
-        if not isinstance(instance, HasWorkflowModelMixin):
+        if not workflow_enabled(instance):
             return Response(
                 data={"detail": "Object does not have a workflow."},
                 exception=Exception("Object does not have a workflow."),

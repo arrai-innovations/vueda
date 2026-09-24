@@ -18,6 +18,7 @@ from django.http import Http404
 from rest_framework import exceptions
 from rest_framework.permissions import DjangoObjectPermissions
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.utils import ActionView
 from vueda.core.utils import AvailableActionsRequest
@@ -40,16 +41,13 @@ def has_matching_state_grant(model, user, required_permissions) -> bool:
 
     from django.contrib.contenttypes.models import ContentType
 
-    from vueda.workflow.models import HasWorkflowModelMixin
     from vueda.workflow.models import StatePermission
-    from vueda.workflow.models import Workflow
+    from vueda.workflow.models import get_workflow_for_model
 
-    if not issubclass(model, HasWorkflowModelMixin):
+    if not workflow_enabled(model):
         return False
 
-    workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-    if workflow is None:
-        return False
+    workflow = get_workflow_for_model(model)
 
     codenames = [permission.rsplit(".", maxsplit=1)[-1] for permission in required_permissions]
     return StatePermission.objects.filter(
@@ -363,14 +361,12 @@ def has_row_dependent_authorization(model) -> bool:
     if getattr(model, "RowLevelPermissions", None) is not None:
         return True
 
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        from django.contrib.contenttypes.models import ContentType
+    if workflow_enabled(model):
+        from vueda.workflow.models import get_workflow_for_model
 
-        from vueda.workflow.models import HasWorkflowModelMixin
-        from vueda.workflow.models import Workflow
-
-        if issubclass(model, HasWorkflowModelMixin):
-            return Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists()
+        # Raises when the definition is missing, rather than reading the model as row-independent.
+        get_workflow_for_model(model)
+        return True
 
     return False
 
@@ -409,63 +405,61 @@ def filter_rows_for_user(queryset, user, perm_type="list"):
 
     # Workflow state permissions are an authorization overlay, not an opt-in row-level hook.
     # Apply them even when the model does not define RowLevelPermissions.
-    if "vueda.workflow" in settings.INSTALLED_APPS:
-        from vueda.workflow.models import HasWorkflowModelMixin
+    if workflow_enabled(model):
+        from django.contrib.contenttypes.models import ContentType
+        from django.db.models import Exists
+        from django.db.models import OuterRef
+
         from vueda.workflow.models import StatePermission
-        from vueda.workflow.models import Workflow
+        from vueda.workflow.models import get_workflow_for_model
 
-        if issubclass(model, HasWorkflowModelMixin):
-            workflow = Workflow.objects.filter(content_type=model.get_content_type()).first()
-            if workflow:
-                from django.contrib.contenttypes.models import ContentType
-                from django.db.models import Exists
-                from django.db.models import OuterRef
+        workflow = get_workflow_for_model(model)
 
-                codename = perm.rsplit(".", maxsplit=1)[-1]
-                content_type = ContentType.objects.get_for_model(model)
+        codename = perm.rsplit(".", maxsplit=1)[-1]
+        content_type = ContentType.objects.get_for_model(model)
 
-                state_denied = Exists(
-                    StatePermission.objects.filter(
-                        state=OuterRef("object_states_proxy__state"),
-                        state__workflow=workflow,
-                        permission__codename=codename,
-                        permission__content_type=content_type,
-                        group__in=user.groups.all(),
-                        grant_or_deny=False,
-                    )
-                )
-                state_granted = Exists(
-                    StatePermission.objects.filter(
-                        state=OuterRef("object_states_proxy__state"),
-                        state__workflow=workflow,
-                        permission__codename=codename,
-                        permission__content_type=content_type,
-                        group__in=user.groups.all(),
-                        grant_or_deny=True,
-                    )
-                )
-                queryset = queryset.annotate(
-                    _state_denied=state_denied,
-                    _state_granted=state_granted,
-                )
+        state_denied = Exists(
+            StatePermission.objects.filter(
+                state=OuterRef("object_states_proxy__state"),
+                state__workflow=workflow,
+                permission__codename=codename,
+                permission__content_type=content_type,
+                group__in=user.groups.all(),
+                grant_or_deny=False,
+            )
+        )
+        state_granted = Exists(
+            StatePermission.objects.filter(
+                state=OuterRef("object_states_proxy__state"),
+                state__workflow=workflow,
+                permission__codename=codename,
+                permission__content_type=content_type,
+                group__in=user.groups.all(),
+                grant_or_deny=True,
+            )
+        )
+        queryset = queryset.annotate(
+            _state_denied=state_denied,
+            _state_granted=state_granted,
+        )
 
-                if user.has_perm(perm):
-                    queryset = queryset.filter(_state_denied=False)
-                else:
-                    queryset = queryset.filter(_state_denied=False, _state_granted=True)
+        if user.has_perm(perm):
+            queryset = queryset.filter(_state_denied=False)
+        else:
+            queryset = queryset.filter(_state_denied=False, _state_granted=True)
 
-                if row_level_permissions is not None:
-                    workflow_q = row_level_permissions.check_queryset_workflow(
-                        queryset,
-                        perm,
-                        user,
-                        perm_type,
-                        "_state_denied",
-                        "_state_granted",
-                    )
-                    if isinstance(workflow_q, Q):
-                        queryset = queryset.filter(workflow_q)
-                    elif workflow_q is False:
-                        return queryset.none()
+        if row_level_permissions is not None:
+            workflow_q = row_level_permissions.check_queryset_workflow(
+                queryset,
+                perm,
+                user,
+                perm_type,
+                "_state_denied",
+                "_state_granted",
+            )
+            if isinstance(workflow_q, Q):
+                queryset = queryset.filter(workflow_q)
+            elif workflow_q is False:
+                return queryset.none()
 
     return queryset

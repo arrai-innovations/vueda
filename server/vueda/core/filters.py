@@ -15,6 +15,7 @@ __all__ = (
     "VuedaFilterSet",
     "VuedaOrderingFilter",
     "VuedaSearchFilterBackend",
+    "WorkflowStateFilterSetMixin",
 )
 
 import operator
@@ -44,6 +45,7 @@ from rest_framework.settings import api_settings
 
 from vueda.core.fields.form import BaseArrayField
 from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_distinct_column
@@ -191,16 +193,47 @@ class PublicFilterAliasMixin:
         }
 
 
+class WorkflowStateFilterSetMixin:
+    """
+    Adds a ``workflow_state`` filter to a filterset whose model enables ``class Vueda.Workflow``.
+
+    Added on ``get_filters()``, like ``PublicFilterAliasMixin``'s renames, so ``base_filters`` carries
+    it and the OpenAPI schema describes it. A filter the filterset declares under the same name is
+    the author's and stays as declared. A model that does not enable workflow gets no filter and no
+    workflow query.
+    """
+
+    @classmethod
+    def get_filters(cls):
+        filters = super().get_filters()
+        model = cls._meta.model
+        if model is not None and workflow_enabled(model):
+            from vueda.workflow.filtersets import WORKFLOW_STATE_FILTER
+            from vueda.workflow.filtersets import workflow_state_filter
+
+            filters.setdefault(WORKFLOW_STATE_FILTER, workflow_state_filter())
+        return filters
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if workflow_enabled(self.queryset.model):
+            from vueda.workflow.filtersets import narrow_workflow_state_filter
+
+            narrow_workflow_state_filter(self)
+
+
 class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
-class VuedaFilterSet(PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, IdInFilterSet):
+class VuedaFilterSet(
+    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, IdInFilterSet
+):
     pass
 
 
 class VuedaCompositePrimaryKeyFilterSet(
-    PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, rest_framework.FilterSet
+    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, rest_framework.FilterSet
 ):
     """
     We can't have a default 'pk' filter.

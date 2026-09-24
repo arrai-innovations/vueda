@@ -22,7 +22,6 @@ from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 from vueda.vdq.models import SMSQueueItem
-from vueda.workflow.serializers import HasWorkflowSerializerMixin
 
 
 class AnyMailQueueItemSerializer(serializers.ModelSerializer):
@@ -85,29 +84,25 @@ class ReceiverSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class DefaultQueueItemSerializer(HasWorkflowSerializerMixin, VuedaSerializer):
+class DefaultQueueItemSerializer(VuedaSerializer):
     formatted_name = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
         model = QueueItem
-        fields = (
-            [
-                "id",
-                "sender",
-                "receiver",
-                "method",
-                "result",
-                "queued",
-                "last_updated",
-                "done_since",
-                "anymail",
-                "sms",
-                "retry_delay",
-                "formatted_name",
-            ]
-            + VuedaSerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+        fields = [
+            "id",
+            "sender",
+            "receiver",
+            "method",
+            "result",
+            "queued",
+            "last_updated",
+            "done_since",
+            "anymail",
+            "sms",
+            "retry_delay",
+            "formatted_name",
+        ] + VuedaSerializer.Meta.fields
         read_only_fields = fields
 
         expandable_fields = {
@@ -132,23 +127,19 @@ class DefaultSentItemSerializer(QueueItemSerializer):
 
     class Meta(VuedaSerializer.Meta):
         model = SentItem
-        fields = (
-            [
-                "id",
-                "sender",
-                "receiver",
-                "method",
-                "result",
-                "queued",
-                "last_updated",
-                "done_since",
-                "anymail",
-                "sms",
-                "formatted_name",
-            ]
-            + VuedaSerializer.Meta.fields
-            + HasWorkflowSerializerMixin.Meta.fields
-        )
+        fields = [
+            "id",
+            "sender",
+            "receiver",
+            "method",
+            "result",
+            "queued",
+            "last_updated",
+            "done_since",
+            "anymail",
+            "sms",
+            "formatted_name",
+        ] + VuedaSerializer.Meta.fields
         read_only_fields = fields
 
         expandable_fields = {

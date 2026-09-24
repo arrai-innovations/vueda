@@ -598,51 +598,6 @@ class TestHistoryPolicyValidation:
         assert check_model_feature_declaration(feature_models.PlainProbe) == []
 
 
-class TestTransitionalFeatureValidators:
-    """Workflow integration still follows inheritance, so an explicit choice must match it.
-
-    This validator, and the mixin it names, goes away once workflow derives from this policy.
-    """
-
-    def test_workflow_opt_in_without_the_workflow_mixin_is_reported(self):
-        with isolate_apps("tests.features"):
-
-            class ClaimsWorkflow(VuedaModel):
-                name = models.CharField(max_length=255)
-
-                class Vueda:
-                    class Workflow:
-                        enabled = True
-
-                class Meta:
-                    app_label = "features"
-
-            errors = check_model_feature_declaration(ClaimsWorkflow)
-
-        assert [error.id for error in errors] == ["vueda_core.E013"]
-        assert "does not subclass HasWorkflowModelMixin" in errors[0].hint
-
-    def test_workflow_opt_out_on_a_workflow_model_is_reported(self):
-        from vueda.workflow.models import HasWorkflowModelMixin
-
-        with isolate_apps("tests.features"):
-
-            class DisclaimsWorkflow(VuedaModel, HasWorkflowModelMixin):
-                name = models.CharField(max_length=255)
-
-                class Vueda:
-                    class Workflow:
-                        enabled = False
-
-                class Meta:
-                    app_label = "features"
-
-            errors = check_model_feature_declaration(DisclaimsWorkflow)
-
-        assert [error.id for error in errors] == ["vueda_core.E013"]
-        assert "subclasses HasWorkflowModelMixin" in errors[0].hint
-
-
 class TestAppBoundary:
     def test_core_policy_modules_do_not_import_a_feature_app(self):
         """Core must not reach into an optional feature app to resolve or check a declaration."""

@@ -27,6 +27,7 @@ from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 
 from vueda import __version__ as server_version
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.installed_apps import workflow_is_installed
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
@@ -39,14 +40,21 @@ def _build_workflow_map(registered_ct_ids, user_group_ids, is_superuser):
     from vueda.workflow.models import Workflow as WorkflowModel
 
     workflow_map = {}
-    for workflow in WorkflowModel.objects.filter(content_type_id__in=registered_ct_ids).prefetch_related(
-        "workflow_permissions__permission__group_set",
-        "states__state_permissions__permission",
-        "states__state_permissions__group",
-        "transitions__transition_permissions__permission__group_set",
-        "transitions__transition_sources__source",
-        "transitions__target",
+    for workflow in (
+        WorkflowModel.objects.filter(content_type_id__in=registered_ct_ids)
+        .prefetch_related(
+            "workflow_permissions__permission__group_set",
+            "states__state_permissions__permission",
+            "states__state_permissions__group",
+            "transitions__transition_permissions__permission__group_set",
+            "transitions__transition_sources__source",
+            "transitions__target",
+        )
+        .select_related("content_type")
     ):
+        # A workflow row does not make a model a workflow model; its class Vueda policy does.
+        if not workflow_enabled(workflow.content_type.model_class()):
+            continue
         workflow_map[workflow.content_type_id] = _workflow_data(workflow, user_group_ids, is_superuser)
     return workflow_map
 

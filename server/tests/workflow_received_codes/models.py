@@ -1,11 +1,14 @@
 from django.db import models
 
 from vueda.core.models import VuedaModel
-from vueda.workflow.models import HasWorkflowModelMixin
 
 
-class WorkflowReceivedCodes(HasWorkflowModelMixin, VuedaModel):
+class WorkflowReceivedCodes(VuedaModel):
     name = models.CharField(max_length=255)
+
+    class Vueda:
+        class Workflow:
+            enabled = True
 
     class Meta(VuedaModel.Meta):
         pass
