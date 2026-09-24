@@ -56,10 +56,11 @@ export async function waitForModelStoreLoad(app, model, pinia) {
     // # don't use useModelInfo or useModelConfig here to avoid creating reactive effects outside a component scope #
     // ##############################################################################################################
     const args = { app, model };
-    const modelWorkflowStore = storeWorkflow(pinia);
-    const transitions = await modelWorkflowStore.fetchWorkflowTransition(app, model);
     const modelInfoStore = storeModelInfo(pinia);
     const infoStore = await modelInfoStore.fetchModelInfo(args);
+    // Reads `workflow_enabled` from the model info fetched above, and requests nothing for a model without workflow.
+    const modelWorkflowStore = storeWorkflow(pinia);
+    const transitions = await modelWorkflowStore.fetchWorkflowTransition(app, model);
     const modelConfig = storeModelConfig(pinia);
     const configStore = await modelConfig.getConfig(args);
     return [infoStore, configStore, transitions];

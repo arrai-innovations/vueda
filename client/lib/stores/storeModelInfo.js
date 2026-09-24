@@ -242,6 +242,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} model - The Python model class name in lowercase (e.g., "user").
  * @property {string} verboseName - The human-readable, singular name of the model.
  * @property {string} verboseNamePlural - The human-readable, plural name of the model.
+ * @property {boolean} workflow_enabled - Whether the model enables workflow on the server. The workflow store
+ *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
+ *  still decide what the user may see and do.
  * @property {string} pk - The primary key field of the model.
  * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo` objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
@@ -330,6 +333,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "model",
                         "verbose_name",
                         "verbose_name_plural",
+                        "workflow_enabled",
                         "model_fields",
                         "model_actions",
                         "model_expands",
