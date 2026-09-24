@@ -121,9 +121,9 @@ After implementing transition UX, verify the following:
     - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
     - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
     - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.get_transition_warnings}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}

@@ -175,8 +175,20 @@ A contributor receives every concrete multi-table child separately with that chi
 
 A proxy model gets no contributor pass of its own, because its concrete model already received one for the shared table.
 
-## Current Status
+## History and Workflow
 
 History derives from this policy. `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. No base class or decorator takes part.
 
-Workflow has not converted yet. It still follows `HasWorkflowModelMixin`, so an explicit `Workflow.enabled` that disagrees with a model's base classes produces a system-check error. VUEDA does not accept and then ignore the declaration.
+Workflow derives from this policy too. `Workflow.enabled` is the only declaration an author writes, and it defaults to `False`, so installing `vueda.workflow` opts no model in. An enabled model receives:
+
+- the workflow model methods, such as `available_transitions()`, `apply_transition()`, and the `on_transition()` and `get_transition_warnings()` hooks, which VUEDA adds to the end of the model's bases;
+- an `ObjectState` row in the workflow's initial state whenever a save finds none;
+- `workflow_state_code`, `workflow_state_name`, and `valid_transitions` on every `VuedaSerializer` of the model;
+- a `workflow_state` filter on every `VuedaFilterSet` of the model;
+- the state-permission overlay on its viewsets, and `workflow_enabled: true` in its model info.
+
+The methods sit last in the method resolution order. A method the model or one of its other bases defines takes precedence, and an override reaches the default through `super()`. A model field that would hide one of these attributes, such as a field named `workflow`, is a system-check error.
+
+A secondary serializer, such as a compact one nested in another model's payload, opts out of the workflow fields with `Meta.workflow_fields = False`. `valid_transitions` resolves the permitted transitions of every row it renders, so a nested serializer that keeps it pays that cost per row. Opting out changes no permission: the workflow endpoints still decide which transitions a user may see and take.
+
+The policy declares participation, and a `Workflow` definition in the database supplies the states, transitions, and permissions. A `Workflow` row does not make a model a workflow model. An enabled model without a definition raises {@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError} on every workflow path. The API returns it as HTTP 500. Code outside VUEDA reads a model's participation with {@api py:function:vueda.core.installed_apps.workflow_enabled}. [Manage Workflows](../guides/manage-workflows#enabling-workflow-on-a-model-with-existing-rows) covers adding workflow to a model that already has rows.

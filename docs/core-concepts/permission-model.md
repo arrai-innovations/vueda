@@ -39,7 +39,7 @@ DRF evaluates permissions in two phases: a model-scope check (`has_permission`) 
 
 The model-scope check is where VUEDA can defer a baseline denial. For models that participate in a workflow, `ObjectPermissions.has_permission` looks for a state grant matching the workflow, model content type, user's groups, and action-specific permission codename. A matching grant defers the denial only when the action has a guaranteed later state-aware decision. Standard object actions defer to `has_object_permission`; framework list actions defer to queryset-level workflow filtering. Create and other collection actions without such a decision retain the baseline model result.
 
-`HasWorkflowViewMixin` does not alter the complete DRF permission result. This keeps authentication, composite permission expressions, and application-specific permission classes authoritative even when state-permission data exists. Only `ObjectPermissions` can defer its own model-level denial.
+Enabling workflow does not alter the complete DRF permission result. This keeps authentication, composite permission expressions, and application-specific permission classes authoritative even when state-permission data exists. Only `ObjectPermissions` can defer its own model-level denial.
 
 Deferral can change the failure shape. Without a matching state grant, a user missing a model permission sees `403`; the object is never fetched. With a matching grant on an object action, the denial may move to object scope and become `404` when the eventual object is not authorized.
 
@@ -114,14 +114,13 @@ Permission denials surface as different HTTP status codes, depending on the laye
 - {@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}
 - {@api py:function:vueda.workflow.permissions.WorkflowObjectPermissions.has_permission}
 - {@api py:module:vueda.workflow.views}
-- {@api py:class:vueda.workflow.views.HasWorkflowViewMixin}
 - {@api py:module:vueda.workflow.models}
-- {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
+- {@api py:class:vueda.workflow.models.WorkflowModelMethods}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_state_permission}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}
 - {@api py:module:vueda.workflow.viewsets}
 - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.check_permissions}
 - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}

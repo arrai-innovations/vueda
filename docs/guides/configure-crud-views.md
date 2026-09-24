@@ -27,7 +27,7 @@ The defaults are:
 
 - `displayFields` and `fetchFields`: every serializer field except the PK and fields marked `hidden`. Two views narrow this default:
     - `create` displays only writable fields. A new record has no value yet for a read-only field, and the server ignores input for one.
-    - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. `HasWorkflowSerializerMixin` sets it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
+    - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. A workflow model's serializers set it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
 - `submitFields`: the same fields minus read-only ones.
 - `expand`: all expandable field names declared on the serializer.
 - `routeActions` and `actions`: all action names from model-info.
