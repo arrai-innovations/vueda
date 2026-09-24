@@ -193,11 +193,15 @@ A fragment lives at `changelog.d/<package>/<topic>/<number>.<type>.md`:
 - `<package>` is `client` or `server`. A change that both packages' integrators
   notice gets a fragment in each.
 - `<topic>` is the directory that matches the pull request's `topic:*` label.
-- `<number>` is the pull request number. A second fragment of the same type and
-  topic from one pull request adds a counter: `328.fix.1.md`. A change committed
-  without a pull request uses a name that starts with `+`, such as
-  `+cache-url.fix.md`, and renders without a link. The metadata check fails a
-  fragment whose package, topic, or name towncrier would not recognize.
+- `<number>` is the number of the issue the pull request closes, or the pull
+  request's own number. An issue has its number before the pull request
+  exists, so the fragment can land in the branch's first commit. A second
+  fragment with the same number, type, and topic adds a counter:
+  `328.fix.1.md`. That covers a second fragment from one pull request and a
+  second pull request for one issue. A change committed without a pull request
+  uses a name that starts with `+`, such as `+cache-url.fix.md`, and renders
+  without a link. The metadata check fails a fragment whose package, topic, or
+  name towncrier would not recognize.
 - `<type>` is `breaking`, `feature`, or `fix`.
 
 `just changelog-new client` prompts for the number, type, and topic. The same
@@ -208,7 +212,8 @@ just changelog-new client 349.fix --section "Forms and validation"
 ```
 
 The fragment holds one complete list entry in the format the changelog README
-describes. The release build adds the pull request link to its first line.
+describes. The release build adds a link to that issue or pull request to its
+first line.
 
 A pre-commit hook drafts both changelogs whenever a commit touches
 `changelog.d/`, and rejects a fragment filename that does not match a type or

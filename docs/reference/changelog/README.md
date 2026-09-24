@@ -57,7 +57,7 @@ integrator must act.
 ```
 
 Link a guide or reference page for detail the entry cannot hold. The release
-build links the pull request.
+build links the issue or pull request that the fragment's name numbers.
 
 ## Entry Rules
 

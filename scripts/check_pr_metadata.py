@@ -85,7 +85,7 @@ def check_fragment(path: str, topics: dict[str, set[str]], types: set[str]) -> s
         raise ValueError(f"{path}: `{topic}` is not a {package} topic. Use one of: {known}")
     kinds = "|".join(sorted(types))
     if not re.fullmatch(rf"(?:\d+|\+[\w-]*)\.(?:{kinds})(?:\.\d+)?\.md", name):
-        raise ValueError(f"{path}: name a fragment <pull request>.<{kinds.replace('|', ', ')}>.md")
+        raise ValueError(f"{path}: name a fragment <issue or pull request>.<{kinds.replace('|', ', ')}>.md")
     return topic
 
 
