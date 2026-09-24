@@ -1,5 +1,6 @@
 import ast
 import datetime
+import importlib.util
 import io
 import os
 import time
@@ -1653,7 +1654,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
                 in migration_content
@@ -1745,7 +1746,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_06_29"'
                 in migration_content
@@ -1825,6 +1826,43 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
 
+            # Every workflow these changes name by code now names the app and model as well, so a
+            # code another model takes over later still resolves to the workflow the change meant.
+            identity = {"historical_app_label": "workflow_updating", "historical_model": "workflowupdating"}
+            workflow_id = {"code": "workflow_updating_workflow", **identity}
+
+            changed_data = self.load_changed_data(migration_filepath)
+            by_model = {changed_item["model_name"]: changed_item["changes"] for changed_item in changed_data}
+
+            assert by_model["workflow"]["id"] == workflow_id
+            assert by_model["state"]["workflow_id"] == workflow_id
+            assert by_model["state"]["id"] == {"code": "state_b", "workflow_id": workflow_id}
+            assert by_model["initialstate"]["state_id"]["workflow_id"] == workflow_id
+            assert by_model["transition"]["workflow_id"] == workflow_id
+            assert by_model["transitionpermission"]["transition_id"]["workflow_id"] == workflow_id
+            assert by_model["transitionsource"]["source_id"]["workflow_id"] == workflow_id
+            assert by_model["transitionsource"]["transition_id"]["workflow_id"] == workflow_id
+
+            # Nothing else about a change moves.
+            assert by_model["state"]["code"] == "state_b"
+            assert by_model["state"]["name"] == "State B"
+
+            # 0004 names a workflow whose own change is recorded in 0002, so what a code meant is
+            # answered across the app's migrations rather than within one file.
+            later_changed_data = self.load_changed_data(
+                os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+            )
+            assert later_changed_data[0]["changes"]["workflow_id"] == workflow_id
+
+    @staticmethod
+    def load_changed_data(filepath):
+        """Read the changes a rewritten migration records, as the objects they are."""
+        spec = importlib.util.spec_from_file_location("updated_workflow_migration", filepath)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        return module.changed_data
+
     @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -1841,7 +1879,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0003_workflow_migrations_2026_06_30"'
                 in migration_content
@@ -1936,7 +1974,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0003_workflow_migrations_2026_06_30"'
                 in migration_content
@@ -2034,7 +2072,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"'
                 in migration_content
@@ -2067,7 +2105,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            # Untouched
+            # Kept: the change reason and app label exactly, and every change changed_data records.
             assert (
                 'history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"'
                 in migration_content
@@ -2092,6 +2130,137 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
             assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
             assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_keeps_changed_data_with_nothing_to_add(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+
+            # The first run gives every workflow reference the app and model it can find.
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # A note an author wrote inside the list, which rewriting the list would drop.
+            assert migration_content.count("changed_data = [") == 1
+            migration_content = migration_content.replace(
+                "changed_data = [", "changed_data = [  # A note kept by updateworkflowmigrations.\n"
+            )
+            with open(migration_filepath, "w", encoding="utf-8") as f:
+                f.write(migration_content)
+
+            # Nothing is left to add, so the second run writes the list back exactly as it found it.
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                assert f.read() == migration_content
+
+    @pytest.mark.parametrize("missing_key", ["history_date", "model_name", "changes"])
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_changed_data_missing_a_key(self, settings, missing_key):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
+        err = io.StringIO()
+        out = io.StringIO()
+
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
+            broken_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+            other_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+
+            # The file still imports, but one change no longer holds a key the command reads.
+            with open(broken_filepath, "a", encoding="utf-8") as f:
+                f.write(f'\nchanged_data[0].pop("{missing_key}")\n')
+            with open(broken_filepath, encoding="utf-8") as f:
+                broken_content = f.read()
+
+            with pytest.raises(SystemExit):
+                self.call_command("updateworkflowmigrations", "workflow_updating", stdout=out, stderr=err)
+
+            err.seek(0)
+            errors = err.read()
+            out.seek(0)
+            output = out.read()
+
+            # The file and the change are named, rather than a traceback naming neither.
+            assert f"  Could not read changed_data in {broken_filepath}: change 0 has no '{missing_key}'\n" in errors, (
+                errors
+            )
+            assert "Traceback" not in errors, errors
+            assert "Failed updating 1 workflow migration(s).\n" in output, output
+
+            # The file it could not read is left as it was.
+            with open(broken_filepath, encoding="utf-8") as f:
+                assert f.read() == broken_content
+
+            # The migrations it could read are still updated.
+            assert "Updated 2 workflow migration(s).\n" in output, output
+            with open(other_filepath, encoding="utf-8") as f:
+                assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in f.read()
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_naive_history_dates(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
+            # 0002 records the workflow's own change, and 0004 names that workflow by code.
+            migration_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+            later_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # Dates written by hand, without the time zone every generated date carries. 0004 keeps
+            # its generated dates, so the two files have to be ordered against each other.
+            with open(migration_filepath, "w", encoding="utf-8") as f:
+                f.write(migration_content.replace(", tzinfo=datetime.timezone.utc)", ")"))
+
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            output = "".join(results)
+
+            assert f"  Naive dates found in changed_data in {migration_filepath}. Treating as UTC.\n" in output
+
+            # Read as UTC, a naive date still orders against the dates other migrations recorded, so
+            # both files name the workflow the code meant.
+            identity = {"historical_app_label": "workflow_updating", "historical_model": "workflowupdating"}
+            workflow_id = {"code": "workflow_updating_workflow", **identity}
+
+            changed_data = self.load_changed_data(migration_filepath)
+            by_model = {changed_item["model_name"]: changed_item["changes"] for changed_item in changed_data}
+
+            assert by_model["workflow"]["id"] == workflow_id
+            assert by_model["state"]["workflow_id"] == workflow_id
+            assert self.load_changed_data(later_filepath)[0]["changes"]["workflow_id"] == workflow_id
+
+            # The date itself is left as it was written.
+            assert all(changed_item["history_date"].tzinfo is None for changed_item in changed_data)
 
     @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")

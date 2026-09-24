@@ -152,34 +152,40 @@ The previous release does not know the model has workflow. Objects it creates af
 
 ## Updating Existing Workflow Migrations
 
-When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring all existing workflow migrations in line with the current implementations from `makeworkflowmigrations.py`.
+When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your app's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. Name each of your own apps:
 
 ```console
-python manage.py updateworkflowmigrations
+python manage.py updateworkflowmigrations myapp otherapp
 ```
 
-To limit the update to a specific app:
-
-```console
-python manage.py updateworkflowmigrations myapp
-```
+::: warning
+Always name the apps to update. With no app label, the command rewrites the workflow migrations of every installed app, including VUEDA's own migrations inside the installed package, such as `vueda_vdq`'s. You cannot commit those files, and the rewritten ones fail to apply. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
+:::
 
 ### What the Command Updates
 
-`updateworkflowmigrations` scans all installed apps for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
+`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
 
 - Replaces the import block with the current imports from `makeworkflowmigrations.py`.
 - Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
 - Updates any stale function names referenced in the `operations` list.
+- Adds the app label and model name to every workflow that `changed_data` refers to by code alone.
+
+A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. What the changes record is only added to: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. That holds for the values, not the text of the file. See the note on `changed_data` below. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. Running the command twice makes no further difference.
+
+Working out what a code meant when a change was recorded means ordering the dates that migrations record against each other, and every date a generated migration records carries a time zone. A date without one reached the file by hand, so the command reports the file and reads that date as UTC, which is what the generated dates hold. The date in the file is left exactly as it was written.
+
+If the command cannot read a migration's `changed_data` — the file has a syntax error, has been altered so that it no longer runs on its own, or holds a change without the `model_name`, `history_date`, or `changes` the command reads — it skips that file, reports it and the change at fault, updates the migrations it can read, and finishes with a failure. A skipped file is left exactly as it was, imports and functions included, because a file the command cannot read is one it cannot update safely. Fix the file by hand, then run the command again.
 
 The following are preserved exactly as written in each migration file:
 
 - `history_change_reason` — the change reason text stored in the migration.
 - `migration_app_label` — the app label used to ensure permissions exist before the migration runs.
-- `changed_data` — the recorded list of workflow changes the migration applies.
 - The `class Migration` block (dependencies and `operations` list), aside from updating any function names within it.
 
 Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
+
+`changed_data` is the exception. When the command adds the app and model to any reference in it, it writes the whole list back in the form `makeworkflowmigrations` writes it. The list is laid out differently, strings change quotes, and time zones are written as `datetime.timezone.utc`, so a comment or deliberate formatting inside the list is not kept, even though every value it records is. A list with nothing to add is left exactly as it was. Write a note about a change outside the list, where it is preserved along with the rest of your code.
 
 That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
 
@@ -190,11 +196,31 @@ That said, any changes you make inside the listed functions themselves are overw
 Shows which migration files would be updated without writing any changes to disk.
 
 ```console
-python manage.py updateworkflowmigrations --dry-run
+python manage.py updateworkflowmigrations myapp --dry-run
 ```
 
 ### When to Run It
 
 Workflow migrations are self-contained: they carry everything they need to run, so you do not have to update them after every VUEDA upgrade. Running `updateworkflowmigrations` is optional.
 
-If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updateworkflowmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command when nothing has changed is safe — the function bodies are rewritten with the same current implementations, so migration behavior is unchanged.
+If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updateworkflowmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command on migrations that already carry the current implementations changes nothing about how they behave, as long as none of them is one the command must not rewrite.
+
+Run it once for your own apps, and commit the rewritten files, for migrations generated before workflow references carried the app and model. Those migrations name each workflow by code alone, which is enough until a different model takes a workflow code over — after that, a change naming a workflow by code cannot say which workflow it meant. Migrations that have already been applied elsewhere can be updated safely: the change data describes the same workflow records either way, so a migration that has run produces the same result if it runs again.
+
+### Migrations the Command Must Not Rewrite
+
+The command replaces a migration's embedded functions with the current ones but keeps its dependencies as they were. The current functions use workflow models that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. A migration whose `vueda_workflow` dependency is earlier than that one, which is any workflow migration generated with VUEDA v3.0.0a0 or earlier, stops applying once rewritten:
+
+```text
+LookupError: App 'vueda_workflow' doesn't have a 'ObjectStateEvent' model.
+```
+
+After running the command, check the `vueda_workflow` entry in each rewritten file's `dependencies`, and restore from version control any file that depends on an earlier migration. A restored migration keeps naming its workflow by code alone. [#298](https://github.com/arrai-innovations/vueda/issues/298) tracks making the rewrite safe for these migrations.
+
+VUEDA's own workflow migrations, such as `vueda_vdq`'s, are among them, which is one more reason to always name your apps.
+
+### Before Committing the Rewritten Files
+
+The command writes `changed_data` and the embedded functions in its own layout, which does not follow any project's formatting or lint rules. A rewritten file fails a check such as `ruff format --check` or `ruff check` until your tools have run on it. Run your formatter and linter on the rewritten files, then apply your migrations to an empty database, for example by running your test suite, before committing them.
+
+Run it as a development step and commit what it writes. It is not something to call from a migration or a deploy: the command rewrites migration source files, so running it on a deployed checkout edits files that are never committed, and the next deploy starts from the unchanged ones again. The migration being applied at the time is already loaded, so rewriting it has no effect on that run either.
