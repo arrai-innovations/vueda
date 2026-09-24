@@ -158,7 +158,7 @@ Set `clearable: false` for a constraint the reader must not remove, such as a li
 
 ### Respond to `clear-scope`
 
-The caller owns `params`, so `ViewList` does not change it. When the reader clears a declared scope, `ViewList` emits `clear-scope` with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in response. The updated prop removes the value from the request and the chip from the constraints band.
+The caller owns `params`, so `ViewList` does not change it. When the reader clears a declared scope, `ViewList` emits `clear-scope` with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in response. The updated prop removes the value from the request and the chip from the constraints band, and the list returns to page 1. Any change to the content of `params` returns the list to page 1 the same way; passing an equal `params` object again keeps the current page.
 
 If the handler leaves `params` unchanged, the scope stays applied and its chip stays visible.
 

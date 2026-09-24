@@ -3038,6 +3038,110 @@ describe("lib/views/ViewList.vue", () => {
                 expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBe(3);
                 wrapper.unmount();
             });
+
+            const mountParamsOnPageThree = async (props) => {
+                route.params = { action: "list" };
+                instanceList.state.paginateInfo.totalPages = 5;
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model", ...props } });
+                await vue.nextTick();
+                wrapper.vm.list.listState.currentPage = 3;
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBe(3);
+                return wrapper;
+            };
+
+            scopedIt("returns to page 1 when the caller clears a params scope from a later page", async () => {
+                mockedInject.mockReturnValueOnce({});
+                const wrapper = await mountParamsOnPageThree({ params: { batch: "42" }, scopes: { batch: {} } });
+
+                await wrapper.get('[data-qa="scope-chip-clear"]').trigger("click");
+                expect(wrapper.emitted("clear-scope")).toEqual([[{ name: "batch", keys: ["batch"] }]]);
+                await wrapper.setProps({ params: {} });
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.currentPage).toBe(1);
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBeUndefined();
+                expect(wrapper.vm.list.listState.params.batch).toBeUndefined();
+                wrapper.unmount();
+            });
+
+            scopedIt("keeps the search term in the request when params change", async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.query = { [SEARCH_PARAM]: "bolt" };
+                const wrapper = await mountParamsOnPageThree({ params: { batch: "42" } });
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("bolt");
+
+                await wrapper.setProps({ params: { batch: "43" } });
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.search).toBe("bolt");
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("bolt");
+                expect(wrapper.vm.list.listState.params.batch).toBe("43");
+                expect(wrapper.vm.list.listState.currentPage).toBe(1);
+                wrapper.unmount();
+            });
+
+            scopedIt("keeps the search term in the request when params change on page 1", async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                route.query = { [SEARCH_PARAM]: "bolt" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model", params: { batch: "42" } } });
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("bolt");
+
+                await wrapper.setProps({ params: { batch: "43" } });
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.params[SEARCH_PARAM]).toBe("bolt");
+                expect(wrapper.vm.list.listState.params.batch).toBe("43");
+                wrapper.unmount();
+            });
+
+            scopedIt("keeps the page when params are replaced with equal content", async () => {
+                mockedInject.mockReturnValueOnce({});
+                const wrapper = await mountParamsOnPageThree({ params: { batch: "42" } });
+
+                await wrapper.setProps({ params: { batch: "42" } });
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.currentPage).toBe(3);
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBe(3);
+                wrapper.unmount();
+            });
+
+            scopedIt("returns to page 1 on a params change in a list that does not own the route", async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { app: "elsewhere", model: "record", action: "read" };
+                instanceList.state.paginateInfo.totalPages = 5;
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model", params: { order: "7" } } });
+                await vue.nextTick();
+                wrapper.vm.list.listState.currentPage = 3;
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBe(3);
+
+                await wrapper.setProps({ params: { order: "8" } });
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.currentPage).toBe(1);
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBeUndefined();
+                expect(wrapper.vm.list.listState.params.order).toBe("8");
+                wrapper.unmount();
+            });
+
+            scopedIt("returns to page 1 when the reader changes the sort", async () => {
+                mockedInject.mockReturnValueOnce({});
+                modelConfig.config.sortables = ["name"];
+                const wrapper = await mountParamsOnPageThree({});
+
+                wrapper.vm.sort.sorting.updateSorted(["name"]);
+                await vue.nextTick();
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.currentPage).toBe(1);
+                expect(wrapper.vm.list.listState.params[PAGE_PARAM]).toBeUndefined();
+                expect(wrapper.vm.list.listState.params[ORDERING_PARAM]).toEqual(["name"]);
+                wrapper.unmount();
+            });
         });
 
         describe("Late model metadata", () => {

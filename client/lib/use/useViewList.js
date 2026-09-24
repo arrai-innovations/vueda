@@ -142,6 +142,7 @@ import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { useBreakpoints } from "@vueuse/core";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -447,10 +448,19 @@ export function useViewList(options) {
     const showingAllPages = ref(seededPerPage === ALL_PAGES);
     const computedShowAllPages = computed(() => showingAllPages.value);
 
-    // The page-size and column-totals params are framework-managed (seeded here, updated by the
-    // perPage and totals watches), so they must survive the consumer-`params` reconciliation below
-    // the same way ordering, fields, and expand do.
-    const alwaysParamsKeys = [ORDERING_PARAM, FIELDS_PARAM, EXPAND_PARAM, PAGE_SIZE_PARAM, COLUMN_TOTALS_PARAM];
+    // Framework-managed params: ordering, fields, and expand are seeded here; page, search, page
+    // size, and column totals are written by their own watches from `listState` and the visible
+    // columns. The bulk reconciliations below leave them in place, so the request always agrees
+    // with the page, search term, and page size the list displays.
+    const alwaysParamsKeys = [
+        ORDERING_PARAM,
+        FIELDS_PARAM,
+        EXPAND_PARAM,
+        PAGE_PARAM,
+        SEARCH_PARAM,
+        PAGE_SIZE_PARAM,
+        COLUMN_TOTALS_PARAM,
+    ];
     const listState = reactive({
         currentPage: 1,
         perPage: seededPerPage,
@@ -719,8 +729,8 @@ export function useViewList(options) {
                 return;
             }
             const [oldSorted, oldFilterParams, oldSearch, oldHiddenFilterParams] = oldValues || [];
-            // Filter-derived effects -- the reset to page 1 and this change's contribution to
-            // `listState.params` -- apply only while this is the active list view, matching this
+            // The reset to page 1 after a filter, scope, or sort change, and this change's
+            // contribution to `listState.params`, apply only while this is the active list view, matching this
             // composable's original filter-write behavior: a `ViewList` instance kept mounted
             // off-screen (e.g. mid route transition) must not touch the live route or preferences
             // on a stray filter mutation. The route ownership guard also covers sort and search.
@@ -728,7 +738,8 @@ export function useViewList(options) {
             const filtersChanged = onListView && !isEqual(newFilterParams, oldFilterParams);
             const searchChanged = !isEqual(newSearch, oldSearch);
             const scopesChanged = onListView && !isEqual(newHiddenFilterParams, oldHiddenFilterParams);
-            if (filtersChanged || scopesChanged) {
+            const sortChanged = onListView && !isEqual(newSorted, oldSorted);
+            if (filtersChanged || scopesChanged || sortChanged) {
                 listState.currentPage = 1;
             }
             if (onListView) {
@@ -739,7 +750,6 @@ export function useViewList(options) {
                 assignReactiveObject(listState.params, { ...newFilterParams, ...newHiddenFilterParams }, [
                     ...Object.keys(options.params || {}),
                     ...alwaysParamsKeys,
-                    SEARCH_PARAM,
                 ]);
             }
             if (resettingTarget.value || modelConfig.loading !== false) {
@@ -918,12 +928,18 @@ export function useViewList(options) {
         },
         { immediate: true },
     );
+    // Compared by content, so a parent that passes an equal but new `params` object on every
+    // render does not reset the page.
     watch(
-        toRef(options, "params"),
-        () => {
+        () => cloneDeep(unref(options.params) || {}),
+        (newParams, oldParams) => {
+            // A changed constraint returns the list to page 1, as a filter change does.
+            if (oldParams && !isEqual(newParams, oldParams)) {
+                listState.currentPage = 1;
+            }
             // Keys the caller supplies are always written from `params`, even while a reader's
             // filter for them is still leaving `addedFilters`.
-            assignReactiveObject(listState.params, options.params, [
+            assignReactiveObject(listState.params, unref(options.params) || {}, [
                 ...Object.keys(filtersToParams(addedFilters.value)).filter(
                     (key) => !callerOwnedFilterKeys.value.includes(key),
                 ),
@@ -931,7 +947,7 @@ export function useViewList(options) {
                 ...alwaysParamsKeys,
             ]);
         },
-        { deep: true, immediate: true },
+        { immediate: true },
     );
 
     const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
