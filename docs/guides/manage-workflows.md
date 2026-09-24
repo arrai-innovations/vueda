@@ -80,13 +80,15 @@ python manage.py makeworkflowmigrations myapp
 
 Each change is stored with a type marker:
 
-- `+` — a record was added
-- `~` — a record was changed
-- `-` — a record was deleted
+- `added` — a record was created
+- `changed` — a record was modified
+- `deleted` — a record was removed
 
 Primary keys are excluded from the stored change data. Because primary keys can differ between a developer's local database and a production server, all relationships are stored using natural identifiers (names, codes, content type labels) instead of raw integer ids. When the migration runs, `makeworkflowmigrations` resolves those identifiers to the correct local ids.
 
-Changes are written in the same order they occurred in history. When migrating backwards, the migration processes changes in reverse order and swaps `+` and `-` so that additions become deletions and deletions become re-creations.
+A code identifies a record only among the records that exist at one moment, not across the life of a workflow: a state can be deleted and another added under the same code later, and a workflow code released by one model can be taken over by another. So a change also records enough to say which record its codes meant when the change happened. A workflow is named by its code together with the app label and model it was written for, and a reference to a state or a transition is resolved against the record each candidate write actually names rather than against whichever record carries that code now.
+
+Changes are written in the same order they occurred in history. When migrating backwards, the migration processes changes in reverse order and swaps `added` and `deleted` so that additions become deletions and deletions become re-creations.
 
 ### What the Generated Migration Contains
 
@@ -123,6 +125,8 @@ python manage.py migrate myapp 0005_workflow_changes --fake
 ```
 
 Other environments that do not already have the changes should run the migration normally.
+
+Faking and running are not interchangeable, and `makeworkflowmigrations` treats them differently. A faked migration wrote nothing, so the edits you made by hand are the only record of its changes, and the command matches its changes against those edits. A migration that ran also recorded its own writes. The command still matches its changes, but only against edits made before it first ran on that environment. So rolling a faked migration back and applying it again is safe, and an edit made after the migration ran is never mistaken for one of its changes.
 
 ### Collaborative Workflows
 

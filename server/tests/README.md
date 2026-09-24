@@ -31,7 +31,7 @@ Never do this procedure with the following apps. Their tests require group migra
 
 ## Do the following when changes are made to `makeworkflowmigrations.py`.
 
-1. Temporarily add the six workflow apps to `LOCAL_APPS` in
+1. Temporarily add the five workflow apps to `LOCAL_APPS` in
    `server/tests/settings.py`:
 
     ```python
@@ -43,7 +43,6 @@ Never do this procedure with the following apps. Their tests require group migra
         "tests.workflow_deleted.apps.WorkflowDeletedConfig",
         "tests.workflow_duplicates.apps.WorkflowDuplicatesConfig",
         "tests.workflow_initial_state.apps.WorkflowInitialStateConfig",
-        "tests.workflow_multi.apps.WorkflowMultiConfig",
     ]
     ```
 
@@ -51,7 +50,7 @@ Never do this procedure with the following apps. Their tests require group migra
 3. Remove the workflow apps added in step 1.
 4. Run the tests to verify everything works.
 5. Fix any failing tests.
-6. Commit the migration changes in the six workflow apps.
+6. Commit the migration changes in the five workflow apps.
 
 [!WARNING]
 Never do this procedure with the following apps. Their tests require group migrations that are not updated.
@@ -59,3 +58,12 @@ Never do this procedure with the following apps. Their tests require group migra
 - `workflow_updating`
 - `workflow_updating_bad_migrations`
 - `workflow_updating_no_migrations`
+
+Three apps are not part of this procedure and have nothing to add to step 1:
+
+- `workflow_reused_codes` and `workflow_moved_codes` commit no generated migration. Their tests
+  generate each one while running, because the dates a generated migration records only line up with
+  history on the database that produced them.
+- `workflow_received_codes` commits a generated migration written in the import form, so it holds no
+  copied functions for this procedure to refresh. Its test applies that migration rather than faking
+  it, which is what a database receiving one does, and rewriting it would change what the test reads.
