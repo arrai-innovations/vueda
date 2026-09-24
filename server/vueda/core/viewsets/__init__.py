@@ -35,6 +35,8 @@ from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django_filters.filters import AllValuesFilter
+from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
@@ -617,6 +619,22 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
 _FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
 
 
+def iter_filterset_query_param_names(filterset):
+    """Yield each accepted parameter name with the filter that binds it."""
+    for filter_name, filter_obj in filterset.filters.items():
+        # AllValuesFilter.field reads the database to build choices. Its widget comes from the
+        # field class or the explicit override, neither of which depends on those choices.
+        if isinstance(filter_obj, (AllValuesFilter, AllValuesMultipleFilter)):
+            widget = filter_obj.extra.get("widget", filter_obj.field_class.widget)
+        else:
+            widget = filter_obj.field.widget
+        if hasattr(widget, "suffixes"):
+            for suffix in widget.suffixes:
+                yield f"{filter_name}_{suffix}", filter_name
+        else:
+            yield filter_name, filter_name
+
+
 def get_filterset_query_param_names(filterset_class, get_queryset):
     """
     The query parameter names a filterset accepts, including the suffixed names of multi-widget
@@ -635,9 +653,9 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     the first request handled by this process saw, so values added later would be rejected as
     invalid choices for the rest of the process.
 
-    The names depend only on the filterset class, so they are built once per class. Instantiating a
-    filterset reads every filter's field, which is a query per value-derived filter, and this runs on
-    every list request.
+    The names depend only on the filterset class, so they are built once per class. Value-derived
+    filters get their widgets without building their form fields, which would query the database for
+    choices during a system check or on a list request's first cache miss.
 
     A filterset that names its model in ``Meta`` is instantiated without a queryset, which leaves it
     to build the default one for that model. Passing the view's queryset instead would make this
@@ -659,17 +677,9 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     # its model from the queryset the filterset holds.
     queryset = None if filterset_class._meta.model is not None else get_queryset()
 
-    names = set()
-    for filter_name, filter_obj in filterset_class(queryset=queryset).filters.items():
-        widget = filter_obj.field.widget
-        # If the filter has suffixes, then we need to use those with the filter name.
-        if hasattr(widget, "suffixes"):
-            for suffix in widget.suffixes:
-                names.add(f"{filter_name}_{suffix}")
-        else:
-            names.add(filter_name)
-
-    names = frozenset(names)
+    names = frozenset(
+        name for name, _filter_name in iter_filterset_query_param_names(filterset_class(queryset=queryset))
+    )
     _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names
     return names
 

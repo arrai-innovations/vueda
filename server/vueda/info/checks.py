@@ -762,6 +762,47 @@ def check_ordering_configuration(app_configs, **kwargs):
     return errors
 
 
+def check_filter_query_param_configuration(app_configs, **kwargs):
+    """Report filtersets whose filters bind the same public query parameter."""
+    from django_filters.filterset import BaseFilterSet
+
+    from vueda.core.viewsets import iter_filterset_query_param_names
+    from vueda.info.registration import get_all_registrations
+
+    errors = []
+    for registration in get_all_registrations().values():
+        viewset = registration["viewset"]
+        filterset_class = getattr(viewset, "filterset_class", None)
+        if filterset_class is None:
+            continue
+
+        # Only the declared filters are needed. Custom constructors can query tables that do not
+        # exist before migrations, so build the instance copy through django-filter's base initializer.
+        model = filterset_class._meta.model or registration["serializer"].Meta.model
+        queryset = model._default_manager.none()
+        filterset = filterset_class.__new__(filterset_class)
+        BaseFilterSet.__init__(filterset, queryset=queryset)
+
+        owners = {}
+        for param_name, filter_name in iter_filterset_query_param_names(filterset):
+            owners.setdefault(param_name, set()).add(filter_name)
+
+        for param_name, filter_names in sorted(owners.items()):
+            if len(filter_names) == 1:
+                continue
+            names = ", ".join(f"'{name}'" for name in sorted(filter_names))
+            errors.append(
+                Error(
+                    f"{filterset_class.__name__} filters {names} all accept query parameter '{param_name}'.",
+                    hint="Rename or remove a filter so each query parameter belongs to one filter.",
+                    obj=viewset,
+                    id="vueda_info.E012",
+                )
+            )
+
+    return errors
+
+
 def _column_totals_error(viewset, message, hint):
     return Error(message, hint=hint, obj=viewset, id="vueda_info.E011")
 
