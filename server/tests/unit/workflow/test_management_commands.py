@@ -5,6 +5,7 @@ import os
 import time
 from collections import Counter
 from pathlib import Path
+from pprint import pformat
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -2456,6 +2457,24 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
 
         return module
 
+    def assert_no_workflow_changes(self, migration_dir, failure):
+        """Fail when a run finds changes to generate, showing the changes it would have generated.
+
+        A dry run first, because it writes no file. Only a run that finds changes generates the
+        migration, so the failure can say what those changes were.
+        """
+        succeeded, results = self.call_command(
+            "makeworkflowmigrations", "workflow_reused_codes", "--import-instead", "--dry-run"
+        )
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        if "No workflow changes detected." in "".join(results):
+            return
+
+        module = self.make_workflow_migration(migration_dir)
+        pytest.fail(f"{failure}:\n{pformat(module.changed_data)}", pytrace=False)
+
     def fake_migration(self, target):
         """Record migrations up to a target without running them, the way the command instructs."""
         succeeded, results = self.call_command("migrate", "workflow_reused_codes", target, "--fake")
@@ -2714,34 +2733,27 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             )
 
             # Every round is captured by a migration now, so a further run has nothing left to find.
-            succeeded, results = self.call_command(
-                "makeworkflowmigrations", "workflow_reused_codes", "--import-instead"
+            self.assert_no_workflow_changes(
+                migration_dir, "a run with every round already captured still found changes to generate"
             )
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            if "No workflow changes detected." not in "".join(results):
-                problems.append(
-                    "a run with every round already captured still found changes to generate:\n    "
-                    + "".join(results).strip()
-                )
 
             # Nothing has replayed any of this yet: the rounds were edits, and no generated migration
-            # has been applied. Unapplying the app takes the workflow with it, so the generated
-            # migrations can replay every round onto an empty database. 0002 is faked rather than
-            # applied, because 0003 carries the workflow it creates.
-            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "zero")
+            # has been applied. The author fakes them, because the rounds are already here, and then
+            # rolls back to 0002, which runs every generated migration backwards for real. 0003
+            # carries the workflow 0002 created, so the workflow goes with it and the generated
+            # migrations can replay every round onto an empty workflow.
+            # 0001 and 0002 stay applied. Reversing them would write outside any migration's action:
+            # 0002's SQL records its deletes the way history records a person's edit, and 0001
+            # recreates the group under a new id, which the rounds' permission writes no longer name.
+            # Either would read as an edit no migration captures.
+            self.fake_migration("0006")
+
+            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "0002")
             if not succeeded:
                 pytest.fail("".join(results))
 
             rolled_back = models.Workflow.objects.filter(code=self.WORKFLOW_CODE)
             assert not rolled_back.exists(), rolled_back.values()
-
-            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "0001")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            self.fake_migration("0002")
 
             # Replay one round at a time, holding each against the workflow that round left behind.
             # A run that only checks the rows at the end would pass while an earlier migration put
@@ -2765,8 +2777,15 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
                         pytrace=False,
                     )
 
-            # We should have run migration 0001, 0002 (faked), and 0003 to 0006.
+            # We should have run migration 0001 to 0006.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 6  # noqa: PLR2004
+
+            # Replaying wrote every round again, under each migration's own action, beside the edits
+            # the rounds were generated from. Those edits are still captured by the migrations, so a
+            # run here has nothing left to find either.
+            self.assert_no_workflow_changes(
+                migration_dir, "a run after replaying every round found changes to generate"
+            )
 
             # Reverse one migration at a time, holding each against the round before it. The
             # snapshots say what the workflow looked like at every point going back, so a migration
@@ -2796,7 +2815,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
                         pytrace=False,
                     )
 
-            # We should be back to migration 0001 and 0002 (faked).
+            # We should be back to migration 0001 and 0002.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 2  # noqa: PLR2004
 
             # The changes each generated migration carries are reported last, so that a difference in
@@ -2999,6 +3018,101 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
                 ("state", "added", self.state_id("workflowmovedto")),
                 ("initialstate", "added", self.initial_state_id("workflowmovedto")),
             ]
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_renamed_code_then_new_transition(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_moved_codes": "tests.workflow_moved_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_moved_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            workflow = self.make_workflow_for("workflowmovedfrom")
+            state = models.State.objects.get(workflow=workflow, code="state_1")
+            self.make_workflow_migration(migration_dir)
+
+            # The workflow is renamed, then a transition is added to the state it already had. The
+            # state's own last event predates the rename, so it was recorded under the old code.
+            workflow.code = "after_rename"
+            workflow.save()
+            models.Transition.objects.create(workflow=workflow, target=state, code="go", name="Go")
+
+            renamed_workflow_id = {
+                "code": "after_rename",
+                "historical_app_label": "workflow_moved_codes",
+                "historical_model": "workflowmovedfrom",
+            }
+            second_migration = self.make_workflow_migration(migration_dir)
+
+            assert self.describe(second_migration.changed_data) == [
+                (
+                    "workflow",
+                    "changed",
+                    {
+                        "code": (self.WORKFLOW_CODE, "after_rename"),
+                        "historical_app_label": "workflow_moved_codes",
+                        "historical_model": "workflowmovedfrom",
+                    },
+                ),
+                ("transition", "added", {"code": "go", "workflow_id": renamed_workflow_id}),
+            ]
+
+            # The transition names its target state under the new workflow code. Matching has to
+            # read the state's workflow as it stood when the transition was recorded, not when the
+            # state was, or the transition is taken for an edit no migration has captured yet.
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert "No workflow changes detected." in "".join(results), "".join(results)
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_faked_migration_rolled_back_and_reapplied(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_moved_codes": "tests.workflow_moved_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_moved_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # The author's edits, captured by 0002 and faked, because they are already here.
+            self.make_workflow_for("workflowmovedfrom")
+            self.make_workflow_migration(migration_dir)
+
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes", "--fake")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Rolling back runs 0002 backwards for real, and reapplying runs it forwards, so its own
+            # writes now sit beside the edits it was generated from.
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes", "0001")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # That 0002 ran here does not mean the edits it was generated from are missing, so they
+            # are still captured by it, and nothing is left for a new migration.
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert "No workflow changes detected." in "".join(results), "".join(results)
 
 
 class TestManagementCommandUtils:
