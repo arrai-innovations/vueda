@@ -128,7 +128,7 @@ onMounted(() => {
                 >
                     <slot
                         :form="instance.formId"
-                        label="Submit"
+                        label="Create"
                         :loading="objectForm.state.loading"
                         :modified="formContext.state.anyModified"
                         name="submit-button"
@@ -141,7 +141,7 @@ onMounted(() => {
                             tone="primary"
                         >
                             <LoadingSpinnerInline v-if="objectForm.state.loading" />
-                            Submit
+                            Create
                         </Button>
                     </slot>
                 </div>
