@@ -31,6 +31,33 @@ IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmig
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
 
 
+def describe_unreadable_changes(changed_data):
+    """Return why the command cannot read a migration's changes, or ``None`` when it can.
+
+    A migration's ``changed_data`` can import and still not hold what the command reads from each
+    change, when it has been edited by hand. Checking every change before any is used lets the file
+    be reported and skipped, instead of a missing key ending the whole run with no file named.
+    """
+    if not isinstance(changed_data, list):
+        return f"changed_data is a {type(changed_data).__name__}, not a list"
+
+    for index, changed_item in enumerate(changed_data):
+        if not isinstance(changed_item, dict):
+            return f"change {index} is a {type(changed_item).__name__}, not a dict"
+
+        missing = [key for key in ("model_name", "history_date", "changes") if key not in changed_item]
+        if missing:
+            return f"change {index} has no {', '.join(repr(key) for key in missing)}"
+
+        if not isinstance(changed_item["history_date"], datetime.datetime):
+            return f"change {index} has a history_date that is not a datetime"
+
+        if not isinstance(changed_item["changes"], dict):
+            return f"change {index} has changes that are not a dict"
+
+    return None
+
+
 def recorded_at_utc(recorded):
     """Return a recorded date that can be compared with the dates other migrations recorded.
 
@@ -226,16 +253,25 @@ class Command(BaseCommand):
         """Return the changes a migration records, or ``None`` when they cannot be read.
 
         The file is read as the module it is, rather than parsed, because a change records real
-        datetimes and a literal parser cannot build those.
+        datetimes and a literal parser cannot build those. Changes that import but lack what the
+        command reads from them are reported the same way, so the file is skipped rather than
+        ending the run.
         """
         try:
             spec = importlib.util.spec_from_file_location("workflow_migration_being_updated", filepath)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            return module.changed_data
+            changed_data = module.changed_data
         except Exception as error:
             self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {error}"))
             return None
+
+        problem = describe_unreadable_changes(changed_data)
+        if problem is not None:
+            self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {problem}"))
+            return None
+
+        return changed_data
 
     @staticmethod
     def _replace_changed_data(lines_string, changed_data):
