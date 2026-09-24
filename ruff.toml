@@ -72,3 +72,6 @@ lines-after-imports = 2
 
 [lint.mccabe]
 max-complexity = 20
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"

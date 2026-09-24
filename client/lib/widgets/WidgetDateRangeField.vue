@@ -6,6 +6,7 @@ import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
 import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
+import "@vueda/theme/vueda-tailwind/widgets/WidgetDateRangeField.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
@@ -53,7 +54,9 @@ const popoverOpen = ref(false);
  * @returns {import('@internationalized/date').CalendarDate|import('@internationalized/date').CalendarDateTime|undefined}
  */
 function parseISOValue(raw) {
-    if (!raw) return undefined;
+    if (!raw) {
+        return undefined;
+    }
     try {
         return raw.includes("T") ? parseDateTime(raw) : parseDate(raw);
     } catch {
@@ -64,10 +67,14 @@ function parseISOValue(raw) {
 const rangeValue = computed({
     get: () => {
         const raw = widgetContext.state.combinedValue;
-        if (!raw || typeof raw !== "object") return undefined;
+        if (!raw || typeof raw !== "object") {
+            return undefined;
+        }
         const start = parseISOValue(raw.lower);
         const end = parseISOValue(raw.upper);
-        if (!start && !end) return undefined;
+        if (!start && !end) {
+            return undefined;
+        }
         return { start, end };
     },
     set: (v) => {
@@ -114,6 +121,7 @@ const icon = useIcons("WidgetDateRangeField", props);
             :disabled="widgetContext.state.disabled"
             :name="widgetContext.state.combinedName"
             :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+            :data-warning="widgetContext.state.validationState.warning || undefined"
             :aria-required="widgetContext.state.required || undefined"
             v-bind="$attrs"
             data-qa="widget-date-range-field"
@@ -162,7 +170,7 @@ const icon = useIcons("WidgetDateRangeField", props);
                             :class="theme('triggerIcon')"
                             aria-hidden="true"
                         />
-                        <span v-else aria-hidden="true" :class="theme('triggerIcon')">📅</span>
+                        <span v-else aria-hidden="true" :class="theme('triggerIcon')">▦</span>
                     </button>
                 </PopoverTrigger>
             </template>

@@ -1,0 +1,70 @@
+# Towncrier configuration for the `@arrai-innovations/vueda` npm package. See CONTRIBUTING.md for the workflow.
+[tool.towncrier]
+directory = "client"
+filename = "../docs/reference/changelog/client.md"
+template = "template.md"
+title_format = "## v{version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/arrai-innovations/vueda/issues/{issue})"
+# Fragments are complete Markdown list entries; keep their text as written.
+all_bullets = false
+# An empty list makes an unrecognized fragment filename an error.
+ignore = []
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fix"
+name = "Fixes"
+showcontent = true
+
+[[tool.towncrier.section]]
+name = "Lists and querying"
+path = "lists"
+
+[[tool.towncrier.section]]
+name = "Forms and validation"
+path = "forms"
+
+[[tool.towncrier.section]]
+name = "Field types"
+path = "field-types"
+
+[[tool.towncrier.section]]
+name = "Model metadata and data loading"
+path = "model-metadata"
+
+[[tool.towncrier.section]]
+name = "Permissions"
+path = "permissions"
+
+[[tool.towncrier.section]]
+name = "Routing and navigation"
+path = "routing"
+
+[[tool.towncrier.section]]
+name = "Auth and users"
+path = "auth"
+
+[[tool.towncrier.section]]
+name = "Workflow"
+path = "workflow"
+
+[[tool.towncrier.section]]
+name = "History"
+path = "history"
+
+[[tool.towncrier.section]]
+name = "Components and theming"
+path = "components"
+
+[[tool.towncrier.section]]
+name = "Setup and dependencies"
+path = "setup"

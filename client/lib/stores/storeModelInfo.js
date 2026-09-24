@@ -211,6 +211,18 @@ const camelCaseObject = (obj, skipKeys = []) => {
  */
 
 /**
+ * The column totals a `list` request may ask for.
+ *
+ * Totals are opt-in: a `list` request that names none gets an empty `columnTotals` back and costs
+ * the server no aggregation query, so a client asks for the totals its visible columns can render
+ * and nothing more. They are requested under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`,
+ * which the server does not report; this section says which totals exist, not how to ask for them.
+ *
+ * @typedef {object} ColumnTotalsInfo
+ * @property {string[]} fields - The total names a client may request, in declaration order. Each is also the key its value comes back under in the paginated response's `columnTotals`, and is named after the column it renders under rather than after the field path the server sums for it.
+ */
+
+/**
  * A permission information item.
  *
  * @typedef {object} PermissionInfo
@@ -236,6 +248,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {ExpandInfo[]} expand - The expandable fields of the model.
  * @property {OrderingInfo} ordering - The fields available for ordering the model, plus the server's default sort.
  * @property {{[filterName: string]: FilterInfo}} filtering - The fields available for filtering the model.
+ * @property {ColumnTotalsInfo} columnTotals - The column totals a `list` request may ask for, and the parameter that asks for them.
  * @property {PermissionInfo[]} permissions - The permissions available for the model.
  * @property {string[]} [methods] - The HTTP methods supported by the model (e.g., ["GET", "POST"]).
  * @property {string[]} [requiredFields] - A list of field names that are required for creating or updating the model.
@@ -322,6 +335,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "model_expands",
                         "model_ordering",
                         "model_filtering",
+                        "model_column_totals",
                         "model_permissions",
                     ],
                     [EXPAND_PARAM]: [
@@ -330,12 +344,15 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "model_expands",
                         "model_ordering",
                         "model_filtering",
+                        "model_column_totals",
                         "model_permissions",
                     ],
                 };
                 this.promises[key] = fetchHelper(
-                    // @ts-ignore - URLSearchParams is fine with object with a values of an array of strings.
-                    //  it includes the key multiple times, as we intend.
+                    // @ts-ignore - URLSearchParams is fine with an object whose values are arrays of
+                    //  strings: it stringifies each array into one comma-separated value rather than
+                    //  repeating the key, which is the form the server splits and the same form
+                    //  `makeSearchParamsString` sends list params in.
                     modelInfoUrl(args) + `?${new URLSearchParams(params).toString()}`,
                     {
                         method: "GET",
@@ -356,6 +373,12 @@ export const storeModelInfo = defineStore("modelInfo", {
                                 // In client code, we consistently use `expand` (not `expands`), matching `omit` not `omits`
                                 if (key === "expands") {
                                     key = "expand";
+                                }
+                                // The only multi-word section name; every other root key is one word,
+                                // so this is the one place the camelCasing below would otherwise have
+                                // to reach a key rather than a value.
+                                if (key === "column_totals") {
+                                    key = "columnTotals";
                                 }
                                 // Only camelCase nested objects, leave root keys unchanged
                                 if (key === "fields" || key === "filtering") {

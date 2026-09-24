@@ -8,8 +8,7 @@ import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewExecuteTransition from "@vueda/views/ViewExecuteTransition.vue";
 import ViewLoading from "@vueda/views/ViewLoading.vue";
-import { computedAsync } from "@vueuse/core";
-import { ref, toRef, watch } from "vue";
+import { shallowRef, toRef, watch } from "vue";
 
 /**
  * Resolves the correct view component for a given model action at runtime, delegating to CRUD
@@ -41,12 +40,12 @@ const props = defineProps({
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
-const getExtraActionComponent = async (action, fallback) => {
+const getExtraActionComponent = async ({ app, model, action }, fallback) => {
     try {
         // by app, model and action
         return (
             await import(
-                `@/views/ViewAction${getPascalCaseName(props.app)}${getPascalCaseName(props.model)}${getPascalCaseName(action)}.vue`
+                `@/views/ViewAction${getPascalCaseName(app)}${getPascalCaseName(model)}${getPascalCaseName(action)}.vue`
             )
         ).default;
     } catch (e) {
@@ -59,46 +58,52 @@ const getExtraActionComponent = async (action, fallback) => {
         }
     }
 };
-/** @type {import('vue').Ref<Promise<import('vue').Component>|()=>import('vue').Component>} */
-const actionComponentRef = ref(() => ViewLoading);
+// Resolve the component and its props together. Until both are ready, the current
+// view keeps its previous target rather than receiving a different model's props.
+const snapshotProps = () => ({ ...props, pk: Array.isArray(props.pk) ? [...props.pk] : props.pk });
+const resolvedView = shallowRef({ component: ViewLoading, props: snapshotProps() });
 watch(
-    [() => modelConfig.loading, () => props.action, () => modelConfig.info?.actions, () => workflow.transitions],
-    async ([loading, actionStr, actionsObj, transitionObjects]) => {
-        const actionName = getActionName(actionStr);
-        if (loading) {
-            actionComponentRef.value = () => ViewLoading;
-        } else if (!actionsObj && !transitionObjects) {
-            actionComponentRef.value = () => ViewActionNotFound;
-        } else if (actionsObj?.length || transitionObjects?.length) {
-            const action = actionsObj.find((action) => action.name === actionName);
-            const transition = transitionObjects.find((transition) => transition.code === actionName);
-            if (!action && !transition) {
-                actionComponentRef.value = () => ViewActionNotFound;
-            } else if (!transition && Object.keys(crudComponents).includes(actionStr)) {
-                // Gated on !transition so a transition code that happens to collide with a
-                // crudComponents key (a default key, or one a project registered via
-                // setCrudComponents) is never shadowed by that registry entry. A transition always
-                // resolves through the naming-convention imports and the ViewExecuteTransition
-                // fallback below instead.
-                actionComponentRef.value = async () => await crudComponents[actionStr](props);
-            } else {
-                // A recognized transition code falls back to ViewExecuteTransition (submits through
-                // storeWorkflow.executeTransition); every other recognized action falls back to the
-                // generic ViewAction. Either fallback still yields to a project-supplied
-                // ViewAction{App}{Model}{Code}.vue or ViewAction{Code}.vue override.
-                const fallback = transition ? ViewExecuteTransition : ViewAction;
-                actionComponentRef.value = async () => await getExtraActionComponent(actionStr, fallback);
-            }
+    [
+        () => props.app,
+        () => props.model,
+        () => props.action,
+        () => props.pk,
+        () => modelConfig.loading,
+        () => workflow.loading,
+        () => modelConfig.info?.actions,
+        () => workflow.transitions,
+    ],
+    async (_, __, onCleanup) => {
+        let current = true;
+        onCleanup(() => {
+            current = false;
+        });
+        if (modelConfig.loading !== false || workflow.loading) {
+            return;
+        }
+
+        const target = snapshotProps();
+        const actionName = getActionName(target.action);
+        const action = modelConfig.info?.actions?.find((action) => action.name === actionName);
+        const transition = workflow.transitions?.find((transition) => transition.code === actionName);
+        let component;
+        if (!action && !transition) {
+            component = ViewActionNotFound;
+        } else if (!transition && Object.hasOwn(crudComponents, target.action)) {
+            // A transition takes precedence over a registry entry with the same name.
+            component = await crudComponents[target.action](target);
+        } else {
+            component = await getExtraActionComponent(target, transition ? ViewExecuteTransition : ViewAction);
+        }
+        // A later navigation or metadata refresh may have superseded this import.
+        if (current) {
+            resolvedView.value = { component, props: target };
         }
     },
     { immediate: true, deep: true },
 );
-
-const actionComponent = computedAsync(async () => {
-    return actionComponentRef.value();
-}, null);
 </script>
 
 <template>
-    <component :is="actionComponent" v-if="actionComponent" :action="action" :app="app" :model="model" :pk="pk" />
+    <component :is="resolvedView.component" v-bind="resolvedView.props" />
 </template>

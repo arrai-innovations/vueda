@@ -114,6 +114,7 @@ pre-commit:
                 - "docs/.vitepress/.temp/**"
                 - "docs-tooling/.generated/**"
                 - "docs/public/assets/mermaid/mermaid.min.js"
+                - "changelog.d/template.md"
                 - "**/AGENT.md"
                 - "**/AGENTS.md"
             run: pnpm exec prettier --write {staged_files}
@@ -133,6 +134,12 @@ pre-commit:
             glob:
                 - "client/lib/theme/vueda-tailwind/**/*.js"
             run: docs-tooling/bin/docs-tooling.js validate-sources --files {staged_files}
+        changelog-fragments:
+            glob: "changelog.d/**"
+            run: |
+                for package in client server; do
+                  uv run --group dev --no-sync towncrier build --config "changelog.d/$package.toml" --version check --draft > /dev/null || exit 1
+                done
         circleci-config:
             glob: ".circleci/*.yml"
             run: |
@@ -143,3 +150,17 @@ pre-commit:
         circleci-orb-versions:
             glob: ".circleci/*.yml"
             run: python "$(git rev-parse --show-toplevel)/scripts/check_circleci_orb_versions.py"
+
+# CI splits linting by which paths a push touched, so a change that lints clean on one
+# side can still break a check that only the other side's job runs. The template parity
+# check is the case that bites: it compares the Copier templates against both
+# `client/package.json` and `server/vueda/__init__.py`, but pre-commit runs its server
+# scope from `ruff-check` and its client scope from `eslint`. Run the whole thing once
+# here, before anything leaves the machine.
+pre-push:
+    parallel: true
+    commands:
+        ruff-check:
+            run: uv run --group dev --no-sync ruff check server docs-tooling/py scripts
+        template-parity:
+            run: python "$(git rev-parse --show-toplevel)/scripts/check_template_parity.py"

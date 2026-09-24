@@ -66,6 +66,26 @@ describe("lib/shell/page-title/PageTitle.vue", () => {
         expect(wrapper.find("h1").text()).not.toContain("Ignored");
     });
 
+    scopedIt("shows a skeleton in place of the heading while the active view's title is empty", () => {
+        const wrapper = mountWithContext(makeContext({ title: "", loading: false }));
+        expect(wrapper.find('[data-qa="page-title-skeleton"]').classes()).toContain("theme-titleSkeleton");
+        expect(wrapper.find("h1").exists()).toBe(false);
+    });
+
+    scopedIt("renders no skeleton when no view has registered a title", () => {
+        const wrapper = mountWithContext(makeContext());
+        expect(wrapper.find('[data-qa="page-title-skeleton"]').exists()).toBe(false);
+        expect(wrapper.find("h1").exists()).toBe(true);
+    });
+
+    scopedIt("prefers a title slot over the skeleton", () => {
+        const wrapper = mountWithContext(makeContext({ title: "" }), {
+            slots: { title: "<span data-qa='custom'>Custom</span>" },
+        });
+        expect(wrapper.find('[data-qa="page-title-skeleton"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="custom"]').exists()).toBe(true);
+    });
+
     scopedIt("shows the spinner when the active view reports loading", () => {
         const wrapper = mountWithContext(makeContext({ title: "T", loading: true }), { props: { sticky: true } });
         expect(wrapper.find('[data-qa="loading-spinner-inline"]').exists()).toBe(true);

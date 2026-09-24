@@ -40,11 +40,11 @@ describe("lib/use/useSlotNameGrouper.js", () => {
 
     scopedIt("includes slots for expanded field names", () => {
         const slots = {
-            "widget(foo__child)label": () => h("div"),
+            "widget(foo.child)label": () => h("div"),
         };
         const result = useSlotNameGrouper(["widget"], "foo", slots);
 
-        expect(result.grouped.widget).toEqual([["widget(foo__child)label", "widget(foo__child)label"]]);
+        expect(result.grouped.widget).toEqual([["widget(foo.child)label", "widget(foo.child)label"]]);
         expect(result.remaining).toEqual([]);
     });
 

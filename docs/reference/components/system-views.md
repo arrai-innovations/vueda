@@ -66,27 +66,22 @@ Utility views that handle loading states and navigation dead ends. These are not
 
 ## ViewLoading
 
-Route-level loading fallback. Composes `SystemMessageCard(tone="loading")` with the `loading` icon registry key, optional request identity in the crest kind, a skeleton preview, and a heartbeat strip. Once `slowAfterMs` is reached the card flips to warning tone and switches its crest icon name to `hourglass`.
+Route-level loading status. By default, it shows a loading icon and label. After `slowAfterMs` (three seconds by default), it shows an hourglass and a message explaining that the load is taking longer than usual. Context, request details, and dependency progress appear only when supplied by the caller.
 
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewLoading: composed card with registry-backed crest icon</header>
-  <div class="rounded-vueda-card hairline hairline-border bg-card overflow-clip" style="min-height: 220px;">
-    <ViewLoading
-      name="Loading customer record"
-      verb="GET"
-      path="/crm/customers/42"
-      context="Northwind Logistics"
-      request-id="req-demo-42"
-      :dependencies="{ resolved: 2, total: 5 }"
-      :slow-after-ms="60000"
-    />
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>layout: centers the shared <code>SystemMessageCard</code> in the route container</span>
-    <span>normal crest icon: <code>icon-name="loading"</code>; slow crest icon: <code>icon-name="hourglass"</code></span>
-    <span>customization: register those keys globally, or pass an <code>iconOverride</code> scoped to this view</span>
-  </footer>
+These previews keep the normal and slow states visible for inspection. `ViewActionRouter` uses the default presentation without sample request details.
+
+<VuedaDemo class="grid gap-4 md:grid-cols-2">
+  <section>
+    <h3 class="text-sm font-medium">Loading</h3>
+    <ViewLoading :slow-after-ms="Infinity" />
+  </section>
+  <section>
+    <h3 class="text-sm font-medium">Slow load</h3>
+    <ViewLoading :slow-after-ms="0" />
+  </section>
 </VuedaDemo>
+
+Use the `ViewLoading` theme entry to style the status. Its `loading` and `hourglass` icons resolve through the `ViewLoading` icon registry entry, falling back to `Default`. The `slow-actions` slot can supply actions once the slow threshold is reached.
 
 ## ViewNotFound
 

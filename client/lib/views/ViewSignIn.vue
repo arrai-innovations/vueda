@@ -104,7 +104,7 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
                 <div
                     class="flex flex-row flex-wrap items-center gap-2 px-4 py-3 mt-2 border-t-hairline bg-muted/25 rounded-b-vueda-card"
                 >
-                    <Button type="submit" class="w-full" :disabled="actionBarProps.loading">
+                    <Button type="submit" tone="primary" class="w-full" :disabled="actionBarProps.loading">
                         <LoadingSpinnerInline v-if="actionBarProps.loading" />
                         Sign In
                     </Button>

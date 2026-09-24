@@ -1,0 +1,19 @@
+name: Issue title
+
+on:
+    issues:
+        types: [opened, edited, labeled, unlabeled]
+
+permissions:
+    contents: read
+
+jobs:
+    title:
+        name: Title
+        runs-on: ubuntu-slim
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Check the title against CONTRIBUTING.md
+              run: python3 scripts/check_issue_title.py

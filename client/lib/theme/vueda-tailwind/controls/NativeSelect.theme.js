@@ -14,7 +14,7 @@ patchTheme({
      * touch devices, fallback contexts).
      */
     NativeSelect: {
-        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height, `bg-field` fill, bottom `field-line`, full-edge focus, and `aria-invalid` shell as {@api theme-key:Input.root}, with the shared `hover:bg-field-hover` step. `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
+        /** The native `<select>` styled to match the VUEDA control shell. Used where a JS-driven {@api theme-key:SelectTrigger} or {@api theme-key:ComboboxTrigger} would be overkill: short fixed enums on touch devices, environments where native menu UX is preferred. Same control-height, `bg-field` fill, bottom `field-line`, recoloured focus line, and `aria-invalid` shell as {@api theme-key:Input.root}, with the shared `hover:bg-field-hover` step. `appearance-none` strips the native chevron and `pr-9` reserves space for the icon the consumer paints. The option surface inside the dropdown is owned by the OS; deep styling lives in the JS-driven pickers. */
         root: {
             class: [
                 // Text selection and picker states.
@@ -24,11 +24,14 @@ patchTheme({
                 "field-line h-vueda-control w-full min-w-0 appearance-none rounded-vueda-field bg-field px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow",
 
                 // Disabled state.
+                // Disabled: an inert slab, not a faded field. See README section 7.6.
                 "disabled:pointer-events-none disabled:cursor-not-allowed",
+                "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",
 
                 // Focus and invalid states.
-                "focus-visible:hairline focus-visible:hairline-ring focus-visible:focus-ring-shadow",
-                "aria-invalid:hairline aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
+                "focus-visible:hairline-ring focus-visible:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning",
+                "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive",
             ],
         },
     },

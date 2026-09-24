@@ -97,7 +97,9 @@ import PageActions from "@vueda/shell/page-title/PageActions.vue";
 
 To render the header yourself (a different layout, extra chrome, your own markup) call `usePageTitle()` with no argument to read the same context, then expose an action zone for `PageActions` to teleport into.
 
-Read the active title and loading state from `current`, and bind the element that should host page actions with `bindActionZone`:
+Read the active title and loading state from `current`, and bind the element that should host page actions with `bindActionZone`.
+
+An empty `title` means the active view has registered but has not resolved its title yet. For example, a detail view emits an empty title until the model's verbose name is known. Render a placeholder in that case rather than an empty heading. `current` is an empty object only when no view has registered, so check for the `title` key to tell the two cases apart. The built-in `PageTitle` shows a skeleton, and the skeleton stays if the title never arrives:
 
 ```vue
 <script setup>
@@ -107,6 +109,8 @@ import { computed, ref } from "vue";
 const page = usePageTitle();
 const title = computed(() => page.current.value.title);
 const loading = computed(() => page.current.value.loading);
+// A view is registered but its title is not known yet.
+const titlePending = computed(() => "title" in page.current.value && !title.value);
 
 // The element page actions teleport into. Bind the ref so it resolves once mounted.
 const actionZone = ref(null);
@@ -115,7 +119,8 @@ page.bindActionZone(actionZone);
 
 <template>
     <header>
-        <h1>{{ title }}<span v-if="loading"> (loading)</span></h1>
+        <div v-if="titlePending" class="title-placeholder" aria-hidden="true" />
+        <h1 v-else>{{ title }}<span v-if="loading"> (loading)</span></h1>
         <!-- PageActions teleports view buttons here. -->
         <div ref="actionZone" />
     </header>
@@ -130,7 +135,7 @@ The built-in `PageTitle` is the worked reference for this composable. If you wan
 
 ## Restyle the default display
 
-If you want the default `PageTitle` markup but different styling, you do not need a custom display. `PageTitle` registers theme entries you can override through the normal theming mechanisms (`themeOverride` for one instance, `patchTheme` for every instance). The relevant slots are `root` (the header bar), `title` (the `<h1>`), `buttons` (the action zone), and `gradient` (the sticky-mode cap). See {@api theme-key:PageTitle} for the full list and [Customize VUEDA Appearance](customize-vueda-appearance) for the override recipes.
+If you want the default `PageTitle` markup but different styling, you do not need a custom display. `PageTitle` registers theme entries you can override through the normal theming mechanisms (`themeOverride` for one instance, `patchTheme` for every instance). The relevant slots are `root` (the header bar), `title` (the `<h1>`), `titleSkeleton` (the placeholder shown while the title is empty), `buttons` (the action zone), and `gradient` (the sticky-mode cap). See {@api theme-key:PageTitle} for the full list and [Customize VUEDA Appearance](customize-vueda-appearance) for the override recipes.
 
 ## Common pitfalls
 

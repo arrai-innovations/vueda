@@ -249,7 +249,7 @@ items, dialog actions), override the matching `_Button*` meta key rather than
       </div>
     </div>
     <template #footer>
-      <span>fg <code>--primary</code></span>
+      <span>fg <code>--primary-text</code></span>
       <span>hover underline</span>
       <span>use inside running text, not toolbars</span>
     </template>
@@ -330,7 +330,11 @@ them independent. Decide each separately:
   secondary form action, a page-title secondary action, a toolbar trigger,
   pagination, an error-recovery retry.
 - **`ghost`** is a dismiss or a dense-strip action: cancel, clear, the actions
-  in a bulk-selection bar, an inline tertiary affordance.
+  in a bulk-selection bar, an inline tertiary affordance. Pair a ghost action
+  with an icon or place it in an established action group so it reads as
+  interactive before hover. For a standalone text-only action, prefer `outline`.
+  The list's Clear filters and Reset sort controls use small neutral outlines:
+  they change the view's constraints, so they do not need destructive tone.
 - **`link`** is inline within running prose only. Never in a toolbar or an
   action strip, where it breaks the control rhythm.
 
@@ -341,8 +345,11 @@ them independent. Decide each separately:
 - **`primary`** is the earned accent. Reach for it only on the one promoted
   action per context (or set it explicitly for a deliberate CTA). Spreading
   `primary` across a cluster spends the accent that signals "the" action.
-- **`destructive`** marks an action that deletes data or is otherwise
-  irreversible. Set the tone, not a `text-destructive` class: a destructive
+- **`destructive`** marks deletion, including removal of an unsaved inline row,
+  or a repeated value through `FieldSetMany`. Removing a draft value deserves the
+  same tone even though it has not been saved. Clearing a filter changes the view
+  rather than its data, so that control remains neutral.
+  Set the tone, not a `text-destructive` class: a destructive
   ghost (`tone="destructive" emphasis="ghost"`) is a quiet red row action, a
   destructive fill is a confirm hero. The tone composes the right
   `_ButtonDestructive*` primitive for whatever emphasis the placement chose.
@@ -353,17 +360,23 @@ Size is a third, independent placement axis: `sm` in dense chrome (titles,
 toolbars, dialogs, bulk bars), `default` (32px) in form footers, `lg` for auth
 and full-page CTAs, `icon-sm` for pagination.
 
+`ViewList` supplies `size="sm"` for bulk and workflow actions through their shared
+slot props. Spread those props in a `bulk-action-button` or
+`workflow-action-button` replacement to retain the placement size; override
+`size` explicitly when your custom layout needs a different control height.
+
 ### Placement reference
 
-| Placement              | Primary action     | Alternative                | Dismiss    | Destructive             |
-| ---------------------- | ------------------ | -------------------------- | ---------- | ----------------------- |
-| Page-title action zone | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm | `destructive` fill, sm  |
-| Form / dialog footer   | `primary` fill     | `neutral` outline          | `ghost`    | `destructive` fill      |
-| Toolbar                |                    | `neutral` outline, sm      |            |                         |
-| Bulk-selection bar     |                    | `ghost` sm                 |            | `destructive` ghost, sm |
-| Pagination             |                    | `neutral` outline, icon-sm |            |                         |
-| Empty state            | `primary` fill, sm | `neutral` outline, sm      | `ghost` sm |                         |
-| Inline (running prose) | `primary` link     | `neutral` link             |            | `destructive` link      |
+| Placement              | Primary action     | Alternative                    | Dismiss    | Destructive                             |
+| ---------------------- | ------------------ | ------------------------------ | ---------- | --------------------------------------- |
+| Page-title action zone | `primary` fill, sm | `neutral` outline, sm          | `ghost` sm | `destructive` fill, sm                  |
+| Form / dialog footer   | `primary` fill     | `neutral` outline              | `ghost`    | `destructive` fill                      |
+| Toolbar                |                    | `neutral` outline, sm          |            |                                         |
+| Inline fieldset row    |                    | `neutral` outline, sm (Create) |            | `destructive` ghost, sm (icon + Delete) |
+| Bulk-selection bar     |                    | `ghost` sm                     |            | `destructive` ghost, sm                 |
+| Pagination             |                    | `neutral` outline, icon-sm     |            |                                         |
+| Empty state            | `primary` fill, sm | `neutral` outline, sm          | `ghost` sm |                                         |
+| Inline (running prose) | `primary` link     | `neutral` link                 |            | `destructive` link                      |
 
 For buttons that navigate to a model action, this resolution happens
 automatically: every action button renders through
@@ -372,6 +385,51 @@ tone (a delete / destroy action is `destructive`, everything else `neutral`),
 applies the placement `emphasis` chosen by the surrounding view, and promotes
 the view's hero action to a fill. Authoring a `<Button>` by hand should follow
 the same table so hand-placed and resolved buttons read identically.
+
+### Custom inline row actions
+
+An inline action entry in `fieldObjects` uses a label and an `action` function,
+for example `{ fieldName: "inspect", label: "Inspect", action: inspectRow }`.
+The default non-destroy action button is a small neutral outline button in both
+stacked and tabular layouts. Both use
+{@api vue:component:FieldSetInlineActionButton}, which owns the styling and invokes
+the callback without submitting the parent form.
+
+The callback receives `action`, `fieldSetContextState`, `rowValueName`, and the
+click `event`. `rowValueName` identifies the current value path, such as
+`lines[1]`; a singular stacked inline uses its field name without an index.
+Stacked passes its existing inline state (field objects, actions, and selection),
+while tabular passes its field context state (including the field value) and
+also supplies `objectGridFieldSlotProps` and `doCreate`. These context objects
+are layout-specific; do not assume they have the same shape.
+
+An `item-action-button` slot replaces the default button and owns its activation
+handler. Use the slot's `action` and row context when implementing that handler.
+
+### Customizing built-in inline buttons
+
+Stacked, singular stacked, and tabular inlines use a small destructive ghost
+button with a trash icon and a visible Delete label for unsaved rows. Create
+uses a small neutral outline button. The icon is decorative; the label provides
+the button's accessible name.
+
+The inline component selects `tone`, `emphasis`, and `size`. `useTheme` resolves
+the classes that draw those choices. Choose the customization point by what you
+need to change:
+
+- For layout or extra classes on Delete, override
+  {@api theme-key:FieldSetStackedInlineRow.destroyButton} (also used by singular
+  stacked inlines) or {@api theme-key:FieldSetTabularInline.destroyButton}.
+- For shared button appearance, override {@api theme-key:Button.root} or its
+  composed primitives. A `themeOverride` on the fieldset scopes overrides to
+  that fieldset and its descendants; a Button override there affects Create
+  and other buttons too.
+- For the trash icon, supply `iconOverride` with the `typeDeleted` entry under
+  `FieldSetStackedInlineRow` or `FieldSetTabularInline`. `Default.typeDeleted` changes
+  the shared fallback.
+- To choose different button props or replace its content, use the fieldset's
+  `destroy-button` slot. Forward its click handler so the replacement still
+  removes the unsaved row. Theme class hooks do not change component props.
 
 ## ButtonGroup: composition matrix
 
@@ -453,6 +511,12 @@ Theme key: {@api theme-key:Toggle}. The pressed surface reads from
 {@api css-token:accent} / {@api css-token:accent-foreground}, the same pair
 that drives hover on ghost and outline buttons; rebranding the accent shifts
 all three in lockstep.
+
+Disabled toggles use {@api css-token:disabled-foreground} ink at full opacity.
+A pressed toggle keeps a {@api css-token:disabled} fill; an unpressed toggle
+stays transparent. Outline variants soften their edge to {@api css-token:border}.
+The public `pressed`, `defaultPressed`, and `update:pressed` API controls this
+state, including through `v-model:pressed`.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default">
@@ -542,8 +606,10 @@ child variant), not state. Per-item states are covered by the
 [Toggle matrix](#toggle-state-matrix) above.
 
 Theme keys: {@api theme-key:ToggleGroup},
-{@api theme-key:ToggleGroupItem}. Items compose from the Toggle key, so a
-restyle of {@api theme-key:Toggle} flows through here automatically.
+{@api theme-key:ToggleGroupItem}. Items have their own theme recipe and match
+Toggle's state treatment. Customize both keys when restyling the whole family.
+Disabling the group applies disabled colors to every item while preserving the
+selected values and joined outline seams.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="single · default spacing">
@@ -570,6 +636,14 @@ restyle of {@api theme-key:Toggle} flows through here automatically.
     </ToggleGroup>
     <template #footer>any combination selectable, each item toggles independently</template>
   </DemoCard>
+  <DemoCard title="disabled group">
+    <ToggleGroup type="single" variant="outline" default-value="day" disabled>
+      <ToggleGroupItem value="day">Day</ToggleGroupItem>
+      <ToggleGroupItem value="week">Week</ToggleGroupItem>
+      <ToggleGroupItem value="month">Month</ToggleGroupItem>
+    </ToggleGroup>
+    <template #footer>selected fill stays visible; disabled ink and edges replace active colors</template>
+  </DemoCard>
 </VuedaDemo>
 
 ## Switch: state matrix
@@ -582,6 +656,11 @@ Theme key: {@api theme-key:Switch}. Token surface: {@api css-token:input}
 (thumb), {@api css-token:ring} (focus). Switch is the one place a brand's
 {@api css-token:primary} reads as a _fill_ rather than as a CTA; verify the
 on-track contrast against the thumb when retoning primary.
+
+Disabled switches use {@api css-token:disabled} for the track and
+{@api css-token:disabled-foreground} for the thumb, at full opacity in both
+color modes. The thumb's position continues to show whether the value is on
+or off.
 
 <VuedaDemo>
   <DemoCard>

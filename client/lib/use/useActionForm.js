@@ -99,10 +99,11 @@ export function useActionForm(formContext, props) {
     const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
 
     let actionPromise = null;
-    // Set when the shell tears down mid-flight. reactive-helpers resolves a cancelled run rather than rejecting
+    // Invalidates completions when the shell or target changes.
+    // reactive-helpers resolves a cancelled run rather than rejecting
     // it (`false`, or `null` for `executeAction`, with no stored error), so without this a cancelled action would
     // read as a success and toast on its way out.
-    let actionCancelled = false;
+    let actionGeneration = 0;
 
     const confirmation = useConfirmationController({
         noConsumerWarning:
@@ -113,15 +114,19 @@ export function useActionForm(formContext, props) {
             "confirmation.register()) so the action can be confirmed.",
     });
 
-    const handleError = async (error, dryRun) => {
+    const handleError = async (error, dryRun, generation) => {
         if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
             formContext.handleServerFormValidationError(error);
             return;
         }
-        if (dryRun) return;
+        if (dryRun) {
+            return;
+        }
         if (props.onSubmissionErrorHandler) {
             const handled = await props.onSubmissionErrorHandler({ error, formContext, toast });
-            if (handled) return;
+            if (handled || generation !== actionGeneration) {
+                return;
+            }
         }
         localActionState.errored = true;
         localActionState.error = error;
@@ -138,13 +143,16 @@ export function useActionForm(formContext, props) {
     // during the dry-run pre-flight (a pre-flight 409 is dropped by handleError's dry-run
     // early-return), and a 409 without a digest falls through to normal error handling, since
     // retrying without the acknowledgement header would just be gated again, forever.
-    const handleActionError = async (error, runArgs, dryRun) => {
+    const handleActionError = async (error, runArgs, dryRun, generation) => {
         if (!dryRun && error instanceof ConfirmationRequiredError && error.digest != null) {
             const onWarningsRequireConfirmation =
                 props.onSubmissionWarningsRequireConfirmation || defaultOnSubmissionWarningsRequireConfirmation;
             const confirmed = await onWarningsRequireConfirmation({ error, formContext, confirmation, toast });
+            if (generation !== actionGeneration) {
+                return;
+            }
             if (confirmed) {
-                await performAction({ ...runArgs, acknowledgeWarnings: error.digest }, dryRun);
+                await performAction({ ...runArgs, acknowledgeWarnings: error.digest }, dryRun, generation);
             } else {
                 // Cancelled: the action did not run, but it is not a failure to report. Flag errored
                 // (the analogue of useObjectForm's submitErrored) without an error, so no failure
@@ -153,20 +161,20 @@ export function useActionForm(formContext, props) {
             }
             return;
         }
-        await handleError(error, dryRun);
+        await handleError(error, dryRun, generation);
     };
 
     // Performs one action attempt and routes the outcome; handleActionError recurses back into this
     // for a confirmed retry.
-    const performAction = async (runArgs, dryRun) => {
+    const performAction = async (runArgs, dryRun, generation) => {
         try {
             actionPromise = props.runAction(runArgs);
             const response = await actionPromise;
-            if (actionCancelled) {
+            if (generation !== actionGeneration) {
                 return;
             }
             if (props.actionState?.errored) {
-                await handleActionError(props.actionState.error, runArgs, dryRun);
+                await handleActionError(props.actionState.error, runArgs, dryRun, generation);
                 return;
             }
             if (dryRun) {
@@ -183,23 +191,31 @@ export function useActionForm(formContext, props) {
                 }
             }
         } catch (error) {
-            if (actionCancelled) {
+            if (generation !== actionGeneration) {
                 return;
             }
-            await handleActionError(error, runArgs, dryRun);
+            await handleActionError(error, runArgs, dryRun, generation);
         } finally {
-            actionPromise = null;
+            if (generation === actionGeneration) {
+                actionPromise = null;
+            }
         }
     };
 
     const handleConfirm = async (dryRun = false) => {
+        const generation = actionGeneration;
         formContext.setAllTouched();
         localActionState.loading = true;
         if (props.hasInput && !dryRun) {
             await nextTick();
+            if (generation !== actionGeneration) {
+                return;
+            }
             if (props.requireModified !== false && !formContext.state.anyModified) {
                 await defaultOnSubmitNotAnyModified({ toast });
-                localActionState.loading = false;
+                if (generation === actionGeneration) {
+                    localActionState.loading = false;
+                }
                 return;
             }
             if (formContext.state.anyError) {
@@ -221,9 +237,11 @@ export function useActionForm(formContext, props) {
         localActionState.errored = false;
         localActionState.error = null;
         try {
-            await performAction({ formValues: formContext.state.submittingValues, dryRun }, dryRun);
+            await performAction({ formValues: formContext.state.submittingValues, dryRun }, dryRun, generation);
         } finally {
-            localActionState.loading = false;
+            if (generation === actionGeneration) {
+                localActionState.loading = false;
+            }
         }
     };
 
@@ -238,12 +256,15 @@ export function useActionForm(formContext, props) {
     };
 
     const cancelInFlightAction = () => {
-        if (!actionPromise) {
-            return;
-        }
-        actionCancelled = true;
-        actionPromise.cancel?.();
+        actionGeneration += 1;
+        actionPromise?.cancel?.();
+        actionPromise = null;
+        confirmation.cancel();
+        localActionState.loading = false;
+        localActionState.errored = false;
+        localActionState.error = null;
     };
+    watch(() => props.dryRunTarget, cancelInFlightAction);
     onDeactivated(cancelInFlightAction);
     onUnmounted(cancelInFlightAction);
 

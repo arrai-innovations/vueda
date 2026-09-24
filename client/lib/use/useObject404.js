@@ -19,6 +19,17 @@ import { watch } from "vue";
  * @returns {void}
  */
 export function useObject404(yourProps, yourInstanceObject, yourModelConfig, yourErrorRef) {
+    watch([() => yourProps.app, () => yourProps.model, () => yourProps.pk], () => {
+        yourErrorRef.value = null;
+    });
+    watch(
+        () => yourInstanceObject.state.loading,
+        (loading) => {
+            if (loading) {
+                yourErrorRef.value = null;
+            }
+        },
+    );
     watch(
         () => yourInstanceObject.state.error,
         async (error) => {

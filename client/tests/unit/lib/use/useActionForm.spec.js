@@ -228,8 +228,12 @@ describe("lib/use/useActionForm.js", () => {
             const round1 = makeConfirmationError("d1", { count: ["round one"] });
             const round2 = makeConfirmationError("d2", { name: ["round two"] });
             const runAction = vi.fn(({ acknowledgeWarnings }) => {
-                if (acknowledgeWarnings === "d2") return Promise.resolve("ok");
-                if (acknowledgeWarnings === "d1") return Promise.reject(round2);
+                if (acknowledgeWarnings === "d2") {
+                    return Promise.resolve("ok");
+                }
+                if (acknowledgeWarnings === "d1") {
+                    return Promise.reject(round2);
+                }
                 return Promise.reject(round1);
             });
             const props = reactive({ runAction });
@@ -331,6 +335,51 @@ describe("lib/use/useActionForm.js", () => {
             await flushPromises();
             expect(runAction).toHaveBeenCalledTimes(1);
         });
+    });
+
+    scopedIt("ignores an old completion while the new target's action is still pending", async () => {
+        const resolvers = [];
+        const promises = [];
+        const runAction = vi.fn(() => {
+            const promise = new Promise((resolve) => {
+                resolvers.push(resolve);
+            });
+            promise.cancel = vi.fn();
+            promises.push(promise);
+            return promise;
+        });
+        const redirectTo = vi.fn();
+        const props = reactive({ runAction, redirectTo, dryRunTarget: "first" });
+        const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+        const first = actionForm.handleConfirm();
+        props.dryRunTarget = "second";
+        await flushPromises();
+        const second = actionForm.handleConfirm();
+        resolvers[0](false);
+        await first;
+        expect(promises[0].cancel).toHaveBeenCalled();
+        expect(redirectTo).not.toHaveBeenCalled();
+        expect(actionForm.combinedLoading.value).toBe(true);
+        resolvers[1]({});
+        await second;
+        expect(redirectTo).toHaveBeenCalledTimes(1);
+        expect(actionForm.combinedLoading.value).toBe(false);
+    });
+
+    scopedIt("closes old warning confirmation without retrying against the new target", async () => {
+        const runAction = makeGatedRunAction(makeConfirmationError());
+        const props = reactive({ runAction, dryRunTarget: "first" });
+        const actionForm = await withSetup(() => useActionForm(createFormContext(), props));
+        actionForm.confirmation.register();
+        const first = actionForm.handleConfirm();
+        await flushPromises();
+        expect(actionForm.confirmation.open).toBe(true);
+        props.dryRunTarget = "second";
+        await flushPromises();
+        await first;
+        expect(actionForm.confirmation.open).toBe(false);
+        expect(runAction).toHaveBeenCalledTimes(1);
+        expect(toastMock.success).not.toHaveBeenCalled();
     });
 
     describe("Teardown", () => {

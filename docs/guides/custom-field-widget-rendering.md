@@ -58,7 +58,7 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
+        widgetComponents: { "line_items.status": "WidgetSelectDropdown" },
     },
 );
 ```
@@ -102,7 +102,7 @@ For filter rendering, the same slot contract applies with `filter-` prefixes: `f
 A slot override that wraps the default component while adding behaviour:
 
 ```vue
-<template #widget(line_items__status)="slotProps">
+<template #widget(line_items.status)="slotProps">
     <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
         <template v-for="[slotName, slotRenderer] of slotProps.slots" #[slotName]="innerProps" :key="slotName">
             <component :is="slotRenderer" v-bind="innerProps" />
@@ -117,19 +117,19 @@ Slot key format must be exact. `widget(fieldName)` and `widget(fieldName)default
 
 ## Expanded Field and Read-Only Edge Cases
 
-Expanded relation fields require specific targeting. The base field of an expanded relation may resolve without a direct widget component; the expanded subfields are the meaningful targets. Use flattened keys with double underscores for subfield targeting:
+Expanded relation fields require specific targeting. The base field of an expanded relation may resolve without a direct widget component; the expanded subfields are the meaningful targets. Use flattened keys with dots for subfield targeting:
 
 ```js
 modelConfigStore.setConfig(
     { app: "myapp", model: "order" },
     {
-        widgetComponents: { line_items__amount: MyAmountWidget },
-        widgetProps: { line_items__amount: { step: 0.01 } },
+        widgetComponents: { "line_items.amount": MyAmountWidget },
+        widgetProps: { "line_items.amount": { step: 0.01 } },
     },
 );
 ```
 
-Overriding the base expanded field as if it were a simple widget can silently miss. The base expanded widget may be `null`; target the subfields (`expand__field`) instead.
+Overriding the base expanded field as if it were a simple widget can silently miss. The base expanded widget may be `null`; target the subfields (`expand.field`) instead.
 
 Read-only view handling and field-level `readOnly` metadata can force read-only widget resolution even when writable widget overrides are present. When a view is in `read` mode, the form infrastructure may select a read-only widget variant even when a writable widget override is configured. Verify override behaviour in both writable and read-only view modes.
 
@@ -156,14 +156,14 @@ modelConfigStore.setConfig(
     { app: "myapp", model: "mymodel" },
     {
         fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { line_items__status: "WidgetSelectDropdown" },
+        widgetComponents: { "line_items.status": "WidgetSelectDropdown" },
         fieldProps: { line_items: { showCreateButton: false } },
-        widgetProps: { line_items__amount: { step: 0.01 } },
+        widgetProps: { "line_items.amount": { step: 0.01 } },
     },
     {
         update: {
             expand: ["line_items"],
-            displayFields: ["line_items", "line_items__status", "line_items__amount"],
+            displayFields: ["line_items", "line_items.status", "line_items.amount"],
         },
     },
 );
@@ -182,7 +182,7 @@ const widget = useWidget(props, emit);
 
 ## Troubleshooting
 
-**Override has no effect.** Verify the field name matches the form's field path exactly. For expanded subfields, use double-underscore notation (`expand__field`). Check that the override surface has higher precedence than the currently rendering surface. A model config override will not take effect if per-instance props are also set for the same field.
+**Override has no effect.** Verify the field name matches the form's field path exactly. For expanded subfields, use dot notation (`expand.field`). Check that the override surface has higher precedence than the currently rendering surface. A model config override will not take effect if per-instance props are also set for the same field.
 
 **"Unknown mapping" error at form setup.** A string key passed to `fieldComponents` or `widgetComponents` does not match any entry in `availableFields` or `availableWidgets`. Verify the string key matches a registered component name exactly.
 

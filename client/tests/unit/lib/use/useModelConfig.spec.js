@@ -75,6 +75,29 @@ describe("lib/use/useModelConfig.js", () => {
         userStoreMock.identityGeneration = 0;
     });
 
+    scopedIt("ignores an obsolete config completing after the destination config", async () => {
+        const app = ref("blog");
+        const model = ref("article");
+        let resolveFirst;
+        mockStore.getConfig.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirst = resolve;
+                }),
+        );
+        mockStore.getConfig.mockImplementationOnce(async ({ app, model }) => {
+            mockStore.builtConfigs[getAppModelDotName({ app, model })] = { fields: ["destination"] };
+        });
+        const result = useModelConfig(app, model);
+        model.value = "comment";
+        await flushPromises();
+        expect(result.config.fields).toEqual(["destination"]);
+        mockStore.builtConfigs[getAppModelDotName({ app: "blog", model: "article" })] = { fields: ["stale"] };
+        resolveFirst();
+        await flushPromises();
+        expect(result.config.fields).toEqual(["destination"]);
+    });
+
     scopedIt("fetches config and sets it in returnObject", async () => {
         const app = ref("blog");
         const model = ref("article");

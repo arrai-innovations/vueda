@@ -10,6 +10,7 @@ __all__ = (
     "IdInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
+    "PublicFilterAliasMixin",
     "VuedaCompositePrimaryKeyFilterSet",
     "VuedaFilterSet",
     "VuedaOrderingFilter",
@@ -36,6 +37,7 @@ from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
 from ordered_set import OrderedSet
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
@@ -47,6 +49,12 @@ from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_distinct_column
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
+from vueda.core.paths import join_ordering_direction
+from vueda.core.paths import orm_filter_path_to_public
+from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.paths import public_ordering_path_to_orm
+from vueda.core.paths import reject_wildcard
+from vueda.core.paths import split_ordering_direction
 
 
 class BaseArrayFilter(rest_framework.Filter):
@@ -145,15 +153,55 @@ class FormattedNamePathFilterSetMixin:
             filter_.vueda_declared_field_name = declared_field_name
 
 
+class PublicFilterAliasMixin:
+    """
+    Gives every declared filter a dotted public name, distinct from the name django-filter binds it
+    under internally.
+
+    A filter's own name can't be dotted to begin with: it is either a Python identifier (a class
+    attribute) or a ``__``-joined ``Meta.fields`` entry, and neither grammar can hold a literal
+    ``.``. The public name is derived from it by default — every ``__`` becomes a ``.``, the same
+    translation ``VuedaOrderingFilter`` applies to a path, so a filter reached through a relation
+    (``customer__formatted_name``, or the ``customer__formatted_name__icontains`` django-filter
+    itself builds for a ``Meta.fields`` lookup) is reachable under the same dotted name that path
+    would take in ``?o=`` or an expand — ``customer.formatted_name`` — with no configuration at all.
+    A declared name with no ``__`` in it (``distributor``, or an ordinary ``Meta.fields`` entry
+    without a lookup suffix) has nothing to translate and keeps its own name as its public one.
+
+    The declared name stops being a recognized query parameter once renamed: nothing here keeps
+    accepting it alongside the dotted one. Nothing needs to read it back either, because the rename
+    reaches ``base_filters`` itself, so metadata and error messages read the same public name a
+    request uses.
+
+    Renamed on ``get_filters()``, the classmethod django-filter's metaclass calls to build
+    ``base_filters``, rather than on each instance's ``self.filters`` in ``__init__``. drf-spectacular
+    reads ``base_filters`` directly for the OpenAPI schema, and ``BaseFilterSet.__init__`` sets
+    ``self.filters = copy.deepcopy(self.base_filters)``, so renaming here is what both the schema and
+    every instance see, in one place. Rebuilding the mapping by iterating ``super().get_filters()`` in
+    its own order (rather than popping and re-inserting into an existing dict) also keeps each
+    filter's declared position: building a new dict in that order changes each key's spelling and
+    nothing else.
+    """
+
+    @classmethod
+    def get_filters(cls):
+        return {
+            orm_filter_path_to_public(declared_name): filter_
+            for declared_name, filter_ in super().get_filters().items()
+        }
+
+
 class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
-class VuedaFilterSet(FormattedNamePathFilterSetMixin, IdInFilterSet):
+class VuedaFilterSet(PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, IdInFilterSet):
     pass
 
 
-class VuedaCompositePrimaryKeyFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
+class VuedaCompositePrimaryKeyFilterSet(
+    PublicFilterAliasMixin, FormattedNamePathFilterSetMixin, rest_framework.FilterSet
+):
     """
     We can't have a default 'pk' filter.
     We would want filters for each field that combines to make the pk.
@@ -179,6 +227,12 @@ class VuedaOrderingFilter(OrderingFilter):
        placement to the field itself, regardless of sort direction. To have the placement flip
        (first <-> last) when the field is sorted descending instead, list the field name in
        `nulls_ordering_flip` as well.
+
+       `nulls_ordering` and `nulls_ordering_flip` are declared on the view, the same place `ordering`
+       is, so their field names stay `__`-joined like every other view-declared ordering term — never
+       the dotted `?o=` grammar. `filter_queryset` applies a placement after `get_ordering` has
+       already translated a client's dotted term to its `__`-joined `order_by()` form, so a dotted key
+       here matches nothing a request could ever name.
 
        The placement applies wherever that field is sorted by name — an explicit `?o=` request, and
        equally a default `ordering` written as plain strings (`ordering = ["due_date"]`), since DRF
@@ -218,6 +272,16 @@ class VuedaOrderingFilter(OrderingFilter):
        the tables it joins, so the related form would raise `FieldError` without this. The rewrite
        reaches inside an expression, so `Lower("customer__formatted_name")` still sorts case-
        insensitively on the column behind the name.
+
+    4. `?o=` is dotted (`employee.name`), matching every other public path on the wire, while
+       `order_by()` and everything above stays `__`-joined. `remove_invalid_fields` is where the two
+       meet: it is the one place DRF hands this class a raw, unvalidated list of request terms rather
+       than an already-resolved queryset ordering, so it is also the one place a dotted term can be
+       told apart from an invalid one before translation, and the one place a request naming even one
+       invalid term can be rejected outright rather than quietly ordered by whatever named terms
+       happened to validate. Everything below this point — `nulls_ordering`, a view's declared
+       `ordering`, the annotation and pk-alias handling above — stays `__`-joined, because none of it
+       is written from a request.
     """
 
     def filter_queryset(self, request, queryset, view):
@@ -247,6 +311,75 @@ class VuedaOrderingFilter(OrderingFilter):
         ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
         ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
         return queryset.order_by(*ordering)
+
+    def remove_invalid_fields(self, queryset, fields, view, request):
+        """
+        The `?o=` terms translated to `__`-joined `order_by()` terms, or a raised 400 naming every
+        term that isn't one of the dotted names `get_valid_fields` accepts.
+
+        DRF's own `remove_invalid_fields` drops whatever doesn't validate and returns what's left,
+        which is what lets a request naming one bad field alongside good ones quietly order by the
+        good ones, and a request naming nothing valid quietly fall back to the default ordering. Ordering
+        is validated atomically instead: every term is checked before any of them is translated, and a
+        request naming even one invalid term is rejected in full, with none of it applied.
+
+        :param queryset: The queryset the ordering will apply to.
+        :type queryset: django.db.models.QuerySet
+        :param fields: The raw, comma-split `?o=` terms, e.g. `["-employee.name", "created"]`.
+        :type fields: List[str]
+        :param view: The view being ordered.
+        :type view: rest_framework.generics.GenericAPIView
+        :param request: The current request.
+        :type request: rest_framework.request.Request
+        :return: The terms translated to `__`-joined `order_by()` terms.
+        :rtype: List[str]
+        :raises rest_framework.exceptions.ValidationError: If any term is invalid.
+        """
+        valid_orm_fields = {
+            field_name
+            for field_name, _label in self.get_valid_fields(queryset, view, {"request": request})
+            if isinstance(field_name, str)
+        }
+        valid_public_fields = {orm_ordering_path_to_public(field_name) for field_name in valid_orm_fields}
+
+        translated = []
+        invalid_terms = []
+        for term in fields:
+            # DRF's `get_ordering` splits `?o=` on commas without discarding empties, so a trailing,
+            # leading, or doubled comma (`?o=name,`, `?o=,name`, `?o=name,,when`) hands this an empty
+            # string alongside the terms a client actually named. An empty term names nothing to
+            # reject, so it is dropped rather than failing the whole request the way an unnamed,
+            # unrecognizable field would.
+            if not term:
+                continue
+
+            descending, path = split_ordering_direction(term)
+
+            try:
+                reject_wildcard(path)
+            except ValueError:
+                invalid_terms.append(term)
+                continue
+
+            if path not in valid_public_fields:
+                invalid_terms.append(term)
+                continue
+
+            translated.append(join_ordering_direction(descending, public_ordering_path_to_orm(path)))
+
+        if invalid_terms:
+            raise ValidationError(
+                {
+                    api_settings.ORDERING_PARAM: [
+                        _("Invalid ordering term(s): {terms}. Valid ordering fields are: {valid}.").format(
+                            terms=", ".join(sorted(invalid_terms)),
+                            valid=", ".join(sorted(valid_public_fields)),
+                        )
+                    ]
+                }
+            )
+
+        return translated
 
     def get_valid_fields(self, queryset, view, context=None):
         # `context` is passed straight to a serializer by the super call, so a caller that omits it

@@ -24,5 +24,6 @@ pnpm dev
 ## Notes
 
 - Server config is loaded from `server/config.toml` + `server/config.local.toml`.
+- `server/config.local.toml` names the services the server needs: PostgreSQL at `DATABASE_URL`, and the cache at `CACHE_URL` that holds sessions.
 - Client Vite config is composed from `@arrai-innovations/vueda/lib/vite.js`.
 

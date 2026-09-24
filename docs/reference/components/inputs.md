@@ -349,6 +349,31 @@ columns of values stay aligned.
       <span>steppers inside the input box</span>
     </template>
   </DemoCard>
+  <DemoCard title="invalid">
+    <div class="flex flex-col gap-1">
+      <StateLabel>invalid value</StateLabel>
+      <NumberField :default-value="42">
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <div class="flex flex-col gap-1">
+      <StateLabel>empty and invalid</StateLabel>
+      <NumberField>
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput aria-invalid="true" aria-label="Empty invalid number" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+    </div>
+    <template #footer>
+      <span>full <code>--destructive</code> edge at rest; destructive focus ring on keyboard focus</span>
+    </template>
+  </DemoCard>
   <DemoCard title="at minimum">
     <NumberField :default-value="0" :min="0">
       <NumberFieldContent>
@@ -394,10 +419,15 @@ the standard focus / disabled / invalid axes. The check and minus glyphs
 ship as default slot content; consumers can override the indicator slot
 to use icon components instead of text glyphs.
 
-Theme key: {@api theme-key:Checkbox}. The body is a 16 × 16 chiclet at
+Theme key: {@api theme-key:Checkbox}. The body is a 24 × 24 square at
 {@api css-token:vueda-checkbox-radius} (4 px), intentionally rounder than
 the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
 chit rather than a miniature input next to its label.
+
+Disabled checkboxes keep their check or indeterminate mark, but use
+{@api css-token:disabled} fill, {@api css-token:border} edge, and
+{@api css-token:disabled-foreground} ink instead of fading the whole control.
+Disabled colors take precedence over invalid colors.
 
 <VuedaDemo>
   <DemoCard>
@@ -418,6 +448,10 @@ chit rather than a miniature input next to its label.
       <div><Checkbox disabled /></div>
       <div><Checkbox :default-value="true" disabled /></div>
       <div><Checkbox default-value="indeterminate" disabled /></div>
+      <StateLabel>disabled + invalid</StateLabel>
+      <div><Checkbox disabled aria-invalid="true" /></div>
+      <div><Checkbox :default-value="true" disabled aria-invalid="true" /></div>
+      <div><Checkbox default-value="indeterminate" disabled aria-invalid="true" /></div>
       <StateLabel>invalid</StateLabel>
       <div><Checkbox aria-invalid="true" /></div>
       <div><Checkbox aria-invalid="true" :default-value="true" /></div>
@@ -447,6 +481,9 @@ Checkbox. The group itself only contributes layout (gap, orientation).
 Theme keys: {@api theme-key:RadioGroup},
 {@api theme-key:RadioGroupItem}. The selected dot is a geometric circle
 inside the item, not a glyph, so it stays stable across font hydration.
+Disabled items use the same fill, edge, and ink tokens as disabled checkboxes;
+the selected dot remains visible. A disabled group applies this treatment to
+all its items.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="vertical">
@@ -510,6 +547,19 @@ inside the item, not a glyph, so it stays stable across font hydration.
       <span>invalid border <code>--destructive</code></span>
     </template>
   </DemoCard>
+  <DemoCard title="disabled group">
+    <RadioGroup default-value="selected" disabled class="flex flex-row gap-5">
+      <div class="flex items-center gap-2">
+        <RadioGroupItem value="selected" aria-label="Disabled selected" />
+        <StateLabel>selected</StateLabel>
+      </div>
+      <div class="flex items-center gap-2">
+        <RadioGroupItem value="unselected" aria-label="Disabled unselected" />
+        <StateLabel>unselected</StateLabel>
+      </div>
+    </RadioGroup>
+    <template #footer>disabled fill and ink; selection stays visible</template>
+  </DemoCard>
 </VuedaDemo>
 
 ## TagsInput: composition matrix
@@ -557,10 +607,22 @@ control-height ladder below sm.
         <TagsInputItemText />
         <TagsInputItemDelete />
       </TagsInputItem>
-      <TagsInputInput placeholder="Max 3 reached" disabled />
+      <TagsInputInput placeholder="Edit tags" aria-label="Invalid tags" />
     </TagsInput>
     <template #footer>
-      <span>container border <code>--destructive</code></span>
+      <span><code>aria-invalid="true"</code>: the field edge and keyboard focus ring both use <code>--destructive</code></span>
+    </template>
+  </DemoCard>
+  <DemoCard title="explicitly valid">
+    <TagsInput :default-value="['reviewed']" aria-invalid="false">
+      <TagsInputItem value="reviewed">
+        <TagsInputItemText />
+        <TagsInputItemDelete />
+      </TagsInputItem>
+      <TagsInputInput placeholder="Add tag…" aria-label="Valid tags" />
+    </TagsInput>
+    <template #footer>
+      <span><code>aria-invalid="false"</code>: the keyboard focus edge and ring use the normal <code>--ring</code> color</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -591,6 +653,12 @@ Theme keys: {@api theme-key:InputOTP},
 {@api theme-key:InputOTPSlot}. Slots compose into the same border /
 focus surface as Input, with adjacent slots sharing seams via
 `first:rounded-l-md` / `last:rounded-r-md` rules.
+Set `aria-invalid="true"` on `InputOTP` to give every slot a destructive edge.
+The focus ring follows the active slot, including across separated groups, and
+uses the destructive color while invalid. Disabled state takes precedence.
+Disabled slots use {@api css-token:disabled} fill,
+{@api css-token:disabled-foreground} ink, and {@api css-token:border} edges at
+full opacity. Filled slots keep their digits and empty slots remain blank.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="6-digit, fresh">
@@ -642,15 +710,26 @@ focus surface as Input, with adjacent slots sharing seams via
       <span>slot border <code>--destructive</code></span>
     </template>
   </DemoCard>
-  <DemoCard title="disabled" class="sm:col-span-2">
-    <InputOTP :maxlength="4" disabled>
+  <DemoCard title="disabled">
+    <InputOTP :maxlength="4" default-value="29" disabled>
       <InputOTPGroup>
         <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span>opacity 50 across all slots</span>
+      <span>disabled fill and ink preserve entered digits</span>
       <span>no caret on disabled slot</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="disabled, invalid">
+    <InputOTP :maxlength="4" default-value="29" disabled aria-invalid="true">
+      <InputOTPGroup>
+        <InputOTPSlot v-for="i in 4" :key="i" :index="i - 1" />
+      </InputOTPGroup>
+    </InputOTP>
+    <template #footer>
+      <span>disabled edges take precedence over invalid state</span>
+      <span>no focus ring</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -673,6 +752,9 @@ application renders it normally.
 Theme keys: {@api theme-key:Slider}. Token surface:
 {@api css-token:primary} (range fill), {@api css-token:muted} (track),
 {@api css-token:ring} (thumb focus).
+Disabled sliders use {@api css-token:disabled} for the track and
+{@api css-token:disabled-foreground} for the range and thumbs, at full opacity.
+Thumb positions and the selected span remain visible in either orientation.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="single value">
@@ -704,8 +786,14 @@ Theme keys: {@api theme-key:Slider}. Token surface:
       <Slider disabled :default-value="[60]" :max="100" />
     </ClientOnly>
     <template #footer>
-      <span>disabled dims the whole control and drops pointer interaction; the value still renders</span>
+      <span>disabled track, range, and thumb colors preserve the value without fading the control</span>
     </template>
+  </DemoCard>
+  <DemoCard title="disabled range">
+    <ClientOnly>
+      <Slider disabled :default-value="[25, 75]" :max="100" />
+    </ClientOnly>
+    <template #footer>both thumb positions and the selected span remain visible</template>
   </DemoCard>
   <DemoCard title="vertical" description=" (orientation)">
     <ClientOnly>
@@ -786,6 +874,28 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
     <template #footer>
       <span><code>block-end</code> puts the addon on its own row under the control, inside the same border</span>
       <span>one addon can hold several children; they lay out along the row</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid group with prefix">
+    <InputGroup>
+      <InputGroupAddon align="inline-start">
+        <InputGroupText>https://</InputGroupText>
+      </InputGroupAddon>
+      <InputGroupInput model-value="invalid address" aria-invalid="true" aria-label="Invalid address" />
+    </InputGroup>
+    <template #footer>
+      <span>The group owns the error edge and focus ring; the input draws no inner border.</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="invalid textarea with block addon">
+    <InputGroup>
+      <InputGroupTextarea model-value="Incomplete note" aria-invalid="true" aria-label="Invalid note" />
+      <InputGroupAddon align="block-end">
+        <InputGroupText>Markdown supported</InputGroupText>
+      </InputGroupAddon>
+    </InputGroup>
+    <template #footer>
+      <span>One error edge encloses the textarea and addon, including when the textarea loses focus.</span>
     </template>
   </DemoCard>
 </VuedaDemo>

@@ -7,35 +7,71 @@ status: draft
 
 # Link List Rows to Read and Update Views
 
-This guide shows how to add a per-row link from a `list` view to that row's `read` or `update` view. Out of the box, a `ViewList` row has no such affordance, so you add one yourself with a {@api vue:component:LinkModelView} in a field slot.
-
-The recommended shape is layered, so the affordance is written once and reused: a reusable link slot lives in your project's default list wrapper, each model opts in through config, and model-specific views are reserved for genuine per-model differences.
+Set `detailLinkField` in a model's list configuration to link an existing column to each row's `update` or `read` view. Choose a column that identifies the record, such as a purchase order's `reference`. No extra action column or field slot is required.
 
 This builds on [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views) and assumes a working CRUDL surface (see [Create a CRUDL Surface](./create-crudl-surface)).
 
-## Why Rows Are Not Linked by Default
+## Opt In Through Model Config
 
-Three facts combine to mean a stock list row cannot navigate to its own detail view:
+Register the configuration during application bootstrap, before the first CRUD navigation:
 
-- **Detail actions do not render as list buttons.** `useViewList` sorts the available actions into _targetless_ actions (neither `detail` nor `bulk`) and _bulk_ actions (`bulk`). The `retrieve` and `update` actions are `detail: true, bulk: false`, so they fall into neither group and produce no button in the list. They render only inside a detail view (`ViewRead`), not the list. See [Control Action Availability in the UI](./control-action-availability) for the classification rules.
-- **A row does not link to its own detail view.** Column adapters can auto-link a _foreign-key_ column to the _related_ model's detail view (see [Customize List Column Rendering](./customize-list-column-rendering)), but the row's own primary key is not a column value, so nothing links a row to its own `read`/`update` view by default.
-- **There is no row-click handler.** `ViewList` does not make rows clickable.
+```js
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
-So a row self-link is something you add deliberately. The sanctioned way is a field slot that renders a {@api vue:component:LinkModelView}.
+export function setupModelConfig(pinia) {
+    storeModelConfig(pinia).setConfig(
+        { app: "catalog", model: "purchaseorder" },
+        {},
+        {
+            list: {
+                displayFields: ["reference", "supplier", "total_value"],
+                fetchFields: ["reference", "supplier", "total_value"],
+                detailLinkField: "reference",
+            },
+        },
+    );
+}
+```
 
-## The Layered Pattern
+Keep the configured field in `displayFields` and fetch its value. `detailLinkField` does not add a column or change the displayed value. It defaults to `null`, so existing lists retain their rendering until configured. Set it to `null` in a list override to disable a generic setting.
 
-The project templates resolve a list route to `View<Action><App><Model>.vue` if it exists, then fall back to a shared `DefaultViewList.vue` (see [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model)). That gives you three places to put behaviour, and each layer has a clear job:
+For each row, {@api vue:component:ViewList} reads `available_actions` from the server response:
 
-1. **`DefaultViewList.vue` (app-wide):** define the reusable `field(update)` and `field(read)` link slots once. Every model gets the capability for free.
-2. **Model config (per-model):** a model opts in by adding the synthetic `update` or `read` column to its list `displayFields`. This is the activation switch.
-3. **`View<Action><App><Model>.vue` (model-specific):** wrap `DefaultViewList` (not `ViewList` directly) only when a model needs more, such as linking an existing data column instead of, or in addition to, the synthetic action column.
+| Row actions                              | Link destination                   |
+| ---------------------------------------- | ---------------------------------- |
+| Includes `update`                        | The row's `update` view            |
+| Includes `retrieve`, without `update`    | The row's `read` view              |
+| Includes neither, or metadata is missing | Displayed value without a row link |
 
-A synthetic action column is a column named after the action (`update` or `read`). Because the name is not a real model field, it has no fetched value; the slot supplies the cell content instead.
+An Accountant who can retrieve a purchase order but cannot update it gets a read link on its reference. Rows in the same list can have different destinations. Model-level action availability does not substitute for the row's action metadata.
 
-### Step 1: Add reusable link slots to `DefaultViewList`
+The list automatically includes `available_actions` alongside the primary key in its requested fields, including when `listFields` overrides the fetch list. Neither becomes a visible column through this feature. Your serializer must expose `available_actions`; missing row metadata leaves the value unlinked.
 
-`ViewList` forwards a `field(<columnName>)` slot to the grid cell for that column. The slot props include `pk` (the row's primary key), `obj` (the row data), `value`, `formatted`, and `pkKey`. Define the action-column slots once in the shared wrapper:
+These links control navigation shown in the UI. Route guards and server permissions continue to enforce access when a link is followed.
+
+::: warning
+Register `setConfig` overrides before the first CRUD navigation. The route guard builds and caches model configuration; registering an override from inside an already-mounted view does not rebuild that view's configuration.
+:::
+
+## Rendering and Interaction
+
+The configured column uses a normal anchor in both table and card layouts. Its displayed value supplies the link's accessible name. Keyboard activation, modified clicks, opening in a new tab, and text selection work as they do for other links. The rest of the row remains independent.
+
+Automatic wrapping supports the built-in `ColumnText`, `ColumnBoolean`, `ColumnDateTime`, `ColumnDuration`, and `ColumnJson` adapters and preserves their display props. `ColumnModelLink` already links to a related record, so it keeps its own target. Custom adapters are also left unwrapped because they may contain links, buttons, or other controls. Use a field slot for custom linked content.
+
+An explicit `field(<name>)` slot takes precedence over the automatic link, even on the configured column. If column hiding is enabled, readers can hide the linked column like any other column.
+
+## Migrate From Manual Row Links
+
+For a wrapper that currently adds an `update` or `read` column, remove that synthetic column from the list's `displayFields` and set `detailLinkField` to an existing identifying column. A synthetic column is a column with no server field behind it; its slot supplies all its content.
+
+Remove a manual `field(reference)` slot if it should use the configured behavior. Leaving that slot in place keeps the manual rendering and destination. Shared wrapper slots for synthetic columns may remain for other lists that still use them.
+
+## Custom Layouts With a Field Slot
+
+Use {@api vue:component:LinkModelView} in a field slot when you need custom content or destination rules. A project's shared `DefaultViewList.vue` can own this slot, or a model-specific view can wrap it and override one column. Forward slots through shared wrappers so model-specific content retains precedence.
+
+This example applies the same update-then-read selection to custom reference content:
 
 ```vue
 <script setup>
@@ -47,21 +83,21 @@ defineProps({
     model: { type: String, required: true },
 });
 defineOptions({ inheritAttrs: false });
+
+const detailView = (obj) => {
+    const actions = obj.available_actions || [];
+    return actions.includes("update") ? "update" : actions.includes("retrieve") ? "read" : null;
+};
 </script>
 
 <template>
     <view-list v-bind="{ ...$props, ...$attrs }">
-        <template #[`field(update)`]="{ pk }">
-            <link-model-view :app="app" :model="model" :pk="pk" view="update" label="Edit" />
+        <template #[`field(reference)`]="{ pk, obj, formatted }">
+            <link-model-view v-if="detailView(obj)" :app="app" :model="model" :pk="pk" :view="detailView(obj)">
+                {{ formatted }}
+            </link-model-view>
+            <span v-else>{{ formatted }}</span>
         </template>
-        <template #[`field(read)`]="{ pk }">
-            <link-model-view :app="app" :model="model" :pk="pk" view="read" label="View" />
-        </template>
-        <!-- Synthetic columns have no server-provided header; label them in card layout. -->
-        <template #[`header(update)`]="slotProps">
-            <div v-if="slotProps.isCardLayout" :class="slotProps.class" data-card-header="update">Actions</div>
-        </template>
-        <!-- Forward any slots a model-specific wrapper passes down. -->
         <template v-for="(_, slot) in $slots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
@@ -69,93 +105,20 @@ defineOptions({ inheritAttrs: false });
 </template>
 ```
 
-`LinkModelView` accepts `view="read"` (which resolves to the server `retrieve` action) and `view="update"` directly. Its `useLinkModelView` machinery enables the link only when a primary key is present, which the row always supplies, so no extra gating is needed. The default header is the start-cased column name; the `header(<columnName>)` override above gives the synthetic column a sensible label in the card layout (below `tableBreakpoint`).
+If `detailLinkField` remains configured, the list still requests `available_actions` for this slot. Without it, include `available_actions` explicitly in `fetchFields` (or `listFields` when supplied). Keep it out of `displayFields`.
 
-### Step 2: Opt in per model through config
+A manual `LinkModelView` does not choose a permitted action for you. The slot must check row metadata as above. Do not wrap another link or control in the reference link.
 
-A model gets the link by listing the action name as a column in its list `displayFields`. Place it wherever you want the column to appear.
+## Verify the Result
 
-```js
-import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
-
-export function setupModelConfig(pinia) {
-    storeModelConfig(pinia).setConfig(
-        { app: "myapp", model: "widget" },
-        {},
-        {
-            list: {
-                displayFields: ["update", "name", "status", "category"],
-            },
-        },
-    );
-}
-```
-
-The `update` column renders with the start-cased label "Update" and an empty value that `DefaultViewList`'s slot fills. Do not add `update` to `fetchFields`; it is not a real field and nothing fetches it.
-
-::: warning
-**Register overrides at bootstrap, before the first CRUD navigation.** Call `setupModelConfig(pinia)` from your entry point (`main.js`), not from inside a view's `setup`. The `requireModelInfo` route guard builds and caches each model's config the first time that model is navigated to. `setConfig` records your override and clears the built config, but it does not re-trigger an already-mounted `ViewList`, and a completed `getConfig` promise is still cached, so a late `setConfig` is silently ignored for that model. Registering at bootstrap guarantees the first built config already includes the override.
-:::
-
-### Step 3 (optional): Link an existing column in a model-specific view
-
-When a model wants more than the shared default, add `View<Action><App><Model>.vue`. Wrap `DefaultViewList` so it inherits the reusable links, then override only what is specific to this model. A common case is turning an existing column (a name or title) into a link to the row's `read` view:
-
-```vue
-<script setup>
-import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
-
-import DefaultViewList from "@/views/DefaultViewList.vue";
-
-defineProps({
-    app: { type: String, required: true },
-    model: { type: String, required: true },
-});
-defineOptions({ inheritAttrs: false });
-</script>
-
-<template>
-    <default-view-list v-bind="{ ...$props, ...$attrs }">
-        <template #[`field(name)`]="{ pk, formatted }">
-            <link-model-view :app="app" :model="model" :pk="pk" view="read">
-                {{ formatted }}
-            </link-model-view>
-        </template>
-        <template v-for="(_, slot) in $slots" #[slot]="slotProps">
-            <slot :name="slot" v-bind="slotProps || {}" />
-        </template>
-    </default-view-list>
-</template>
-```
-
-Wrapping `DefaultViewList` rather than `ViewList` is what keeps the layers composable: this view still gets the synthetic `update`/`read` columns from Step 1, and only adds the existing-column link. Point the existing-column link at a different view than your synthetic column (for example, name to `read` while the synthetic column handles `update`) so the two affordances stay distinct rather than duplicating one target.
-
-## Notes and Constraints
-
-- A synthetic action column is not a server field: it is never fetched, and it is not sortable (sortables come from the viewset's ordering fields).
-- If `allowColumnHiding` is enabled, the synthetic column appears in the column selector like any other column. Users can hide it.
-- The link respects action availability only as far as you wire it. Hiding the `update`/`retrieve` action from `actions` removes the detail view's buttons, but a hand-placed `LinkModelView` still renders. If a row should not be editable, gate the slot yourself (for example, with `v-if`) or rely on the route guard and server permission checks, which still apply when the link is followed.
-- `LinkModelView` renders an anchor by default; pass the `button` prop for a button-styled control. It renders both its `label` prop and its default slot, so the synthetic-column form (`label="Edit"`) and the existing-column form (slot content) both work.
-
-## Verification Checklist
-
-- The synthetic column appears in the list with the expected header and an otherwise empty cell that contains your link.
-- Clicking the link navigates to the correct row's `read` or `update` view (the URL contains the row's primary key).
-- The column is not sent in the list fetch request (confirm `update`/`read` is absent from `fetchFields`).
-- In card layout, the column renders with a sensible label (override `header(<columnName>)` if needed).
-- A model-specific wrapper still shows the inherited synthetic columns, confirming it wraps `DefaultViewList` rather than `ViewList`.
+- Open a list containing editable, read-only, and unavailable rows. Confirm update links, read links, and unlinked values respectively.
+- Confirm the list request includes the primary key, the configured fetch fields, and `available_actions`, without an extra visible action column.
+- Check table and card layouts, keyboard activation, modified clicks, and any custom cells beside the linked column.
 
 ## Relevant Implementation Surface
 
-- Vue.js Components:
-    - {@api vue:component:ViewList}
-    - {@api vue:component:LinkModelView}
-- JavaScript:
-    - {@api js:function:@arrai-innovations/vueda/use/useLinkModelView#useLinkModelView}
-    - {@api js:module:@arrai-innovations/vueda/use/useViewList}
-    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}
-- Related guides:
-    - [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views)
-    - [Control Action Availability in the UI](./control-action-availability)
-    - [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model)
+- {@api vue:component:ViewList}
+- {@api vue:component:LinkModelView}
+- {@api js:interface:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig}
+- [Customize List Column Rendering](./customize-list-column-rendering)
+- [Control Action Availability in the UI](./control-action-availability)

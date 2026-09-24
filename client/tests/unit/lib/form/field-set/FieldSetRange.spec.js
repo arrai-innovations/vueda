@@ -61,6 +61,7 @@ let FieldSetRange;
 beforeEach(async () => {
     FieldSetRange = (await import("@vueda/form/field-set/FieldSetRange.vue")).default;
     fieldContext.state.value = null;
+    fieldContext.state.formModelName = "range";
     fieldContext.deleteError.mockClear();
     fieldContext.updateError.mockClear();
     loggerWarn.mockClear();
@@ -96,6 +97,32 @@ describe("lib/form/field-set/FieldSetRange.vue", () => {
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
     });
 
+    scopedIt("compares numeric strings numerically and permits open-ended ranges", async () => {
+        fieldContext.state.value = { min: "2.5", max: "10.25" };
+        mount(FieldSetRange, { props: { type: "number", suffixes: ["min", "max"] } });
+        expect(fieldContext.updateError).not.toHaveBeenCalled();
+        fieldContext.state.value = { min: "10.25", max: "2.5" };
+        await nextTick();
+        expect(fieldContext.updateError).toHaveBeenCalledWith(
+            "range",
+            "The first value must be less than or equal to the second value.",
+        );
+        for (const value of [
+            { min: "0", max: "0" },
+            { min: "2.5", max: "" },
+            { min: "", max: "-1" },
+            { min: null, max: "0" },
+            { min: "0" },
+        ]) {
+            fieldContext.updateError.mockClear();
+            fieldContext.deleteError.mockClear();
+            fieldContext.state.value = value;
+            await nextTick();
+            expect(fieldContext.updateError).not.toHaveBeenCalled();
+            expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
+        }
+    });
+
     scopedIt("clears errors for empty range object", async () => {
         fieldContext.state.value = { lower: 1, upper: 2 };
         mount(FieldSetRange, { props: {} });
@@ -108,6 +135,17 @@ describe("lib/form/field-set/FieldSetRange.vue", () => {
         expect(fieldContext.deleteError).toHaveBeenCalledWith("range");
         expect(loggerWarn).not.toHaveBeenCalled();
         expect(fieldContext.updateError).not.toHaveBeenCalled();
+    });
+
+    scopedIt("derives dotted boundary names from a dotted formModelName", async () => {
+        fieldContext.state.formModelName = "employee.range";
+        const wrapper = mount(FieldSetRange, { props: {} });
+        await nextTick();
+
+        const renderers = wrapper.findAll('[data-qa="field-renderer"]');
+        expect(renderers).toHaveLength(2);
+        expect(renderers[0].attributes("form-model-name")).toBe("employee.range.lower");
+        expect(renderers[1].attributes("form-model-name")).toBe("employee.range.upper");
     });
 
     scopedIt("handles zero boundaries correctly", async () => {

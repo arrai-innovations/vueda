@@ -155,7 +155,9 @@ export function useComboboxSearch(props, widgetContext) {
 
     const hasValue = computed(() => {
         const val = widgetContext.state.combinedValue;
-        if (Array.isArray(val)) return val.length > 0;
+        if (Array.isArray(val)) {
+            return val.length > 0;
+        }
         return val != null && val !== "";
     });
 
@@ -236,8 +238,12 @@ export function useComboboxSearch(props, widgetContext) {
     });
 
     const emptyMessage = computed(() => {
-        if (searchList.state.loading) return "Loading...";
-        if (!query.value) return "Type to search for results.";
+        if (searchList.state.loading) {
+            return "Loading...";
+        }
+        if (!query.value) {
+            return "Type to search for results.";
+        }
         return "No matching results.";
     });
 

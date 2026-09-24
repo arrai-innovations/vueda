@@ -21,7 +21,7 @@ patchTheme({
                 "inline-flex items-center rounded-full hairline text-xs font-semibold",
                 errored
                     ? "[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)] bg-destructive/10 text-destructive"
-                    : "[--vueda-hairline-color:color-mix(in_oklab,var(--primary)_30%,transparent)] bg-primary/10 text-primary",
+                    : "[--vueda-hairline-color:color-mix(in_oklab,var(--primary)_30%,transparent)] bg-primary/10 text-primary-text",
             ],
         },
         /** Label segment: clicking it opens the edit popover. Carries the left pill radius. Stretches to the chip's full height so the hover target covers the full pill height. */

@@ -505,9 +505,9 @@ class VuedaExpandableFieldsSerializerMixin:
         ``ModelInfoSerializer.get_model_fields_data`` and corrected by ``get_expand_model_info``/
         ``get_field_model_info``) to what an OpenAPI schema needs: a label, the DRF field type (renamed from
         ``type_serializer`` to ``type``), whether the value is required, and its choices. Drops the database/model
-        type detail (``type_db``/``type_model``), the ``many``/``read_only`` flags, the ``hidden`` flag, help text,
-        and constraint bookkeeping (``max_value``, ``min_value``, ``max_length``, ``min_length``, ``max_digits``,
-        ``decimal_places``, ``pk``) that ``/info/`` also reports but the schema does not need.
+        type detail (``type_db``/``type_model``), the ``many``/``read_only`` flags, the ``hidden`` and ``list_default``
+        flags, help text, and constraint bookkeeping (``max_value``, ``min_value``, ``max_length``, ``min_length``,
+        ``max_digits``, ``decimal_places``, ``pk``) that ``/info/`` also reports but the schema does not need.
 
         Handles three shapes: a flat ``model_fields``-style dict keyed by field name (from ``get_schema_fields``);
         a list of ``model_expands``-style descriptors with nested per-field metadata under the
@@ -523,6 +523,7 @@ class VuedaExpandableFieldsSerializerMixin:
             "many",
             "read_only",
             "hidden",
+            "list_default",
             "help_text",
             "max_value",
             "min_value",
@@ -703,11 +704,17 @@ class VuedaSerializer(
         return {}
 
     def to_representation(self, instance):
-        repr_data = super().to_representation(instance)
+        """
+        Drops ``available_actions`` from ``self.fields`` before rendering when a client hasn't
+        named it through ``?f=``, rather than computing it and discarding the result afterward.
+        Unlike an ordinary field, ``available_actions`` is not part of the default response -- a
+        client must ask for it explicitly -- and computing it runs a permission check per CRUD
+        action and per extra action, so a response that will drop it anyway must not pay for it.
+        """
         sparse_fields, _ = split_levels(self._flex_options_all["fields"])
         if "available_actions" not in sparse_fields:
-            repr_data.pop("available_actions", None)
-        return repr_data
+            self.fields.pop("available_actions", None)
+        return super().to_representation(instance)
 
     serializer_field_mapping: ClassVar[dict] = {
         **serializers.ModelSerializer.serializer_field_mapping,

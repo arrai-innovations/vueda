@@ -72,7 +72,7 @@ patchTheme({
                 "h-[22px] px-2 rounded-full",
 
                 // Surface and color.
-                "bg-primary/[0.12] text-primary",
+                "bg-primary/[0.12] text-primary-text",
 
                 // Type.
                 "text-[10px] font-semibold uppercase tracking-[0.06em] leading-none",

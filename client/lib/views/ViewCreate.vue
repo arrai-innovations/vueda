@@ -83,7 +83,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["form-object", "form-context"]);
 
-const { formContext, objectForm, instance, actions } = useViewCreate(props);
+const { formContext, objectForm, instance, actions, modelConfig } = useViewCreate(props);
 
 const theme = useTheme("ViewCreate", props);
 
@@ -112,7 +112,6 @@ onMounted(() => {
                 >
                     <link-model-view
                         :app="app"
-                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
@@ -183,8 +182,8 @@ onMounted(() => {
             <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the object form's raw warnings mapping). Defaults to `FieldWarningsList`; a consumer that only wants to customize one field's entry can instead use the `warning-entry` slot below. -->
             <template #warnings="{ warnings }">
                 <slot name="form-confirm-dialog-warnings" :warnings="warnings">
-                    <FieldWarningsList :messages="warnings">
-                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`). -->
+                    <FieldWarningsList :messages="warnings" :field-details="modelConfig?.config?.fieldDetails">
+                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `label`, `messages`). -->
                         <template v-if="$slots['warning-entry']" #entry="entrySlotProps">
                             <slot name="warning-entry" v-bind="entrySlotProps" />
                         </template>

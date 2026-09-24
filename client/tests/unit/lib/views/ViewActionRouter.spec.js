@@ -1,7 +1,9 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
 import flushPromises from "flush-promises";
 import { defineComponent, h, reactive } from "vue";
+
+enableAutoUnmount(afterEach);
 
 const LoadingStub = defineComponent({
     name: "LoadingStub",
@@ -29,6 +31,7 @@ const ExecuteTransitionStub = defineComponent({
 });
 const CrudStub = defineComponent({
     name: "CrudStub",
+    props: ["app", "model", "action", "pk"],
     setup() {
         return () => h("div", { "data-qa": "crud" });
     },
@@ -108,9 +111,11 @@ let ViewActionRouter;
 beforeEach(async () => {
     ViewActionRouter = (await import("@vueda/views/ViewActionRouter.vue")).default;
     vi.clearAllMocks();
+    crudComponents.list.mockReset().mockResolvedValue(CrudStub);
     modelConfig.loading = false;
     modelConfig.info = { actions: [] };
     workflow.transitions = [];
+    workflow.loading = false;
 });
 
 describe("lib/views/ViewActionRouter.vue", () => {
@@ -122,6 +127,85 @@ describe("lib/views/ViewActionRouter.vue", () => {
             });
             await flushPromises();
             expect(wrapper.find('[data-qa="loading"]').exists()).toBe(true);
+        });
+    });
+
+    describe("Navigation while resolving", () => {
+        scopedIt("keeps the current instance and target until the destination is ready", async () => {
+            modelConfig.info = { actions: [{ name: "list" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "first", action: "list" } });
+            await flushPromises();
+            const instance = wrapper.getComponent(CrudStub).vm;
+            modelConfig.loading = true;
+            await wrapper.setProps({ model: "second", pk: "42" });
+            await flushPromises();
+            expect(wrapper.find('[data-qa="loading"]').exists()).toBe(false);
+            expect(wrapper.getComponent(CrudStub).vm).toBe(instance);
+            expect(wrapper.getComponent(CrudStub).props()).toMatchObject({ model: "first", pk: "" });
+
+            let resolveComponent;
+            crudComponents.list.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveComponent = resolve;
+                    }),
+            );
+            modelConfig.loading = false;
+            await flushPromises();
+            expect(wrapper.getComponent(CrudStub).props("model")).toBe("first");
+            resolveComponent(CrudStub);
+            await flushPromises();
+            expect(wrapper.getComponent(CrudStub).vm).toBe(instance);
+            expect(wrapper.getComponent(CrudStub).props()).toMatchObject({ model: "second", pk: "42" });
+        });
+
+        scopedIt("keeps array primary keys unchanged while metadata is loading", async () => {
+            const pks = reactive(["1"]);
+            modelConfig.info = { actions: [{ name: "list" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list", pk: pks } });
+            await flushPromises();
+            modelConfig.loading = true;
+            pks.push("2");
+            await flushPromises();
+            expect(wrapper.getComponent(CrudStub).props("pk")).toEqual(["1"]);
+            modelConfig.loading = false;
+            await flushPromises();
+            expect(wrapper.getComponent(CrudStub).props("pk")).toEqual(["1", "2"]);
+        });
+
+        scopedIt("ignores an obsolete import when navigation changes again", async () => {
+            modelConfig.info = { actions: [{ name: "list" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "first", action: "list" } });
+            await flushPromises();
+            let resolveOld;
+            crudComponents.list.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveOld = resolve;
+                    }),
+            );
+            await wrapper.setProps({ model: "second" });
+            await flushPromises();
+            await wrapper.setProps({ model: "third" });
+            await flushPromises();
+            expect(wrapper.getComponent(CrudStub).props("model")).toBe("third");
+            resolveOld(OverrideCodeStub);
+            await flushPromises();
+            expect(wrapper.findComponent(OverrideCodeStub).exists()).toBe(false);
+            expect(wrapper.getComponent(CrudStub).props("model")).toBe("third");
+        });
+
+        scopedIt("waits for workflow metadata before choosing a colliding CRUD action", async () => {
+            modelConfig.info = { actions: [{ name: "activate" }] };
+            workflow.loading = true;
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "activate" } });
+            await flushPromises();
+            expect(wrapper.find('[data-qa="loading"]').exists()).toBe(true);
+            expect(crudComponents.activate).not.toHaveBeenCalled();
+            workflow.transitions = [{ code: "activate", name: "Activate" }];
+            workflow.loading = false;
+            await vi.waitFor(() => expect(wrapper.findComponent(ExecuteTransitionStub).exists()).toBe(true));
+            expect(crudComponents.activate).not.toHaveBeenCalled();
         });
     });
 

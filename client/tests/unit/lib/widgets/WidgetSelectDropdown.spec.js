@@ -63,6 +63,9 @@ const ControlSelectItemStub = defineComponent({
     name: "ControlSelectItemStub",
     props: ["value"],
     setup(props, { slots, attrs }) {
+        if (props.value === "") {
+            throw new Error("SelectItem cannot have an empty-string value");
+        }
         return () => h("div", { "data-stub": "select-item", "data-value": props.value, ...attrs }, slots.default?.());
     },
 });
@@ -214,6 +217,46 @@ describe("lib/widgets/WidgetSelectDropdown.vue", () => {
             expect(items[2].text()).toBe("Blue");
         });
 
+        scopedIt("omits empty choices and uses their label as the placeholder", () => {
+            const wrapper = mount(WidgetSelectDropdown, {
+                props: {
+                    options: [
+                        { label: "None", value: "" },
+                        { label: "Null", value: null },
+                        { label: "Missing" },
+                        { label: "Yes", value: true },
+                        { label: "No", value: false },
+                        { label: "Zero", value: 0 },
+                    ],
+                },
+            });
+            expect(wrapper.findAllComponents(ControlSelectItemStub).map((item) => item.props("value"))).toEqual([
+                true,
+                false,
+                0,
+            ]);
+            expect(wrapper.getComponent(ControlSelectValueStub).props("placeholder")).toBe("None");
+        });
+
+        scopedIt("updates the placeholder and choices when async options arrive", async () => {
+            const wrapper = mount(WidgetSelectDropdown, {
+                props: { options: [], optionLabel: "text", optionValue: "code" },
+            });
+            expect(wrapper.getComponent(ControlSelectValueStub).props("placeholder")).toBe("");
+            await wrapper.setProps({
+                options: [
+                    { text: "Any", code: null },
+                    { text: "No", code: false },
+                ],
+            });
+            expect(wrapper.getComponent(ControlSelectValueStub).props("placeholder")).toBe("Any");
+            expect(wrapper.getComponent(ControlSelectItemStub).props("value")).toBe(false);
+            await wrapper.setProps({ placeholder: "Choose" });
+            expect(wrapper.getComponent(ControlSelectValueStub).props("placeholder")).toBe("Choose");
+            await wrapper.setProps({ placeholder: "" });
+            expect(wrapper.getComponent(ControlSelectValueStub).props("placeholder")).toBe("");
+        });
+
         scopedIt("sets value attribute on each option item", async () => {
             const wrapper = mount(WidgetSelectDropdown, {
                 props: { options: TEST_OPTIONS },
@@ -254,6 +297,32 @@ describe("lib/widgets/WidgetSelectDropdown.vue", () => {
             const { nextTick } = await vi.importActual("vue");
             await nextTick();
             expect(root.props("modelValue")).toBe("green");
+        });
+    });
+
+    describe("Empty and falsy values", () => {
+        scopedIt("preserves false and zero on selection and accepts an external reset", async () => {
+            const wrapper = mount(WidgetSelectDropdown, {
+                props: {
+                    options: [
+                        { label: "None", value: "" },
+                        { label: "No", value: false },
+                        { label: "Zero", value: 0 },
+                    ],
+                },
+            });
+            const root = wrapper.getComponent(ControlSelectStub);
+            for (const value of [false, 0]) {
+                root.vm.$emit("update:modelValue", value);
+                await wrapper.vm.$nextTick();
+                expect(widgetContext.state.combinedValue).toBe(value);
+                expect(root.props("modelValue")).toBe(value);
+            }
+            for (const value of ["", null, undefined]) {
+                widgetContext.state.combinedValue = value;
+                await wrapper.vm.$nextTick();
+                expect(root.props("modelValue")).toBe(value);
+            }
         });
     });
 

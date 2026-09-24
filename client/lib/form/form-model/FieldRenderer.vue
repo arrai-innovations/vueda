@@ -52,6 +52,11 @@ const props = defineProps({
         type: Boolean,
         default: undefined,
     },
+    /** Overrides label visibility on the field component without suppressing its validation messages. */
+    hideLabel: {
+        type: Boolean,
+        default: undefined,
+    },
     isFilter: {
         type: Boolean,
         default: false,

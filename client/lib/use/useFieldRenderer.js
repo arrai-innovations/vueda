@@ -5,6 +5,7 @@
 import { useError } from "@arrai-innovations/reactive-helpers";
 import { mergeTheme } from "@vueda/use/useTheme.js";
 import { availableWidgets } from "@vueda/utils/formLookups.js";
+import { toFlatValuePath } from "@vueda/utils/formValuePath.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw, unref, watch } from "vue";
 
@@ -16,6 +17,7 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
  * @property {{ [key: string]: unknown }} [fieldProps] - Additional field-level props.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
+ * @property {boolean} [hideLabel] - Overrides label visibility on the field component while retaining messages.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
  */
 
@@ -60,11 +62,20 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
     const es = effectScope();
     return es.run(() => {
         const relativeFieldName = computed(() =>
-            !fieldSetContext ? props.formModelName : props.formModelName.replace(`${fieldSetContext.state.name}__`, ""),
+            !fieldSetContext
+                ? props.formModelName
+                : // Stripped against the fieldset's identity (`formModelName`), not its value path
+                  // (`name`): a top-level fieldset's `name` is the flattened, lodash-safe form of that
+                  // same identity (see `toFlatValuePath` below), and `formModelName` is never wrapped.
+                  props.formModelName.replace(`${fieldSetContext.state.formModelName}.`, ""),
         );
         const fieldValuePath = computed(() => {
             if (!fieldSetContext) {
-                return props.formModelName;
+                // Outside a real fieldset, `formModelName` is a flat identity — a related filter or
+                // an expand-flattened display field — not a nested substructure, even when it is
+                // dotted. `useForm` addresses its value maps by lodash path, where a bare `.` means
+                // nesting, so this has to reach it as one literal key instead.
+                return toFlatValuePath(props.formModelName);
             } else {
                 if (props.objectGridFieldSlotProps.rowIndex !== undefined) {
                     return `${fieldSetContext.state.name}[${props.objectGridFieldSlotProps.rowIndex}].${unref(relativeFieldName)}`;
@@ -144,6 +155,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
             hidden: computedHidden.value,
+            ...(props.hideLabel !== undefined ? { hideLabel: props.hideLabel } : {}),
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
                 props.themeOverride,

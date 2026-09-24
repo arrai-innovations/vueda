@@ -34,9 +34,11 @@ rg -n "^id:" docs/reference/api | rg "<keyword>"
 
 ## Changelog
 
-Public changelog pages live under `docs/reference/changelog/`. Before adding or
-editing entries, consult `reference/changelog/README.md` for the shared
-authoring convention.
+Public changelog pages live under `docs/reference/changelog/`. New entries are
+fragment files under `../changelog.d/`, which a release build writes into those
+pages; `../CONTRIBUTING.md` ("Changelog entries") covers the workflow. Before
+adding or editing an entry, consult `reference/changelog/README.md` for the
+shared authoring convention.
 
 ## Glossary Links
 

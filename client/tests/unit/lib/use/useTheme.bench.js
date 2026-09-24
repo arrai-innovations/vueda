@@ -73,11 +73,15 @@ describe("useTheme: cached read (computed cache hit)", () => {
     });
 
     bench("Input.root cached — 1000 reads", () => {
-        for (let i = 0; i < 1000; i++) inputTheme("root");
+        for (let i = 0; i < 1000; i++) {
+            inputTheme("root");
+        }
     });
 
     bench("Button.root cached — 1000 reads", () => {
-        for (let i = 0; i < 1000; i++) buttonTheme("root");
+        for (let i = 0; i < 1000; i++) {
+            buttonTheme("root");
+        }
     });
 });
 

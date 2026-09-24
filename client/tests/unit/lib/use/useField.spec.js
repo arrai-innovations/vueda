@@ -1,6 +1,6 @@
 import { del } from "@arrai-innovations/reactive-helpers";
 import { expectReadOnlyWarning, mockLifecycle, mockProvideInject, scopedIt } from "@tests/unit/utils.js";
-import { FieldContextSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
+import { FieldContextSymbol, FieldSetContentVisibleSymbol, FormContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import capitalize from "lodash-es/capitalize.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -74,6 +74,10 @@ const getFormContextMock = (vue) => {
 
             // *** Dependency Management ***
             dependencyValues: {},
+
+            // *** Field Metadata ***
+            labels: {},
+            showsErrors: {},
         }),
 
         // *** Form Reset & State Management ***
@@ -118,6 +122,12 @@ const getFormContextMock = (vue) => {
         unregisterIsValidHook: vi.fn(),
         registerDependencyValues: vi.fn(),
         unregisterDependencyValues: vi.fn(),
+
+        // *** Field Metadata ***
+        registerLabel: vi.fn(),
+        unregisterLabel: vi.fn(),
+        registerShowsErrors: vi.fn(),
+        unregisterShowsErrors: vi.fn(),
     };
 };
 
@@ -1800,6 +1810,135 @@ describe("lib/use/useField.js", () => {
                 });
             });
         });
+        describe("Field Metadata", () => {
+            describe("registerLabel", () => {
+                scopedIt("should register a label hook for the field's name immediately on mount", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField", label: "Test Field" });
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(1);
+                    expect(fc.registerLabel).toHaveBeenCalledWith("testField", expect.any(Function));
+                    const labelHook = fc.registerLabel.mock.calls[0][1];
+                    expect(labelHook()).toBe("Test Field");
+                });
+
+                scopedIt("should register a hook resolving to the field name when no label is provided", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField" });
+                    const labelHook = fc.registerLabel.mock.calls[0][1];
+                    expect(labelHook()).toBe("testField");
+                });
+
+                scopedIt("should reflect a later label prop change without re-registering", async () => {
+                    const { fc, props } = mountFieldInContext({}, { name: "testField", label: "Initial Label" });
+                    const labelHook = fc.registerLabel.mock.calls[0][1];
+                    expect(labelHook()).toBe("Initial Label");
+
+                    props.label = "Updated Label";
+                    await flushPromises();
+
+                    // The registered hook reads state.label directly, so the registry's own
+                    // aggregation picks up the change reactively; the field never re-registers
+                    // just because its label changed.
+                    expect(labelHook()).toBe("Updated Label");
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(1);
+                });
+
+                scopedIt("should not register when contextless", () => {
+                    const { fc } = mountFieldInContext(
+                        {},
+                        { name: "testField", label: "Test Field", contextless: true },
+                    );
+                    expect(fc.registerLabel).not.toHaveBeenCalled();
+                });
+
+                scopedIt("should unregister the old registration and register anew when name changes", async () => {
+                    const { fc, props } = mountFieldInContext(
+                        {},
+                        { name: "billing_email", label: "Email" },
+                        { registerLabel: () => "label-hook-1" },
+                    );
+                    expect(fc.registerLabel).toHaveBeenCalledWith("billing_email", expect.any(Function));
+                    expect(fc.unregisterLabel).not.toHaveBeenCalled();
+
+                    props.name = "shipping_email";
+                    await flushPromises();
+
+                    expect(fc.unregisterLabel).toHaveBeenCalledWith("label-hook-1");
+                    expect(fc.registerLabel).toHaveBeenCalledTimes(2);
+                    expect(fc.registerLabel).toHaveBeenLastCalledWith("shipping_email", expect.any(Function));
+                    const labelHook = fc.registerLabel.mock.calls[1][1];
+                    expect(labelHook()).toBe("Email");
+                });
+            });
+            describe("registerShowsErrors", () => {
+                scopedIt("should register a hook for the field's name that reports true by default", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField" });
+                    expect(fc.registerShowsErrors).toHaveBeenCalledTimes(1);
+                    expect(fc.registerShowsErrors).toHaveBeenCalledWith("testField", expect.any(Function));
+                    const showsErrorsHook = fc.registerShowsErrors.mock.calls[0][1];
+                    expect(showsErrorsHook()).toBe(true);
+                });
+
+                scopedIt("should register the caller's showsErrors option and read it lazily", () => {
+                    const hidden = vue.ref(true);
+                    const fc = getFormContextMock(vue);
+                    mockedProvide(FormContextSymbol, fc);
+                    const props = getDefaultProps(vue, "testField");
+                    useField(vue.readonly(props), emit, { showsErrors: () => !hidden.value });
+
+                    const showsErrorsHook = fc.registerShowsErrors.mock.calls[0][1];
+                    expect(showsErrorsHook()).toBe(false);
+                    hidden.value = false;
+                    expect(showsErrorsHook()).toBe(true);
+                    expect(fc.registerShowsErrors).toHaveBeenCalledTimes(1);
+                });
+
+                scopedIt(
+                    "should report its errors as not shown while an enclosing inline field set is collapsed",
+                    () => {
+                        const enclosingVisible = vue.ref(false);
+                        const fc = getFormContextMock(vue);
+                        mockedProvide(FormContextSymbol, fc);
+                        mockedProvide(FieldSetContentVisibleSymbol, enclosingVisible);
+                        useField(vue.readonly(getDefaultProps(vue, "lines[0].note")), emit);
+
+                        const showsErrorsHook = fc.registerShowsErrors.mock.calls[0][1];
+                        expect(showsErrorsHook()).toBe(false);
+                        enclosingVisible.value = true;
+                        expect(showsErrorsHook()).toBe(true);
+                    },
+                );
+
+                scopedIt("should report its errors as not shown when hidden, even inside an expanded field set", () => {
+                    const fc = getFormContextMock(vue);
+                    mockedProvide(FormContextSymbol, fc);
+                    mockedProvide(FieldSetContentVisibleSymbol, vue.ref(true));
+                    useField(vue.readonly(getDefaultProps(vue, "lines[0].note")), emit, { showsErrors: () => false });
+
+                    expect(fc.registerShowsErrors.mock.calls[0][1]()).toBe(false);
+                });
+
+                scopedIt("should not register when contextless", () => {
+                    const { fc } = mountFieldInContext({}, { name: "testField", contextless: true });
+                    expect(fc.registerShowsErrors).not.toHaveBeenCalled();
+                });
+
+                scopedIt("should unregister the old registration and register anew when name changes", async () => {
+                    const { fc, props } = mountFieldInContext(
+                        {},
+                        { name: "billing_email" },
+                        { registerShowsErrors: () => "shows-errors-hook-1" },
+                    );
+                    expect(fc.registerShowsErrors).toHaveBeenCalledWith("billing_email", expect.any(Function));
+                    expect(fc.unregisterShowsErrors).not.toHaveBeenCalled();
+
+                    props.name = "shipping_email";
+                    await flushPromises();
+
+                    expect(fc.unregisterShowsErrors).toHaveBeenCalledWith("shows-errors-hook-1");
+                    expect(fc.registerShowsErrors).toHaveBeenCalledTimes(2);
+                    expect(fc.registerShowsErrors).toHaveBeenLastCalledWith("shipping_email", expect.any(Function));
+                });
+            });
+        });
         describe("Hook Registration", () => {
             describe("registerIsModifiedHook", () => {
                 scopedIt("should call the fc's method with args", async () => {
@@ -1881,6 +2020,8 @@ describe("lib/use/useField.js", () => {
                         registerIsModifiedHook: () => "-1000",
                         registerIsRequiredHook: () => "-2000",
                         registerIsValidHook: () => "-3000",
+                        registerLabel: () => "-4000",
+                        registerShowsErrors: () => "-5000",
                     },
                 );
                 await flushPromises();
@@ -1888,6 +2029,8 @@ describe("lib/use/useField.js", () => {
                 expect(fc.registerIsModifiedHook).toHaveBeenCalledWith(props.name, expect.any(Function));
                 expect(fc.registerIsRequiredHook).toHaveBeenCalledWith(props.name, expect.any(Function));
                 expect(fc.registerIsValidHook).toHaveBeenCalledWith(props.name, expect.any(Function));
+                expect(fc.registerLabel).toHaveBeenCalledWith(props.name, expect.any(Function));
+                expect(fc.registerShowsErrors).toHaveBeenCalledWith(props.name, expect.any(Function));
 
                 // fake unmount
                 for (const unmountFn of unmountedFunctions) {
@@ -1897,6 +2040,8 @@ describe("lib/use/useField.js", () => {
                 expect(fc.unregisterIsModifiedHook).toHaveBeenCalledWith("-1000");
                 expect(fc.unregisterIsRequiredHook).toHaveBeenCalledWith("-2000");
                 expect(fc.unregisterIsValidHook).toHaveBeenCalledWith("-3000");
+                expect(fc.unregisterLabel).toHaveBeenCalledWith("-4000");
+                expect(fc.unregisterShowsErrors).toHaveBeenCalledWith("-5000");
             });
         });
     });

@@ -1,6 +1,10 @@
 {% set js_install = "pnpm install" if js_package_manager == "pnpm" else "npm install" if js_package_manager == "npm" else "yarn install" -%}
 {% set js_exec = "pnpm exec" if js_package_manager == "pnpm" else "npx --no-install" if js_package_manager == "npm" else "yarn run" -%}
 {% set js_run = "pnpm run" if js_package_manager == "pnpm" else "npm run" if js_package_manager == "npm" else "yarn run" -%}
+# List available recipes.
+default:
+  @just --list
+
 bootstrap:
   cd {% raw %}{{justfile_directory()}}{% endraw %} && {{ js_install }}
   cd {% raw %}{{justfile_directory()}}{% endraw %} && {{ js_exec }} lefthook install
@@ -27,11 +31,15 @@ fix-client:
 test:
   cd {% raw %}{{justfile_directory()}}{% endraw %} && {{ js_exec }} concurrently -n server,client -c green,cyan "just test-server" "just test-client"
 
-test-server:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync pytest
+# Extra arguments go to pytest; paths are relative to server/.
+[positional-arguments]
+test-server *args:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync pytest "$@"
 
-test-client:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_run }} test run
+# Extra arguments go to vitest; paths are relative to client/.
+[positional-arguments]
+test-client *args:
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_run }} test run "$@"
 
 manage *args:
   cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync python manage.py {% raw %}{{args}}{% endraw %}
@@ -43,4 +51,4 @@ serve-server:
   cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
 
 serve-client:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_run }} dev
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_exec }} vite --host {{ bind_ip }} --port {{ client_port }}

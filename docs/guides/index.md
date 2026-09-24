@@ -10,9 +10,12 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 ## Environment & Networking
 
+- [Configure the Cache and Sessions](configure-cache-and-sessions.md): Choose a cache backend through `CACHE_URL`, keep sessions readable across worker processes, and verify the result.
 - [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
 
 ## Client Setup & Theming
+
+- [Style Unovis Charts](style-unovis-charts.md): Optional chart palette and mappings for VUEDA typography, surfaces, and dark mode.
 
 - [Client Plugin Prerequisites](client-plugin-prerequisites.md): Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting.
 - [shadcn-vue and VUEDA](shadcn-vue.md): How VUEDA relates to shadcn-vue, what `shadcn-vue add` does and does not support, and how to use shadcn-vue blocks alongside VUEDA.

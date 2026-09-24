@@ -101,7 +101,9 @@ const effectivePlaceholder = computed(
 const closedStateLabel = computed(() => {
     const val = widgetContext.state.combinedValue;
     const isEmpty = val == null || val === "" || (Array.isArray(val) && val.length === 0);
-    if (isEmpty) return null;
+    if (isEmpty) {
+        return null;
+    }
 
     if (props.multiple) {
         const count = Array.isArray(val) ? val.length : 1;
@@ -154,7 +156,9 @@ const filteredDisplayOptions = computed(() => {
         return value !== "" && value != null;
     });
     const q = comboboxSearch.query;
-    if (!q) return opts;
+    if (!q) {
+        return opts;
+    }
     return opts.filter((opt) => {
         const label = opt[props.optionLabel];
         return label != null && contains(String(label), q);
@@ -168,7 +172,9 @@ const textContentFn = computed(() => {
 });
 
 const emptyMessage = computed(() => {
-    if (isApiMode.value) return comboboxSearch.emptyMessage;
+    if (isApiMode.value) {
+        return comboboxSearch.emptyMessage;
+    }
     return comboboxSearch.query ? "No matching results." : "No options available.";
 });
 
@@ -200,6 +206,7 @@ const icon = useIcons("WidgetCombobox", props);
         />
         <span v-else>{{ closedStateLabel }}</span>
     </template>
+    <!-- Fields validate required values on submit; standalone widgets still need native validation. -->
     <Combobox
         v-else
         v-model="effectiveValue"
@@ -207,7 +214,7 @@ const icon = useIcons("WidgetCombobox", props);
         :disabled="widgetContext.state.disabled"
         :multiple="props.multiple"
         :name="widgetContext.state.combinedName"
-        :required="widgetContext.state.required"
+        :required="(!fieldContext || props.contextless) && widgetContext.state.required"
         :reset-search-term-on-select="!isApiMode"
         @update:open="handleOpenChange"
     >
@@ -215,6 +222,7 @@ const icon = useIcons("WidgetCombobox", props);
             <ComboboxTrigger
                 :id="fieldContext?.state.fieldId"
                 :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+                :data-warning="widgetContext.state.validationState.warning || undefined"
                 :aria-required="widgetContext.state.required || undefined"
                 :class="theme('trigger')"
                 data-qa="widget-combobox"

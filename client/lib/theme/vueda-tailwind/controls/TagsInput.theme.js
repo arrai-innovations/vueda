@@ -20,9 +20,14 @@ patchTheme({
                 // Shell and surface.
                 "flex flex-wrap gap-2 items-center rounded-vueda-field field-line bg-field hover:bg-field-hover px-2 py-1 text-sm shadow-vueda-control transition-shadow",
 
+                // Disabled: an inert slab, not a faded field. The state is a data attribute on a
+                // wrapper element, which the `disabled:` variant (`:disabled`) never matches.
+                "data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed",
+                "data-[disabled]:bg-disabled data-[disabled]:text-disabled-foreground data-[disabled]:hairline-border",
+
                 // Focus and invalid states.
-                "has-[input:focus-visible]:hairline has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
-                "aria-invalid:hairline aria-invalid:hairline-destructive [&[aria-invalid]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
+                "has-[input:focus-visible]:hairline-ring [&:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow",
+                "data-[warning=true]:not-aria-invalid:hairline-warning aria-invalid:hairline-destructive aria-invalid:has-[input:focus-visible]:hairline-destructive [&[aria-invalid=true]:has(input:focus-visible):not(:has([data-state=active]))]:focus-ring-shadow-destructive",
             ],
         },
     },

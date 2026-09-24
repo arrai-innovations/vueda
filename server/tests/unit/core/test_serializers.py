@@ -1136,3 +1136,35 @@ class TestFieldDisplayChoices:
         fields = _ProductSerializer().get_schema_fields()
 
         assert "display_choices" not in fields["disabled"]
+
+
+class TestFieldListDefault:
+    def test_workflow_fields_leave_the_default_list(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        fields = ModelInfoSerializer().get_model_fields_data(store_serializers.CustomerOrderSerializer)
+
+        assert fields["workflow_state_code"]["list_default"] is False
+        assert fields["valid_transitions"]["list_default"] is False
+        assert "list_default" not in fields["workflow_state_name"]
+        # `when` is auto_now_add: an integrator-declared timestamp, so the server leaves it unflagged.
+        assert "list_default" not in fields["when"]
+
+    def test_serializer_field_style_sets_the_flag(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        class _CustomerOrderSerializer(store_serializers.CustomerOrderSerializer):
+            when = serializers.DateTimeField(read_only=True, style={"list_default": False})
+            workflow_state_code = serializers.CharField(
+                source="workflow_state.code", read_only=True, style={"list_default": True}
+            )
+
+        fields = ModelInfoSerializer().get_model_fields_data(_CustomerOrderSerializer)
+
+        assert fields["when"]["list_default"] is False
+        assert fields["workflow_state_code"]["list_default"] is True
+
+    def test_schema_fields_drop_the_flag(self):
+        fields = store_serializers.CustomerOrderSerializer().get_schema_fields()
+
+        assert "list_default" not in fields["workflow_state_code"]

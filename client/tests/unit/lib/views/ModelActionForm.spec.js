@@ -114,7 +114,7 @@ const WidgetReadOnlyStub = defineComponent({
 // header/list/inline layout logic getting in the way.
 const FieldWarningsListStub = defineComponent({
     name: "FieldWarningsListStub",
-    props: ["messages"],
+    props: ["messages", "fieldDetails"],
     setup(props, { slots }) {
         return () =>
             h(
@@ -333,7 +333,9 @@ describe("lib/views/ModelActionForm.vue", () => {
 
         scopedIt("forwards a dryRunTarget identity built from the selected pks", () => {
             const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] } });
-            expect(wrapper.getComponent(ActionFormStub).props("dryRunTarget")).toBe("1,2");
+            expect(wrapper.getComponent(ActionFormStub).props("dryRunTarget")).toBe(
+                JSON.stringify(["app", "person", "activate", ["1", "2"]]),
+            );
         });
     });
 
@@ -484,6 +486,16 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(wrapper.get('[data-slot="typed-confirm-field"]').attributes("data-match")).toBe("true");
         });
 
+        scopedIt("requires fresh typed confirmation after the action target changes", async () => {
+            const { wrapper } = mountModelActionForm({ confirmText: "yes" });
+            const input = wrapper.get('[data-qa="typed-confirm-field-input"]');
+            await input.setValue("yes");
+            expect(wrapper.vm.typedConfirmMatch).toBe(true);
+            await wrapper.setProps({ action: "archive" });
+            expect(input.element.value).toBe("");
+            expect(wrapper.vm.typedConfirmMatch).toBe(false);
+        });
+
         scopedIt("re-disables when the typed value drifts back out of match", async () => {
             const { wrapper } = mountModelActionForm({ confirmText: "delete 2 people" });
             const input = wrapper.get('[data-qa="typed-confirm-field-input"]');
@@ -545,6 +557,16 @@ describe("lib/views/ModelActionForm.vue", () => {
                 );
             },
         );
+
+        scopedIt("passes the model's fieldDetails through, so warned fields carry their labels", () => {
+            modelConfig.config.fieldDetails = { count: { label: "Units counted" } };
+            actionFormWarnings = { count: ["A negative count is unusual."] };
+            const { wrapper } = mountModelActionForm({ fetchState: { objectsInOrder: [{ id: 9 }] } });
+
+            expect(wrapper.getComponent(FieldWarningsListStub).props("fieldDetails")).toEqual({
+                count: { label: "Units counted" },
+            });
+        });
 
         scopedIt(
             "renders a single unkeyed group with no WidgetReadOnly label for a single-object action's flat warnings",

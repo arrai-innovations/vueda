@@ -91,6 +91,19 @@ describe("lib/form/filter/FilterFieldForm.vue", () => {
         expect(addedFilters.value[0].value).toBe("closed");
     });
 
+    scopedIt("applyFilter reads a dotted related-field name as one flat key", async () => {
+        // `toFlatValuePath` stores a dotted name's value under a literal top-level key (proven in
+        // formValuePath.spec.js), so `submittingValues` here is shaped exactly as the real
+        // `useForm`/`useFieldRenderer` pairing would produce it for `customer.formatted_name`.
+        const state = reactive({ submittingValues: { "customer.formatted_name": "Acme" } });
+        mockedUseForm.mockReturnValue({ state });
+        const { wrapper, addedFilters } = mountForm({ props: { filterName: "customer.formatted_name" } });
+
+        wrapper.vm.applyFilter();
+        expect(addedFilters.value).toHaveLength(1);
+        expect(addedFilters.value[0]).toMatchObject({ field: "customer.formatted_name", value: "Acme" });
+    });
+
     scopedIt("removeFilter clears the field's entry", async () => {
         const state = reactive({ submittingValues: { status: "open" } });
         mockedUseForm.mockReturnValue({ state });

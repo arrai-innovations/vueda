@@ -28,11 +28,76 @@ export function renderHeading(level, text) {
     return `${"#".repeat(level)} ${text}`;
 }
 
+const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
+const INDENTED_CODE_RE = /^(?: {4}|\t)/;
+
+const escapeMarkup = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Runs on one paragraph, so a code span may wrap across lines but cannot reach
+// past the blank line that ends the paragraph.
+const escapeOutsideCodeSpans = (paragraph) => {
+    let escaped = "";
+    let position = 0;
+    for (const span of paragraph.matchAll(/(`+)[\s\S]*?\1/g)) {
+        escaped += escapeMarkup(paragraph.slice(position, span.index)) + span[0];
+        position = span.index + span[0].length;
+    }
+    return escaped + escapeMarkup(paragraph.slice(position));
+};
+
+/**
+ * Escape markup in prose while leaving code verbatim.
+ *
+ * A docstring carries both. Escaping a code span or a fenced block would show
+ * the entity itself, so `<field>` would reach the reader as `&lt;field&gt;`.
+ */
 export function escapeText(value) {
     if (value === undefined || value === null) {
         return "";
     }
-    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rendered = [];
+    let paragraph = [];
+    let openFence = null;
+
+    const flushParagraph = () => {
+        if (paragraph.length) {
+            rendered.push(escapeOutsideCodeSpans(paragraph.join("\n")));
+            paragraph = [];
+        }
+    };
+
+    for (const line of String(value).split("\n")) {
+        const fence = line.match(FENCE_RE)?.[1];
+        if (openFence) {
+            rendered.push(line);
+            if (fence && fence[0] === openFence[0] && fence.length >= openFence.length) {
+                openFence = null;
+            }
+            continue;
+        }
+        if (fence) {
+            flushParagraph();
+            openFence = fence;
+            rendered.push(line);
+            continue;
+        }
+        if (line.trim() === "") {
+            flushParagraph();
+            rendered.push(line);
+            continue;
+        }
+        // An indented code block only starts a block, never continues a
+        // paragraph, so an empty buffer is what distinguishes it from a
+        // paragraph's own indented continuation line.
+        if (!paragraph.length && INDENTED_CODE_RE.test(line)) {
+            rendered.push(line);
+            continue;
+        }
+        paragraph.push(line);
+    }
+    flushParagraph();
+
+    return rendered.join("\n");
 }
 
 export function renderCodeInline(value) {

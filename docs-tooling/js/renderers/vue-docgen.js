@@ -25,7 +25,9 @@ function renderProps(node) {
 
 function renderSlotFallbacks(slot) {
     const fallbacks = slot.extensions?.vueDocgen?.fallbacks;
-    if (!fallbacks?.length) return null;
+    if (!fallbacks?.length) {
+        return null;
+    }
     return `Also accepted: ${fallbacks.map(renderCodeInline).join(", ")}.`;
 }
 
@@ -52,7 +54,9 @@ function renderSlots(node, index, filePath, pathMap) {
             const scoped = slot.extensions?.vueDocgen?.scoped;
             lines.push("", scoped ? "Scoped slot." : "Slot.", "");
             const fallbackLine = renderSlotFallbacks(slot);
-            if (fallbackLine) lines.push(fallbackLine, "");
+            if (fallbackLine) {
+                lines.push(fallbackLine, "");
+            }
             const signature = slot.signatures?.[0];
             const bindings = formatBindings(signature?.parameters || []);
             const table = renderTable(["Name", "Description"], bindings);
@@ -166,7 +170,9 @@ function renderSlotsPage(node, index) {
         const scoped = slot.extensions?.vueDocgen?.scoped;
         lines.push("", scoped ? "Scoped slot." : "Slot.", "");
         const fallbackLine = renderSlotFallbacks(slot);
-        if (fallbackLine) lines.push(fallbackLine, "");
+        if (fallbackLine) {
+            lines.push(fallbackLine, "");
+        }
         const signature = slot.signatures?.[0];
         const bindings = formatBindings(signature?.parameters || []);
         const table = renderTable(["Name", "Description"], bindings);
@@ -219,7 +225,9 @@ function renderComponentIndex(componentNodes, pathMap) {
     const groups = new Map();
     for (const node of componentNodes) {
         const group = componentGroup(node);
-        if (!groups.has(group)) groups.set(group, []);
+        if (!groups.has(group)) {
+            groups.set(group, []);
+        }
         groups.get(group).push(node);
     }
     for (const nodes of groups.values()) {
@@ -273,7 +281,9 @@ export function renderVueDocgenBundle(bundle, options = {}) {
     // Conditionally register sub-page paths before rendering so that
     // renderVueDocgenNode can link slot/event headings only when a sub-page exists.
     for (const node of bundle.nodes) {
-        if (node.kind !== "component") continue;
+        if (node.kind !== "component") {
+            continue;
+        }
         const children = index.childrenOf.get(node.id) || [];
         const slots = children.filter((c) => c.kind === "slot");
         const events = children.filter((c) => c.kind === "event");

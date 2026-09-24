@@ -49,13 +49,14 @@ When editing source annotations that affect generated API docs, consult
 
 ## Changelog
 
-Public server changelog entries belong in `docs/reference/changelog/server.md`.
-Before adding or editing entries, consult
-`../docs/reference/changelog/README.md` for the shared authoring convention.
+Public server changelog entries are fragment files under
+`../changelog.d/server/`, not edits to `../docs/reference/changelog/server.md`. A
+release build writes them into that page. `../CONTRIBUTING.md` ("Changelog entries") covers where a fragment
+goes and how to name it.
 
-Add entries for changes that affect integrators: Django apps, settings,
-serializers, viewsets, permissions, metadata responses, management commands,
-migrations, REST behavior, documented behavior, and compatibility notes.
+`../docs/reference/changelog/README.md` decides whether a change needs an entry
+and what the entry says. Most changes need none. When a change meets its
+inclusion rule, suggest a fragment for it.
 
 ## Commit Message Style
 

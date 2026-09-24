@@ -201,30 +201,44 @@ describe("lib/use/useWorkflowTransitions.js", () => {
         es.stop();
     });
 
-    scopedIt("does not stack a second fetch when only the model changes", async () => {
-        let resolveFirstFetch;
-        workflowStoreMock.fetchWorkflowTransition.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveFirstFetch = resolve;
-                }),
-        );
-
-        const es = effectScope();
-        es.run(() => {
-            useWorkflowTransitions(app, model);
-        });
+    scopedIt("loads the latest cold target after an in-flight request without publishing stale metadata", async () => {
+        let resolveFirst;
+        let resolveLast;
+        workflowStoreMock.fetchWorkflowTransition
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveFirst = resolve;
+                    }),
+            )
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveLast = resolve;
+                    }),
+            );
+        const result = useWorkflowTransitions(app, model);
         await flushPromises();
-        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
-
-        model.value = "otherModel";
+        model.value = "intermediate";
         await flushPromises();
-        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
-
-        resolveFirstFetch([]);
+        model.value = "finalModel";
         await flushPromises();
-        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(1);
-        es.stop();
+        workflowStoreMock.workflowTransitions[getAppModelDotName({ app: app.value, model: "myModel" })] = [
+            { code: "final" },
+        ];
+        resolveFirst();
+        await flushPromises();
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenCalledTimes(2);
+        expect(workflowStoreMock.fetchWorkflowTransition).toHaveBeenLastCalledWith(app.value, "finalModel");
+        expect(result.loading).toBe(true);
+        expect(result.transitions).not.toEqual([{ code: "final" }]);
+        workflowStoreMock.workflowTransitions[getAppModelDotName({ app: app.value, model: "finalModel" })] = [
+            { code: "final" },
+        ];
+        resolveLast();
+        await flushPromises();
+        expect(result.transitions).toEqual([{ code: "final" }]);
+        expect(result.loading).toBe(false);
     });
 
     scopedIt("does not fetch if isActive is false", async () => {

@@ -1,12 +1,16 @@
-import { formatApiMemberTitle, memberNameFromId } from "../../docs-tooling/js/utils/reference-index.js";
+import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
+import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
+import {
+    formatApiMemberTitle,
+    memberAnchorFromId,
+    memberNameFromId,
+} from "../../docs-tooling/js/utils/reference-index.js";
 import {
     normalizeTerm,
-    parseApiRef,
     parseFrontmatter,
     parseTermRef,
     stripInlineMarkdown,
 } from "../../docs-tooling/js/utils/reference-parser.js";
-import { slugify } from "../../docs-tooling/js/utils/slugify.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
@@ -100,15 +104,33 @@ const relativeTimingPath = (value) => {
 
 const timingSectionForPath = (value) => {
     const rel = relativeTimingPath(value).replace(/\.html$/, ".md");
-    if (rel.startsWith("reference/api/js/")) return "reference/api/js";
-    if (rel.startsWith("reference/api/vue/")) return "reference/api/vue";
-    if (rel.startsWith("reference/api/py/")) return "reference/api/py";
-    if (rel.startsWith("reference/api/rest/")) return "reference/api/rest";
-    if (rel.startsWith("reference/theming/")) return "reference/theming";
-    if (rel.startsWith("reference/")) return "reference/authored";
-    if (rel.startsWith("guides/")) return "guides";
-    if (rel.startsWith("tutorials/")) return "tutorials";
-    if (rel.startsWith("core-concepts/")) return "core-concepts";
+    if (rel.startsWith("reference/api/js/")) {
+        return "reference/api/js";
+    }
+    if (rel.startsWith("reference/api/vue/")) {
+        return "reference/api/vue";
+    }
+    if (rel.startsWith("reference/api/py/")) {
+        return "reference/api/py";
+    }
+    if (rel.startsWith("reference/api/rest/")) {
+        return "reference/api/rest";
+    }
+    if (rel.startsWith("reference/theming/")) {
+        return "reference/theming";
+    }
+    if (rel.startsWith("reference/")) {
+        return "reference/authored";
+    }
+    if (rel.startsWith("guides/")) {
+        return "guides";
+    }
+    if (rel.startsWith("tutorials/")) {
+        return "tutorials";
+    }
+    if (rel.startsWith("core-concepts/")) {
+        return "core-concepts";
+    }
     return "other";
 };
 
@@ -316,7 +338,7 @@ const buildApiIndex = () => {
                         continue;
                     }
                     const memberName = memberNameFromId(memberId);
-                    const anchor = slugify(memberName);
+                    const anchor = memberAnchorFromId(memberId);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
                         title: formatApiMemberTitle(title, memberName),
@@ -333,71 +355,6 @@ const buildApiIndex = () => {
 
 const apiIndex = timeSync("config:api-index", buildApiIndex);
 const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
-
-const apiLinkPlugin = (md, options = {}) => {
-    const resolve = options.resolve;
-    const strict = options.strict !== false;
-    const softbreakSpacer = " ";
-
-    md.inline.ruler.before("emphasis", "vueda-api-link", (state, silent) => {
-        const { pos } = state;
-        if (state.src.charCodeAt(pos) !== 0x7b) {
-            return false;
-        }
-        const parsed = parseApiRef(state.src, pos);
-        if (!parsed) {
-            return false;
-        }
-        if (silent) {
-            return true;
-        }
-
-        const { raw, rawId, length } = parsed;
-        const entry = resolve ? resolve(rawId) : null;
-        if (!entry) {
-            const hint = state.env?.relativePath || state.env?.path || "unknown file";
-            const message = `Unknown API id "${rawId}" in ${hint}`;
-            if (strict) {
-                throw new Error(message);
-            }
-            const token = state.push("text", "", 0);
-            token.content = raw;
-            state.pos += length;
-            return true;
-        }
-
-        const open = state.push("link_open", "a", 1);
-        open.attrs = [["href", entry.href]];
-        const text = state.push("text", "", 0);
-        text.content = entry.title || rawId;
-        state.push("link_close", "a", -1);
-
-        let nextPos = pos + length;
-        const char = state.src.charCodeAt(nextPos);
-        if (char === 0x0a || char === 0x0d) {
-            if (char === 0x0d) {
-                nextPos += 1;
-                if (state.src.charCodeAt(nextPos) === 0x0a) {
-                    nextPos += 1;
-                }
-            } else {
-                nextPos += 1;
-            }
-            while (nextPos < state.src.length) {
-                const code = state.src.charCodeAt(nextPos);
-                if (code !== 0x20 && code !== 0x09) {
-                    break;
-                }
-                nextPos += 1;
-            }
-            const spacer = state.push("text", "", 0);
-            spacer.content = softbreakSpacer;
-        }
-
-        state.pos = nextPos;
-        return true;
-    });
-};
 
 const escapeAttr = (value) =>
     value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -907,6 +864,7 @@ export default defineConfig({
                 resolve: (id) => apiIndex.get(id),
                 strict: process.env.NODE_ENV === "production",
             });
+            md.use(changelogDraftPlugin, { render: (pkg) => renderUnreleased(pkg, repoRoot) });
             md.use(glossaryTermPlugin, {
                 resolve: (term) => glossaryIndex.get(normalizeTerm(stripInlineMarkdown(term))),
                 strict: process.env.NODE_ENV === "production",

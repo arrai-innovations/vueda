@@ -43,18 +43,23 @@ describe("lib/use/use*.js", () => {
                         });
                         mocks.workflow = reactive({ workflowTransitions: {}, fetchWorkflowTransition: fetch });
                         fetch.mockImplementation(() => {
-                            if (kind === "info") mocks.info.infos[key] = fresh;
-                            else if (kind === "workflow") mocks.workflow.workflowTransitions[key] = fresh;
-                            else mocks.choices[kind][key] = { status: fresh };
+                            if (kind === "info") {
+                                mocks.info.infos[key] = fresh;
+                            } else if (kind === "workflow") {
+                                mocks.workflow.workflowTransitions[key] = fresh;
+                            } else {
+                                mocks.choices[kind][key] = { status: fresh };
+                            }
                             return Promise.resolve();
                         });
                         let result;
                         const child = defineComponent({
                             setup() {
-                                if (kind === "info") result = useModelInfo(ref("blog"), ref("article"));
-                                else if (kind === "workflow")
+                                if (kind === "info") {
+                                    result = useModelInfo(ref("blog"), ref("article"));
+                                } else if (kind === "workflow") {
                                     result = useWorkflowTransitions(ref("blog"), ref("article"));
-                                else
+                                } else {
                                     result = useModelChoices(
                                         reactive({
                                             status: {
@@ -65,6 +70,7 @@ describe("lib/use/use*.js", () => {
                                             },
                                         }),
                                     );
+                                }
                                 return () => null;
                             },
                         });

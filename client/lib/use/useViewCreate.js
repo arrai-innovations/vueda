@@ -157,7 +157,9 @@ export function useViewCreate(options) {
             [FIELDS_PARAM]: computed(() => {
                 const fields = [...(options.submitFields ?? modelConfig.config?.submitFields ?? [])];
                 const pkKey = modelConfig.info?.pk ?? "id";
-                if (!fields.includes(pkKey)) fields.push(pkKey);
+                if (!fields.includes(pkKey)) {
+                    fields.push(pkKey);
+                }
                 return fields;
             }),
             [EXPAND_PARAM]: computed(() => {

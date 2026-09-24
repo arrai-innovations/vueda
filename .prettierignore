@@ -37,6 +37,9 @@ docs/.vitepress/.temp
 docs/public/assets/mermaid/mermaid.min.js
 docs-tooling/.generated
 
+# changelog fragment template (Jinja, not Markdown)
+changelog.d/template.md
+
 # policy docs
 **/AGENT.md
 **/AGENTS.md

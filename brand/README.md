@@ -12,9 +12,17 @@ that folder's README.
 
 The VUEDA mark is a rotated V derived from Arrai's isometric
 "A-shielding-I" cube. The accent blue (`#0077f7`) is inherited verbatim
-from Arrai's primary brand colour and is anchored at
-`oklch(0.59 0.211 257.2)` in the theme tokens (`--primary` in
-`client/lib/theme/vueda-tailwind/base.css`).
+from Arrai's primary brand colour. The theme keeps that exact colour in
+both modes through `--vueda-brand-blue` and `--primary` in
+`client/lib/theme/vueda-tailwind/base.css`. Navy (`#001c30`) and grey
+(`#e5e5e5`) supply the supporting palette. Readable blue text uses a
+separate derived token; it does not change the identity blue.
+
+The hexadecimal values above are the canonical **sRGB** colours. Derive
+RGB and CSS OKLCH values from them, rather than sampling a rendered PDF
+or converting the guide's print specifications. See the
+[colour audit](color-audit.md) for conversions, PDF corrections, and the
+distinction between digital colours and CMYK/Pantone print references.
 
 ## Mark and wordmark
 

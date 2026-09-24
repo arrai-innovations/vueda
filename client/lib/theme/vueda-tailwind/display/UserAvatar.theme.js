@@ -20,7 +20,7 @@ patchTheme({
                 "relative inline-flex shrink-0 items-center justify-center overflow-hidden",
                 "rounded-full select-none",
                 {
-                    "border border-primary bg-[color-mix(in_oklab,var(--primary)_14%,transparent)] text-primary":
+                    "border border-primary bg-[color-mix(in_oklab,var(--primary)_14%,transparent)] text-primary-text":
                         !tone || tone === "primary",
                     "bg-sidebar-accent text-sidebar-foreground": tone === "sidebar",
                 },

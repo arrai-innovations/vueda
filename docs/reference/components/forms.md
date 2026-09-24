@@ -6,6 +6,9 @@ type: reference
 ---
 
 <script setup>
+import FieldSetMany from "@vueda/form/field-set/FieldSetMany.vue";
+import FormField from "@vueda/form/form-model/FormField.vue";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import Field from "@vueda/shell/field/Field.vue";
 import FieldContent from "@vueda/shell/field/FieldContent.vue";
 import FieldDescription from "@vueda/shell/field/FieldDescription.vue";
@@ -37,6 +40,7 @@ import { faMicrosoft } from "@fortawesome/free-brands-svg-icons";
 import { ref } from "vue";
 
 const remember = ref(false);
+const notificationEmails = ref(["orders@example.com", "accounts@example.com"]);
 </script>
 
 # Forms
@@ -161,9 +165,11 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
 
 ## Field: validation states
 
-{@api vue:component:FieldMessage} handles both error and warning severity beneath the control. Error messages render in `text-destructive`; warning messages render in amber. Multiple messages automatically switch to a bulleted list. The invalid border on the input (`aria-invalid="true"`) comes from the `Input` theme key, not the field shell.
+{@api vue:component:FieldMessage} handles both error and warning severity beneath the control. Error messages render in `text-destructive`; warning messages render in amber. Multiple messages automatically switch to a bulleted list. The control's own state line comes from the `Input` theme key, not the field shell: `aria-invalid="true"` paints it destructive, and `data-warning="true"` paints it amber.
 
-Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}.
+Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}, {@api css-token:warning}.
+
+{@api vue:component:FormField} accepts `hideLabel` when a surrounding layout already supplies the label. Help text, errors, and warnings still render below the control. {@api vue:component:FieldSetTabularInline} uses this mode because its column headers (or card headers on narrow screens) already name each field. The separate `hidden` prop continues to suppress the whole field shell, including messages.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
   <DemoCard title="default · untouched">
@@ -227,7 +233,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
     </FieldGroup>
     <template #footer>
       <span>single string: renders as inline text</span>
-      <span>input border: <code>border-destructive</code> via <code>aria-invalid</code></span>
+      <span>field line: <code>hairline-destructive</code> via <code>aria-invalid</code></span>
     </template>
   </DemoCard>
   <DemoCard title="error · multiple messages">
@@ -252,14 +258,14 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       <Field>
         <FieldLabel for="vs-warn">Tax ID</FieldLabel>
         <FieldContent>
-          <Input id="vs-warn" model-value="12-3456789" />
+          <Input id="vs-warn" model-value="12-3456789" data-warning="true" />
           <FieldMessage severity="warning" :messages="['Format unfamiliar — saved as-is. Verify before posting invoices.']" />
         </FieldContent>
       </Field>
     </FieldGroup>
     <template #footer>
       <span><code>severity="warning"</code> → amber text · <code>role="status"</code></span>
-      <span>border stays neutral: not a blocking error</span>
+      <span>field line: <code>hairline-warning</code> via <code>data-warning</code> · ring untouched, and an <code>aria-invalid</code> error outranks it</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled · non-editable">
@@ -273,7 +279,8 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>input: <code>disabled:opacity-50 cursor-not-allowed</code></span>
+      <span>input: the <code>--disabled</code> fill replaces <code>--field</code>, the line softens to <code>--border</code>, and the ink is <code>--disabled-foreground</code></span>
+      <span>distinct from read-only beside it, which keeps no fill at all</span>
     </template>
   </DemoCard>
   <DemoCard title="readonly · editable later">
@@ -548,7 +555,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
             <FieldContent>
               <Input id="auth-pwd" type="password" autocomplete="current-password" placeholder="••••••••" />
               <FieldDescription>
-                <a href="#" class="text-primary underline underline-offset-4">Forgot your password?</a>
+                <a href="#" class="text-primary-text underline underline-offset-4">Forgot your password?</a>
               </FieldDescription>
             </FieldContent>
           </Field>
@@ -571,7 +578,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </Button>
         <p class="mt-5 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>New to VUEDA?</span>
-          <a href="#" class="text-primary underline underline-offset-4">Request access</a>
+          <a href="#" class="text-primary-text underline underline-offset-4">Request access</a>
         </p>
       </div>
     </div>
@@ -606,7 +613,7 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </div>
         <p class="mt-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
           <span>Lost your authenticator?</span>
-          <a href="#" class="text-primary underline underline-offset-4">Use a recovery code</a>
+          <a href="#" class="text-primary-text underline underline-offset-4">Use a recovery code</a>
         </p>
       </div>
     </div>
@@ -673,7 +680,7 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
     <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
       <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
-          <span class="text-primary">Send</span> 4 invoices to customers
+          <span class="text-primary-text">Send</span> 4 invoices to customers
         </h3>
         <span class="text-xs text-muted-foreground">bulk action · dry-run validated</span>
       </header>
@@ -708,14 +715,14 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
     </div>
     <template #footer>
       <span>inline panel · not an overlay or drawer</span>
-      <span>action verb in <code>text-primary</code> · record list as bordered table</span>
+      <span>action verb in <code>text-primary-text</code> · record list as bordered table</span>
     </template>
   </DemoCard>
   <DemoCard title="with form-level error · dry-run failed">
     <div class="overflow-hidden rounded-vueda-card hairline hairline-border bg-card">
       <header class="flex flex-wrap items-baseline justify-between gap-2 border-b-hairline bg-muted/30 px-4 py-3">
         <h3 class="text-sm font-semibold text-foreground">
-          <span class="text-primary">Void</span> 2 invoices
+          <span class="text-primary-text">Void</span> 2 invoices
         </h3>
         <span class="text-xs text-muted-foreground">bulk action · dry-run failed</span>
       </header>
@@ -755,3 +762,30 @@ The field shell is the most frequently customized part of VUEDA's theme. The hig
 - {@api theme-key:FieldMessage}: `root` — error text color; `list` — multi-message bullet list layout.
 - {@api theme-key:FormMessage}: `root` — margin around the consolidated Alert; `list` — list layout inside Alert.
 - {@api theme-key:FieldGroup}: `root` — gap between fields, container-query scope for responsive orientation.
+
+## Repeated values: FieldSetMany
+
+{@api vue:component:FieldSetMany} edits a list of values, with Add and Remove
+controls. Every entry can be removed, including the first and last. An optional
+list can be empty; a required list reports a list-level error when empty.
+Each added entry requires a value. Read-only lists disable Add and Remove.
+
+The fieldset heading labels the list. Per-entry labels stay available to assistive
+technology, while the default theme visually hides them to avoid repeating the
+heading. Remove aligns with the top control row, so validation messages below an
+input do not move its button. The `rows`, `component`, and `removeButton` slots on
+{@api theme-key:FieldSetMany} control this layout.
+
+This example uses `contextless` and `v-model` to keep its draft local to the demo.
+Inside a form, the component uses the array at its `name` path. Removing an entry
+shifts indexed feedback with the remaining values through
+{@api js:function:@arrai-innovations/vueda/use/useForm#useForm}'s `removeArrayItem(name, index)` method.
+
+<VuedaDemo>
+  <DemoCard title="optional email list">
+    <FieldSetMany v-model="notificationEmails" contextless name="notification_emails" label="Notification emails" :required="false" :many-component="FormField">
+      <WidgetTextInput type="email" />
+    </FieldSetMany>
+    <template #footer>remove all entries to return to an empty list; Add creates an entry that requires a value</template>
+  </DemoCard>
+</VuedaDemo>

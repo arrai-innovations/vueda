@@ -22,7 +22,7 @@ import {
 import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { DateTime } from "luxon";
-import { computed, inject, reactive, ref, toRef, useSlots, watch } from "vue";
+import { computed, inject, nextTick, reactive, ref, toRef, useSlots, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -97,8 +97,12 @@ const handleIsTableUpdate = (newValue) => {
 // sentinels that are always-or-never matched ("xs" always matches, "inf" never does).
 const layoutOverride = ref("auto");
 const effectiveTableBreakpoint = computed(() => {
-    if (layoutOverride.value === "table") return "xs";
-    if (layoutOverride.value === "cards") return "inf";
+    if (layoutOverride.value === "table") {
+        return "xs";
+    }
+    if (layoutOverride.value === "cards") {
+        return "inf";
+    }
     return props.tableBreakpoint;
 });
 const setLayoutOverride = (mode) => {
@@ -112,7 +116,18 @@ if (!inject(LookupContextSymbol, null)) {
 }
 
 const isActive = useIsActive();
-const validAndActive = computed(() => !!(isActive.value && props.app && props.model && modelConfig.loading === false));
+const resettingTarget = ref(false);
+const validAndActive = computed(
+    () =>
+        !!(
+            isActive.value &&
+            !resettingTarget.value &&
+            props.app &&
+            props.model &&
+            props.pk &&
+            modelConfig.loading === false
+        ),
+);
 const currentPage = ref(1);
 // Seed rows-per-page from the configured default, validated against the offered options. History is
 // transient, so the selection is not persisted (it resets each visit).
@@ -150,7 +165,7 @@ const instanceList = useList({
 const showingAllPages = ref(seededPerPage === ALL_PAGES);
 const computedShowAllPages = computed(() => showingAllPages.value);
 watch(computedShowAllPages, (newVal, oldVal) => {
-    if (newVal !== oldVal) {
+    if (newVal !== oldVal && validAndActive.value) {
         currentPage.value = 1;
         instanceList.clearList();
         instanceList.list();
@@ -172,6 +187,18 @@ watch(perPage, (newPerPage, oldPerPage) => {
 });
 watch([validAndActive, currentPage], () => {
     instanceList.clearList({ keepPagination: true });
+});
+watch([() => props.app, () => props.model, () => props.pk], () => {
+    // Toggle list intent even when the new history target has identical request parameters.
+    resettingTarget.value = true;
+    currentPage.value = 1;
+    perPage.value = props.pageSizeOptions.includes(props.defaultPageSize) ? props.defaultPageSize : DEFAULT_PAGE_SIZE;
+    layoutOverride.value = "auto";
+    instanceList.clearError();
+    instanceList.clearList();
+    nextTick(() => {
+        resettingTarget.value = false;
+    });
 });
 const titleStr = computed(() => {
     return `History of ${modelConfig.info?.verbose_name}`;

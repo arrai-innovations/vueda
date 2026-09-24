@@ -25,8 +25,10 @@ The model is registered with both a serializer and a viewset, and model-info ret
 
 The defaults are:
 
-- `displayFields` and `fetchFields`: all non-PK fields from the serializer's field list.
-- `submitFields`: all non-PK fields from the serializer's field list.
+- `displayFields` and `fetchFields`: every serializer field except the PK and fields marked `hidden`. Two views narrow this default:
+    - `create` displays only writable fields. A new record has no value yet for a read-only field, and the server ignores input for one.
+    - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. `HasWorkflowSerializerMixin` sets it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
+- `submitFields`: the same fields minus read-only ones.
 - `expand`: all expandable field names declared on the serializer.
 - `routeActions` and `actions`: all action names from model-info.
 - `filterables`: all keys from the filterset definition.
@@ -60,6 +62,25 @@ storeModelConfig().setConfig(
 
 Generic overrides apply to every view. View-specific overrides are merged on top and take precedence for that view. If you set an empty array for `displayFields`, `fetchFields`, or `submitFields`, the config falls back to the model-info-derived defaults rather than producing an empty field set.
 
+The narrower `create` and `list` defaults apply only when no override names that field list or the `fields` shorthand. A generic `displayFields` therefore reaches the `create` and `list` views unchanged. For `list`, an unset `fetchFields` follows the resolved `displayFields`, so naming list columns is enough to fetch them.
+
+### Restore the full field list
+
+Before these defaults, every view started from every non-PK, non-hidden field, and `submitFields` included read-only fields. To bring a read-only field back to a create form, or a flagged field back to a list, name the fields for that view:
+
+```js
+storeModelConfig().setConfig(
+    { app: "myapp", model: "purchaseorder" },
+    {},
+    {
+        create: { displayFields: ["reference", "supplier", "total_value"] },
+        list: { displayFields: ["reference", "workflow_state_code", "workflow_state_name"] },
+    },
+);
+```
+
+To change the list default for one field in every project that uses a serializer, set the flag in the serializer field's `style`. `style={"list_default": False}` leaves a field out of the default list, and `style={"list_default": True}` keeps a field the mixin would leave out.
+
 To consume the resolved config in a component, use {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}:
 
 ```js
@@ -80,13 +101,15 @@ const modelConfig = useModelConfig(
 
 Each view consumes a different subset of the config's field properties. Aligning your overrides to what each view actually reads prevents surprises.
 
-**`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
+**`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. A custom cell slot that reads a field with no column needs that field named in `fetchFields`. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
 
-**`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand__subfield` keys for expanded relation fields.
+**`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand.subfield` keys for expanded relation fields.
 
-**`ViewCreate`** and **`ViewUpdate`** submit using `submitFields`. The PK is injected into the request payload automatically for update operations. The form model is built from `fieldDetails` for the fields in `submitFields`, which controls labels, types, required flags, and validation constraints.
+**`ViewCreate`** and **`ViewUpdate`** render the fields in `displayFields` by default. Explicit `FormModel` field props can override that selection. `fieldDetails` supplies labels, types, required flags, and validation constraints. Create also uses `displayFields` to derive initial form values.
 
-When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand__subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category__name"]`. This allows display and field configuration to target expanded sub-fields directly.
+`submitFields` controls the `f` query parameter on create and update requests, selecting fields in the save response. Both views add the PK to that selection. It does not filter the request body: submission sends the form's values, excluding fields marked ignored. Changing only `submitFields` therefore neither hides a form field nor prevents its value from being sent. The server still validates writes against the serializer's writable fields.
+
+When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
 
 ## Action and Route Strategy
 
@@ -127,8 +150,8 @@ With config overrides in place, verify the surface end-to-end:
 
 - `list` view renders only the columns specified in `displayFields` and fetches the fields specified in `fetchFields`. The PK column is included in the fetch even if it's omitted from the config.
 - `read` view renders all expected fields, including expanded sub-fields if `expand` is configured.
-- `create` form contains only the fields specified in `submitFields` for the `create` view. Submission succeeds and redirects according to `actionRedirects`.
-- `update` form contains only the fields specified in `submitFields` for the `update` view. Submission succeeds and redirects correctly.
+- `create` form renders the fields specified in `displayFields` for the `create` view, unless explicit form field props override them. Submission succeeds and redirects according to `actionRedirects`.
+- `update` form renders the fields specified in `displayFields` for the `update` view, unless explicit form field props override them. Submission succeeds and redirects correctly.
 - Action buttons in `list` and `detail` views match the `actions` list. Detail actions, bulk actions, and targetless actions are classified correctly per `actionDetails`.
 - Navigating to an action excluded from `routeActions` produces an "Action Not Found" toast and redirects.
 - Filters and sort controls reflect the `filterables` and `sortables` overrides.
@@ -142,13 +165,13 @@ With config overrides in place, verify the surface end-to-end:
 
 **"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Entries in `routeActions` are compared against the server action names from `model_actions` (`retrieve`, `update`, `partial_update`, `destroy`, and so on). The only client route name that differs from its server action name is `read`, which the guard normalizes to `retrieve`; every other route segment (`update`, `destroy`, etc.) already matches its server action name. Use `retrieve` rather than `read` in `routeActions`.
 
-**Create/update form rejects a field on submission.** `submitFields` includes a field that the server serializer does not accept for write operations (for example, a read-only field or a field not in the serializer's `fields` list). The server returns a 400 with a field-keyed validation error. Align `submitFields` with the server serializer's writable fields.
+**Create/update form rejects a field on submission.** Check the field's error message and submitted value against the server serializer's validation rules. Changing `submitFields` changes the save response's field selection; it does not remove values from the request body or bypass required-field validation.
 
 **Action renders in the wrong category (detail vs. targetless).** The `actionDetails` entry for the action has incorrect `detail` or `bulk` flags. For example, setting `detail: false` on a per-object action moves it from the row-level action list to the targetless button area. Review the server's action metadata and adjust `actionDetails` overrides to match the intended classification.
 
 **Links to an action are always enabled, even without a selected object.** `useLinkModelView` checks `actionDetails[action].detail || actionDetails[action].bulk` to decide if a PK is required. If neither flag is set, the link is enabled unconditionally. Set `detail: true` or `bulk: true` on the action's `actionDetails` entry to gate the link on row selection.
 
-**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand__subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand__subfield` keys will not be present in `fieldDetails`.
+**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
 
 **Template route paths do not match project structure.** The provided project templates wire CRUDL routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
 

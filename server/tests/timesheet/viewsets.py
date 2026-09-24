@@ -1,4 +1,6 @@
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.db.models import Prefetch
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from tests.timesheet import filtersets
@@ -13,6 +15,25 @@ class TimesheetViewSet(VuedaViewSet):
     serializer_class = serializers.TimesheetSerializer
     filterset_class = filtersets.TimesheetFilterSet
     permit_list_expands = ["employee", "supervisor"]
+
+    def check_object_permissions(self, request, obj):
+        """
+        Denies a write the configured permission classes alone would allow, for groups no other
+        test puts a user in, so this stays inert everywhere ``TimesheetViewSet`` is otherwise used.
+
+        Exists to prove that object-action discovery (``check_action_permission``) honours a
+        viewset's own override of this hook, not just its permission classes -- the same
+        assumption the endpoint itself relies on when enforcing the real request. The two groups
+        below raise the two exceptions discovery must treat as an ordinary refusal rather than let
+        escape and fail the whole response (issue #306): DRF's own ``PermissionDenied``, and
+        Django's ``PermissionDenied``, a separate class of the same name that a viewset override
+        can just as easily raise.
+        """
+        super().check_object_permissions(request, obj)
+        if request.method in ("PUT", "PATCH") and request.user.groups.filter(name="Timesheet Override Denied").exists():
+            raise PermissionDenied()
+        if request.method == "DELETE" and request.user.groups.filter(name="Timesheet Django Override Denied").exists():
+            raise DjangoPermissionDenied()
 
 
 class TimesheetWithAliasedSupervisorViewSet(viewsets.VuedaViewSet):
@@ -67,7 +88,10 @@ class TimesheetWithToAttrPrefetchedEntriesViewSet(viewsets.VuedaViewSet):
 class TimesheetEntryViewSet(VuedaViewSet):
     queryset = models.TimesheetEntry.objects.all()
     serializer_class = serializers.TimesheetEntrySerializer
-    column_totals = ["hours"]
+    # The simple case: a total named after the column it renders under, summing the column of the
+    # same name. `tests.store.viewsets.CartItemViewSet` covers the case the mapping exists for,
+    # where the two are spelled differently.
+    column_totals = {"hours": "hours"}
 
 
 class TimesheetDataViewSet(viewsets.VuedaReadOnlyViewSet):

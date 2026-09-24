@@ -11,7 +11,7 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
-import { computed, nextTick, reactive } from "vue";
+import { computed, nextTick, onScopeDispose, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
@@ -64,7 +64,12 @@ import { useRouter } from "vue-router";
  */
 
 /**
- * Type for handling errors during form submission.
+ * Type for handling errors during form submission. Return true once the error has been rendered into
+ * field/toast feedback, so it counts as ingested and does not also become the form's own visible
+ * error. Return false (or leave the promise resolving to a falsy value, as with an override that
+ * doesn't recognize the error) to have it become `state.error` instead, since `performAndHandle`
+ * clears it off the submission instance either way; do not rely on reading the error back off the
+ * submission `instanceObject` afterwards.
  * @typedef {(options: {
  *     error: Error,
  *     formContext: FormContext,
@@ -151,7 +156,9 @@ export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => 
  * @param {Error} options.error - The error that occurred.
  * @param {FormContext} options.formContext - The form context.
  * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
- * @returns {Promise<boolean>} - True if the error should be marked as handled. Otherwise it may be displayed.
+ * @returns {Promise<boolean>} - True if the error is a recognized, ingestible form error and has been
+ *  handled (rendered into field/toast feedback). False if it should instead surface as the form's
+ *  visible save-failure error (e.g. a permission refusal, server failure, or network failure).
  */
 export const defaultOnSubmissionError = async ({ state, error, formContext, toast }) => {
     if (error instanceof ServerFeedbackError && !(error instanceof ConfirmationRequiredError)) {
@@ -168,6 +175,7 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
         }
         return true;
     }
+    return false;
 };
 
 /**
@@ -385,12 +393,35 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         submit: null,
     };
 
+    let targetGeneration = 0;
+    let request = null;
+    const cancelSubmission = () => {
+        targetGeneration += 1;
+        request?.cancel?.();
+        request = null;
+        confirmation.cancel();
+        promises.submit = null;
+        loadingError.clearLoading();
+    };
+    onScopeDispose(cancelSubmission);
+    watch([() => props.app, () => props.model, () => state.pk], () => {
+        cancelSubmission();
+        state.submitErrored = false;
+        loadingError.clearError();
+        instanceObject.clearError();
+        formContext.reset();
+    });
+
     // Performs one create/update attempt and routes the outcome. On a ConfirmationRequiredError
     // (server 409: valid but unacknowledged warnings) it asks the confirmation hook and, if the user
     // confirms, retries once with the warnings digest acknowledged. A changed warning set yields a
     // new digest and re-prompts, so this terminates on either a clean save, a real error, or a cancel.
-    const performAndHandle = async (createOrUpdate, args, isUpdate) => {
-        await createOrUpdate(args);
+    const performAndHandle = async (createOrUpdate, args, isUpdate, generation) => {
+        request = createOrUpdate(args);
+        await request;
+        if (generation !== targetGeneration) {
+            return;
+        }
         if (!instanceObject.state.errored) {
             await returnObject.onSubmissionSuccess({ formContext, toast, router, isUpdate, state });
             return;
@@ -409,8 +440,16 @@ export function useObjectForm({ props, formContext, instanceObject }) {
                 toast,
                 state,
             });
+            if (generation !== targetGeneration) {
+                return;
+            }
             if (confirmed) {
-                await performAndHandle(createOrUpdate, { ...args, acknowledgeWarnings: error.digest }, isUpdate);
+                await performAndHandle(
+                    createOrUpdate,
+                    { ...args, acknowledgeWarnings: error.digest },
+                    isUpdate,
+                    generation,
+                );
             } else {
                 state.submitErrored = true;
             }
@@ -418,13 +457,21 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         }
         state.submitErrored = true;
         const handled = await returnObject.onSubmissionError({ error, formContext, toast, isUpdate, state });
-        if (handled) {
-            instanceObject.clearError();
+        if (generation !== targetGeneration) {
+            return;
         }
-        // otherwise, whatever is looking at instanceObject.state.error will handle it.
+        instanceObject.clearError();
+        if (!handled) {
+            // The hook only ingests errors it recognizes (field validation, by default). An error it
+            // doesn't recognize (permission refusal, server failure, network failure) still needs to
+            // reach the user, so it becomes the form's own visible error instead of sitting unread on
+            // the submission instance.
+            loadingError.setError(error);
+        }
     };
 
     const doSubmit = async () => {
+        const generation = targetGeneration;
         try {
             // start 'submitting' right away, makes it useful for disabling the submit button.
             loadingError.clearError();
@@ -435,9 +482,15 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             formContext.setAllTouched();
             // wait for validation watchers to run
             await nextTick();
+            if (generation !== targetGeneration) {
+                return;
+            }
             if (!formContext.state.anyModified) {
                 // should we stop if there is nothing changed?
                 const stop = await returnObject.onSubmitNotAnyModified({ state, formContext, toast });
+                if (generation !== targetGeneration) {
+                    return;
+                }
                 if (stop) {
                     state.submitErrored = true;
                     return;
@@ -446,6 +499,9 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (formContext.state.anyError) {
                 // should we stop for errors?
                 const stop = await returnObject.onSubmitAnyError({ state, formContext, toast });
+                if (generation !== targetGeneration) {
+                    return;
+                }
                 if (stop) {
                     state.submitErrored = true;
                     return;
@@ -462,13 +518,18 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             if (isUpdate) {
                 args.id = instanceObject.state.object[instanceObject.state.pkKey];
             }
-            await performAndHandle(createOrUpdate, args, isUpdate);
+            await performAndHandle(createOrUpdate, args, isUpdate, generation);
         } catch (e) {
             // errors here are outside the normal course for expected errors
-            loadingError.setError(e);
+            if (generation === targetGeneration) {
+                loadingError.setError(e);
+            }
         } finally {
-            loadingError.clearLoading();
-            promises.submit = null;
+            if (generation === targetGeneration) {
+                loadingError.clearLoading();
+                promises.submit = null;
+                request = null;
+            }
         }
     };
     return returnObject;

@@ -1,6 +1,6 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
-import { ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
+import { COLUMN_TOTALS_PARAM, FIELDS_PARAM, ORDERING_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -146,6 +146,9 @@ const ObjectsGridStub = defineComponent({
                     };
                     return h("div", { "data-column": field.name }, slot(slotProps));
                 }),
+                // Mirror the real grid's totals slot, so the footer row ViewList injects into it is
+                // actually rendered rather than silently dropped.
+                slots["row-after-objects"] ? slots["row-after-objects"]({ class: "body-row" }) : null,
             ]);
     },
 });
@@ -322,6 +325,8 @@ vi.mock("vue", async () => {
     return { __esModule: true, ...actual, inject: mockedInject, provide: mockedProvide };
 });
 
+enableAutoUnmount(afterEach);
+
 let ViewList, vue, modelConfig, instanceList;
 
 const resetListPreferenceStoreMock = () => {
@@ -367,8 +372,8 @@ beforeEach(async () => {
         clearError: vi.fn(),
         info: { pk: "id" },
         config: {
-            displayFields: ["field__name"],
-            fieldDetails: { field__name: {} },
+            displayFields: ["field.name"],
+            fieldDetails: { "field.name": {} },
             verboseNamePlural: "items",
             actionDetails: {},
             fetchFields: [],
@@ -378,8 +383,9 @@ beforeEach(async () => {
             filterables: ["category", "id", "created"],
             filterableDetails: {
                 category: { typeFilter: "ChoiceField", label: "Category" },
-                // Server-hidden: an auto-injected deep-link filter with no editable widget.
-                id: { typeFilter: "DecimalInField", hidden: true },
+                // Server-hidden: an auto-injected deep-link filter whose type has neither a value
+                // mapping nor an input component. Its URL value travels without an editable widget.
+                id: { typeFilter: "UUIDField", hidden: true },
                 created: { typeFilter: "DateRangeField", suffixes: ["after", "before"], label: "Created" },
             },
         },
@@ -426,6 +432,70 @@ afterEach(() => {
 });
 
 describe("lib/views/ViewList.vue", () => {
+    scopedIt("resets model state and restores destination preferences on a reused list", async () => {
+        route.params = { app: "catalog", model: "category", action: "list" };
+        modelConfig.config.displayFields = ["name", "description"];
+        modelConfig.config.sortables = ["name"];
+        const wrapper = mount(ViewList, { props: { app: "catalog", model: "category" } });
+        await vue.nextTick();
+        wrapper.vm.actions.selectedObjects.push(4);
+        wrapper.vm.sort.sorting.updateSorted(["name"]);
+        await vue.nextTick();
+        listPreferenceStoreMock.getPerPage.mockImplementation(({ model }) => (model === "warehouse" ? 50 : 25));
+        listPreferenceStoreMock.getHiddenColumns.mockImplementation(({ model }) =>
+            model === "warehouse" ? ["name"] : [],
+        );
+        listPreferenceStoreMock.getSorting.mockImplementation(({ model }) =>
+            model === "warehouse" ? ["-code"] : null,
+        );
+        listPreferenceStoreMock.getFilters.mockImplementation(({ model }) =>
+            model === "warehouse" ? { category: "stored" } : undefined,
+        );
+        const uid = wrapper.vm.$.uid;
+        route.params.model = "warehouse";
+        route.query = {};
+        await vue.nextTick();
+        modelConfig.loading = true;
+        await wrapper.setProps({ model: "warehouse" });
+        modelConfig.config.displayFields = ["name", "code"];
+        modelConfig.config.sortables = ["code"];
+        modelConfig.loading = false;
+        await vue.nextTick();
+        await vue.nextTick();
+        expect(wrapper.vm.$.uid).toBe(uid);
+        expect(wrapper.vm.actions.selectedObjects).toEqual([]);
+        expect(wrapper.vm.list.listState.perPage).toBe(50);
+        expect(wrapper.vm.columns.columns).toEqual(["code"]);
+        expect(wrapper.vm.sort.sorting.state.sorted).toEqual(["-code"]);
+        expect(wrapper.vm.list.listState.params).toMatchObject({ ps: 50, category: "stored" });
+        expect(route.query).toMatchObject({ category: "stored", [ORDERING_PARAM]: "-code" });
+    });
+
+    scopedIt("does not rewrite a destination query while the old model props are retained", async () => {
+        route.params = { app: "catalog", model: "category", action: "list" };
+        modelConfig.config.sortables = ["name"];
+        const wrapper = mount(ViewList, { props: { app: "catalog", model: "category" } });
+        await vue.nextTick();
+        routerPush.mockClear();
+        routerReplace.mockClear();
+        listPreferenceStoreMock.setFilters.mockClear();
+        route.params.model = "warehouse";
+        route.query = { [ORDERING_PARAM]: "-code", [SEARCH_PARAM]: "destination", category: "new" };
+        await vue.nextTick();
+        expect(routerPush).not.toHaveBeenCalled();
+        expect(routerReplace).not.toHaveBeenCalled();
+        expect(listPreferenceStoreMock.setFilters).not.toHaveBeenCalled();
+        modelConfig.loading = true;
+        await wrapper.setProps({ model: "warehouse" });
+        modelConfig.config.sortables = ["code"];
+        modelConfig.loading = false;
+        await vue.nextTick();
+        await vue.nextTick();
+        expect(route.query).toEqual({ [ORDERING_PARAM]: "-code", [SEARCH_PARAM]: "destination", category: "new" });
+        expect(wrapper.vm.list.listState.search).toBe("destination");
+        expect(wrapper.vm.list.listState.params).toMatchObject({ category: "new", [SEARCH_PARAM]: "destination" });
+    });
+
     describe("Lookup context", () => {
         scopedIt("calls useLookupContext if lookup context is missing", () => {
             mockedInject.mockReturnValueOnce(null);
@@ -441,19 +511,21 @@ describe("lib/views/ViewList.vue", () => {
     });
 
     describe("List rendering and pagination", () => {
-        scopedIt("translates expanded field names for ObjectsGrid", async () => {
+        scopedIt("passes extra and display field objects through to ObjectsGrid unchanged", async () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, {
                 props: {
                     app: "a",
                     model: "b",
-                    extraFieldObjects: [{ name: "foo__bar", label: "Foo" }],
+                    extraFieldObjects: [{ name: "foo.bar", label: "Foo" }],
                 },
             });
             await vue.nextTick();
             const fields = objectsGridProps.fields;
-            expect(fields[0]).toEqual({ name: "foo__bar", label: "Foo", value: "foo.bar" });
-            expect(fields[1]).toEqual({ name: "field__name", value: "field.name" });
+            // A field's dotted `name` already is the path `unifiedGet` reads a row's value from, so
+            // no `value` is derived or injected here.
+            expect(fields[0]).toEqual({ name: "foo.bar", label: "Foo" });
+            expect(fields[1]).toEqual({ name: "field.name" });
             wrapper.unmount();
         });
 
@@ -522,9 +594,55 @@ describe("lib/views/ViewList.vue", () => {
             expect(pagination.attributes("total-records")).toBe("42");
             wrapper.unmount();
         });
+
+        scopedIt("lets the prop turn the record count on over the model config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.showTotalRecordNum = false;
+            instanceList.state.paginateInfo.totalRecords = 7;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", showTotalRecordNum: true },
+            });
+            await vue.nextTick();
+            expect(wrapper.get('[data-qa="view-list-pagination"]').attributes("show-total-record-num")).toBe("true");
+            wrapper.unmount();
+        });
+
+        scopedIt("falls back to the model config when the record count prop is unset", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.showTotalRecordNum = false;
+            instanceList.state.paginateInfo.totalRecords = 7;
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.get('[data-qa="view-list-pagination"]').attributes("show-total-record-num")).toBe("false");
+            wrapper.unmount();
+        });
     });
 
     describe("Column preferences", () => {
+        scopedIt("lets the prop turn the column selector off over the model config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.allowColumnHiding = true;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", allowColumnHiding: false },
+            });
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="select"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("renders column selector when the prop allows hiding and the model config does not", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.allowColumnHiding = false;
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", allowColumnHiding: true },
+            });
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.find('[data-qa="select"]').exists()).toBe(true);
+            wrapper.unmount();
+        });
+
         scopedIt("renders column selector when column hiding allowed", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;
@@ -532,7 +650,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             await vue.nextTick();
             expect(wrapper.find('[data-qa="select"]').exists()).toBe(true);
-            expect(selectProps.modelValue).toEqual(["field__name"]);
+            expect(selectProps.modelValue).toEqual(["field.name"]);
             expect(selectProps.multiple).toBe(true);
             wrapper.unmount();
         });
@@ -540,7 +658,7 @@ describe("lib/views/ViewList.vue", () => {
         scopedIt("initializes columns using stored hidden preferences", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;
-            modelConfig.config.displayFields = ["field__name", "other_field"];
+            modelConfig.config.displayFields = ["field.name", "other_field"];
             modelConfig.config.fieldDetails.other_field = {};
             listPreferenceStoreMock.getHiddenColumns.mockReturnValue(["other_field"]);
 
@@ -549,14 +667,14 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(listPreferenceStoreMock.getHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" });
-            expect(selectProps.modelValue).toEqual(["field__name"]);
+            expect(selectProps.modelValue).toEqual(["field.name"]);
             wrapper.unmount();
         });
 
         scopedIt("persists hidden column selections to the preference store", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.allowColumnHiding = true;
-            modelConfig.config.displayFields = ["field__name", "other_field"];
+            modelConfig.config.displayFields = ["field.name", "other_field"];
             modelConfig.config.fieldDetails.other_field = {};
 
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
@@ -568,7 +686,7 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
 
             expect(listPreferenceStoreMock.setHiddenColumns).toHaveBeenCalledWith({ app: "app", model: "model" }, [
-                "field__name",
+                "field.name",
             ]);
             wrapper.unmount();
         });
@@ -602,6 +720,167 @@ describe("lib/views/ViewList.vue", () => {
                 "field1",
             ]);
             expect(hiddenPreference).toEqual(["field1"]);
+            wrapper.unmount();
+        });
+    });
+
+    describe("Column totals", () => {
+        const withTotals = ({ totalables, displayFields = ["field__name"] }) => {
+            modelConfig.config.allowColumnHiding = true;
+            modelConfig.config.displayFields = displayFields;
+            modelConfig.config.fieldDetails = Object.fromEntries(displayFields.map((name) => [name, {}]));
+            modelConfig.config.totalables = totalables;
+        };
+
+        // Totals are a table-footer feature, so these mount at the one breakpoint that is always
+        // table. jsdom reports no media query as matching, which makes the default `lg` breakpoint
+        // seed card layout, where nothing asks for a total at all — the subject of its own test
+        // below rather than the starting state for the rest of them.
+        const mountInTableLayout = () =>
+            mount(ViewList, { props: { app: "app", model: "model", tableBreakpoint: "xs" } });
+
+        scopedIt("asks for nothing when the server advertises no totals", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("asks under COLUMN_TOTALS_PARAM", async () => {
+            // The parameter is a client constant, like every other query parameter this view sends.
+            // It has to match the server's `COLUMN_TOTALS_PARAM` setting, which the server does not
+            // report; parameter-name discovery lands after v3.0.0.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params[COLUMN_TOTALS_PARAM]).toEqual(["field__name"]);
+            expect(COLUMN_TOTALS_PARAM).toBe("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("has the totals parameter in place before the first list request", async () => {
+            // The totals are known from the display columns and the reader's stored hidden-column
+            // preference, both of which are available as soon as the model config is. So the
+            // parameter is written while the view is being set up, not a tick later: a tick later is
+            // after the first list request has already gone out, and the list would fetch a second
+            // time to add a parameter it could have carried the first time.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+
+            const wrapper = mountInTableLayout();
+
+            expect(wrapper.vm.list.listState.params[COLUMN_TOTALS_PARAM]).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("asks only for the totals its visible columns can render", async () => {
+            // A total for a column the reader cannot see is a `SUM` computed for no one, so hiding
+            // a totalled column stops asking for its total until the column comes back.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({
+                totalables: ["field__name"],
+                displayFields: ["field__name", "other_field"],
+            });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+
+            wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", ["other_field"]);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+
+            wrapper.findComponent(SelectStub).vm.$emit("update:modelValue", ["field__name", "other_field"]);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("never asks in card layout, not even on the first request", async () => {
+            // `isTable` is seeded from the breakpoint rather than assumed true, so a phone-width
+            // load never puts the parameter in `listState.params` at all. Seeding it true meant the
+            // first request carried the parameter, the grid then reported card layout, the
+            // parameter was removed, and changing `listState.params` fetched the list a second
+            // time — a wasted round trip and a wasted aggregation per total.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+
+            // No `tableBreakpoint` override: jsdom matches no media query, so the default is card.
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+            wrapper.unmount();
+        });
+
+        scopedIt("asks for nothing in card layout, and asks again on the way back", async () => {
+            // The totals row is a table footer. Below the grid's table breakpoint there is nowhere
+            // to render one, so a phone-width list should not be paying for the aggregation.
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+
+            wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", false);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).not.toHaveProperty("ct");
+
+            wrapper.findComponent(ObjectsGridStub).vm.$emit("update:isTable", true);
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("reports an advertised total that matches no display column", async () => {
+            // `vueda_info.E011` validates the ORM path behind a total but cannot know what the
+            // client calls its columns, so a total keyed `prcie` passes every server-side rule and
+            // still renders nowhere. Nothing fails for it -- it is simply never requested -- which
+            // is why it is worth saying out loud here.
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name", "prcie"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.ct).toEqual(["field__name"]);
+            expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("prcie"));
+            consoleError.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("renders the footer row keyed by display column name", async () => {
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            instanceList.state.columnTotals = { field__name: "42.50" };
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            const totalsRow = wrapper.find('[role="row"]');
+            expect(totalsRow.exists()).toBe(true);
+            expect(totalsRow.text()).toContain("42.50");
+            wrapper.unmount();
+        });
+
+        scopedIt("renders no footer row when no totals came back", async () => {
+            mockedInject.mockReturnValueOnce({});
+            withTotals({ totalables: ["field__name"] });
+            const wrapper = mountInTableLayout();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.find('[role="row"]').exists()).toBe(false);
             wrapper.unmount();
         });
     });
@@ -652,6 +931,43 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).not.toHaveBeenCalled();
             wrapper.unmount();
         });
+
+        scopedIt("does not save a hidden filterable's value to the preference while metadata is loading", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            modelConfig.loading = true;
+            modelConfig.config.filterables = [];
+            modelConfig.config.filterableDetails = {};
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const input = wrapper.findComponent(InputGroupInputStub);
+            input.vm.$emit("update:model-value", "term");
+            await vue.nextTick();
+            input.vm.$emit("search");
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("does not restore a stored hidden filterable's value to the request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            listPreferenceStoreMock.getFilters.mockReturnValue({ id: "1,2", category: "widgets" });
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                expect.objectContaining({ field: "category", value: "widgets" }),
+            ]);
+            expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets" } });
+            wrapper.unmount();
+        });
     });
 
     describe("Sorting and route synchronization", () => {
@@ -674,6 +990,27 @@ describe("lib/views/ViewList.vue", () => {
             });
             expect(route.query).toEqual({ status: "active", [ORDERING_PARAM]: "field1,field2" });
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
+            wrapper.unmount();
+        });
+        scopedIt("excludes a hidden filterable's stored key when a stored sort canonicalizes the route", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.sortables = ["field1"];
+            listPreferenceStoreMock.getFilters.mockReturnValue({ id: "1,2", category: "widgets" });
+            listPreferenceStoreMock.getSorting.mockReturnValue(["field1"]);
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(routerReplace).toHaveBeenCalledWith({
+                query: { category: "widgets", [ORDERING_PARAM]: "field1" },
+            });
+            expect(route.query).toEqual({ category: "widgets", [ORDERING_PARAM]: "field1" });
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                expect.objectContaining({ field: "category", value: "widgets" }),
+            ]);
             wrapper.unmount();
         });
         scopedIt("applies stored sorting to the sort control on mount", async () => {
@@ -754,6 +1091,22 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerReplace).toHaveBeenCalledWith({
                 query: { [ORDERING_PARAM]: "-name,created_at" },
             });
+            wrapper.unmount();
+        });
+
+        scopedIt("restores a dotted related-field sort from the URL", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.query = { [ORDERING_PARAM]: "-customer.name,created_at" };
+            modelConfig.config.sortables = ["customer.name", "created_at"];
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            await vue.nextTick();
+
+            // The dot in `customer.name` is a literal character in a single sort term here, not a
+            // separator: only the comma between terms and the leading `-` for direction are meaningful.
+            expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-customer.name", "created_at"]);
+            expect(listPreferenceStoreMock.getSorting).not.toHaveBeenCalled();
             wrapper.unmount();
         });
 
@@ -1015,6 +1368,189 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("omits a visible filter whose type has no value handling and warns once per visit", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            modelConfig.config.filterables = ["category", "token"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                token: { typeFilter: "UUIDField", label: "Token" },
+            };
+            route.query = { token: "abc" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+            // The URL value is neither presented as an applied filter nor sent with the request.
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            expect(wrapper.vm.list.listState.params.token).toBeUndefined();
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain('Filter "token" on app.model');
+            expect(warn.mock.calls[0][0]).toContain('value handling for filter type "UUIDField"');
+
+            // A later metadata change recomputes the offered list without repeating the warning.
+            modelConfig.config.filterableDetails.token.label = "Access token";
+            await vue.nextTick();
+            expect(warn).toHaveBeenCalledTimes(1);
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "warns for an unsupported filter on the next model when its metadata lands before the reset",
+            async () => {
+                const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+                mockedInject.mockReturnValueOnce({});
+                route.params = { app: "app", model: "model", action: "list" };
+                modelConfig.config.filterables = ["token"];
+                modelConfig.config.filterableDetails = { token: { typeFilter: "UUIDField", label: "Token" } };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(warn).toHaveBeenCalledTimes(1);
+                expect(warn.mock.calls[0][0]).toContain('Filter "token" on app.model');
+
+                // The next model reports a filter with the same name. Its metadata is written before the
+                // model prop changes, so the unsupported-filter check reruns before the target reset does.
+                route.params.model = "warehouse";
+                modelConfig.config.filterableDetails = { token: { typeFilter: "UUIDField", label: "Token" } };
+                await wrapper.setProps({ model: "warehouse" });
+                await vue.nextTick();
+
+                expect(warn).toHaveBeenCalledTimes(2);
+                expect(warn.mock.calls[1][0]).toContain('Filter "token" on app.warehouse');
+
+                warn.mockRestore();
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("omits a visible filter whose type has value handling but no input component", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "published"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                published: { typeFilter: "DateField", label: "Published" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain('Filter "published" on app.model');
+            expect(warn.mock.calls[0][0]).toContain('a field component for filter type "DateField"');
+            expect(warn.mock.calls[0][0]).toContain('a widget for filter type "DateField"');
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("offers a visible filter whose view config overrides supply the input components", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["published"];
+            modelConfig.config.filterableDetails = { published: { typeFilter: "DateField", label: "Published" } };
+            modelConfig.config.fieldComponents = { published: "FormField" };
+            modelConfig.config.widgetComponents = { published: "WidgetDateField" };
+            route.query = { published: "2024-01-01" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["published"]);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "published", value: "2024-01-01" });
+            expect(warn).not.toHaveBeenCalled();
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt.each([
+            [
+                "a function-wrapped widget that returns nothing",
+                { name: () => undefined },
+                'a widget for filter type "CharField"',
+            ],
+            ["the WidgetUnmapped diagnostic", { name: "WidgetUnmapped" }, 'a widget for filter type "CharField"'],
+            [
+                "a range boundary resolved to the WidgetUnmapped diagnostic",
+                { "created.before": "WidgetUnmapped" },
+                'a widget for the "before" boundary of filter type "DateRangeField"',
+            ],
+        ])("omits a visible filter whose override resolves %s and warns", async (_, widgetComponents, missing) => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "name", "created"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                name: { typeFilter: "CharField", label: "Name" },
+                created: { typeFilter: "DateRangeField", suffixes: ["after", "before"], label: "Created" },
+            };
+            modelConfig.config.widgetComponents = widgetComponents;
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const offered = wrapper.findComponent(FilterGroupStub).props().validFilterables;
+            const [omitted] = Object.keys(widgetComponents)[0].split(".");
+            expect(offered).not.toContain(omitted);
+            expect(offered).toContain("category");
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain(`Filter "${omitted}" on app.model`);
+            expect(warn.mock.calls[0][0]).toContain(missing);
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("offers a custom filter type registered with both value handling and components", async () => {
+            const { mergeFilterFieldMapping, filterFieldMapping, FilterFieldMappings } =
+                await import("@vueda/utils/fieldMappings.js");
+            mergeFilterFieldMapping({
+                ColorField: { component: "FormField", widget: "WidgetTextInput", initialValue: "" },
+            });
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["color"];
+            modelConfig.config.filterableDetails = { color: { typeFilter: "ColorField", label: "Color" } };
+            route.query = { color: "teal" };
+            try {
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["color"]);
+                expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "color", value: "teal" });
+                expect(warn).not.toHaveBeenCalled();
+                wrapper.unmount();
+            } finally {
+                warn.mockRestore();
+                delete filterFieldMapping.ColorField;
+                delete FilterFieldMappings.ColorField;
+            }
+        });
+
+        scopedIt("carries a hidden filter with an unmapped type to the request without offering it", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category", "created"]);
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            // Hidden filters have no input to render, so their support is never in question.
+            expect(warn).not.toHaveBeenCalled();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
         scopedIt("restores an active filter from the URL query on load", async () => {
             mockedInject.mockReturnValueOnce({});
             route.query = { category: "widgets" };
@@ -1026,6 +1562,26 @@ describe("lib/views/ViewList.vue", () => {
                 field: "category",
                 param: "category",
                 value: "widgets",
+                range: false,
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("restores a dotted related-field filter from the URL query on load", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["customer.name"];
+            modelConfig.config.filterableDetails = {
+                "customer.name": { typeFilter: "CharField", label: "Customer Name" },
+            };
+            route.query = { "customer.name": "Acme" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.filter.state.addedFilters).toHaveLength(1);
+            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({
+                field: "customer.name",
+                param: "customer.name",
+                value: "Acme",
                 range: false,
             });
             wrapper.unmount();
@@ -1056,6 +1612,159 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
             wrapper.unmount();
         });
+
+        scopedIt("applies a server-hidden filter's URL value to the initial list request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            wrapper.unmount();
+        });
+
+        scopedIt("applies a server-hidden filter's URL value once model metadata loads after mount", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const filterables = modelConfig.config.filterables;
+            const filterableDetails = modelConfig.config.filterableDetails;
+            modelConfig.loading = true;
+            modelConfig.config.filterables = [];
+            modelConfig.config.filterableDetails = {};
+
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+
+            modelConfig.loading = false;
+            modelConfig.config.filterables = filterables;
+            modelConfig.config.filterableDetails = filterableDetails;
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a visible filter change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", category: "widgets" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("excludes a server-hidden filter's value from the saved filter preference", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets" },
+            );
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "preserves a server-hidden filter's request param through editing a visible filter's value",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                route.query = { id: "1,2", category: "widgets" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+                wrapper.vm.filter.state.addedFilters[0].value = "gadgets";
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "gadgets" });
+                expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", category: "gadgets" } });
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("preserves a server-hidden filter's request param through clearing a visible filter", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2", category: "widgets" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+            wrapper.vm.filter.state.addedFilters.splice(0, wrapper.vm.filter.state.addedFilters.length);
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(wrapper.vm.list.listState.params.category).toBeUndefined();
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a sort change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            modelConfig.config.sortables = ["name"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.findComponent(SortControlStub).vm.$emit("update:sorted", ["name"]);
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", [ORDERING_PARAM]: "name" } });
+            wrapper.unmount();
+        });
+
+        scopedIt("preserves a server-hidden filter's request param through a search change", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.search.searchSlotProps.updateListSearch("widgets");
+            wrapper.vm.search.filterList();
+            await vue.nextTick();
+
+            expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", [SEARCH_PARAM]: "widgets" });
+            expect(routerPush).toHaveBeenCalledWith({ query: { id: "1,2", [SEARCH_PARAM]: "widgets" } });
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "removes a server-hidden filter's request param once external navigation drops it from the URL",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                route.query = { id: "1,2" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+                expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+
+                route.query = {};
+                await vue.nextTick();
+
+                expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+                wrapper.unmount();
+            },
+        );
 
         scopedIt("re-restores when the route query changes externally (e.g. browser navigation)", async () => {
             mockedInject.mockReturnValueOnce({});
@@ -1368,10 +2077,10 @@ describe("lib/views/ViewList.vue", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.exists()).toBe(true);
             // ColumnText reproduces the historical plain-text cell: just `formatted`.
-            expect(cell.text()).toBe("fmt:field__name");
+            expect(cell.text()).toBe("fmt:field.name");
             wrapper.unmount();
         });
 
@@ -1380,35 +2089,35 @@ describe("lib/views/ViewList.vue", () => {
             const wrapper = mount(ViewList, {
                 props: { app: "app", model: "model" },
                 slots: {
-                    "field(field__name)": (slotProps) =>
+                    "field(field.name)": (slotProps) =>
                         h("span", { "data-qa": "consumer-cell" }, `consumer:${slotProps.formatted}`),
                 },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="consumer-cell"]').exists()).toBe(true);
-            expect(cell.text()).toBe("consumer:fmt:field__name");
+            expect(cell.text()).toBe("consumer:fmt:field.name");
             wrapper.unmount();
         });
 
         scopedIt("uses the columnComponents prop override", async () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewList, {
-                props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
-            expect(cell.text()).toBe("custom:fmt:field__name");
+            expect(cell.text()).toBe("custom:fmt:field.name");
             wrapper.unmount();
         });
 
         scopedIt("uses a modelConfig.config.columnComponents override", async () => {
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.columnComponents = { field__name: CustomColumn };
+            modelConfig.config.columnComponents = { "field.name": CustomColumn };
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             wrapper.unmount();
         });
@@ -1419,12 +2128,12 @@ describe("lib/views/ViewList.vue", () => {
                 props: {
                     app: "app",
                     model: "model",
-                    columnComponents: { field__name: CustomColumn },
-                    columnProps: { field__name: { extra: "EX" } },
+                    columnComponents: { "field.name": CustomColumn },
+                    columnProps: { "field.name": { extra: "EX" } },
                 },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').attributes("data-extra")).toBe("EX");
             wrapper.unmount();
         });
@@ -1435,12 +2144,12 @@ describe("lib/views/ViewList.vue", () => {
                 name: "ConfigColumn",
                 setup: () => () => h("span", { "data-qa": "config-column" }),
             });
-            modelConfig.config.columnComponents = { field__name: ConfigColumn };
+            modelConfig.config.columnComponents = { "field.name": ConfigColumn };
             const wrapper = mount(ViewList, {
-                props: { app: "app", model: "model", columnComponents: { field__name: CustomColumn } },
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
             });
             await vue.nextTick();
-            const cell = wrapper.find('[data-column="field__name"]');
+            const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
             wrapper.unmount();
@@ -1475,6 +2184,34 @@ describe("lib/views/ViewList.vue", () => {
             const readout = wrapper.find('[data-qa="view-list-selection-count"]');
             expect(readout.exists()).toBe(true);
             expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
+
+    describe("Fetched fields", () => {
+        scopedIt("fetches the model config's list fields plus the primary key", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name", "code"];
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "code"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("fetches the columns a displayFields prop names when listFields is empty", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name"];
+            const wrapper = mount(ViewList, {
+                props: {
+                    app: "app",
+                    model: "model",
+                    displayFields: { name: { name: "name" }, created_at: { name: "created_at" } },
+                },
+            });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "created_at"]);
             wrapper.unmount();
         });
     });

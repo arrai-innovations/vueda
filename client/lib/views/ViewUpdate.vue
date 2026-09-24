@@ -2,6 +2,9 @@
 import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
 import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
@@ -130,7 +133,7 @@ const emit = defineEmits(["object", "loading", "related-object", "calculated-obj
 
 const slots = useSlots();
 
-const { formContext, objectForm, instanceObject, instance, actions } = useViewUpdate(props);
+const { formContext, objectForm, instanceObject, instance, actions, modelConfig } = useViewUpdate(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -174,7 +177,6 @@ onMounted(() => {
                 >
                     <link-model-view
                         :app="app"
-                        class="w-full"
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
@@ -193,6 +195,7 @@ onMounted(() => {
                 >
                     <!-- @slot [submit-button] Override the submit button shown in the sticky action bar. -->
                     <slot
+                        v-if="instance.currentActionAvailable"
                         :form="instance.formId"
                         label="Submit"
                         :loading="objectForm.state.loading"
@@ -274,7 +277,23 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
-            <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
+            <!-- @slot [update-unavailable] Override the notice shown instead of the form when the object's available_actions does not permit the current action; receives `app`, `model`, `pk`, and `verboseName` (the model config's verbose name, if any). -->
+            <slot
+                v-if="!instance.currentActionAvailable"
+                :app="app"
+                :model="model"
+                name="update-unavailable"
+                :pk="pk"
+                :verbose-name="modelConfig.config?.verboseName"
+            >
+                <Alert data-qa="update-unavailable-notice" variant="warning">
+                    <AlertTitle>Editing unavailable</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} can't be edited in its current state.
+                    </AlertDescription>
+                </Alert>
+            </slot>
+            <form v-else v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
                     :field-components="fieldComponents"
@@ -291,7 +310,11 @@ onMounted(() => {
                     v-bind="instance.combinedFormProps"
                 >
                     <template
-                        v-for="(_, slot) in omit(slots, ['form-confirm-dialog-warnings', 'warning-entry'])"
+                        v-for="(_, slot) in omit(slots, [
+                            'form-confirm-dialog-warnings',
+                            'warning-entry',
+                            'update-unavailable',
+                        ])"
                         #[slot]="slotProps"
                     >
                         <slot :name="slot" v-bind="slotProps || {}" />
@@ -308,8 +331,8 @@ onMounted(() => {
             <!-- @slot [form-confirm-dialog-warnings] Override how warning messages render inside the confirmation dialog entirely; receives FormConfirmDialog's `warnings` slot scope (`warnings`, the object form's raw warnings mapping). Defaults to `FieldWarningsList`; a consumer that only wants to customize one field's entry can instead use the `warning-entry` slot below. -->
             <template #warnings="{ warnings }">
                 <slot name="form-confirm-dialog-warnings" :warnings="warnings">
-                    <FieldWarningsList :messages="warnings">
-                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `messages`). -->
+                    <FieldWarningsList :messages="warnings" :field-details="modelConfig?.config?.fieldDetails">
+                        <!-- @slot [warning-entry] Override one field's entire warning layout; receives FieldWarningsList's `entry` slot scope (`field`, `label`, `messages`). -->
                         <template v-if="slots['warning-entry']" #entry="entrySlotProps">
                             <slot name="warning-entry" v-bind="entrySlotProps" />
                         </template>

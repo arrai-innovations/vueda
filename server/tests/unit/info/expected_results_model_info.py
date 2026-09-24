@@ -8,6 +8,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "distributor",
             "verbose_name_plural": "distributors",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -233,6 +234,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "option type",
             "verbose_name_plural": "option types",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -416,6 +418,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "customer",
             "verbose_name_plural": "customers",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -434,13 +437,6 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
-                {
-                    "name": "list",
-                    "bulk": False,
-                    "description": "list store.customer",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
                 {
                     "name": "retrieve",
                     "bulk": False,
@@ -608,10 +604,10 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": ["user__name"],
+                "default": ["user.name"],
                 "fields": [
-                    {"name": "user__email", "type": "alpha"},
-                    {"name": "user__name", "type": "alpha", "ascending": True},
+                    {"name": "user.email", "type": "alpha"},
+                    {"name": "user.name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -629,6 +625,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "cart",
             "verbose_name_plural": "carts",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -692,6 +689,45 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
+                {
+                    "name": "retrieve",
+                    "bulk": False,
+                    "description": "retrieve store.cart",
+                    "detail": True,
+                    "method_names": ["get"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "create",
+                    "bulk": False,
+                    "description": "create store.cart",
+                    "detail": False,
+                    "method_names": ["post"],
+                },
+                {
+                    "name": "update",
+                    "bulk": False,
+                    "description": "update store.cart",
+                    "detail": True,
+                    "method_names": ["put"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "partial_update",
+                    "bulk": False,
+                    "description": "partial_update store.cart",
+                    "detail": True,
+                    "method_names": ["patch"],
+                    "parameters": ["pk"],
+                },
+                {
+                    "name": "destroy",
+                    "bulk": True,
+                    "description": "destroy store.cart",
+                    "detail": True,
+                    "method_names": ["delete"],
+                    "parameters": ["pk"],
+                },
                 {
                     "name": "history-list",
                     "bulk": False,
@@ -1068,7 +1104,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": ["expected_delivery_time"],
                 "fields": [
-                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "customer.user.email", "type": "alpha"},
                     {"name": "last_modified", "type": "datetime"},
                     {"name": "expected_delivery_time", "type": "numeric", "ascending": True},
                 ],
@@ -1088,6 +1124,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "customer order",
             "verbose_name_plural": "customer orders",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -1145,13 +1182,6 @@ EXPECTED_RESULTS = [
                 },
             ],
             "expected_actions_customer": [
-                {
-                    "name": "list",
-                    "bulk": False,
-                    "description": "list store.customerorder",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
                 {
                     "name": "retrieve",
                     "bulk": False,
@@ -1435,6 +1465,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "choices": False,
                     "hidden": False,
+                    "list_default": False,
                 },
                 "when": {
                     "label": "Date / Time",
@@ -1457,6 +1488,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "choices": False,
                     "hidden": False,
+                    "list_default": False,
                 },
                 "workflow_state_name": {
                     "label": "Workflow State Name",
@@ -1514,7 +1546,7 @@ EXPECTED_RESULTS = [
                 "default": [],
                 "fields": [
                     {"name": "order_number", "type": "numeric"},
-                    {"name": "customer__user__email", "type": "alpha"},
+                    {"name": "customer.user.email", "type": "alpha"},
                     {"name": "when", "type": "datetime"},
                     {"name": "order_state", "type": "alpha"},
                 ],
@@ -1535,6 +1567,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "inventory entry reason",
             "verbose_name_plural": "inventory entry reasons",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -1591,16 +1624,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecordreason",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [],
             "expected_fields": {
                 "object_revision": {
@@ -1708,6 +1732,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "product",
             "verbose_name_plural": "products",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -2287,7 +2312,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": ["name"],
                 "fields": [
-                    {"name": "distributor__name", "type": "alpha"},
+                    {"name": "distributor.name", "type": "alpha"},
                     {"name": "name", "type": "alpha", "ascending": True},
                     {"name": "disabled", "type": "boolean"},
                 ],
@@ -2307,6 +2332,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "product option",
             "verbose_name_plural": "product options",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -2832,6 +2858,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "ORDER item",
             "verbose_name_plural": "ORDER items",
+            "expected_column_totals": [],
             "expected_actions_admin": [],
             "expected_actions_customer": [],
             "expected_expands": [
@@ -3108,9 +3135,9 @@ EXPECTED_RESULTS = [
             },
             "expected_filtering": {},
             "expected_ordering": {
-                "default": ["product_option__product__name"],
+                "default": ["product_option.product.name"],
                 "fields": [
-                    {"name": "product_option__product__name", "type": "alpha", "ascending": True},
+                    {"name": "product_option.product.name", "type": "alpha", "ascending": True},
                 ],
             },
             "expected_permissions": [
@@ -3128,6 +3155,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "invoice line",
             "verbose_name_plural": "invoice lines",
+            "expected_column_totals": [],
             "expected_actions_admin": [],
             "expected_actions_customer": [],
             "expected_expands": [],
@@ -3192,6 +3220,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "inventory entry",
             "verbose_name_plural": "inventory entries",
+            "expected_column_totals": ["quantity", "cost", "unit_price"],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -3248,16 +3277,7 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
             ],
-            "expected_actions_customer": [
-                {
-                    "name": "history-list",
-                    "bulk": False,
-                    "description": "history-list store.inventoryrecord",
-                    "detail": True,
-                    "method_names": ["get"],
-                    "parameters": ["pk"],
-                },
-            ],
+            "expected_actions_customer": [],
             "expected_expands": [
                 {
                     "name": "product_option",
@@ -3996,6 +4016,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "cart item",
             "verbose_name_plural": "cart items",
+            "expected_column_totals": ["quantity", "product_price"],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -4324,7 +4345,7 @@ EXPECTED_RESULTS = [
             "expected_ordering": {
                 "default": [],
                 "fields": [
-                    {"name": "product_option__name", "type": "alpha"},
+                    {"name": "product_option.name", "type": "alpha"},
                     {"name": "quantity", "type": "numeric"},
                 ],
             },
@@ -4343,6 +4364,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "Packing Box",
             "verbose_name_plural": "Packing Boxes",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -4604,6 +4626,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "Order Items Composite PK",
             "verbose_name_plural": "Order Items Composite PKs",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -4888,6 +4911,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "Order Items Alt Composite PK",
             "verbose_name_plural": "Order Items Alt Composite PKs",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -5071,6 +5095,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "order composite pk",
             "verbose_name_plural": "order composite pks",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -5330,6 +5355,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "distributor proxy",
             "verbose_name_plural": "distributor proxies",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",
@@ -5555,6 +5581,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "note",
             "verbose_name_plural": "notes",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "history-list",
@@ -5755,6 +5782,7 @@ EXPECTED_RESULTS = [
         {
             "verbose_name": "customer data",
             "verbose_name_plural": "customer datas",
+            "expected_column_totals": [],
             "expected_actions_admin": [
                 {
                     "name": "list",

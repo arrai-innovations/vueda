@@ -7,6 +7,8 @@ status: draft
 
 # Customize VUEDA Appearance
 
+For charts, see [Style Unovis Charts](style-unovis-charts.md) for the optional Unovis stylesheet and independent categorical palette.
+
 This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of your change. Reaching for a broader mechanism than you need is the most common way customizations leak into screens you did not mean to touch.
 
 For the conceptual model behind these mechanisms (what each scope means and how the layers interact), see [Theming and Customization](../core-concepts/theming-and-customization).
@@ -126,17 +128,17 @@ Most rebrand-level changes (primary color, control radius, control heights, focu
 @import "@vueda/theme/vueda-tailwind/base.css";
 
 :root {
-    --primary: oklch(0.6 0.15 180); /* teal */
+    --primary: oklch(0.6 0.15 180); /* teal fill in both modes */
     --vueda-control-height: 36px; /* taller controls */
     --vueda-control-radius: 6px; /* softer corners */
-}
-
-.dark {
-    --primary: oklch(0.7 0.13 180); /* lighter teal on dark */
 }
 ```
 
 No JavaScript runs; every Tailwind utility that references the token (`bg-primary`, `h-vueda-control`, `rounded-vueda-control`) automatically picks up the new value across the entire app. Light/dark variants are scoped through the existing `.dark` selector.
+
+The default theme keeps its primary fill unchanged between modes. `--primary-foreground` supplies dark labels on solid fills; `--primary-text` supplies a shade in light mode and a tint in dark mode for links and tinted labels. `--primary-text-active` serves pressed links. The text and hover/active colors derive from `--primary`, but check their contrast when choosing a different brand color and override each role as needed. Use `text-primary-text` for blue text on page or lightly tinted surfaces and `text-primary-foreground` for labels on solid primary fills. `--ring` and `--info` follow the readable text color by default.
+
+`--vueda-brand-blue`, `--vueda-brand-navy`, and `--vueda-brand-grey` define the identity palette. Supporting surfaces and body text derive from navy and grey with white or black. Override those identity tokens for a coordinated palette change, or individual semantic tokens to retune a particular surface.
 
 Some tokens to know:
 

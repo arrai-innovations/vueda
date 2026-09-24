@@ -21,7 +21,7 @@ patchTheme({
                 "text-muted-foreground line-clamp-2 text-body leading-normal font-normal text-balance",
 
                 // Link states.
-                "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
+                "[&>a:hover]:text-primary-text [&>a]:underline [&>a]:underline-offset-4",
             ],
         },
     },

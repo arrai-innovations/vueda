@@ -260,28 +260,44 @@ describe("lib/use/useModelInfo.js", () => {
         expect(mockedUseLoadingErrorInstance.setError).not.toHaveBeenCalled();
     });
 
-    scopedIt("does not stack a second fetch when only the model changes", async () => {
-        let resolveFirstFetch;
-        modelInfoStoreMock.fetchModelInfo.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    resolveFirstFetch = resolve;
-                }),
-        );
-
-        es.run(() => {
-            useModelInfo(app, model);
-        });
+    scopedIt("loads the latest cold target after an in-flight request without publishing stale metadata", async () => {
+        let resolveFirst;
+        let resolveLast;
+        modelInfoStoreMock.fetchModelInfo
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveFirst = resolve;
+                    }),
+            )
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveLast = resolve;
+                    }),
+            );
+        const result = useModelInfo(app, model);
         await flushPromises();
-        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
-
-        model.value = "otherModel";
+        model.value = "intermediate";
         await flushPromises();
-        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
-
-        resolveFirstFetch({});
+        model.value = "finalModel";
         await flushPromises();
-        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(1);
+        modelInfoStoreMock.infos[caseJs.getAppModelDotName({ app: app.value, model: "myModel" })] = {
+            label: "Final model",
+        };
+        resolveFirst();
+        await flushPromises();
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenCalledTimes(2);
+        expect(modelInfoStoreMock.fetchModelInfo).toHaveBeenLastCalledWith({ app: app.value, model: "finalModel" });
+        expect(result.loading).toBe(true);
+        expect(result.info).not.toEqual({ label: "Final model" });
+        modelInfoStoreMock.infos[caseJs.getAppModelDotName({ app: app.value, model: "finalModel" })] = {
+            label: "Final model",
+        };
+        resolveLast();
+        await flushPromises();
+        expect(result.info).toEqual({ label: "Final model" });
+        expect(result.loading).toBe(false);
     });
 
     scopedIt("does not fetch and clears info if model is falsey", async () => {

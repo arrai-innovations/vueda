@@ -25,6 +25,7 @@ const widgetContext = useWidget(props, emit);
         v-model="widgetContext.state.combinedValue"
         :disabled="widgetContext.state.disabled"
         :aria-invalid="widgetContext.state.validationState.invalid || undefined"
+        :data-warning="widgetContext.state.validationState.warning || undefined"
         :aria-required="widgetContext.state.required || undefined"
         :name="widgetContext.state.combinedName"
         v-bind="$attrs"

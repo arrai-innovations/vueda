@@ -571,6 +571,79 @@ class TestVuedaSearchFilterDistinct:
         result_names = frozenset(x["name"] for x in response.data["results"])
         assert result_names == frozenset({"Square Cookies For Squares", "Shaped Cookies For Drapes"})
 
+    def test_m2m_search_does_not_inflate_column_totals(self, test_data, api_client, settings):
+        """A column total counts a matched row once, not once per joined row.
+
+        The search matches two special_care entries per product, so the queryset behind this
+        response joins each product twice. `distinct()` puts the *rows* back to one per product; a
+        `SUM` over that same queryset has no such protection and would count each product's
+        quantity twice. `vueda_info.E011` cannot catch it either: `quantity` is a column on Product
+        itself, and the join arrives from the search rather than from the declared path.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_totals"
+
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductM2MSearchColumnTotalsViewSet)
+
+        matched = store_models.Product.objects.filter(
+            name__in=["Square Cookies For Squares", "Shaped Cookies For Drapes"]
+        )
+        assert matched.count() == 2, "the two products the search matches"  # noqa: PLR2004
+        matched.filter(name="Square Cookies For Squares").update(quantity=7)
+        matched.filter(name="Shaped Cookies For Drapes").update(quantity=11)
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={
+                settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Perishable Fragile",
+                settings.COLUMN_TOTALS_PARAM: "quantity",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        # 7 + 11, each counted once. Summed over the joined rows it would be 36.
+        assert response.data["columnTotals"] == {"quantity": 18}, response_body(response)
+
+    def test_m2m_search_does_not_inflate_an_annotation_total(self, test_data, api_client, settings):
+        """An annotation total is deduplicated too, by a different route than a column total.
+
+        An annotation cannot be moved onto the rows re-selected by primary key -- the expressions on
+        a queryset are resolved against it and carry its table aliases -- so it is summed over a
+        distinct `(pk, value)` subquery instead. Both routes have to survive the same M2M join, and
+        a request naming one of each has to come back with both un-multiplied.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_totals"
+
+        user = test_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, store_viewsets.ProductM2MSearchColumnTotalsViewSet)
+
+        matched = store_models.Product.objects.filter(
+            name__in=["Square Cookies For Squares", "Shaped Cookies For Drapes"]
+        )
+        matched.filter(name="Square Cookies For Squares").update(quantity=7)
+        matched.filter(name="Shaped Cookies For Drapes").update(quantity=11)
+
+        response = api_client.get(
+            reverse("store.product-list"),
+            data={
+                settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Perishable Fragile",
+                settings.COLUMN_TOTALS_PARAM: "*",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        # 7 + 11 counted once each, and twice that for the annotation. Summed over the joined rows
+        # they would be 36 and 72.
+        assert response.data["columnTotals"] == {"quantity": 18, "double_quantity": 36}, response_body(response)
+
     def test_m2m_ordering_search_deduplicates_results(self, test_data, api_client, settings):
         """Searching across an M2M field calls distinct() to prevent duplicate results.
 
@@ -833,7 +906,7 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
         self.register_viewsets()
 
-        response = self.list_carts(api_client, settings, "customer__formatted_name")
+        response = self.list_carts(api_client, settings, "customer.formatted_name")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         # One row per cart rather than one per matching cart item.
@@ -845,7 +918,7 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
         ]
         assert emails == ["test_customer_1@domain.invalid", "test_customer_2@domain.invalid"]
 
-        response = self.list_carts(api_client, settings, "-customer__formatted_name")
+        response = self.list_carts(api_client, settings, "-customer.formatted_name")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
@@ -911,11 +984,18 @@ class TestSearchDistinctPairsOnlyBareColumns:
 
         return api_client.get(reverse(url_name), data=data, format="json")
 
-    def test_a_function_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
+    def test_a_default_ordering_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
         """`ordering = [Lower("name")]` reads `name` and compiles to `LOWER("name")`, which
-        `distinct("name")` cannot match. A nonempty `?o=` that DRF rejects is what reaches it: the
-        rejected value leaves the default ordering on the queryset while still asking this backend
-        for explicit-order handling."""
+        `distinct("name")` cannot match.
+
+        An invalid `?o=` can no longer put this on the queryset while still asking this backend for
+        explicit-order handling — an invalid term rejects the whole request atomically rather than
+        silently falling back to the default — so this is now reached only by sending no `?o=` at
+        all: `ordering_requested` is then false, and `applied_ordering` is `None` without this
+        backend ever having to judge the term. The regression this guards against — the unhandled
+        `SELECT DISTINCT ON expressions must match initial ORDER BY expressions` this view's default
+        ordering used to produce — still needs a search that forces deduplication to reproduce.
+        """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_function_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -925,26 +1005,10 @@ class TestSearchDistinctPairsOnlyBareColumns:
             store_viewsets.ProductM2MSearchFunctionOrderingViewSet,
         )
 
-        response = self.list_url(
-            api_client,
-            settings,
-            "store.product-list",
-            self.PRODUCT_SEARCH_TERMS,
-            ordering="not_an_allowed_field",
-        )
+        response = self.list_url(api_client, settings, "store.product-list", self.PRODUCT_SEARCH_TERMS)
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
-
-        # The same request without `?o=` is the rank path this falls back to, so the two agree row
-        # for row. Asserting against it rather than a fixed order keeps this about the fallback
-        # rather than about which product happens to rank first.
-        ranked = self.list_url(api_client, settings, "store.product-list", self.PRODUCT_SEARCH_TERMS)
-
-        assert ranked.status_code == HTTPStatus.OK, response_body(ranked)
-        assert [result["id"] for result in response.data["results"]] == [
-            result["id"] for result in ranked.data["results"]
-        ]
 
     def test_a_relation_whose_related_model_orders_itself_falls_back_to_rank(
         self,
@@ -1077,6 +1141,11 @@ class TestFilteringOnRelatedFormattedName:
     Cart queryset being filtered rather than on the Customer rows it joins, so the declared path would
     raise `FieldError`. `FormattedNamePathFilterSetMixin` points the filter at
     `customer__data__formatted_name` on the filterset instance instead.
+
+    `customer_formatted_name`/`customer_formatted_name_icontains` have no `__` in their own declared
+    names, so `PublicFilterAliasMixin` derives nothing from them and a client keeps using those names
+    exactly as declared — see `tests.unit.info.test_model_filtering_dotted_alias` for a filter whose
+    name does get a dotted public alias derived from it.
     """
 
     def test_exact_filter_matches_the_related_lookup_column(

@@ -35,6 +35,8 @@ Only certain transitions between states are valid:
 
 The canonical serializer is unique per model. Two Django apps cannot register different serializers for the same model. The system enforces this as a startup constraint: the error surfaces immediately when the application boots, not at runtime when a request happens to hit the conflict.
 
+When the same data genuinely needs a second surface — a different audience, different permissions, a different set of actions — the supported route is a Django proxy model. A proxy is its own model with its own `ContentType` and permission codenames, so it registers in its own right and gets a complete metadata surface and the full set of system checks, rather than competing for this model's single registration. See [Expose a Proxy Model as a Separate CRUDL Surface](../guides/proxy-models).
+
 ## Viewset Presence and Metadata Completeness
 
 The distinction between serializer-only and full registration is architecturally significant because it determines which sections of the metadata response exist.

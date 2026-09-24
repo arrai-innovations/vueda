@@ -53,7 +53,9 @@ const startCooldown = () => {
     }, 1000);
 };
 const handleSendCode = async () => {
-    if (timer.value) return;
+    if (timer.value) {
+        return;
+    }
     try {
         await userStore.sendTwoFactorAuthenticationCode(form.values);
         startCooldown();
