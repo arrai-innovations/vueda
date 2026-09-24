@@ -28,7 +28,10 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [actionState] - Action execution status.
  * @property {boolean} [hasInput] - Whether the form has input fields that must be validated before submission.
  * @property {boolean} [requireModified] - When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty (sign-in, forgot-password) where modification is not a meaningful concept.
- * @property {(reason: "success"|"cancel") => Promise<void>} [redirectTo] - Called after success or cancel.
+ * @property {(reason: "success"|"cancel") => Promise<boolean|void>} [redirectTo] - Called after success or cancel. After
+ *  success, the form stays locked until it unmounts, so the view it leaves cannot submit again while the destination
+ *  loads. Resolve `false` when the call did not navigate away, such as when there was no destination or the router
+ *  rejected the navigation, to unlock the form instead.
  * @property {(response: any) => void} [onSubmissionSuccessHandler] - Replaces the default success toast and redirect.
  * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} [onSubmissionErrorHandler] - Replaces the default error toast.
  * @property {(options: {
@@ -64,11 +67,18 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @property {import('vue').ComputedRef<Error|null>} combinedError - Fetch or action error, whichever is present.
  * @property {import('vue').ComputedRef<boolean>} combinedErrored - Whether any error is present.
  * @property {import('vue').ComputedRef<boolean|undefined>} combinedLoading - Combined fetch and action loading state.
+ *  Stays set after a successful submit whose success redirect navigated away.
+ * @property {import('vue').ComputedRef<boolean>} confirmDisabled - Whether the confirm control should be disabled:
+ *  while loading, or while the form has errors.
+ * @property {import('vue').ComputedRef<boolean>} cancelDisabled - Whether the cancel control should be disabled: while
+ *  loading.
  * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for
  *  the warning confirmation dialog (`ActionForm` binds a `FormConfirmDialog` to it; standalone callers must mount
  *  one, or warned submissions are cancelled).
- * @property {(dryRun?: boolean) => Promise<void>} handleConfirm - Validates and submits the form.
- * @property {(e?: Event) => Promise<void>} handleCancelClick - Cancels and redirects.
+ * @property {(dryRun?: boolean) => Promise<void>} handleConfirm - Validates and submits the form. Does nothing while
+ *  an action runs or after a successful submit navigated away.
+ * @property {(e?: Event) => Promise<void>} handleCancelClick - Cancels and redirects. Does nothing while an action runs
+ *  or after a successful submit navigated away.
  */
 
 /**
@@ -97,6 +107,8 @@ export function useActionForm(formContext, props) {
     const combinedError = computed(() => props.fetchState?.error || localActionState.error);
     const combinedErrored = computed(() => !!combinedError.value);
     const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
+    const confirmDisabled = computed(() => !!combinedLoading.value || !!formContext.state.anyError);
+    const cancelDisabled = computed(() => !!combinedLoading.value);
 
     let actionPromise = null;
     // Invalidates completions when the shell or target changes.
@@ -104,6 +116,9 @@ export function useActionForm(formContext, props) {
     // it (`false`, or `null` for `executeAction`, with no stored error), so without this a cancelled action would
     // read as a success and toast on its way out.
     let actionGeneration = 0;
+    // Set once a successful submit's redirect navigates away. The router keeps this view mounted until the
+    // destination is ready, so loading stays set and the handlers refuse input until the form unmounts.
+    let navigatedAway = false;
 
     const confirmation = useConfirmationController({
         noConsumerWarning:
@@ -187,7 +202,10 @@ export function useActionForm(formContext, props) {
                     duration: 15000,
                 });
                 if (props.redirectTo) {
-                    await props.redirectTo("success");
+                    const navigated = await props.redirectTo("success");
+                    if (generation === actionGeneration && navigated !== false) {
+                        navigatedAway = true;
+                    }
                 }
             }
         } catch (error) {
@@ -203,6 +221,9 @@ export function useActionForm(formContext, props) {
     };
 
     const handleConfirm = async (dryRun = false) => {
+        if (localActionState.loading) {
+            return;
+        }
         const generation = actionGeneration;
         formContext.setAllTouched();
         localActionState.loading = true;
@@ -239,7 +260,7 @@ export function useActionForm(formContext, props) {
         try {
             await performAction({ formValues: formContext.state.submittingValues, dryRun }, dryRun, generation);
         } finally {
-            if (generation === actionGeneration) {
+            if (generation === actionGeneration && !navigatedAway) {
                 localActionState.loading = false;
             }
         }
@@ -250,6 +271,9 @@ export function useActionForm(formContext, props) {
             e.preventDefault();
             e.stopPropagation();
         }
+        if (localActionState.loading) {
+            return;
+        }
         if (props.redirectTo) {
             await props.redirectTo("cancel");
         }
@@ -257,6 +281,7 @@ export function useActionForm(formContext, props) {
 
     const cancelInFlightAction = () => {
         actionGeneration += 1;
+        navigatedAway = false;
         actionPromise?.cancel?.();
         actionPromise = null;
         confirmation.cancel();
@@ -289,5 +314,14 @@ export function useActionForm(formContext, props) {
         { immediate: true },
     );
 
-    return { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick };
+    return {
+        combinedError,
+        combinedErrored,
+        combinedLoading,
+        confirmDisabled,
+        cancelDisabled,
+        confirmation,
+        handleConfirm,
+        handleCancelClick,
+    };
 }

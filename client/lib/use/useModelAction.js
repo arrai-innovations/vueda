@@ -71,7 +71,8 @@ import { useRoute, useRouter } from "vue-router";
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
  *  crud handlers.
- * @property {(result: any) => Promise<void>} redirectTo - Redirects after success or cancel.
+ * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Resolves `false` when
+ *  the router reports a navigation failure, so `useActionForm` keeps the form usable.
  */
 
 /**
@@ -224,9 +225,9 @@ export function useModelAction(props) {
 
     const redirectTo = async (result) => {
         const returnPath = route.query?.returnPath;
+        // `router.push` resolves a navigation failure instead of throwing when it does not navigate.
         if (returnPath && typeof returnPath === "string") {
-            await router.push(returnPath);
-            return;
+            return !(await router.push(returnPath));
         }
 
         const redirects = modelConfig.config.actionRedirects || {};
@@ -239,16 +240,15 @@ export function useModelAction(props) {
         }
 
         if (redirectBulk.value || redirect === "list") {
-            await router.push({
+            return !(await router.push({
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: props.app, model: props.model, action: "list" },
-            });
-        } else {
-            await router.push({
-                name: DETAIL_VIEW_CRUD_NAME,
-                params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
-            });
+            }));
         }
+        return !(await router.push({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
+        }));
     };
 
     /**

@@ -352,6 +352,21 @@ describe("lib/use/useModelAction.js", () => {
             });
         });
 
+        scopedIt("resolves true when the router navigates and false when it reports a failure", async () => {
+            mocks.routeQuery = {};
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+            routerPush.mockResolvedValueOnce(undefined);
+            expect(await modelAction.redirectTo("success")).toBe(true);
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            expect(await modelAction.redirectTo("success")).toBe(false);
+
+            mocks.routeQuery = { returnPath: "/back" };
+            routerPush.mockResolvedValueOnce(new Error("Navigation duplicated"));
+            expect(await modelAction.redirectTo("success")).toBe(false);
+        });
+
         scopedIt("still redirects to the list after a bulk destroy emptied it", async () => {
             const instanceList = createInstanceStub();
             const fetchState = createFetchState([{ id: 4 }, { id: 7 }]);

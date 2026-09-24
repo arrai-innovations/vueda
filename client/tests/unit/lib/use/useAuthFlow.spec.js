@@ -55,13 +55,20 @@ describe("lib/use/useAuthFlow.js", () => {
         scopedIt("pushes returnPath when present in query", async () => {
             routeQuery = { returnPath: "/back" };
             const { redirectTo } = useAuthFlow({ formProps: {} });
-            await redirectTo();
+            expect(await redirectTo()).toBe(true);
             expect(routerPush).toHaveBeenCalledWith("/back");
         });
 
-        scopedIt("is a no-op when no returnPath in query", async () => {
+        scopedIt("resolves false when the router reports a navigation failure", async () => {
+            routeQuery = { returnPath: "/back" };
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
             const { redirectTo } = useAuthFlow({ formProps: {} });
-            await redirectTo();
+            expect(await redirectTo()).toBe(false);
+        });
+
+        scopedIt("resolves false without navigating when no returnPath in query", async () => {
+            const { redirectTo } = useAuthFlow({ formProps: {} });
+            expect(await redirectTo()).toBe(false);
             expect(routerPush).not.toHaveBeenCalled();
         });
     });

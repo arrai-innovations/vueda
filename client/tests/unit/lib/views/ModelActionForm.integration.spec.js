@@ -151,4 +151,59 @@ describe("lib/views/ModelActionForm.vue", () => {
             }
         });
     });
+
+    describe("success redirect", () => {
+        scopedIt("sends one non-dry-run request when confirm is used again before the view is replaced", async () => {
+            const runAction = vi.fn(async () => ({}));
+            const router = createRouter({
+                history: createMemoryHistory(),
+                routes: [
+                    { path: "/", component: { template: "<div />" } },
+                    { path: "/done", component: { template: "<div />" } },
+                ],
+            });
+            await router.push("/?returnPath=/done");
+            // Mounted outside a RouterView, the form stays on screen after navigation, as it does while
+            // ViewActionRouter resolves the destination.
+            const wrapper = mount(
+                defineComponent({
+                    setup() {
+                        useForm({});
+                        return () =>
+                            h(ModelActionForm, {
+                                app: "catalog",
+                                model: "order",
+                                action: "submit",
+                                pk: "4",
+                                enableDryRun: false,
+                                fetchState: reactive({ loading: false, objectsMap: new Map() }),
+                                runAction,
+                            });
+                    },
+                }),
+                { attachTo: document.body, global: { plugins: [router], stubs: { LinkModelView: RecordLink } } },
+            );
+            try {
+                await flushPromises();
+                const confirm = wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]');
+                const cancel = wrapper.get('[data-qa="action-form-buttons"] button[type="button"]');
+
+                await confirm.trigger("click");
+                await flushPromises();
+
+                expect(router.currentRoute.value.path).toBe("/done");
+                expect(confirm.attributes("disabled")).toBeDefined();
+                expect(cancel.attributes("disabled")).toBeDefined();
+
+                // A disabled button ignores clicks, so submit the form directly, as the Enter key would.
+                await wrapper.get("form").trigger("submit");
+                await flushPromises();
+
+                expect(runAction).toHaveBeenCalledTimes(1);
+                expect(runAction).toHaveBeenCalledWith(expect.objectContaining({ dryRun: false }));
+            } finally {
+                wrapper.unmount();
+            }
+        });
+    });
 });

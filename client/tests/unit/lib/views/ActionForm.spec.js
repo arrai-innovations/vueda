@@ -698,6 +698,90 @@ describe("lib/views/ActionForm.vue", () => {
         );
     });
 
+    describe("Disabled state", () => {
+        const submitButton = (wrapper) => wrapper.findAll("button").find((b) => b.attributes("type") === "submit");
+        const cancelButton = (wrapper) => wrapper.findAll("button").find((b) => b.attributes("type") === "button");
+
+        scopedIt("keeps both buttons disabled after a success redirect navigates away", async () => {
+            const runAction = vi.fn(() => Promise.resolve("ok"));
+            const redirectTo = vi.fn(async () => undefined);
+            const { wrapper } = mountActionForm({ runAction, redirectTo });
+
+            await wrapper.get("form").trigger("submit");
+            await flushPromises();
+
+            expect(redirectTo).toHaveBeenCalledWith("success");
+            expect(submitButton(wrapper).attributes("disabled")).toBeDefined();
+            expect(cancelButton(wrapper).attributes("disabled")).toBeDefined();
+
+            await wrapper.get("form").trigger("submit");
+            await flushPromises();
+            expect(runAction).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("passes the disabled flags to the confirm, cancel, and action-bar slots", async () => {
+            const seen = { confirm: [], cancel: [], bar: [] };
+            let settle;
+            const runAction = vi.fn(() => new Promise((resolve) => (settle = resolve)));
+            const { wrapper } = mountActionForm({
+                runAction,
+                redirectTo: vi.fn(async () => false),
+                slots: {
+                    "action-bar": (props) => {
+                        seen.bar.push({ confirm: props.confirmDisabled, cancel: props.cancelDisabled });
+                        return vue.h("div");
+                    },
+                },
+            });
+            const { wrapper: buttonsWrapper } = mountActionForm({
+                runAction,
+                slots: {
+                    "confirm-button": ({ disabled }) => {
+                        seen.confirm.push(disabled);
+                        return vue.h("button", { type: "submit" }, "Confirm");
+                    },
+                    "cancel-button": ({ disabled }) => {
+                        seen.cancel.push(disabled);
+                        return vue.h("button", { type: "button" }, "Cancel");
+                    },
+                },
+            });
+
+            expect(seen.bar.at(-1)).toEqual({ confirm: false, cancel: false });
+            expect(seen.confirm.at(-1)).toBe(false);
+            expect(seen.cancel.at(-1)).toBe(false);
+
+            await wrapper.get("form").trigger("submit");
+            await buttonsWrapper.get("form").trigger("submit");
+            await flushPromises();
+
+            expect(seen.bar.at(-1)).toEqual({ confirm: true, cancel: true });
+            expect(seen.confirm.at(-1)).toBe(true);
+            expect(seen.cancel.at(-1)).toBe(true);
+            settle("ok");
+        });
+
+        scopedIt("disables only the confirm slot while the form has errors", async () => {
+            const seen = { confirm: [], cancel: [] };
+            mountActionForm({
+                formContext: { state: { anyError: true } },
+                slots: {
+                    "confirm-button": ({ disabled }) => {
+                        seen.confirm.push(disabled);
+                        return vue.h("button", { type: "submit" }, "Confirm");
+                    },
+                    "cancel-button": ({ disabled }) => {
+                        seen.cancel.push(disabled);
+                        return vue.h("button", { type: "button" }, "Cancel");
+                    },
+                },
+            });
+
+            expect(seen.confirm.at(-1)).toBe(true);
+            expect(seen.cancel.at(-1)).toBe(false);
+        });
+    });
+
     describe("Cancel flow", () => {
         scopedIt("calls redirectTo on cancel", async () => {
             const redirectTo = vi.fn();
