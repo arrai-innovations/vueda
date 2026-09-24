@@ -2134,6 +2134,91 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
     @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
+    def test_workflow_updating_keeps_changed_data_with_nothing_to_add(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
+            migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+
+            # The first run gives every workflow reference the app and model it can find.
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            # A note an author wrote inside the list, which rewriting the list would drop.
+            assert migration_content.count("changed_data = [") == 1
+            migration_content = migration_content.replace(
+                "changed_data = [", "changed_data = [  # A note kept by updateworkflowmigrations.\n"
+            )
+            with open(migration_filepath, "w", encoding="utf-8") as f:
+                f.write(migration_content)
+
+            # Nothing is left to add, so the second run writes the list back exactly as it found it.
+            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            with open(migration_filepath, encoding="utf-8") as f:
+                assert f.read() == migration_content
+
+    @pytest.mark.parametrize("missing_key", ["history_date", "model_name", "changes"])
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_workflow_updating_changed_data_missing_a_key(self, settings, missing_key):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_updating": "tests.workflow_updating",
+        }
+        append_installed_apps(settings, "tests.workflow_updating")
+
+        err = io.StringIO()
+        out = io.StringIO()
+
+        with self.temporary_migration_module(settings, app_label="workflow_updating") as migration_dir:
+            broken_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
+            other_filepath = os.path.join(migration_dir, "0002_workflow_migrations_2026_06_29.py")
+
+            # The file still imports, but one change no longer holds a key the command reads.
+            with open(broken_filepath, "a", encoding="utf-8") as f:
+                f.write(f'\nchanged_data[0].pop("{missing_key}")\n')
+            with open(broken_filepath, encoding="utf-8") as f:
+                broken_content = f.read()
+
+            with pytest.raises(SystemExit):
+                self.call_command("updateworkflowmigrations", "workflow_updating", stdout=out, stderr=err)
+
+            err.seek(0)
+            errors = err.read()
+            out.seek(0)
+            output = out.read()
+
+            # The file and the change are named, rather than a traceback naming neither.
+            assert f"  Could not read changed_data in {broken_filepath}: change 0 has no '{missing_key}'\n" in errors, (
+                errors
+            )
+            assert "Traceback" not in errors, errors
+            assert "Failed updating 1 workflow migration(s).\n" in output, output
+
+            # The file it could not read is left as it was.
+            with open(broken_filepath, encoding="utf-8") as f:
+                assert f.read() == broken_content
+
+            # The migrations it could read are still updated.
+            assert "Updated 2 workflow migration(s).\n" in output, output
+            with open(other_filepath, encoding="utf-8") as f:
+                assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in f.read()
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
     def test_workflow_updating_naive_history_dates(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
