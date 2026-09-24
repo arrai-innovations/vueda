@@ -5,6 +5,12 @@ audience: integrator
 status: draft
 ---
 
+<script setup>
+import { orderScenario } from "../.vitepress/theme/fixtures/showcaseOrder.js";
+
+const order = orderScenario();
+</script>
+
 # Configure `list`/`read`/`create`/`update` Views
 
 This guide covers how to customize {@term CRUDL} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
@@ -129,6 +135,37 @@ storeModelConfig().setConfig(
 ```
 
 The save response is available as `objectForm.state.object`. `ViewUpdate` also retrieves the object again after each save. The summary therefore sees fresh values after every save, and neither `unit_price` nor `total` joins the next request body.
+
+The demo below runs that configuration against an offline server. Change the quantity and submit, then compare the request log with the summary.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · submit, display, and fetch fields · live ViewUpdate</header>
+  <ModelDemo
+    :view="() => import('../.vitepress/theme/components/DemoOrderUpdate.vue')"
+    :app="order.app"
+    :model="order.model"
+    pk="1"
+    action="update"
+    :seed="order.seed"
+    :api="order.api"
+    page-title
+  />
+  <section class="flex flex-col gap-1 text-xs" data-qa="order-request-log">
+    <h4 class="font-semibold uppercase tracking-wide text-muted-foreground">Requests</h4>
+    <p v-if="!order.requests.length" class="text-muted-foreground">No requests yet.</p>
+    <ol v-else class="flex flex-col gap-1">
+      <li v-for="(request, index) in order.requests" :key="index" class="font-mono">{{ request.method }} f={{ request.fields }}<template v-if="request.body"> body={{ JSON.stringify(request.body) }}</template></li>
+    </ol>
+  </section>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>form: <code>displayFields</code> renders only <code>quantity</code></span>
+    <span>summary: an <code>after-fields</code> slot reads <code>unit_price</code> and <code>total</code> from the form context, which holds every fetched field</span>
+    <span>save: the <code>PUT</code> body carries only <code>submitFields</code>, and its <code>f</code> requests <code>fetchFields</code>, so the response includes the recalculated total</span>
+    <span>after the save, the view retrieves the order again and the summary shows the stored values</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
 
 Each list resolves in this order, and an omitted or empty list at any level falls through to the next:
 
