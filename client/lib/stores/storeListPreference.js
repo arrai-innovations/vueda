@@ -124,7 +124,6 @@ export const storeListPreference = defineStore("listPreference", {
         },
 
         setFilters(args, filters) {
-            console.log("filters", filters);
             const key = getAppModelDotName(args);
             const hasValue = filters && Object.keys(filters).length > 0;
             this._updatePreference(key, "filters", hasValue ? filters : undefined);
