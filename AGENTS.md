@@ -109,6 +109,11 @@ fix(UserSerializer): correct password validation logic
 
 Scope should reference the affected filename (sans extension), module, or concern.
 
+Do not start a body line with a single word followed by a colon, such as
+`names: the full value`. The commitlint parser reads `token: value` at the
+start of a line as a footer trailer, then fails `footer-leading-blank` because
+no blank line precedes it. Rewrap the paragraph so the colon falls mid-line.
+
 ## Lefthook (Git Hooks)
 
 Configuration lives in `lefthook.yml`. When editing hook commands:
