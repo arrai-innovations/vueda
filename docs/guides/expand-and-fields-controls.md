@@ -207,7 +207,7 @@ The client configures which fields and expansions to request through `storeModel
 
 **Default `fetchFields` and `displayFields`** are all non-PK fields from the serializer's field list. These control what the client requests (via the `f` query parameter) and what it renders. The PK is omitted from the default list but is always injected into fetch requests by the view components, so it is always present in the response.
 
-**Default `submitFields`** are all non-PK fields from the serializer's field list. These control which fields appear in create and update forms and are submitted to the server.
+**Default `submitFields`** are all non-PK, writable fields from the serializer's field list. They select the values that create and update send in the request body. `displayFields` selects the fields those forms render.
 
 **Default `expand`** is all expandable field names from model-info. This means that, by default, the client requests all declared expansions. If the server restricts expansions per action (via `permit_list_expands`), the default client `expand` may be broader than what the server allows on `list`, causing immediate 400 errors. In this case, override `expand` in the client config to match the server's per-action restrictions, or use view-specific overrides:
 
@@ -233,7 +233,7 @@ The client's view components translate config into query parameters on each requ
 
 **`DetailView`** (used by `ViewRead` and `ViewUpdate`) sends `f` and `e` on retrieve requests. The `f` parameter includes `fetchFields` plus `available_actions` (so the view can render action buttons based on object-level permissions). The `e` parameter contains the resolved `expand` list.
 
-**`ViewCreate`** and **`ViewUpdate`** use `submitFields` for the request payload. They do not send `f` or `e` on submission, because create and update are write operations that do not control response field selection through query parameters.
+**`ViewCreate`** and **`ViewUpdate`** send only the `submitFields` values in the request body. On the save request, `f` contains the resolved `fetchFields` plus the PK, so the save response carries the fields a retrieval would. `e` contains the configured expansions whose form value is set.
 
 The CRUDL helper utilities (`objectCrud`) serialize `f` and `e` arrays into query strings and handle 400 responses by wrapping them as `FormValidationError` instances for form-context ingestion. This means that a 400 from an invalid expand or field request will surface as a form-level validation error rather than a generic fetch error.
 

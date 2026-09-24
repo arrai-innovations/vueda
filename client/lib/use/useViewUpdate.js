@@ -46,8 +46,8 @@ const VIEW_NAME = "update";
  * @property {string} pk - Primary key of the instance to fetch and edit.
  *
  * Optional data-fetching overrides.
- * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default.
- * @property {string[]} [submitFields] - Field names included in the update submission payload; overrides the model config default.
+ * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response; overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the update request body; overrides the model config default when non-empty.
  * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
  *
@@ -101,7 +101,12 @@ export function useViewUpdate(options) {
         formContextProps.initialValues,
     );
 
-    const submitFields = computed(() => options.submitFields ?? modelConfig.config?.submitFields);
+    const submitFields = computed(() =>
+        options.submitFields?.length ? options.submitFields : modelConfig.config?.submitFields,
+    );
+    const fetchFields = computed(() =>
+        options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
+    );
 
     const instanceObjectProps = reactive({
         target: {
@@ -112,7 +117,7 @@ export function useViewUpdate(options) {
         pk: toRef(options, "pk"),
         params: {
             [FIELDS_PARAM]: computed(() => {
-                const fields = [...(unref(submitFields) ?? [])];
+                const fields = [...(fetchFields.value ?? [])];
                 const pkKey = modelConfig.info?.pk ?? "id";
                 if (!fields.includes(pkKey)) {
                     fields.push(pkKey);
@@ -155,6 +160,7 @@ export function useViewUpdate(options) {
         verboseName: computed(() => modelConfig.config?.verboseName),
         firstErrorField,
         redirectAfter: toRef(options, "redirectAfter"),
+        submitFields,
     });
 
     const objectForm = useObjectForm({

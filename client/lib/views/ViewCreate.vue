@@ -68,8 +68,13 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** Field names included in the create submission payload; falls back to the model config's submitFields. */
+    /** Field paths sent in the create request body; falls back to the model config's submitFields when omitted or empty. */
     submitFields: {
+        type: Array,
+        default: undefined,
+    },
+    /** Field names the server returns in the create response; falls back to the model config's fetchFields when omitted or empty. */
+    fetchFields: {
         type: Array,
         default: undefined,
     },

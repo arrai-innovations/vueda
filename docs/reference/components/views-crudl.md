@@ -195,7 +195,7 @@ rendered from the model's configured fields. The demo below is the live componen
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>fields: no field list is passed here. The form renders the model config's <code>submitFields</code>, which defaults to every non-pk field, and each widget is chosen from the field's serializer and model types</span>
+    <span>fields: no field list is passed here. The form renders the model config's <code>displayFields</code>, which on create defaults to every writable non-pk field, and each widget is chosen from the field's serializer and model types</span>
     <span>the default layout is a single-column stack. Section grouping and multi-column grids are customizations; see <a href="./forms.html" class="text-primary-text underline underline-offset-4">Forms</a></span>
     <span>submit bar: a {@api vue:component:StickyBar} in <code>zone="top"</code>, which teleports into the layout's sticky stack. The docs harness has no stack, so it renders in place here; <a href="./sticky-chrome.html" class="text-primary-text underline underline-offset-4">Sticky Chrome</a> covers the pinned behavior</span>
     <span>page actions: the view teleports a link per non-detail action into the title row, which is why List appears there and Create does not</span>
