@@ -299,10 +299,13 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f"  Cannot update {filepath} without its changed_data, skipping."))
             return False
 
+        # Writing the changes back reformats the whole list, so it is only written when a reference
+        # gained something. A migration that already names every workflow it can keeps its list
+        # exactly as it was, comments and formatting included.
+        updated_changed_data = add_workflow_identities_to_changed_data(changed_data, identities)
         try:
-            lines_string = self._replace_changed_data(
-                lines_string, add_workflow_identities_to_changed_data(changed_data, identities)
-            )
+            if updated_changed_data != changed_data:
+                lines_string = self._replace_changed_data(lines_string, updated_changed_data)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
