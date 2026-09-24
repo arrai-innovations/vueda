@@ -106,6 +106,10 @@ describe("lib/router/guards.js", () => {
         expect(fetchModelInfo).toHaveBeenCalledWith({ app: "a", model: "b" });
         expect(getConfig).toHaveBeenCalledWith({ app: "a", model: "b" });
         expect(result).toEqual(["info", "config", ["t"]]);
+        // the workflow store reads `workflow_enabled` from the model info, so that loads first
+        expect(fetchModelInfo.mock.invocationCallOrder[0]).toBeLessThan(
+            fetchWorkflowTransition.mock.invocationCallOrder[0],
+        );
     });
 
     scopedIt("requireAuth redirects when not logged in", async () => {
@@ -231,7 +235,7 @@ describe("lib/router/guards.js", () => {
 
         expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
         expect(result).toEqual({ name: "nf" });
-        expect(fetchModelInfo).not.toHaveBeenCalled();
+        expect(getConfig).not.toHaveBeenCalled();
     });
 
     scopedIt("requireModelInfo falls back to a generic description when the denial carries none", async () => {

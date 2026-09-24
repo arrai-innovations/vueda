@@ -63,13 +63,15 @@ const workflowDenied = async () => {
  *
  * @param {string} model - The model name.
  * @param {string[]} actionNames - The actions this user is permitted to perform.
+ * @param {boolean} [workflowEnabled=false] - Whether the model enables workflow.
  * @returns {object} The payload.
  */
-const modelInfoPayload = (model, actionNames) => ({
+const modelInfoPayload = (model, actionNames, workflowEnabled = false) => ({
     app_label: "blog",
     model,
     verbose_name: model,
     verbose_name_plural: `${model}s`,
+    workflow_enabled: workflowEnabled,
     model_fields: {
         id: { pk: true, type_db: "AutoField" },
         title: { type_db: "CharField", label: "Title" },
@@ -120,10 +122,13 @@ describe("lib/router/makeCrud.js", () => {
      *
      * @param {string} model - The model name.
      * @param {string[]} actionNames - The actions the current user is permitted to perform.
+     * @param {boolean} [workflowEnabled=false] - Whether the model enables workflow.
      * @returns {void}
      */
-    const modelAllows = (model, actionNames) =>
-        respond(`${urls.infoModelInfo}blog/${model}/`, () => Promise.resolve(modelInfoPayload(model, actionNames)));
+    const modelAllows = (model, actionNames, workflowEnabled = false) =>
+        respond(`${urls.infoModelInfo}blog/${model}/`, () =>
+            Promise.resolve(modelInfoPayload(model, actionNames, workflowEnabled)),
+        );
 
     /**
      * Build a router carrying the generated CRUD records, a sign-in route, and a not-found route.
@@ -370,6 +375,7 @@ describe("lib/router/makeCrud.js", () => {
                             rejectWorkflow = reject;
                         }),
                 );
+                modelAllows("purchaseorder", ["list"], true);
                 await startAs({ id: 1 });
 
                 // entering the record runs the guard chain, which parks on the workflow discovery request
@@ -402,6 +408,7 @@ describe("lib/router/makeCrud.js", () => {
     describe("Workflow discovery denial", () => {
         scopedIt("sends a fresh load of a denied URL to the configured redirect with visible feedback", async () => {
             respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            modelAllows("purchaseorder", ["list"], true);
             await startAs({ id: 1 });
 
             await router.push("/blog/purchaseorder/list/");
@@ -419,10 +426,25 @@ describe("lib/router/makeCrud.js", () => {
             expect(router.currentRoute.value.name).toBe("actionrouter.detailview");
 
             respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            modelAllows("purchaseorder", ["list"], true);
             await router.push("/blog/purchaseorder/list/");
 
             expect(router.currentRoute.value.name).toBe("not-found");
             expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+        });
+
+        scopedIt("sends no workflow discovery request for a model without workflow", async () => {
+            // a denial here would redirect, so reaching the route shows the request was never made
+            respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            modelAllows("post", ["list"]);
+            await startAs({ id: 1 });
+
+            await router.push("/blog/post/list/");
+
+            expect(router.currentRoute.value.path).toBe("/blog/post/list/");
+            const requested = fetchHelper.mock.calls.map(([url]) => url);
+            expect(requested.some((url) => url.includes("/workflow/"))).toBe(false);
+            expect(toastMock.error).not.toHaveBeenCalled();
         });
     });
 });

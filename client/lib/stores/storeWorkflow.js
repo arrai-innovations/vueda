@@ -3,6 +3,7 @@
  * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
  */
 import { assignReactiveObject, trimReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
@@ -58,6 +59,33 @@ const clearNestedContainer = (container) => {
         trimReactiveObject(container[key], {});
     }
     trimReactiveObject(container, {});
+};
+
+/**
+ * Decide whether a workflow fetch for this model goes to the server.
+ *
+ * The server serves workflow endpoints only for a model whose model info reports `workflow_enabled`.
+ * When that model info is already cached, this answers synchronously. Otherwise it fetches the model
+ * info and then runs `retry`, which calls the same fetch again and finds the model info cached.
+ *
+ * @template T
+ * @param {string} app
+ * @param {string} model
+ * @param {T} disabledValue - What the fetch resolves to for a model without workflow.
+ * @param {() => Promise<any>} retry - Calls the fetch again once the model info is cached.
+ * @returns {Promise<T|any>|undefined} `undefined` when the fetch should proceed, otherwise the promise to return.
+ * @private
+ */
+const gateOnWorkflowEnabled = (app, model, disabledValue, retry) => {
+    const modelInfoStore = storeModelInfo();
+    const info = modelInfoStore.infos[getAppModelDotName({ app, model })];
+    if (!info) {
+        return modelInfoStore.fetchModelInfo({ app, model }).then(retry);
+    }
+    if (!info.workflow_enabled) {
+        return Promise.resolve(disabledValue);
+    }
+    return undefined;
 };
 
 /**
@@ -357,6 +385,10 @@ export const storeWorkflow = defineStore("workflow", {
                 /** @type {Promise<WorkflowTransition[]>} */
                 return Promise.resolve([]);
             }
+            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchWorkflowTransition(app, model));
+            if (gated) {
+                return gated;
+            }
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
             const isCurrentAuthScope = () => this.authScopeGeneration === generation;
@@ -432,6 +464,10 @@ export const storeWorkflow = defineStore("workflow", {
             if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
             }
+            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchModelStates(app, model));
+            if (gated) {
+                return gated;
+            }
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
             const isCurrentAuthScope = () => this.authScopeGeneration === generation;
@@ -488,6 +524,10 @@ export const storeWorkflow = defineStore("workflow", {
             }
             if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
+            }
+            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchObjectState(app, model, objectPk));
+            if (gated) {
+                return gated;
             }
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
@@ -548,6 +588,12 @@ export const storeWorkflow = defineStore("workflow", {
             }
             if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
+            }
+            const gated = gateOnWorkflowEnabled(app, model, [], () =>
+                this.fetchObjectTransitions(app, model, objectPk),
+            );
+            if (gated) {
+                return gated;
             }
 
             const key = getAppModelDotName({ app, model });
@@ -612,6 +658,10 @@ export const storeWorkflow = defineStore("workflow", {
             }
             if (!usingVuedaWorkflow) {
                 return Promise.resolve([]);
+            }
+            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchObjectHistory(app, model, objectPk));
+            if (gated) {
+                return gated;
             }
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;

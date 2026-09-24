@@ -2,7 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import { getAppModelDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
-let storeWorkflowModule, storeWorkflow, mockedFetchHelper, AuthScopeInvalidatedError;
+let storeWorkflowModule, storeWorkflow, storeModelInfo, mockedFetchHelper, AuthScopeInvalidatedError;
 
 describe("lib/stores/storeWorkflow.js", () => {
     beforeEach(async () => {
@@ -17,7 +17,10 @@ describe("lib/stores/storeWorkflow.js", () => {
         });
         storeWorkflowModule = await import("@vueda/stores/storeWorkflow.js");
         storeWorkflow = storeWorkflowModule.storeWorkflow;
+        ({ storeModelInfo } = await import("@vueda/stores/storeModelInfo.js"));
         ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
+        // the store requests workflow data only for a model whose model info reports workflow
+        storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: true };
     });
 
     afterEach(() => {
@@ -56,6 +59,73 @@ describe("lib/stores/storeWorkflow.js", () => {
         const result = await store.fetchWorkflowTransition("app", "model");
 
         expect(result).toEqual([]);
+        expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    describe("a model whose model info does not report workflow", () => {
+        beforeEach(() => {
+            storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: false };
+        });
+
+        scopedIt.each([
+            ["fetchWorkflowTransition", ["app", "model"]],
+            ["fetchModelStates", ["app", "model"]],
+            ["fetchObjectState", ["app", "model", "1"]],
+            ["fetchObjectTransitions", ["app", "model", "1"]],
+            ["fetchObjectHistory", ["app", "model", "1"]],
+        ])("%s resolves an empty array without a request", async (action, args) => {
+            const store = storeWorkflow();
+
+            const result = await store[action](...args);
+
+            expect(result).toEqual([]);
+            expect(mockedFetchHelper).not.toHaveBeenCalled();
+        });
+    });
+
+    scopedIt("fetchWorkflowTransition fetches model info first when it is not cached", async () => {
+        const modelInfoStore = storeModelInfo();
+        delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
+        const transitions = [{ code: "one", name: "One" }];
+        const fetchModelInfo = vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
+            const info = { workflow_enabled: true };
+            modelInfoStore.infos[getAppModelDotName(args)] = info;
+            return info;
+        });
+        mockedFetchHelper.mockResolvedValue(transitions);
+        const store = storeWorkflow();
+
+        const result = await store.fetchWorkflowTransition("app", "model");
+
+        expect(fetchModelInfo).toHaveBeenCalledWith({ app: "app", model: "model" });
+        expect(mockedFetchHelper).toHaveBeenCalledTimes(1);
+        expect(result).toEqual(transitions);
+    });
+
+    scopedIt("fetchWorkflowTransition makes no request when uncached model info does not report workflow", async () => {
+        const modelInfoStore = storeModelInfo();
+        delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
+        vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
+            const info = { workflow_enabled: false };
+            modelInfoStore.infos[getAppModelDotName(args)] = info;
+            return info;
+        });
+        const store = storeWorkflow();
+
+        const result = await store.fetchWorkflowTransition("app", "model");
+
+        expect(result).toEqual([]);
+        expect(mockedFetchHelper).not.toHaveBeenCalled();
+    });
+
+    scopedIt("fetchWorkflowTransition rejects with the model info error when model info fails", async () => {
+        const modelInfoStore = storeModelInfo();
+        delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
+        const error = new Error("no model info");
+        vi.spyOn(modelInfoStore, "fetchModelInfo").mockRejectedValue(error);
+        const store = storeWorkflow();
+
+        await expect(store.fetchWorkflowTransition("app", "model")).rejects.toBe(error);
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 

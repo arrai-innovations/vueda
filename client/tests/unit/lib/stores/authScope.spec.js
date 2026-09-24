@@ -55,6 +55,7 @@ const modelInfoPayload = (actionNames, titleLabel) => ({
     model: "post",
     verbose_name: titleLabel,
     verbose_name_plural: `${titleLabel}s`,
+    workflow_enabled: true,
     model_fields: {
         id: { pk: true, type_db: "AutoField" },
         title: { type_db: "CharField", label: titleLabel },
@@ -360,6 +361,9 @@ describe("lib/stores/authScope.js", () => {
             const userStore = storeUser(pinia);
             const workflowStore = storeWorkflow(pinia);
             await userStore.fetchCurrentUser();
+            // the workflow store requests transitions only once model info reports workflow
+            respond(urls.infoModelInfo, () => Promise.resolve(modelInfoPayload(["list"], "First")));
+            await storeModelInfo(pinia).fetchModelInfo(args);
 
             const deferred = deferResponse(urls.workflowUserPermittedTransitions.split(":")[0]);
             const inFlight = workflowStore.fetchWorkflowTransition(args.app, args.model);
@@ -377,7 +381,9 @@ describe("lib/stores/authScope.js", () => {
             fetchHelper.mockClear();
             const refetched = await workflowStore.fetchWorkflowTransition(args.app, args.model);
 
-            expect(fetchHelper).toHaveBeenCalledTimes(1);
+            // the crossing also dropped the model info, so the refetch requests it before the transitions
+            const requested = fetchHelper.mock.calls.map(([url]) => new URL(url).pathname);
+            expect(requested).toEqual(["/info/model-info/blog/post/", "/workflow/permitted/blog/post/"]);
             expect(refetched).toEqual([{ code: "review", name: "Review" }]);
         });
     });
