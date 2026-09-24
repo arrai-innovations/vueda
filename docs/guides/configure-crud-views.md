@@ -144,6 +144,8 @@ Configure the rows-per-page selector through the `ViewList` props `pageSizeOptio
 
 List preferences (visible columns, sort state, page size) are persisted per-user when preference persistence is enabled. Model config and `ViewList` prop overrides set the initial defaults; user preferences take precedence after the first interaction.
 
+Saved filters hold what the reader chose: the filters they added and their search term. A hidden filter's URL value, such as an `?id=1,2` deep link, and query parameters the list does not use stay in the URL for that visit and are never saved. Opening the list with no query parameters restores only saved filters the list still offers and the saved search term.
+
 ## Verification Checklist
 
 With config overrides in place, verify the surface end-to-end:
