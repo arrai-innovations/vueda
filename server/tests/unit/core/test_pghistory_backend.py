@@ -14,6 +14,8 @@ from django.db import connection
 
 from tests.conftest import BaseTestCallCommand
 from tests.store import models as store_models
+from tests.utils import append_installed_apps
+from tests.utils import info_registry_clear_with_appended_apps
 from vueda.core.audit import audited_action
 from vueda.history.middleware import VuedaHistoryMiddleware
 
@@ -398,27 +400,42 @@ class TestMigrationPaths(BaseTestCallCommand):
 
     Every test run already proves the forward path, because each test database is built from the
     migrations. What is left to prove is that the path runs backwards and forwards again.
+
+    ``tests.history_migrations`` exists for this alone: its ``0002`` adds one model's event table and
+    triggers, so the round trip is unaffected by other apps' migrations and only changes that one
+    table.
     """
 
+    @info_registry_clear_with_appended_apps()
     @pytest.mark.django_db
-    def test_the_event_migration_rolls_back_and_forward_again(self):
-        """One round trip, because migrating this app twice is the expensive part of the test."""
-        succeeded, results = self.call_command("migrate", "store", "0008")
+    def test_the_event_migration_rolls_back_and_forward_again(self, settings):
+        append_installed_apps(settings, "tests.history_migrations")
+        # Imported here, because the app is only installed for this test.
+        from tests.history_migrations.models import TrackedRecord
+
+        succeeded, results = self.call_command("migrate", "history_migrations")
         if not succeeded:
             pytest.fail("".join(results))
 
-        assert "store_invoiceevent" not in connection.introspection.table_names()
-        assert _trigger_names("store_invoice") == []
+        assert "history_migrations_trackedrecordevent" in connection.introspection.table_names()
+        assert _trigger_names("history_migrations_trackedrecord")
 
-        succeeded, results = self.call_command("migrate", "store")
+        succeeded, results = self.call_command("migrate", "history_migrations", "0001")
         if not succeeded:
             pytest.fail("".join(results))
 
-        assert "store_invoiceevent" in connection.introspection.table_names()
-        assert _trigger_names("store_invoice")
+        assert "history_migrations_trackedrecordevent" not in connection.introspection.table_names()
+        assert _trigger_names("history_migrations_trackedrecord") == []
 
-        invoice = make_invoice()
-        assert [event.pgh_label for event in events_for(invoice)] == ["insert"]
+        succeeded, results = self.call_command("migrate", "history_migrations")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert "history_migrations_trackedrecordevent" in connection.introspection.table_names()
+        assert _trigger_names("history_migrations_trackedrecord")
+
+        record = TrackedRecord.objects.create(name="Record A")
+        assert [event.pgh_label for event in events_for(record)] == ["insert"]
 
 
 class TestAppendOnly:
