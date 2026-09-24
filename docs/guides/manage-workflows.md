@@ -100,7 +100,7 @@ The migration is a standard Django migration file. After Django generates the em
 - A `migration_app_label` variable identifying the app whose permissions must exist before the migration runs.
 - A `forwards_migrate_workflow` function that iterates through `changed_data` in order and applies each change by dispatching to the appropriate `handle_*` function (`handle_workflow`, `handle_state`, `handle_transition`, etc.).
 - A `backwards_migrate_workflow` function that iterates through `changed_data` in reverse and undoes each change.
-- A call to `handle_state_objects` that gives every existing object without an object state the workflow's initial state. When the initial state changes, it also moves each object whose state nothing has changed since creation.
+- A call to `handle_state_objects` that gives existing objects without an object state the workflow's initial state, once one is set. On an initial state change, it moves object states with no update recorded after creation. That move records an update, so a later initial state change does not move those objects again.
 - Comments that allow the command to identify and parse previously created workflow migrations.
 - Other utility functions used by the `handle_*` functions.
 
@@ -140,13 +140,13 @@ Merging workflow migrations created in parallel branches is not straightforward 
 
 ## Enabling Workflow on a Model with Existing Rows
 
-A model that enables `class Vueda.Workflow` needs its workflow definition before the release that enables it serves traffic. Without one, saving an object and every workflow request fail with `WorkflowNotConfiguredError`. The generated workflow migration creates the definition and gives every existing object the initial state, so the order is:
+A model that enables `class Vueda.Workflow` needs its workflow definition before the release that enables it serves traffic. Without one, saving an object and every workflow request fail with `WorkflowNotConfiguredError`. The migration that sets the initial state assigns it to objects present when it runs, so the order is:
 
 1. In development, enable workflow on the model, create its workflow in the management UI, and run `makeworkflowmigrations`.
 2. Deploy with migrations applied before the new release serves traffic. `migrate` runs VUEDA's database checks, and `vueda_workflow.W001` warns about an enabled model without a definition. `vueda_workflow.W003` warns about a workflow without an initial state.
 3. After the new release serves traffic, run `manage.py backfillworkflowstates <app_label>.<ModelName>`.
 
-The previous release does not know the model has workflow. Objects it creates while the migrations run have no object state after cutover. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which is the state the new release would have given them. It only creates missing object states, so running it again changes nothing.
+The previous release does not know the model has workflow. Objects it creates after the migration assigns states and before the new release takes over have no object state after cutover. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which is the state the new release would have given them. It only creates missing object states, so running it again changes nothing.
 
 `manage.py check --database default` reports `vueda_workflow.W002` while any object of an enabled model still has no object state. The warning names the model and the command that fixes it.
 
