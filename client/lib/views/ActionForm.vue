@@ -73,7 +73,7 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. */
+    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. After success, the form stays locked until it unmounts unless the function resolves `false` to report that it did not navigate away. */
     redirectTo: {
         type: Function,
         default: undefined,
@@ -126,8 +126,16 @@ if (!formContext) {
             "FormContextSymbol, or render ModelActionForm, which establishes one when none is injected.",
     );
 }
-const { combinedError, combinedErrored, combinedLoading, confirmation, handleConfirm, handleCancelClick } =
-    useActionForm(formContext, props);
+const {
+    combinedError,
+    combinedErrored,
+    combinedLoading,
+    confirmDisabled,
+    cancelDisabled,
+    confirmation,
+    handleConfirm,
+    handleCancelClick,
+} = useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props);
 const icon = useIcons("ActionForm", props);
 
@@ -245,42 +253,41 @@ const validationTitle = computed(() => {
                         handleCancelClick,
                     }"
                 />
-                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `confirmDisabled`, `cancelDisabled`, `handleConfirm`, and `handleCancelClick` as slot props. -->
                 <slot
                     :loading="combinedLoading"
                     name="action-bar"
+                    :confirm-disabled="confirmDisabled"
+                    :cancel-disabled="cancelDisabled"
                     :handle-confirm="handleConfirm"
                     :handle-cancel-click="handleCancelClick"
                 >
                     <div :class="theme('buttons')" data-qa="action-form-buttons">
-                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. -->
+                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
                         <slot
                             label="Yes, continue"
                             :loading="combinedLoading"
                             name="confirm-button"
                             type="submit"
-                            :disabled="formContext.state.anyError"
+                            :disabled="confirmDisabled"
                         >
-                            <Button
-                                type="submit"
-                                tone="primary"
-                                :disabled="combinedLoading || formContext.state.anyError"
-                            >
+                            <Button type="submit" tone="primary" :disabled="confirmDisabled">
                                 <LoadingSpinnerInline v-if="combinedLoading" />
                                 Yes, continue
                             </Button>
                         </slot>
-                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, and `verb` as slot props. -->
+                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, `verb`, and `disabled` as slot props. `disabled` is true while the action runs and after a successful submit navigates away. -->
                         <slot
                             label="Cancel, go back"
                             :loading="combinedLoading"
                             name="cancel-button"
+                            :disabled="cancelDisabled"
                             @click="handleCancelClick"
                         >
                             <Button
                                 type="button"
                                 emphasis="ghost"
-                                :disabled="combinedLoading"
+                                :disabled="cancelDisabled"
                                 @click="handleCancelClick"
                             >
                                 <LoadingSpinnerInline v-if="combinedLoading" />
