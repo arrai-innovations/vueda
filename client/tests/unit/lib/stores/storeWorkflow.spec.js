@@ -338,6 +338,24 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(options.headers["Dry-Run"]).toBe("true");
     });
 
+    scopedIt("executeTransition leaves cached state and route alone after a dry run", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { code: "closed", name: "Closed" },
+            new_transitions: [{ code: "reopen", name: "Reopen" }],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: { code: "open", name: "Open" } };
+        store.objectTransitions[key] = { 1: { transitions: [{ code: "close", name: "Close" }] } };
+        const router = { push: vi.fn() };
+
+        await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" }, true);
+
+        expect(store.objectStates[key]["1"]).toEqual({ code: "open", name: "Open" });
+        expect(store.objectTransitions[key]["1"]).toEqual({ transitions: [{ code: "close", name: "Close" }] });
+        expect(router.push).not.toHaveBeenCalled();
+    });
+
     scopedIt("executeTransition adds Acknowledge-Warnings header when acknowledging warnings", async () => {
         mockedFetchHelper.mockResolvedValue({
             new_state: { code: "closed", name: "Closed" },

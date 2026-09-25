@@ -773,6 +773,10 @@ export const storeWorkflow = defineStore("workflow", {
                 },
             )
                 .then((data) => {
+                    if (dryRun) {
+                        // The server rolled a dry run back, so its `new_state` never took effect.
+                        return data;
+                    }
                     responseData = data;
                     updateState(this.objectStates, { ...result, ...data.new_state });
                     updateState(this.objectTransitions, { ...result, transitions: data.new_transitions });
