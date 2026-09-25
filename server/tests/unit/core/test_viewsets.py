@@ -662,9 +662,29 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
+
+    def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
+        """An expanded object never renders ``available_actions``, so requesting it is invalid."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,distributor.available_actions",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert "distributor.available_actions" in response.data
 
 
 @pytest.mark.django_db

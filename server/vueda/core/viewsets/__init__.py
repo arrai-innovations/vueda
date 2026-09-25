@@ -545,6 +545,11 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     if depth < max_depth:
         if hasattr(serializer, "fields"):
             valid_fields.update(serializer.fields.keys())
+            if depth > 0:
+                # An expanded object always omits available_actions (see
+                # VuedaExpandableFieldsSerializerMixin._get_expanded_field_names), so it is not a
+                # field the request can ask for there.
+                valid_fields.discard("available_actions")
 
         permitted_expands = None
         if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
