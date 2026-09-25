@@ -374,6 +374,43 @@ describe("lib/use/useModelAction.js", () => {
             });
         });
 
+        scopedIt("sends a successful single destroy to the list, since its row no longer exists", async () => {
+            mocks.routeQuery = {};
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: LIST_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "list" },
+            });
+        });
+
+        scopedIt("returns a cancelled destroy to the default detail view", async () => {
+            mocks.routeQuery = {};
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("cancel");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "detail", pk: "9" },
+            });
+        });
+
+        scopedIt("follows an explicit destroy redirect after a successful destroy", async () => {
+            mocks.routeQuery = {};
+            modelConfig.config = { actionRedirects: { default: "detail", destroy: () => "archived" } };
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "archived", pk: "9" },
+            });
+        });
+
         scopedIt("resolves true when the router navigates and false when it reports a failure", async () => {
             mocks.routeQuery = {};
             const modelAction = await withSetup(() =>

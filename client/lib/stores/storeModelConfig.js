@@ -71,8 +71,9 @@ import { defineStore } from "pinia";
  * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field name
  * @property {object} actionRedirects - mapping of action name to destination view
  *  when cancelling or after successful completion. The `default` key is used
- *  when no action-specific redirect exists. Values can be strings or functions
- *  receiving `{bulk, result}` and returning a view name.
+ *  when no action-specific redirect exists, except that a successful destroy with no `destroy` entry
+ *  goes to the list. Values can be strings or functions receiving `{bulk, result}` and returning a
+ *  view name.
  */
 
 /**

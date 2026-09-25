@@ -1,0 +1,2 @@
+- **Redirect after a successful delete**:
+    - A successful single-object delete with no `actionRedirects.destroy` entry now goes to the model's list. It used to follow `actionRedirects.default`, which is `"update"` when the model allows updates, so it opened the detail view of the row it had just deleted. Cancel still follows `default`, because the row still exists.
