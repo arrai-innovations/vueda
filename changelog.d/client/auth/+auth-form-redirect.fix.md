@@ -1,0 +1,2 @@
+- **`AuthForm` `redirect`**:
+    - After a successful action, `AuthForm` navigates to its `redirect` prop when the route has no `returnPath` query. The prop was accepted but never used, so the form stayed in place.

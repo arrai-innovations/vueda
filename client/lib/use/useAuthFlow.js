@@ -13,6 +13,7 @@ import { useRoute, useRouter } from "vue-router";
 /**
  * @typedef {object} AuthFlowOptions
  * @property {{ [key: string]: any }} [formProps] - Props forwarded to `useForm`.
+ * @property {string} [redirect] - Route path to push after success when the route has no `returnPath` query.
  */
 
 /**
@@ -22,8 +23,8 @@ import { useRoute, useRouter } from "vue-router";
  *  Intercepts `UnauthorizedError` and redirects to the reauthenticate route; falls back
  *  to `defaultOnSubmissionError` for all other errors.
  * @property {() => Promise<boolean>} redirectTo - Pushes to `route.query.returnPath` if
- *  present. Resolves `false` when there is no return path or the router reports a navigation failure, so
- *  `useActionForm` keeps the form usable.
+ *  present, otherwise to the `redirect` option. Resolves `false` when neither is set or the router reports a
+ *  navigation failure, so `useActionForm` keeps the form usable.
  */
 
 /**
@@ -70,12 +71,12 @@ export function useAuthFlow(options) {
     };
 
     const redirectTo = async () => {
-        const returnPath = route.query?.returnPath;
-        if (!returnPath) {
+        const destination = route.query?.returnPath || options.redirect;
+        if (!destination) {
             return false;
         }
         // `router.push` resolves a navigation failure instead of throwing when it does not navigate.
-        return !(await router.push(returnPath));
+        return !(await router.push(destination));
     };
 
     return { formContext, onSubmissionErrorHandler, redirectTo };
