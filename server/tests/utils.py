@@ -37,7 +37,7 @@ def set_email_backend(settings, backend):
 
 
 # This is a decorator.
-class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa N801
+class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa: N801
     """
     Clears the info registry before the wrapped test runs.
 
