@@ -37,8 +37,6 @@ function orderModelInfo(app) {
         model: MODEL,
         verboseName: "Order",
         verboseNamePlural: "Orders",
-        verbose_name: "Order",
-        verbose_name_plural: "Orders",
         pk: "id",
         fields: {
             id: {

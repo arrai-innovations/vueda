@@ -53,12 +53,8 @@ const currencyChoices = [
 export const customerModelInfo = {
     appLabel: SHOWCASE_CUSTOMER.app,
     model: SHOWCASE_CUSTOMER.model,
-    // getDefaultFromModelInfo reads the snake_case verbose names; the typedef uses
-    // camelCase. Provide both so the built config has a verbose name either way.
     verboseName: "Customer",
     verboseNamePlural: "Customers",
-    verbose_name: "Customer",
-    verbose_name_plural: "Customers",
     pk: "id",
     fields: {
         id: {

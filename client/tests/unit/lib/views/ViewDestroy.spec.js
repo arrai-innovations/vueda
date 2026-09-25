@@ -135,6 +135,27 @@ describe("lib/views/ViewDestroy.vue", () => {
             expect(wrapper.get('[data-qa="view-destroy-banner-title"]').text()).toContain("2 things");
         });
 
+        scopedIt("names the model by its verbose name when the slug differs", () => {
+            const modelConfig = reactive({
+                info: { pk: "id", verboseName: "purchase order", verboseNamePlural: "purchase orders" },
+            });
+            mockedUseViewDestroy.mockReturnValue({
+                modelConfig,
+                handleDelete: vi.fn(),
+                instanceList: { state: reactive({}) },
+            });
+
+            const single = mount(ViewDestroy, { props: { app: "catalog", model: "purchaseorder", pk: "5" } });
+            expect(single.get('[data-qa="view-destroy-banner-title"]').text()).toBe(
+                "This will permanently delete the selected purchase order.",
+            );
+
+            const bulk = mount(ViewDestroy, { props: { app: "catalog", model: "purchaseorder", pk: ["5", "6"] } });
+            expect(bulk.get('[data-qa="view-destroy-banner-title"]').text()).toBe(
+                "This will permanently delete 2 purchase orders.",
+            );
+        });
+
         scopedIt("custom banner slot overrides default chrome", () => {
             const modelConfig = reactive({ info: { pk: "id" } });
             mockedUseViewDestroy.mockReturnValue({

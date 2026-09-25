@@ -42,12 +42,8 @@ const methodChoices = [
 export const deviceModelInfo = {
     appLabel: SHOWCASE_DEVICE.app,
     model: SHOWCASE_DEVICE.model,
-    // getDefaultFromModelInfo reads the snake_case verbose names; the typedef uses
-    // camelCase. Provide both so the built config has a verbose name either way.
     verboseName: "Two-factor device",
     verboseNamePlural: "Two-factor devices",
-    verbose_name: "Two-factor device",
-    verbose_name_plural: "Two-factor devices",
     pk: "id",
     fields: {
         id: {

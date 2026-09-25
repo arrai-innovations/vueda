@@ -34,6 +34,12 @@ const modelInfoUrl = ({ app, model }) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
+ * @param {string} key
+ * @returns {string}
+ */
+const camelCaseKey = (key) => key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+
+/**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
  * @param {unknown} obj - The value to convert.
@@ -55,8 +61,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
                 return [k, v];
             }
 
-            const newKey = k.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-            return [newKey, camelCaseObject(v, skipKeys)];
+            return [camelCaseKey(k), camelCaseObject(v, skipKeys)];
         }),
     );
 };
@@ -242,7 +247,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} model - The Python model class name in lowercase (e.g., "user").
  * @property {string} verboseName - The human-readable, singular name of the model.
  * @property {string} verboseNamePlural - The human-readable, plural name of the model.
- * @property {boolean} workflow_enabled - Whether the model enables workflow on the server. The workflow store
+ * @property {boolean} workflowEnabled - Whether the model enables workflow on the server. The workflow store
  *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
  *  still decide what the user may see and do.
  * @property {string} pk - The primary key field of the model.
@@ -378,13 +383,9 @@ export const storeModelInfo = defineStore("modelInfo", {
                                 if (key === "expands") {
                                     key = "expand";
                                 }
-                                // The only multi-word section name; every other root key is one word,
-                                // so this is the one place the camelCasing below would otherwise have
-                                // to reach a key rather than a value.
-                                if (key === "column_totals") {
-                                    key = "columnTotals";
-                                }
-                                // Only camelCase nested objects, leave root keys unchanged
+                                key = camelCaseKey(key);
+                                // `fields` and `filtering` map field names (server lookup keys) to
+                                // descriptors: keep the field names and camelCase each descriptor.
                                 if (key === "fields" || key === "filtering") {
                                     return [
                                         key,

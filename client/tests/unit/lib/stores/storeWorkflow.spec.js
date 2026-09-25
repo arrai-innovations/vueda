@@ -20,7 +20,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         ({ storeModelInfo } = await import("@vueda/stores/storeModelInfo.js"));
         ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
         // the store requests workflow data only for a model whose model info reports workflow
-        storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: true };
+        storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflowEnabled: true };
     });
 
     afterEach(() => {
@@ -64,7 +64,7 @@ describe("lib/stores/storeWorkflow.js", () => {
 
     describe("a model whose model info does not report workflow", () => {
         beforeEach(() => {
-            storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: false };
+            storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflowEnabled: false };
         });
 
         scopedIt.each([
@@ -88,7 +88,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
         const transitions = [{ code: "one", name: "One" }];
         const fetchModelInfo = vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
-            const info = { workflow_enabled: true };
+            const info = { workflowEnabled: true };
             modelInfoStore.infos[getAppModelDotName(args)] = info;
             return info;
         });
@@ -106,7 +106,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         const modelInfoStore = storeModelInfo();
         delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
         vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
-            const info = { workflow_enabled: false };
+            const info = { workflowEnabled: false };
             modelInfoStore.infos[getAppModelDotName(args)] = info;
             return info;
         });

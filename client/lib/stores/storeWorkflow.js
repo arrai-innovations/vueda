@@ -64,7 +64,7 @@ const clearNestedContainer = (container) => {
 /**
  * Decide whether a workflow fetch for this model goes to the server.
  *
- * The server serves workflow endpoints only for a model whose model info reports `workflow_enabled`.
+ * The server serves workflow endpoints only for a model whose model info reports `workflowEnabled`.
  * When that model info is already cached, this answers synchronously. Otherwise it fetches the model
  * info and then runs `retry`, which calls the same fetch again and finds the model info cached.
  *
@@ -82,7 +82,7 @@ const gateOnWorkflowEnabled = (app, model, disabledValue, retry) => {
     if (!info) {
         return modelInfoStore.fetchModelInfo({ app, model }).then(retry);
     }
-    if (!info.workflow_enabled) {
+    if (!info.workflowEnabled) {
         return Promise.resolve(disabledValue);
     }
     return undefined;

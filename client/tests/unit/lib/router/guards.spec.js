@@ -106,7 +106,7 @@ describe("lib/router/guards.js", () => {
         expect(fetchModelInfo).toHaveBeenCalledWith({ app: "a", model: "b" });
         expect(getConfig).toHaveBeenCalledWith({ app: "a", model: "b" });
         expect(result).toEqual(["info", "config", ["t"]]);
-        // the workflow store reads `workflow_enabled` from the model info, so that loads first
+        // the workflow store reads `workflowEnabled` from the model info, so that loads first
         expect(fetchModelInfo.mock.invocationCallOrder[0]).toBeLessThan(
             fetchWorkflowTransition.mock.invocationCallOrder[0],
         );
