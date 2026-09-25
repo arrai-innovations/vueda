@@ -106,6 +106,7 @@ const props = defineProps({
      * Sentiment tone that drives the banner and card accents.
      * One of `info` (default confirmations), `success` (activate / restore),
      * `warning` (irreversible non-destructive), or `danger` (destructive).
+     * `danger` also gives the default confirm button the destructive tone; the others keep it primary.
      * Routed via `data-tone` on the card root and consumed by Tailwind v4
      * `group-data-[tone=…]/model-action-form:` variants.
      */
@@ -249,7 +250,7 @@ const resolveWarningGroups = (warnings, bulk) => {
             <Button
                 v-else
                 type="submit"
-                tone="primary"
+                :tone="tone === 'danger' ? 'destructive' : 'primary'"
                 :disabled="slotProps.loading || slotProps.disabled || typedConfirmGateBlocking"
             >
                 <LoadingSpinnerInline v-if="slotProps.loading" />

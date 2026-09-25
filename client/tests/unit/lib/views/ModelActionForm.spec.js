@@ -228,6 +228,7 @@ function mountModelActionForm(options = {}) {
             enableDryRun: options.enableDryRun,
             confirmText: options.confirmText,
             instanceList: options.instanceList,
+            tone: options.tone,
         },
         slots: options.slots,
         global: {
@@ -255,6 +256,18 @@ describe("lib/views/ModelActionForm.vue", () => {
     });
 
     describe("Rendering", () => {
+        scopedIt("gives the default confirm button the primary tone", () => {
+            const { wrapper } = mountModelActionForm();
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("data-tone")).toBe("primary");
+        });
+
+        scopedIt("gives the default confirm button the destructive tone for a danger form", () => {
+            const { wrapper } = mountModelActionForm({ tone: "danger" });
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("data-tone")).toBe("destructive");
+        });
+
         scopedIt("renders selected objects and confirm message", () => {
             const { wrapper } = mountModelActionForm();
             const items = wrapper.findAll('[data-qa="action-form-list-item"]');
