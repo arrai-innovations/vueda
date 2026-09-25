@@ -1116,7 +1116,10 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         """
         events_by_label = {}
         for record in unmatched_history_data:
-            events_by_label.setdefault(record["pgh_label"], set()).add(record["code"])
+            label = record["pgh_label"]
+            if label not in events_by_label:
+                events_by_label[label] = set()
+            events_by_label[label].add(record["code"])
 
         return events_by_label
 
