@@ -1,9 +1,6 @@
 <script setup>
 import { toast } from "@arrai-innovations/vue-sonner";
 import Button from "@vueda/controls/button/Button.vue";
-import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
-import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
-import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
@@ -12,6 +9,7 @@ import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import AuthForm from "@vueda/views/AuthForm.vue";
+import WidgetOTPInput from "@vueda/widgets/WidgetOTPInput.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, reactive, ref, toRef } from "vue";
@@ -224,11 +222,7 @@ const doAfterSuccess = async (response) => {
                     </slot>
 
                     <FormField v-if="step === STEPS.VERIFY" validation="text" label="Code" name="code">
-                        <InputOTP :maxlength="6" data-qa="view-setup-device-otp">
-                            <InputOTPGroup>
-                                <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
-                            </InputOTPGroup>
-                        </InputOTP>
+                        <WidgetOTPInput :maxlength="6" data-qa="view-setup-device-otp" />
                     </FormField>
                 </template>
 
