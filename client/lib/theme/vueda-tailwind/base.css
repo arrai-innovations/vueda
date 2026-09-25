@@ -54,6 +54,12 @@
  *    h-[var(--vueda-control-height)], gap-[var(--vueda-gap-sm)].
  */
 
+/* Enter/exit and accordion animation utilities (`animate-in`, `fade-in-0`,
+ * `zoom-in-95`, `animate-accordion-down`, and the rest) that the overlay and
+ * disclosure themes use. Imported here so every stylesheet that loads base.css
+ * compiles them. */
+@import "tw-animate-css";
+
 /* Tell Tailwind CSS v4 to scan vueda's lib directory for component class names.
  * Tailwind excludes node_modules from automatic scanning, so without this, class
  * names that appear only in vueda theme files (e.g. sidebar collapse variants) are
