@@ -181,6 +181,51 @@ describe("lib/views/ViewUpdate.vue", () => {
             expect(wrapper.find('[data-qa="update-action-buttons"]').exists()).toBe(true);
         });
 
+        scopedIt("labels the default submit button Update and targets the form", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const button = wrapper.get('[data-qa="update-action-buttons"] button');
+            expect(button.text()).toBe("Update");
+            expect(button.attributes("type")).toBe("submit");
+            expect(button.attributes("form")).toBe("testApp-testModel-42-update");
+        });
+
+        scopedIt("passes the Update label to the submit-button slot", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: {
+                    "submit-button": `<template #submit-button="{ label, type }">
+                        <button data-qa="custom-submit" :type="type">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Update");
+        });
+
+        scopedIt("renders custom text from a submit-button slot override", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: { "submit-button": `<button data-qa="custom-submit" type="submit">Save order</button>` },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Save order");
+        });
+
+        scopedIt("keeps the Update button separate from a Submit workflow transition", async () => {
+            mockComposableResult.actions.availableTransitions = ["submit"];
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            const wrapper = mount(ViewUpdate, { props: { app: "sales", model: "purchaseorder", pk: "1" } });
+            const buttons = wrapper.get('[data-qa="update-action-buttons"]');
+            expect(buttons.get("button").text()).toBe("Update");
+            const transition = buttons.findComponent({ name: "LinkModelView" });
+            expect(transition.attributes("label")).toBe("Submit");
+            expect(transition.attributes("view")).toBe("submit");
+
+            await wrapper.get("form").trigger("submit");
+            expect(mockComposableResult.objectForm.submit).toHaveBeenCalledTimes(1);
+        });
+
         scopedIt("renders FormConfirmDialog with save-specific copy", async () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });

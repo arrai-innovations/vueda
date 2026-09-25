@@ -197,7 +197,7 @@ onMounted(() => {
                     <slot
                         v-if="instance.currentActionAvailable"
                         :form="instance.formId"
-                        label="Submit"
+                        label="Update"
                         :loading="objectForm.state.loading"
                         :modified="formContext.state.anyModified"
                         name="submit-button"
@@ -210,7 +210,7 @@ onMounted(() => {
                             tone="primary"
                         >
                             <LoadingSpinnerInline v-if="objectForm.state.loading" />
-                            Submit
+                            Update
                         </Button>
                     </slot>
                     <template v-for="actionName in actions.detailActions" :key="actionName">

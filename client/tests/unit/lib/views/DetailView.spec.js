@@ -190,6 +190,52 @@ describe("lib/views/DetailView.vue", () => {
         expect(views.sort()).toEqual(["activate", "approve", "complete", "destroy", "read", "update"].sort());
     });
 
+    describe("Submit button", () => {
+        scopedIt("labels the default update button Update and targets the form", () => {
+            const wrapper = mountWithContext({ props: { viewName: "update" } });
+            const button = wrapper.get('[data-qa="update-action-button"] [data-qa="prime-button"]');
+            expect(button.text()).toBe("Update");
+            expect(button.attributes("data-type")).toBe("submit");
+            expect(button.attributes("data-form")).toBe("app-model-1-update");
+        });
+
+        scopedIt("passes the Update label to the submit-button slot", () => {
+            const wrapper = mountWithContext({
+                props: { viewName: "update" },
+                slots: {
+                    "submit-button": `<template #submit-button="{ label, type }">
+                        <button data-qa="custom-submit" :type="type">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Update");
+        });
+
+        scopedIt("renders custom text from a submit-button slot override", () => {
+            const wrapper = mountWithContext({
+                props: { viewName: "update" },
+                slots: { "submit-button": `<button data-qa="custom-submit" type="submit">Save order</button>` },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Save order");
+        });
+
+        scopedIt("renders no submit button outside update mode", () => {
+            const wrapper = mountWithContext();
+            expect(wrapper.find('[data-qa="read-action-button"] [data-qa="prime-button"]').exists()).toBe(false);
+        });
+
+        scopedIt("keeps the Update button separate from a Submit workflow transition", async () => {
+            instanceState.object = { available_actions: [], valid_transitions: [{ name: "submit", code: "submit" }] };
+            const wrapper = mountWithContext({ props: { viewName: "update" } });
+            await vue.nextTick();
+            const buttons = wrapper.get('[data-qa="update-action-button"]');
+            expect(buttons.get('[data-qa="prime-button"]').text()).toBe("Update");
+            const transition = buttons.get('[data-qa="link-model-view"]');
+            expect(transition.attributes("data-view")).toBe("submit");
+            expect(transition.attributes("data-label")).toBe("SUBMIT");
+        });
+    });
+
     scopedIt("sets form id and forwards attrs", () => {
         const wrapper = mountWithContext({ attrs: { foo: "bar" } });
         const form = wrapper.get("form");

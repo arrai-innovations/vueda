@@ -58,7 +58,7 @@
  * @example Wiring the submit button
  * ```html
  * <Button :form="instance.formId" :disabled="objectForm.state.loading" type="submit">
- *     Submit
+ *     Create
  * </Button>
  * ```
  */

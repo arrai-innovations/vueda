@@ -266,6 +266,47 @@ describe("lib/views/ViewCreate.vue", () => {
         });
     });
 
+    describe("Submit button", () => {
+        scopedIt("labels the default button Create and targets the form", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const button = wrapper.get('[data-qa="create-action-buttons"] [data-qa="button"]');
+            expect(button.text()).toBe("Create");
+            expect(button.attributes("data-type")).toBe("submit");
+            expect(button.attributes("data-form")).toBe(wrapper.get("form").attributes("id"));
+        });
+
+        scopedIt("passes the Create label to the submit-button slot", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model" },
+                slots: {
+                    "submit-button": `<template #submit-button="{ label, type }">
+                        <button data-qa="custom-submit" :type="type">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Create");
+            expect(wrapper.find('[data-qa="create-action-buttons"] [data-qa="button"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders custom text from a submit-button slot override", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model" },
+                slots: { "submit-button": `<button data-qa="custom-submit" type="submit">Add thing</button>` },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Add thing");
+        });
+
+        scopedIt("submitting the form runs the create request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            await wrapper.get("form").trigger("submit");
+            expect(objectForm.submit).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("Warning confirmation dialog", () => {
         scopedIt("renders FieldWarningsList with the confirmation controller's warnings by default", () => {
             mockedInject.mockReturnValueOnce({});
