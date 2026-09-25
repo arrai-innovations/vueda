@@ -207,6 +207,14 @@ describe("lib/use/useForm.js", () => {
                     expect(formContext.state.anyIgnored).toEqual(true);
                     expect(formContext.state.submittingValues).toEqual(submittingValues);
                 });
+                scopedIt("should keep falsy array items when another item in the array is ignored", async () => {
+                    const values = { someField: [0, "", false, null, "drop", 5] };
+                    const { formContext } = getForm({
+                        initialValues: cloneDeep(values),
+                    });
+                    formContext.ignore("someField[4]");
+                    expect(formContext.state.submittingValues).toEqual({ someField: [0, "", false, null, 5] });
+                });
             });
             describe("initialValues", () => {
                 scopedIt("should not allow updates directly or deeply", () => {
