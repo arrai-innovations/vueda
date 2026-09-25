@@ -639,9 +639,9 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
             pytest.fail(f"Serializer is not valid: {e}")
         serializer.save()
 
-        assert serializer.data["period_start"] == "2024-02-16", serializer.detail
-        assert serializer.data["period_end"] == "2024-02-28", serializer.detail
-        assert serializer.get_extra_kwargs()["employee"]["read_only"] is True, serializer.detail
+        assert serializer.data["period_start"] == "2024-02-16", serializer.data
+        assert serializer.data["period_end"] == "2024-02-28", serializer.data
+        assert serializer.get_extra_kwargs()["employee"]["read_only"] is True, serializer.get_extra_kwargs()
 
     def test_exclude_create_field(self, employee):
         post_data = {

@@ -132,7 +132,7 @@ def test_delete_email_attachments_deletes_when_all_queue_items_done(
     queue_item_two.fast_transition("send")
     queue_item_two.fast_transition("await")
     queue_item_two.fast_transition("succeed")
-    queue_item_one.delete_email_attachments()
+    queue_item_two.delete_email_attachments()
 
     attachment.refresh_from_db()
     assert not file_path.exists()

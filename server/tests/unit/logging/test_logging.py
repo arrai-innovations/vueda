@@ -54,6 +54,28 @@ def log_to_db(settings):
     configure_logging(settings.LOGGING_CONFIG, settings.LOGGING)
 
 
+@pytest.fixture
+def process_id_with_log_cleanup():
+    """Yield this process's id, then delete the log records written for it and close db_logging.
+
+    The DB handler writes on the db_logging connection outside the test's transaction, so its
+    records survive the rollback. Cleaning up here rather than at the end of a test means a failing
+    assert can't leave a record behind for the next test that looks for this process id. The ORM
+    can't do the delete, so it is raw SQL. Closing the connection lets pytest drop the database.
+    """
+    process_id = os.getpid()
+
+    yield process_id
+
+    connection = connections["db_logging"]
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "BEGIN; DELETE FROM logging_logrecords WHERE process_id = %s; COMMIT;",
+            (process_id,),
+        )
+    connection.close()
+
+
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
@@ -72,8 +94,8 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         },
     }
 
-    def test_validation_errors_are_logged(self, api_client, log_to_db):
-        process_id = os.getpid()
+    def test_validation_errors_are_logged(self, api_client, log_to_db, process_id_with_log_cleanup):
+        process_id = process_id_with_log_cleanup
         api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         # Need a record that I can update, so I cause the validation to fail, which generates a log record.
@@ -103,21 +125,8 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         assert "Test Error 1" in record.traceback
         assert "Test Error 2" in record.traceback
 
-        # Remove records we no longer need, in case we are running the tests locally
-        # and not in parallel.  This doesn't work if we do it through the ORM.
-        connection = connections["db_logging"]
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "BEGIN; DELETE FROM logging_logrecords WHERE process_id = %s; COMMIT;",
-                (process_id,),
-            )
-
-        # Close the connection, so it isn't still connected to the database when pytest tries to drop it.
-        connection = connections["db_logging"]
-        connection.close()
-
-    def test_confirmation_required_is_not_logged(self, api_client, log_to_db):
-        process_id = os.getpid()
+    def test_confirmation_required_is_not_logged(self, api_client, log_to_db, process_id_with_log_cleanup):
+        process_id = process_id_with_log_cleanup
         api_client.force_authenticate(user=self.users["test_admin@domain.invalid"])
 
         # Need a record that I can update, so the request reaches the warnings gate.
@@ -145,7 +154,3 @@ class TestVuedaValidationErrors(BaseTestUserMixin, BaseTestGroupMixin):
         record = logging_models.LogRecords.objects.using("db_logging").filter(process_id=process_id).first()
 
         assert record is None
-
-        # Close the connection, so it isn't still connected to the database when pytest tries to drop it.
-        connection = connections["db_logging"]
-        connection.close()

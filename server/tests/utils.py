@@ -1,3 +1,5 @@
+import datetime
+import glob
 import os
 import pathlib
 import shutil
@@ -66,6 +68,26 @@ def append_installed_apps(settings, *apps_to_append):
     order.
     """
     settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, *apps_to_append]
+
+
+def expect_one_migration_generated_today(migration_dir, name):
+    """Assert one migration in ``migration_dir`` is named ``<name>_<today>.py``, and return its file name.
+
+    ``name`` may leave out the number prefix, such as ``group_permission_migrations``. The commands name
+    a migration after the date they run, so a test that checks the name after midnight sees the
+    previous day's date: yesterday's date is accepted too, and the name found on disk is returned
+    rather than rebuilt from the clock.
+    """
+    today = datetime.date.today()
+    found = sorted(
+        os.path.basename(path)
+        for date in (today, today - datetime.timedelta(days=1))
+        for path in glob.glob(os.path.join(migration_dir, f"*{name}_{date.strftime('%Y_%m_%d')}.py"))
+    )
+    assert len(found) == 1, (
+        f"expected one {name}_<today>.py migration in {migration_dir}, found {found} among {sorted(os.listdir(migration_dir))}"
+    )
+    return found[0]
 
 
 class BaseTestMigrations:

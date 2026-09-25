@@ -108,10 +108,9 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        for err in response.data["distributor"]:
-            assert str(err) == "Select a valid choice. Tasty Treats is not one of the available choices.", (
-                response_body(response)
-            )
+        assert [str(err) for err in response.data["distributor"]] == [
+            "Select a valid choice. Tasty Treats is not one of the available choices."
+        ], response_body(response)
 
         response = api_client.get(
             reverse("store.cart-list"),
@@ -141,8 +140,9 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        for err in response.data["product_quantity"]:
-            assert str(err) == "Select a valid choice. 24 is not one of the available choices.", response_body(response)
+        assert [str(err) for err in response.data["product_quantity"]] == [
+            "Select a valid choice. 24 is not one of the available choices."
+        ], response_body(response)
 
 
 @pytest.mark.django_db
@@ -216,7 +216,7 @@ class TestValueDerivedFilterChoicesStayFresh:
 
 @pytest.mark.django_db
 class TestTrigramSimilarFilter:
-    similarity_threshold_default = 0.3
+    # pg_trgm's default similarity_threshold is 0.3, so the first request matches.
     # similarity('Vibrant', 'Vibrant Looks Inc.') = 0.444444
     similarity_threshold_failing_close = 0.5
 
@@ -262,8 +262,10 @@ class TestTrigramSimilarFilter:
         assert response.data["totalRecords"] == 1, response_body(response)
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
+        # SET LOCAL ends with the test's transaction, so a failing assert below can't leave the
+        # raised threshold behind for later tests on this connection.
         with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.similarity_threshold = %s", [self.similarity_threshold_failing_close])
+            cursor.execute("SET LOCAL pg_trgm.similarity_threshold = %s", [self.similarity_threshold_failing_close])
 
         response = api_client.get(
             reverse("store.distributor-list"),
@@ -271,9 +273,6 @@ class TestTrigramSimilarFilter:
             format="json",
         )
         assert response.data["totalRecords"] == 0, response_body(response)
-
-        with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.similarity_threshold = %s", [self.similarity_threshold_default])
 
     def test_trigram_similar_no_match(self, test_data, api_client, settings):
         """name_similar filter returns no results when nothing is similar."""
@@ -307,7 +306,7 @@ class TestTrigramSimilarFilter:
 
 @pytest.mark.django_db
 class TestTrigramWordSimilarFilter:
-    similarity_word_threshold_default = 0.6
+    # pg_trgm's default word_similarity_threshold is 0.6, so the first request matches.
     # word_similarity('Vibran', 'Vibrant') = 0.85714287
     similarity_word_threshold_failing_close = 0.9
 
@@ -352,8 +351,12 @@ class TestTrigramWordSimilarFilter:
         assert response.data["totalRecords"] == 1, response_body(response)
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
+        # SET LOCAL ends with the test's transaction, so a failing assert below can't leave the
+        # raised threshold behind for later tests on this connection.
         with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_failing_close])
+            cursor.execute(
+                "SET LOCAL pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_failing_close]
+            )
 
         response = api_client.get(
             reverse("store.distributor-list"),
@@ -361,9 +364,6 @@ class TestTrigramWordSimilarFilter:
             format="json",
         )
         assert response.data["totalRecords"] == 0, response_body(response)
-
-        with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_default])
 
     def test_trigram_word_similar_no_match(self, test_data, api_client, settings):
         """Search with no word similarity returns no results."""
@@ -759,24 +759,19 @@ class TestMixedRankedAndWordSimilarSearch:
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
-        # "Treat" matches V:name for "Treat King LLC." and "Tasty Treats Assoc."
-        # Both also have "Treat" in their descriptions, passing ~description.
-        # "Sugar" appears in Tasty Treats Assoc. description ("Glorious Sugar")
-        # and Treat King LLC. description ("Sugary").
-        # With combined terms: "Treat Sugar" as a single string is checked
-        # via word_similarity against each description.
+        # The combined "Treat Sugar" is checked with word_similarity against each description, and a
+        # row must reach pg_trgm's default word_similarity_threshold of 0.6 to survive:
+        # - Tasty Treats Assoc. ("... Glorious Sugar ...") scores 0.647, and its name ranks 0.263,
+        #   above the search threshold of 0.2.
+        # - Treat King LLC. ("... Sugary Goodness.") scores only 0.5, so it is filtered out, even
+        #   though its name ranks highest (1.4). The description check is a hard filter that a
+        #   strong name match cannot outvote.
         response = api_client.get(
             reverse("store.distributor-list"),
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Treat Sugar"},
             format="json",
         )
-        # Both treat distributors match V:name for "Treat" and their descriptions
-        # should pass trigram_word_similar for the combined "Treat Sugar".
-        assert response.data["totalRecords"] >= 1, (
-            f"Expected results where V:name matches 'Treat' and description "
-            f"passes trigram_word_similar for combined 'Treat Sugar'. "
-            f"response.data: {response.data}"
-        )
+        assert [x["name"] for x in response.data["results"]] == ["Tasty Treats Assoc."], response_body(response)
 
     def test_mixed_single_term_filters_by_word_similar(self, test_data, api_client, settings):
         """Single-term search where ~description acts as a hard filter,
