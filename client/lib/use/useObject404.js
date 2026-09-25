@@ -37,7 +37,7 @@ export function useObject404(yourProps, yourInstanceObject, yourModelConfig, you
             if (error?.response?.status === 404) {
                 // we will handle this in the error display component
                 yourInstanceObject.clearError();
-                const modelTitle = memoizedStartCase(yourModelConfig.info.verbose_name);
+                const modelTitle = memoizedStartCase(yourModelConfig.info.verboseName);
                 const newE = new Error(`No ${modelTitle} found with id: ` + yourProps.pk);
                 newE.name = ""; // delete will just show the default Error.prototype.name
                 delete newE.stack;

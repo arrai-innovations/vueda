@@ -166,8 +166,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
     });
     return [
         {
-            verboseName: modelInfo.verbose_name,
-            verboseNamePlural: modelInfo.verbose_name_plural,
+            verboseName: modelInfo.verboseName,
+            verboseNamePlural: modelInfo.verboseNamePlural,
             displayFields: fields,
             detailLinkField: null,
             fetchFields: fields,

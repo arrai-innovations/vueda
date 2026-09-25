@@ -26,7 +26,7 @@ describe("lib/use/useObject404.js", () => {
 
         modelConfig = {
             info: reactive({
-                verbose_name: "some_model",
+                verboseName: "some_model",
             }),
         };
 

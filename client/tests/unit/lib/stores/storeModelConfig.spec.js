@@ -3,10 +3,10 @@ import { getAppModelDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
 const dummyModelInfo = {
-    app_label: "tim",
+    appLabel: "tim",
     model: "timesheet",
-    verbose_name: "timesheet",
-    verbose_name_plural: "timesheets",
+    verboseName: "timesheet",
+    verboseNamePlural: "timesheets",
     pk: "id",
     fields: {
         id: {
@@ -324,8 +324,8 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.initialized = {};
 
             const incompleteModelInfo = {
-                verbose_name: "Incomplete Model",
-                verbose_name_plural: "Incomplete Models",
+                verboseName: "Incomplete Model",
+                verboseNamePlural: "Incomplete Models",
             };
 
             mockedFetchModelInfo.mockResolvedValue(incompleteModelInfo);

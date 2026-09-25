@@ -106,6 +106,28 @@ describe("lib/use/useModelAction.js", () => {
         expect(fromPk.state.bulk.value).toBe(false);
     });
 
+    describe("Model naming", () => {
+        scopedIt("names the model by its verbose name when the slug differs", async () => {
+            modelConfig.info = { verboseName: "purchase order", verboseNamePlural: "purchase orders" };
+
+            const single = await withSetup(() =>
+                useModelAction(reactive({ app: "catalog", model: "purchaseorder", action: "destroy", pk: "9" })),
+            );
+            expect(single.state.modelVerboseName.value).toBe("purchase order");
+            expect(single.state.confirmMessage.value).toBe(
+                "Are you sure you want to destroy the selected purchase order?",
+            );
+
+            const bulk = await withSetup(() =>
+                useModelAction(reactive({ app: "catalog", model: "purchaseorder", action: "destroy", pk: ["4", "7"] })),
+            );
+            expect(bulk.state.modelVerboseName.value).toBe("purchase orders");
+            expect(bulk.state.confirmMessage.value).toBe(
+                "Are you sure you want to destroy the selected purchase orders?",
+            );
+        });
+    });
+
     describe("Transport instances", () => {
         scopedIt("creates a transport-only list when the caller supplies none", async () => {
             await withSetup(() => useModelAction(reactive({ app: "app", model: "person", action: "archive" })));
