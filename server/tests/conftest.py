@@ -373,9 +373,6 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
         # we need to convert them to dicts
         return {k: dict(v) if isinstance(v, dict) else v for k, v in response.data.items()}
 
-    def get_default_response(self, arguments):
-        return {key: arguments[key] for key in arguments}
-
 
 class BaseTestListModelViewSet:
     list_keys_arguments = set()
@@ -464,9 +461,6 @@ class BaseTestCreateModelViewSet:
                 }
             )
 
-    def after_create(self, new_instance, expected_create_response):
-        pass
-
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_create(
         self, page_data, authenticated_client, create_arguments, expected_create_response, detail_querystring
@@ -479,7 +473,6 @@ class BaseTestCreateModelViewSet:
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == HTTPStatus.CREATED:
             assert self.convert_response(response) == expected_create_response
-        self.after_create(new_instance, expected_create_response)
 
 
 class BaseTestRetrieveModelViewSet:
@@ -544,9 +537,6 @@ class BaseTestUpdateModelViewSet:
                 }
             )
 
-    def after_update(self, updated_instance, expected_update_response):
-        pass
-
     def test_update(
         self,
         page_data,
@@ -565,7 +555,6 @@ class BaseTestUpdateModelViewSet:
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == HTTPStatus.OK:
             assert self.convert_response(response) == expected_update_response
-        self.after_update(updated_instance, expected_update_response)
 
 
 class BaseTestModelViewSet(

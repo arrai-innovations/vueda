@@ -171,7 +171,7 @@ def test_send_email_non_transient_error(settings, monkeypatch, sending_email_wit
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_success(settings, monkeypatch, sending_sms):
+def test_twilio_send_sms_success(settings, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
 
@@ -348,7 +348,7 @@ def test_update_sms_qi_delivered(sending_sms):
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_failure(settings, monkeypatch, sending_sms):
+def test_update_sms_qi_failure(settings, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
 
@@ -397,7 +397,7 @@ def test_timeout_queue_item(sending_sms):
 
 
 @pytest.mark.django_db
-def test_handle_bounce_updates_states(monkeypatch, sending_email_without_detail):
+def test_handle_bounce_updates_states(sending_email_without_detail):
     sender = sending_email_without_detail.sender
     receiver = sending_email_without_detail.receiver
 

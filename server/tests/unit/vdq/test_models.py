@@ -172,9 +172,7 @@ def test_queue_item_on_transition_retry_resets_task(monkeypatch, sender, receive
 
 
 @pytest.mark.django_db
-def test_queue_item_on_transition_done_triggers_file_cleanup(
-    settings, monkeypatch, sender, receiver, queued_email_with_detail
-):
+def test_queue_item_on_transition_done_triggers_file_cleanup(settings, queued_email_with_detail):
     settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
 
     queued_email_with_detail.fast_transition("send")
@@ -194,9 +192,7 @@ def test_queue_item_on_transition_done_triggers_file_cleanup(
 
 
 @pytest.mark.django_db
-def test_queue_item_on_transition_dry_run_skips_file_cleanup(
-    settings, monkeypatch, sender, receiver, queued_email_with_detail
-):
+def test_queue_item_on_transition_dry_run_skips_file_cleanup(settings, queued_email_with_detail):
     settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
 
     queued_email_with_detail.fast_transition("send")

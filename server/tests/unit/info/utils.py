@@ -910,7 +910,6 @@ def create_test_data(self):
     # Make carts.
     carts = {}
     tzinfo = zoneinfo.ZoneInfo(settings.TIME_ZONE)
-    tzinfo.dst(None)
     for cart_data in (
         {
             "customer_email": "test_customer_1@domain.invalid",

@@ -44,12 +44,6 @@ def convert_data_to_list_of_dicts_without_id_fields(queryset):
     return data
 
 
-def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
-    stderr = stderr.replace(f"Creating test database for alias 'default' ('{db_name}')...\n", "")
-    stderr = stderr.replace(f"Destroying test database for alias 'default' ('{db_name}')...\n", "")
-    return stderr
-
-
 class BaseAddedWorkflow:
     def assert_added_workflow_migration_round_trips(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
