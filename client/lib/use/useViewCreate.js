@@ -72,7 +72,7 @@ import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, reactive, toRef } from "vue";
+import { computed, inject, reactive, toRef, unref } from "vue";
 
 /** @type {"create"} */
 const VIEW_NAME = "create";
@@ -182,10 +182,25 @@ export function useViewCreate(options) {
 
     const instanceObject = useObject({ props: instanceObjectProps });
 
+    const arrayFields = computed(() => {
+        const fieldDetails = modelConfig.config?.fieldDetails || {};
+        return Object.entries(fieldDetails)
+            .filter(([, field]) => field.many)
+            .map(([fieldName]) => fieldName);
+    });
+
+    const firstErrorField = computed(() =>
+        formContext.getFirstErrorField(
+            modelConfig.config?.displayFields || modelConfig.config?.fields || [],
+            unref(arrayFields),
+        ),
+    );
+
     const objectFormProps = reactive({
         app: toRef(options, "app"),
         model: toRef(options, "model"),
         verboseName: computed(() => modelConfig.config?.verboseName),
+        firstErrorField,
         redirectAfter: toRef(options, "redirectAfter"),
         submitFields,
     });

@@ -5,6 +5,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { FormValidationError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import { createPinia, setActivePinia } from "pinia";
@@ -66,17 +67,20 @@ describe("lib/use/useViewCreate.js", () => {
          * initial values stand in for useModelInitialValues(), which seeds one value per displayed
          * field. The server stub records each save's body and `f` parameter and computes `total`.
          */
-        const buildSelectionViewCreate = async (initialValues) => {
+        const buildSelectionViewCreate = async (initialValues, createImpl) => {
             useModelConfig.mockReturnValue(mockModelConfig);
             useFilteredActions.mockReturnValue(reactive({ actions: [] }));
             useModelInitialValues.mockReturnValue(readonly(ref(initialValues)));
 
             const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
             const saves = [];
-            const create = vi.fn(({ object, params }) => {
-                saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
-                return Promise.resolve({ id: 7, ...object, unit_price: 5, total: 5 * object.quantity });
-            });
+            const create = vi.fn(
+                createImpl ??
+                    (({ object, params }) => {
+                        saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
+                        return Promise.resolve({ id: 7, ...object, unit_price: 5, total: 5 * object.quantity });
+                    }),
+            );
             useObject.mockImplementation((options) => realUseObject({ ...options, handlers: { create } }));
 
             const result = await withSetup(() => useViewCreate(props));
@@ -117,6 +121,16 @@ describe("lib/use/useViewCreate.js", () => {
             await editAndSubmit(result, "quantity", 2);
 
             expect(saves[0].body).toEqual({ quantity: 2, total: null });
+        });
+
+        scopedIt("points the first-error scroll at the first displayed field the server rejected", async () => {
+            const reject = () =>
+                Promise.reject(new FormValidationError({ quantity: ["Must be positive."] }, new Response()));
+            const { result } = await buildSelectionViewCreate({ quantity: 1, total: null }, reject);
+
+            await editAndSubmit(result, "quantity", -1);
+
+            expect(result.objectForm.state.firstErrorField).toBe("quantity");
         });
 
         scopedIt("keeps falsy submitted values", async () => {
