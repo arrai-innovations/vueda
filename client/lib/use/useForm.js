@@ -500,6 +500,7 @@ const reset = (state, hasInitialized) => {
         assignReactiveObject(state.errors, {});
         state.anyError = false;
         assignReactiveObject(state.messages, {});
+        state.anyMessage = false;
         clearAllTouched(state);
         state.focused = null;
     } else {

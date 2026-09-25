@@ -417,8 +417,10 @@ describe("lib/use/useForm.js", () => {
                     formContext.focus("a");
                     formContext.reset(); // 1st call: skip clearing
                     formContext.updateError("a", "required", "Required");
+                    formContext.updateMessage("a", "validate", "Unusual value");
                     formContext.setTouched("a");
                     formContext.focus("a");
+                    expect(formContext.state.anyMessage).toBe(true);
                     formContext.reset(); // 2nd call: should clear
                     expect(formContext.state.errors).toEqual({});
                     expect(formContext.state.messages).toEqual({});
@@ -426,6 +428,7 @@ describe("lib/use/useForm.js", () => {
                     expect(formContext.state.focused).toBeNull();
                     expect(formContext.state.anyTouched).toBe(false);
                     expect(formContext.state.anyError).toBe(false);
+                    expect(formContext.state.anyMessage).toBe(false);
                     expect(formContext.state.submitted).toBe(false);
                 });
                 scopedIt("should clear submitted flag when reset after a submission attempt", () => {
