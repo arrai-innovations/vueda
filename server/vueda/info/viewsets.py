@@ -300,6 +300,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                             "value": str(instance.pk),
                         }
                     )
+                choices.sort(key=operator.itemgetter("label"))
 
             else:
                 formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
@@ -324,6 +325,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                                 "value": str(getattr(instance, key_field)),
                             }
                         )
+                    choices.sort(key=operator.itemgetter("label"))
 
                 else:
                     formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
@@ -346,6 +348,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                                 "value": str(instance.pk),
                             }
                         )
+                    choices.sort(key=operator.itemgetter("label"))
 
                 else:
                     formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)

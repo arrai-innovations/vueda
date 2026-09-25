@@ -659,3 +659,58 @@ def test_field_choices_query_count_does_not_grow_with_row_count_for_the_child_re
         assert len(set(counts.values())) == 1, f"field choices query count grows with row count: {counts}"
     finally:
         info.registration.get_empty_registry()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("serializer_class", "viewset_class", "url_args"),
+    [
+        pytest.param(
+            store_serializers.CartItemCartBaseManagerSerializer,
+            store_viewsets.CartItemCartBaseManagerViewSet,
+            ("store", "cartitem", "cart"),
+            id="plain_queryset_branch",
+        ),
+        pytest.param(
+            store_serializers.CartItemCartSlugBaseManagerSerializer,
+            store_viewsets.CartItemCartSlugBaseManagerViewSet,
+            ("store", "cartitem", "cart"),
+            id="slug_field_branch",
+        ),
+        pytest.param(
+            store_serializers.CustomerCartsBaseManagerSerializer,
+            store_viewsets.CustomerCartsBaseManagerViewSet,
+            ("store", "customer", "carts"),
+            id="child_relation_branch",
+        ),
+    ],
+)
+def test_field_choices_from_get_formatted_name_are_sorted_by_label(
+    api_client, serializer_class, viewset_class, url_args
+):
+    """Choices whose labels come from ``get_formatted_name()`` are sorted by label, as the
+    ``F()``-annotated branches and the filter-choices endpoint already are. The carts are created in
+    reverse label order, so primary-key order and label order disagree."""
+    info.registration.get_empty_registry()
+    try:
+        info.register(serializer_class, viewset_class)
+
+        test_data = BaseManagerChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_super_user@domain.invalid"])
+
+        for letter in ("c", "b", "a"):
+            user = get_user_model().objects.create(
+                email=f"{letter}-cart-owner@domain.invalid", name=f"Cart Owner {letter}", is_active=True
+            )
+            store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+
+        response = api_client.get(reverse("info.model_info_choices-list", args=url_args), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["label"] for result in response.data["results"]] == [
+            "a-cart-owner@domain.invalid",
+            "b-cart-owner@domain.invalid",
+            "c-cart-owner@domain.invalid",
+        ]
+    finally:
+        info.registration.get_empty_registry()
