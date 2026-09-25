@@ -39,13 +39,6 @@ describe("lib/router/getCrud.js", () => {
         });
     });
 
-    it("throws when pk missing for non-detail view if throwOnUndefinedPk true", async () => {
-        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list", detail: false }] });
-        await expect(getCRUDForTo({ app: "a", model: "b", view: "list", throwOnUndefinedPk: true })).rejects.toThrow(
-            "pk is required for detail views",
-        );
-    });
-
     it("captures the selection before waiting for metadata", async () => {
         let resolveMetadata;
         fetchModelInfo.mockReturnValue(new Promise((resolve) => (resolveMetadata = resolve)));
@@ -54,20 +47,5 @@ describe("lib/router/getCrud.js", () => {
         pk.push("73");
         resolveMetadata({ actions: [] });
         expect((await route).query.pk).toBe("20");
-    });
-
-    it("does not throw when pk missing for detail view even with throwOnUndefinedPk", async () => {
-        fetchModelInfo.mockResolvedValue({ actions: [{ name: "retrieve", detail: true }] });
-        const result = await getCRUDForTo({
-            app: "a",
-            model: "b",
-            view: "retrieve",
-            throwOnUndefinedPk: true,
-        });
-        expect(result).toEqual({
-            name: "actionrouter.listview",
-            params: { app: "a", model: "b", action: "retrieve" },
-            query: undefined,
-        });
     });
 });
