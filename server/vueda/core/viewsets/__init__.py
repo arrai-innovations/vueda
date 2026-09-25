@@ -574,7 +574,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_wildcard_expands.add(value)
 
                 for field_name, serializer_data in serializer.Meta.expandable_fields.items():
-                    if permitted_expands is not None and field_name not in permitted_expands:
+                    if permitted_expands is not None and not any(
+                        permitted == field_name or permitted.startswith(f"{field_name}.")
+                        for permitted in permitted_expands
+                    ):
                         continue
 
                     valid_fields.add(field_name)
@@ -609,6 +612,17 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     add_valid_child_names(valid_wildcard_expands, field_name, child_valid_wildcard_expands)
                     add_valid_child_names(valid_fields, field_name, child_valid_fields)
                     add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
+
+                if permitted_expands is not None:
+                    # drf-flex-fields keeps a requested expand only when the permit list names it as
+                    # written, or when the request holds a root wildcard, and drops the rest silently.
+                    # Accept only what it would keep, so anything else is reported instead.
+                    valid_expands &= permitted_expands
+                    valid_wildcard_expands = {
+                        value
+                        for value in valid_wildcard_expands
+                        if value in WILDCARD_VALUES or value in permitted_expands
+                    }
 
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
