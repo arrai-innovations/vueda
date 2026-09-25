@@ -18,7 +18,9 @@ from vueda.vdq.handlers import validate_email_role
 from vueda.vdq.handlers import validate_sms_role
 from vueda.vdq.models import AnyMailQueueItem
 from vueda.vdq.models import AnyMailQueueItemAttachment
+from vueda.vdq.models import AnyMailQueueItemReceiverReplyTo
 from vueda.vdq.models import QueueItem
+from vueda.vdq.models import Receiver
 
 
 @pytest.mark.django_db
@@ -100,6 +102,26 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
     assert "cid:logo" not in html_content
     assert f"cid:{generated_cid}" in html_content
     assert message.attachments[0][0] == "document.txt"
+
+
+@pytest.mark.django_db
+def test_send_email_sets_reply_to(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+    detail = AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    reply_to = Receiver.objects.create(email="reply@domain.invalid", name="Reply", cell="+18005550108")
+    AnyMailQueueItemReceiverReplyTo.objects.create(receiver=reply_to, anymail_queue_item=detail)
+
+    original_send = send_email.__globals__["EmailMultiAlternatives"].send
+
+    def fake_send(self, *args, **kwargs):
+        self.anymail_status = SimpleNamespace(message_id="fake-message-id", status={"sent"})
+        return original_send(self, *args, **kwargs)
+
+    monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
+
+    send_email(queue_item_email)
+
+    assert mail.outbox[0].reply_to == ["reply@domain.invalid"]
 
 
 @pytest.mark.django_db
