@@ -387,7 +387,7 @@ class VuedaExpandableFieldsSerializerMixin:
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name, field in tuple(fields.items()):
-                        if field_name == "pk":  # Always keep the pk.
+                        if field_name == field_meta.pk.name:  # Always keep the pk.
                             continue
                         if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
                             del fields[field_name]

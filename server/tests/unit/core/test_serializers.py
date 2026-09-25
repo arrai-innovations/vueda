@@ -1083,6 +1083,23 @@ class TestVuedaReadonlySerializer:
 
         assert data_expand_item["read_only"] is True
 
+    def test_expandable_field_metadata_keeps_pk_outside_static_fields(self):
+        """Static ``f`` options that leave out the nested pk still report it, whatever its name."""
+
+        class _ParentSerializer(store_serializers.ProductSerializer):
+            class Meta(store_serializers.ProductSerializer.Meta):
+                expandable_fields = {
+                    "distributor": (
+                        store_serializers.DistributorSerializer,
+                        {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["name"]},
+                    )
+                }
+
+        expand_items = _ParentSerializer().generate_expand_model_info()
+        distributor_item = next(item for item in expand_items if item["name"] == "distributor")
+
+        assert set(distributor_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]) == {"id", "name"}
+
 
 @pytest.mark.django_db
 class TestSchemaExpandableFieldsAndFields:
