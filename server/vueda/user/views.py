@@ -462,7 +462,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
     http_method_names = [
         "delete",
     ]
-    permission_required = ("permission.delete_permission",)
+    permission_required = ("auth.delete_permission",)
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -509,7 +509,7 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
 
 
 class PermissionSaveView(PermissionRequiredMixin, View):
-    permission_required = ("permission.create_group", "permission.update_group")
+    permission_required = ("auth.create_group", "auth.update_group")
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
