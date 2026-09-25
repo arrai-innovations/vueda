@@ -69,7 +69,7 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * @property {import('vue').ComputedRef<boolean|undefined>} combinedLoading - Combined fetch and action loading state.
  *  Stays set after a successful submit whose success redirect navigated away.
  * @property {import('vue').ComputedRef<boolean>} confirmDisabled - Whether the confirm control should be disabled:
- *  while loading, or while the form has errors.
+ *  while loading, or while the form has errors other than server errors.
  * @property {import('vue').ComputedRef<boolean>} cancelDisabled - Whether the cancel control should be disabled: while
  *  loading.
  * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for
@@ -107,7 +107,15 @@ export function useActionForm(formContext, props) {
     const combinedError = computed(() => props.fetchState?.error || localActionState.error);
     const combinedErrored = computed(() => !!combinedError.value);
     const combinedLoading = computed(() => loadingCombine(props.fetchState?.loading, localActionState.loading));
-    const confirmDisabled = computed(() => !!combinedLoading.value || !!formContext.state.anyError);
+    // Server errors do not disable confirm: a non-field server error has no field edit that clears it, and the server
+    // re-validates each attempt.
+    const nonServerErrorCount = computed(() => {
+        if (!formContext.state.anyError) {
+            return 0;
+        }
+        return Object.values(formContext.state.errors).filter((value) => !isEmpty(omit(value, "server"))).length;
+    });
+    const confirmDisabled = computed(() => !!combinedLoading.value || nonServerErrorCount.value > 0);
     const cancelDisabled = computed(() => !!combinedLoading.value);
 
     let actionPromise = null;
@@ -239,19 +247,14 @@ export function useActionForm(formContext, props) {
                 }
                 return;
             }
-            if (formContext.state.anyError) {
-                const nonServerErrors = Object.entries(formContext.state.errors)
-                    .map(([key, value]) => [key, omit(value, "server")])
-                    .filter(([, value]) => !isEmpty(value));
-                if (nonServerErrors.length) {
-                    const plural = nonServerErrors.length > 1;
-                    toast.warning("Submission Blocked", {
-                        description: `Please correct the highlighted error${plural ? "s" : ""}.`,
-                        duration: 10000,
-                    });
-                    localActionState.loading = false;
-                    return;
-                }
+            if (nonServerErrorCount.value) {
+                const plural = nonServerErrorCount.value > 1;
+                toast.warning("Submission Blocked", {
+                    description: `Please correct the highlighted error${plural ? "s" : ""}.`,
+                    duration: 10000,
+                });
+                localActionState.loading = false;
+                return;
             }
         }
 

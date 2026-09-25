@@ -496,10 +496,31 @@ describe("lib/use/useActionForm.js", () => {
         scopedIt("disables confirm while the form has errors, but not cancel", async () => {
             const formContext = createFormContext();
             formContext.state.anyError = true;
+            formContext.state.errors = { name: { required: "This field is required." } };
             const actionForm = await withSetup(() => useActionForm(formContext, reactive({ runAction: vi.fn() })));
 
             expect(actionForm.confirmDisabled.value).toBe(true);
             expect(actionForm.cancelDisabled.value).toBe(false);
+        });
+
+        scopedIt("keeps confirm enabled while only server errors remain", async () => {
+            const formContext = createFormContext();
+            formContext.state.anyError = true;
+            formContext.state.errors = {
+                non_field_errors: { server: "This object cannot be deleted." },
+                name: { server: "Use a different name." },
+            };
+            const runAction = vi.fn(async () => "ok");
+            const actionForm = await withSetup(() =>
+                useActionForm(
+                    formContext,
+                    reactive({ runAction, redirectTo: vi.fn(async () => false), hasInput: true }),
+                ),
+            );
+
+            expect(actionForm.confirmDisabled.value).toBe(false);
+            await actionForm.handleConfirm();
+            expect(runAction).toHaveBeenCalledTimes(1);
         });
     });
 
