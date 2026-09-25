@@ -23,6 +23,7 @@ from vueda.core.open_api import conditional_open_api_types
 from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
+from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
 from vueda.workflow.models import get_workflow_for_model
 from vueda.workflow.permissions import WorkflowObjectPermissions
@@ -248,6 +249,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, app_label, model, object_id=None):
         transition_code = request.data.get("transition_code")
+        if not isinstance(transition_code, str) or not transition_code:
+            raise VuedaValidationError({"transition_code": ["This field is required."]})
         if object_id:
             instance = self.get_object()
             transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
@@ -326,7 +329,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         """
         try:
             return instance.check_transition(transition_code, request.user)
-        except (PermissionDenied, InvalidTransitionError) as e:
+        except (PermissionDenied, InvalidTransitionError, Transition.DoesNotExist) as e:
             raise VuedaValidationError(str(e))
 
     def _apply_transition_to_instance(self, instance, transition_code, request):

@@ -580,6 +580,48 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert "object_ids" in response.data
 
+    @pytest.mark.parametrize("body", [{}, {"transition_code": ""}, {"transition_code": ["pack_order"]}])
+    def test_execute_transition_returns_validation_error_without_transition_code(
+        self, api_client, workflow_user, customer_order, body
+    ):
+        api_client.force_authenticate(workflow_user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+        response = api_client.patch(detail_url, body, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert response.data["transition_code"] == ["This field is required."]
+
+    def test_execute_transition_detail_returns_validation_error_for_unknown_transition_code(
+        self, api_client, workflow_user, customer_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+        response = api_client.patch(detail_url, {"transition_code": "no_such_transition"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert "'no_such_transition' does not exist" in str(response.data[api_settings.NON_FIELD_ERRORS_KEY][0])
+        customer_order.refresh_from_db()
+        assert customer_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_returns_validation_error_for_unknown_transition_code(
+        self, api_client, workflow_user, customer_order, another_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "no_such_transition", "object_ids": [customer_order.pk, another_order.pk]},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert set(response.data) - {"serverStack"} == {str(customer_order.pk), str(another_order.pk)}
+
     def test_execute_transition_single_is_gated_then_applies_on_acknowledgement(
         self, api_client, workflow_user, express_order
     ):
