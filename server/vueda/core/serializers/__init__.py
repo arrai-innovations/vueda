@@ -251,6 +251,9 @@ class FlexFieldsWriteableNestedSerializerMixin(
         return relations, reverse_relations
 
     def update(self, instance, validated_data):
+        # UniqueFieldsMixin moves unique checks from field validation to create/update, and the
+        # super() call below skips its update, so run the check here before anything is written.
+        self._validate_unique_fields(validated_data)
         relations, reverse_relations = self._extract_relations(validated_data)
 
         # Create or update direct relations (foreign key, one-to-one)

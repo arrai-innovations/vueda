@@ -857,6 +857,44 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
         # ?f=/?om= narrow the response only -- the write above validated and stored every field.
         assert serializer.data == expected_data(instance.pk), serializer.data
 
+    def _update_serializer(self, instance, data, action):
+        method = "PATCH" if action == "partial_update" else "PUT"
+        context = {"request": FakeRequest({}, data, method)}
+        context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, action)
+        return _PlainSpecialCareSerializer(
+            instance=instance, data=data, context=context, partial=action == "partial_update"
+        )
+
+    @pytest.mark.parametrize("action", ["update", "partial_update"])
+    def test_update_to_a_taken_unique_value_is_a_field_error(self, action):
+        store_models.SpecialCare.objects.create(code="taken")
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(instance, {"code": "taken"}, action)
+
+        assert serializer.is_valid(), serializer.errors
+        with pytest.raises(ValidationError) as exc_info:
+            serializer.save()
+
+        assert list(exc_info.value.detail) == ["code"]
+        instance.refresh_from_db()
+        assert instance.code == "mine"
+
+    def test_update_keeping_its_own_unique_value_succeeds(self):
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(
+            instance, {"code": "mine", "field_that_contains_the_name": "Renamed"}, "update"
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().field_that_contains_the_name == "Renamed"
+
+    def test_partial_update_without_the_unique_field_skips_its_check(self):
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(instance, {"field_that_contains_the_name": "Renamed"}, "partial_update")
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().code == "mine"
+
 
 class TestPrimaryKeyListSerializer:
     def test_valid_pk_list(self):
