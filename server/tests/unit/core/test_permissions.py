@@ -334,7 +334,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             period_end=date(2024, 2, 29),
         )
 
-    def list_row_actions(self, client, timesheet):
+    def get_list_row_available_actions_expecting_ok(self, client, timesheet):
         response = client.get(
             reverse(
                 "timesheet.timesheet-list",
@@ -345,7 +345,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         row = next(row for row in response.data["results"] if row["id"] == timesheet.pk)
         return set(row["available_actions"])
 
-    def detail_actions(self, client, timesheet):
+    def get_detail_available_actions_expecting_ok(self, client, timesheet):
         response = client.get(
             reverse(
                 "timesheet.timesheet-detail",
@@ -356,29 +356,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         self.assert_response(response, 200)
         return set(response.data["available_actions"])
 
-    def test_list_permission_alone_does_not_grant_retrieve_in_a_list_response(self, api_client, timesheet):
-        api_client.force_authenticate(user=self.users["lister@domain.invalid"])
-
-        actions = self.list_row_actions(api_client, timesheet)
-
-        assert "list" in actions
-        assert "retrieve" not in actions
-
-    def test_read_permission_alone_does_not_grant_list_in_a_detail_response(self, api_client, timesheet):
-        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
-
-        actions = self.detail_actions(api_client, timesheet)
-
-        assert "retrieve" in actions
-        assert "list" not in actions
-
-    def test_both_permissions_keep_both_entries_in_either_response(self, api_client, timesheet):
-        api_client.force_authenticate(user=self.users["both@domain.invalid"])
-
-        assert {"list", "retrieve"}.issubset(self.list_row_actions(api_client, timesheet))
-        assert {"list", "retrieve"}.issubset(self.detail_actions(api_client, timesheet))
-
-    def patch_actions(self, client, timesheet):
+    def patch_and_get_available_actions_expecting_ok(self, client, timesheet):
         response = client.patch(
             reverse(
                 "timesheet.timesheet-detail",
@@ -391,13 +369,35 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         self.assert_response(response, 200)
         return set(response.data["available_actions"])
 
+    def test_list_permission_alone_does_not_grant_retrieve_in_a_list_response(self, api_client, timesheet):
+        api_client.force_authenticate(user=self.users["lister@domain.invalid"])
+
+        actions = self.get_list_row_available_actions_expecting_ok(api_client, timesheet)
+
+        assert "list" in actions
+        assert "retrieve" not in actions
+
+    def test_read_permission_alone_does_not_grant_list_in_a_detail_response(self, api_client, timesheet):
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        actions = self.get_detail_available_actions_expecting_ok(api_client, timesheet)
+
+        assert "retrieve" in actions
+        assert "list" not in actions
+
+    def test_both_permissions_keep_both_entries_in_either_response(self, api_client, timesheet):
+        api_client.force_authenticate(user=self.users["both@domain.invalid"])
+
+        assert {"list", "retrieve"}.issubset(self.get_list_row_available_actions_expecting_ok(api_client, timesheet))
+        assert {"list", "retrieve"}.issubset(self.get_detail_available_actions_expecting_ok(api_client, timesheet))
+
     def test_list_permission_alone_does_not_grant_retrieve_in_a_write_response(self, api_client, timesheet):
         """The collision applies equally to a write response: its own action (PATCH) never
         collides with list/retrieve, but the CRUD loop behind its available_actions still checks
         both of them, and must not substitute one's permission for the other's there either."""
         api_client.force_authenticate(user=self.users["updater_lister@domain.invalid"])
 
-        actions = self.patch_actions(api_client, timesheet)
+        actions = self.patch_and_get_available_actions_expecting_ok(api_client, timesheet)
 
         assert "update" in actions
         assert "list" in actions
@@ -406,7 +406,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
     def test_read_permission_alone_does_not_grant_list_in_a_write_response(self, api_client, timesheet):
         api_client.force_authenticate(user=self.users["updater_reader@domain.invalid"])
 
-        actions = self.patch_actions(api_client, timesheet)
+        actions = self.patch_and_get_available_actions_expecting_ok(api_client, timesheet)
 
         assert "update" in actions
         assert "retrieve" in actions
@@ -422,7 +422,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         """
         api_client.force_authenticate(user=self.users["updater_reader_denied@domain.invalid"])
 
-        actions = self.detail_actions(api_client, timesheet)
+        actions = self.get_detail_available_actions_expecting_ok(api_client, timesheet)
 
         assert "retrieve" in actions
         assert "update" not in actions
@@ -457,7 +457,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
 
         monkeypatch.setattr(TimesheetViewSet, "permission_classes", [PermitModelDenyRetrieveObject])
 
-        actions = self.list_row_actions(api_client, timesheet)
+        actions = self.get_list_row_available_actions_expecting_ok(api_client, timesheet)
 
         assert "list" in actions
         assert "retrieve" not in actions
@@ -474,7 +474,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         """
         api_client.force_authenticate(user=self.users["deleter_reader_django_denied@domain.invalid"])
 
-        actions = self.detail_actions(api_client, timesheet)
+        actions = self.get_detail_available_actions_expecting_ok(api_client, timesheet)
 
         assert "retrieve" in actions
         assert "destroy" not in actions

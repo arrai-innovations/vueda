@@ -84,14 +84,14 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
             )
         return distributor, product
 
-    def history(self, client, distributor):
+    def get_history_expecting_ok(self, client, distributor):
         response = client.get(reverse("store.distributor-history-list", kwargs={"pk": distributor.pk}))
         self.assert_response(response, HTTPStatus.OK)
         return response.data
 
     def test_the_page_uses_vuedas_pagination_envelope(self, reader_client, written):
         distributor, _ = written
-        data = self.history(reader_client, distributor)
+        data = self.get_history_expecting_ok(reader_client, distributor)
 
         assert set(data) == {"results", "columnTotals", "perPage", "totalPages", "totalRecords"}
         assert data["totalRecords"] == 2, "one action group plus the context-less create"  # noqa: PLR2004
@@ -99,25 +99,25 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_groups_are_newest_first(self, reader_client, written):
         distributor, _ = written
-        results = self.history(reader_client, distributor)["results"]
+        results = self.get_history_expecting_ok(reader_client, distributor)["results"]
 
         assert [group["label"] for group in results] == ["distributor.restock", None]
 
     def test_group_order_is_stable(self, reader_client, written):
         """A page boundary must land in the same place on every request."""
         distributor, _ = written
-        first = [group["id"] for group in self.history(reader_client, distributor)["results"]]
-        second = [group["id"] for group in self.history(reader_client, distributor)["results"]]
+        first = [group["id"] for group in self.get_history_expecting_ok(reader_client, distributor)["results"]]
+        second = [group["id"] for group in self.get_history_expecting_ok(reader_client, distributor)["results"]]
 
         assert first == second
 
-    def action_group(self, client, distributor, label):
-        results = self.history(client, distributor)["results"]
+    def get_action_group_expecting_ok(self, client, distributor, label):
+        results = self.get_history_expecting_ok(client, distributor)["results"]
         return next(row for row in results if row["label"] == label)
 
     def test_one_action_carries_both_of_its_events(self, reader_client, written):
         distributor, product = written
-        group = self.action_group(reader_client, distributor, "distributor.restock")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.restock")
 
         assert group["action_id"] is not None
         assert group["id"] == group["action_id"]
@@ -132,7 +132,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_an_event_identifier_names_the_tracked_model(self, reader_client, written):
         distributor, _ = written
-        group = self.action_group(reader_client, distributor, "distributor.restock")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.restock")
         event = group["events"][0]
 
         model, _, event_id = event["id"].rpartition(":")
@@ -141,7 +141,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_an_update_reports_only_the_fields_that_changed(self, reader_client, written):
         distributor, _ = written
-        group = self.action_group(reader_client, distributor, "distributor.restock")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.restock")
         update = group["events"][0]
 
         assert update["changes"] == [
@@ -154,7 +154,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_a_create_reports_no_changes(self, reader_client, written):
         distributor, _ = written
-        results = self.history(reader_client, distributor)["results"]
+        results = self.get_history_expecting_ok(reader_client, distributor)["results"]
         action = next(row for row in results if row["label"] == "distributor.restock")
         create = next(row for row in results if row["label"] is None)
 
@@ -163,7 +163,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_a_write_outside_an_action_is_its_own_group(self, reader_client, written):
         distributor, _ = written
-        results = self.history(reader_client, distributor)["results"]
+        results = self.get_history_expecting_ok(reader_client, distributor)["results"]
         create = next(row for row in results if row["action_id"] is None)
 
         assert create["action_id"] is None
@@ -175,7 +175,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
 
     def test_the_group_time_is_its_earliest_event(self, reader_client, written):
         distributor, _ = written
-        group = self.action_group(reader_client, distributor, "distributor.restock")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.restock")
 
         assert group["recorded_at"] == min(event["recorded_at"] for event in group["events"])
 
@@ -199,7 +199,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
             distributor.description = "Second."
             distributor.save()
 
-        group = self.action_group(reader_client, distributor, "distributor.reorder")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.reorder")
 
         assert [event["model"] for event in group["events"]] == ["store.Product", "store.Distributor"]
 
@@ -212,8 +212,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
-        results = self.history(reader_client, distributor)["results"]
-        group = next(row for row in results if row["label"] == "partial_update")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "partial_update")
 
         assert group["kind"] == "request"
         assert group["label"] == "partial_update"
@@ -226,7 +225,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
             distributor.save()
             distributor.name = "Widget Company Ltd."
             distributor.save()
-        group = self.action_group(reader_client, distributor, "distributor.rename")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.rename")
 
         assert [(event["relation"], event["type"]) for event in group["events"]] == [("self", "updated")] * 2
         # The generated formatted_name column changes alongside name, so pick the name change out.
@@ -243,7 +242,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
             distributor.description = "Touched by someone who has since left."
             distributor.save()
         actor.delete()
-        group = self.action_group(reader_client, distributor, "distributor.touch")
+        group = self.get_action_group_expecting_ok(reader_client, distributor, "distributor.touch")
 
         assert group["actor"] == {"id": actor_pk, "display": None, "missing": True}
 
@@ -271,7 +270,7 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
         earlier_id = self.record_event(distributor, same_moment)
         assert earlier_id.pgh_id > later_id.pgh_id, "the test needs the higher id written first"
 
-        results = self.history(reader_client, distributor)["results"]
+        results = self.get_history_expecting_ok(reader_client, distributor)["results"]
         tied = [group["id"] for group in results if group["recorded_at"] == results[-1]["recorded_at"]]
 
         assert tied == [
@@ -367,14 +366,14 @@ class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin,
             product_option.save()
         return product_option
 
-    def change_of(self, client, product_option, field):
+    def get_recategorize_change_expecting_ok(self, client, product_option, field):
         response = client.get(reverse("store.productoption-history-list", kwargs={"pk": product_option.pk}))
         self.assert_response(response, HTTPStatus.OK)
         group = next(row for row in response.data["results"] if row["label"] == "option.recategorize")
         return next(change for change in group["events"][0]["changes"] if change["field"] == field)
 
     def test_a_reference_carries_its_id_and_current_display(self, reader_client, product_option, size, colour):
-        change = self.change_of(reader_client, product_option, "option_type")
+        change = self.get_recategorize_change_expecting_ok(reader_client, product_option, "option_type")
 
         assert change["old"] == {"id": size.pk, "display": size.formatted_name, "missing": False}
         assert change["new"] == {"id": colour.pk, "display": colour.formatted_name, "missing": False}
@@ -384,7 +383,7 @@ class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin,
         reader = self.users["option_reader@domain.invalid"]
         assert not reader.has_perm("store.read_optiontype")
 
-        change = self.change_of(reader_client, product_option, "option_type")
+        change = self.get_recategorize_change_expecting_ok(reader_client, product_option, "option_type")
 
         assert change["old"]["display"] is not None
         assert change["new"]["display"] is not None
@@ -394,7 +393,7 @@ class TestHistoryReferenceValues(BaseTestAssertResponseMixin, BaseTestUserMixin,
         size_pk = size.pk
         size.delete()
 
-        change = self.change_of(reader_client, product_option, "option_type")
+        change = self.get_recategorize_change_expecting_ok(reader_client, product_option, "option_type")
 
         assert change["old"] == {"id": size_pk, "display": None, "missing": True}
         assert change["new"]["missing"] is False
@@ -442,7 +441,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             )
         return customer, cart, order
 
-    def history(self, client, email, customer):
+    def get_history_as_expecting_ok(self, client, email, customer):
         client.force_authenticate(user=get_user_model().objects.get(email=email))
         response = client.get(reverse("store.customer-history-list", kwargs={"pk": customer.pk}))
         self.assert_response(response, HTTPStatus.OK)
@@ -454,7 +453,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
 
     def test_a_reader_of_every_model_sees_every_event(self, api_client, written):
         customer, _, _ = written
-        data = self.history(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert data["totalRecords"] == 2, "the onboarding action plus the context-less create"  # noqa: PLR2004
         assert self.models_seen(data) == [
@@ -469,7 +468,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             cart.reserved_until = "12:00"
             cart.save()
 
-        data = self.history(api_client, "customer_only@domain.invalid", customer)
+        data = self.get_history_as_expecting_ok(api_client, "customer_only@domain.invalid", customer)
 
         assert self.models_seen(data) == [("store.Customer", "created")]
         assert data["totalRecords"] == 1, "a group whose only events are hidden does not count"
@@ -484,7 +483,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             grant_or_deny=False,
         )
 
-        data = self.history(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert ("store.CustomerOrder", "created") not in self.models_seen(data)
         assert ("store.Cart", "created") in self.models_seen(data), "the deny reaches only the order"
@@ -495,7 +494,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
         with audited_action("cart.abandon", kind="command"):
             cart.delete()
 
-        data = self.history(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
         abandon = next(group for group in data["results"] if group["label"] == "cart.abandon")
 
         assert self.models_seen(data).count(("store.Cart", "created")) == 1
@@ -508,7 +507,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
         with audited_action("order.void", kind="command"):
             order.delete()
 
-        data = self.history(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert "store.CustomerOrder" not in {model for model, _ in self.models_seen(data)}
         assert "order.void" not in [group["label"] for group in data["results"]], (
@@ -565,7 +564,7 @@ class TestHistoryQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseT
                     condition="new",
                 )
 
-    def read_history(self, client, distributor):
+    def read_history_as_fresh_reader_expecting_ok(self, client, distributor):
         # A fresh user object each time, because Django caches permissions on the one it checked,
         # which would otherwise make the second read look cheaper than the first.
         client.force_authenticate(user=get_user_model().objects.get(email="cost_reader@domain.invalid"))
@@ -576,11 +575,11 @@ class TestHistoryQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseT
     def test_a_page_costs_the_same_however_many_events_it_carries(self, reader_client, distributor):
         self.add_actions(distributor, 2, "small")
         with CaptureQueriesContext(connection) as small:
-            small_data = self.read_history(reader_client, distributor)
+            small_data = self.read_history_as_fresh_reader_expecting_ok(reader_client, distributor)
 
         self.add_actions(distributor, 8, "large")
         with CaptureQueriesContext(connection) as large:
-            large_data = self.read_history(reader_client, distributor)
+            large_data = self.read_history_as_fresh_reader_expecting_ok(reader_client, distributor)
 
         assert small_data["totalRecords"] == 3, "two actions plus the context-less create"  # noqa: PLR2004
         assert large_data["totalRecords"] == 11  # noqa: PLR2004
@@ -650,7 +649,7 @@ class TestHistoryActionObjectAvailability(BaseTestAssertResponseMixin, BaseTestU
     def distributor(self):
         return store_models.Distributor.objects.create(name="Widget Co.", description="Fine widgets.")
 
-    def patch_description(self, client, distributor):
+    def patch_description_expecting_ok(self, client, distributor):
         response = client.patch(
             reverse(
                 "store.distributor-detail",
@@ -666,14 +665,14 @@ class TestHistoryActionObjectAvailability(BaseTestAssertResponseMixin, BaseTestU
     def test_update_permission_alone_does_not_grant_history_access(self, api_client, distributor):
         api_client.force_authenticate(user=self.users["updater@domain.invalid"])
 
-        data = self.patch_description(api_client, distributor)
+        data = self.patch_description_expecting_ok(api_client, distributor)
 
         assert "history-list" not in data["available_actions"]
 
     def test_read_permission_grants_history_access_on_a_write_response(self, api_client, distributor):
         api_client.force_authenticate(user=self.users["update_reader@domain.invalid"])
 
-        data = self.patch_description(api_client, distributor)
+        data = self.patch_description_expecting_ok(api_client, distributor)
 
         assert "history-list" in data["available_actions"]
 
@@ -735,17 +734,6 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
             order_number=1001, customer=customer, order_state=order_state, shipping_method="free"
         )
 
-    def available_actions(self, client, order):
-        response = client.get(
-            reverse(
-                "store.customerorder-detail",
-                kwargs={"pk": order.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
-            ),
-        )
-        self.assert_response(response, HTTPStatus.OK)
-        return response.data["available_actions"]
-
     def test_a_state_denial_overrides_model_level_read(self, api_client, order):
         """
         A state-denied object is unreadable outright -- its own detail response 404s, the same as
@@ -786,7 +774,15 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
         )
         api_client.force_authenticate(user=self.users["non_reader@domain.invalid"])
 
-        assert "history-list" in self.available_actions(api_client, order)
+        response = api_client.get(
+            reverse(
+                "store.customerorder-detail",
+                kwargs={"pk": order.pk},
+                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+            ),
+        )
+        self.assert_response(response, HTTPStatus.OK)
+        assert "history-list" in response.data["available_actions"]
 
 
 @pytest.mark.django_db
@@ -840,10 +836,10 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
             grant_or_deny=True,
         )
 
-    def list_query_count(self, client, fields):
+    def count_list_queries_expecting_ok(self, client, fields):
         # A fresh user object each time, because Django caches permissions on the one it checked,
         # which would otherwise make a later read look cheaper than the first (see
-        # TestHistoryQueryCost.read_history for the same concern).
+        # TestHistoryQueryCost.read_history_as_fresh_reader_expecting_ok for the same concern).
         client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
         with CaptureQueriesContext(connection) as ctx:
             response = client.get(
@@ -864,10 +860,10 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
         self.grant_read_by_state(first_order)
 
         self.make_orders(2, order_state, start_at=1000)
-        small = self.list_query_count(api_client, "id")
+        small = self.count_list_queries_expecting_ok(api_client, "id")
 
         self.make_orders(6, order_state, start_at=2000)
-        large = self.list_query_count(api_client, "id")
+        large = self.count_list_queries_expecting_ok(api_client, "id")
 
         assert large == small, (
             "a response that never carries available_actions must not pay its per-row permission "

@@ -1064,8 +1064,8 @@ class TestSearchDistinctPairsOnlyBareColumns:
             store_viewsets.ProductM2MSearchRelationOrderingViewSet,
         )
 
-        def distributor_ids(ordering):
-            response = self.list_url(
+        def search_products_ordered_by(ordering):
+            return self.list_url(
                 api_client,
                 settings,
                 "store.product-list",
@@ -1073,14 +1073,20 @@ class TestSearchDistinctPairsOnlyBareColumns:
                 ordering=ordering,
             )
 
-            assert response.status_code == HTTPStatus.OK, response_body(response)
-            assert response.data["totalRecords"] == 4, response_body(response)  # noqa: PLR2004
+        def distributor_ids_of(response):
             return [
                 store_models.Product.objects.get(pk=result["id"]).distributor_id for result in response.data["results"]
             ]
 
-        ascending = distributor_ids("distributor")
-        descending = distributor_ids("-distributor")
+        ascending_response = search_products_ordered_by("distributor")
+        descending_response = search_products_ordered_by("-distributor")
+
+        for response in (ascending_response, descending_response):
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert response.data["totalRecords"] == 4, response_body(response)  # noqa: PLR2004
+
+        ascending = distributor_ids_of(ascending_response)
+        descending = distributor_ids_of(descending_response)
 
         assert ascending == sorted(ascending)
         assert descending == sorted(descending, reverse=True)

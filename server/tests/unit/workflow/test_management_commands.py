@@ -7,6 +7,7 @@ import time
 from collections import Counter
 from pathlib import Path
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -50,7 +51,7 @@ def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
 
 
 class BaseAddedWorkflow:
-    def continue_added_workflow_test(self, migration_dir, results):
+    def assert_added_workflow_migration_round_trips(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
         assert results, "No results were captured when makeworkflowmigrations was called."
         self.reload_module(results, migration_dir)
@@ -370,7 +371,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
             )
             assert "    make_sure_permissions_exist(migration_app_label)\n" in migration_content
 
-            self.continue_added_workflow_test(migration_dir, results)
+            self.assert_added_workflow_migration_round_trips(migration_dir, results)
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -410,7 +411,7 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
             if not succeeded:
                 pytest.fail("".join(results))
 
-            self.continue_added_workflow_test(migration_dir, results)
+            self.assert_added_workflow_migration_round_trips(migration_dir, results)
 
 
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):
@@ -1132,7 +1133,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         return grouped_results
 
     @staticmethod
-    def _handle_ast_data(ast_data):
+    def parse_debug_history_literal(ast_data):
         for remove_word in (
             "tzinfo=",
             "datetime",
@@ -1145,7 +1146,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         try:
             ast_data = ast.literal_eval(ast_data)
         except Exception:
-            raise Exception(ast_data)
+            pytest.fail(f"unparseable debug history line: {ast_data}")
 
         return ast_data
 
@@ -1262,7 +1263,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
                                 beginning_index = line.find("[")
                                 ending_index = line.find("]")
                                 ast_data = line[beginning_index + 1 : ending_index]
-                                ast_data = self._handle_ast_data(ast_data)
+                                ast_data = self.parse_debug_history_literal(ast_data)
                                 unmatched_history_data.append(ast_data)
 
                             previous_line = line
@@ -2319,7 +2320,26 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         assert "No installed app with label 'app_that_does_not_exist'.\n" in results
 
 
-class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallCommand):
+class GeneratesWorkflowMigrations:
+    """For tests that generate workflow migrations for their own app, named by ``workflow_app_label``."""
+
+    workflow_app_label: ClassVar[str]
+
+    def generate_workflow_migration_or_fail(self, migration_dir):
+        """Generate the next workflow migration, failing the test if that fails, and return its module."""
+        succeeded, results = self.call_command("makeworkflowmigrations", self.workflow_app_label, "--import-instead")
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert results, "No results were captured when makeworkflowmigrations was called."
+
+        module = self.reload_module(results, migration_dir)
+        assert module is not None, "".join(results)
+
+        return module
+
+
+class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand):
     """A state and the transition that names it, removed and added again under the same code.
 
     Each round of changes is written through the models with no action context, the way a person's
@@ -2343,6 +2363,8 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
     of the earlier rounds' writes, so that a write going missing fails as loudly as one appearing
     twice.
     """
+
+    workflow_app_label = "workflow_reused_codes"
 
     WORKFLOW_CODE = "reused_codes_workflow"
     STATE_CODE = "reused_state"
@@ -2606,19 +2628,6 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         transition.name = f"{self.TRANSITION_NAME} ({round_name})"
         transition.save()
 
-    def make_workflow_migration(self, migration_dir):
-        """Generate the next workflow migration and return the module holding its changes."""
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_reused_codes", "--import-instead")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        assert results, "No results were captured when makeworkflowmigrations was called."
-
-        module = self.reload_module(results, migration_dir)
-        assert module is not None, "".join(results)
-
-        return module
-
     def assert_no_workflow_changes(self, migration_dir, failure):
         """Fail when a run finds changes to generate, showing the changes it would have generated.
 
@@ -2634,10 +2643,10 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         if "No workflow changes detected." in "".join(results):
             return
 
-        module = self.make_workflow_migration(migration_dir)
+        module = self.generate_workflow_migration_or_fail(migration_dir)
         pytest.fail(f"{failure}:\n{pformat(module.changed_data)}", pytrace=False)
 
-    def fake_migration(self, target):
+    def fake_migration_or_fail(self, target):
         """Record migrations up to a target without running them, the way the command instructs."""
         succeeded, results = self.call_command("migrate", "workflow_reused_codes", target, "--fake")
         if not succeeded:
@@ -2679,7 +2688,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         return applied
 
     @staticmethod
-    def migrate_reporting_applied_change(call, label, applied):
+    def migrate_or_fail_naming_applied_change(call, label, applied):
         """Run one migration, naming the change it was applying if it raises."""
         applied.clear()
         try:
@@ -2806,7 +2815,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             self.delete_state_and_transition(workflow)
             snapshots = [self.snapshot_workflow()]
 
-            first_migration = self.make_workflow_migration(migration_dir)
+            first_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # The workflow 0002 created has no generated migration of its own yet, so this one
             # captures that as well, ahead of round one's own writes.
@@ -2836,7 +2845,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             self.delete_state_and_transition(workflow)
             snapshots.append(self.snapshot_workflow())
 
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Round one is already captured by 0003, whose changes name rows that no longer exist and
             # whose codes now belong to round two's rows as well. Only round two belongs here, and
@@ -2854,7 +2863,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             state.save()
             snapshots.append(self.snapshot_workflow())
 
-            third_migration = self.make_workflow_migration(migration_dir)
+            third_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Three rows have now been added under the state's code and three under the
             # transition's. Both earlier rounds are captured by a migration, so only round three
@@ -2881,7 +2890,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             )
             snapshots.append(self.snapshot_workflow())
 
-            fourth_migration = self.make_workflow_migration(migration_dir)
+            fourth_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Four rows have now been added under the state's code and four under the transition's,
             # and the three earlier rounds are each captured by a migration. Matching 0005's changes
@@ -2908,7 +2917,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             # 0002's SQL records its deletes the way history records a person's edit, and 0001
             # recreates the group under a new id, which the rounds' permission writes no longer name.
             # Either would read as an edit no migration captures.
-            self.fake_migration("0006")
+            self.fake_migration_or_fail("0006")
 
             succeeded, results = self.call_command("migrate", "workflow_reused_codes", "0002")
             if not succeeded:
@@ -2925,7 +2934,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             for round_number, snapshot in enumerate(snapshots, start=1):
                 migration_name = f"000{round_number + 2}"
 
-                self.migrate_reporting_applied_change(
+                self.migrate_or_fail_naming_applied_change(
                     lambda name=migration_name: self.call_command("migrate", "workflow_reused_codes", name),
                     migration_name,
                     applied,
@@ -2955,7 +2964,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             for round_number in range(len(snapshots), 0, -1):
                 migration_name = f"000{round_number + 2}"
 
-                self.migrate_reporting_applied_change(
+                self.migrate_or_fail_naming_applied_change(
                     lambda number=round_number: self.call_command(
                         "migrate", "workflow_reused_codes", f"000{number + 1}"
                     ),
@@ -3070,7 +3079,7 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
             ]
 
 
-class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand):
     """A workflow code given up by one model and taken over by another.
 
     A workflow code is unique among live workflows, not over time: delete a workflow and another
@@ -3078,6 +3087,8 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
     change belongs to, and which workflow its rows hang off, has to survive a code that two content
     types have held.
     """
+
+    workflow_app_label = "workflow_moved_codes"
 
     WORKFLOW_CODE = "moved_workflow"
     WORKFLOW_NAME = "Moved Workflow"
@@ -3121,16 +3132,6 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
         models.State.objects.filter(workflow=workflow).delete()
         workflow.delete()
 
-    def make_workflow_migration(self, migration_dir):
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        module = self.reload_module(results, migration_dir)
-        assert module is not None, "".join(results)
-
-        return module
-
     @staticmethod
     def describe(changed_data):
         return [
@@ -3155,7 +3156,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
 
             # The code belongs to the first model, and a migration captures that.
             moved_from = self.make_workflow_for("workflowmovedfrom")
-            first_migration = self.make_workflow_migration(migration_dir)
+            first_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             assert self.describe(first_migration.changed_data) == [
                 ("workflow", "added", self.workflow_id("workflowmovedfrom")),
@@ -3167,7 +3168,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
             self.remove_workflow(moved_from)
             self.make_workflow_for("workflowmovedto")
 
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Only the handover belongs here. Deciding which content type a change belongs to reads
             # the workflow its rows hang off, and both workflows answer to the same code, so a change
@@ -3198,7 +3199,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
 
             workflow = self.make_workflow_for("workflowmovedfrom")
             state = models.State.objects.get(workflow=workflow, code="state_1")
-            self.make_workflow_migration(migration_dir)
+            self.generate_workflow_migration_or_fail(migration_dir)
 
             # The workflow is renamed, then a transition is added to the state it already had. The
             # state's own last event predates the rename, so it was recorded under the old code.
@@ -3211,7 +3212,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
                 "historical_app_label": "workflow_moved_codes",
                 "historical_model": "workflowmovedfrom",
             }
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             assert self.describe(second_migration.changed_data) == [
                 (
@@ -3252,7 +3253,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
 
             # The author's edits, captured by 0002 and faked, because they are already here.
             self.make_workflow_for("workflowmovedfrom")
-            self.make_workflow_migration(migration_dir)
+            self.generate_workflow_migration_or_fail(migration_dir)
 
             succeeded, results = self.call_command("migrate", "workflow_moved_codes", "--fake")
             if not succeeded:

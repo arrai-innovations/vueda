@@ -67,18 +67,19 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
         assert regenerate
         return "dummy-secret"
 
-    class DummyAdapter:
+    adapter_calls = []
+
+    class RecordingAdapter:
         def build_totp_url(self, target_user, secret):
-            assert target_user == user
-            assert secret == "dummy-secret"
+            adapter_calls.append(("build_totp_url", target_user, secret))
             return "otpauth://totp"
 
         def build_totp_svg(self, url):
-            assert url == "otpauth://totp"
+            adapter_calls.append(("build_totp_svg", url))
             return "<svg>QR</svg>"
 
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", fake_secret)
-    monkeypatch.setattr("vueda.user.viewsets.get_adapter", lambda: DummyAdapter())
+    monkeypatch.setattr("vueda.user.viewsets.get_adapter", lambda: RecordingAdapter())
     monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
 
     api_client.force_authenticate(user=user)
@@ -89,6 +90,11 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
     assert session[TOTPDeviceViewSet.TOTP_SESSION_KEY] == {"method": "totp"}
     assert response.data["meta"]["totp_secret"] == "dummy-secret"
     assert response.data["meta"]["totp_svg_data_uri"].startswith("data:image/svg+xml;base64,")
+    # The QR code is built for this user's new secret, from the URL built for it.
+    assert adapter_calls == [
+        ("build_totp_url", user, "dummy-secret"),
+        ("build_totp_svg", "otpauth://totp"),
+    ]
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))

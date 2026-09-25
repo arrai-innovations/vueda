@@ -45,13 +45,10 @@ def test_send_sms_sends_message(settings, monkeypatch):
 
     adapter = DefaultUserAdapter()
 
-    def fake_render_to_string(template_names, context):
-        assert template_names == [
-            "email/totp_code_sms_message.txt",
-            "email/totp_code_message.txt",
-        ]
-        assert context["code"] == "123456"
-        assert context["site_name"] == "VUEDA"
+    rendered = []
+
+    def record_render_to_string(template_names, context):
+        rendered.append((template_names, context))
         return "Use code 123456"
 
     captured = {}
@@ -61,10 +58,19 @@ def test_send_sms_sends_message(settings, monkeypatch):
         captured["receiver"] = receiver
         captured["body"] = body
 
-    monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
+    monkeypatch.setattr("vueda.user.adapters.render_to_string", record_render_to_string)
     monkeypatch.setattr("vueda.vdq.schedulers.add_sms", fake_add_sms)
 
     adapter.send_sms("+18005550199", "Test User", "totp_code", {"code": "123456"})
+
+    # One render, preferring the SMS template and falling back to the email text template.
+    ((template_names, context),) = rendered
+    assert template_names == [
+        "email/totp_code_sms_message.txt",
+        "email/totp_code_message.txt",
+    ]
+    assert context["code"] == "123456"
+    assert context["site_name"] == "VUEDA"
 
     sender = captured["sender"]
     receiver = captured["receiver"]
@@ -86,17 +92,16 @@ def test_send_mail_sends_message(settings, monkeypatch):
 
     adapter = DefaultUserAdapter()
 
-    def fake_render_to_string(template_name, context):
-        if isinstance(template_name, list):
-            raise AssertionError("Unexpected template list for email rendering")
-        if template_name.endswith("_subject.txt"):
-            assert context["code"] == "123456"
-            return "Daily Code"
-        if template_name.endswith("_message.html"):
-            return "<p>Use code 123456</p>"
-        if template_name.endswith("_message.txt"):
-            return "Use code 123456"
-        raise AssertionError(f"Unexpected template {template_name}")
+    rendered_output = {
+        "email/totp_code_subject.txt": "Daily Code",
+        "email/totp_code_message.html": "<p>Use code 123456</p>",
+        "email/totp_code_message.txt": "Use code 123456",
+    }
+    rendered = []
+
+    def record_render_to_string(template_name, context):
+        rendered.append((template_name, context))
+        return rendered_output.get(template_name, "")
 
     captured = {}
 
@@ -128,10 +133,14 @@ def test_send_mail_sends_message(settings, monkeypatch):
             }
         )
 
-    monkeypatch.setattr("vueda.user.adapters.render_to_string", fake_render_to_string)
+    monkeypatch.setattr("vueda.user.adapters.render_to_string", record_render_to_string)
     monkeypatch.setattr("vueda.vdq.schedulers.add_email", fake_add_email)
 
     adapter.send_mail("user@domain.invalid", "Test User", "totp_code", {"code": "123456"})
+
+    # Each part renders from its own template, in this order, with the caller's context.
+    assert [template_name for template_name, _ in rendered] == list(rendered_output)
+    assert all(context["code"] == "123456" for _, context in rendered)
 
     sender = captured["sender"]
     receivers = captured["to"]

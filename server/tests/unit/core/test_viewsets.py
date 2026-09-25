@@ -166,7 +166,8 @@ def expanded_serializer(serializer_class, expand):
     return serializer
 
 
-def prefetch_for(prefetch_related, lookup):
+def expect_prefetch_for(prefetch_related, lookup):
+    """Return the ``Prefetch`` in ``prefetch_related`` for ``lookup``, failing the test when there is none."""
     for entry in prefetch_related:
         if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
             return entry
@@ -186,7 +187,7 @@ def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_quer
 
     _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
 
-    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+    annotations = expect_prefetch_for(prefetch_related, "order_items").queryset.query.annotations
 
     assert "formatted_name" in annotations
 
@@ -200,7 +201,7 @@ def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
 
     _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
 
-    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+    annotations = expect_prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
 
     assert "formatted_name" not in annotations
 
@@ -224,7 +225,7 @@ def test_build_prefetch_plan_applies_select_related_for_a_get_formatted_name_to_
 
     _, prefetch_related = build_prefetch_plan(serializer, store_models.Customer)
 
-    select_related = prefetch_for(prefetch_related, "cart_set").queryset.query.select_related
+    select_related = expect_prefetch_for(prefetch_related, "cart_set").queryset.query.select_related
 
     assert select_related == {"customer": {"user": {}}}
 
