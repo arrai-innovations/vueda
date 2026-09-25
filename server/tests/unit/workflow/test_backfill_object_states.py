@@ -93,7 +93,7 @@ class TestSelection:
             call_command("backfillworkflowstates", "erring", "store", stdout=stdout, stderr=stderr)
 
         assert "store.CustomerOrder: created 0 object state(s)." in stdout.getvalue()
-        assert f"{erring_models.MoSoVoWx._meta.label} enables class Vueda.Workflow" in stderr.getvalue()
+        assert f"{erring_models.EnabledWithoutWorkflow._meta.label} enables class Vueda.Workflow" in stderr.getvalue()
 
     def test_an_app_without_workflow_models_selects_nothing(self):
         assert "No workflow-enabled models selected." in backfill("vueda_user")
