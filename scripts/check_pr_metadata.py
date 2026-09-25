@@ -7,7 +7,7 @@ request's branch. It learns the changed paths from the GitHub API and checks
 them against the configuration on the base branch.
 
 - Area labels: adds each `area:*` label whose package the pull request changes.
-  It never removes one.
+  It never removes one, and never adds `area:docs`.
 - Topic labels: each changelog fragment's directory names a topic. With no
   `topic:*` label, the script adds the fragments' topics. A fragment whose topic
   is not among existing `topic:*` labels fails the check.
@@ -41,14 +41,12 @@ TOPIC_PREFIX = "topic:"
 FRAGMENT_PATH_PARTS = 4
 PAGE_SIZE = 100
 
-# First matching prefix wins. The changelog pages change only in release
-# commits, so they earn no area label; CONTRIBUTING.md says the same.
+# First matching prefix wins. `docs/` earns no label: `area:docs` marks work
+# whose main deliverable is documentation, which a reviewer applies by hand.
 AREA_PREFIXES = (
-    ("docs/reference/changelog/", None),
     ("client/", "area:client"),
     ("server/", "area:server"),
     ("docs-tooling/", "area:docs-tooling"),
-    ("docs/", "area:docs"),
     ("templates/", "area:templates"),
     (".circleci/", "area:ci"),
     (".github/workflows/", "area:ci"),
@@ -177,7 +175,7 @@ def main() -> int:
         print(f"{verb} labels: {', '.join(sorted(to_add))}")
         if not args.dry_run:
             github.request("POST", f"/issues/{number}/labels", {"labels": sorted(to_add)})
-    if extra := {label for label in labels if label.startswith("area:")} - areas:
+    if extra := {label for label in labels if label.startswith("area:")} - areas - {"area:docs"}:
         print(f"::notice::Area labels with no matching changed path: {', '.join(sorted(extra))}")
 
     for error in errors:

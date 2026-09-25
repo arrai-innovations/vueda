@@ -85,7 +85,7 @@ meaning. Labels describe everything else:
 | ----------------------- | ------------------------------------------------------------------------------------------- |
 | Area                    | `area:client`, `area:server`, `area:docs`, `area:docs-tooling`, `area:templates`, `area:ci` |
 | Topic                   | `topic:*`, listed under [Topic labels](#topic-labels)                                       |
-| Work character          | `documentation`, `maintenance`, `investigation`, `release`                                  |
+| Work character          | `maintenance`, `investigation`, `release`                                                   |
 | Impact                  | `impact:breaking`                                                                           |
 | Changelog               | `changelog:none`                                                                            |
 | Workflow state          | `status:needs-info`, `status:needs-decision`                                                |
@@ -97,6 +97,17 @@ Use `status:needs-decision` only when an unresolved choice prevents
 implementation. Name that choice in a `## Decision required` section. A known
 dependency or follow-up does not need the label when work can proceed without
 the decision.
+
+### Area labels
+
+An `area:*` label names a package that the work changes. Give an issue each
+area whose package its fix is expected to change: an issue that needs a client
+change and a server change carries `area:client` and `area:server`.
+
+`area:docs` is the exception. It marks work whose main deliverable is
+documentation, such as a new guide, a page review, or corrected OpenAPI
+examples. A feature or fix that also updates a guide does not earn it, even
+though the branch changes files under `docs/`.
 
 ### Topic labels
 
@@ -160,8 +171,8 @@ request rather than in a later edit.
 
 - Carry every `area:*` label that matches a package the branch changes. The
   `Pull request metadata` check adds any that are missing and never removes
-  one. A changelog fragment earns no area label, and neither do the changelog
-  pages under `docs/reference/changelog/`.
+  one. It never adds `area:docs`; add that label by hand when the pull request's
+  main deliverable is documentation. See [Area labels](#area-labels).
 - Keep the issue's work-character, impact, and topic labels when they still
   describe the branch. Every topic that a changelog fragment's directory names
   needs its `topic:*` label. With no topic label, the check adds the fragments'
