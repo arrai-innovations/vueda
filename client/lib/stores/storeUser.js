@@ -10,6 +10,24 @@ import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
 
+const REAUTHENTICATION_FLOW_IDS = ["reauthenticate", "mfa_reauthenticate"];
+
+/**
+ * Pick the flow a 401 response asks the client to continue: the one allauth marks `is_pending`, or, for a
+ * signed-in user whose session needs reauthentication, the first reauthentication flow. Other listed flows
+ * are only available, not pending.
+ *
+ * @param {{id: string, is_pending?: boolean}[]} flows
+ * @returns {{id: string, is_pending?: boolean}|null}
+ */
+function selectPendingFlow(flows) {
+    return (
+        flows.find((flow) => flow.is_pending) ??
+        flows.find((flow) => REAUTHENTICATION_FLOW_IDS.includes(flow.id)) ??
+        null
+    );
+}
+
 /**
  * An error for use from the user store.
  * @extends {FetchError}
@@ -376,7 +394,7 @@ export const storeUser = defineStore("user", {
             if (error instanceof UnauthorizedError) {
                 const flows = error.responseData?.data?.flows;
                 if (flows && flows.length > 0) {
-                    this.pendingFlow = flows.at(-1);
+                    this.pendingFlow = selectPendingFlow(flows);
                 }
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }

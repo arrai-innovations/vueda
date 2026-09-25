@@ -265,16 +265,40 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.reauthenticate({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
         });
 
-        scopedIt("_handle_error stores pending flow on unauthorized error", async () => {
+        const handleFlows = async (flows) => {
             const store = storeUser();
             store.fetchCurrentUser = vi.fn(() => Promise.resolve());
-            const error = new UnauthorizedError("Unauthorized", undefined, { data: { flows: ["step1", "step2"] } });
+            await store._handle_error(new UnauthorizedError("Unauthorized", undefined, { data: { flows } }));
+            return store;
+        };
 
-            await store._handle_error(error);
+        scopedIt("_handle_error stores the flow marked pending, wherever it sits", async () => {
+            const mfa = { id: "mfa_authenticate", is_pending: true, types: ["totp"] };
+            const store = await handleFlows([
+                { id: "login" },
+                mfa,
+                { id: "password_reset_by_code", is_pending: false },
+            ]);
 
-            expect(store.pendingFlow).toBe("step2");
+            expect(store.pendingFlow).toEqual(mfa);
             expect(store.errored).toBe(false);
             expect(store.error).toBe(null);
+        });
+
+        scopedIt("_handle_error stores the reauthentication flow when none is marked pending", async () => {
+            const store = await handleFlows([
+                { id: "reauthenticate" },
+                { id: "mfa_reauthenticate" },
+                { id: "password_reset_by_code", is_pending: false },
+            ]);
+
+            expect(store.pendingFlow).toEqual({ id: "reauthenticate" });
+        });
+
+        scopedIt("_handle_error clears the pending flow when the response lists only available flows", async () => {
+            const store = await handleFlows([{ id: "login" }, { id: "signup" }]);
+
+            expect(store.pendingFlow).toBeNull();
         });
     });
 
