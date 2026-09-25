@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName } from "@vueda/utils/case.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
 const dummyModelInfo = {
@@ -1036,6 +1036,29 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(cancelMock).toHaveBeenCalled();
 
             expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
+        });
+
+        scopedIt("leaves configs of a model whose name extends this model's name", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const itemModel = { app: "testApp", model: "testModelItem" };
+            await store.getConfig(itemModel);
+            await store.getConfig({ ...itemModel, view: "list" });
+
+            const cancellablePromise = new Promise(() => {});
+            const cancelMock = vi.fn();
+            cancellablePromise.cancel = cancelMock;
+            mockedFetchModelInfo.mockReturnValue(cancellablePromise);
+            store.getConfig({ ...itemModel, view: "update" });
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+
+            expect(cancelMock).not.toHaveBeenCalled();
+            expect(store.initialized).toHaveProperty(getAppModelViewDotName({ ...itemModel, view: "update" }));
+            expect(store.builtConfigs).toHaveProperty(getAppModelDotName(itemModel));
+            expect(store.builtConfigs).toHaveProperty(getAppModelViewDotName({ ...itemModel, view: "list" }));
         });
     });
     describe("clearAuthScoped", () => {

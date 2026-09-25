@@ -594,9 +594,12 @@ export const storeModelConfig = defineStore("modelConfig", {
                 }
             }
 
+            // the generic key, or a view key built from it; a bare prefix would also match other models
+            const isThisModel = (key) => key === genericKey || key.startsWith(`${genericKey}-`);
+
             // Cancel in-flight requests for this model
             for (const key of Object.keys(this.initialized)) {
-                if (key.startsWith(genericKey) && !this.builtConfigs[key]) {
+                if (isThisModel(key) && !this.builtConfigs[key]) {
                     this.initialized[key]?.cancel?.();
                     delete this.initialized[key];
                 }
@@ -604,7 +607,7 @@ export const storeModelConfig = defineStore("modelConfig", {
 
             for (const key of Object.keys(this.builtConfigs)) {
                 // if the builtConfig is for this app/model, we need to rebuild delete it
-                if (key.startsWith(genericKey)) {
+                if (isThisModel(key)) {
                     delete this.builtConfigs[key];
                 }
             }
