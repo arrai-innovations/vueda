@@ -115,4 +115,69 @@ describe("lib/use/useResolvedLookupObject.js", () => {
         expect(loadingErrorInstance.setError).toHaveBeenCalledWith(error);
         es.stop();
     });
+
+    describe("Request triggers", () => {
+        const mountLookup = (refs) => {
+            const lookup = { requestObject: vi.fn(() => Promise.resolve({ id: 1 })) };
+            provideStore.set(LookupContextSymbol, lookup);
+            const es = vue.effectScope();
+            es.run(() => useResolvedLookupObject(refs.app, refs.model, refs.pk, refs.fields, refs.expand));
+            return { lookup, es };
+        };
+
+        scopedIt("fetches on mount when fields and expand are not given", async () => {
+            const refs = {
+                app: vue.ref("app"),
+                model: vue.ref("model"),
+                pk: vue.ref("1"),
+                fields: vue.ref(undefined),
+                expand: vue.ref(undefined),
+            };
+            const { lookup, es } = mountLookup(refs);
+            await flushPromises();
+
+            expect(lookup.requestObject).toHaveBeenCalledWith("app", "model", "1", undefined, undefined);
+            es.stop();
+        });
+
+        scopedIt("does not refetch when fields and expand are replaced with equal arrays", async () => {
+            const refs = {
+                app: vue.ref("app"),
+                model: vue.ref("model"),
+                pk: vue.ref("1"),
+                fields: vue.ref(["id"]),
+                expand: vue.ref(["owner"]),
+            };
+            const { lookup, es } = mountLookup(refs);
+            await flushPromises();
+
+            refs.fields.value = ["id"];
+            refs.expand.value = ["owner"];
+            await flushPromises();
+
+            expect(lookup.requestObject).toHaveBeenCalledTimes(1);
+            es.stop();
+        });
+
+        scopedIt("refetches when the pk changes while fields and expand keep their contents", async () => {
+            const refs = {
+                app: vue.ref("app"),
+                model: vue.ref("model"),
+                pk: vue.ref("1"),
+                fields: vue.ref(["id"]),
+                expand: vue.ref(["owner"]),
+            };
+            const { lookup, es } = mountLookup(refs);
+            await flushPromises();
+
+            refs.pk.value = "2";
+            refs.fields.value = ["id"];
+            refs.expand.value = ["owner"];
+            await flushPromises();
+
+            expect(lookup.requestObject).toHaveBeenLastCalledWith("app", "model", "2", ["id"], ["owner"]);
+            expect(lookup.requestObject).toHaveBeenCalledTimes(2);
+            es.stop();
+        });
+    });
 });
