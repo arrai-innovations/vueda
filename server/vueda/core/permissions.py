@@ -443,7 +443,11 @@ def filter_rows_for_user(queryset, user, perm_type="list"):
             _state_granted=state_granted,
         )
 
-        if user.has_perm(perm):
+        # A superuser's has_perm skips state rules for a single object, so the list skips them too.
+        # The annotations stay for check_queryset_workflow, which decides for itself.
+        if user.is_superuser:
+            pass
+        elif user.has_perm(perm):
             queryset = queryset.filter(_state_denied=False)
         else:
             queryset = queryset.filter(_state_denied=False, _state_granted=True)

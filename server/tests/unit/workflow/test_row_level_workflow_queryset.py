@@ -141,3 +141,39 @@ class TestCheckQuerysetWorkflow:
         hook(True)
 
         assert self.visible(user) == set()
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+class TestSuperuserStateRules:
+    """A superuser sees in a list every row ``has_perm`` lets them read on its own."""
+
+    def test_a_state_deny_on_the_superusers_group_hides_no_rows(self):
+        group, _ = Group.objects.get_or_create(name="Superuser state deny group")
+        superuser = get_user_model().objects.create_user(
+            email="superuser-state-deny@domain.invalid",
+            name="Superuser State Deny",
+            password="password",
+            is_superuser=True,
+        )
+        superuser.groups.add(group)
+        customer = store_models.Customer.objects.create(user=superuser)
+        order_state, _ = store_models.OrderState.objects.get_or_create(code="new", defaults={"name": "New"})
+        order = store_models.CustomerOrder.objects.create(
+            order_number=Decimal("19301"),
+            customer=customer,
+            order_state=order_state,
+            shipping_method="free",
+        )
+        workflow = Workflow.objects.get(content_type=order.get_content_type())
+        StatePermission.objects.filter(state__workflow=workflow).delete()
+        StatePermission.objects.create(
+            state=State.objects.get(workflow=workflow, code="new"),
+            permission=Permission.objects.get(content_type=order.get_content_type(), codename="list_customerorder"),
+            group=group,
+            grant_or_deny=False,
+        )
+
+        visible = filter_rows_for_user(store_models.CustomerOrder.objects.all(), superuser)
+
+        assert superuser.has_perm("store.list_customerorder", obj=order)
+        assert order.pk in set(visible.values_list("pk", flat=True))
