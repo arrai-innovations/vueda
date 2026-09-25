@@ -85,8 +85,6 @@ The layered architecture produces several characteristic failure patterns.
 
 **Missing PK marker becomes a sticky failure.** If the server's model-info response does not include a field with `{pk: true}`, the normalization step in `storeModelInfo` throws `"no pk field found for <app.model>"`. This error is cached in `errors[key]`, so the model becomes permanently inaccessible until the store is reset. The root cause is always a server-side serializer that omits the PK field from the model-info payload.
 
-**Root-key casing drift.** Model-info normalization camelCases nested objects but does not camelCase root-level keys. Accessing `info.verboseName` returns `undefined` because the actual key is `info.verbose_name`. Meanwhile, `storeModelConfig` reads `modelInfo.verbose_name` and `verbose_name_plural` when deriving default config values, so config derivation works correctly even though template code using camelCase access would not. The asymmetry is a stable boundary, not a bug, but it requires awareness.
-
 **Guard/composable boundary confusion.** Calling composables from guard code is a silent failure. The composable initializes, registers lifecycle hooks that never fire, creates watchers gated by `isActive` that never become `true`, and potentially leaks `effectScope` allocations. No error is thrown; the composable simply never produces data.
 
 **Workflow transition promise cleanup mismatch.** After a failed `fetchObjectTransitions`, subsequent calls can return the same cached rejected Promise because the `.finally` handler deletes from `promises.objectStates` instead of `promises.objectTransitions`. This means the de-duplication key is never cleared, and the rejected Promise persists.
