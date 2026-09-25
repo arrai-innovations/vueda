@@ -7,6 +7,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -751,3 +752,83 @@ def test_field_choices_from_get_formatted_name_are_sorted_by_label(
         ]
     finally:
         info.registration.get_empty_registry()
+
+
+class _DistributorSerializerOnlyChoicesSerializer(store_serializers.DistributorSerializer):
+    """Declares a choice field and a related field that map to no model field or relation."""
+
+    priority = serializers.ChoiceField(choices=[("low", "Low"), ("high", "High")], write_only=True, required=False)
+    related_product = serializers.PrimaryKeyRelatedField(
+        queryset=store_models.Product.objects.all(), write_only=True, required=False
+    )
+
+    class Meta(store_serializers.DistributorSerializer.Meta):
+        fields = [*store_serializers.DistributorSerializer.Meta.fields, "priority", "related_product"]
+
+
+@pytest.mark.django_db
+class TestSerializerOnlyFieldChoicesPermissions:
+    """A field with no model field or relation behind it still needs ``read`` on the serializer's
+    model, and a related one also needs ``list`` on its queryset's model."""
+
+    @pytest.fixture(autouse=True)
+    def registration(self):
+        info.registration.get_empty_registry()
+        info.register(_DistributorSerializerOnlyChoicesSerializer, store_viewsets.DistributorViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @staticmethod
+    def user_with(*codenames):
+        user = get_user_model().objects.create_user(
+            email=f"choices-{'-'.join(codenames) or 'none'}@domain.invalid", name="Choices User", password="testpass"
+        )
+        user.user_permissions.add(*Permission.objects.filter(content_type__app_label="store", codename__in=codenames))
+        return get_user_model().objects.get(pk=user.pk)
+
+    @staticmethod
+    def get(api_client, field):
+        return api_client.get(reverse("info.model_info_choices-list", args=("store", "distributor", field)))
+
+    @pytest.mark.parametrize("field", ["priority", "related_product"])
+    def test_anonymous_is_refused(self, api_client, field):
+        response = self.get(api_client, field)
+
+        assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}, response_body(response)
+
+    @pytest.mark.parametrize("field", ["priority", "related_product"])
+    def test_without_read_on_the_model_is_refused(self, api_client, field):
+        api_client.force_authenticate(user=self.user_with("list_product"))
+
+        response = self.get(api_client, field)
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_static_choices_need_only_read(self, api_client):
+        api_client.force_authenticate(user=self.user_with("read_distributor"))
+
+        response = self.get(api_client, "priority")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert {result["value"] for result in response.data["results"]} == {"low", "high"}
+
+    def test_related_choices_also_need_list_on_the_related_model(self, api_client):
+        api_client.force_authenticate(user=self.user_with("read_distributor"))
+
+        response = self.get(api_client, "related_product")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_related_choices_with_read_and_list(self, api_client):
+        store_models.Product.objects.create(
+            name="Choices Product",
+            distributor=store_models.Distributor.objects.create(name="Choices Distributor"),
+            order_between=[1, 2],
+            tangible_type=store_models.TangibleType.objects.create(name="Choices Type"),
+        )
+        api_client.force_authenticate(user=self.user_with("read_distributor", "list_product"))
+
+        response = self.get(api_client, "related_product")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "Choices Product" in {result["label"] for result in response.data["results"]}
