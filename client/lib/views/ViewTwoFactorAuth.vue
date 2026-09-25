@@ -134,7 +134,6 @@ onBeforeUnmount(clearCooldownTimer);
         sub-title="Select a device/method to authorize through two-factor authentication:"
         header="Two-factor authentication"
         :form-props="formProps"
-        action-success-summary="Two-Factor Authentication Successful"
         action-error-summary="Two-Factor Authentication Failed"
         @form-object="form.values = $event"
         @form-context="handleFormContext"

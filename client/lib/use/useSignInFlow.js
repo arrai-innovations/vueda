@@ -97,11 +97,8 @@ export function useSignInFlow(options) {
                 }
             }
             if (newActive && newLoggedIn && (!options.requireRecentLogin || recentlyLoggedIn)) {
-                if (route.query?.redirect) {
-                    navigate(router, route.query?.redirect);
-                    return;
-                }
-                navigate(router, options.redirect || { name: "welcome" }).then((arrived) => {
+                const destination = route.query?.redirect || options.redirect || { name: "welcome" };
+                navigate(router, destination).then((arrived) => {
                     if (arrived) {
                         toast.success("Signed In", {
                             description: "You are now signed in and have been redirected.",

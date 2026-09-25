@@ -44,12 +44,6 @@ const handleSubmit = ({ formValues }) => {
     });
 };
 
-// Success messaging and routing for sign-in are owned by useSignInFlow (via
-// AuthorizingForm): it shows the "Signed In" toast and redirects once the user is
-// authenticated. Replace ActionForm's default success handler with a no-op so it does
-// not also fire a generic "Action Succeeded" toast, leaving a single success source.
-const onSubmissionSuccess = () => {};
-
 // Slots ViewSignIn renders with its own defaults; excluded from the generic forward
 // loop so an explicit default and a forwarded consumer slot never define the same slot
 // twice on the AuthorizingForm.
@@ -64,7 +58,6 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
         sub-title="Enter your email and password below to login to your account"
         :form-props="formProps"
         action-error-summary="Sign In Failed"
-        :on-submission-success-handler="onSubmissionSuccess"
         @form-object="emit('form-object', $event)"
         @form-context="emit('form-context', $event)"
     >

@@ -51,6 +51,9 @@ const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
 });
 const { formContext } = useSignInFlow(props);
+// useSignInFlow announces a completed sign-in once it redirects, so ActionForm's generic success toast would be
+// a second message for the same event. A caller's own onSubmissionSuccessHandler still takes precedence.
+const leaveSuccessToSignInFlow = () => {};
 const theme = useTheme("AuthorizingForm", props);
 const emit = defineEmits([
     /** Emitted on mount with a readonly ref to the reactive form values object. */
@@ -89,7 +92,11 @@ onMounted(() => {
                         </div>
                         <!-- Replaces the default ActionForm; receives `runAction` and all inherited attrs as slot props. -->
                         <slot name="content" :run-action="runAction" v-bind="$attrs">
-                            <action-form :run-action="runAction" v-bind="$attrs">
+                            <action-form
+                                :run-action="runAction"
+                                :on-submission-success-handler="leaveSuccessToSignInFlow"
+                                v-bind="$attrs"
+                            >
                                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                                     <slot :name="slot" v-bind="slotProps || {}" />
                                 </template>

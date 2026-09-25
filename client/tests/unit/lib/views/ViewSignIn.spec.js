@@ -10,7 +10,7 @@ let actionBarProps;
 
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
-    props: ["runAction", "formProps", "header", "subTitle", "actionErrorSummary", "onSubmissionSuccessHandler"],
+    props: ["runAction", "formProps", "header", "subTitle", "actionErrorSummary"],
     emits: ["form-object", "form-context"],
     setup(props, { slots, emit }) {
         emit("form-object", { value: {} });
@@ -140,15 +140,6 @@ describe("lib/views/ViewSignIn.vue", () => {
             });
 
             expect(loginMock).toHaveBeenCalledWith({ email: "ada@example.com", password: "secret" });
-        });
-
-        scopedIt("suppresses ActionForm's default success toast so useSignInFlow owns success", () => {
-            // useSignInFlow shows the "Signed In" toast and redirects; without overriding the
-            // success handler, ActionForm would also fire a generic "Action Succeeded" toast.
-            const wrapper = mount(ViewSignIn);
-            const handler = wrapper.findComponent(AuthorizingFormStub).props("onSubmissionSuccessHandler");
-            expect(typeof handler).toBe("function");
-            expect(handler()).toBeUndefined();
         });
     });
 
