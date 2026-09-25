@@ -1353,6 +1353,11 @@ class VuedaViewSet(
         """
         Override this function to change if a user is allowed to do a certain action.
 
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. An override must handle that case before reading
+        ``request.user``. With no request, this method offers every extra action, the same answer
+        :func:`vueda.core.permissions.check_action_permission` gives with no request.
+
         ``history_list`` is additionally gated on read authorization here, checked the same way an
         object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
         ``workflow_object_permission_actions`` by default (see that attribute above), so a
@@ -1460,6 +1465,10 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. An override must handle that case before reading
+        ``request.user``.
 
         Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
         unconditionally, including no read gate for ``history_list``: that action is defined only
