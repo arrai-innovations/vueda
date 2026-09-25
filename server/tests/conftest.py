@@ -31,11 +31,21 @@ POSTGRES_MAX_DB_NAME_LENGTH = 63
 
 
 def response_body(response):
-    """Return the best available representation of a response body for assertion messages."""
+    """Return the best available representation of a response body for assertion messages.
+
+    A streaming response, such as a ``FileResponse``, has no ``content``, and reading its
+    ``streaming_content`` would consume the stream the test may still hold open. It is described by
+    its class, status and content type instead.
+    """
     if hasattr(response, "data"):
         if isinstance(response.data, str) and "Traceback" in response.data:
             return response.data
         return pformat(response.data)
+    if getattr(response, "streaming", False):
+        return (
+            f"<{type(response).__name__} status_code={response.status_code} "
+            f"content_type={response.get('Content-Type')!r}, streaming content not read>"
+        )
     try:
         return response.json()
     except (ValueError, AttributeError):
