@@ -259,6 +259,10 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if "read" in settings.PERMISSION_NAMES_MAPPING:
             permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
+        permission_list_name = "list"
+        if "list" in settings.PERMISSION_NAMES_MAPPING:
+            permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
+
         # If we add field level permissions at some point, then we will want to check them here.
         if self.choices_field in field_info.fields_and_pk:
             model_class = serializer.Meta.model
@@ -272,7 +276,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             meta = model_class._meta
             self.choices_permissions = (
                 f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
-                f"{related_field_info.related_model._meta.app_label}.list"
+                f"{related_field_info.related_model._meta.app_label}.{permission_list_name}"
                 f"_{related_field_info.related_model._meta.model_name}",
             )
             self.choices_queryset_model = related_field_info.related_model._meta.model

@@ -211,8 +211,8 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
         # ModelInfoChoicesViewSet.get_queryset previously closed over PERMISSION_NAMES_MAPPING at
         # import (vueda/info/viewsets.py), so overriding "read" left choices_permissions pinned to
         # "read_product" regardless of what the override requested. "tangible_type" is a relation
-        # field, so it also requires "list_tangibletype" on the related model -- that requirement
-        # is hardcoded in get_queryset, not settings-driven, so both users need it unconditionally.
+        # field, so it also requires "list_tangibletype" on the related model. This test overrides
+        # "read" only, so both users need that list permission unconditionally.
         product_content_type = ContentType.objects.get_for_model(store_models.Product)
         tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
         list_tangible_type_permission = Permission.objects.get(
@@ -256,6 +256,43 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
         # check once the override maps "read" to "mutated_read".
         assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
         assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
+
+    def test_related_choices_map_the_list_permission_name(self, settings, api_client):
+        # A relation field's choices also require list permission on the related model. That name
+        # goes through PERMISSION_NAMES_MAPPING, as the filter-choices endpoint's does.
+        product_content_type = ContentType.objects.get_for_model(store_models.Product)
+        tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
+        read_product_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type, codename="read_product", defaults={"name": "Can read product"}
+        )
+        default_list_permission = Permission.objects.get(
+            content_type=tangible_type_content_type, codename="list_tangibletype"
+        )
+        mapped_list_permission, _ = Permission.objects.get_or_create(
+            content_type=tangible_type_content_type,
+            codename="mutated_list_tangibletype",
+            defaults={"name": "Can mutated list tangible type"},
+        )
+        default_lister = get_user_model().objects.create_user(
+            email="choices-default-lister@domain.invalid", name="Choices Default Lister", password="password"
+        )
+        default_lister.user_permissions.add(read_product_permission, default_list_permission)
+        mapped_lister = get_user_model().objects.create_user(
+            email="choices-mapped-lister@domain.invalid", name="Choices Mapped Lister", password="password"
+        )
+        mapped_lister.user_permissions.add(read_product_permission, mapped_list_permission)
+
+        register_model("store", "product")
+        choices_url = reverse("info.model_info_choices-list", args=("store", "product", "tangible_type"))
+        settings.PERMISSION_NAMES_MAPPING = {"list": "mutated_list"}
+
+        api_client.force_authenticate(default_lister)
+        default_response = api_client.get(choices_url, format="json")
+        api_client.force_authenticate(mapped_lister)
+        mapped_response = api_client.get(choices_url, format="json")
+
+        assert default_response.status_code == HTTPStatus.FORBIDDEN, response_body(default_response)
+        assert mapped_response.status_code == HTTPStatus.OK, response_body(mapped_response)
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
