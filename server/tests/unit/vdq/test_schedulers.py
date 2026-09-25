@@ -20,17 +20,50 @@ def receivers(db):
     ]
 
 
+class FailingTask:
+    def delay(self, pk, method):
+        raise CeleryError("boom")
+
+
 @pytest.mark.django_db
-def test_schedule_queue_item_handles_errors(monkeypatch, sender, receivers):
+def test_schedule_queue_item_publishes_on_commit(monkeypatch, sender, receivers, django_capture_on_commit_callbacks):
+    published = []
+
+    class RecordingTask:
+        def delay(self, pk, method):
+            published.append((pk, method))
+
+    monkeypatch.setattr(schedulers, "send_message", RecordingTask())
     qi = QueueItem.objects.create(sender=sender, receiver=receivers[0], method="email")
 
-    class FakeTask:
-        def delay_on_commit(self, pk, method):
-            raise CeleryError("boom")
+    with django_capture_on_commit_callbacks(execute=True):
+        schedulers.schedule_queue_item(qi)
+        assert published == []
 
-    monkeypatch.setattr(schedulers, "send_message", FakeTask())
+    assert published == [(qi.pk, "email")]
 
-    schedulers.schedule_queue_item(qi)
+
+@pytest.mark.django_db
+def test_schedule_queue_item_handles_errors(monkeypatch, sender, receivers, django_capture_on_commit_callbacks):
+    qi = QueueItem.objects.create(sender=sender, receiver=receivers[0], method="email")
+    monkeypatch.setattr(schedulers, "send_message", FailingTask())
+
+    with django_capture_on_commit_callbacks(execute=True):
+        schedulers.schedule_queue_item(qi)
+
+    qi.refresh_from_db()
+    assert qi.workflow_state.code == "errored"
+    assert "Failed to enqueue" in qi.result
+
+
+@pytest.mark.django_db
+def test_add_sms_marks_item_errored_when_publish_fails(
+    monkeypatch, sender, receivers, django_capture_on_commit_callbacks
+):
+    monkeypatch.setattr(schedulers, "send_message", FailingTask())
+
+    with django_capture_on_commit_callbacks(execute=True):
+        [qi] = schedulers.add_sms(sender, receivers[0], "hello")
 
     qi.refresh_from_db()
     assert qi.workflow_state.code == "errored"
