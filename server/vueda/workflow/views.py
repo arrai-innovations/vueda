@@ -35,7 +35,7 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
 
     template_name = "workflow/overview.jinja2"
 
-    permission_required = ("workflow.read_workflow",)
+    permission_required = ("vueda_workflow.read_workflow",)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -92,7 +92,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
     http_method_names = [
         "post",
     ]
-    permission_required = ("workflow.delete_workflow",)
+    permission_required = ("vueda_workflow.delete_workflow",)
 
     def post(self, request, *args, **kwargs):
         pk = kwargs["pk"]
@@ -111,7 +111,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
 class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/add.jinja2"
 
-    permission_required = ("workflow.create_workflow",)
+    permission_required = ("vueda_workflow.create_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -146,7 +146,7 @@ class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, T
 class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_workflow",)
+    permission_required = ("vueda_workflow.update_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -239,7 +239,7 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
 class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_state",)
+    permission_required = ("vueda_workflow.update_state",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -299,7 +299,7 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
 class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_transition",)
+    permission_required = ("vueda_workflow.update_transition",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
