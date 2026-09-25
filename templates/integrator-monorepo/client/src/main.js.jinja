@@ -22,6 +22,8 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
 import { setTheme } from "@vueda/use/useTheme.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { getRouter } from "./router/index.js";
 import TheApp from "./TheApp.vue";
 
@@ -56,6 +58,11 @@ setIcons({
         triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
     },
 });
+
+// Lists, reads, and saves go through these adapters; without them every
+// data request rejects with "Crud method ... is not implemented."
+setupDefaultListCrud();
+setupDefaultObjectCrud();
 
 const app = createApp(TheApp);
 const pinia = createPinia();
