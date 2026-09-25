@@ -1,7 +1,7 @@
 """The action-grouped history response contract.
 
-One action that renamed a distributor and added one of its products, read as the distributor's
-history. These assertions are the public contract, so changing one changes the response an
+One action that updated a distributor's description and added one of its products, read as the
+distributor's history. These assertions are the public contract, so changing one changes the response an
 integrator depends on.
 """
 
@@ -901,13 +901,12 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
 
     def test_a_multi_row_list_reuses_each_rows_own_retrieve_check(self, api_client):
         """
-        Guards PR #288's round-1 regression on a list response specifically: a 20-row page cost
-        545 queries with ``available_actions`` requested against 485 on ``main``, because the
-        history-list gate ran a second permission pass for every row instead of reusing the CRUD
-        loop's own ``retrieve`` decision for that same row.
+        The history-list gate reuses the CRUD loop's own ``retrieve`` decision for each row of a
+        list response, rather than running a second permission pass per row, which would add
+        several queries per row to a page that requests ``available_actions``.
         ``test_the_crud_loop_and_the_history_list_gate_check_retrieve_on_the_same_viewset_instance``
-        already proves this for one row's detail response; this extends the same spy to every row
-        of a list response, where the regression actually showed up.
+        proves this for one row's detail response; this extends the same spy to every row of a
+        list response.
         """
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
         orders = self.make_orders(5, order_state, start_at=999)

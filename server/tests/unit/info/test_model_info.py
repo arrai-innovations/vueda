@@ -238,10 +238,7 @@ def register_model(app_label, model_name):
     Register the model under test and nothing else.
 
     The detail response for a model is built from that model's own registration, so registering the
-    rest is work every parametrized case would pay for and no case would use. A proxy model needed
-    its concrete model registered too, because the history expands resolved their canonical
-    serializer through the content type, which resolves a proxy to the model it proxies. Those
-    expands went with django-simple-history.
+    rest is work every parametrized case would pay for and no case would use.
     """
     info.registration.get_empty_registry()
 

@@ -241,11 +241,12 @@ class TestContributors:
         assert "probe_note" not in [field.name for field in feature_models.ProbeProxy._meta.local_fields]
 
     def test_multi_table_children_receive_exact_policy_without_field_clashes(self):
-        """Model names here stay unique across the file.
+        """Model names may repeat across the file's ``isolate_apps`` blocks.
 
         History attaches a generated event model to the app's models module, and ``isolate_apps``
-        rolls back the app registry but not that module attribute. Reusing a model name in a second
-        test would collide with the event model the first test left behind.
+        rolls back the app registry but not that module attribute. The autouse
+        ``discard_orphaned_event_models`` fixture removes the event models a block leaves behind, so
+        a later test can declare a model of the same name.
         """
         with isolate_apps("tests.features"):
 

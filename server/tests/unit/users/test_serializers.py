@@ -16,11 +16,11 @@ from vueda.user.serializers import WhoIsSerializer
 
 
 @pytest.mark.django_db
-def test_expanding_groups_with_wildcard_works_after_patch(api_client):
+def test_expanding_groups_works_after_patch(api_client):
     """
     Group is patched in InfoConfig.ready() with _has_formatted_name_field and
-    formatted_name_lookup_expression='name', so expanding groups.* no longer raises
-    AttributeError when the viewset recurses into GroupSerializer.
+    formatted_name_lookup_expression='name', so expanding groups doesn't raise AttributeError
+    when the viewset recurses into GroupSerializer.
     """
     User = get_user_model()  # noqa: N806
     user = User.objects.create_user(email="expand-test@domain.invalid", name="Expand Test", password="testpass")
@@ -36,7 +36,7 @@ def test_expanding_groups_with_wildcard_works_after_patch(api_client):
 def test_permission_formatted_name_patch(api_client):
     """
     Permission is patched with _has_formatted_name_field and formatted_name_lookup_expression='name'.
-    Expanding user_permissions.* exercises the full viewset + serializer code path for Permission.
+    Expanding user_permissions exercises the full viewset + serializer code path for Permission.
     Catches Django changes that remove or rename the name field or break the patch.
     """
     User = get_user_model()  # noqa: N806
@@ -51,7 +51,7 @@ def test_permission_formatted_name_patch(api_client):
 def test_content_type_formatted_name_patch(api_client):
     """
     ContentType is patched with get_formatted_name() -> app_labeled_name.
-    Expanding content_type.* on a Permission viewset exercises the full code path for ContentType.
+    Expanding content_type on a Permission viewset exercises the full code path for ContentType.
     Catches Django changes that remove or rename app_labeled_name or break the patch.
     """
     User = get_user_model()  # noqa: N806

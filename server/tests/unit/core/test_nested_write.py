@@ -34,7 +34,7 @@ class TestCreateIssueExpectedFailure:
             "returns a fresh list on each get_initial() call, so the pk mutation written by "
             "the create step is invisible to the delete step and newly created inline objects "
             "are immediately deleted. If this test unexpectedly passes, drf-writable-nested "
-            "has fixed the issue, and the customized update function should no longer be needed."
+            "has fixed the issue, and the customized update function should no longer be needed. "
             "https://github.com/arrai-innovations/vueda/blob/cf87918ce6c42409248d8fba0355cb0712f6aaa3/server/vueda/core/serializers/__init__.py#L160-L178"
         ),
     )

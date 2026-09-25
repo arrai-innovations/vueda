@@ -284,7 +284,8 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
             format="json",
         )
 
-        # The customer is not able to list customer orders or inventory records.
+        # Forbidden where the customer can't list the model holding the field (inventory records),
+        # or the model the field points at (users, customers, customer orders and carts).
         match (app_label, model_name, field_name):
             case (
                 ("store", "customer", "user")

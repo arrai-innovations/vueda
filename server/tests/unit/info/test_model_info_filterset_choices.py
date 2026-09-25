@@ -591,7 +591,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         )
 
     def test_distributor_choices_filtered_by_quantity_of_ten(self, authenticated_client):
-        """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
+        """quantity=10 narrows the distributor choices to T-Shirt Corp. and Vibrant Looks Inc."""
         register_model("store", "product")
 
         response = authenticated_client.get(
@@ -603,7 +603,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
-            f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
+            f"Expected distributor choices narrowed to T-Shirt Corp. and Vibrant Looks Inc., got: {result_labels}"
         )
 
     def test_special_care_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
