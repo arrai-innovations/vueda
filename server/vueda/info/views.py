@@ -267,6 +267,7 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
             .order_by(
                 "content_type__app_label",
                 "crud_order_by",
+                "codename",
             )
         )
 
