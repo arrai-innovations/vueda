@@ -692,7 +692,7 @@ def create_test_data(self):
                                     "added_inventory_record": "inventory_record_1",
                                     "order_item": "order_item_2",
                                     "price": Decimal("44.99"),
-                                    "margin": Decimal(" 14.99"),
+                                    "margin": Decimal("14.99"),
                                 },
                             ),
                         },
