@@ -174,7 +174,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 200)
         assert {x["name"] for x in response.data["results"]} == {"Apple", "Banana", "Mango", "Orange"}
 
-    def test_list_products_filtered_by_q(self, api_client):
+    def test_customer_lists_only_products_available_for_sale(self, api_client):
         user = self.users["test_customer@domain.invalid"]
         api_client.force_authenticate(user=user)
         Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())

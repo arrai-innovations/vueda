@@ -15,7 +15,7 @@ from django.db import connection
 from tests.conftest import BaseTestCallCommand
 from tests.store import models as store_models
 from tests.utils import append_installed_apps
-from tests.utils import info_registry_clear_with_appended_apps
+from tests.utils import clear_info_registry_before_test
 from vueda.core.audit import audited_action
 from vueda.history.middleware import VuedaHistoryMiddleware
 
@@ -406,28 +406,28 @@ class TestMigrationPaths(BaseTestCallCommand):
     table.
     """
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.django_db
     def test_the_event_migration_rolls_back_and_forward_again(self, settings):
         append_installed_apps(settings, "tests.history_migrations")
         # Imported here, because the app is only installed for this test.
         from tests.history_migrations.models import TrackedRecord
 
-        succeeded, results = self.call_command("migrate", "history_migrations")
+        succeeded, results = self.call_command_capturing_output("migrate", "history_migrations")
         if not succeeded:
             pytest.fail("".join(results))
 
         assert "history_migrations_trackedrecordevent" in connection.introspection.table_names()
         assert _trigger_names("history_migrations_trackedrecord")
 
-        succeeded, results = self.call_command("migrate", "history_migrations", "0001")
+        succeeded, results = self.call_command_capturing_output("migrate", "history_migrations", "0001")
         if not succeeded:
             pytest.fail("".join(results))
 
         assert "history_migrations_trackedrecordevent" not in connection.introspection.table_names()
         assert _trigger_names("history_migrations_trackedrecord") == []
 
-        succeeded, results = self.call_command("migrate", "history_migrations")
+        succeeded, results = self.call_command_capturing_output("migrate", "history_migrations")
         if not succeeded:
             pytest.fail("".join(results))
 

@@ -71,28 +71,28 @@ def sms_receiver(db):
 
 
 @pytest.fixture
-def email_queue_item(sender, receiver):
+def queued_email_with_detail(sender, receiver):
     queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
     AnyMailQueueItem.objects.create(queue_item=queue_item, subject="Subject", text="Body", html="")
     return queue_item
 
 
 @pytest.fixture
-def sms_queue_item(sender, receiver):
+def queued_sms(sender, receiver):
     queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="sms")
     SMSQueueItem.objects.create(queue_item=queue_item, body="hello", media_url=[], message_sid="SID")
     return queue_item
 
 
 @pytest.fixture
-def queue_item_email(email_sender, email_receiver):
+def sending_email_without_detail(email_sender, email_receiver):
     queue_item = QueueItem.objects.create(sender=email_sender, receiver=email_receiver, method="email")
     queue_item.fast_transition("send")
     return queue_item
 
 
 @pytest.fixture
-def queue_item_sms(sms_sender, sms_receiver):
+def sending_sms(sms_sender, sms_receiver):
     queue_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
     SMSQueueItem.objects.create(queue_item=queue_item, body="hello", media_url=None, message_sid="")
     queue_item.fast_transition("send")

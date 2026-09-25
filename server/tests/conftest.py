@@ -581,7 +581,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args, stdout=None, stderr=None):
+    def call_command_capturing_output(self, *args, stdout=None, stderr=None):
         """
         Call a management command and capture the results.
 

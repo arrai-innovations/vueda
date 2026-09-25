@@ -11,8 +11,8 @@ from django.db.migrations.recorder import MigrationRecorder
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
+from tests.utils import clear_info_registry_before_test
 from tests.utils import expect_one_migration_generated_today
-from tests.utils import info_registry_clear_with_appended_apps
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
@@ -35,7 +35,7 @@ class BaseAddedGroup:
         GroupChange.objects.all().delete()
 
         # Run the generated migration forwards.
-        succeeded, results = self.call_command("migrate", "group_added", "0003")
+        succeeded, results = self.call_command_capturing_output("migrate", "group_added", "0003")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -78,7 +78,7 @@ class BaseAddedGroup:
         )
 
         # Run the generated migration backwards.
-        succeeded, results = self.call_command("migrate", "group_added", "0002")
+        succeeded, results = self.call_command_capturing_output("migrate", "group_added", "0002")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -93,7 +93,7 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
     the noqa comments are stripped from the generated migration.
     """
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_comment_removed(self, settings):
@@ -105,12 +105,12 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
 
         with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "group_added")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Create the generated migration 0003.
-            succeeded, results = self.call_command("makegroupmigrations")
+            succeeded, results = self.call_command_capturing_output("makegroupmigrations")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -130,7 +130,7 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_dry_run_no_changes(self):
-        succeeded, results = self.call_command("makegroupmigrations", "--dry-run")
+        succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--dry-run")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -138,7 +138,7 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
 
 
 class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_added(self, settings):
@@ -154,7 +154,7 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
             assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "group_added")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -162,7 +162,7 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
             assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 2  # noqa: PLR2004
 
             # Create the generated migration 0003.
-            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
+            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -170,7 +170,7 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
 
 
 class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_changed(self, settings):
@@ -184,7 +184,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
         with self.temporary_migration_module(settings, app_label="group_changed") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_changed").count() == 0
 
-            succeeded, results = self.call_command("migrate", "group_changed")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_changed")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -197,7 +197,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             # Verify the number of GroupChange objects.
             assert GroupChange.objects.count() == 3  # noqa: PLR2004
 
-            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
+            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -210,7 +210,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             assert any(migration_name in r for r in results_set)
 
             # Run the generated migration forwards.
-            succeeded, results = self.call_command("migrate", "group_changed", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_changed", "0004")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -230,7 +230,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             assert GroupChange.objects.count() == 3  # noqa: PLR2004
 
             # Run the generated migration backwards.
-            succeeded, results = self.call_command("migrate", "group_changed", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_changed", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -248,7 +248,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
 
 
 class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_deleted(self, settings):
@@ -262,7 +262,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
         with self.temporary_migration_module(settings, app_label="group_deleted") as migration_dir:
             assert MigrationRecorder.Migration.objects.filter(app="group_deleted").count() == 0
 
-            succeeded, results = self.call_command("migrate", "group_deleted", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -282,7 +282,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
                 content_type__model="groupdeleteduser",
             ).exists(), "'read_groupdeleteduser' should be associated before deletion test."
 
-            succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
+            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -295,7 +295,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
             assert any(migration_name in r for r in results_set)
 
             # Run the generated migration forwards.
-            succeeded, results = self.call_command("migrate", "group_deleted", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0004")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -305,7 +305,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
             )
 
             # Run the generated migration backwards.
-            succeeded, results = self.call_command("migrate", "group_deleted", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -346,7 +346,7 @@ class TestCreateUserCommand:
                 groups="foo,bar",
             )
 
-    def test_success(self):
+    def test_creates_user_in_existing_group(self):
         Group.objects.create(name="TestGroup")
         call_command(
             "createuser",
@@ -361,7 +361,7 @@ class TestCreateUserCommand:
 
 
 class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_updating(self, settings):
@@ -428,7 +428,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "            forwards_migrate_groups_through_imports," not in migration_content
             assert "            backwards_migrate_groups_through_imports," not in migration_content
 
-            succeeded, results = self.call_command("updategroupmigrations")
+            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -485,7 +485,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "            forwards_migrate_groups_through_imports," in migration_content
             assert "            backwards_migrate_groups_through_imports," in migration_content
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_updating_direct_runpython_import(self, settings):
@@ -547,7 +547,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "code=forwards_migrate_groups_through_imports," not in migration_content
             assert "reverse_code=backwards_migrate_groups_through_imports," not in migration_content
 
-            succeeded, results = self.call_command("updategroupmigrations")
+            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -600,13 +600,13 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
             assert "reverse_code=backwards_migrate_groups_through_imports," in migration_content
 
             # Run update again.  There should be no renames.
-            succeeded, results = self.call_command("updategroupmigrations")
+            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
             if not succeeded:
                 pytest.fail("".join(results))
 
             assert f"  Nothing to rename found in {migration_filepath}.\n" in results
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_updating_bad_migrations(self, settings):
@@ -622,7 +622,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
 
         with self.temporary_migration_module(settings, app_label="group_updating_bad_migrations") as migration_dir:
             with pytest.raises(SystemExit):
-                self.call_command("updategroupmigrations", stdout=out, stderr=err)
+                self.call_command_capturing_output("updategroupmigrations", stdout=out, stderr=err)
 
             err.seek(0)
             results = err.read()
@@ -641,7 +641,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
 
             assert "Failed updating 2 group migration(s).\n" in results
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_updating_no_migrations(self, settings):
@@ -652,13 +652,13 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         settings.AUTH_USER_MODEL = "group_updating_no_migrations.GroupUpdatingNoMigrationsUser"
         append_installed_apps(settings, "tests.group_updating_no_migrations")
 
-        succeeded, results = self.call_command("updategroupmigrations")
+        succeeded, results = self.call_command_capturing_output("updategroupmigrations")
         if not succeeded:
             pytest.fail("".join(results))
 
         assert "No group migrations found to update.\n" in results
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_group_changes_syncing(self, settings):
@@ -672,7 +672,7 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
         with self.temporary_migration_module(settings, app_label="group_changes_syncing"):
             assert GroupChange.objects.count() == 0
 
-            succeeded, results = self.call_command("sync_group_changes")
+            succeeded, results = self.call_command_capturing_output("sync_group_changes")
             if not succeeded:
                 pytest.fail("".join(results))
 

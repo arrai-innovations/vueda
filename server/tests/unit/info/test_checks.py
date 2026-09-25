@@ -1315,7 +1315,7 @@ class TestColumnTotalsChecks:
     """
 
     @staticmethod
-    def check_errors(viewset, serializer=None):
+    def column_totals_errors_for(viewset, serializer=None):
         from vueda.info.checks import check_column_totals_configuration
 
         info.registration.get_empty_registry()
@@ -1324,21 +1324,23 @@ class TestColumnTotalsChecks:
         return check_column_totals_configuration(app_configs=None)
 
     def test_valid_mapping_passes(self):
-        assert self.check_errors(store_viewsets.CartItemViewSet) == []
+        assert self.column_totals_errors_for(store_viewsets.CartItemViewSet) == []
 
     def test_duration_field_total_passes(self):
         """A DurationField is an interval, which adds up; it is the one non-numeric column `Sum`
         means something for."""
-        assert self.check_errors(store_viewsets.CartItemDurationColumnTotalsViewSet) == []
+        assert self.column_totals_errors_for(store_viewsets.CartItemDurationColumnTotalsViewSet) == []
 
     def test_viewset_without_column_totals_passes(self):
         assert (
-            self.check_errors(store_viewsets.ProductOptionViewSet, serializer=store_serializers.ProductOptionSerializer)
+            self.column_totals_errors_for(
+                store_viewsets.ProductOptionViewSet, serializer=store_serializers.ProductOptionSerializer
+            )
             == []
         )
 
     def test_list_form_is_reported(self):
-        errors = self.check_errors(store_viewsets.CartItemListColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemListColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1350,7 +1352,7 @@ class TestColumnTotalsChecks:
         """The annotation allowance below is for annotations the queryset actually carries, not for
         anything that fails to resolve: a typo'd path is still an error, which is most of what this
         check is for."""
-        errors = self.check_errors(store_viewsets.CartItemUnresolvableColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemUnresolvableColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1360,7 +1362,7 @@ class TestColumnTotalsChecks:
         )
 
     def test_unsummable_leaf_is_reported(self):
-        errors = self.check_errors(store_viewsets.CartItemUnsummableColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemUnsummableColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1370,7 +1372,7 @@ class TestColumnTotalsChecks:
         )
 
     def test_relation_leaf_is_reported(self):
-        errors = self.check_errors(store_viewsets.CartItemRelationColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemRelationColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1382,7 +1384,7 @@ class TestColumnTotalsChecks:
     def test_reverse_foreign_key_path_is_reported(self):
         """The case nothing else catches: it raises no error and returns wrong numbers, for every
         total in the same `aggregate()` call."""
-        errors = self.check_errors(
+        errors = self.column_totals_errors_for(
             store_viewsets.InvoiceReverseColumnTotalsViewSet, serializer=store_serializers.InvoiceSerializer
         )
 
@@ -1394,7 +1396,7 @@ class TestColumnTotalsChecks:
         )
 
     def test_many_to_many_path_is_reported(self):
-        errors = self.check_errors(
+        errors = self.column_totals_errors_for(
             store_viewsets.ProductManyToManyColumnTotalsViewSet, serializer=store_serializers.ProductSerializer
         )
 
@@ -1409,7 +1411,7 @@ class TestColumnTotalsChecks:
         """A path naming an annotation the viewset's own `get_queryset` adds resolves for
         `aggregate()` but not through `_meta`, so the check defers to the queryset for it -- the
         same allowance `_validate_ordering_declarations` makes for an ordering term."""
-        errors = self.check_errors(
+        errors = self.column_totals_errors_for(
             store_viewsets.InventoryRecordAnnotatedColumnTotalsViewSet,
             serializer=store_serializers.InventoryRecordSerializer,
         )
@@ -1417,7 +1419,7 @@ class TestColumnTotalsChecks:
         assert errors == []
 
     def test_wildcard_name_is_reported(self):
-        errors = self.check_errors(store_viewsets.CartItemWildcardColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemWildcardColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1427,7 +1429,7 @@ class TestColumnTotalsChecks:
 
     def test_name_carrying_a_separator_is_reported(self):
         """VUEDA's half of the name rule: the query parameter could not carry this name back."""
-        errors = self.check_errors(store_viewsets.CartItemBadNameColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemBadNameColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1438,7 +1440,7 @@ class TestColumnTotalsChecks:
 
     def test_name_django_refuses_as_an_alias_is_reported(self):
         """Django's half, quoted from Django, so the hint says what the installed version objects to."""
-        errors = self.check_errors(store_viewsets.CartItemAliasUnsafeNameColumnTotalsViewSet)
+        errors = self.column_totals_errors_for(store_viewsets.CartItemAliasUnsafeNameColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E011"
@@ -1502,19 +1504,19 @@ class TestColumnTotalName:
     OURS_ONLY = ("a,b", "", "*", "~all")
 
     @staticmethod
-    def check_errors(name):
+    def column_total_name_errors(name):
         return checks._validate_column_total_name(store_viewsets.CartItemViewSet, name)
 
     def test_accepted_names_pass_and_are_usable_aggregate_aliases(self):
         for name in self.ACCEPTED:
-            assert self.check_errors(name) == [], name
+            assert self.column_total_name_errors(name) == [], name
             with warnings.catch_warnings():
                 warnings.simplefilter("error")
                 Query(None).check_alias(name)
 
     def test_names_django_refuses_are_errors(self):
         for name in self.DJANGO_FORBIDDEN:
-            messages = self.check_errors(name)
+            messages = self.column_total_name_errors(name)
             assert [message.id for message in messages] == ["vueda_info.E011"], name
             with pytest.raises(ValueError):
                 Query(None).check_alias(name)
@@ -1522,12 +1524,12 @@ class TestColumnTotalName:
     def test_names_only_vueda_refuses_are_errors(self):
         """Django has no objection to these, so the check has to carry them itself."""
         for name in self.OURS_ONLY:
-            messages = self.check_errors(name)
+            messages = self.column_total_name_errors(name)
             assert [message.id for message in messages] == ["vueda_info.E011"], name
             Query(None).check_alias(name)
 
     def test_a_non_string_name_is_an_error(self):
-        messages = self.check_errors(3)
+        messages = self.column_total_name_errors(3)
 
         assert [message.id for message in messages] == ["vueda_info.E011"]
         assert "not a string" in messages[0].msg
@@ -1554,7 +1556,7 @@ class TestColumnTotalName:
             else:
                 django_refuses, django_deprecates = False, bool(caught)
 
-        messages = self.check_errors("a%b")
+        messages = self.column_total_name_errors("a%b")
 
         if django_refuses:
             assert [message.id for message in messages] == ["vueda_info.E011"]
@@ -1566,7 +1568,7 @@ class TestColumnTotalName:
 
     def test_the_empty_name_says_so(self):
         """Its own message, because `{name!r}` reads as nothing at all for this one."""
-        messages = self.check_errors("")
+        messages = self.column_total_name_errors("")
 
         assert [message.id for message in messages] == ["vueda_info.E011"]
         assert "empty name" in messages[0].msg

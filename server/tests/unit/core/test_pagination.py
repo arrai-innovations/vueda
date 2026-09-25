@@ -122,14 +122,14 @@ class TestPagination(BaseTestCommonModelViewSet):
             assert len(response.data["results"]) == 3  # noqa: PLR2004
             assert response_data["totalRecords"] == len(self.page_data_arguments)
 
-    def test_page_beyond_last_returns_empty(self, settings, authenticated_client, page_data):
+    def test_page_beyond_last_returns_404(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
             url = reverse("product.product-list")
             response = authenticated_client.get(url, data={"p": 999}, format="json")
             assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
             assert "Invalid page." in response.data["detail"]
 
-    def test_page_negative_returns_empty(self, settings, authenticated_client, page_data):
+    def test_negative_page_returns_404(self, settings, authenticated_client, page_data):
         with adjust_page_size(settings, 5):
             url = reverse("product.product-list")
             response = authenticated_client.get(url, data={"p": -1}, format="json")

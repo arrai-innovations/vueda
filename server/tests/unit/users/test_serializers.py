@@ -63,7 +63,7 @@ def test_content_type_formatted_name_patch(api_client):
 
 
 @pytest.mark.django_db
-class TestWhoIsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupMixin):
+class TestWhoIsSerializerDirectly(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Timesheet Reader": [
             ("timesheet", "Timesheet", "read"),

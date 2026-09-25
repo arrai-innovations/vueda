@@ -61,7 +61,7 @@ def get_model_ordering_response(api_client, settings, app_label, model_name):
     )
 
 
-def ordering_check_errors(model, ordering, monkeypatch):
+def e015_errors_with_ordering(model, ordering, monkeypatch):
     """The `models.E015` errors a model's checks report for a given `Meta.ordering`.
 
     Patched rather than declared so one shared model can stand in for several declarations. What the
@@ -112,7 +112,7 @@ def use_base_manager(model, manager, monkeypatch):
     monkeypatch.setitem(model._meta.__dict__, "base_manager", manager)
 
 
-def base_manager_check_errors(model, ordering, monkeypatch):
+def e017_errors_with_ordering(model, ordering, monkeypatch):
     """The `vueda_core.E017` errors a model's checks report for a given `Meta.ordering`."""
     monkeypatch.setattr(model._meta, "ordering", ordering)
 
@@ -408,14 +408,14 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
     def test_lookup_expression_formatted_name_is_accepted_descending(self, monkeypatch):
         """The `-` prefix is part of the term, not a different term, so a descending declaration has to
         be accepted the same way the ascending one the model declares for itself is."""
-        errors = ordering_check_errors(ProductModelOrderingLookupFormattedName, ["-formatted_name"], monkeypatch)
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["-formatted_name"], monkeypatch)
 
         assert errors == []
 
     def test_a_stale_term_beside_it_is_still_reported(self, monkeypatch):
         """The term is withheld, not the whole declaration: a real field name and a nonexistent one in
         the same `Meta.ordering` are each judged on their own."""
-        errors = ordering_check_errors(
+        errors = e015_errors_with_ordering(
             ProductModelOrderingLookupFormattedName,
             ["formatted_name", "label", "no_such_field"],
             monkeypatch,
@@ -451,7 +451,7 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         """The override withholds only a model's own un-prefixed `formatted_name`, and only when a
         lookup expression and an annotating default manager can reach it. Each term below fails one of
         those conditions, so `models.E015` has to report it exactly as Django would."""
-        errors = ordering_check_errors(model, [term], monkeypatch)
+        errors = e015_errors_with_ordering(model, [term], monkeypatch)
 
         assert [error.msg for error in errors] == [
             f"'ordering' refers to the nonexistent field, related field, or lookup '{term}'."
@@ -469,7 +469,7 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         """
         use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
 
-        errors = ordering_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert [error.msg for error in errors] == [
             "'ordering' refers to the nonexistent field, related field, or lookup 'formatted_name'."
@@ -486,7 +486,7 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
 
         use_default_manager(ProductModelOrderingLookupFormattedName, ArchivedAwareManager(), monkeypatch)
 
-        errors = ordering_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -495,7 +495,7 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         Django would judge it — one error per broken term, not one for the whole ordering."""
         use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
 
-        errors = ordering_check_errors(
+        errors = e015_errors_with_ordering(
             ProductModelOrderingLookupFormattedName,
             ["formatted_name", "label", "no_such_field"],
             monkeypatch,
@@ -512,7 +512,7 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         be the declaration as written."""
         declared = ["formatted_name", "label"]
 
-        ordering_check_errors(ProductModelOrderingLookupFormattedName, declared, monkeypatch)
+        e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, declared, monkeypatch)
 
         assert ProductModelOrderingLookupFormattedName._meta.ordering == declared
 
@@ -533,7 +533,7 @@ class TestFormattedNameBaseManagerSystemChecks:
     def test_a_model_whose_base_manager_cannot_annotate_is_reported(self, monkeypatch):
         use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert [error.msg for error in errors] == [
             "ProductModelOrderingLookupFormattedName.Meta.ordering needs the formatted_name annotation to "
@@ -548,7 +548,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         manager Django built."""
         use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert "Meta.base_manager_name" in errors[0].hint
         assert "formatted_name_lookup_expression" in errors[0].hint
@@ -579,7 +579,7 @@ class TestFormattedNameBaseManagerSystemChecks:
 
         use_base_manager(ProductModelOrderingLookupFormattedName, ArchivedAwareManager(), monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -594,7 +594,7 @@ class TestFormattedNameBaseManagerSystemChecks:
 
         use_base_manager(ProductModelOrderingLookupFormattedName, IndependentlyAnnotatingManager(), monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -610,7 +610,7 @@ class TestFormattedNameBaseManagerSystemChecks:
 
         use_base_manager(ProductModelOrderingLookupFormattedName, LosesTheAnnotationManager(), monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert len(errors) == 1
 
@@ -619,7 +619,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         ordering without help and there is nothing to report."""
         use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["label"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["label"], monkeypatch)
 
         assert errors == []
 
@@ -666,7 +666,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         """
         use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, [term], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, [term], monkeypatch)
 
         assert len(errors) == 1
 
@@ -688,7 +688,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
         use_plain_base_manager(ProductModelOrderingLookupFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -697,7 +697,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         there is no annotation for a base manager to be missing."""
         use_plain_base_manager(ProductModelOrderingFormattedName, monkeypatch)
 
-        errors = base_manager_check_errors(ProductModelOrderingFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -709,7 +709,7 @@ class TestFormattedNameBaseManagerSystemChecks:
         monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "base_manager_name", "no_such_manager")
         monkeypatch.delitem(ProductModelOrderingLookupFormattedName._meta.__dict__, "base_manager")
 
-        errors = base_manager_check_errors(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+        errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
 
@@ -831,7 +831,7 @@ class TestModelOrderingMultiValuedRelatedFormattedName:
         yield
         info.registration.get_empty_registry()
 
-    def test_it_is_not_advertised(self, api_client, settings):
+    def test_multi_valued_related_formatted_name_is_not_advertised(self, api_client, settings):
         response = get_model_ordering_response(api_client, settings, "store", "cart")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)

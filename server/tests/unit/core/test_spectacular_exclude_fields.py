@@ -32,7 +32,7 @@ class BaseSpectacularExcludeFieldsTest(BaseTestMigrations, BaseTestCallCommand):
     def generate_schema(self, monkeypatch, schema_path, path, viewset):
         endpoint = _make_endpoint(path, viewset)
         monkeypatch.setattr(spectacular_settings, "PREPROCESSING_HOOKS", [lambda endpoints: [endpoint]])
-        return self.call_command("spectacular", "--format", "openapi-json", "--file", schema_path)
+        return self.call_command_capturing_output("spectacular", "--format", "openapi-json", "--file", schema_path)
 
 
 @pytest.mark.django_db
