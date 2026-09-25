@@ -217,6 +217,29 @@ class TestCompositeKey:
         assert data["order_items_composite_pks"][0]["pk"] == json.dumps([str(x) for x in order_item_1.pk])
 
 
+@pytest.mark.django_db
+class TestMalformedCompositeKeyInUrl:
+    @pytest.fixture
+    def test_data(self):
+        return VuedaCompositeKeyTestData()
+
+    @pytest.mark.parametrize(
+        "pk",
+        [
+            pytest.param("abc", id="not-json"),
+            pytest.param("[1]", id="wrong-length"),
+            pytest.param("5", id="not-a-list"),
+            pytest.param('["x", "y"]', id="wrong-part-type"),
+        ],
+    )
+    def test_malformed_key_is_not_found(self, test_data, api_client, pk):
+        api_client.force_authenticate(user=test_data.users["test_customer_1@domain.invalid"])
+
+        response = api_client.get(reverse("store.orderitemcompositepk-detail", args=(pk,)), format="json")
+
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
+
+
 class TestCompositePrimaryKeyFieldErrors:
     def test_to_representation_raises_serialization_error(self):
         field = OrderItemCompositePKSerializer().fields["pk"]

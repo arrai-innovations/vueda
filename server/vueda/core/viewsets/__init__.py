@@ -30,11 +30,13 @@ from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django.http import Http404
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields import WILDCARD_VALUES
@@ -1424,8 +1426,12 @@ class VuedaViewSet(
                     cpk_field = field
 
             if has_composite_primary_key:
-                # 'CompositePrimaryKey' must be named 'pk'.
-                self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+                # 'CompositePrimaryKey' must be named 'pk'. A key that does not convert names no
+                # object, so answer 404 the way DRF's get_object_or_404 does for a malformed pk.
+                try:
+                    self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+                except (TypeError, ValueError, ValidationError) as exc:
+                    raise Http404 from exc
 
         return super().get_object()
 
