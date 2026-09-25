@@ -230,6 +230,18 @@ describe("lib/router/makeCrud.js", () => {
         expect(() => makeCRUDRoutes({ component, vueApp, router, pinia })).toThrow("makeCRUDRoutes: actionRedirect");
     });
 
+    scopedIt("throws when groups is set without groupsRedirect", () => {
+        const actionRedirect = { name: "not-found" };
+        expect(() => makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect, groups: ["admin"] })).toThrow(
+            "makeCRUDRoutes: groupsRedirect",
+        );
+    });
+
+    scopedIt("accepts an empty groups list without groupsRedirect", () => {
+        const actionRedirect = { name: "not-found" };
+        expect(() => makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect, groups: [] })).not.toThrow();
+    });
+
     describe("Recheck after the authenticated user changes", () => {
         const authRedirect = { name: "login" };
         const groupsRedirect = { name: "denied" };
