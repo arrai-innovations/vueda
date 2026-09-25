@@ -208,6 +208,8 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         "SECURE_REFERRER_POLICY": env("SECURE_REFERRER_POLICY", default="same-origin") or None,
         "SITE_NAME": env("SITE_NAME"),
         "SUPPORT_EMAIL": env("SUPPORT_EMAIL"),
+        # Sender for the user app's account email (password reset, welcome, two-factor codes).
+        "NO_REPLY_EMAIL": env("NO_REPLY_EMAIL"),
         "CSRF_COOKIE_HTTPONLY": False,  # csrf expects this value in post requests, so our client's js needs to be able to read it
         "CSRF_TRUSTED_ORIGINS": env.list("CSRF_TRUSTED_ORIGINS"),
         "CSRF_COOKIE_SECURE": True,

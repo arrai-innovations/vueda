@@ -185,3 +185,17 @@ def test_omitting_the_cache_url_is_rejected():
 
     with pytest.raises(KeyError, match="CACHE_URL"):
         get_defaults(TomlEnv(config, environ={}))
+
+
+def test_no_reply_email_is_read_from_config():
+    assert get_defaults(_env())["NO_REPLY_EMAIL"] == "no-reply@domain.invalid"
+
+
+def test_omitting_the_no_reply_email_is_rejected():
+    # The user app sends account email from this address, so a project without it would fail only
+    # when the first password reset or welcome email is sent.
+    config = {**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")}
+    del config["NO_REPLY_EMAIL"]
+
+    with pytest.raises(KeyError, match="NO_REPLY_EMAIL"):
+        get_defaults(TomlEnv(config, environ={}))

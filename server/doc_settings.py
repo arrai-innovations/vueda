@@ -19,6 +19,7 @@ env = TomlEnv(
         "TIME_ZONE": "UTC",
         "SITE_NAME": "VUEDA",
         "SUPPORT_EMAIL": "support@domain.invalid",
+        "NO_REPLY_EMAIL": "no-reply@domain.invalid",
         "STATIC_ROOT": str(ROOT_DIR / "static"),
         "STATICFILES_DIRS": [],
         "AUTH_USER_MODEL": "doc_app.User",
