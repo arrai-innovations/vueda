@@ -67,17 +67,19 @@ const parsedValue = computed(() => {
 });
 
 const relative = ref();
-let quickUpdateRelativeInterval;
+let quickUpdateRelativeTimeout;
 const updateRelative = () => {
+    // Each call reschedules at most one quick update, so the minute interval and the value watcher
+    // cannot stack a second chain beside a pending one.
+    clearTimeout(quickUpdateRelativeTimeout);
+    quickUpdateRelativeTimeout = undefined;
     relative.value = parsedValue.value.isValid ? parsedValue.value.toRelative() : "-";
     if (relative.value === "0 seconds ago") {
         relative.value = "just now";
     }
-    // if the value is under a minute, update every second
-    if (parsedValue.value.isValid && parsedValue.value.diffNow().as("minutes") < 1) {
-        quickUpdateRelativeInterval = setTimeout(updateRelative, 1000);
-    } else if (quickUpdateRelativeInterval) {
-        updateRelativeInterval = null;
+    // Within a minute of now, in either direction, update every second.
+    if (parsedValue.value.isValid && Math.abs(parsedValue.value.diffNow().as("minutes")) < 1) {
+        quickUpdateRelativeTimeout = setTimeout(updateRelative, 1000);
     }
 };
 const absolute = computed(() => {
@@ -125,9 +127,7 @@ onMounted(
         }, 60000)),
 );
 onUnmounted(() => {
-    if (quickUpdateRelativeInterval) {
-        clearTimeout(quickUpdateRelativeInterval);
-    }
+    clearTimeout(quickUpdateRelativeTimeout);
     if (updateRelativeInterval) {
         clearInterval(updateRelativeInterval);
     }
