@@ -57,12 +57,12 @@ class TestWarningConfirmationGate:
     def test_create_with_correct_acknowledgement_saves(self, client):
         payload = {"name": "risky", "count": -1}
         first = client.post(LIST_URL, data=payload, format="json")
-        assert first.status_code == HTTPStatus.CONFLICT, response_body(first.data)
+        assert first.status_code == HTTPStatus.CONFLICT, response_body(first)
         digest = first.data["digest"]
 
         confirmed = client.post(LIST_URL, data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=digest)
 
-        assert confirmed.status_code == HTTPStatus.CREATED, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.CREATED, response_body(confirmed)
         assert Thing.objects.filter(name="risky", count=-1).exists()
 
     def test_create_with_stale_acknowledgement_re_prompts(self, client):
@@ -84,14 +84,14 @@ class TestWarningConfirmationGate:
         payload = {"name": "thing", "count": new_count}
 
         gated = client.put(detail_url(thing.pk), data=payload, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         thing.refresh_from_db()
         assert thing.count == original_count  # unchanged
 
         confirmed = client.put(
             detail_url(thing.pk), data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"]
         )
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         thing.refresh_from_db()
         assert thing.count == new_count
 
@@ -99,7 +99,7 @@ class TestWarningConfirmationGate:
         # name == "blocked" raises in validate(); the warning gate is never reached.
         response = client.post(LIST_URL, data={"name": "blocked", "count": -1}, format="json")
 
-        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response_body(response))
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "name" in response.data
         assert "confirmation_required" not in response.data
         assert not Thing.objects.filter(name="blocked").exists()
@@ -113,7 +113,7 @@ class TestConfirmRequiredAction:
 
         response = client.post(thing_action_url("reset-count", thing.pk), format="json")
 
-        assert response.status_code == HTTPStatus.CONFLICT, response_body(response_body(response))
+        assert response.status_code == HTTPStatus.CONFLICT, response_body(response)
         assert response.data["confirmation_required"] is True
         assert response.data["warnings"] == {"non_field_errors": ["Resetting the count cannot be undone."]}
         assert response.data["digest"]
@@ -124,11 +124,11 @@ class TestConfirmRequiredAction:
         thing = Thing.objects.create(name="thing", count=5)
         url = thing_action_url("reset-count", thing.pk)
         gated = client.post(url, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
 
         confirmed = client.post(url, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
 
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         thing.refresh_from_db()
         assert thing.count == 0
 
@@ -142,7 +142,7 @@ class TestConfirmRequiredAction:
             HTTP_ACKNOWLEDGE_WARNINGS="not-the-right-digest",
         )
 
-        assert response.status_code == HTTPStatus.CONFLICT, response_body(response_body(response))
+        assert response.status_code == HTTPStatus.CONFLICT, response_body(response)
         assert response.data["digest"]
         thing.refresh_from_db()
         assert thing.count == original_count
@@ -153,11 +153,11 @@ class TestConfirmRequiredAction:
 
         gated = client.post(url, format="json")
 
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {"non_field_errors": [DEFAULT_CONFIRM_MESSAGE]}
 
         confirmed = client.post(url, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         thing.refresh_from_db()
         assert thing.name == ""
 
@@ -202,13 +202,13 @@ class TestExplicitGateInActionBody:
         payload = {"amount": amount}
 
         gated = client.post(url, data=payload, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {"amount": ["This adjustment makes the count negative."]}
         thing.refresh_from_db()
         assert thing.count == original_count  # unchanged
 
         confirmed = client.post(url, data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         thing.refresh_from_db()
         assert thing.count == original_count + amount
 
@@ -220,12 +220,12 @@ class TestDestroyWarnings:
         url = detail_url(thing.pk)
 
         gated = client.delete(url)
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {"non_field_errors": ["thing still has a positive count."]}
         assert Thing.objects.filter(pk=thing.pk).exists()
 
         confirmed = client.delete(url, HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
-        assert confirmed.status_code == HTTPStatus.NO_CONTENT, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.NO_CONTENT, response_body(confirmed)
         assert not Thing.objects.filter(pk=thing.pk).exists()
 
     def test_single_destroy_without_warnings_deletes(self, client):
@@ -243,7 +243,7 @@ class TestDestroyWarnings:
         payload = {"pks": [alpha.pk, beta.pk, gamma.pk]}
 
         gated = client.delete(LIST_URL, data=payload, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {
             str(alpha.pk): {"non_field_errors": ["alpha still has a positive count."]},
             str(beta.pk): {"non_field_errors": ["beta still has a positive count."]},
@@ -251,7 +251,7 @@ class TestDestroyWarnings:
         assert Thing.objects.count() == len(payload["pks"])  # unchanged
 
         confirmed = client.delete(LIST_URL, data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
-        assert confirmed.status_code == HTTPStatus.NO_CONTENT, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.NO_CONTENT, response_body(confirmed)
         assert Thing.objects.count() == 0
 
     def test_bulk_destroy_without_warnings_deletes(self, client):
@@ -292,7 +292,7 @@ class TestDeactivateActivateWarnings:
         payload = {"pks": [alpha.pk, beta.pk, plain.pk]}
 
         gated = client.patch(BULK_DEACTIVATE_URL, data=payload, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {
             str(alpha.pk): {"non_field_errors": ["critical-alpha is critical."]},
             str(beta.pk): {"non_field_errors": ["critical-beta is critical."]},
@@ -302,7 +302,7 @@ class TestDeactivateActivateWarnings:
         confirmed = client.patch(
             BULK_DEACTIVATE_URL, data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"]
         )
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         assert Gadget.objects.filter(is_active=False).count() == len(payload["pks"])
 
     def test_single_deactivate_is_gated_then_proceeds_on_acknowledgement(self, client):
@@ -310,13 +310,13 @@ class TestDeactivateActivateWarnings:
         url = gadget_action_url("deactivate", gadget.pk)
 
         gated = client.patch(url, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {"non_field_errors": ["critical-solo is critical."]}
         gadget.refresh_from_db()
         assert gadget.is_active is True
 
         confirmed = client.patch(url, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"])
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         gadget.refresh_from_db()
         assert gadget.is_active is False
 
@@ -347,7 +347,7 @@ class TestDeactivateActivateWarnings:
 
         gated = client.patch(BULK_DEACTIVATE_URL, data={"pks": [gadget.pk]}, format="json")
 
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {str(gadget.pk): {"non_field_errors": ["critical-solo is critical."]}}
         gadget.refresh_from_db()
         assert gadget.is_active is True
@@ -361,7 +361,7 @@ class TestDeactivateActivateWarnings:
         payload = {"pks": [gadget.pk]}
 
         gated = client.patch(BULK_ACTIVATE_URL, data=payload, format="json")
-        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated.data)
+        assert gated.status_code == HTTPStatus.CONFLICT, response_body(gated)
         assert gated.data["warnings"] == {str(gadget.pk): {"non_field_errors": ["critical-off is critical."]}}
         gadget.refresh_from_db()
         assert gadget.is_active is False
@@ -369,7 +369,7 @@ class TestDeactivateActivateWarnings:
         confirmed = client.patch(
             BULK_ACTIVATE_URL, data=payload, format="json", HTTP_ACKNOWLEDGE_WARNINGS=gated.data["digest"]
         )
-        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed.data)
+        assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
         gadget.refresh_from_db()
         assert gadget.is_active is True
 

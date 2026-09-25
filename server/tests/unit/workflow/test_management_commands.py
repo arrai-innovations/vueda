@@ -18,6 +18,7 @@ from django.db.migrations.recorder import MigrationRecorder
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
+from tests.utils import expect_one_migration_generated_today
 from tests.utils import info_registry_clear_with_appended_apps
 from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
@@ -56,9 +57,8 @@ class BaseAddedWorkflow:
 
         # The migration writes through the workflow triggers, so it has to depend on the migration
         # that installs them. Depending on the newest vueda_workflow migration is what guarantees it.
-        migration_filepath = os.path.join(
-            migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
-        )
+        migration_name = expect_one_migration_generated_today(migration_dir, "0003_workflow_migrations")
+        migration_filepath = os.path.join(migration_dir, migration_name)
         with open(migration_filepath, encoding="utf-8") as f:
             generated_migration = f.read()
         workflow_migrations = Path(workflow_module.__file__).parent / "migrations"
@@ -67,10 +67,7 @@ class BaseAddedWorkflow:
 
         results = frozenset([line.strip() for line in results if line.strip()])
         assert "Creating empty migration for workflow changes." in results
-        assert (
-            f"Modified migration '0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-            f"to migrate workflow for workflow_added." in results
-        )
+        assert f"Modified migration '{migration_name}' to migrate workflow for workflow_added." in results
 
         # Roll back 0002.
         succeeded, results = self.call_command("migrate", "workflow_added", "0001")
@@ -357,7 +354,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
             # Verify that the noqa comments are gone.
             migration_filepath = os.path.join(
-                migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+                migration_dir, expect_one_migration_generated_today(migration_dir, "0003_workflow_migrations")
             )
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -450,10 +447,8 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 
             results = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0005_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_changed." in results
-            )
+            migration_name = expect_one_migration_generated_today(migration_dir, "0005_workflow_migrations")
+            assert f"Modified migration '{migration_name}' to migrate workflow for workflow_changed." in results
 
             # Roll back 0004.
             succeeded, results = self.call_command("migrate", "workflow_changed", "0003")
@@ -854,10 +849,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
 
             results = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0005_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_deleted." in results
-            )
+            migration_name = expect_one_migration_generated_today(migration_dir, "0005_workflow_migrations")
+            assert f"Modified migration '{migration_name}' to migrate workflow for workflow_deleted." in results
 
             # Roll back 0004.
             succeeded, results = self.call_command("migrate", "workflow_deleted", "0003")
