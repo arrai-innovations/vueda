@@ -191,8 +191,8 @@ class TestModelViewsetAndOrderingFieldsOrdering:
     ):
         """DRF's `get_ordering` splits `?o=` on commas without discarding empties, so a trailing comma
         hands `remove_invalid_fields` an empty term alongside `name`. The empty term names nothing to
-        reject, so it is dropped and `name` still applies -- the same request `main` accepted, since
-        DRF's own `remove_invalid_fields` silently dropped the empty term there too."""
+        reject, so it is dropped and `name` still applies, which matches DRF's own
+        `remove_invalid_fields`, which silently drops an empty term too."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_ordering_fields"
 
         user = product_ordering_data.users["test_admin@domain.invalid"]
@@ -629,12 +629,12 @@ class TestOrderingFieldsUnsetDefaultsToSerializer:
       the viewset's default `ordering` (`["-name"]`, inherited from `ProductOrderingViewSet`),
       regardless of whether `ordering_fields`/source resolution would otherwise allow it.
     - ProductOrderingSourceFieldViewSet swaps in a serializer whose `title` field is declared with an
-      explicit `source="name"`, and no matching annotation. Ordering by "title" falls back here,
-      because DRF resolves valid ordering keys by source ("name"), never by the field's own name.
+      explicit `source="name"`, and no matching annotation. Ordering by "title" is rejected with a
+      400, because DRF resolves valid ordering keys by source ("name"), never by the field's own name.
     - ProductOrderingPropertyFieldViewSet swaps in a serializer whose `title` field sources from a
-      model property (Product.computed_title). Ordering by "title" falls back here too, because DRF's
-      default resolution explicitly excludes any serializer field sourced from a model property — a
-      property has no column for the database to order by.
+      model property (Product.computed_title). Ordering by "title" is rejected with a 400 too, because
+      DRF's default resolution explicitly excludes any serializer field sourced from a model property —
+      a property has no column for the database to order by.
     """
 
     def test_default_order_ignores_serializer_fields(self, product_ordering_data, api_client, settings):

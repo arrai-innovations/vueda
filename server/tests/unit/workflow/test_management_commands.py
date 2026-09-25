@@ -185,7 +185,8 @@ class BaseAddedWorkflow:
             },
         ]
 
-        # Converting the data uses id, so it is stripped from the data.
+        # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+        # comparison leaves them out.
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
         )
@@ -699,7 +700,8 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
                 },
             ]
 
-            # Converting the data uses id, so it is stripped from the data.
+            # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+            # comparison leaves them out.
             data = convert_data_to_list_of_dicts_without_id_fields(
                 models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
             )
@@ -1086,7 +1088,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             )
             assert data == orig_data_state_permission
 
-            # Converting the data uses id, so it is stripped from the data.
+            # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+            # comparison leaves them out.
             data = convert_data_to_list_of_dicts_without_id_fields(
                 models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
             )
@@ -1109,9 +1112,8 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
     def get_unmatched_events_by_label(self, unmatched_history_data):
         """Group the codes of the events no migration captured, by what each event recorded.
 
-        Grouping used to be by date, because the fixture wrote its own. A real write is stamped with
-        the moment it happened, so every event in one test shares a date and only the event type
-        separates them.
+        Every write is stamped with the moment it happened, so the events in one test share a date,
+        and only the event type separates them.
         """
         events_by_label = {}
         for record in unmatched_history_data:
@@ -1236,10 +1238,10 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
                                     # Make sure the history pk is in the change and history data.
                                     assert f"'matches_history': {history_pk}" in change_data
                                     assert f"'pgh_id': {history_pk}" in history_data
-                                    # The two dates no longer agree, and should not. A change in a
-                                    # migration file carries the date the edit was recorded under
-                                    # the old backend; an event carries the moment the write really
-                                    # happened, which for these fixtures is when the test ran.
+                                    # The two dates differ, and should. A change in a migration
+                                    # file carries the date its edit was recorded when the migration
+                                    # was generated; an event carries the moment the write happened,
+                                    # which for these fixtures is when the test ran.
                                     assert "datetime." in change_data
                                     assert "datetime." in history_data
 
@@ -1268,7 +1270,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
                             previous_line = line
 
-            # Nothing matches by value any more. Every change 0002 carries was applied by 0002
+            # Nothing matches by value. Every change 0002 carries was applied by 0002
             # itself, and a generated migration's own writes are dropped by the action they record
             # before matching runs at all.
             assert num_changes_matching_history_records == {"num": 0, "sub_nums": []}
@@ -1293,7 +1295,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # We should have run migration 0001 to 0003 now.
+            # We should have run migration 0001 and 0002 now.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2  # noqa: PLR2004
 
             assert not models.State.objects.filter(code="add_1").exists(), (
@@ -1383,7 +1385,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0004, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
@@ -1429,7 +1430,8 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         """
         This test validates that when an initial state changes, any objects that haven't been
         modified from the previous initial state will be transitioned to the new initial state.
-        Some objects have been moved into different states, to verify that
+        Some objects have been moved into different states, to verify that those objects stay in
+        the states they were moved to.
         """
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -1538,7 +1540,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0004, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
             state_fourth = models.State.objects.get(code="fourth")
@@ -1569,7 +1570,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0005, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
             # Clean up the object states, so we can start fresh.
@@ -1625,7 +1625,8 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # The historical counts should stay the same, since we should have updated test_1 to the new initial state.
+            # The object state count stays the same, because test_1 was moved to the new initial state
+            # rather than given a second object state.
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             assert test_1.object_state.state.code == "fourth"
@@ -2535,13 +2536,11 @@ class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, Base
     def expected_round_that_deletes(cls):
         """A round that adds the state and the transition, modifies it, and removes both again.
 
-        Every write the round makes belongs here, permissions and source rows included. The command
-        currently reaches a generated migration with only some of them, because
-        ``_get_historical_queryset_for_model`` selects each model's events by joining through the
-        live related row and falls back to selecting by recorded ids only when that finds nothing at
-        all. One live row keeps the query non-empty, so the events of rows this round deleted are
-        dropped before matching begins. Asserting the whole list is what makes that visible, and
-        keeps a fix from trading missing old writes for missing new ones.
+        Every write the round makes belongs here, permissions and source rows included, including
+        those of the rows the round deleted. ``_get_historical_queryset_for_model`` selects each
+        model's events by the ids the events recorded, not through the live related row, so a
+        deleted row's events still reach the migration. Asserting the whole list keeps a write going
+        missing as visible as one appearing twice.
         """
         return [
             ("state", "added", cls.state_id(cls.STATE_CODE)),
@@ -2942,6 +2941,7 @@ class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, Base
             applied = self.install_applied_change_recorder(monkeypatch)
 
             for round_number, snapshot in enumerate(snapshots, start=1):
+                # 0001 and 0002 come before the rounds, so round N's migration is 000(N + 2).
                 migration_name = f"000{round_number + 2}"
 
                 self.migrate_or_fail_naming_applied_change(

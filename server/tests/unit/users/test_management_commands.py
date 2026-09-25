@@ -88,15 +88,14 @@ class BaseAddedGroup:
 
 
 class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
-    """
-    This test doesn't use --import-instead, so we can verify that
-    the noqa comments are stripped from the generated migration.
-    """
-
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_comment_removed(self, settings):
+        """
+        This test doesn't use --import-instead, so we can verify that
+        the noqa comments are stripped from the generated migration.
+        """
         settings.MIGRATION_MODULES = {
             "group_added": "tests.group_added",
         }

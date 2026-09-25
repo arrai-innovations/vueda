@@ -503,7 +503,7 @@ class TestVuedaRankedDescriptionFilter:
         assert response.data["totalRecords"] == 0, response_body(response)
 
     def test_name_filter_no_match(self, test_data, api_client, settings):
-        """Search with no similarity in descriptions returns no results."""
+        """The `name_icontains` filter returns nothing when no distributor's name contains the value."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
         user = test_data.users["test_admin@domain.invalid"]
@@ -645,7 +645,7 @@ class TestVuedaSearchFilterDistinct:
         assert response.data["columnTotals"] == {"quantity": 18, "double_quantity": 36}, response_body(response)
 
     def test_m2m_ordering_search_deduplicates_results(self, test_data, api_client, settings):
-        """Searching across an M2M field calls distinct() to prevent duplicate results.
+        """An M2M search deduplicates its results and still applies the requested ordering, both ways.
 
         Two products each have three special_care entries: perishable, temperature_controlled,
         and fragile. Searching for 'Perishable Fragile' matches two special_care entries
@@ -696,14 +696,13 @@ class TestVuedaSearchFilterDistinct:
 class TestMixedRankedAndWordSimilarSearch:
     """Tests for mixing V: (ranked) and ~ (trigram word similar) search prefixes.
 
-    Bug: filter_queryset only splits out V: (__vueda_search) and # (__trigram_similar)
-    prefixed lookups. The ~ prefix produces __trigram_word_similar, which doesn't
-    match either suffix check, so it falls into det_lookups. This causes two problems:
+    filter_queryset splits out ~ (__trigram_word_similar) lookups alongside V: (__vueda_search) and
+    # (__trigram_similar), rather than treating them as deterministic lookups. So a ~ field:
 
-    1. The ~ field is filtered with AND-across-terms instead of combining terms
-       into a single trigram_word_similar check.
-    2. It receives a flat deterministic_score boost (10 per match) instead of
-       contributing actual similarity scores to combined_rank.
+    1. combines the search terms into one trigram_word_similar check, rather than AND'ing a check
+       per term, and
+    2. acts as a filter, rather than adding a flat deterministic_score boost (10 per match) to
+       combined_rank.
     """
 
     @pytest.fixture
@@ -745,13 +744,9 @@ class TestMixedRankedAndWordSimilarSearch:
 
         search_fields = ["V:name", "~description"], search = "Treat Sugar"
 
-        Before the fix, ~ landed in det_lookups, which AND'd terms:
-        description__trigram_word_similar="Treat" AND
-        description__trigram_word_similar="Sugar". Only distributors where
-        BOTH words independently pass word_similarity would survive.
-
-        After the fix, ~ combines terms: description__trigram_word_similar="Treat Sugar".
-        The combined phrase is checked as a single trigram_word_similar filter.
+        The ~ field checks the combined phrase, description__trigram_word_similar="Treat Sugar",
+        rather than description__trigram_word_similar="Treat" AND ...="Sugar", which would keep
+        only distributors where both words pass word_similarity on their own.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
@@ -808,21 +803,15 @@ class TestMixedRankedAndWordSimilarSearch:
 class TestM2MDistinctOrderByTiebreaker:
     """Tests that the pk tiebreaker in order_by is preserved after distinct.
 
-    Bug: when mcd=True and no explicit ordering, lines ~253-258 set
-    .order_by("-combined_rank", "pk") for DISTINCT ON, but line ~272
-    unconditionally replaces it with .order_by("-combined_rank"), dropping
-    the pk tiebreaker. Rows with identical combined_rank get undefined order.
+    When the search has to deduplicate (must_call_distinct) and no ordering was requested, the
+    backend orders by ("-combined_rank", "pk") for DISTINCT ON. Replacing that afterwards with
+    ("-combined_rank",) alone would drop the pk tiebreaker, and rows with the same combined_rank
+    would come back in no defined order.
     """
 
     def test_mcd_no_ordering_preserves_pk_tiebreaker(self):
-        """Directly verify the final ORDER BY clause includes pk when
-        mcd=True and no explicit ordering parameter is provided.
-
-        The bug is on line ~272 of filters.py: the unconditional
-        queryset.order_by("-combined_rank") overwrites the
-        .order_by("-combined_rank", "pk") set on line ~255 for the
-        DISTINCT ON path.
-        """
+        """Directly verify the final ORDER BY clause includes pk when the search deduplicates
+        and no explicit ordering parameter is provided."""
         from unittest.mock import MagicMock
         from unittest.mock import patch
 
@@ -843,12 +832,10 @@ class TestM2MDistinctOrderByTiebreaker:
             result_qs = backend.filter_queryset(request, queryset, view)
 
         # Django's query.order_by contains the ORM-level ordering fields.
-        # Line ~255 sets .order_by("-combined_rank", "pk"), but line ~272
-        # overwrites it with .order_by("-combined_rank") only.
         order_by = result_qs.query.order_by
         assert "pk" in order_by or "-pk" in order_by, (
             f"ORDER BY should contain pk tiebreaker for deterministic ordering "
-            f"with DISTINCT ON, but line ~272 overwrites the order_by and drops it. "
+            f"with DISTINCT ON, but a later order_by replaced it. "
             f"query.order_by: {order_by}"
         )
 

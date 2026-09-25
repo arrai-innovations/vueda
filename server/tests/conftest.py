@@ -396,9 +396,8 @@ class BaseTestListModelViewSet:
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        # Get the index of the record we are trying to validate, so we know it has a revision.
-        # The only reason this worked before, was because there was no object
-        # with a name alphabetically before 'Distributor A'.  There is now.
+        # Find the record being validated by matching its values rather than assuming it is first in
+        # the results, because other rows can sort before it.
         response_info = response.json()
         index_of_page_data_arguments_item = None
         for index, result in enumerate(response_info["results"]):

@@ -126,7 +126,7 @@ class TestFormattedNameChecks:
         assert errors == []
 
     def test_model_with_falsey_formatted_name_expression_fails_system_check(self):
-        """A model that does not override formatted_name should be skipped by the check (no errors)."""
+        """A model whose formatted name lookup expression is falsey fails the system check."""
         from django.core.checks import Error
 
         from vueda.info.checks import check_formatted_name_configuration

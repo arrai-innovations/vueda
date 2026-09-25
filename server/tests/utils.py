@@ -197,8 +197,8 @@ class FakeView:
         return set(self.allowed_extra_actions)
 
 
-# Because rest framework loads settings on class import there's no way to
-# override through 'settings', but we will do it regardless, to be thorough.
+# VuedaPagination reads REST_FRAMEWORK["PAGE_SIZE"] each time a paginator is created, so a value
+# set here applies to requests made inside the block.
 @contextmanager
 def adjust_page_size(settings, value):
     orig_value = settings.REST_FRAMEWORK["PAGE_SIZE"]

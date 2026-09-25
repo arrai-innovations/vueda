@@ -156,7 +156,7 @@ class TestCompositeKey:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert data["pk"] == json.dumps([str(x) for x in order_item_1.pk])
-        assert data["formatted_name"] == product_1.name  # Verify the formatted_name is not None
+        assert data["formatted_name"] == product_1.name
         assert [tuple(x) for x in data["order"]["order_items_composite_pks"]] == [tuple(order_item_1.pk)]
 
     def test_object_data_no_expanded_fields(self, test_data, api_client):
