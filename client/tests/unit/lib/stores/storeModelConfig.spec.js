@@ -575,6 +575,20 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.widgetProps.default).toEqual({ size: "medium", color: "blue" });
         });
 
+        scopedIt("applies a read view config to the retrieve view that looks it up", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, null, {
+                read: { displayFields: ["name"] },
+            });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "retrieve" });
+
+            expect(config.displayFields).toEqual(["name"]);
+        });
+
         scopedIt("merges shallow and deep properties correctly", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};

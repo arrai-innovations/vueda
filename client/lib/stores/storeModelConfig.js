@@ -4,6 +4,7 @@
  */
 import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { formatSortField } from "@vueda/utils/sortedFields.js";
@@ -562,7 +563,8 @@ export const storeModelConfig = defineStore("modelConfig", {
          * @param {string} params.app - Django app label.
          * @param {string} params.model - Model name.
          * @param {OverridingModelConfig|null} [genericConfig] - Overrides applied to all views.
-         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides. A `read` key
+         *  applies to the read view, the same as `retrieve`.
          * @returns {void}
          * @example
          * ```js
@@ -590,7 +592,8 @@ export const storeModelConfig = defineStore("modelConfig", {
             }
             if (specificConfigs) {
                 for (const [view, specificConfig] of Object.entries(specificConfigs)) {
-                    const key = getAppModelViewDotName({ app, model, view });
+                    // Views look their config up by action name, so a `read` key is stored as `retrieve`.
+                    const key = getAppModelViewDotName({ app, model, view: getActionName(view) });
                     this.specificConfigs[key] = specificConfig;
                 }
             }
