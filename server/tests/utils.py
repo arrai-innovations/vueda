@@ -39,7 +39,7 @@ def set_email_backend(settings, backend):
 
 
 # This is a decorator.
-class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa: N801
+class clear_info_registry_before_test(TestContextDecorator):  # noqa: N801
     """
     Clears the info registry before the wrapped test runs.
 
@@ -60,10 +60,10 @@ class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa: N80
 def append_installed_apps(settings, *apps_to_append):
     """
     For use with the pytest `settings` fixture. Companion to
-    info_registry_clear_with_appended_apps: appends to INSTALLED_APPS the way
+    clear_info_registry_before_test: appends to INSTALLED_APPS the way
     modify_settings(INSTALLED_APPS={"append": [...]}) used to as a decorator,
     but from inside the test body so call-order relative to
-    info_registry_clear_with_appended_apps (and any other settings the test
+    clear_info_registry_before_test (and any other settings the test
     sets first, e.g. AUTH_USER_MODEL) is explicit rather than decorator-stack
     order.
     """

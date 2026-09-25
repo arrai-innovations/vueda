@@ -626,10 +626,10 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
-    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, authenticated_client):
+    def test_tangible_type_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
         """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
 
-        All cookie products are Physical; Digital is not used by any product, so it should be absent.
+        Every cookie product is Physical, so Digital, which only non-cookie products use, is absent.
         """
         register_model("store", "product")
 

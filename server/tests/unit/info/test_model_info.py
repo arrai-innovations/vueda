@@ -286,7 +286,7 @@ class BaseModelInfo:
     user_email: ClassVar[str]
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def empty_registry_after_test(self):
         """Leave an empty registry behind, whichever module runs next."""
         yield
         info.registration.get_empty_registry()
@@ -564,7 +564,8 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_distributor(self):
+        """Register the distributor model for each test, and leave an empty registry behind."""
         register_model("store", "distributor")
         yield
         info.registration.get_empty_registry()
@@ -622,7 +623,8 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_customer_order(self):
+        """Register the customerorder model for each test, and leave an empty registry behind."""
         register_model("store", "customerorder")
         yield
         info.registration.get_empty_registry()
@@ -700,7 +702,8 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_distributor(self):
+        """Register the distributor model for each test, and leave an empty registry behind."""
         register_model("store", "distributor")
         yield
         info.registration.get_empty_registry()

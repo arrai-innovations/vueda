@@ -49,11 +49,11 @@ def _create_attachment(filename: str, mimetype: str, content: bytes, *, inline: 
 
 
 @pytest.mark.django_db
-def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, queue_item_email):
+def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     detail = AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
         html='<p>Hi<img src="cid:logo"></p>',
@@ -85,15 +85,15 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
     monkeypatch.setattr("vueda.vdq.handlers.attach_inline_image", record_attach_inline_image)
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
     # The inline image is attached once, from the attachment's own content, filename and cid.
     assert inline_images_attached == [
         (inline_attachment.get_content(), inline_attachment.filename, inline_attachment.content_id_string)
     ]
     assert detail.message_id == "fake-message-id"
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
     assert len(mail.outbox) == 1
     message = mail.outbox[0]
@@ -107,11 +107,11 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
 
 
 @pytest.mark.django_db
-def test_send_email_records_error_status(settings, monkeypatch, queue_item_email):
+def test_send_email_records_error_status(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     detail = AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
         html="<p>Hi</p>",
@@ -123,21 +123,21 @@ def test_send_email_records_error_status(settings, monkeypatch, queue_item_email
 
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
     detail.refresh_from_db()
     assert detail.message_id == "message"
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "errored"
-    assert "Anymail status" in queue_item_email.result
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "errored"
+    assert "Anymail status" in sending_email_without_detail.result
 
 
 @pytest.mark.django_db
-def test_send_email_transient_error(settings, monkeypatch, queue_item_email):
+def test_send_email_transient_error(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
     )
@@ -148,15 +148,15 @@ def test_send_email_transient_error(settings, monkeypatch, queue_item_email):
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     with pytest.raises(AnymailTransientError):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
 
 @pytest.mark.django_db
-def test_send_email_non_transient_error(settings, monkeypatch, queue_item_email):
+def test_send_email_non_transient_error(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
     )
@@ -167,11 +167,11 @@ def test_send_email_non_transient_error(settings, monkeypatch, queue_item_email)
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     with pytest.raises(AnymailAPIError):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_success(settings, monkeypatch, queue_item_sms):
+def test_twilio_send_sms_success(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
 
@@ -190,18 +190,18 @@ def test_twilio_send_sms_success(settings, monkeypatch, queue_item_sms):
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.result == "sent"
-    assert queue_item_sms.sms.message_sid == "SM123"
-    assert queue_item_sms.workflow_state.code == "awaiting"
-    assert message_calls["from_"] == queue_item_sms.sender.cell.as_e164
-    assert message_calls["to"] == queue_item_sms.receiver.cell.as_e164
+    sending_sms.refresh_from_db()
+    assert sending_sms.result == "sent"
+    assert sending_sms.sms.message_sid == "SM123"
+    assert sending_sms.workflow_state.code == "awaiting"
+    assert message_calls["from_"] == sending_sms.sender.cell.as_e164
+    assert message_calls["to"] == sending_sms.receiver.cell.as_e164
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_handles_error(settings, monkeypatch, queue_item_sms):
+def test_twilio_send_sms_handles_error(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
 
@@ -218,21 +218,21 @@ def test_twilio_send_sms_handles_error(settings, monkeypatch, queue_item_sms):
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "errored"
-    assert "boom" in queue_item_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "errored"
+    assert "boom" in sending_sms.result
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_status(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_status(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM001"
-    queue_item_sms.sms.save()
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM001"
+    sending_sms.sms.save()
 
     message = SimpleNamespace(sid="SM001", status="delivered")
 
@@ -252,22 +252,22 @@ def test_twilio_pull_sms_status(settings, monkeypatch, queue_item_sms):
 
     monkeypatch.setattr(handler, "update_sms_qi", fake_update)
 
-    handler.pull_sms_status(queue_item_sms.queued)
-    assert calls["queue_item"].pk == queue_item_sms.pk
+    handler.pull_sms_status(sending_sms.queued)
+    assert calls["queue_item"].pk == sending_sms.pk
     assert calls["status"] == "delivered"
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_timeout_only(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM002"
-    queue_item_sms.sms.save()
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM002"
+    sending_sms.sms.save()
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     class FakeMessage:
         status = "delivered"
@@ -298,16 +298,16 @@ def test_twilio_pull_sms_timeout_only(settings, monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "Test_Twilio_Account_SID"
     settings.TWILIO_AUTH_TOKEN = "Test_Twilio_Auth_Token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM003"
-    queue_item_sms.sms.save()
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM003"
+    sending_sms.sms.save()
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     class FakeTwilioRestException(Exception):  # noqa:N818
         def __init__(self, msg="err"):
@@ -330,47 +330,47 @@ def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch,
 
     handler.pull_sms_timeout_only()
 
-    assert triggered["timeout"][0] == queue_item_sms.pk
+    assert triggered["timeout"][0] == sending_sms.pk
     assert triggered["timeout"][1] == 1
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_delivered(queue_item_sms):
-    queue_item_sms.fast_transition("await")
+def test_update_sms_qi_delivered(sending_sms):
+    sending_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=lambda sid: None)
 
-    handler.update_sms_qi(queue_item_sms, "delivered", message=SimpleNamespace(error_code=None, error_message=""))
+    handler.update_sms_qi(sending_sms, "delivered", message=SimpleNamespace(error_code=None, error_message=""))
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.result == ""
-    assert queue_item_sms.workflow_state.code == "succeeded"
+    sending_sms.refresh_from_db()
+    assert sending_sms.result == ""
+    assert sending_sms.workflow_state.code == "succeeded"
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_failure(settings, monkeypatch, queue_item_sms):
+def test_update_sms_qi_failure(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
 
-    queue_item_sms.fast_transition("await")
+    sending_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, "failed")
+    handler.update_sms_qi(sending_sms, "failed")
 
-    assert "SMS Status" in queue_item_sms.result
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "errored"
+    assert "SMS Status" in sending_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "errored"
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
+def test_update_sms_qi_timeout(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=lambda sid: None)
@@ -382,24 +382,24 @@ def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
 
     monkeypatch.setattr("vueda.vdq.handlers.timeout_queue_item", fake_timeout)
 
-    handler.update_sms_qi(queue_item_sms, "accepted")
+    handler.update_sms_qi(sending_sms, "accepted")
 
-    assert triggered["timeout"][0] == queue_item_sms.pk
-
-
-@pytest.mark.django_db
-def test_timeout_queue_item(queue_item_sms):
-    queue_item_sms.fast_transition("await")
-    timeout_queue_item(queue_item_sms, 2)
-    queue_item_sms.refresh_from_db()
-    assert "Status not received" in queue_item_sms.result
-    assert queue_item_sms.workflow_state.code == "unconfirmed"
+    assert triggered["timeout"][0] == sending_sms.pk
 
 
 @pytest.mark.django_db
-def test_handle_bounce_updates_states(monkeypatch, queue_item_email):
-    sender = queue_item_email.sender
-    receiver = queue_item_email.receiver
+def test_timeout_queue_item(sending_sms):
+    sending_sms.fast_transition("await")
+    timeout_queue_item(sending_sms, 2)
+    sending_sms.refresh_from_db()
+    assert "Status not received" in sending_sms.result
+    assert sending_sms.workflow_state.code == "unconfirmed"
+
+
+@pytest.mark.django_db
+def test_handle_bounce_updates_states(monkeypatch, sending_email_without_detail):
+    sender = sending_email_without_detail.sender
+    receiver = sending_email_without_detail.receiver
 
     def make_queue_item(message_id):
         qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")

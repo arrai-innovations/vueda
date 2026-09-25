@@ -45,7 +45,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
         info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
         info.register_serializer(store_serializers.OrderItemSerializer)
 
-    def test_limits_depth_to_default(self, settings, api_client):
+    def test_limits_depth_to_configured_maximum(self, settings, api_client):
         settings.REST_FLEX_FIELDS = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
