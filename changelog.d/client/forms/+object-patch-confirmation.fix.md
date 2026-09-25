@@ -1,0 +1,2 @@
+- **`defaultObjectPatch`**:
+    - A PATCH that the server answers with a 409 warnings response now rejects with `ConfirmationRequiredError`, as updates already do, instead of a generic `FetchError`. It also accepts `acknowledgeWarnings` and sends it as the `Acknowledge-Warnings` header, so a confirmed patch can be retried.

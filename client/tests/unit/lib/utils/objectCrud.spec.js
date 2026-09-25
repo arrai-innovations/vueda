@@ -318,6 +318,41 @@ describe("lib/utils/objectCrud.js", () => {
                 objectCrud.defaultObjectPatch({ target: { app: "a", model: "b" }, pk: "2", partialObject: {} }),
             ).rejects.toBeInstanceOf(errors.FetchError);
         });
+
+        it("throws ConfirmationRequiredError on 409 with parsed digest and warnings", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const body = { confirmation_required: true, digest: "ghi789", warnings: { count: ["unusual"] } };
+            const response = new Response(JSON.stringify(body), { status: 409 });
+            getJsonOrText.mockResolvedValue(body);
+            cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+            const error = await objectCrud
+                .defaultObjectPatch({ target: { app: "a", model: "b" }, pk: "3", partialObject: { title: "hi" } })
+                .catch((e) => e);
+            expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+            expect(error.digest).toBe("ghi789");
+            expect(error.messages).toEqual({ count: ["unusual"] });
+            expect(error.bulk).toBe(false);
+        });
+
+        it("sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const response = new Response(JSON.stringify({ id: 3 }), { status: 200 });
+            getJsonOrText.mockResolvedValue({ id: 3 });
+            cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+            await objectCrud.defaultObjectPatch({
+                target: { app: "a", model: "b" },
+                pk: "3",
+                partialObject: { title: "hi" },
+                acknowledgeWarnings: "ghi789",
+            });
+            expect(cancellableFetch).toHaveBeenCalledWith(
+                "detail-url",
+                expect.objectContaining({ headers: expect.objectContaining({ "Acknowledge-Warnings": "ghi789" }) }),
+                expect.any(Function),
+            );
+        });
     });
 
     describe("defaultObjectUpdate", () => {
