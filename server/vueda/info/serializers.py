@@ -24,6 +24,7 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
+from django.core.validators import EMPTY_VALUES
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
@@ -1125,20 +1126,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "filterset_name": filterset.__class__.__name__,
             }
 
-        if isinstance(choices, ChoiceIterator):
-            choices = [{"label": label, "value": value} for (value, label) in choices]
-            # Convert choices to be {label:label,value:value}.
-            # if choices are list of tuples
-        if choices and isinstance(choices[0], tuple):
-            choices_list = []
-            for value, label in choices:
-                choices_list.append(
-                    {
-                        "label": label,
-                        "value": str(value),  # Convert ints to strings.
-                    }
-                )
-            return choices_list, None
+        if isinstance(choices, ChoiceIterator) or (choices and isinstance(choices[0], tuple)):
+            # Match the filter choices endpoint: values as strings, since a filter value arrives as a
+            # query string, and no empty option, since "no filter" is the absence of the parameter.
+            return [
+                {"label": str(label), "value": str(value)} for value, label in choices if value not in EMPTY_VALUES
+            ], None
 
         return choices, None
 

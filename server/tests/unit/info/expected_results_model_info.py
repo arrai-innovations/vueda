@@ -1522,7 +1522,6 @@ EXPECTED_RESULTS = [
                 },
                 "shipping_method": {
                     "choices": [
-                        {"label": "---------", "value": ""},
                         {"label": "Regular", "value": "regular"},
                         {"label": "Express", "value": "express"},
                     ],
@@ -2130,10 +2129,6 @@ EXPECTED_RESULTS = [
                 "condition": {
                     "choices": [
                         {
-                            "label": "---------",
-                            "value": "",
-                        },
-                        {
                             "label": "New",
                             "value": "new",
                         },
@@ -2167,7 +2162,6 @@ EXPECTED_RESULTS = [
                 },
                 "disabled": {
                     "choices": [
-                        {"label": "Unknown", "value": ""},
                         {"label": "Yes", "value": "true"},
                         {"label": "No", "value": "false"},
                     ],
@@ -3890,7 +3884,6 @@ EXPECTED_RESULTS = [
                 },
                 "is_added": {
                     "choices": [
-                        {"label": "Unknown", "value": ""},
                         {"label": "Yes", "value": "true"},
                         {"label": "No", "value": "false"},
                     ],
