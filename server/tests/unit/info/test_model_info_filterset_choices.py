@@ -18,6 +18,7 @@ from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from tests.unit.info.utils import idfn
 from vueda import info
+from vueda.core.viewsets import VuedaViewSet
 from vueda.info import viewsets as info_viewsets
 
 
@@ -556,6 +557,27 @@ class TestModelInfoFiltersetChoicesInvalidFilter(BaseModelInfoFilterSetChoices):
             "Invalid filter 'invalid_filterset_field'. Valid filters are condition, disabled, "
             "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
         )
+
+    @pytest.mark.parametrize("registration", ["serializer_only", "viewset_without_filterset"])
+    def test_info_choices_filter_list_without_a_filterset(self, authenticated_client, registration):
+        info.registration.get_empty_registry()
+        if registration == "serializer_only":
+            info.register_serializer(store_serializers.ProductSerializer)
+        else:
+
+            class ProductNoFiltersetViewSet(VuedaViewSet):
+                queryset = store_models.Product.objects.all()
+                serializer_class = store_serializers.ProductSerializer
+
+            info.register(store_serializers.ProductSerializer, ProductNoFiltersetViewSet)
+
+        response = authenticated_client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", "product", "name")),
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
+        assert response.data["detail"] == "Invalid filter 'name'. store.product has no filterset."
 
 
 @pytest.mark.django_db

@@ -439,7 +439,13 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         model_class = serializer.Meta.model
         meta = model_class._meta
         viewset = self.canonical["viewset"]
-        filterset_class = viewset.filterset_class
+        # A serializer-only registration has no viewset, and a viewset need not declare a filterset;
+        # either way the model has no filters to offer choices for.
+        filterset_class = getattr(viewset, "filterset_class", None)
+        if filterset_class is None:
+            raise Http404(
+                f"Invalid filter '{self.choices_field}'. {meta.app_label}.{meta.model_name} has no filterset."
+            )
         filterset_instance = filterset_class(
             queryset=model_class.objects.all(), data=self.request.query_params.copy(), request=self.request
         )
