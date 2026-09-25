@@ -14,7 +14,6 @@ from tests.conftest import BaseTestUserMixin
 from tests.employee.models import Employee
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
-from tests.store import viewsets as store_viewsets
 from tests.timesheet.models import Timesheet
 from tests.timesheet.serializers import TimesheetSerializer
 from tests.timesheet.serializers import TimesheetSerializerExclude
@@ -28,24 +27,14 @@ from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
 @pytest.mark.django_db
-class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
+class TestValidateFlexExpandsAndFields:
     """
     The valid expands and fields for a serializer come from the serializer's own declarations, so
     these tests need no rows of their own -- only a database for the serializer to build its fields
     against.
     """
 
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
-
-    def test_limits_depth_to_configured_maximum(self, settings, api_client):
+    def test_limits_depth_to_configured_maximum(self, settings):
         settings.REST_FLEX_FIELDS = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
@@ -70,7 +59,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
 
         assert actual_depth == 2  # noqa: PLR2004
 
-    def test_valid_expands_and_fields_two_deep(self, api_client):
+    def test_valid_expands_and_fields_two_deep(self):
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 2
@@ -138,7 +127,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             "order_state.~all",
         }
 
-    def test_valid_expands_and_fields_three_deep(self, api_client):
+    def test_valid_expands_and_fields_three_deep(self):
         serializer = store_serializers.CustomerOrderSerializer()
         valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, 3

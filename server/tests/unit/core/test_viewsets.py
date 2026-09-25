@@ -536,17 +536,6 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
-
-        # Do we have a workflow?
-        if hasattr(self.model, "workflow"):
-            keys.update(
-                {
-                    "workflow_state_code": "draft",
-                    "workflow_state_name": "Draft",
-                }
-            )
-
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
@@ -566,7 +555,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
         assert self.model.objects.filter(pk__in=pks).count() == len(pks)
 
-    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
+    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client):
         instance = page_data.first()
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
@@ -656,16 +645,6 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
     @pytest.fixture
     def test_data(self):
         return StoreTestData()
-
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
 
     def test_expand_through(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -925,17 +904,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
-
-        # Do we have a workflow?
-        if hasattr(self.model, "workflow"):
-            keys.update(
-                {
-                    "workflow_state_code": "draft",
-                    "workflow_state_name": "Draft",
-                }
-            )
-
         list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,guardian"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
@@ -973,7 +941,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert expected_retrieve_response == response.data
 
-    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
+    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client):
         instance = page_data.first()
 
         detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,guardian"}

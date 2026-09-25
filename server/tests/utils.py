@@ -177,7 +177,7 @@ class FakeView:
         serializer_class,
         action=None,
         queryset=None,
-        allowed_extra_actions=frozenset(("current", "history-list")),
+        allowed_extra_actions=frozenset(("history-list",)),
     ):
         self.request = request
         self.serializer_class = serializer_class

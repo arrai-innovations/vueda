@@ -77,7 +77,7 @@ def test_prepare_attachments_invalid_input():
 
 
 @pytest.mark.django_db
-def test_add_abstract_email_creates_queue_items(monkeypatch, sender, receivers):
+def test_add_abstract_email_creates_queue_items(sender, receivers):
     attachments = {
         "doc.txt": {
             "mimetype": "text/plain",
