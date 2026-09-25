@@ -68,7 +68,7 @@ class TestValidateFlexExpandsAndFields(BaseTestAssertResponseMixin):
             + 1
         )
 
-        assert actual_depth == 2  # noqa PLR2004
+        assert actual_depth == 2  # noqa: PLR2004
 
     def test_valid_expands_and_fields_two_deep(self, api_client):
         serializer = store_serializers.CustomerOrderSerializer()

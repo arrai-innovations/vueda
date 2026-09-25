@@ -46,7 +46,7 @@ locals().update(get_defaults(env))
 LOCAL_APPS = [
     "tests.optional_apps.apps.OptionalAppsConfig",
 ]
-INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa F821
+INSTALLED_APPS = DJANGO_APPS + VUEDA_APPS + THIRD_PARTY_APPS + LOCAL_APPS  # noqa: F821
 
 AUTH_USER_MODEL = "optional_apps.User"
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
@@ -58,4 +58,4 @@ MIGRATION_MODULES = {
     "optional_apps": None,
 }
 
-from vueda.core import patch_django  # noqa F401 E402
+from vueda.core import patch_django  # noqa: F401 E402

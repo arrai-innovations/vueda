@@ -108,4 +108,4 @@ TEMPLATES = [
 
 # This needs to be imported after any customizations to the PERMISSION_NAMES_MAPPING, so
 # all permission names can be mapped to the correct names before django starts using them.
-from vueda.core import patch_django  # noqa F401
+from vueda.core import patch_django  # noqa: E402, F401

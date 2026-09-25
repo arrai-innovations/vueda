@@ -56,7 +56,7 @@ class BaseAddedGroup:
         ).exists(), "'list_groupaddeduser' not associated with 'GroupAddedWorkers'."
 
         # Verify the GroupChange objects got recreated.
-        assert GroupChange.objects.count() == 2  # noqa PLR2004
+        assert GroupChange.objects.count() == 2  # noqa: PLR2004
 
         assert GroupChange.objects.filter(
             group_name="GroupAddedWorkers",
@@ -196,7 +196,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             assert not Group.objects.filter(name="GroupChangedSeniorWorkers").exists()
 
             # Verify the number of GroupChange objects.
-            assert GroupChange.objects.count() == 3  # noqa PLR2004
+            assert GroupChange.objects.count() == 3  # noqa: PLR2004
 
             succeeded, results = self.call_command("makegroupmigrations", "--import-instead")
             if not succeeded:
@@ -229,7 +229,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
             ).exists(), "'list_groupchangeduser' not associated with 'GroupChangedSeniorWorkers'."
 
             # Verify the number of GroupChange objects hasn't changed.
-            assert GroupChange.objects.count() == 3  # noqa PLR2004
+            assert GroupChange.objects.count() == 3  # noqa: PLR2004
 
             # Run the generated migration backwards.
             succeeded, results = self.call_command("migrate", "group_changed", "0003")
