@@ -35,6 +35,7 @@ from rest_framework.status import HTTP_409_CONFLICT
 from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
+from rest_framework.views import set_rollback
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,14 @@ ACKNOWLEDGE_WARNINGS_HEADER = "Acknowledge-Warnings"
 def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
+
+    Every response built here is an error or a withheld write, so the request's atomic block is
+    marked for rollback first. DRF's own handler does this only for the exceptions it handles;
+    without it, ``ATOMIC_REQUESTS`` would commit writes made before an unhandled exception or a
+    ``ConfirmationRequired``.
     """
+    set_rollback()
+
     if isinstance(exc, ConfirmationRequired):
         # An expected control-flow response, not an error: the request is valid but carries
         # unacknowledged advisory warnings. Return it directly so it skips the error logging,
