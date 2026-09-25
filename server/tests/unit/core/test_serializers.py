@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
@@ -24,6 +26,7 @@ from vueda import info
 from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import VuedaReadonlyListSerializer
+from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
@@ -946,6 +949,50 @@ class TestVuedaSerializerFieldMapping:
         from vueda.core.fields.serializers import ImageField as VuedaImageField
 
         assert self._lookup(models.ImageField) is VuedaImageField
+
+
+@pytest.mark.django_db
+class TestAvailableActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    An object's ``available_actions`` offers only the built-in actions its viewset implements. A
+    requester holding every codename on a model served by a read-only viewset is offered list and
+    retrieve on the object, not the write actions that viewset has no route for.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer Data Admin": [
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
+            ("store", "CustomerData", "create"),
+            ("store", "CustomerData", "update"),
+            ("store", "CustomerData", "delete"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "customer_data_admin@domain.invalid": {
+            "name": "Customer Data Admin",
+            "password": "testpass",
+            "groups": ["Customer Data Admin"],
+        },
+    }
+
+    def test_write_actions_are_not_offered(self):
+        user = self.users["customer_data_admin@domain.invalid"]
+        customer = store_models.Customer.objects.create(user=user)
+        django_request = APIRequestFactory().get("/")
+        force_authenticate(django_request, user=user)
+        view = store_viewsets.CustomerDataViewSet(
+            action="retrieve", action_map={"get": "retrieve"}, format_kwarg=None, kwargs={}
+        )
+        view.request = view.initialize_request(django_request)
+        serializer = store_serializers.CustomerDataSerializer(
+            customer.data, context={"request": view.request, "view": view}
+        )
+        field = AvailableActionsField()
+        field.bind(field_name="available_actions", parent=serializer)
+
+        assert field.get_value(customer.data) == ["list", "retrieve"]
 
 
 @pytest.mark.django_db

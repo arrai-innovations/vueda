@@ -47,6 +47,7 @@ from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -454,7 +455,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         model_name = meta.model_name
 
         action_data = []
-        for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+        for action in implemented_builtin_actions(viewset):
             if user is not None and not check_action_permission(called_viewset, request, None, action):
                 continue
 

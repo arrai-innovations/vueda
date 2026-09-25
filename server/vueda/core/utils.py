@@ -4,6 +4,7 @@ __all__ = (
     "ActionView",
     "AvailableActionsRequest",
     "get_system_user",
+    "implemented_builtin_actions",
     "render_template",
 )
 
@@ -24,6 +25,21 @@ def get_system_user() -> "User":
 
     user_model = get_user_model()
     return user_model.objects.get(is_system=True)
+
+
+BUILTIN_ACTIONS = ("list", "retrieve", "create", "update", "partial_update", "destroy")
+
+
+def implemented_builtin_actions(viewset) -> tuple[str, ...]:
+    """
+    The built-in CRUD actions ``viewset`` (a class or an instance) implements, in
+    ``BUILTIN_ACTIONS`` order.
+
+    Uses the test DRF's router applies when it routes a viewset (``hasattr(viewset, action)``),
+    so action discovery offers exactly the built-in actions that have a route. A
+    ``VuedaReadOnlyViewSet`` yields ``list`` and ``retrieve`` only.
+    """
+    return tuple(action for action in BUILTIN_ACTIONS if hasattr(viewset, action))
 
 
 def render_template(text: str, tags: dict) -> str:

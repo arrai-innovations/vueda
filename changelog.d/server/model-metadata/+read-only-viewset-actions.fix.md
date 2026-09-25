@@ -1,0 +1,2 @@
+- **Built-in actions of read-only viewsets**:
+    - `model_actions` in model info and an object's `available_actions` list only the built-in actions the viewset implements. A `VuedaReadOnlyViewSet` offered `create`, `update`, `partial_update`, and `destroy` to a user whose permissions allowed them, although the viewset has no route for them.

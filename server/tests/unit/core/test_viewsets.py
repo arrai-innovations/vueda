@@ -40,6 +40,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaListSerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
+from vueda.core.utils import implemented_builtin_actions
 from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
@@ -86,6 +87,22 @@ def test_vueda_read_only_viewset_excludes_write_actions():
     assert not hasattr(VuedaReadOnlyViewSet, "update")
     assert not hasattr(VuedaReadOnlyViewSet, "partial_update")
     assert not hasattr(VuedaReadOnlyViewSet, "destroy")
+
+
+def test_implemented_builtin_actions_of_read_only_viewset():
+    assert implemented_builtin_actions(VuedaReadOnlyViewSet) == ("list", "retrieve")
+    assert implemented_builtin_actions(store_viewsets.CustomerDataViewSet()) == ("list", "retrieve")
+
+
+def test_implemented_builtin_actions_of_full_viewset():
+    assert implemented_builtin_actions(store_viewsets.DistributorViewSet) == (
+        "list",
+        "retrieve",
+        "create",
+        "update",
+        "partial_update",
+        "destroy",
+    )
 
 
 def test_vueda_viewset_warns_when_combined_with_read_only_viewset():

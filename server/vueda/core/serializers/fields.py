@@ -20,6 +20,7 @@ from django.core.serializers.base import SerializationError
 from rest_framework import serializers
 
 from vueda.core.permissions import check_action_permission
+from vueda.core.utils import implemented_builtin_actions
 
 
 class AvailableActionsField(serializers.ListField):
@@ -49,7 +50,7 @@ class AvailableActionsField(serializers.ListField):
             else:
                 instances = (instance,)
 
-            for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+            for action in implemented_builtin_actions(viewset):
                 # Create doesn't make sense on an instance
                 if action == "create" and instance:
                     continue
