@@ -69,6 +69,22 @@ def test_use_mailers_respects_email_backend_override_or_rejects_by_django_versio
     assert defaults["ANYMAIL_MAILGUN_API_KEY"] == "key"
 
 
+def test_mailgun_backend_sets_the_anymail_webhook_secret():
+    env = _env(
+        EMAIL_BACKEND="anymail.backends.mailgun.EmailBackend",
+        ANYMAIL_MAILGUN_API_KEY="key",
+        ANYMAIL_MAILGUN_SENDER_DOMAIN="domain.invalid",
+        ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY="signing-key",
+        ANYMAIL_WEBHOOK_SECRET="user:pass",
+    )
+
+    defaults = get_defaults(env)
+
+    # Anymail reads the basic-auth secret from ANYMAIL_WEBHOOK_SECRET or ANYMAIL["WEBHOOK_SECRET"].
+    assert defaults["ANYMAIL_WEBHOOK_SECRET"] == "user:pass"
+    assert "WEBHOOK_SECRET" not in defaults
+
+
 def test_isolation_level_is_set_for_postgres():
     defaults = get_defaults(_env(DATABASE_URL="postgres://vueda@localhost:5432/vueda"))
 

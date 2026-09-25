@@ -417,7 +417,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
                 "ANYMAIL_MAILGUN_SENDER_DOMAIN": env("ANYMAIL_MAILGUN_SENDER_DOMAIN"),
                 "ANYMAIL_MAILGUN_API_URL": env("ANYMAIL_MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
                 "ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY": env("ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY"),
-                "WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
+                "ANYMAIL_WEBHOOK_SECRET": env("ANYMAIL_WEBHOOK_SECRET"),
             }
         )
     if return_dict["DEBUG"]:
