@@ -1018,6 +1018,63 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.verboseName).toBe("timesheet");
         });
 
+        scopedIt("does not cache a build that setConfig superseded while it was in flight", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            let resolveFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const staleBuild = store.getConfig({ app: "testApp", model: "testModel" });
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+            resolveFetch(dummyModelInfo);
+            await staleBuild;
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.verboseName).toBe("Updated Timesheet");
+        });
+
+        scopedIt("keeps the newer build in flight when a superseded build completes", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            let resolveStaleFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveStaleFetch = resolve;
+                }),
+            );
+            let resolveCurrentFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveCurrentFetch = resolve;
+                }),
+            );
+
+            const args = { app: "testApp", model: "testModel" };
+            const key = getAppModelDotName(args);
+            const staleBuild = store.getConfig(args);
+            store.setConfig(args, { verboseName: "Updated Timesheet" });
+            const currentBuild = store.getConfig(args);
+            resolveStaleFetch(dummyModelInfo);
+            await staleBuild;
+
+            expect(store.initialized).toHaveProperty(key);
+            expect(store.builtConfigs).not.toHaveProperty(key);
+
+            const joined = store.getConfig(args);
+            resolveCurrentFetch(dummyModelInfo);
+            expect((await currentBuild).verboseName).toBe("Updated Timesheet");
+            expect((await joined).verboseName).toBe("Updated Timesheet");
+            expect(mockedFetchModelInfo).toHaveBeenCalledTimes(2);
+        });
+
         scopedIt("cancels the in-flight promise when setConfig is called", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};

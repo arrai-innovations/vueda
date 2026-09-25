@@ -632,9 +632,14 @@ export const storeModelConfig = defineStore("modelConfig", {
             }
 
             let promiseCancel = null;
+            let build = null;
+            // setConfig and clearAuthScoped drop this build's entry when they supersede it; a
+            // superseded build still answers its own caller, but must not cache its result or
+            // remove the entry of the build that replaced it.
+            const isCurrentBuild = () => this.initialized[builtKey] === build;
 
             // otherwise, build the config and cache the promise
-            this.initialized[builtKey] = (async () => {
+            build = (async () => {
                 // clone each to avoid mutation of original configs
                 const customGenericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
                 const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
@@ -679,16 +684,21 @@ export const storeModelConfig = defineStore("modelConfig", {
                     customSpecificConfig,
                 );
 
-                this.builtConfigs[builtKey] = builtConfig;
-                delete this.initialized[builtKey];
+                if (isCurrentBuild()) {
+                    this.builtConfigs[builtKey] = builtConfig;
+                    delete this.initialized[builtKey];
+                }
                 return builtConfig;
             })();
-            this.initialized[builtKey].cancel = () => {
+            build.cancel = () => {
                 promiseCancel?.();
-                delete this.initialized[builtKey];
+                if (isCurrentBuild()) {
+                    delete this.initialized[builtKey];
+                }
             };
+            this.initialized[builtKey] = build;
 
-            return this.initialized[builtKey];
+            return build;
         },
     },
 });
