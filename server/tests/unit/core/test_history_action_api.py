@@ -920,7 +920,9 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
             with CaptureQueriesContext(connection) as ctx:
                 permitted = check_action_permission(viewset, request, instance, action)
             if action == "retrieve" and instance is not None:
-                retrieve_query_counts_by_row.setdefault(instance.pk, []).append(len(ctx.captured_queries))
+                if instance.pk not in retrieve_query_counts_by_row:
+                    retrieve_query_counts_by_row[instance.pk] = []
+                retrieve_query_counts_by_row[instance.pk].append(len(ctx.captured_queries))
             return permitted
 
         with (
