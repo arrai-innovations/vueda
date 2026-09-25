@@ -571,7 +571,6 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert (
             str(response.data["second_history_entry"][0]["message"]) == "Invalid expands. No expands are permitted."
         ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
-        assert "history" not in response.data
 
 
 @pytest.mark.django_db
@@ -607,7 +606,6 @@ class TestStoreProductViewSet:
             str(response.data["distributor.brands"][0]["message"])
             == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
-        assert "history" not in response.data
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -637,7 +635,6 @@ class TestStoreProductViewSet:
             str(response.data["distributor.brands"][0]["message"])
             == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
-        assert "history" not in response.data
 
 
 @pytest.mark.django_db

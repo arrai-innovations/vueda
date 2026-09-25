@@ -3,7 +3,6 @@ import datetime
 import importlib.util
 import io
 import os
-import time
 from collections import Counter
 from pathlib import Path
 from pprint import pformat
@@ -1557,8 +1556,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
                 "first"
             }
-
-            time.sleep(0.1)
 
             # Create the generated migration 0005.
             succeeded, results = self.call_command_capturing_output(

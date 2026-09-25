@@ -567,25 +567,19 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
         yield
         info.registration.get_empty_registry()
 
-    @pytest.fixture
-    def distributor(self):
-        return store_serializers.DistributorSerializer.Meta.model.objects.create(
-            name="Widget Co.", description="Fine widgets."
-        )
-
-    def test_no_permission_reports_no_actions_at_all(self, api_client, distributor):
+    def test_no_permission_reports_no_actions_at_all(self, api_client):
         api_client.force_authenticate(user=self.users["no_permission@domain.invalid"])
 
         assert get_model_action_names_expecting_ok(api_client, "store", "distributor") == set()
 
-    def test_list_permission_alone_does_not_grant_history_access(self, api_client, distributor):
+    def test_list_permission_alone_does_not_grant_history_access(self, api_client):
         api_client.force_authenticate(user=self.users["lister@domain.invalid"])
 
         names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert "history-list" not in names
 
-    def test_read_permission_grants_history_access(self, api_client, distributor):
+    def test_read_permission_grants_history_access(self, api_client):
         api_client.force_authenticate(user=self.users["reader@domain.invalid"])
 
         names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
