@@ -17,9 +17,9 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
-    /** The current progress value (0 to max). */
-    modelValue: { type: Number, default: 0 },
-    /** The maximum value. */
+    /** The current progress value, from 0 to `max`. Omit it or pass `null` for an indeterminate bar. */
+    modelValue: { type: Number, default: null },
+    /** The maximum value. Defaults to 100. */
     max: { type: Number, default: undefined },
     /** A function that returns the accessible label for the current value. */
     getValueLabel: { type: Function, default: undefined },
@@ -43,7 +43,14 @@ const delegatedProps = reactiveOmit(props, "class", "themeOverride", "size", "to
 
 const theme = useTheme("Progress", props, reactive({ size: toRef(props, "size"), tone: toRef(props, "tone") }));
 
-const indeterminate = computed(() => props.max == null);
+const indeterminate = computed(() => props.modelValue == null);
+const indicatorStyle = computed(() => {
+    if (indeterminate.value) {
+        return undefined;
+    }
+    const max = props.max ?? 100;
+    return `transform: translateX(-${100 - (props.modelValue / max) * 100}%);`;
+});
 </script>
 
 <template>
@@ -54,10 +61,6 @@ const indeterminate = computed(() => props.max == null);
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
     >
-        <ProgressIndicator
-            data-slot="progress-indicator"
-            :class="theme('indicator')"
-            :style="indeterminate ? undefined : `transform: translateX(-${100 - (props.modelValue ?? 0)}%);`"
-        />
+        <ProgressIndicator data-slot="progress-indicator" :class="theme('indicator')" :style="indicatorStyle" />
     </ProgressRoot>
 </template>
