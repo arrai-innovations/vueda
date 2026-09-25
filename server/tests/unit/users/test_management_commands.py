@@ -18,7 +18,7 @@ from vueda.user.models import GroupChange
 
 
 class BaseAddedGroup:
-    def continue_added_group_test(self, migration_dir, results):
+    def assert_added_group_migration_round_trips(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
         assert results, "No results were captured when makegroupmigrations was called."
         self.reload_module(results, migration_dir)
@@ -125,7 +125,7 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
             assert "    forwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
             assert "    backwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
 
-            self.continue_added_group_test(migration_dir, results)
+            self.assert_added_group_migration_round_trips(migration_dir, results)
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -166,7 +166,7 @@ class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTe
             if not succeeded:
                 pytest.fail("".join(results))
 
-            self.continue_added_group_test(migration_dir, results)
+            self.assert_added_group_migration_round_trips(migration_dir, results)
 
 
 class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand):

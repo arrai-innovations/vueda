@@ -70,10 +70,10 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
 
     generated_cid = "generated-inline"
 
-    def fake_attach_inline_image(email_message, content, filename, subtype, idstring):
-        assert content == inline_attachment.get_content()
-        assert filename == inline_attachment.filename
-        assert idstring == inline_attachment.content_id_string
+    inline_images_attached = []
+
+    def record_attach_inline_image(email_message, content, filename, subtype, idstring):
+        inline_images_attached.append((content, filename, idstring))
         return generated_cid
 
     original_send = send_email.__globals__["EmailMultiAlternatives"].send
@@ -82,11 +82,15 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
         self.anymail_status = SimpleNamespace(message_id="fake-message-id", status={"sent"})
         return original_send(self, *args, **kwargs)
 
-    monkeypatch.setattr("vueda.vdq.handlers.attach_inline_image", fake_attach_inline_image)
+    monkeypatch.setattr("vueda.vdq.handlers.attach_inline_image", record_attach_inline_image)
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     send_email(queue_item_email)
 
+    # The inline image is attached once, from the attachment's own content, filename and cid.
+    assert inline_images_attached == [
+        (inline_attachment.get_content(), inline_attachment.filename, inline_attachment.content_id_string)
+    ]
     assert detail.message_id == "fake-message-id"
     queue_item_email.refresh_from_db()
     assert queue_item_email.workflow_state.code == "awaiting"
