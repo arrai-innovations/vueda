@@ -14,7 +14,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import omit from "lodash-es/omit.js";
-import { onMounted, toRef } from "vue";
+import { computed, onMounted, toRef } from "vue";
 
 /**
  * Form view for creating a new model instance, including a page title, a sticky submit button
@@ -52,6 +52,16 @@ const props = defineProps({
     class: {
         type: [String, Array, Object],
         default: () => [],
+    },
+    /** Map of field paths to async functions returning an override field component. */
+    fieldComponents: {
+        type: Object,
+        default: undefined,
+    },
+    /** Map of field paths to async functions returning an override widget component. */
+    widgetComponents: {
+        type: Object,
+        default: undefined,
     },
     /** Extra props merged into the FormModel component, taking precedence over model-config defaults. */
     formProps: {
@@ -91,6 +101,19 @@ const emit = defineEmits(["form-object", "form-context"]);
 const { formContext, objectForm, instance, actions, modelConfig } = useViewCreate(props);
 
 const theme = useTheme("ViewCreate", props);
+
+// Bound after combinedFormProps, and only when passed, so a component map set in model-config formProps still
+// applies when this view receives none.
+const componentOverrideProps = computed(() => {
+    const overrides = {};
+    if (props.fieldComponents !== undefined) {
+        overrides.fieldComponents = props.fieldComponents;
+    }
+    if (props.widgetComponents !== undefined) {
+        overrides.widgetComponents = props.widgetComponents;
+    }
+    return overrides;
+});
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -162,7 +185,7 @@ onMounted(() => {
             <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
-                    v-bind="instance.combinedFormProps"
+                    v-bind="{ ...instance.combinedFormProps, ...componentOverrideProps }"
                     :field-props="props.fieldProps"
                     :model="model"
                     :variant="formModelVariant"

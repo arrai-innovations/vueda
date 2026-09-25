@@ -57,7 +57,7 @@ const StickyBarStub = defineComponent({
 });
 const FormModelStub = defineComponent({
     name: "FormModelStub",
-    props: ["app", "model", "view", "variant"],
+    props: ["app", "model", "view", "variant", "fieldComponents", "widgetComponents"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
@@ -189,6 +189,31 @@ describe("lib/views/ViewCreate.vue", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewCreate, { props: { app: "app", model: "model" } });
             expect(mockedUseLookupContext).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Component overrides", () => {
+        scopedIt("forwards fieldComponents and widgetComponents to FormModel", () => {
+            mockedInject.mockReturnValueOnce({});
+            const fieldComponents = { name: vi.fn() };
+            const widgetComponents = { email: vi.fn() };
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model", fieldComponents, widgetComponents },
+            });
+            const formModel = wrapper.findComponent(FormModelStub);
+            expect(formModel.props("fieldComponents")).toStrictEqual(fieldComponents);
+            expect(formModel.props("widgetComponents")).toStrictEqual(widgetComponents);
+        });
+
+        scopedIt("keeps model-config formProps component maps when the props are not passed", () => {
+            mockedInject.mockReturnValueOnce({});
+            const fieldComponents = { name: vi.fn() };
+            const widgetComponents = { email: vi.fn() };
+            modelConfig.config.formProps = { fieldComponents, widgetComponents };
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const formModel = wrapper.findComponent(FormModelStub);
+            expect(formModel.props("fieldComponents")).toStrictEqual(fieldComponents);
+            expect(formModel.props("widgetComponents")).toStrictEqual(widgetComponents);
         });
     });
 
