@@ -1291,7 +1291,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             for filter_name, filter_obj in filterset.filters.items():
                 field = filter_obj.field
 
-                if filter_obj.exclude or field.disabled:
+                # A disabled form field accepts no input. A negated filter (`exclude=True`) is an
+                # ordinary filter the list endpoint accepts, so it is reported like any other.
+                if field.disabled:
                     continue
 
                 widget = field.widget
