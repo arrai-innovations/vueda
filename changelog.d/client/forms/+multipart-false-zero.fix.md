@@ -1,0 +1,2 @@
+- **Saves that include a file keep `false` and `0` (`objectCrud`)**:
+    - A create, update, or patch that includes a file sends a multipart body, and that body sent every `false` or `0` value as an empty string. The server then stored an optional boolean's default instead of `false`, and rejected a required integer that was `0`. Only `null` and `undefined` now go out as empty strings.

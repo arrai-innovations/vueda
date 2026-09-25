@@ -39,7 +39,8 @@ const makeSearchParamsString = (searchParams) => {
  * - If a property is an array, it appends each element in the array.
  * - If a property is an object (excluding `File` instances), it appends each nested property.
  * - If a property is a `File`, it appends it directly.
- * - If a property is empty or undefined, it appends an empty string.
+ * - If a property is `null` or `undefined`, it appends an empty string. Other falsy values such as
+ *   `false`, `0`, and `""` are appended as their string form.
  *
  * @param {{ [key: string]: unknown }} object - The source object to convert into `FormData`.
  * @returns {FormData} - A `FormData` instance containing key-value pairs from the object, formatted for multipart form submission.
@@ -47,7 +48,7 @@ const makeSearchParamsString = (searchParams) => {
 const getFormData = (object) => {
     const formData = new FormData();
     for (const key in object) {
-        if (object[key]) {
+        if (object[key] !== null && object[key] !== undefined) {
             if (Array.isArray(object[key])) {
                 const o = object[key];
                 o.forEach((value, i) => {
