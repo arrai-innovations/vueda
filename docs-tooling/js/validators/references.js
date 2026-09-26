@@ -59,6 +59,21 @@ export const buildApiIndex = (roots) => {
 };
 
 /**
+ * Add the upstream documentation ids that the external-docs extractor wrote, mapped to their URLs.
+ * A missing file adds nothing, so an `ext:` reference then fails as unknown.
+ */
+export const addExternalIds = (index, externalIdsFile) => {
+    if (!externalIdsFile || !fs.existsSync(externalIdsFile)) {
+        return index;
+    }
+    const ids = JSON.parse(fs.readFileSync(externalIdsFile, "utf-8"));
+    for (const [id, entry] of Object.entries(ids)) {
+        index.set(id, entry.href);
+    }
+    return index;
+};
+
+/**
  * Build a Set<normalizedTerm> from glossary ## headings.
  */
 export const buildGlossaryIndex = (glossaryFile) => {
@@ -134,10 +149,11 @@ export const scanFileRefs = (content) => {
  * @param {string[]} options.files - markdown files to scan
  * @param {string|string[]} options.apiRoots - path or paths to indexed reference trees (api, theming, etc.)
  * @param {string} options.glossaryFile - path to docs/reference/glossary.md
+ * @param {string} [options.externalIdsFile] - path to the extracted upstream documentation ids
  * @returns {{ errors: { file: string, line: number, message: string }[], apiIndexSize: number, glossaryIndexSize: number }}
  */
-export const validateReferences = ({ files, apiRoots, glossaryFile }) => {
-    const apiIndex = buildApiIndex(apiRoots);
+export const validateReferences = ({ files, apiRoots, glossaryFile, externalIdsFile }) => {
+    const apiIndex = addExternalIds(buildApiIndex(apiRoots), externalIdsFile);
     const glossaryIndex = buildGlossaryIndex(glossaryFile);
     const errors = [];
 

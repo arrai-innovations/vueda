@@ -345,6 +345,13 @@ const buildApiIndex = () => {
         }
     }
     setTimingMetric("apiIndex.files", fileCount);
+    // Upstream documentation ids, which the docs-tooling external extractor writes as a flat map.
+    const externalIdsFile = path.join(docsRoot, "..", "docs-tooling", ".generated", "external-ids.json");
+    if (fs.existsSync(externalIdsFile)) {
+        for (const [id, entry] of Object.entries(JSON.parse(fs.readFileSync(externalIdsFile, "utf-8")))) {
+            index.set(id, { href: entry.href, title: entry.title, external: true });
+        }
+    }
     setTimingMetric("apiIndex.ids", index.size);
     return index;
 };
