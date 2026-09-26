@@ -124,7 +124,24 @@ beforeEach(async () => {
     backSpy = vi.fn();
     mockedUseRouter.mockReturnValue({ push: pushSpy, back: backSpy });
     mockedUseLookupContext.mockClear();
-    modelInfoStore = { infos: { app1: { modelA: { actions: ["list", "edit", "read"] } } } };
+    // The store's real shape: keyed by `getAppModelDotName` ("app.model", lowercased), with actions
+    // as the objects model info reports.
+    modelInfoStore = {
+        infos: {
+            "app1.modela": {
+                actions: [
+                    { name: "list", detail: false },
+                    { name: "create", detail: false },
+                    { name: "retrieve", detail: true },
+                    { name: "update", detail: true },
+                    { name: "partial_update", detail: true },
+                    { name: "archive", detail: true },
+                ],
+            },
+            "app1.other": { actions: [{ name: "list", detail: false }] },
+            "app2.modela": { actions: [{ name: "list", detail: false }] },
+        },
+    };
     ViewActionNotFound = (await import("@vueda/views/ViewActionNotFound.vue")).default;
     provideStore.clear();
     mockedInject.mockReset();
@@ -208,30 +225,34 @@ describe("lib/views/ViewActionNotFound.vue", () => {
     });
 
     describe("Suggestion list", () => {
-        scopedIt("forwards all model actions in similarity-descending order in action shape", () => {
+        scopedIt("lists the closest model's list actions when the tried route has no pk", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActionNotFound);
             const list = wrapper.findComponent(SuggestionListStub);
             expect(list.props("shape")).toBe("action");
             expect(list.props("items")).toEqual([
-                { label: "read", sub: "/app1/modelA/read", to: "/app1/modelA/read" },
-                { label: "list", sub: "/app1/modelA/list", to: "/app1/modelA/list" },
-                { label: "edit", sub: "/app1/modelA/edit", to: "/app1/modelA/edit" },
+                { label: "list", sub: "/app1/modela/list", to: "/app1/modela/list" },
+                { label: "create", sub: "/app1/modela/create", to: "/app1/modela/create" },
             ]);
         });
 
-        scopedIt("uses model-info actions and shows app.model · count in the source", () => {
+        scopedIt("links detail actions with the tried pk, by route name, in similarity order", () => {
+            routeRef.value.params.pk = "7";
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActionNotFound);
-            expect(wrapper.findComponent(SuggestionListStub).props("source")).toBe("app1.modelA · 3");
+            expect(wrapper.findComponent(SuggestionListStub).props("items")).toEqual([
+                { label: "read", sub: "/app1/modela/read/7", to: "/app1/modela/read/7" },
+                { label: "list", sub: "/app1/modela/list", to: "/app1/modela/list" },
+                { label: "create", sub: "/app1/modela/create", to: "/app1/modela/create" },
+                { label: "update", sub: "/app1/modela/update/7", to: "/app1/modela/update/7" },
+                { label: "archive", sub: "/app1/modela/archive/7", to: "/app1/modela/archive/7" },
+            ]);
         });
 
-        scopedIt("falls back to default actions when modelData has none", () => {
-            modelInfoStore = { infos: { app1: { modelA: {} } } };
+        scopedIt("names the closest app and model in the source with the suggestion count", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActionNotFound);
-            const items = wrapper.findComponent(SuggestionListStub).props("items");
-            expect(items.map((i) => i.label).sort()).toEqual(["create", "list", "read", "update"]);
+            expect(wrapper.findComponent(SuggestionListStub).props("source")).toBe("app1.modela · 2");
         });
 
         scopedIt("hides the suggestion list when no closest app/model exists", () => {
@@ -289,7 +310,7 @@ describe("lib/views/ViewActionNotFound.vue", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewActionNotFound);
             await wrapper.find('[data-qa="view-action-not-found-browse"]').trigger("click");
-            expect(pushSpy).toHaveBeenCalledWith("/app1/modelA/list");
+            expect(pushSpy).toHaveBeenCalledWith("/app1/modela/list");
         });
 
         scopedIt("renders an actions slot override", () => {
