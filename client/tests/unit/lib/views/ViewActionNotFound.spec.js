@@ -255,6 +255,15 @@ describe("lib/views/ViewActionNotFound.vue", () => {
             expect(wrapper.findComponent(SuggestionListStub).props("source")).toBe("app1.modela · 2");
         });
 
+        scopedIt("hides suggestions and browse when no loaded model resembles the tried model", () => {
+            // "app1" matches a loaded app, but "zzz" shares nothing with that app's models.
+            routeRef.value.params.model = "zzz";
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewActionNotFound);
+            expect(wrapper.find('[data-qa="view-action-not-found-suggestions"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="view-action-not-found-browse"]').exists()).toBe(false);
+        });
+
         scopedIt("hides the suggestion list when no closest app/model exists", () => {
             modelInfoStore = { infos: {} };
             mockedInject.mockReturnValueOnce({});
