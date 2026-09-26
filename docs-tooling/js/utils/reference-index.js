@@ -23,6 +23,10 @@ export const memberNameFromId = (memberId) => {
     if (vueMember) {
         return vueMember.binding ? `${vueMember.name}.${vueMember.binding}` : vueMember.name;
     }
+    const jsParameterPath = javascriptParameterPath(memberId);
+    if (jsParameterPath) {
+        return jsParameterPath;
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
     const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
     if (hashName.includes(".")) {
@@ -83,6 +87,20 @@ function pythonParameterParts(memberId) {
     return { functionName: parts.at(-2), parameterName: parts.at(-1) };
 }
 
+/**
+ * Return the parameter path of a `js:param:<module>#<function>:<path>` id, or "" for any other id.
+ *
+ * A colon separates the path, because a function's qualified name can itself contain dots
+ * (`storeTheme.registerComponent`). A dotted path names a key of an object parameter.
+ */
+function javascriptParameterPath(memberId) {
+    if (!memberId.startsWith("js:param:")) {
+        return "";
+    }
+    const qualified = memberId.slice(memberId.indexOf("#") + 1);
+    return qualified.slice(qualified.indexOf(":") + 1);
+}
+
 const VUE_MEMBER_RE = /^vue:component:([^:]+):(prop|slot|event):(.+)$/;
 
 /**
@@ -141,6 +159,10 @@ export const memberAnchorFromId = (memberId) => {
     const vueMember = vueMemberParts(memberId);
     if (vueMember) {
         return vueMemberAnchor(vueMember.memberKind, vueMember.name, vueMember.binding);
+    }
+    const jsParameterPath = javascriptParameterPath(memberId);
+    if (jsParameterPath) {
+        return parameterAnchor("", jsParameterPath);
     }
     const memberName = memberNameFromId(memberId);
     return memberName ? memberHeadingAnchor(memberName) : "";
