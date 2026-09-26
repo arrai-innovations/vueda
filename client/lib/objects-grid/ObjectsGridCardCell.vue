@@ -100,7 +100,6 @@ const effectiveHeaderClass = combineClasses(theme("header"), toRef(props, "heade
         :row-count="rowCount"
         :column-count="columnCount"
         :field="field"
-        gird-type="cell"
         :is-table-layout="false"
         :is-card-layout="true"
         :data-card-header="field.name"
