@@ -6,15 +6,18 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory
 from django.urls import reverse
+from rest_framework.test import APIRequestFactory
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
+from vueda.user.views import VuedaForgotPasswordView
 
 
 GROUP_EDIT_CODENAMES = ("create_group", "update_group", "delete_permission")
@@ -132,3 +135,54 @@ class TestPermissionGroupEditViews:
             self._delete(plain_user, permission, group)
 
         assert group.permissions.filter(pk=permission.pk).exists()
+
+
+@pytest.mark.django_db
+class TestVuedaForgotPasswordView:
+    @pytest.fixture(autouse=True)
+    def sent(self, monkeypatch):
+        """Record each reset email the view asks the account adapter to send."""
+        cache.clear()
+        sent = []
+
+        class RecordingAdapter:
+            def send_mail(self, to_email, to_name, code, context):
+                sent.append((to_email, code))
+
+        monkeypatch.setattr("vueda.user.views.get_adapter", RecordingAdapter)
+        yield sent
+        cache.clear()
+
+    @staticmethod
+    def request_reset(email):
+        request = APIRequestFactory().post("/forgot-password/", {"email": email}, format="json")
+        return VuedaForgotPasswordView.as_view()(request)
+
+    def test_emails_a_reset_link_to_an_active_account(self, sent):
+        get_user_model().objects.create_user(email="reset+active@domain.invalid", password="testpass", name="Active")
+
+        response = self.request_reset("reset+active@domain.invalid")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT
+        assert sent == [("reset+active@domain.invalid", "forgot_password")]
+
+    @pytest.mark.parametrize("is_active", [False, None])
+    def test_answers_the_same_for_an_inactive_or_unknown_address(self, sent, is_active):
+        if is_active is not None:
+            get_user_model().objects.create_user(
+                email="reset+other@domain.invalid", password="testpass", name="Other", is_active=is_active
+            )
+
+        response = self.request_reset("reset+other@domain.invalid")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT
+        assert sent == []
+
+    def test_applies_the_cooldown_whether_or_not_an_account_matches(self, sent):
+        get_user_model().objects.create_user(email="reset+active@domain.invalid", password="testpass", name="Active")
+
+        for email in ("reset+active@domain.invalid", "reset+unknown@domain.invalid"):
+            assert self.request_reset(email).status_code == HTTPStatus.NO_CONTENT
+            assert self.request_reset(email).status_code == HTTPStatus.TOO_MANY_REQUESTS
+
+        assert sent == [("reset+active@domain.invalid", "forgot_password")]

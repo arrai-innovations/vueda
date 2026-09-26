@@ -126,6 +126,14 @@ class WhoIsView(RetrieveAPIView):
     },
 )
 class VuedaForgotPasswordView(GenericAPIView):
+    """
+    Email a password reset link to the active account with the given address.
+
+    The response is the same whether or not an account matches, so the endpoint does not reveal
+    which addresses have accounts. The one-minute cooldown applies to every address for the same
+    reason.
+    """
+
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
 
@@ -133,6 +141,15 @@ class VuedaForgotPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
+
+        cache_key = f"password-forgot-cooldown:{email.lower()}"
+        if cache.get(cache_key):
+            return Response(
+                {"detail": "You must wait before requesting another password reset."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(cache_key, True, timeout=60)
+
         active_user = (
             get_user_model()
             .objects.filter(
@@ -148,22 +165,11 @@ class VuedaForgotPasswordView(GenericAPIView):
             and active_user.has_usable_password()
             and _unicode_ci_compare(email, active_user.email)
         ):
-            cache_key = f"password-forgot-cooldown:{email.lower()}"
-            if cache.get(cache_key):
-                return Response(
-                    {"detail": "You must wait before requesting another password reset."},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
-
-            url = active_user.generate_reset_url()
             context = {
                 "user": active_user,
-                "reset_url": url,
+                "reset_url": active_user.generate_reset_url(),
             }
             get_adapter().send_mail(email, active_user.name, "forgot_password", context)
-            cache.set(cache_key, True, timeout=60)
-        else:
-            return Response({"email": ["Email not found or user is inactive. "]}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
