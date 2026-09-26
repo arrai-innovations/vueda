@@ -29,6 +29,17 @@ describe("formatApiMemberTitle", () => {
 });
 
 describe("memberAnchorFromId", () => {
+    it("anchors a Python parameter under its function's member anchor", () => {
+        expect(memberAnchorFromId("py:param:vueda.core.config.TomlEnv.__init__.prefer_env")).toBe(
+            "--init---param-prefer_env",
+        );
+        expect(memberAnchorFromId("py:param:vueda.core.config.load_toml.path")).toBe("load_toml-param-path");
+    });
+
+    it("names a Python parameter with its function", () => {
+        expect(memberNameFromId("py:param:vueda.core.config.TomlEnv.__init__.prefer_env")).toBe("__init__.prefer_env");
+    });
+
     it("returns no anchor for a component-level theme key", () => {
         expect(memberAnchorFromId("theme-key:StickyBar")).toBe("");
     });

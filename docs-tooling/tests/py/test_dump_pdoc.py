@@ -1,5 +1,6 @@
 import inspect
 import sys
+import typing
 from pathlib import Path
 
 import pytest
@@ -147,9 +148,39 @@ def test_signature_details_structure():
 
     y_param = result["parameters"][1]
     assert y_param["name"] == "y"
-    assert y_param["default"] == 0
+    assert y_param["default"] == "0"
+    assert x_param["annotation"] == "int"
 
     assert result["return_annotation"] is not None
+
+
+def test_signature_details_keeps_a_none_default():
+    params = [inspect.Parameter("a", inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None)]
+    assert _signature_details(inspect.Signature(params))["parameters"][0]["default"] == "None"
+
+
+def test_signature_details_takes_annotations_as_written(annotated_pkg):
+    docs = {d.fullname: d for d in _collect_docs([Module.from_name("annotated_pkg")])}
+    init = _doc_to_dict(docs["annotated_pkg.Settings.__init__"], {})
+    parameters = {p["name"]: p for p in init["signature_without_self_details"]["parameters"]}
+
+    # Settings defines a method named bool, which pdoc would resolve the annotation to.
+    assert parameters["prefer_env"]["annotation"] == "bool"
+    assert parameters["prefer_env"]["default"] == "False"
+    assert parameters["path"]["default"] is None
+
+
+def test_signature_details_names_a_sentinel_default(annotated_pkg):
+    docs = {d.fullname: d for d in _collect_docs([Module.from_name("annotated_pkg")])}
+    get = _doc_to_dict(docs["annotated_pkg.Settings.get"], {})
+    parameters = {p["name"]: p for p in get["signature_details"]["parameters"]}
+
+    assert parameters["default"]["default"] == "_MISSING"
+
+
+def test_signature_details_formats_a_typing_class():
+    params = [inspect.Parameter("stream", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=typing.TextIO)]
+    assert _signature_details(inspect.Signature(params))["parameters"][0]["annotation"] == "typing.TextIO"
 
 
 def test_signature_details_no_annotations_or_defaults():

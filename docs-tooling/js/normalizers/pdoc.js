@@ -31,6 +31,8 @@ function typeRefFromAnnotation(annotation) {
     return { name: String(annotation) };
 }
 
+const VARIADIC_KINDS = new Set(["VAR_POSITIONAL", "VAR_KEYWORD"]);
+
 function signatureFromDetails(details, name) {
     if (!details) {
         return undefined;
@@ -40,8 +42,9 @@ function signatureFromDetails(details, name) {
             name: param.name,
             description: undefined,
             type: typeRefFromAnnotation(param.annotation),
-            optional: false,
-            default: param.default === null || param.default === undefined ? undefined : String(param.default),
+            // A parameter is optional when it has a default or collects extra arguments (`*args`, `**kwargs`).
+            optional: param.default != null || VARIADIC_KINDS.has(param.kind),
+            default: param.default == null ? undefined : String(param.default),
         }),
     );
     return compact({

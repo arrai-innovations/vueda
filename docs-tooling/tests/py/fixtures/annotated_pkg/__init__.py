@@ -1,5 +1,12 @@
 """Package with annotated functions used to test _doc_to_dict and _signature_details."""
 
+from __future__ import annotations
+
+import typing
+
+
+_MISSING = object()
+
 
 def add(x: int, y: int = 0) -> int:
     """Add two integers.
@@ -50,6 +57,13 @@ class Settings:
 
     def reload(self) -> None:
         """Read the file again. @private"""
+
+    def get(self, key: str, default: typing.Any = _MISSING, stream: typing.TextIO | None = None) -> typing.Any:
+        """Read one setting."""
+
+    def bool(self, key: str) -> bool:
+        """Read one setting as a boolean."""
+        return False
 
 
 class Plain:

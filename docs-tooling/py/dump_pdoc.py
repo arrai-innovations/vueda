@@ -7,6 +7,7 @@ import importlib
 import inspect
 import json
 import pkgutil
+import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
@@ -50,20 +51,80 @@ def _json_safe(value: Any) -> Any:
         return f"<{module}.{name}>"
 
 
-def _signature_details(signature: inspect.Signature) -> dict[str, Any]:
+def _annotation_text(annotation: Any) -> str | None:
+    """Return an annotation as source-like text, or None when there is none."""
+    if annotation is inspect.Parameter.empty:
+        return None
+    if isinstance(annotation, str):
+        return annotation
+    # formatannotation returns the repr of a class from typing, such as "<class 'TextIO'>".
+    if isinstance(annotation, type):
+        if annotation.__module__ == "builtins":
+            return annotation.__qualname__
+        return f"{annotation.__module__}.{annotation.__qualname__}"
+    return inspect.formatannotation(annotation)
+
+
+_ADDRESS_RE = re.compile(r" at 0x[0-9a-fA-F]+")
+
+
+def _default_text(value: Any, namespace: dict[str, Any] | None = None) -> str | None:
+    """Return a parameter default as its ``repr``, or None when the parameter has no default.
+
+    A repr that carries a memory address, such as a sentinel ``object()``, changes on every run.
+    Such a default shows as the module-level name bound to it, or as its repr without the address.
+    """
+    if value is inspect.Parameter.empty:
+        return None
+    module = value.__class__.__module__
+    name = value.__class__.__name__
+    if module.startswith("django.db.models") and name.endswith("QuerySet"):
+        return f"<{module}.{name}>"
+    try:
+        text = repr(value)
+    except Exception:
+        return f"<{module}.{name}>"
+    if not _ADDRESS_RE.search(text):
+        return text
+    bound_name = next((key for key, bound in (namespace or {}).items() if bound is value), None)
+    return bound_name or _ADDRESS_RE.sub("", text)
+
+
+def _unevaluated_signature(obj: Any) -> inspect.Signature | None:
+    """Return the signature of ``obj`` with its annotations as written, or None.
+
+    pdoc resolves annotations in the class namespace, so in a class that defines a method named
+    ``bool`` or ``str``, the annotation ``bool`` resolves to that method.
+    """
+    try:
+        return inspect.signature(obj)
+    except (TypeError, ValueError):
+        return None
+
+
+def _signature_details(signature: inspect.Signature, obj: Any = None) -> dict[str, Any]:
+    written = _unevaluated_signature(obj) if obj is not None else None
+    written_parameters = written.parameters if written else {}
+    namespace = getattr(obj, "__globals__", None)
+
+    def annotation(p: inspect.Parameter) -> str | None:
+        source = written_parameters.get(p.name)
+        return _annotation_text(source.annotation if source else p.annotation)
+
+    return_annotation = written.return_annotation if written else signature.return_annotation
     return {
         "parameters": [
             {
                 "name": p.name,
                 "kind": str(p.kind),
-                "default": None if p.default is inspect._empty else _json_safe(p.default),
-                "annotation": None if p.annotation is inspect._empty else _json_safe(p.annotation),
+                "default": _default_text(p.default, namespace),
+                "annotation": annotation(p),
             }
             for p in signature.parameters.values()
         ],
         "return_annotation": None
-        if signature.return_annotation is inspect._empty
-        else _json_safe(signature.return_annotation),
+        if signature.return_annotation is inspect.Parameter.empty
+        else _annotation_text(return_annotation),
     }
 
 
@@ -148,8 +209,8 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
             {
                 "signature": str(doc.signature),
                 "signature_without_self": str(doc.signature_without_self),
-                "signature_details": _signature_details(doc.signature),
-                "signature_without_self_details": _signature_details(doc.signature_without_self),
+                "signature_details": _signature_details(doc.signature, doc.obj),
+                "signature_without_self_details": _signature_details(doc.signature_without_self, doc.obj),
                 "is_classmethod": doc.is_classmethod,
                 "is_staticmethod": doc.is_staticmethod,
                 "decorators": doc.decorators,
