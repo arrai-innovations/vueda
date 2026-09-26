@@ -38,6 +38,7 @@ from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import replace_refs_with_schema
+from vueda.core.open_api import route_path
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
@@ -1424,8 +1425,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return parameters
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info/" | "/routes/vueda.info/model_info/{app_label}/{model}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info/" | "/vueda.info/model_info/{app_label}/{model}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
@@ -1436,9 +1437,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List models
-                case ("GET", "/routes/vueda.info/model_info/", "200"):
+                case ("GET", "/vueda.info/model_info/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoExample": {
                             "summary": "With Results",
@@ -1581,7 +1582,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     }
 
                 # Get model
-                case ("GET", "/routes/vueda.info/model_info/{app_label}/{model}/", "200"):
+                case ("GET", "/vueda.info/model_info/{app_label}/{model}/", "200"):
                     replace_refs_with_schema(
                         auto_schema.registry._components, data, ("#/components/schemas/ModelInfo",)
                     )
@@ -3028,8 +3029,8 @@ class ModelInfoChoicesSerializer(
         expandable_fields = {}
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info_choices/{app_label}/{model}/{field}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
@@ -3038,9 +3039,9 @@ class ModelInfoChoicesSerializer(
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List field choices
-                case ("GET", "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/", "200"):
+                case ("GET", "/vueda.info/model_info_choices/{app_label}/{model}/{field}/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoChoicesWithResultsExample": {
                             "summary": "With Results",
@@ -3161,8 +3162,8 @@ class ModelInfoChoicesSerializer(
 
 class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
@@ -3171,9 +3172,9 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List filterset field choices
-                case ("GET", "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/", "200"):
+                case ("GET", "/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoFilterChoicesWithResultsExample": {
                             "summary": "With Results",

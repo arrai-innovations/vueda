@@ -14,6 +14,7 @@ from django.conf import settings
 from rest_flex_fields.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers as drf_serializers
 
+from vueda.core.open_api import route_path
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.workflow import open_api_tracebacks
 from vueda.workflow.fields import AvailableTransitionField
@@ -108,11 +109,11 @@ class WorkflowSerializer(
         return parameters
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.workflow/workflows/{app_label}/{model}/" | "/routes/vueda.workflow/workflows/":
+        match route_path(self.context["request"].path):
+            case "/vueda.workflow/workflows/{app_label}/{model}/" | "/vueda.workflow/workflows/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
-            case "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/":
+            case "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/":
                 request_data["content"]["application/json"]["schema"] = {
                     "type": "object",
                     "description": "Test a",
@@ -164,9 +165,9 @@ class WorkflowSerializer(
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List workflows
-                case ("GET", "/routes/vueda.workflow/workflows/", "200"):
+                case ("GET", "/vueda.workflow/workflows/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListWorkflowsExample": {
                             "summary": "Workflows exist",
@@ -237,7 +238,7 @@ class WorkflowSerializer(
                     }
 
                 # Get workflow
-                case ("GET", "/routes/vueda.workflow/workflows/{app_label}/{model}/", "200"):
+                case ("GET", "/vueda.workflow/workflows/{app_label}/{model}/", "200"):
                     expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
                     data["content"]["application/json"]["examples"] = {
                         "GetWorkflowExample": {
@@ -350,7 +351,7 @@ class WorkflowSerializer(
                 # Get object state
                 case (
                     "GET",
-                    "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/",
+                    "/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/",
                     "200",
                 ):
                     data["content"]["application/json"]["schema"] = {
@@ -501,7 +502,7 @@ class WorkflowSerializer(
                 # List object transitions
                 case (
                     "GET",
-                    "/routes/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/",
+                    "/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/",
                     "200",
                 ):
                     data["content"]["application/json"]["examples"] = {
@@ -618,7 +619,7 @@ class WorkflowSerializer(
                 # Execute transition
                 case (
                     "PATCH",
-                    "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/",
+                    "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/",
                     "200",
                 ):
                     data["content"]["application/json"]["examples"] = {
