@@ -7,6 +7,7 @@ import importlib
 import inspect
 import json
 import pkgutil
+import sys
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -66,6 +67,31 @@ def _signature_details(signature: inspect.Signature) -> dict[str, Any]:
     }
 
 
+def _is_public(doc: Doc) -> bool:
+    """Return whether pdoc's default template would show ``doc``.
+
+    pdoc decides visibility in its HTML template, not on the ``Doc`` model, so the dump applies the
+    same rules. ``@private`` in a docstring hides a member, and ``@public`` shows one. A constructor
+    shows when it has a docstring or takes arguments. Otherwise a name listed in the module's
+    ``__all__`` is public, and a name with a leading underscore is not.
+    """
+    docstring = doc.docstring
+    if "@private" in docstring:
+        return False
+    if "@public" in docstring:
+        return True
+    if doc.name == "__init__" and isinstance(doc, Function):
+        return bool(docstring or doc.signature_without_self.parameters)
+    if doc.name == "__doc__":
+        return False
+    if isinstance(doc, Variable) and doc.is_typevar and not docstring:
+        return False
+    module_all = getattr(sys.modules.get(doc.modulename), "__all__", None) or []
+    if (doc.qualname or doc.name) in module_all:
+        return True
+    return not doc.name.startswith("_")
+
+
 def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
     parent = None
     if doc.kind != "module":
@@ -97,7 +123,7 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
         "source_file": str(doc.source_file) if doc.source_file else None,
         "source_lines": _format_source_lines(doc.source_lines),
         "is_inherited": doc.is_inherited,
-        "is_public": getattr(doc, "is_public", None),
+        "is_public": _is_public(doc),
         "is_external": getattr(doc, "is_external", None),
     }
 

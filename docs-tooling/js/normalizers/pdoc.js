@@ -51,6 +51,9 @@ function signatureFromDetails(details, name) {
     });
 }
 
+// pdoc's visibility markers; the dump has already applied them to `is_public`.
+const VISIBILITY_MARKER_RE = /[ \t]*@(?:public|private)\b/g;
+
 export class PdocNormalizer extends Normalizer {
     normalize(payload) {
         if (!payload || !Array.isArray(payload.docs)) {
@@ -70,11 +73,13 @@ export class PdocNormalizer extends Normalizer {
             const kind = KIND_MAP[doc.kind] || "type";
             const id = nodeId(kind, doc.fullname);
             const signatures = [];
-            const signature = signatureFromDetails(doc.signature_details, doc.name);
+            // A constructor's page signature omits `self`, which callers never pass.
+            const details = doc.name === "__init__" ? doc.signature_without_self_details : doc.signature_details;
+            const signature = signatureFromDetails(details, doc.name);
             if (signature) {
                 signatures.push(signature);
             }
-            const parsedDocstring = extractDeprecatedTagFromText(doc.docstring);
+            const parsedDocstring = extractDeprecatedTagFromText(doc.docstring?.replace(VISIBILITY_MARKER_RE, ""));
 
             const node = compact({
                 id,

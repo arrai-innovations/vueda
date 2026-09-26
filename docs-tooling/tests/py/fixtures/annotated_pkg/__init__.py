@@ -29,3 +29,31 @@ send = _Task(_send)
 
 LIMIT: int = 3
 """A plain module variable."""
+
+
+class Settings:
+    """Settings read from a file."""
+
+    def __init__(self, path: str, prefer_env: bool = False):
+        self._path = path
+
+    def load(self) -> dict:
+        """Read the file."""
+        return {}
+
+    def _parse(self) -> dict:
+        """Parse the file."""
+        return {}
+
+    def _hook(self) -> None:
+        """Run after loading. @public"""
+
+    def reload(self) -> None:
+        """Read the file again. @private"""
+
+
+class Plain:
+    """A class whose constructor takes no arguments."""
+
+    def __init__(self):
+        pass

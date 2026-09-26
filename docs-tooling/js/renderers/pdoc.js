@@ -15,17 +15,13 @@ import {
     renderTable,
 } from "./markdown.js";
 
-const DUNDER_RE = /^__.*__$/;
 const INLINE_MODULE_KINDS = new Set(["function", "method", "property"]);
 
+/**
+ * The dump applies pdoc's visibility rules, including `@public` and `@private`, to `is_public`.
+ */
 function isVisibleMember(node) {
-    if (node.extensions?.pdoc?.is_public === false) {
-        return false;
-    }
-    if (DUNDER_RE.test(node.name) && !node.description) {
-        return false;
-    }
-    return true;
+    return node.extensions?.pdoc?.is_public !== false;
 }
 
 /**
