@@ -218,6 +218,41 @@ The comment must start on the same source line as the declaration's start or end
 
 Only pure aliases of the form `var(--token-name)` register a mapping. Computed values (e.g. `calc(var(--radius) - 2px)`) inside `@theme inline` do not surface the underlying token in the utility column; that block is generating a Tailwind utility from a calculation, not aliasing an existing `:root` token. Tokens declared only in `:root` without an `@theme inline` alias render without a Tailwind utility column.
 
+## Pinia stores (`client/lib/stores/`)
+
+A store defined with `defineStore("id", { state, getters, actions })` exports a store definition function, and TypeDoc sees only that function. The `pinia-stores` TypeDoc plugin (`docs-tooling/js/typedoc-plugins/pinia-stores.js`) adds each state key, getter, and action from the options object as a member of the store. A state key renders as a property on the store page. A getter or action gets its own page. Each gets an ID such as `js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition`.
+
+Document each member where it is declared, inside the options object:
+
+```js
+export const storeExample = defineStore("example", {
+    state: () => ({
+        /**
+         * Cached results, keyed by `app.model`.
+         *
+         * @type {{[appModel: string]: object[]}}
+         */
+        results: {},
+    }),
+    actions: {
+        /**
+         * Fetch and cache the results for one model.
+         *
+         * @param {string} app - The model's app label.
+         * @param {string} model - The model name.
+         * @param {boolean} [force=false] - Refetch even when cached.
+         * @returns {Promise<object[]>} The cached results.
+         */
+        async fetchResults(app, model, force = false) {},
+    },
+});
+```
+
+- A state key's `@type` supplies its type. Without it, TypeDoc infers the type from the initial value, so `{}` renders as `object`.
+- An action or getter takes `@param` and `@returns` like any function. Without them, parameters render as `any`, and a defaulted parameter renders as required.
+- An action listed by name (`actions: { registerComponent }`) takes its JSDoc from the named function. Tag its use of the store with `@this`; the page omits `this` from the parameters, since Pinia binds it.
+- The plugin reads only the options form. A setup store (`defineStore("id", () => {...})`) gets no members.
+
 ## Cross-references between sources
 
 The render step pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages emit `Theme entry: {@api theme-key:<Component>}` automatically when a matching theme key exists, which is why the theme-key component name must match the consumer-facing Vue component name. Authored prose elsewhere in the docs can reference any of three ID surfaces via the `{@api ...}` extension:
