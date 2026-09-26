@@ -55,6 +55,18 @@ describe("lib/views/AuthorizingForm.vue", () => {
             expect(handler()).toBeUndefined();
         });
 
+        scopedIt("passes a caller's success handler bound in a template through as that one function", () => {
+            // A template binding keeps the kebab-case key, which Vue would merge with the default's
+            // own `on*` binding into an array.
+            const Parent = defineComponent({
+                setup: () => () => h(AuthorizingForm, { "on-submission-success-handler": () => "caller" }),
+            });
+            const wrapper = mount(Parent);
+            const handler = wrapper.findComponent(ActionFormStub).props("onSubmissionSuccessHandler");
+            expect(Array.isArray(handler)).toBe(false);
+            expect(handler()).toBe("caller");
+        });
+
         scopedIt("passes a caller's own success handler through", () => {
             const onSubmissionSuccessHandler = vi.fn();
             const wrapper = mount(AuthorizingForm, { attrs: { onSubmissionSuccessHandler } });
