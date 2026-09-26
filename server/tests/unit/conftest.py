@@ -33,7 +33,7 @@ def openapi_document(tmp_path_factory):
     schema_path = tmp_path_factory.mktemp("openapi") / "openapi.json"
     result = subprocess.run(
         [sys.executable, "manage.py", "spectacular", "--format", "openapi-json", "--file", str(schema_path)],
-        cwd=Path(__file__).resolve().parents[3],
+        cwd=Path(__file__).resolve().parents[2],
         env={**os.environ, "DJANGO_SETTINGS_MODULE": "doc_settings"},
         capture_output=True,
         text=True,
@@ -57,6 +57,25 @@ def assert_matches_component(openapi_document):
 
     def check(data, component):
         errors = schema_errors(openapi_document, data, {"$ref": f"#/components/schemas/{component}"})
+        assert not errors, "\n".join(errors[:10])
+
+    return check
+
+
+@pytest.fixture(scope="session")
+def assert_matches_documented_response(openapi_document):
+    """
+    Validate a response body against the schema the published document gives its operation.
+
+    ``path`` is the operation's path template as the docs build mounts it, such as
+    ``/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/``.
+    """
+
+    def check(response, path, method):
+        operation = openapi_document["paths"][path][method.lower()]
+        documented = operation["responses"][str(response.status_code)]
+        schema = documented["content"]["application/json"]["schema"]
+        errors = schema_errors(openapi_document, json.loads(response.content), schema)
         assert not errors, "\n".join(errors[:10])
 
     return check
