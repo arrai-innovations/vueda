@@ -2,5 +2,6 @@
     "entryPointStrategy": "expand",
     "entryPoints": ["../client/lib"],
     "tsconfig": "typedoc.tsconfig.json",
-    "json": ".generated/typedoc.json"
+    "json": ".generated/typedoc.json",
+    "plugin": ["./js/typedoc-plugins/pinia-stores.js"]
 }
