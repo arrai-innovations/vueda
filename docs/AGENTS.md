@@ -12,6 +12,12 @@ Use frontmatter fields consistently:
 - `audience`: `integrator`, `designer`, or `contributor`.
 - `type`: `tutorial`, `explanation`, `how-to`, `reference`, `plan`, or `index`.
 
+## Topic Owners
+
+Before explaining a contract, check "Topic Owners" in `README.md`. If another
+page owns it, state the fact you rely on in one sentence and link the owner.
+Add a row there when you introduce a contract no row covers.
+
 ## Generated API Docs
 
 Generated API references live under `docs/reference/api/` and
