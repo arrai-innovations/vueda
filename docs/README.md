@@ -225,6 +225,8 @@ grep -o '"ext:django:[^"]*Manager[^"]*"' docs-tooling/.generated/external-ids.js
 
 DRF, Vue, MDN, reactive-helpers, drf-flex-fields, and drf-writable-nested publish no inventory, so `external-docs.json` lists their links by hand. To link a new name from one of them, add an entry under that package's `links`. The extract step fetches each listed page and fails when the page or its anchor is gone.
 
+Extraction keeps a copy of every download in `docs-tooling/.cache/external/` and uses it when the network is unavailable. To work offline, run `./bin/docs-tooling.js extract --target external` (or `just docs-extract`) once while online. An upstream page that answers with an error status still fails extraction, cached copy or not.
+
 ## Glossary links
 
 Link glossary terms from authored docs with `{@term ...}`.
