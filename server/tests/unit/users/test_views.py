@@ -10,11 +10,13 @@ from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory
 from django.urls import reverse
+from hashids import Hashids
 from rest_framework.test import APIRequestFactory
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
 from vueda.user.views import VuedaForgotPasswordView
@@ -205,3 +207,32 @@ class TestPasswordResetRoutes:
         assert reverse("reset_password") == "/routes/vueda.user/reset-password/"
         assert response.status_code == HTTPStatus.BAD_REQUEST
         assert response.data == {"detail": "This token is invalid or has already been used."}
+
+
+@pytest.mark.django_db
+class TestVuedaResetPasswordView:
+    @staticmethod
+    def reset_link_params(user):
+        return {
+            "pk": Hashids(min_length=16).encode(user.pk),
+            "token": Sha3PasswordResetTokenGenerator().make_token(user),
+        }
+
+    def test_reports_a_password_too_similar_to_the_account_as_a_field_error(self, api_client, settings):
+        settings.AUTH_PASSWORD_VALIDATORS = [
+            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+        ]
+        user = get_user_model().objects.create_user(
+            email="similarcustomer@domain.invalid", password="old-password", name="Similar"
+        )
+
+        response = api_client.post(
+            reverse("reset_password"),
+            {"password": "similarcustomer", "password_confirm": "similarcustomer", **self.reset_link_params(user)},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert list(response.data) == ["password"]
+        user.refresh_from_db()
+        assert user.check_password("old-password")

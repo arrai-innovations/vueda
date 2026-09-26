@@ -35,6 +35,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
@@ -195,7 +196,10 @@ class VuedaForgotPasswordView(GenericAPIView):
         204: None,
         400: conditional_inline_serializer(
             "ResetPasswordValidationError",
-            fields={"non_field_errors": serializers.ListField(child=serializers.CharField())},
+            fields={
+                "non_field_errors": serializers.ListField(child=serializers.CharField(), required=False),
+                "password": serializers.ListField(child=serializers.CharField(), required=False),
+            },
         ),
     },
 )
@@ -252,7 +256,12 @@ class VuedaResetPasswordView(GenericAPIView):
             )
 
         if token_validator.check_token(user, token):
-            password_validation.validate_password(password, user)
+            # The serializer validated the password without the user. Validators that compare it with
+            # the account, such as UserAttributeSimilarityValidator, can only run here.
+            try:
+                password_validation.validate_password(password, user)
+            except DjangoValidationError as error:
+                return Response({"password": list(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
             user.set_password(password)
             user.save()
