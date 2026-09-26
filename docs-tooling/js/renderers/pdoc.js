@@ -1,10 +1,10 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildPdocPathMap } from "../utils/path-map.js";
-import { memberHeadingAnchor } from "../utils/reference-index.js";
+import { memberHeadingAnchor, parameterAnchor } from "../utils/reference-index.js";
 import {
     escapeText,
-    formatParameters,
     formatSource,
+    labelFromType,
     linkToPath,
     normalizeTitle,
     renderCodeInline,
@@ -16,6 +16,45 @@ import {
 } from "./markdown.js";
 
 const INLINE_MODULE_KINDS = new Set(["function", "method", "property"]);
+// The receiver a method is called on; it gets no parameter id.
+const RECEIVER_NAMES = new Set(["self", "cls"]);
+
+function linkableParameters(signature) {
+    return (signature.parameters || []).filter(
+        (param, position) => !(position === 0 && RECEIVER_NAMES.has(param.name)),
+    );
+}
+
+/**
+ * Return the parameter ids of a function node, one per parameter a caller passes.
+ */
+function parameterIds(node) {
+    const fullname = node.extensions?.pdoc?.fullname;
+    if (!fullname) {
+        return [];
+    }
+    return (node.signatures || []).flatMap((signature) =>
+        linkableParameters(signature).map((param) => `py:param:${fullname}.${param.name}`),
+    );
+}
+
+/**
+ * Render a signature's parameter table. Each linkable name cell carries the anchor its
+ * `py:param:` id resolves to.
+ */
+function renderParameterTable(signature, ownerAnchor) {
+    const linkable = new Set(linkableParameters(signature));
+    const rows = (signature.parameters || []).map((param) => [
+        linkable.has(param)
+            ? `<span id="${parameterAnchor(ownerAnchor, param.name)}">${param.name}</span>`
+            : param.name,
+        renderCodeInline(labelFromType(param.type)),
+        param.optional ? "no" : "yes",
+        renderCodeInline(param.default),
+        param.description || "",
+    ]);
+    return renderTable(["Name", "Type", "Required", "Default", "Description"], rows);
+}
 
 /**
  * The dump applies pdoc's visibility rules, including `@public` and `@private`, to `is_public`.
@@ -77,8 +116,7 @@ function renderSignatures(node, filePath, memberAnchors) {
         const label = `${node.name}(${params})`;
         lines.push(renderCodeInline(label), "");
 
-        const paramRows = formatParameters(signature.parameters || []);
-        const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
+        const paramTable = renderParameterTable(signature, "");
         if (paramTable) {
             lines.push(renderHeading(3, "Parameters"), "", paramTable, "");
         }
@@ -111,8 +149,7 @@ function renderInlineMember(member) {
         for (const signature of member.signatures) {
             const params = (signature.parameters || []).map((p) => p.name).join(", ");
             lines.push(renderCodeInline(`${member.name}(${params})`), "");
-            const paramRows = formatParameters(signature.parameters || []);
-            const paramTable = renderTable(["Name", "Type", "Required", "Description"], paramRows);
+            const paramTable = renderParameterTable(signature, anchor);
             if (paramTable) {
                 lines.push(renderHeading(4, `Parameters {#${anchor}-parameters}`), "", paramTable, "");
             }
@@ -200,7 +237,7 @@ export function renderPdocNode(node, index, filePath) {
         inlineChildren = children.filter(isPageWorthy).filter((c) => INLINE_MODULE_KINDS.has(c.kind));
     }
     if (inlineChildren && inlineChildren.length) {
-        fm.member_ids = inlineChildren.map((c) => c.id);
+        fm.member_ids = inlineChildren.flatMap((c) => [c.id, ...parameterIds(c)]);
         memberAnchors = new Set(inlineChildren.map((c) => memberHeadingAnchor(c.name)));
     }
 

@@ -254,6 +254,10 @@ describe("renderPdocBundle with class members", () => {
         const outputs = renderPdocBundle(normalizer.normalize(payload));
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
         expect(classPage).toContain("`__init__(prefer_env)`");
+        expect(classPage).toContain(
+            '| <span id="--init---param-prefer_env">prefer_env</span> | `bool` | no | `False` |  |',
+        );
+        expect(classPage).toContain("py:param:vueda.example.Helper.__init__.prefer_env");
     });
 
     it("hyphenates a dunder member's anchor, which markdown would otherwise emphasise", () => {

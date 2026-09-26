@@ -15,6 +15,10 @@ export const memberNameFromId = (memberId) => {
     if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
         return "";
     }
+    const pyParam = pythonParameterParts(memberId);
+    if (pyParam) {
+        return `${pyParam.functionName}.${pyParam.parameterName}`;
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
     const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
     if (hashName.includes(".")) {
@@ -43,6 +47,28 @@ export const memberHeadingAnchor = (memberName) => {
 };
 
 /**
+ * Anchor for a parameter row in a signature table.
+ *
+ * `ownerAnchor` is the anchor of the member that declares the parameter, or ""
+ * when the parameter belongs to the page itself. A dotted `parameterPath` names
+ * a key of an object parameter (`params.actionRedirect`). Identifiers cannot
+ * contain a hyphen, so the result cannot collide with a member anchor.
+ */
+export const parameterAnchor = (ownerAnchor, parameterPath) =>
+    [ownerAnchor, "param", ...parameterPath.split(".").map(slugify)].filter(Boolean).join("-");
+
+/**
+ * Split a `py:param:<function fullname>.<parameter>` id, or return null for any other id.
+ */
+function pythonParameterParts(memberId) {
+    if (!memberId.startsWith("py:param:")) {
+        return null;
+    }
+    const parts = memberId.slice("py:param:".length).split(".");
+    return { functionName: parts.at(-2), parameterName: parts.at(-1) };
+}
+
+/**
  * Anchor for a member id, or "" when the id names its own page.
  *
  * The theming renderers write an explicit `<a id>` per member and the rest give
@@ -61,6 +87,10 @@ export const memberAnchorFromId = (memberId) => {
             return "";
         }
         return themeKeySlotAnchor(qualified.slice(0, separator), qualified.slice(separator + 1));
+    }
+    const pyParam = pythonParameterParts(memberId);
+    if (pyParam) {
+        return parameterAnchor(memberHeadingAnchor(pyParam.functionName), pyParam.parameterName);
     }
     const memberName = memberNameFromId(memberId);
     return memberName ? memberHeadingAnchor(memberName) : "";

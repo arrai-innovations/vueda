@@ -66,6 +66,8 @@ Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hi
 
 - Each module renders to a single `py/<dotted-module>.md` page. Submodules and classes appear as link lists; functions, methods, and properties on the module are inlined as `## <name>` sections on the module page itself, with anchor IDs that match `{@api py:<kind>:<fullname>}`.
 - Each class renders to its own `py/<dotted-module>/<Class>.md` page, with members inlined the same way.
+- Each parameter a caller passes has an ID, `py:param:<function fullname>.<name>`, which links to its row in the function's parameter table. `self` and `cls` have none. For example, `{@api py:param:vueda.core.config.TomlEnv.__init__.prefer_env}`.
+- The table's types come from the annotations as written, and its defaults from their `repr`. A default that is a sentinel object shows the module-level name bound to it, such as `_MISSING`.
 
 ### Private helpers
 
