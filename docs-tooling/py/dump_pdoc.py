@@ -140,11 +140,30 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
     return data
 
 
+def _as_wrapped_function(doc: Doc) -> Doc:
+    """Return a function doc for a variable whose value wraps a function, or ``doc`` unchanged.
+
+    A decorator such as Celery's ``shared_task`` returns an object rather than a function, so pdoc
+    records the decorated name as a variable with no signature or docstring. When the object's
+    ``__wrapped__`` is a function or bound method, document it under the variable's name.
+    """
+    if not isinstance(doc, Variable):
+        return doc
+    try:
+        wrapped = getattr(doc.default_value, "__wrapped__", None)
+    except Exception:  # A lazy proxy can raise while it resolves.
+        return doc
+    # A task declared with bind=True wraps a method bound to the task, whose signature omits that argument.
+    if not (inspect.isfunction(wrapped) or inspect.ismethod(wrapped)):
+        return doc
+    return Function(doc.modulename, doc.qualname, wrapped, (doc.modulename, doc.qualname))
+
+
 def _collect_docs(root_docs: Iterable[Doc]) -> list[Doc]:
     collected: dict[str, Doc] = {}
     stack = list(root_docs)
     while stack:
-        doc = stack.pop()
+        doc = _as_wrapped_function(stack.pop())
         if doc.fullname in collected:
             continue
         collected[doc.fullname] = doc
