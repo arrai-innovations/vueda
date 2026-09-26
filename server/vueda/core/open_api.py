@@ -260,17 +260,17 @@ class VuedaBaseAutoSchema:
         Add a description and example for each of the path parameters.
         """
         # Workflow doesn't have an 'object_id' field, so use a model during api docs generation that has it.
-        match self.path:
+        match route_path(self.path):
             case (
-                "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/"
-                | "/routes/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/"
-                | "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/"
+                "/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/"
+                | "/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/"
+                | "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/"
             ):
                 self.view.queryset_model = OpenApiDocsGenerationObjectIdModel
 
         parameters = super()._resolve_path_parameters(variables)
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
             for parameter in parameters:
                 match (parameter["name"], parameter["in"]):
                     case ("app_label", "path"):
@@ -300,7 +300,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._get_pagination_parameters()
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
             for parameter in parameters:
                 match parameter["name"]:
                     case settings.PAGE_QUERY_PARAM:
@@ -321,7 +321,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._get_filter_parameters()
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
 
             class MatchFilterParameters:
                 SEARCH_PARAM = settings.REST_FRAMEWORK["SEARCH_PARAM"]
@@ -415,7 +415,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._process_override_parameters(direction=direction)
 
-        if self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith("/vueda.workflow/"):
             for parameter_key, parameter in parameters.items():
                 match parameter_key:
                     case ("object_id", "path"):
@@ -544,6 +544,17 @@ else:
                             prop["title"] = "model class name"
 
             return resolved_serializer
+
+
+def route_path(path):
+    """
+    Return ``path`` from its VUEDA app segment on, such as ``/vueda.info/model_info/``.
+
+    Schema customizations match on this form, so they apply under whatever prefix the project mounts
+    the API at (``/routes/`` by convention, nothing in the docs build).
+    """
+    index = path.find("/vueda.")
+    return path[index:] if index != -1 else path
 
 
 def get_components_by_ref(components, ref_strings):
