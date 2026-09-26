@@ -137,22 +137,23 @@ class TestPermissionGroupEditViews:
         assert group.permissions.filter(pk=permission.pk).exists()
 
 
+@pytest.fixture
+def sent(monkeypatch):
+    """Record each email the password views ask the account adapter to send, with cooldowns cleared."""
+    cache.clear()
+    sent = []
+
+    class RecordingAdapter:
+        def send_mail(self, to_email, to_name, code, context):
+            sent.append((to_email, code))
+
+    monkeypatch.setattr("vueda.user.views.get_adapter", RecordingAdapter)
+    yield sent
+    cache.clear()
+
+
 @pytest.mark.django_db
 class TestVuedaForgotPasswordView:
-    @pytest.fixture(autouse=True)
-    def sent(self, monkeypatch):
-        """Record each reset email the view asks the account adapter to send."""
-        cache.clear()
-        sent = []
-
-        class RecordingAdapter:
-            def send_mail(self, to_email, to_name, code, context):
-                sent.append((to_email, code))
-
-        monkeypatch.setattr("vueda.user.views.get_adapter", RecordingAdapter)
-        yield sent
-        cache.clear()
-
     @staticmethod
     def request_reset(email):
         request = APIRequestFactory().post("/forgot-password/", {"email": email}, format="json")
@@ -186,3 +187,21 @@ class TestVuedaForgotPasswordView:
             assert self.request_reset(email).status_code == HTTPStatus.TOO_MANY_REQUESTS
 
         assert sent == [("reset+active@domain.invalid", "forgot_password")]
+
+
+@pytest.mark.django_db
+class TestPasswordResetRoutes:
+    """The password reset endpoints are routed under vueda.user, with no project routes needed."""
+
+    def test_forgot_password_is_routed(self, api_client, sent):
+        response = api_client.post(reverse("forgot_password"), {"email": "route@domain.invalid"}, format="json")
+
+        assert reverse("forgot_password") == "/routes/vueda.user/forgot-password/"
+        assert response.status_code == HTTPStatus.NO_CONTENT
+
+    def test_reset_password_check_is_routed(self, api_client):
+        response = api_client.get(reverse("reset_password"), {"pk": "unknown", "token": "unknown"})
+
+        assert reverse("reset_password") == "/routes/vueda.user/reset-password/"
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.data == {"detail": "This token is invalid or has already been used."}
