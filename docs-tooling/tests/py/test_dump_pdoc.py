@@ -243,6 +243,22 @@ def test_collect_docs_keeps_a_plain_variable(annotated_pkg):
     assert docs["annotated_pkg.LIMIT"].kind == "variable"
 
 
+def test_doc_to_dict_is_public_follows_pdoc_rules(annotated_pkg):
+    docs = {d.fullname: d for d in _collect_docs([Module.from_name("annotated_pkg")])}
+
+    def is_public(name):
+        return _doc_to_dict(docs[f"annotated_pkg.{name}"], {})["is_public"]
+
+    assert is_public("add") is True
+    assert is_public("_Task") is False
+    assert is_public("Settings.load") is True
+    assert is_public("Settings._parse") is False
+    assert is_public("Settings._hook") is True
+    assert is_public("Settings.reload") is False
+    assert is_public("Settings.__init__") is True
+    assert is_public("Plain.__init__") is False
+
+
 def test_collect_docs_deduplicates(testpkg):
     mod = Module.from_name("testpkg")
     # Passing the same module twice should not duplicate it.

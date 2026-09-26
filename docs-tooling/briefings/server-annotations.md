@@ -45,9 +45,10 @@ def old_helper() -> None:
 
 The rendered page set is filtered by two layers:
 
-1. pdoc's own visibility rules:
-    - Members whose names start with a single underscore are hidden.
-    - Dunder methods (`__foo__`) are only rendered when they have a docstring.
+1. pdoc's own visibility rules, which the extractor applies as its `is_public` field:
+    - Names that start with an underscore are hidden, dunders included. A docstring inherited from a base class does not change this.
+    - `__init__` is shown when it has a docstring or takes arguments besides `self`. Its signature omits `self`.
+    - `@public` anywhere in a docstring shows a member that would otherwise be hidden, and `@private` hides one. The page omits the marker.
     - A module-level `__all__` narrows the public surface to exactly the names it lists. Use it on every module whose top-level namespace would otherwise expose helpers, re-imports, or framework boilerplate.
 2. A "documented or structural" rule applied on top:
     - Modules and classes are always rendered (their member tables are useful even when the module or class itself has no docstring).
@@ -68,7 +69,7 @@ Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hi
 
 ### Private helpers
 
-Module-private helpers (single leading underscore) and dunders without docstrings are excluded from the rendered output. Type-annotate them anyway for IDE inference; the annotations are not duplicated into the rendered page.
+Rendered pages leave out module-private helpers (single leading underscore) and dunders, unless a docstring marks them `@public`. Type-annotate them anyway for IDE inference; the annotations are not duplicated into the rendered page.
 
 ## OpenAPI schema (drf-spectacular)
 
