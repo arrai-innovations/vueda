@@ -66,6 +66,7 @@ def test_docs_schema_describes_model_info_sections_under_any_mount(mounted_schem
     prefix, schema = mounted_schema
     operation = schema["paths"][f"/{prefix}vueda.info/model_info/{{app_label}}/{{model}}/"]["get"]
     response = operation["responses"]["200"]["content"]["application/json"]
+    assert response["schema"] == {"$ref": "#/components/schemas/ModelInfo"}
     assert {
         "model_actions",
         "model_column_totals",
@@ -74,5 +75,5 @@ def test_docs_schema_describes_model_info_sections_under_any_mount(mounted_schem
         "model_filtering",
         "model_ordering",
         "model_permissions",
-    } <= set(response["schema"]["properties"])
+    } <= set(schema["components"]["schemas"]["ModelInfo"]["properties"])
     assert response["examples"]
