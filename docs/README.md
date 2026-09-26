@@ -19,6 +19,7 @@ Use this guide when authoring pages under `docs/`.
   - [Changelog authoring](#changelog-authoring)
     - [Theming IDs](#theming-ids)
   - [Glossary links](#glossary-links)
+  - [Link text](#link-text)
   - [Verifying VuedaDemo blocks](#verifying-vuedademo-blocks)
     - [InputOTP dependency patch](#inputotp-dependency-patch)
   - [HTML blocks inside VuedaDemo](#html-blocks-inside-vuedademo)
@@ -218,6 +219,15 @@ Examples:
 
 - `{@term CRUDL}`
 - `{@term Model Info}`
+
+## Link text
+
+An `{@api ...}` link shows the target page's title, and a `{@term ...}` link shows the glossary heading. To show other text, put a label in square brackets directly before the reference, with no space between them:
+
+- `[queue items]{@term Queue Item (VDQ)}`
+- ``[`AbstractEmailQueueItem`]{@api py:class:vueda.vdq.models.AbstractEmailQueueItem}``
+
+The label is inline Markdown, so wrap a code identifier in backticks. The reference still picks the target, and the validator checks it the same way. The form works inside table cells, because it holds no `|`.
 
 ## Verifying VuedaDemo blocks
 
