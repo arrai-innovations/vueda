@@ -10,13 +10,18 @@ import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
  * Resolve a column-component override reference into a usable component.
  *
  * Accepts the same forms as the form override chain: a component, a
- * `() => component` loader, or a string key into `availableColumns`. Unknown
- * string keys resolve to `undefined` so the caller can fall through.
+ * `() => component` function (called for its component, which keeps the
+ * component out of reactive state), or a string key into `availableColumns`.
+ * An unknown string key, or a function that returns nothing, resolves to
+ * `undefined` so the caller can fall through.
  *
- * @param {string | import('vue').Component | (()=>Promise<import('vue').Component>)} reference - The override reference.
- * @returns {import('vue').Component | (()=>Promise<import('vue').Component>) | undefined} The resolved component, or undefined.
+ * @param {string | import('vue').Component | (() => import('vue').Component)} reference - The override reference.
+ * @returns {import('vue').Component | undefined} The resolved component, or undefined.
  */
 function resolveComponentReference(reference) {
+    if (typeof reference === "function") {
+        return reference() || undefined;
+    }
     if (typeof reference === "string") {
         return availableColumns[reference];
     }
@@ -30,19 +35,21 @@ function resolveComponentReference(reference) {
  * 3. type default from `columnMappings`.
  * 4. `ColumnText` fallback.
  *
+ * An override that does not resolve falls through to the next entry, so an
+ * unknown prop string key still reaches a valid config override.
+ *
  * The consumer `#field(<col>)` slot (highest precedence overall) is handled in
  * the ViewList template, not here.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The column's field descriptor (carries `name`, `typeSerializer`, `typeModel`).
  * @param {{[name:string]: any}} [propComponents] - Inline component overrides by field name.
  * @param {{[name:string]: any}} [configComponents] - Model-config component overrides by field name.
- * @returns {import('vue').Component | (()=>Promise<import('vue').Component>)} The resolved adapter component.
+ * @returns {import('vue').Component} The resolved adapter component.
  */
 export function resolveColumnComponent(field, propComponents, configComponents) {
     const name = field?.name;
-    const override = propComponents?.[name] ?? configComponents?.[name];
-    if (override) {
-        const resolved = resolveComponentReference(override);
+    for (const override of [propComponents?.[name], configComponents?.[name]]) {
+        const resolved = override ? resolveComponentReference(override) : undefined;
         if (resolved) {
             return resolved;
         }
@@ -78,7 +85,7 @@ export function resolveColumnProps(field, propProps, configProps) {
 
 /**
  * @typedef {object} ResolvedColumn
- * @property {import('vue').Component | (()=>Promise<import('vue').Component>)} component - The adapter component to render.
+ * @property {import('vue').Component} component - The adapter component to render.
  * @property {object} props - The props to forward to the adapter (in addition to the grid cell's value-slot props).
  */
 

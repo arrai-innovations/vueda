@@ -1,0 +1,3 @@
+- **`columnComponents` overrides (`ViewList`, model config)**:
+    - A `() => component` override now renders its component. The list passed the function to the cell uncalled, so the cell rendered `[object Object]`. The form override chain already called it.
+    - An override that does not resolve now falls through to the next one. An unknown string key in the `columnComponents` prop used to skip a valid `modelConfig.config.columnComponents` entry for the same field and fall back to the type default.

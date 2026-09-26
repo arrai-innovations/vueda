@@ -66,10 +66,19 @@ describe("lib/utils/resolveColumnComponents.js", () => {
             expect(component).toBe(availableColumns.ColumnText);
         });
 
-        scopedIt("accepts a () => component override and passes it through", () => {
-            const loader = () => Promise.resolve(CustomColumn);
-            const component = resolveColumnComponent({ name: "a" }, { a: loader });
-            expect(component).toBe(loader);
+        scopedIt("calls a () => component override for its component, as the form chain does", () => {
+            const component = resolveColumnComponent({ name: "a" }, { a: () => CustomColumn });
+            expect(component).toBe(CustomColumn);
+        });
+
+        scopedIt("falls through when a () => component override returns nothing", () => {
+            const component = resolveColumnComponent({ name: "a" }, { a: () => undefined }, { a: CustomColumn });
+            expect(component).toBe(CustomColumn);
+        });
+
+        scopedIt("falls through from an unknown prop string key to the config override", () => {
+            const component = resolveColumnComponent({ name: "a" }, { a: "ColumnNope" }, { a: CustomColumn });
+            expect(component).toBe(CustomColumn);
         });
     });
 

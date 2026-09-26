@@ -68,7 +68,7 @@ const props = defineProps({
     },
     /**
      * Per-field list column adapter overrides. Each value is a component, a
-     * `() => component` loader, or a string key into `availableColumns`. Takes
+     * `() => component` function, or a string key into `availableColumns`. Takes
      * precedence over `modelConfig.config.columnComponents` and type defaults;
      * a consumer `#field(<col>)` slot still wins over both.
      */
