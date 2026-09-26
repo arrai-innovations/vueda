@@ -38,6 +38,14 @@ function componentId(displayName) {
     return `vue:component:${displayName}`;
 }
 
+/**
+ * Return a slot's bindings. vue-docgen reports a dynamic `:name` as a binding, but on `<slot>` the
+ * `name` attribute selects the slot and Vue never passes it as a slot prop.
+ */
+function slotBindings(slot) {
+    return (slot.bindings || []).filter((binding) => binding.name !== "name");
+}
+
 function slotId(componentIdValue, slotName) {
     return `${componentIdValue}:slot:${slotName}`;
 }
@@ -891,7 +899,7 @@ export class VueDocgenNormalizer extends Normalizer {
                         signatures: [
                             compact({
                                 label: slot.scoped ? "scoped" : "slot",
-                                parameters: (slot.bindings || []).map((binding) =>
+                                parameters: slotBindings(slot).map((binding) =>
                                     compact({
                                         name: binding.name,
                                         description: binding.description || undefined,
@@ -901,7 +909,7 @@ export class VueDocgenNormalizer extends Normalizer {
                         ],
                         source: sourceFile ? { file: sourceFile } : undefined,
                         extensions: {
-                            vueDocgen: { scoped: slot.scoped || false, bindings: slot.bindings || [], ...extensions },
+                            vueDocgen: { scoped: slot.scoped || false, bindings: slotBindings(slot), ...extensions },
                         },
                     });
                 };
@@ -951,7 +959,7 @@ export class VueDocgenNormalizer extends Normalizer {
                         signatures: [
                             compact({
                                 label: slot.scoped ? "scoped" : "slot",
-                                parameters: (slot.bindings || []).map((binding) =>
+                                parameters: slotBindings(slot).map((binding) =>
                                     compact({
                                         name: binding.name,
                                         description: binding.description || undefined,
@@ -963,7 +971,7 @@ export class VueDocgenNormalizer extends Normalizer {
                         extensions: {
                             vueDocgen: {
                                 scoped: slot.scoped,
-                                bindings: slot.bindings || [],
+                                bindings: slotBindings(slot),
                                 ...(slot.fallbacks ? { fallbacks: slot.fallbacks } : {}),
                             },
                         },
