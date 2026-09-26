@@ -53,7 +53,11 @@ The rendered page set is filtered by two layers:
     - Modules and classes are always rendered (their member tables are useful even when the module or class itself has no docstring).
     - Every other kind (function, method, property, variable) is only rendered when it has a docstring. Listing an undocumented helper or constant in `__all__` exposes it for import but does not create a docs page; add a one-line docstring when you want it to appear.
 
-This split is intentional: `__all__` is the import contract, and the docs filter answers a different question -- "did the author write something to read?" The constants and helpers that legitimately belong in `__all__` for re-export ergonomics do not need to clutter the rendered output unless they are documented.
+This split is intentional. `__all__` is the import contract, and the docs filter answers a different question: "did the author write something to read?" A constant listed in `__all__` for re-export stays off the rendered pages until someone documents it.
+
+Functions are the exception. Ruff's `D103` rule fails on a public function without a docstring, and `D100` and `D104` on a module or package without one. The rules apply to `server/vueda/` outside migrations (see the root `ruff.toml`). Ruff treats a name as public when `__all__` lists it, or, in a module without `__all__`, when it has no leading underscore. Authored pages link public functions, and a function without a docstring has no page to link.
+
+A decorator that returns an object instead of a function, such as Celery's `shared_task`, would otherwise make pdoc record the name as a variable. The extractor documents it as the function the object keeps in `__wrapped__`, including a method bound by `bind=True`. Put the docstring on the decorated function.
 
 Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hide an entire submodule by omitting it from a package `__init__.py`. To exclude a module from docs, prefix its filename with an underscore or move it under a private subpackage.
 

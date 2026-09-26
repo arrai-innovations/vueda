@@ -16,6 +16,10 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):
+    """
+    Register the periodic Twilio SMS status task once Celery is configured. With ``TWILIO_WEBHOOK_URL`` set,
+    only the timeout check runs every 30 seconds; otherwise full status polling runs.
+    """
     from django.conf import settings
 
     try:
@@ -39,5 +43,9 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 
 def cancel_task(task_id):
+    """
+    Revoke the Celery task ``task_id`` after the current transaction commits, without terminating it if it is
+    already running.
+    """
     transaction.on_commit(lambda: app.control.revoke(task_id, terminate=False))
     return f"Task {task_id} cancelled"

@@ -1,3 +1,5 @@
+"""Models that the workflow management views hide from the workflow and permission choices."""
+
 from vueda.core.open_api import OpenApiDocsGenerationObjectIdModel
 from vueda.user import models as user_models
 from vueda.workflow import models as workflow_models
