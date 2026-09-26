@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
+import { ExternalDocsExtractor } from "../js/extractors/external-docs.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
 import { ThemeKeysExtractor, extractThemeKeysPayload } from "../js/extractors/theme-keys.js";
 import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
@@ -87,6 +88,11 @@ async function extractCssTokens(outDir) {
     await extractor.extract({ outputPath: path.join(outDir, "css-tokens.json") });
 }
 
+async function extractExternalDocs(outDir) {
+    const extractor = new ExternalDocsExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "external-ids.json") });
+}
+
 async function extractThemeKeys(outDir) {
     const extractor = new ThemeKeysExtractor();
     await extractor.extract({ outputPath: path.join(outDir, "theme-keys.json") });
@@ -105,6 +111,7 @@ function expandTargets(targets) {
         set.add("components");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("external");
         set.delete("all");
     }
     return Array.from(set);
@@ -147,6 +154,9 @@ async function runExtract(argv) {
                 break;
             case "theme-keys":
                 await extractThemeKeys(outDir);
+                break;
+            case "external":
+                await extractExternalDocs(outDir);
                 break;
             default:
                 throw new Error(`Unknown target: ${target}`);
@@ -503,7 +513,13 @@ async function runValidate(argv) {
         return;
     }
 
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
+    const externalIdsFile = path.join(repoRoot, "docs-tooling", ".generated", "external-ids.json");
+    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({
+        files,
+        apiRoots,
+        glossaryFile,
+        externalIdsFile,
+    });
 
     const clientLibDir = path.join(repoRoot, "client", "lib");
     const symbols = validateClientSymbols({ files, clientLibDir });
@@ -564,7 +580,16 @@ yargs(hideBin(process.argv))
                 .option("target", {
                     alias: "t",
                     array: true,
-                    choices: ["all", "python", "rest", "javascript", "components", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "python",
+                        "rest",
+                        "javascript",
+                        "components",
+                        "css-tokens",
+                        "theme-keys",
+                        "external",
+                    ],
                     default: ["all"],
                     describe: "Which extractors to run",
                 })

@@ -18,6 +18,7 @@ Use this guide when authoring pages under `docs/`.
   - [Generated API docs](#generated-api-docs)
   - [Changelog authoring](#changelog-authoring)
     - [Theming IDs](#theming-ids)
+    - [Upstream IDs](#upstream-ids)
   - [Glossary links](#glossary-links)
   - [Link text](#link-text)
   - [Verifying VuedaDemo blocks](#verifying-vuedademo-blocks)
@@ -204,6 +205,25 @@ grep -nR "^member_ids" docs/reference/theming/
 ```
 
 Theme-key IDs are `theme-key:<Component>` for the component as a whole and `theme-key:<Component>.<slot>` for individual slots. CSS-token IDs are `css-token:<name>`, where `<name>` is the custom property without the leading `--`. Page-level IDs (used as link targets for `[…](…)` rather than `{@api …}`) follow `theming:keys`, `theming:keys:family:<family-slug>`, `theming:keys:<Component>`, `theming:tokens`, and `theming:tokens:<group-slug>`.
+
+### Upstream IDs
+
+Link a name from another project's documentation with `{@api ext:<package>:<name>}`, the same way as a VUEDA name:
+
+- `{@api ext:django:django.db.models.GeneratedField}`
+- `{@api ext:django:setting:DEFAULT_AUTO_FIELD}`
+- `{@api ext:drf:rest_framework.fields.SerializerMethodField}`
+- `{@api ext:mdn:AbortController}`
+
+The link text is the package and the name ("Django: GeneratedField"), and the link opens the upstream page. A labeled link shows the label and keeps the package and name as its hover title.
+
+`docs-tooling/external-docs.json` lists the packages. Most Python packages publish a Sphinx inventory, and `just docs-extract` downloads it at the version `uv.lock` pins. Every Python object in it becomes `ext:<package>:<import path>`, and every Django setting becomes `ext:django:setting:<NAME>`. Use the path the upstream docs use, which is usually the public import path (`django.db.models.Manager`, not `django.db.models.manager.Manager`). To find a name, search the extracted ids:
+
+```bash
+grep -o '"ext:django:[^"]*Manager[^"]*"' docs-tooling/.generated/external-ids.json
+```
+
+DRF, Vue, MDN, reactive-helpers, drf-flex-fields, and drf-writable-nested publish no inventory, so `external-docs.json` lists their links by hand. To link a new name from one of them, add an entry under that package's `links`. The extract step fetches each listed page and fails when the page or its anchor is gone.
 
 ## Glossary links
 

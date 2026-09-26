@@ -11,6 +11,11 @@ const ENTRIES = {
         href: "/reference/api/vue/WidgetJson.md#setup",
         title: "WidgetJson",
     },
+    "ext:django:django.db.models.GeneratedField": {
+        href: "https://docs.djangoproject.com/en/6.1/ref/models/fields/#django.db.models.GeneratedField",
+        title: "Django: GeneratedField",
+        external: true,
+    },
 };
 
 /**
@@ -34,6 +39,17 @@ const createMd = ({ strict = false, resolve = (id) => ENTRIES[id] } = {}) =>
     withVitePressLinkRule(new MarkdownIt({ html: true }).use(apiLinkPlugin, { resolve, strict }));
 
 describe("apiLinkPlugin", () => {
+    it("links an upstream id and names its site in the link's title", () => {
+        const href = "https://docs.djangoproject.com/en/6.1/ref/models/fields/#django.db.models.GeneratedField";
+        const md = createMd();
+        expect(md.render("Use {@api ext:django:django.db.models.GeneratedField}.")).toContain(
+            `<a href="${href}" title="Django: GeneratedField">Django: GeneratedField</a>`,
+        );
+        expect(md.render("A [`GeneratedField`]{@api ext:django:django.db.models.GeneratedField} column.")).toContain(
+            `<a href="${href}" title="Django: GeneratedField"><code>GeneratedField</code></a>`,
+        );
+    });
+
     it("resolves a reference in prose", () => {
         const html = createMd().render("See {@api theme-key:WidgetDuration} for details.");
         expect(html).toContain('<a href="/vueda/reference/theming/keys/WidgetDuration.html">WidgetDuration</a>');

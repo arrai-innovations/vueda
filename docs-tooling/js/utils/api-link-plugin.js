@@ -23,9 +23,21 @@ const SOFTBREAK_SPACER = " ";
 const unknownIdMessage = (rawId, env) =>
     `Unknown API id "${rawId}" in ${env?.relativePath || env?.path || "unknown file"}`;
 
+/**
+ * Attributes for a resolved reference. An upstream documentation link also carries its title, such
+ * as "Django: GeneratedField", so a labeled link still names the site it leads to.
+ */
+const linkAttrs = (entry) =>
+    entry.external
+        ? [
+              ["href", entry.href],
+              ["title", entry.title],
+          ]
+        : [["href", entry.href]];
+
 const linkTokens = (Token, part, { md, env }) => {
     const open = new Token("link_open", "a", 1);
-    open.attrs = [["href", part.href]];
+    open.attrs = linkAttrs(part);
     let content;
     if (part.label) {
         content = md.parseInline(part.label, env)[0].children;
@@ -77,7 +89,13 @@ const splitApiRefs = (src, { resolve, strict, env }) => {
                 literal = literal.slice(0, trailing.start);
             }
             flushLiteral();
-            parts.push({ type: "link", href: entry.href, title: entry.title || rawId, label: trailing?.label });
+            parts.push({
+                type: "link",
+                href: entry.href,
+                title: entry.title || rawId,
+                external: entry.external,
+                label: trailing?.label,
+            });
             resolved = true;
         } else {
             if (strict) {
@@ -236,7 +254,7 @@ export const apiLinkPlugin = (md, options = {}) => {
         }
 
         const open = state.push("link_open", "a", 1);
-        open.attrs = [["href", entry.href]];
+        open.attrs = linkAttrs(entry);
         const text = state.push("text", "", 0);
         text.content = entry.title || parsed.rawId;
         state.push("link_close", "a", -1);
@@ -266,7 +284,7 @@ export const apiLinkPlugin = (md, options = {}) => {
         }
 
         const open = state.push("link_open", "a", 1);
-        open.attrs = [["href", entry.href]];
+        open.attrs = linkAttrs(entry);
         pushLabelTokens(state, match);
         state.push("link_close", "a", -1);
 
