@@ -228,6 +228,21 @@ def test_collect_docs_returns_module_and_members(testpkg):
     assert "testpkg.submodule" in fullnames
 
 
+def test_collect_docs_documents_a_wrapping_variable_as_its_function(annotated_pkg):
+    docs = {d.fullname: d for d in _collect_docs([Module.from_name("annotated_pkg")])}
+    send = _doc_to_dict(docs["annotated_pkg.send"], {"annotated_pkg": "module"})
+
+    assert send["kind"] == "function"
+    assert send["docstring"] == "Send a message to one recipient."
+    assert [p["name"] for p in send["signature_details"]["parameters"]] == ["recipient"]
+    assert send["is_inherited"] is False
+
+
+def test_collect_docs_keeps_a_plain_variable(annotated_pkg):
+    docs = {d.fullname: d for d in _collect_docs([Module.from_name("annotated_pkg")])}
+    assert docs["annotated_pkg.LIMIT"].kind == "variable"
+
+
 def test_collect_docs_deduplicates(testpkg):
     mod = Module.from_name("testpkg")
     # Passing the same module twice should not duplicate it.
