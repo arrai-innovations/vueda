@@ -15,13 +15,22 @@ import { computed, reactive, useSlots } from "vue";
  *
  * Integrators can use this view as-is, adjust copy and behaviour through props
  * (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, theme
- * overrides, all forwarded to AuthorizingForm), or replace individual pieces through
- * the `field(email)`, `widget(email)`, `field(password)`, `widget(password)`, and
- * `action-bar` slots. Any other AuthorizingForm or ActionForm slot is forwarded through.
+ * overrides, all forwarded to AuthorizingForm), show a "Forgot password?" link with
+ * `forgotPasswordTo`, or replace individual pieces through the `field(email)`,
+ * `widget(email)`, `field(password)`, `widget(password)`, `action-bar`, and `suffix` slots.
+ * Any other AuthorizingForm or ActionForm slot is forwarded through.
  *
  * @vueda-slot-forward AuthorizingForm
  */
 defineOptions({});
+
+const props = defineProps({
+    /** Route location for a "Forgot password?" link below the form. No link shows without it. */
+    forgotPasswordTo: {
+        type: [String, Object],
+        default: undefined,
+    },
+});
 
 const formProps = reactive({
     initialValues: {
@@ -48,7 +57,7 @@ const handleSubmit = ({ formValues }) => {
 // loop so an explicit default and a forwarded consumer slot never define the same slot
 // twice on the AuthorizingForm.
 const slots = useSlots();
-const HANDLED_SLOTS = new Set(["action-form-inner", "action-bar"]);
+const HANDLED_SLOTS = new Set(["action-form-inner", "action-bar", "suffix"]);
 const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDLED_SLOTS.has(name)));
 </script>
 <template>
@@ -100,6 +109,16 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
                     <Button type="submit" tone="primary" class="w-full" :disabled="actionBarProps.loading">
                         <LoadingSpinnerInline v-if="actionBarProps.loading" />
                         Sign In
+                    </Button>
+                </div>
+            </slot>
+        </template>
+        <template #suffix>
+            <!-- Content below the form card; defaults to the "Forgot password?" link when `forgotPasswordTo` is set. -->
+            <slot name="suffix" :forgot-password-to="props.forgotPasswordTo">
+                <div v-if="props.forgotPasswordTo" class="flex justify-center py-2">
+                    <Button as-child emphasis="link" size="sm">
+                        <router-link :to="props.forgotPasswordTo">Forgot password?</router-link>
                     </Button>
                 </div>
             </slot>
