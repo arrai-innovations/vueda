@@ -8,6 +8,10 @@
  * an optional plain object merged shallowly with any caller-supplied props at render time.
  *
  * Override semantics are replace: an override entry wins entirely over the default for that icon slot.
+ *
+ * A registry's `Default` key holds entries for any component. A component looks up an icon name in
+ * its own override entry, then the override's `Default`, then its own default registry entry, then the
+ * default registry's `Default`.
  */
 import { IconOverrideSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
