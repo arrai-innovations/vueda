@@ -61,7 +61,7 @@ Update your model in `server/your_project/inventory/models.py`:
 ```python
 from django.db import models
 
-from vueda.core.models import BaseModelMeta, Lookup, VuedaModel
+from vueda.core.models import BaseModelMeta, VuedaModel
 
 
 class Product(VuedaModel):
@@ -101,7 +101,7 @@ When `DEBUG=True`, go to `http://localhost:8000/routes/vueda.workflow/overview/`
 3. Set the initial state by selecting one of your defined states (such as `draft`) to be the default for new objects, then save this selection.
 4. Click **Add Transition** to define transitions between states. For example, create a `publish` transition that moves from `draft` to `published`. Then, create an `unpublish` transition that moves from `published` back to `draft`. For each transition, specify both a target state and at least one valid source state.
 
-The workflow activates immediately. New `Product` instances are now saved with the initial state. The API reports available transitions.
+The workflow activates immediately. New `Product` instances are now saved with the initial state. The API reports transitions after you [grant workflow permissions](#grant-workflow-permissions).
 
 ### Option B: Django Shell
 
@@ -149,6 +149,49 @@ To version workflow definitions, use the `makeworkflowmigrations` command. It sc
 
 With this approach, your project's workflow definitions stay consistent across environments.
 
+## Grant Workflow Permissions
+
+Workflow endpoints answer `403` until the workflow has a workflow permission. A transition with no transition permission is hidden from every user. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) explains both gates.
+
+From `server/`, open a Django shell:
+
+```console
+uv run python manage.py shell
+```
+
+Create one workflow permission and one permission per transition. Then grant them to a group, and add the user you log in with. Replace the email with that user's email.
+
+```python
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from vueda.workflow.models import TransitionPermission, Workflow, WorkflowPermission
+
+from your_project.inventory.models import Product
+
+ct = ContentType.objects.get_for_model(Product)
+workflow = Workflow.objects.get(content_type=ct)
+
+read_product = Permission.objects.get(content_type=ct, codename="read_product")
+update_product = Permission.objects.get(content_type=ct, codename="update_product")
+read_workflow = Permission.objects.get(
+    content_type__app_label="vueda_workflow", codename="read_workflow"
+)
+
+# Users need inventory.read_product to use this workflow.
+WorkflowPermission.objects.create(workflow=workflow, permission=read_product)
+
+# Users need inventory.update_product to take each transition.
+for transition in workflow.transitions.all():
+    TransitionPermission.objects.create(transition=transition, permission=update_product)
+
+editors, _ = Group.objects.get_or_create(name="Product Editors")
+editors.permissions.add(read_workflow, read_product, update_product)
+get_user_model().objects.get(email="you@domain.invalid").groups.add(editors)
+```
+
+The `permitted_transitions` endpoint also requires `vueda_workflow.read_workflow`, so the group holds it too.
+
 ## Verify the API
 
 With the workflow wired up, verify that the API returns the correct response. Using the same authentication setup from [Start Building](start-building.md):
@@ -162,16 +205,30 @@ curl -b $COOKIE_JAR \
 
 If you have existing `Product` instances created before the workflow was added, they will not yet have an `ObjectState` record. Re-saving them (or calling `product.create_object_state()`) assigns the initial state.
 
-For a specific object, check its current state and available transitions:
+Create a product. It starts in the `draft` state.
+
+```console
+curl -b $COOKIE_JAR -c $COOKIE_JAR \
+  -H "Content-Type: application/json" \
+  -H "X-CSRFToken: $CSRF_TOKEN" \
+  -X POST http://localhost:8000/routes/inventory/product/ \
+  -d '{"name":"Workflow Kit","sku":"WORKFLOW-001"}'
+# Expect: 201 with the created object
+PRODUCT_ID=3  # replace with the "id" from the response
+```
+
+For that object, check its current state and available transitions:
 
 ```console
 # Object state
 curl -b $COOKIE_JAR \
-  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-state/1/
+  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-state/$PRODUCT_ID/
+# Expect: 200 with {"state": {"code": "draft", "name": "Draft"}, ...}
 
 # Transitions available for this object in its current state
 curl -b $COOKIE_JAR \
-  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-transitions/1/
+  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-transitions/$PRODUCT_ID/
+# Expect: 200 with [{"code": "publish", "name": "Publish"}]
 ```
 
 Execute a transition:
@@ -181,17 +238,17 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -H "X-CSRFToken: $CSRF_TOKEN" \
   -X PATCH \
-  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/execute-transition/1/ \
+  http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/execute-transition/$PRODUCT_ID/ \
   -d '{"transition_code": "publish"}'
 # Expect: 200 with {"new_state": {"code": "published", ...}, "new_transitions": [...]}
 ```
 
 ## Verify in the Browser
 
-If you have the client running, navigate to the read or update view of a `Product` instance. The client's action router automatically queries `permitted_transitions` and `object_transitions`. If the workflow is configured and the user has appropriate permissions, transition actions (such as "Publish") appear alongside the standard CRUDL actions.
+If you have the client running, navigate to the read or update view of a `Product` instance. The client reads `permitted_transitions` for routing and the object's `valid_transitions` field for its transition buttons. For a user in the `Product Editors` group, transition actions (such as "Publish") appear alongside the standard CRUDL actions.
 
 ## What's Next
 
 You now have a workflow with states and transitions. The API only allows valid transitions, and the client shows available transitions in the UI.
 
-To add permission-based control over who can see or execute transitions, and to grant or deny CRUDL permissions based on an object's current state, see the workflow permission guides.
+To control who can see or execute transitions, or to grant or deny CRUDL permissions by state, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md). To manage workflow definitions in the browser, see [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md).

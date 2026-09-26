@@ -204,7 +204,7 @@ Set a default sort order with the viewset's `ordering` attribute (or the model's
 
 `VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on `list` queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
 
-The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `X-Dry-Run` header.
+The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
 
 ::: warning
 `VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
@@ -221,14 +221,16 @@ from vueda.core.routers import VuedaRouter
 from .viewsets import WidgetViewSet
 
 router = VuedaRouter()
-router.register("widgets", WidgetViewSet)
+router.register("widget", WidgetViewSet)
 
 urlpatterns = router.urls
 ```
 
 `VuedaRouter` extends DRF's `SimpleRouter` with two changes. It includes the app label in route names to prevent naming collisions between apps that happen to have models with the same name. It also maps `DELETE` on the `list` route to the viewset's `destroy` method, which is what enables the bulk-delete behavior described above.
 
-Include the router's URL patterns in the project's URL configuration, under the appropriate route prefix. The standard pattern is to include app-level URL modules within a top-level `routes/` path that also includes `vueda.info.urls` and other framework URL modules:
+The client requests every model endpoint at `/routes/<app_label>/<model_name>/`, with the model's Django `_meta.app_label` and `_meta.model_name`. The server must serve the viewset at that path unless the client project replaces the URL template with `setCustomUrl`. Register the viewset under the model name, as above, and mount the app's URL module at `<app_label>/` under `routes/`.
+
+Mount the app URL module inside the top-level `routes/` path that also includes `vueda.info.urls` and other framework URL modules:
 
 ```python
 urlpatterns = [
@@ -239,6 +241,8 @@ urlpatterns = [
     ])),
 ]
 ```
+
+A project generated from the VUEDA template already includes `<python_package>.urls` at `""` under `routes/`. Add `path("myapp/", include("myapp.urls"))` to that module's `urlpatterns` instead of editing `config/urls.py`.
 
 ## Model-Info Registration
 
@@ -296,6 +300,26 @@ Once routes are wired, the `ViewActionRouter` component handles runtime view res
 
 After the baseline CRUDL surface is working, view behavior can be customized through model config without forking core components. See [Configure CRUDL Views](./configure-crud-views) for the configuration API.
 
+## Grant Permissions
+
+Model-info filters `model_actions` by the requesting user's permissions, and the client guard admits only listed actions. A user without grants sees "Action Not Found" on every route.
+
+Grant `myapp.list_widget`, `myapp.read_widget`, `myapp.create_widget`, `myapp.update_widget`, and `myapp.delete_widget` to a group, then add your test user to that group. Use the group management page described in [Manage Groups and Generate Group Migrations](./manage-groups), or run this in `python manage.py shell`:
+
+```python
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
+
+group, _ = Group.objects.get_or_create(name="Widget Editors")
+group.permissions.add(*Permission.objects.filter(
+    content_type__app_label="myapp",
+    codename__in=["list_widget", "read_widget", "create_widget", "update_widget", "delete_widget"],
+))
+get_user_model().objects.get(email="tester@example.com").groups.add(group)
+```
+
+Test with this user, not a superuser. A superuser passes every check, so it hides missing grants.
+
 ## Verification Checklist
 
 With all pieces in place, verify the surface end-to-end:
@@ -305,7 +329,7 @@ With all pieces in place, verify the surface end-to-end:
 - The `detail` endpoint returns a single object with an `available_actions` field reflecting the requesting user's permissions.
 - Create, update, and partial-update succeed with valid payloads and reject unknown fields with validation errors.
 - Single-object delete and bulk delete (via `{"pks": [...]}` payload) both succeed. Bulk delete with missing PKs returns a validation error identifying which PKs were not found.
-- Dry-run delete (with the `X-Dry-Run: true` header) returns 200 without deleting.
+- Dry-run delete (with the `Dry-Run: true` header) returns 200 without deleting.
 - Client navigation to `/:app/:model/list/` loads model-info, renders the `list` view, and displays data.
 - Client navigation to `/:app/:model/read/:pk` renders the `read` view for a specific object.
 - Client navigation to `/:app/:model/create/` renders the `create` form. Submission redirects to the appropriate view.
@@ -315,6 +339,8 @@ With all pieces in place, verify the surface end-to-end:
 ## Troubleshooting
 
 **Model does not appear in model-info.** The most common cause is a missing `register()` call. Verify that the app's `AppConfig.ready()` method calls `register` with both the serializer and viewset. A `register_serializer`-only registration produces metadata without actions, which is not sufficient for a CRUDL surface.
+
+**The list view shows a 404 error.** The client requested `/routes/<app_label>/<model_name>/` and the server does not serve that path. Check that the router registers the viewset under the model name and that the project mounts the app's URL module at `<app_label>/` under `routes/`. See [Router and URL Wiring](#router-and-url-wiring).
 
 **Model appears in model-info but client routes are blocked.** The `requireModelInfo` guard blocks navigation when it cannot find the requested action in the allowlist. Check that the model-info response includes the expected actions in `model_actions`. If actions are missing, the requesting user may lack the necessary permissions; `model_actions` is permission-filtered per user.
 

@@ -19,6 +19,7 @@ For a more complete example, try [Widget Warehouse](https://www.widgetwarehouse.
 - [Python 3.11+](https://www.python.org/downloads/): for running the VUEDA Server
 - [Node.js 22+](https://nodejs.org/en/download/): for running the VUEDA Client
 - A [PostgreSQL](https://www.postgresql.org/) database: for hosting your application data
+- A [Redis](https://redis.io/) server: for the cache that holds sign-in sessions (or use the database cache instead; see [Configure Local Settings](#configure-local-settings))
 - [Git](https://git-scm.com/): for version control
 - [Copier](https://copier.readthedocs.io/): for scaffolding from the project templates
 - [uv](https://docs.astral.sh/uv/): for Python dependency management
@@ -28,8 +29,8 @@ For a more complete example, try [Widget Warehouse](https://www.widgetwarehouse.
 
 - [just](https://just.systems/man/en/introduction.html): for common developer CLI tooling (included in the DX template)
 
-::: warning
-VUEDA assumes an ASGI runtime. Django's built-in `runserver` command uses WSGI and will not exercise VUEDA's ASGI middleware stack (CORS, sessions, CSRF token handling). The DX template includes `gunicorn` and `uvicorn` and its `just serve` command uses them automatically. If you are using the minimal template, install an ASGI server (e.g. `gunicorn` + `uvicorn`) and use it instead of `runserver`.
+::: tip
+Run the server under an ASGI server instead of Django's `runserver`. The DX template's `just serve` runs gunicorn with uvicorn workers, the same setup as production. VUEDA's planned websocket support will also need ASGI. Both templates already depend on `gunicorn` and `uvicorn`. With the minimal template, run this from `server/`: `uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000`.
 :::
 
 ## Environment Setup
@@ -49,14 +50,16 @@ VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffo
 - **`integrator-monorepo`**: minimal setup with direct `uv`/`pnpm` workflows.
 - **`integrator-monorepo-dx`**: DX-focused setup with repository automation via `just` (includes linting, formatting, git hooks, and `just serve` for running both servers concurrently).
 
-Pick one and run:
+Clone the VUEDA repository, then copy one template from the clone:
 
 ```console
+git clone https://github.com/arrai-innovations/vueda.git
+
 # DX template (recommended)
-uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/integrator-monorepo-dx ./your-project
+uvx copier copy vueda/templates/integrator-monorepo-dx ./your-project
 
 # or: minimal template
-uvx copier copy --vcs-ref=HEAD gh:arrai-innovations/vueda/templates/integrator-monorepo ./your-project
+uvx copier copy vueda/templates/integrator-monorepo ./your-project
 ```
 
 Copier will prompt you for a project name, slug, ports, and other options. The defaults are sensible for most setups.
@@ -113,9 +116,12 @@ FRONTEND_DOMAIN = "http://localhost:5173"
 CSRF_TRUSTED_ORIGINS = ["http://localhost:5173"]
 CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
 DATABASE_URL = "postgres://postgres:postgres@localhost:5432/your-project"
+CACHE_URL = "redis://localhost:6379/0?key_prefix=your-project-"
 ```
 
 The template pre-populates the local host/origin values from the bind IP and client port you chose during scaffolding, and pre-populates `DATABASE_URL` with a reasonable guess based on your project slug. Update those values if your local network or Postgres connection details differ. `SECRET_KEY` should be changed from the placeholder for any non-trivial use.
+
+Sign-in sessions live in the cache that `CACHE_URL` names. To skip Redis, set `CACHE_URL = "db://your_project_cache"` and run `manage.py createcachetable` after `migrate` in the next step. See [Configure the Cache and Sessions](../guides/configure-cache-and-sessions.md) for the options.
 
 ::: tip
 The template's `config.toml` also registers the scaffolded `users` app via `LOCAL_APPS` and sets `AUTH_USER_MODEL = "users.User"`. These are required for VUEDA's user system to work. You can add your own apps to `LOCAL_APPS` or append to `INSTALLED_APPS` directly in `base.py` (the guide uses the latter approach below).
@@ -170,7 +176,7 @@ curl -i http://localhost:8000/routes/vueda.user/who-is/
 
 You should get a 200 response with an empty JSON object, indicating that the server is up and running but you are not authenticated.
 
-For the client, open your browser and navigate to `http://localhost:5173`. You should see a page load without console errors. There is nothing to display yet since we have not added any routes or components.
+For the client, open your browser and navigate to `http://localhost:5173`. You should see VUEDA's Not Found page without console errors. No route matches `/` yet since we have not added any routes or components.
 
 ::: tip
 If you want your local environment to match production security settings (secure session and CSRF cookies, HTTPS-only), see [Local HTTPS Development](../guides/local-https-setup.md).
@@ -387,9 +393,9 @@ from your_project.inventory.viewsets import (
 )
 
 router = VuedaRouter()
-router.register(r"products", ProductViewSet)
-router.register(r"option-types", OptionTypeViewSet)
-router.register(r"product-options", ProductOptionViewSet)
+router.register(r"product", ProductViewSet)
+router.register(r"optiontype", OptionTypeViewSet)
+router.register(r"productoption", ProductOptionViewSet)
 urlpatterns = router.urls
 ```
 
@@ -415,7 +421,7 @@ urlpatterns = [
 ]
 ```
 
-The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`.
+The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`. The client requests each model at `/routes/<app_label>/<model_name>/`, so each router prefix is the model name. [Router and URL Wiring](../guides/create-crudl-surface.md#router-and-url-wiring) owns this rule.
 
 ### App Configuration and Model-Info Registration
 
@@ -480,12 +486,20 @@ uv run python manage.py migrate
 
 ### Verify the New API Endpoints
 
-Since VUEDA enforces {@term CRUDL} permissions by default, the quickest path is to log in as a superuser.
+VUEDA enforces {@term CRUDL} permissions by default. Each model gets five permissions: `inventory.create_product`, `inventory.read_product`, `inventory.update_product`, `inventory.delete_product`, and `inventory.list_product`, and the same five for `optiontype` and `productoption`.
 
-Create one if you haven't already:
+Create a group with those 15 permissions and a user in that group:
 
 ```console
-uv run python manage.py createsuperuser
+uv run python manage.py shell -c '
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
+
+group, _ = Group.objects.get_or_create(name="Inventory Editors")
+group.permissions.set(Permission.objects.filter(content_type__app_label="inventory"))
+user = get_user_model().objects.create_user(email="you@domain.invalid", password="your-password", name="You")
+user.groups.add(group)
+'
 ```
 
 Then, in a new terminal, log in via curl and store the session cookie. The login endpoint sets a CSRF cookie in its response, which you will need for subsequent mutating requests.
@@ -502,7 +516,7 @@ CSRF_COOKIE=your-project-csrf-token
 curl -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -X POST http://localhost:8000/routes/vueda.user/login/ \
-  -d '{"email":"you@example.com","password":"your-password"}'
+  -d '{"email":"you@domain.invalid","password":"your-password"}'
 
 # Extract the CSRF token for subsequent requests
 CSRF_TOKEN=$(awk -v name="$CSRF_COOKIE" '$6 == name {print $7}' $COOKIE_JAR)
@@ -521,131 +535,61 @@ Now test {@term CRUDL} on the inventory endpoints:
 curl -b $COOKIE_JAR -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -H "X-CSRFToken: $CSRF_TOKEN" \
-  -X POST http://localhost:8000/routes/inventory/products/ \
+  -X POST http://localhost:8000/routes/inventory/product/ \
   -d '{"name":"Starter Kit","sku":"STARTER-001","description":"Demo product"}'
 # Expect: 201 with the created object
 
 # List
-curl -b $COOKIE_JAR http://localhost:8000/routes/inventory/products/
+curl -b $COOKIE_JAR http://localhost:8000/routes/inventory/product/
 # Expect: 200 with a list including the created object
 
 # Retrieve
-curl -b $COOKIE_JAR http://localhost:8000/routes/inventory/products/1/
+curl -b $COOKIE_JAR http://localhost:8000/routes/inventory/product/1/
 # Expect: 200 with the created object
 
 # Partial update
 curl -b $COOKIE_JAR -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -H "X-CSRFToken: $CSRF_TOKEN" \
-  -X PATCH http://localhost:8000/routes/inventory/products/1/ \
+  -X PATCH http://localhost:8000/routes/inventory/product/1/ \
   -d '{"description":"Updated description"}'
 # Expect: 200 with the updated object
 
-# Delete
+# Delete: create a second product, then delete it
+curl -b $COOKIE_JAR -c $COOKIE_JAR \
+  -H "Content-Type: application/json" \
+  -H "X-CSRFToken: $CSRF_TOKEN" \
+  -X POST http://localhost:8000/routes/inventory/product/ \
+  -d '{"name":"Spare Kit","sku":"SPARE-001"}'
 curl -b $COOKIE_JAR -c $COOKIE_JAR \
   -H "X-CSRFToken: $CSRF_TOKEN" \
-  -X DELETE http://localhost:8000/routes/inventory/products/1/
-# Expect: 204 with no content
+  -X DELETE http://localhost:8000/routes/inventory/product/2/
+# Expect: 204 with no content; Starter Kit remains
 ```
 
 ## VUEDA Client
 
-The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, add the server connection, {@term CRUDL} data adapters, the theme, a sign-in view, and {@term CRUDL View Resolution}.
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, check the server connection and client setup, then add a sign-in route, a welcome view, and {@term CRUDL View Resolution}.
 
 ### Connect to the Server
 
 During local development the client dev server and Django run on different ports. The scaffolded `client/.env.development` already contains `VITE_DJANGO_CONNECTION_PORT` set to the port you chose during scaffolding, so VUEDA knows where to reach the Django server. No Vite proxy is needed; the template's `config.local.toml` already includes the local client origin in `CORS_ALLOWED_ORIGINS`.
 
-### Set Up Tailwind CSS
+### Check the Client Setup
 
-The scaffolded `client/src/index.css` is empty. The `vueda-tailwind` theme maps component slots to Tailwind utility classes, so Tailwind must be configured to generate CSS for those classes.
-
-Replace `client/src/index.css` with:
-
-```css
-@import "tailwindcss";
-@import "@vueda/theme/vueda-tailwind/base.css";
-```
-
-The `@vueda/theme/vueda-tailwind/base.css` import defines the semantic color tokens (`foreground`, `background`, `primary`, `muted`, `sidebar`, and related variants) that the theme relies on. If your project already provides these tokens (for example, from a custom design system), you can omit that import.
-
-### Register Plugins
-
-Replace `client/src/main.js` with:
-
-```javascript
-import TheApp from "./TheApp.vue";
-import { getRouter } from "./router/index.js";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { setTheme } from "@vueda/use/useTheme.js";
-import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
-import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
-import { createPinia } from "pinia";
-import { createApp } from "vue";
-
-setTheme(vuedaTailwind);
-setupDefaultListCrud();
-setupDefaultObjectCrud();
-
-const app = createApp(TheApp);
-const pinia = createPinia();
-const router = getRouter(app, pinia);
-
-app.use(pinia);
-app.use(router);
-
-app.mount("#the-app");
-
-export default app;
-```
-
-`setTheme(vuedaTailwind)` registers the built-in Tailwind CSS theme so that all VUEDA components receive their default styling classes. The theme system is CSS-framework-agnostic; `vuedaTailwind` is a first-party preset that maps component slots to Tailwind utility classes. {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. VUEDA's controls and widgets are first-party components (built on Reka UI) and need no third-party UI plugin registration. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each step.
+The scaffolded `client/src/index.css` and `client/src/main.js` already set up the client, so keep both files. `index.css` loads Tailwind, the theme's `base.css` tokens, and the fonts. `main.js` registers the Tailwind theme, the icons, and the {@term CRUDL} data adapters. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) for what each call does.
 
 ::: tip
 `setTheme(vuedaTailwind)` registers every component's default theme up front. It is the simplest path and the one this tutorial uses. If you later want to trim the bundle to just the components your app renders, VUEDA also supports per-family and fully-lazy registration; see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
 :::
 
-### Add a Sign-In View
+### Add a Sign-In Route
 
-The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. Create `client/src/views/ViewSignIn.vue`:
-
-```vue
-<script setup>
-import { ControlButton } from "@vueda/controls/button";
-import FormField from "@vueda/form/form-model/FormField.vue";
-import { storeUser } from "@vueda/stores/storeUser.js";
-import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
-import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-
-const userStore = storeUser();
-
-function login({ formValues }) {
-    return userStore.login(formValues);
-}
-</script>
-
-<template>
-    <AuthorizingForm header="Sign In" :run-action="login">
-        <template #action-form-inner>
-            <FormField name="email" label="Email" required>
-                <WidgetTextInput />
-            </FormField>
-            <FormField name="password" label="Password" required>
-                <WidgetTextInput type="password" />
-            </FormField>
-        </template>
-        <template #action-bar>
-            <ControlButton type="submit">Sign In</ControlButton>
-        </template>
-    </AuthorizingForm>
-</template>
-```
-
-{@api vue:component:AuthorizingForm} handles form state, watches {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} for login, and redirects to the `welcome` route on success. {@api vue:component:FormField} and {@api vue:component:WidgetTextInput} register fields in the form context so their values are collected into `formValues` on submit. See [Build Auth Views](/guides/build-auth-views) for more on auth view patterns.
+The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. VUEDA ships {@api vue:component:ViewSignIn}, a ready-made sign-in form. The router step below routes `sign-in` to it, and it redirects to the `welcome` route after sign-in. To build your own form, see [Build Auth Views](../guides/build-auth-views.md).
 
 ### Add a Welcome View
 
-After sign-in, `AuthorizingForm` redirects to the route named `welcome`. Create `client/src/views/ViewWelcome.vue`:
+After sign-in, `ViewSignIn` redirects to the route named `welcome`. Create `client/src/views/ViewWelcome.vue`:
 
 ```vue
 <script setup>
@@ -653,7 +597,7 @@ import { storeUser } from "@vueda/stores/storeUser.js";
 import { computed } from "vue";
 
 const userStore = storeUser();
-const displayName = computed(() => userStore.user?.first_name || userStore.user?.email || "there");
+const displayName = computed(() => userStore.loggedInUser?.name || userStore.loggedInUser?.email || "there");
 </script>
 
 <template>
@@ -697,7 +641,7 @@ export function getRouter(app, pinia) {
         {
             path: "/sign-in/",
             name: "sign-in",
-            component: () => import("@/views/ViewSignIn.vue"),
+            component: () => import("@vueda/views/ViewSignIn.vue"),
             meta: { title: "Sign In" },
         },
         {
@@ -777,14 +721,14 @@ cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --relo
 cd client && pnpm dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173/sign-in/` in your browser.
 
-1. You should be redirected to `/sign-in/` (not authenticated yet).
-2. Sign in with the superuser credentials you created earlier.
+1. You should see the Sign In form.
+2. Sign in as `you@domain.invalid` with the password you set earlier.
 3. After login you should land on `/welcome/`.
-4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). If you created products via curl earlier, they appear here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. This is separate from the server-side DRF router prefix (e.g. `product-options`), which controls the REST API path.
+4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). The Starter Kit product you created with curl appears here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. The server router registers each model under the same name (see [Router and URLs](#router-and-urls)).
 5. Use the "Create" action to add a product and verify it appears in the list.
-6. Click a product row to open the read view, then try update and destroy.
+6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update and destroy from there. The next section links list rows to this view.
 
 ### Customize with Model Config
 
@@ -803,6 +747,7 @@ export function setupModelConfig() {
         {
             displayFields: ["name", "sku", "description"],
             sorted: ["name"],
+            detailLinkField: "name",
         },
         {
             create: {
@@ -822,4 +767,4 @@ import { setupModelConfig } from "./setupModelConfig.js";
 setupModelConfig();
 ```
 
-The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUDL Views](/guides/configure-crud-views) for all available options.
+`detailLinkField` turns each row's `name` into a link to that product's read or update view; see [Link List Rows to Detail Views](../guides/link-list-rows-to-detail-views.md). The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUDL Views](/guides/configure-crud-views) for all available options.
