@@ -7,25 +7,23 @@ status: draft
 
 # Customize Model Info Field and Expand Metadata
 
-This guide covers overriding the `model_fields` and `model_expands` metadata that {@term Model Info} generates for a serializer, most commonly to describe a `SerializerMethodField` accurately. VUEDA derives this metadata automatically from your serializer's field declarations, but a `SerializerMethodField` has no model column and no fixed DRF field class to inspect, so the generated metadata for it is only a best-effort guess.
+This guide changes the `model_fields` and `model_expands` entries that {@term Model Info} reports for a serializer. VUEDA generates both from the serializer's declarations. The hooks below let you correct an entry that does not match what the field returns.
 
-For the full metadata contract this guide customizes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract).
+The hooks work on the server's wire keys, such as `type_serializer` and `read_only`. For each section's keys and how the client renames them, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract.md).
 
-## When You Need This
+## When to Override
 
-A `SerializerMethodField` you declare directly on a serializer, or list in `Meta.expandable_fields`, has no model column and no fixed field type backing it. VUEDA cannot infer whether `get_<field>()` returns a string, a number, a date, or a nested object, so the generated `model_fields`/`model_expands` entry for it may report a generic or misleading type.
+A `SerializerMethodField` has no model column and no fixed field class to inspect. Its generated entry always has `type_serializer: "SerializerMethodField"`, `type_db` and `type_model` set to `null`, `read_only: true`, and `required: false`. Override the hook when you want the entry to name the type that `get_<field>()` returns.
 
-The same hook also applies to a field that isn't a `SerializerMethodField` but still isn't backed by a concrete model field — for example, a field whose `source=` (explicit or left to DRF's default) names a `@property` or an annotated value rather than a real column. `type_db`/`type_model` are `null` for that field too, and the `vueda_info.W001` system check flags it (see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract#failure-modes-and-recovery)). `get_field_model_info` is the sanctioned way to describe such a field's real shape, the same as for a `SerializerMethodField` — and, for a `source=` failure specifically (never for a `<field>_lookup_expression` failure), overriding it does double duty: it fills in the real `type_db`/`type_model` in `/info/`, and it silences `vueda_info.W001` for that field too, since the check builds the same corrected metadata dict before deciding whether anything is still unresolved. `VuedaSerializer.get_field_model_info` is a real example. For a workflow model, `workflow_state_code` and `workflow_state_name` source through a `@property` with no model field of its own. The override fills in `CharField` for both through `workflow_field_model_info` in `vueda/workflow/serializers.py`, matching the type of `State.code` and `State.name`.
+The same applies to a field whose `source` names a `@property` or an annotated value instead of a model field. Its `type_db` and `type_model` are `null`, and the `vueda_info.W001` system check warns about it (see the metadata contract page for the full rule). Filling in `type_db` or `type_model` through the hook also clears that warning. The hook never clears a warning about a model's `<field>_lookup_expression`; fix the expression instead.
 
-A field can also be excluded from the check before it's ever evaluated this way, through one of two structural opt-outs, independent of `get_field_model_info`: a field bound to the whole object (`source="*"`, the same convention `SerializerMethodField` uses), or a model defining a matching `get_<field_name>()` method (the same convention `formatted_name`'s `get_formatted_name()` establishes).
+## Correct a Field Entry
 
-This only ever applies to a field's `source=`, never to a model's `<field>_lookup_expression`. A `lookup_expression` is fed directly to `models.F()` for queryset annotation and to Django admin's `lookup_field()`, so it must always name a real database path; `vueda_info.W001` flags any `lookup_expression` that fails to resolve, and the fix is to correct the expression itself, not to describe it away with `get_field_model_info`.
+Override `get_field_model_info` on the serializer. It receives the generated metadata dict, keyed by field name, and must return a dict in the same shape.
 
-Override the hooks below when the generated metadata for one of your method fields (or another non-model-backed field) does not match what the field actually returns.
-
-## Correcting a Method Field's Type (`model_fields`)
-
-Override `get_field_model_info` on your serializer to adjust the metadata for one or more of your fields. It receives the generated field metadata dict, keyed by field name, and must return a dict in the same shape:
+1. Call `super().get_field_model_info(fields)` first. The base implementation applies `field_display_choices`, and `VuedaSerializer` also fills in its workflow state fields.
+2. Change only the keys that are wrong. The generated entry already has `label`, `read_only`, `required`, and `hidden`.
+3. Return the dict.
 
 ```python
 class CustomerSerializer(VuedaSerializer):
@@ -40,31 +38,21 @@ class CustomerSerializer(VuedaSerializer):
 
     def get_field_model_info(self, fields):
         fields = super().get_field_model_info(fields)
-        fields["number_of_ordered_products"] = {
-            "label": "Number Of Ordered Products",
-            "type_db": None,
-            "type_model": None,
-            "type_serializer": "IntegerField",
-            "many": False,
-            "read_only": True,
-            "required": False,
-            "choices": False,
-            "hidden": False,
-        }
+        fields["number_of_ordered_products"]["type_serializer"] = "IntegerField"
         return fields
 ```
 
-You only need to correct the keys that are wrong. The generated entry already carries reasonable defaults for `label`, `read_only`, `required`, and `hidden`, so a targeted update (for example, just `type_serializer`) is usually enough; replacing the whole entry, as shown above, is also fine when you want to be explicit.
+`type_serializer` takes a DRF field class name, such as `CharField` or `IntegerField`. The [DRF serializer fields reference](https://www.django-rest-framework.org/api-guide/fields/) lists them. The client picks a widget from `type_serializer`, then `type_model`; [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md) explains that lookup.
 
-`type_serializer` is a DRF field class name, such as `CharField` or `IntegerField` above. See the [DRF serializer fields reference](https://www.django-rest-framework.org/api-guide/fields/) for the full list of field classes and which one best matches what your method field returns.
+For a real example, `VuedaSerializer.get_field_model_info` sets `type_db` and `type_model` to `CharField` for `workflow_state_code` and `workflow_state_name`. Both fields read through a `@property` on workflow models.
 
-There is no requirement to override this hook. If you don't, the field still appears in `model_fields` with its best-effort generated metadata.
+Write the override so it uses only the `fields` argument. `/info/` calls the hook on a serializer instance created with no context, so `self.context` is empty. On a serializer that uses `ExcludeFieldsSerializerMixin`, reading `self.fields` there raises `KeyError: 'view'` ([#162](https://github.com/arrai-innovations/vueda/issues/162)).
 
-Call `super().get_field_model_info(fields)` when overriding this hook unless you intentionally want to skip base metadata additions such as `field_display_choices`.
+To correct a field inside an expand, override `get_field_model_info` on the expanded serializer. VUEDA applies that serializer's own hook when it builds the expand's child fields.
 
-## Display-Only Value Labels
+## Add Display-Only Value Labels
 
-Use `field_display_choices` when a stored value needs a read-only label but should not become an editable choice field. This is useful for booleans that should still edit as toggles but display as domain labels in read-only views:
+Set `field_display_choices` when a stored value needs a read-only label but should stay an ordinary editable field. For example, a boolean can keep its toggle widget and still show domain labels in read-only views:
 
 ```python
 class SubmissionSerializer(VuedaSerializer):
@@ -81,11 +69,15 @@ class SubmissionSerializer(VuedaSerializer):
         fields = ["id", "submitted"] + VuedaSerializer.Meta.fields
 ```
 
-The generated `model_fields.submitted.display_choices` value is a list of `{"label": ..., "value": ...}` objects. These labels are display metadata only. They do not change serializer validation, model choices, or the editable widget selected by the client.
+The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels only when it shows the field read-only. They do not change serializer validation, model choices, or the editable widget.
 
-## Adding or Correcting an Expand Descriptor (`model_expands`)
+If you also override `get_field_model_info`, call `super()` in it, or the labels are not applied.
 
-Override `get_expand_model_info` when a `Meta.expandable_fields` entry is backed by a `SerializerMethodField` rather than a real related serializer, so it has no model to derive field metadata from automatically. It receives the generated list of expand descriptors (one per `Meta.expandable_fields` entry) and must return a list in the same shape:
+## Correct an Expand Descriptor
+
+Override `get_expand_model_info` when a `Meta.expandable_fields` entry is a `SerializerMethodField`. It receives the generated list of descriptors, one per entry, and must return a list in the same shape. The default returns the list unchanged, so `super()` is not needed.
+
+A method-field entry has no related serializer, so its generated descriptor has only `name`, `read_only: false`, and `many: false`:
 
 ```python
 class CustomerSerializer(VuedaSerializer):
@@ -106,20 +98,32 @@ class CustomerSerializer(VuedaSerializer):
         return expands
 ```
 
-As with `get_field_model_info`, this is optional. An expand backed by a real related serializer class (the common case) already gets full field metadata without any override.
+The client builds an expand's child form fields from the descriptor's `f` key, and relation choices from its `app_label` and `model`. A method-field descriptor has none of these, so the client renders no child fields for it.
 
-## These Hooks Also Drive the OpenAPI Schema
+An entry backed by a serializer class with a `Meta.model` already gets `app_label`, `model`, and child field metadata under `f`, with no override.
 
-`get_expand_model_info` and `get_field_model_info` are not only for the `/info/` meta-API. `get_schema_expandable_fields()` (which documents the `expand` query parameter's valid values) and `get_schema_fields()` (which documents the `fields` query parameter's valid values) build on the same generation and both hooks, then reduce the result to what an OpenAPI schema needs: dropping the `many`/`read_only`/`hidden` flags, display choices, help text, and constraint details, keeping only `label`, `type`, `required`, and `choices`. If you already override these hooks to describe a `SerializerMethodField` for `/info/`, that correction shows up in the generated OpenAPI schema too, with no separate override required.
+## Check the Result
 
-## Non-`VuedaSerializer` Serializers
+1. Request the corrected sections as a signed-in user: `GET /routes/vueda.info/model_info/<app_label>/<model>/?e=model_fields,model_expands`. The endpoint is {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}.
+2. Run `python manage.py check` and confirm no `vueda_info.W001` warning remains for the field.
 
-{@term Canonical Registration} only requires a `Meta.model` on the canonical serializer; it does not have to inherit `VuedaSerializer`. Both hooks above, along with the expand-descriptor generation they customize, are defined on `VuedaExpandableFieldsSerializerMixin`. `VuedaSerializer` already includes this mixin, so its subclasses get all of it for free. If you register a plain `rest_framework.serializers.ModelSerializer` instead, its `model_fields` are still generated normally, but `model_expands` is an empty list even when `Meta.expandable_fields` is declared, and neither hook is available to override, because none of that comes from the base DRF class.
+The same hooks feed the OpenAPI schema. The schema lists only field and expand names, as the allowed values of the `f` and `e` query parameters. A type correction does not appear there; an entry that a hook adds or removes does.
 
-To get `model_expands`, `get_expand_model_info`, and `get_field_model_info` on a serializer that otherwise doesn't inherit `VuedaSerializer`, inherit `VuedaExpandableFieldsSerializerMixin` directly:
+## Serializers That Do Not Inherit VuedaSerializer
+
+Registration requires only a `Meta.model` on the canonical serializer; see [Canonical Registration and Discovery](../core-concepts/canonical-registration-and-discovery.md). {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin} defines both hooks and the expand descriptor generation, and `VuedaSerializer` includes it.
+
+A plain `ModelSerializer` without that mixin still gets generated `model_fields`. Its `model_expands` is an empty list, even when it declares `Meta.expandable_fields`.
+
+To add the hooks and `model_expands`, inherit the mixin together with `FlexFieldsSerializerMixin` from `rest_flex_fields`:
 
 ```python
-class PlainSerializer(VuedaExpandableFieldsSerializerMixin, serializers.ModelSerializer):
+from rest_flex_fields.serializers import FlexFieldsSerializerMixin
+from rest_framework import serializers
+from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
+
+
+class PlainSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = SomeModel
         expandable_fields = {
@@ -127,19 +131,9 @@ class PlainSerializer(VuedaExpandableFieldsSerializerMixin, serializers.ModelSer
         }
 
     def get_field_model_info(self, fields):
+        fields = super().get_field_model_info(fields)
         ...
-
-    def get_expand_model_info(self, expands):
-        ...
+        return fields
 ```
 
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_field_model_info}
-    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_expand_model_info}
-    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_schema_expandable_fields}
-    - {@api py:function:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin.get_schema_fields}
-    - {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
-- REST:
-    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
+Keep the mixin first. `FlexFieldsSerializerMixin` serves the `e` query parameter and resolves serializers named by a dotted string in `expandable_fields`. Without it, `model_expands` lists expands the endpoint cannot return. VUEDA's workflow `StateSerializer` uses the same three bases.
