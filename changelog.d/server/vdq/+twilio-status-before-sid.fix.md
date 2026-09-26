@@ -1,0 +1,2 @@
+- **Twilio status webhooks that arrive before the message SID is stored (`check_previously_received_message_sid`)**:
+    - A delivery status for a message whose queue item had not stored its Twilio SID yet was dropped, so the item kept its earlier status. The task now retries every 10 seconds until `VDQ_TWILIO_SMS_TIMEOUT_HOURS` pass, and logs an error if no queue item ever stores that SID.
