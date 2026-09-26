@@ -222,18 +222,15 @@ describe("lib/stores/authScope.js", () => {
             const userStore = storeUser(pinia);
             const { storeTheme } = await import("@vueda/stores/storeTheme.js");
             const { storeDarkMode } = await import("@vueda/stores/storeDarkMode.js");
-            const { storeCollapseNav } = await import("@vueda/stores/storeCollapseNav.js");
             const { storeListPreference } = await import("@vueda/stores/storeListPreference.js");
 
             const themeStore = storeTheme(pinia);
             const darkModeStore = storeDarkMode(pinia);
-            const collapseNavStore = storeCollapseNav(pinia);
             const listPreferenceStore = storeListPreference(pinia);
 
             themeStore.registerComponent("Button", { defaultVariant: "primary", spots: ["base"] });
             themeStore.registerVariant("Button", "primary", { base: "btn" });
             darkModeStore.isDark = true;
-            collapseNavStore.isCollapsed = true;
             listPreferenceStore.setFilters(args, { status: "draft" });
 
             await userStore.fetchCurrentUser();
@@ -243,7 +240,6 @@ describe("lib/stores/authScope.js", () => {
             expect(themeStore.components.Button.defaultVariant).toBe("primary");
             expect(themeStore.variants.Button.primary.base).toBe("btn");
             expect(darkModeStore.isDark).toBe(true);
-            expect(collapseNavStore.isCollapsed).toBe(true);
             expect(listPreferenceStore.getFilters(args)).toEqual({ status: "draft" });
         });
     });
