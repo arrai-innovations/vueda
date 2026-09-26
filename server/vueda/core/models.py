@@ -5,6 +5,7 @@ __all__ = (
     "BaseModelMeta",
     "EmailTemplateBase",
     "FormattedNameBaseModel",
+    "FormattedNameManager",
     "Lookup",
     "SingletonModel",
     "VuedaModel",
