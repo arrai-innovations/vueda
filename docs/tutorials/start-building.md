@@ -421,7 +421,7 @@ urlpatterns = [
 ]
 ```
 
-The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`. The client requests each model at `/routes/<app_label>/<model_name>/`, so each router prefix is the model name: `product`, not `products`. [Router and URL Wiring](../guides/create-crudl-surface.md#router-and-url-wiring) owns this rule.
+The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`. The client requests each model at `/routes/<app_label>/<model_name>/`, so each router prefix is the model name. [Router and URL Wiring](../guides/create-crudl-surface.md#router-and-url-wiring) owns this rule.
 
 ### App Configuration and Model-Info Registration
 
