@@ -81,6 +81,12 @@ WORKFLOW_SECTION = register_feature_section(
         contribute=_contribute_workflow,
     )
 )
+"""The ``Workflow`` section of ``class Vueda``, which attaches workflow behaviour to a model.
+
+Its one option is ``enabled`` (default ``False``). An enabled model gets the workflow methods and
+object state that workflow permission checks and transitions read. The model may override those
+methods, but no field of the model may reuse their names.
+"""
 
 
 class WorkflowConfig(AppConfig):

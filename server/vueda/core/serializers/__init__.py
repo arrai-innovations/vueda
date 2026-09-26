@@ -276,8 +276,12 @@ class FlexFieldsWriteableNestedSerializerMixin(
 
 class ExcludeFieldsSerializerMixin:
     """
-    Fields hidden or added by this Mixin are not shown in OPTIONS responses.
-    https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
+    Make fields read-only for one kind of write, named in the serializer's ``Meta``.
+
+    ``Meta.exclude_create_fields`` lists fields a ``create`` request cannot set, and
+    ``Meta.exclude_update_fields`` lists fields an ``update`` or ``partial_update`` request cannot set.
+    The fields stay in responses. Fields made read-only this way still show as writable in OPTIONS
+    responses: https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
     """
 
     def get_extra_kwargs(self):
