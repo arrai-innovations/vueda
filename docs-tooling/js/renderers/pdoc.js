@@ -187,7 +187,7 @@ function renderChildrenSections(node, index, pathMap, filePath) {
         return "";
     }
 
-    const submodules = children.filter((child) => child.kind === "module");
+    const submodules = children.filter((child) => child.kind === "module").filter(isVisibleMember);
     const classes = children.filter((child) => child.kind === "class").filter(isVisibleMember);
     const others = children
         .filter((child) => !["module", "class", "method", "function", "property"].includes(child.kind))
