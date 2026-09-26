@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
-from rest_framework import serializers
 from rest_framework import status as drf_status
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
@@ -18,18 +17,38 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_decorator
-from vueda.core.open_api import conditional_inline_serializer
-from vueda.core.open_api import conditional_open_api_types
+from vueda.core.open_api import conditional_extend_schema_func
+from vueda.core.open_api import conditional_extend_schema_view_decorator
+from vueda.core.open_api import conditional_open_api_response
 from vueda.history.revision import object_revision
+from vueda.workflow import schema as workflow_schema
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
 from vueda.workflow.models import get_workflow_for_model
 from vueda.workflow.permissions import WorkflowObjectPermissions
+from vueda.workflow.schema import ObjectStateSerializer
+from vueda.workflow.schema import WorkflowErrorSerializer
+from vueda.workflow.serializers import TransitionSerializer
 from vueda.workflow.serializers import WorkflowSerializer
 
 
+@conditional_extend_schema_view_decorator(
+    list=conditional_extend_schema_func(
+        responses={
+            200: conditional_open_api_response(WorkflowSerializer(many=True), examples=workflow_schema.LIST_EXAMPLES),
+            403: conditional_open_api_response(WorkflowErrorSerializer, examples=workflow_schema.LIST_403_EXAMPLES),
+        },
+    ),
+    retrieve=conditional_extend_schema_func(
+        responses={
+            200: conditional_open_api_response(WorkflowSerializer, examples=workflow_schema.RETRIEVE_EXAMPLES),
+            403: conditional_open_api_response(WorkflowErrorSerializer, examples=workflow_schema.RETRIEVE_403_EXAMPLES),
+            404: conditional_open_api_response(WorkflowErrorSerializer, examples=workflow_schema.RETRIEVE_404_EXAMPLES),
+        },
+    ),
+)
 class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = WorkflowSerializer
     filterset_class = WorkflowFilterSet
@@ -114,26 +133,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     @conditional_extend_schema_decorator(
         summary="Get object state",
         responses={
-            200: conditional_inline_serializer(
-                "ObjectStateResponse",
-                fields={
-                    "state": conditional_inline_serializer(
-                        "ObjectState",
-                        fields={
-                            "code": serializers.CharField(),
-                            "name": serializers.CharField(),
-                        },
-                    ),
-                    "object_state_revision": serializers.CharField(required=False),
-                },
+            200: conditional_open_api_response(ObjectStateSerializer, examples=workflow_schema.OBJECT_STATE_EXAMPLES),
+            403: conditional_open_api_response(
+                WorkflowErrorSerializer, examples=workflow_schema.OBJECT_STATE_403_EXAMPLES
             ),
-            403: conditional_inline_serializer(
-                "WorkflowPermissionError",
-                fields={"detail": serializers.CharField()},
-            ),
-            404: conditional_inline_serializer(
-                "WorkflowNotFoundError",
-                fields={"detail": serializers.CharField()},
+            404: conditional_open_api_response(
+                WorkflowErrorSerializer, examples=workflow_schema.OBJECT_STATE_404_EXAMPLES
             ),
         },
     )
@@ -161,21 +166,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     @conditional_extend_schema_decorator(
         summary="Get permitted transitions",
         responses={
-            200: conditional_inline_serializer(
-                "TransitionEntry",
-                fields={
-                    "code": serializers.CharField(),
-                    "name": serializers.CharField(),
-                },
-                many=True,
-            ),
-            403: conditional_inline_serializer(
-                "WorkflowPermissionError",
-                fields={"detail": serializers.CharField()},
-            ),
+            200: TransitionSerializer(many=True),
+            403: WorkflowErrorSerializer,
         },
     )
-    @action(detail=True, methods=["get"])
+    # These transition lists are never paginated; pagination_class=None keeps the schema from saying so.
+    @action(detail=True, methods=["get"], pagination_class=None)
     def permitted_transitions(self, request, app_label, model):
         try:
             workflow = self.get_workflow()
@@ -221,17 +217,18 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     @conditional_extend_schema_decorator(
         summary="Get object transitions",
         responses={
-            200: conditional_inline_serializer(
-                "TransitionEntry",
-                fields={
-                    "code": serializers.CharField(),
-                    "name": serializers.CharField(),
-                },
-                many=True,
+            200: conditional_open_api_response(
+                TransitionSerializer(many=True), examples=workflow_schema.OBJECT_TRANSITIONS_EXAMPLES
+            ),
+            403: conditional_open_api_response(
+                WorkflowErrorSerializer, examples=workflow_schema.OBJECT_TRANSITIONS_403_EXAMPLES
+            ),
+            404: conditional_open_api_response(
+                WorkflowErrorSerializer, examples=workflow_schema.OBJECT_TRANSITIONS_404_EXAMPLES
             ),
         },
     )
-    @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)")
+    @action(detail=True, methods=["get"], url_path=r"object-transitions/(?P<object_id>[^/.]+)", pagination_class=None)
     def object_transitions(self, request, app_label, model, object_id):
         # get_object has checked this object's read permission. The workflow's configured
         # permissions are then checked against that object, so a permission backend that scopes a
@@ -240,13 +237,13 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         instance.check_workflow_permission(request.user, obj=instance)
         return Response(list(instance.available_transitions(request.user).order_by("name").values("code", "name")))
 
-    @conditional_extend_schema_decorator(
-        responses={
-            200: conditional_open_api_types().OBJECT,
-            400: conditional_open_api_types().OBJECT,
-        },
+    @action(
+        detail=True,
+        bulk=True,
+        methods=["patch"],
+        url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?",
+        **workflow_schema.EXECUTE_TRANSITION_ACTION_KWARGS,
     )
-    @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, app_label, model, object_id=None):
         transition_code = request.data.get("transition_code")
         if not isinstance(transition_code, str) or not transition_code:

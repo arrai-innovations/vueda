@@ -527,27 +527,39 @@ else:
         def _map_basic_serializer(self, serializer, direction):
             schema = super()._map_basic_serializer(serializer, direction)
             if direction == "response":
-                self._add_expandable_method_fields(force_instance(serializer), schema)
+                self._add_expandable_fields(force_instance(serializer), schema)
             return schema
 
-        def _add_expandable_method_fields(self, serializer, schema):
+        def _add_expandable_fields(self, serializer, schema):
             """
-            Add each ``SerializerMethodField`` entry of ``Meta.expandable_fields`` as an optional property.
+            Add each ``Meta.expandable_fields`` entry that has no declared field as an optional property.
 
             drf-spectacular reads only declared fields, and flex-fields adds an expandable field only when a
-            request names it in the expand parameter. The property's type comes from the method, through
-            ``extend_schema_field`` or its return annotation.
+            request names it in the expand parameter. A ``SerializerMethodField`` entry takes its type from the
+            method, through ``extend_schema_field`` or its return annotation. A serializer entry references that
+            serializer's component, as a list when its options set ``many``.
+
+            An entry that shares its name with a declared field replaces that field's value when expanded, such
+            as a primary key becoming the related object. The declared field documents the unexpanded value, and
+            this leaves it as it is.
             """
             expandable_fields = getattr(getattr(serializer, "Meta", None), "expandable_fields", None) or {}
             properties = schema.setdefault("properties", {})
             expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
             for name, definition in expandable_fields.items():
-                field_class = definition[0] if isinstance(definition, tuple) else definition
-                if name in properties or not (
-                    isinstance(field_class, type) and issubclass(field_class, serializers.SerializerMethodField)
-                ):
+                if name in properties:
                     continue
-                field = field_class()
+                field_class, options = definition if isinstance(definition, tuple) else (definition, {})
+                if isinstance(field_class, str):
+                    field_class = serializer._get_serializer_class_from_lazy_string(field_class)
+                if not isinstance(field_class, type):
+                    continue
+                if issubclass(field_class, serializers.SerializerMethodField):
+                    field = field_class()
+                elif issubclass(field_class, serializers.BaseSerializer):
+                    field = field_class(many=options.get("many", False), read_only=True)
+                else:
+                    continue
                 field.bind(name, serializer)
                 field_schema = self._map_serializer_field(field, "response")
                 if field_schema is None:
