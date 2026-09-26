@@ -475,6 +475,8 @@ try:
     from drf_spectacular.plumbing import ComponentRegistry
     from drf_spectacular.plumbing import ResolvedComponent
     from drf_spectacular.plumbing import build_serializer_context
+    from drf_spectacular.plumbing import force_instance
+    from drf_spectacular.plumbing import safe_ref
     from drf_spectacular.utils import Direction
     from drf_spectacular.utils import _SchemaType
     from drf_spectacular.utils import _SerializerType
@@ -521,6 +523,38 @@ else:
             parameters = sorted(parameters, key=lambda x: x["in"] if x["in"] == "path" else f"{x['in']}_{x['name']}")
 
             return parameters
+
+        def _map_basic_serializer(self, serializer, direction):
+            schema = super()._map_basic_serializer(serializer, direction)
+            if direction == "response":
+                self._add_expandable_method_fields(force_instance(serializer), schema)
+            return schema
+
+        def _add_expandable_method_fields(self, serializer, schema):
+            """
+            Add each ``SerializerMethodField`` entry of ``Meta.expandable_fields`` as an optional property.
+
+            drf-spectacular reads only declared fields, and flex-fields adds an expandable field only when a
+            request names it in the expand parameter. The property's type comes from the method, through
+            ``extend_schema_field`` or its return annotation.
+            """
+            expandable_fields = getattr(getattr(serializer, "Meta", None), "expandable_fields", None) or {}
+            properties = schema.setdefault("properties", {})
+            expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
+            for name, definition in expandable_fields.items():
+                field_class = definition[0] if isinstance(definition, tuple) else definition
+                if name in properties or not (
+                    isinstance(field_class, type) and issubclass(field_class, serializers.SerializerMethodField)
+                ):
+                    continue
+                field = field_class()
+                field.bind(name, serializer)
+                field_schema = self._map_serializer_field(field, "response")
+                if field_schema is None:
+                    continue
+                field_schema = safe_ref(field_schema)
+                field_schema.setdefault("description", f"Present when the `{expand_param}` query parameter names it.")
+                properties[name] = field_schema
 
         def resolve_serializer(
             self, serializer: _SerializerType, direction: Direction, bypass_extensions=False

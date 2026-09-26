@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from typing import ClassVar
 
@@ -445,6 +446,7 @@ class BaseModelInfoDetail(BaseModelInfo):
     def test_info_detail(
         self,
         authenticated_client,
+        assert_matches_component,
         app_label,
         model_name,
         kwargs,
@@ -477,6 +479,8 @@ class BaseModelInfoDetail(BaseModelInfo):
         self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
         self.check_model_column_totals_data(response, kwargs["expected_column_totals"], app_label, model_name)
         self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
+        # The published schema documents every key this response carries.
+        assert_matches_component(json.loads(response.content), "ModelInfo")
 
 
 @pytest.mark.django_db
