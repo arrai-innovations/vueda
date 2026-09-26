@@ -71,9 +71,6 @@ vi.mock("@vueda/use/useIcons.js", () => ({
 const mockedUseRouter = vi.fn();
 vi.mock("vue-router", () => ({ useRouter: mockedUseRouter }));
 
-const mockedGetDetailUrl = vi.fn();
-vi.mock("@vueda/utils/urls.js", () => ({ getDetailUrl: mockedGetDetailUrl }));
-
 vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue: () => "csrf-token" }));
 
 // --- store mock -----------------------------------------------------------
@@ -99,8 +96,6 @@ beforeEach(async () => {
     mockedUseRouter.mockReturnValue(mockRouter);
 
     mockedUseIconsOverride.mockReturnValue(null);
-
-    mockedGetDetailUrl.mockReturnValue("/api/myapp/mymodel/deactivate/");
 
     mockFetch = vi.fn().mockResolvedValue({ status: 200 });
     vi.stubGlobal("fetch", mockFetch);
@@ -216,28 +211,27 @@ describe("lib/views/ViewDeactivate.vue", () => {
     });
 
     describe("deactivate submit", () => {
-        scopedIt("POSTes a PATCH to the detail URL with the correct PKs", async () => {
+        scopedIt("sends a PATCH to the object's deactivate URL for a single pk", async () => {
             const wrapper = mount(ViewDeactivate, { props: { app: "myapp", model: "mymodel", pk: "42" } });
             wrapper.vm.confirmMatch = true;
             await wrapper.vm.handleDeactivate();
-            expect(mockedGetDetailUrl).toHaveBeenCalledWith("myapp", "mymodel", "deactivate");
+            expect(wrapper.find('[data-qa="view-deactivate-error"]').exists()).toBe(false);
             expect(mockFetch).toHaveBeenCalledWith(
-                "/api/myapp/mymodel/deactivate/",
-                expect.objectContaining({
-                    method: "PATCH",
-                    body: JSON.stringify({ pks: ["42"] }),
-                }),
+                expect.stringMatching(/\/routes\/myapp\/mymodel\/42\/deactivate\/$/),
+                expect.objectContaining({ method: "PATCH" }),
             );
         });
 
-        scopedIt("wraps an array pk as-is in the request body", async () => {
+        scopedIt("sends a PATCH with the pks to the list deactivate URL for an array pk", async () => {
             const wrapper = mount(ViewDeactivate, {
-                props: { app: "a", model: "m", pk: ["1", "2"] },
+                props: { app: "myapp", model: "mymodel", pk: ["1", "2"] },
             });
             wrapper.vm.confirmMatch = true;
             await wrapper.vm.handleDeactivate();
-            const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-            expect(body.pks).toEqual(["1", "2"]);
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.stringMatching(/\/routes\/myapp\/mymodel\/deactivate\/$/),
+                expect.objectContaining({ method: "PATCH", body: JSON.stringify({ pks: ["1", "2"] }) }),
+            );
         });
 
         scopedIt("emits 'success' after a 200 response", async () => {

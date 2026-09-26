@@ -10,7 +10,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError } from "@vueda/utils/errors.js";
 import { getJsonOrText } from "@vueda/utils/fetchSupport.js";
-import { getDetailUrl } from "@vueda/utils/urls.js";
+import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
 import { computed, ref, toRef } from "vue";
 import { useRouter } from "vue-router";
 
@@ -81,8 +81,11 @@ async function handleDeactivate() {
     isSubmitting.value = true;
     submitError.value = null;
     try {
-        const pks = Array.isArray(props.pk) ? props.pk : [props.pk];
-        const url = getDetailUrl(props.app, props.model, "deactivate");
+        const { app, model, pk } = props;
+        const action = "deactivate";
+        // One object uses its detail action URL; several go to the list action URL as `pks`.
+        const bulk = Array.isArray(pk);
+        const url = bulk ? getListUrl({ app, model, action }) : getDetailUrl({ app, model, pk, action });
         const response = await fetch(url, {
             method: "PATCH",
             headers: {
@@ -90,7 +93,7 @@ async function handleDeactivate() {
                 "Content-Type": "application/json",
             },
             credentials: "include",
-            body: JSON.stringify({ pks }),
+            body: bulk ? JSON.stringify({ pks: pk }) : undefined,
         });
         if (response.status !== 200) {
             const body = await getJsonOrText(response);
