@@ -19,6 +19,10 @@ export const memberNameFromId = (memberId) => {
     if (pyParam) {
         return `${pyParam.functionName}.${pyParam.parameterName}`;
     }
+    const vueMember = vueMemberParts(memberId);
+    if (vueMember) {
+        return vueMember.binding ? `${vueMember.name}.${vueMember.binding}` : vueMember.name;
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
     const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
     if (hashName.includes(".")) {
@@ -28,6 +32,17 @@ export const memberNameFromId = (memberId) => {
 };
 
 export const formatApiMemberTitle = (pageTitle, memberName) => (memberName ? `${pageTitle}.${memberName}` : pageTitle);
+
+/**
+ * Title for a member id listed on a page titled `pageTitle`.
+ *
+ * A Vue slot or event can sit on the component's slots or events page, whose title is not the
+ * component's name, so a Vue member takes its title from the component in the id.
+ */
+export const apiMemberTitle = (pageTitle, memberId) => {
+    const vueMember = vueMemberParts(memberId);
+    return formatApiMemberTitle(vueMember ? vueMember.component : pageTitle, memberNameFromId(memberId));
+};
 
 export const themeKeySlotAnchor = (componentName, slotName) => `theme-key-${componentName}-${slotName}`;
 
@@ -68,6 +83,37 @@ function pythonParameterParts(memberId) {
     return { functionName: parts.at(-2), parameterName: parts.at(-1) };
 }
 
+const VUE_MEMBER_RE = /^vue:component:([^:]+):(prop|slot|event):(.+)$/;
+
+/**
+ * Split a Vue component member id, or return null for any other id.
+ *
+ * The forms are `vue:component:<Component>:prop:<name>`, `...:event:<name>`, `...:slot:<name>`,
+ * and `...:slot:<name>.<binding>` for a slot binding. Slot names contain no dot; event names can
+ * contain a colon (`update:modelValue`).
+ */
+function vueMemberParts(memberId) {
+    const match = memberId.match(VUE_MEMBER_RE);
+    if (!match) {
+        return null;
+    }
+    const [, component, memberKind, rest] = match;
+    if (memberKind !== "slot" || !rest.includes(".")) {
+        return { component, memberKind, name: rest, binding: "" };
+    }
+    const separator = rest.indexOf(".");
+    return { component, memberKind, name: rest.slice(0, separator), binding: rest.slice(separator + 1) };
+}
+
+/**
+ * Anchor for a Vue prop, slot, slot binding, or event. A slot or event carries the same anchor
+ * on the component page and on its slots or events page.
+ */
+export const vueMemberAnchor = (memberKind, name, binding = "") => {
+    const anchor = `${memberKind}-${slugify(name)}`;
+    return binding ? parameterAnchor(anchor, binding) : anchor;
+};
+
 /**
  * Anchor for a member id, or "" when the id names its own page.
  *
@@ -91,6 +137,10 @@ export const memberAnchorFromId = (memberId) => {
     const pyParam = pythonParameterParts(memberId);
     if (pyParam) {
         return parameterAnchor(memberHeadingAnchor(pyParam.functionName), pyParam.parameterName);
+    }
+    const vueMember = vueMemberParts(memberId);
+    if (vueMember) {
+        return vueMemberAnchor(vueMember.memberKind, vueMember.name, vueMember.binding);
     }
     const memberName = memberNameFromId(memberId);
     return memberName ? memberHeadingAnchor(memberName) : "";
