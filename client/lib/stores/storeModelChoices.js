@@ -57,12 +57,7 @@ const clearNestedContainer = (container) => {
 /**
  * A store for lookup choices for a particular model field.
  *
- * @typedef {import('pinia').Store<{
- *     choices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
- *     filterChoices: { [appModelDotName: string]: { [fieldPath: string]: unknown } },
- *     promises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
- *     filterPromises: { [appModelDotName: string]: { [fieldPath: string]: Promise<unknown> } },
- * }, {}, {}>} ModelChoicesStore
+ * @typedef {ReturnType<typeof storeModelChoices>} ModelChoicesStore
  */
 export const storeModelChoices = defineStore("modelChoices", {
     state: () => ({

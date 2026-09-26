@@ -30,35 +30,27 @@ import { defineStore } from "pinia";
  */
 
 /**
+ * The theme store's state: registered components and their variants.
+ *
+ * The standalone actions below type `this` with it. Typing them with `ThemeStore` would make the
+ * store's type refer to itself, and TypeScript would then infer `storeTheme` as `any`.
+ *
+ * @typedef {{
+ *     components: {[key: ComponentName]: ComponentConfig},
+ *     variants: {[key: ComponentName]: {[key: VariantName]: VariantConfig}},
+ * }} ThemeState
+ */
+
+/**
  * The theme store.
  *
- * @typedef {import('pinia').Store<
- *     'themeStore',
- *     {
- *         components: {
- *             [key: ComponentName]: ComponentConfig
- *         },
- *         variants: {
- *             [key: ComponentName]: {
- *                 [key: VariantName]: VariantConfig
- *             }
- *         },
- *     },
- *     {},
- *     {
- *         registerComponent: (componentName: ComponentName, componentConfig: ComponentConfig) => void,
- *         registerVariant: (componentName: ComponentName, variantName: VariantName, variantConfig: VariantConfig) => void,
- *         clearComponent: (componentName: ComponentName) => void,
- *         clearVariant: (componentName: ComponentName, variantName: VariantName) => void,
- *         clearAll: () => void,
- *     }
- * >} ThemeStore
+ * @typedef {ReturnType<typeof storeTheme>} ThemeStore
  */
 
 /**
  * Validates the component configuration.
  *
- * @param {ThemeStore} store - The store to validate against.
+ * @param {ThemeState} store - The store to validate against.
  * @param {ComponentName} componentName - The name of the component.
  * @param {ComponentConfig} componentConfig - The configuration for the component.
  * @private
@@ -76,7 +68,7 @@ const validateComponentConfig = (store, componentName, componentConfig) => {
 
 /**
  * Validates the variant configuration.
- * @param {ThemeStore} store
+ * @param {ThemeState} store
  * @param {ComponentName} componentName
  * @param {VariantConfig} variantConfig
  * @private
@@ -98,7 +90,7 @@ const validateVariantConfig = (store, componentName, variantConfig) => {
  * @param {ComponentName} componentName
  * @param {ComponentConfig} componentConfig
  * @throws {Error} If the component configuration is invalid.
- * @this {ThemeStore}
+ * @this {ThemeState}
  * @returns {void}
  */
 function registerComponent(componentName, componentConfig) {
@@ -112,7 +104,7 @@ function registerComponent(componentName, componentConfig) {
  * @param {VariantName} variantName
  * @param {VariantConfig} variantConfig
  * @throws {Error} If the variant configuration is invalid.
- * @this {ThemeStore}
+ * @this {ThemeState}
  * @returns {void}
  */
 function registerVariant(componentName, variantName, variantConfig) {
@@ -127,7 +119,7 @@ function registerVariant(componentName, variantName, variantConfig) {
  * Clears a component with the given name.
  * @param {ComponentName} componentName
  * @returns {void}
- * @this {ThemeStore}
+ * @this {ThemeState}
  */
 function clearComponent(componentName) {
     delete this.components[componentName];
@@ -139,7 +131,7 @@ function clearComponent(componentName) {
  * @param {ComponentName} componentName
  * @param {VariantName} variantName
  * @returns {void}
- * @this {ThemeStore}
+ * @this {ThemeState}
  */
 function clearVariant(componentName, variantName) {
     delete this.variants?.[componentName]?.[variantName];
@@ -148,7 +140,7 @@ function clearVariant(componentName, variantName) {
 /**
  * Clears all components and variants.
  * @returns {void}
- * @this {ThemeStore}
+ * @this {ThemeState}
  */
 function clearAll() {
     // remove keys from components and variants, instead of assigning empty objects
@@ -162,8 +154,6 @@ function clearAll() {
 
 /**
  * The store for managing the theme.
- *
- * @returns {ThemeStore} The theme store.
  */
 export const storeTheme = defineStore("theme", {
     state: () => ({

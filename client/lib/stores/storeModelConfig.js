@@ -500,25 +500,6 @@ const mergeDeepProperties = (
 
 /**
  * A store for model configuration.
- *
- * @returns {import('pinia').Store<
- *     'modelConfig',
- *     {
- *         genericConfigs: {[key: string]: ModelConfig},
- *         specificConfigs: {[key: string]: OverridingModelConfig},
- *         builtConfigs: {[key: string]: ModelConfig},
- *         initialized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
- *     },
- *     {
- *         setConfig: (
- *             {app: string, model: string},
- *             genericConfig: OverridingModelConfig=null,
- *             specificConfigs: {[view: string]: OverridingModelConfig}=null
- *         ) => void,
- *         getConfig: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>,
- *     }
- * >}
- *
  */
 export const storeModelConfig = defineStore("modelConfig", {
     state: () => ({

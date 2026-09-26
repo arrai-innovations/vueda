@@ -79,31 +79,7 @@ const authErrorResolver = (response, data) => {
     return new UserError("Unexpected error occurred", response, data);
 };
 /**
- * @typedef {import('pinia').Store<
- *   'user',
- *   {
- *       loggedIn: boolean,
- *       loggedInUser: object,
- *       principalId: (string|number|null|undefined),
- *       identityGeneration: number,
- *       initialized: boolean|undefined,
- *       loading: boolean,
- *       error: Error|null,
- *       errored: boolean,
- *       initializingPromise: Promise<void>|null,
- *   },
- *   {},
- *   {
- *       fetchCurrentUser: () => Promise<void>,
- *       login: (payload: object) => Promise<void>,
- *       logout: () => Promise<void>,
- *       forgotPassword: () => Promise<void>,
- *       resetPassword: () => Promise<void>,
- *       checkResetLinkIsValid: () => Promise<void>,
- *       init: () => Promise<void>,
- *       clearError: () => void,
- *   },
- * >} UserStore
+ * @typedef {ReturnType<typeof storeUser>} UserStore
  */
 
 /**
@@ -130,7 +106,6 @@ const authErrorResolver = (response, data) => {
  *   user.logout(); // logout
  *   user.fetchCurrentUser(); // fetch the current user
  * ```
- * @returns {UserStore} The store for user.
  */
 export const storeUser = defineStore("user", {
     state: () => ({
