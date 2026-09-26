@@ -30,6 +30,19 @@ describe("formatApiMemberTitle", () => {
 });
 
 describe("memberAnchorFromId", () => {
+    it("anchors a JS parameter and a key of an object parameter", () => {
+        expect(
+            memberAnchorFromId(
+                "js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect",
+            ),
+        ).toBe("param-params-actionRedirect");
+        expect(
+            memberAnchorFromId(
+                "js:param:@arrai-innovations/vueda/stores/storeTheme#storeTheme.registerComponent:componentName",
+            ),
+        ).toBe("param-componentName");
+    });
+
     it("anchors Vue props, slots, slot bindings, and events", () => {
         expect(memberAnchorFromId("vue:component:ObjectsGrid:prop:fieldClasses")).toBe("prop-fieldClasses");
         expect(memberAnchorFromId("vue:component:ObjectsGrid:slot:cell")).toBe("slot-cell");
@@ -123,6 +136,15 @@ describe("apiMemberTitle", () => {
         expect(apiMemberTitle("Calendar Events", "vue:component:Calendar:event:update:modelValue")).toBe(
             "Calendar.update:modelValue",
         );
+    });
+
+    it("titles a JS parameter by its function page and path", () => {
+        expect(
+            apiMemberTitle(
+                "makeCRUDRoutes",
+                "js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect",
+            ),
+        ).toBe("makeCRUDRoutes.params.actionRedirect");
     });
 
     it("titles any other member by its page", () => {

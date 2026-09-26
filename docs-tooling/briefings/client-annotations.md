@@ -60,6 +60,8 @@ Document options-object parameters with a description for the object itself and 
 export function runAction(options) {}
 ```
 
+Each parameter and each first-level property has an API ID that links to its table row. A colon separates the function's ID from the parameter path, because a store action's name contains a dot: `js:param:<module>#runAction:options.dryRun`, or `js:param:@arrai-innovations/vueda/stores/storeTheme#storeTheme.registerComponent:componentName`.
+
 ## `@vueda-spread` on shared prop/emit constants (JS files)
 
 When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The vue-docgen normalizer injects those entries into every component that spreads the constant.
