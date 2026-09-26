@@ -12,6 +12,10 @@ from django.conf import settings
 
 
 def get_current_totp_code(secret: str) -> str:
+    """Return the formatted TOTP code for ``secret`` at the current time.
+
+    VUEDA sends this code to a user by email or SMS. Raises ``ValueError`` if no time counter is available.
+    """
     counters = list(yield_hotp_counters_from_time())
     if not counters:
         raise ValueError("No counters available for TOTP code generation.")
@@ -21,6 +25,10 @@ def get_current_totp_code(secret: str) -> str:
 
 
 def is_twilio_configured():
+    """Return True when the Twilio account SID, auth token, and caller ID settings are all set.
+
+    VUEDA offers and sends SMS messages only when this is True.
+    """
     return all(
         [
             getattr(settings, "TWILIO_ACCOUNT_SID", None),

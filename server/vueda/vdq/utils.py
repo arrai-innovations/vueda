@@ -16,6 +16,10 @@ log = getLogger(__name__)
 
 @contextmanager
 def lock_queue_item(pk, skip_locked=True) -> AbstractContextManager[QueueItem | None]:
+    """
+    Yield the queue item ``pk`` locked with ``SELECT FOR UPDATE`` inside a transaction. Yields ``None`` if it
+    does not exist or, with ``skip_locked``, another transaction holds the lock.
+    """
     with transaction.atomic():
         qi = QueueItem.objects.select_for_update(skip_locked=skip_locked).filter(pk=pk).first()
         yield qi
