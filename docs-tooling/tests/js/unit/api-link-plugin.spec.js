@@ -106,4 +106,79 @@ describe("apiLinkPlugin", () => {
         const html = createMd().render("<VuedaDemo>\n  <span>{@apifoo} and {@api }</span>\n</VuedaDemo>");
         expect(html).toContain("{@apifoo} and {@api }");
     });
+
+    it("resolves a reference inside a Markdown link label", () => {
+        const html = createMd().render("[see {@api theme-key:WidgetDuration}](https://example.com)");
+        expect(html).toContain('<a href="https://example.com">see ');
+    });
+
+    describe("labeled form", () => {
+        it("renders the label as the link text", () => {
+            const html = createMd().render("Set the [duration widget]{@api theme-key:WidgetDuration} slots.");
+            expect(html).toContain(
+                'Set the <a href="/vueda/reference/theming/keys/WidgetDuration.html">duration widget</a> slots.',
+            );
+        });
+
+        it("renders inline Markdown in the label", () => {
+            const html = createMd().render("[`WidgetJson` setup]{@api vue:component:WidgetJson}");
+            expect(html).toContain(
+                '<a href="/vueda/reference/api/vue/WidgetJson.html#setup"><code>WidgetJson</code> setup</a>',
+            );
+        });
+
+        it("resolves inside a table cell", () => {
+            const source = [
+                "| Widget | Notes |",
+                "| --- | --- |",
+                "| [JSON]{@api vue:component:WidgetJson} | x |",
+            ].join("\n");
+            const html = createMd().render(source);
+            expect(html).toContain('<td><a href="/vueda/reference/api/vue/WidgetJson.html#setup">JSON</a></td>');
+        });
+
+        it("leaves an ordinary Markdown link alone", () => {
+            const html = createMd().render("[docs](https://example.com) {@api vue:component:WidgetJson}");
+            expect(html).toContain('<a href="https://example.com">docs</a>');
+            expect(html).toContain(">WidgetJson</a>");
+        });
+
+        it("needs the reference to follow the label directly", () => {
+            const html = createMd().render("[note] {@api vue:component:WidgetJson}");
+            expect(html).toContain("[note] <a");
+            expect(html).toContain(">WidgetJson</a>");
+        });
+
+        it("ignores an empty label", () => {
+            const html = createMd().render("[]{@api vue:component:WidgetJson}");
+            expect(html).toContain("[]<a");
+        });
+
+        it("ignores a label that holds another reference", () => {
+            const html = createMd().render("[{@api theme-key:WidgetDuration}]{@api vue:component:WidgetJson}");
+            expect(html).toContain(">WidgetDuration</a>");
+            expect(html).toContain(">WidgetJson</a>");
+        });
+
+        it("renders as written when the id is unknown and strict is off", () => {
+            const html = createMd().render("[label]{@api theme-key:Missing}");
+            expect(html).toContain("[label]{@api theme-key:Missing}");
+        });
+
+        it("throws when the id is unknown and strict is on", () => {
+            const md = createMd({ strict: true });
+            expect(() => md.render("[label]{@api theme-key:Missing}", {})).toThrow(
+                /Unknown API id "theme-key:Missing"/,
+            );
+        });
+
+        it("renders the label in an HTML block", () => {
+            const html = createMd().render(
+                "<VuedaDemo>\n  <span>see [the `JSON` widget]{@api vue:component:WidgetJson}</span>\n</VuedaDemo>",
+            );
+            expect(html).toContain(
+                '<span>see <a href="/vueda/reference/api/vue/WidgetJson.html#setup">the <code>JSON</code> widget</a></span>',
+            );
+        });
+    });
 });
