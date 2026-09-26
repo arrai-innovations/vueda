@@ -453,6 +453,22 @@ describe("lib/stores/storeUser.js", () => {
             expect(store.errored).toBe(true);
         });
 
+        scopedIt("checkResetLinkIsValid builds the invalid link error from a 400 response", async () => {
+            const { InvalidResetPasswordLinkError } = await vi.importActual("@vueda/stores/storeUser.js");
+            getUrl.mockReturnValue("/reset/{pk}/{token}/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver({ status: 400, statusText: "Bad Request" }, { detail: "invalid" }));
+            });
+
+            const store = storeUser();
+            const error = await store.checkResetLinkIsValid({ pk: "1", token: "t" }).catch((caught) => caught);
+            expect(error).toBeInstanceOf(InvalidResetPasswordLinkError);
+            expect(error.message).toBe("Invalid password reset link: 400 Bad Request");
+            expect(error.response.status).toBe(400);
+            expect(error.responseData).toEqual({ detail: "invalid" });
+        });
+
         scopedIt("checkResetLinkIsValid returns data on success", async () => {
             const data = { ok: true };
             getUrl.mockReturnValue("/reset/{pk}/{token}/");

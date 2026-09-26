@@ -551,7 +551,7 @@ export const storeUser = defineStore("user", {
                 undefined,
                 (response, data) => {
                     if (response.status === 400) {
-                        return new InvalidResetPasswordLinkError(response, data);
+                        return new InvalidResetPasswordLinkError("Invalid password reset link", response, data);
                     }
                     return new UserError("Unexpected error occurred", response, data);
                 },
