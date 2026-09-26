@@ -134,6 +134,41 @@ describe("renderPdocBundle with submodules", () => {
     });
 });
 
+describe("renderPdocBundle with a private submodule", () => {
+    it("parent module page does not link a submodule that has no page", () => {
+        const payload = {
+            module_names: ["pkg", "pkg.__main__"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "pkg",
+                    fullname: "pkg",
+                    modulename: "pkg",
+                    qualname: "",
+                    docstring: "Top-level package.",
+                    members: [],
+                    submodules: [],
+                    is_public: true,
+                },
+                {
+                    kind: "module",
+                    name: "__main__",
+                    fullname: "pkg.__main__",
+                    modulename: "pkg.__main__",
+                    qualname: "",
+                    docstring: "Entry point.",
+                    members: [],
+                    submodules: [],
+                    is_public: false,
+                },
+            ],
+        };
+        const outputs = renderPdocBundle(new PdocNormalizer().normalize(payload));
+        expect(outputs.has("py/pkg.__main__.md")).toBe(false);
+        expect(outputs.get("py/pkg.md")).not.toContain("__main__");
+    });
+});
+
 describe("renderPdocBundle with deprecated lifecycle metadata", () => {
     it("module page renders the deprecation warning callout", () => {
         const normalizer = new PdocNormalizer();
