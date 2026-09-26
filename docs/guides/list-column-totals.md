@@ -160,7 +160,7 @@ The practical consequence for a caller: **ask for every total you want on every 
 
 ## Validation
 
-A misconfigured `column_totals` is reported by the `vueda_info.E011` system check, which names the viewset, the total, and the problem. It rejects:
+A misconfigured `column_totals` is reported by the `vueda_info.E013` system check, which names the viewset, the total, and the problem. It rejects:
 
 - a `column_totals` that is not a mapping, including a viewset still declaring the older list-of-paths form;
 - a key `aggregate()` could not use as a column alias;
@@ -229,7 +229,7 @@ A custom footer also only receives the totals `useViewList` asked for, which are
 
 After implementing column totals, verify:
 
-- `manage.py check` reports no `vueda_info.E011` for the viewset, and no `vueda_info.W002` unless a total's name deliberately contains a percent sign.
+- `manage.py check` reports no `vueda_info.E013` for the viewset, and no `vueda_info.W002` unless a total's name deliberately contains a percent sign.
 - The totals parameter appears on the viewset's `list` operation in the generated OpenAPI schema, enumerating the declared total names (if the project generates one).
 - A `list` request with no totals parameter returns `columnTotals: {}` and issues no `SUM`.
 - A `list` request naming one of several declared totals returns only that key, and adds only that one `SUM`.
@@ -257,7 +257,7 @@ After implementing column totals, verify:
 
 **A declared total never appears in any response.** The declared name matches no display column, so the client never asks for it. Check the browser console for the `useViewList` error naming it, then either rename the total in `column_totals` to match the column it belongs under, or add that column to `displayFields`.
 
-**`manage.py check` reports `vueda_info.E011`.** Read the hint; each of the failures above has a different answer. The check reports the viewset, the total's name, and the path. When the key is one Django refuses as a column alias, the hint quotes Django's own message, so it says what the installed version objects to.
+**`manage.py check` reports `vueda_info.E013`.** Read the hint; each of the failures above has a different answer. The check reports the viewset, the total's name, and the path. When the key is one Django refuses as a column alias, the hint quotes Django's own message, so it says what the installed version objects to.
 
 **`manage.py check` reports `vueda_info.W002`.** The total's name contains a percent sign. It works today, because Django accepts one in a column alias, but Django 7.0 removes that and every list request asking for the total will then be a server error. Rename the total before upgrading.
 

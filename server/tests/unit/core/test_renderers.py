@@ -94,7 +94,7 @@ class TestColumnTotalZero:
         assert _column_total_zero(CartItem, "cart__expected_delivery_time") == timedelta(0)
 
     def test_an_unresolvable_path_falls_back_rather_than_raising(self):
-        """`aggregate()` raises `FieldError` for it on the same call, and `vueda_info.E011` reports
+        """`aggregate()` raises `FieldError` for it on the same call, and `vueda_info.E013` reports
         it at check time, so the value here is never used -- but working it out must not be the
         thing that fails."""
         assert _column_total_zero(TimesheetEntry, "no_such_column") == 0

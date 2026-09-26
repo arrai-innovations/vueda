@@ -567,7 +567,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         rather than a parameter at a time.
 
         A viewset with no ``column_totals``, or one whose declaration isn't a mapping, reports no
-        fields -- the same thing its ``list`` action offers. ``vueda_info.E011`` reports the
+        fields -- the same thing its ``list`` action offers. ``vueda_info.E013`` reports the
         misconfigured declaration itself.
 
         Read from the ``column_totals`` attribute rather than through

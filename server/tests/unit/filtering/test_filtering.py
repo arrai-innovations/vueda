@@ -577,7 +577,7 @@ class TestVuedaSearchFilterDistinct:
         The search matches two special_care entries per product, so the queryset behind this
         response joins each product twice. `distinct()` puts the *rows* back to one per product; a
         `SUM` over that same queryset has no such protection and would count each product's
-        quantity twice. `vueda_info.E011` cannot catch it either: `quantity` is a column on Product
+        quantity twice. `vueda_info.E013` cannot catch it either: `quantity` is a column on Product
         itself, and the join arrives from the search rather than from the declared path.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_totals"

@@ -804,7 +804,7 @@ def check_filter_query_param_configuration(app_configs, **kwargs):
 
 
 def _column_totals_error(viewset, message, hint):
-    return Error(message, hint=hint, obj=viewset, id="vueda_info.E011")
+    return Error(message, hint=hint, obj=viewset, id="vueda_info.E013")
 
 
 def _django_alias_problem(name):

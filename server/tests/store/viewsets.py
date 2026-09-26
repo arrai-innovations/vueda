@@ -279,7 +279,7 @@ class CartItemViewSet(VuedaViewSet):
 
 class CartItemDurationColumnTotalsViewSet(CartItemViewSet):
     """Totals a DurationField reached through two forward foreign keys, the one non-numeric column
-    type `Sum` still means something for. Valid, so `vueda_info.E011` has to stay quiet about it."""
+    type `Sum` still means something for. Valid, so `vueda_info.E013` has to stay quiet about it."""
 
     column_totals = {"delivery_time": "cart__expected_delivery_time"}
 
@@ -288,7 +288,7 @@ class CartItemListColumnTotalsViewSet(CartItemViewSet):
     """Still declares `column_totals` in the list-of-paths form VUEDA used before the mapping.
 
     Nothing fails at request time for this one -- the names simply never resolve as totals -- so
-    `vueda_info.E011` is the only signal that the declaration stopped meaning anything."""
+    `vueda_info.E013` is the only signal that the declaration stopped meaning anything."""
 
     column_totals = ["quantity"]
 
@@ -460,7 +460,7 @@ class InventoryRecordViewSet(VuedaViewSet):
 class InventoryRecordAnnotatedColumnTotalsViewSet(InventoryRecordViewSet):
     """Totals an annotation its own `get_queryset` adds, rather than a column on the model.
 
-    The case `vueda_info.E011` cannot resolve through `_meta` and defers to the queryset for, the
+    The case `vueda_info.E013` cannot resolve through `_meta` and defers to the queryset for, the
     same way ordering does for a term naming an annotation.
 
     The annotation reaches through a foreign key on purpose. `get_column_info` aggregates a total
@@ -513,7 +513,7 @@ class ProductM2MSearchColumnTotalsViewSet(ProductM2MSearchViewSet):
     """Totals a local column and a queryset annotation, on a viewset whose *search* reaches across a
     many-to-many.
 
-    `vueda_info.E011` has nothing to say about either one -- `quantity` is a column on Product
+    `vueda_info.E013` has nothing to say about either one -- `quantity` is a column on Product
     itself, and the check does not look at what an annotation computes. The join arrives from the
     search backend instead, and a `SUM` over the joined rows counts a product once per matching
     `special_care` row. So this is the half of the guarantee the check cannot cover: a single-valued

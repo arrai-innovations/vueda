@@ -87,7 +87,7 @@ def _column_total_zero(model, path):
     on the class, so the answer never changes for a given pair and is worked out once per process.
 
     A path that doesn't resolve gets the numeric zero, which is never used: ``aggregate()`` raises
-    ``FieldError`` for it on the same call, and ``vueda_info.E011`` reports it at check time. A path
+    ``FieldError`` for it on the same call, and ``vueda_info.E013`` reports it at check time. A path
     naming a queryset annotation is the exception -- it resolves against the query rather than
     ``_meta``, so :func:`_column_total_zero_for` handles that one before this is reached.
     """
@@ -276,7 +276,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     relations that match at most one related row. A relation that can match several -- a reverse
     foreign key, a many-to-many -- joins a row per related object and would inflate *every* total in
     the same ``aggregate()`` call, not just its own, which is why such a path is rejected outright
-    rather than aggregated on its own. The ``vueda_info.E011`` system check reports a declaration
+    rather than aggregated on its own. The ``vueda_info.E013`` system check reports a declaration
     that breaks any of these rules; see ``vueda.info.checks``.
     """
 
@@ -296,7 +296,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         This viewset's ``column_totals`` mapping, or ``{}`` when it declares none.
 
         Anything that isn't a mapping reads as "none declared" rather than raising here: a
-        misconfigured declaration is the ``vueda_info.E011`` system check's to report, and a request
+        misconfigured declaration is the ``vueda_info.E013`` system check's to report, and a request
         is not the place to find out about it. The effect is that such a viewset offers no totals at
         all, which is also what its metadata advertises.
 
@@ -376,7 +376,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         The sum runs over the matched rows re-selected by primary key rather than over ``queryset``
         itself. ``SUM`` counts a row once per joined match, so a query that reached through a
         multi-valued relation would total a row's value as many times as it has related rows --
-        silently, as a number that looks plausible. ``vueda_info.E011`` keeps the declared *path*
+        silently, as a number that looks plausible. ``vueda_info.E013`` keeps the declared *path*
         single-valued, but the join can arrive from somewhere the check cannot see: a
         ``filterset_class`` filter spanning a reverse FK or M2M, or a ``RowLevelPermissions``
         ``Q`` doing the same. Re-selecting by pk means a row is summed once however it was matched,
