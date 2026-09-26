@@ -1,5 +1,6 @@
 import {
     ExternalDocsExtractor,
+    cachedFetch,
     checkRegistryLinks,
     fillVersion,
     inventoryIds,
@@ -201,5 +202,40 @@ describe("ExternalDocsExtractor", () => {
         await expect(
             extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath }),
         ).rejects.toThrow("https://site.test/p#x: no element has this id");
+    });
+});
+
+describe("cachedFetch", () => {
+    const ok = (text) => async () => new Response(text, { status: 200 });
+    const offline = async () => {
+        throw new TypeError("fetch failed");
+    };
+
+    it("keeps a fetched copy and returns it when the network fails", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        const warnings = [];
+        const warn = (message) => warnings.push(message);
+
+        expect((await cachedFetch("https://site.test/a", { cacheDir, fetchImpl: ok("fresh"), warn })).toString()).toBe(
+            "fresh",
+        );
+        expect((await cachedFetch("https://site.test/a", { cacheDir, fetchImpl: offline, warn })).toString()).toBe(
+            "fresh",
+        );
+        expect(warnings).toEqual(["Using the cached copy of https://site.test/a: fetch failed"]);
+    });
+
+    it("explains how to fill the cache when the network fails and nothing is cached", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        await expect(cachedFetch("https://site.test/b", { cacheDir, fetchImpl: offline })).rejects.toThrow(
+            "no cached copy exists",
+        );
+    });
+
+    it("fails on an HTTP error status even when a copy is cached", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        await cachedFetch("https://site.test/c", { cacheDir, fetchImpl: ok("fresh") });
+        const gone = async () => new Response("", { status: 404 });
+        await expect(cachedFetch("https://site.test/c", { cacheDir, fetchImpl: gone })).rejects.toThrow("HTTP 404");
     });
 });

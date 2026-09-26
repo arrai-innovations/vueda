@@ -8,8 +8,10 @@
  * confirm the page and its anchor exist.
  *
  * The result is a flat map of id to `{ href, title }`, written to `.generated/external-ids.json`,
- * which the reference validator and the VitePress site both read.
+ * which the reference validator and the VitePress site both read. Every download is also kept in
+ * `.cache/external/`, which this extract falls back to when the network is unavailable.
  */
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -193,12 +195,41 @@ export async function checkRegistryLinks(config, fetchPage) {
     return errors;
 }
 
-async function fetchOk(url) {
-    const response = await fetch(url, { redirect: "follow" });
+const DEFAULT_CACHE_DIR = path.join(repoRoot, "docs-tooling", ".cache", "external");
+const FETCH_TIMEOUT_MS = 20000;
+
+/**
+ * Fetch `url` and keep a copy in `cacheDir`, or return the kept copy when the network fails.
+ *
+ * Only a network failure falls back to the cache. An HTTP error status still fails, because a page
+ * that upstream removed is what the registry check exists to report. Running this extract once
+ * while online primes the cache for offline work.
+ */
+export async function cachedFetch(url, { cacheDir = DEFAULT_CACHE_DIR, fetchImpl = fetch, warn = console.warn } = {}) {
+    const cacheFile = path.join(cacheDir, `${createHash("sha256").update(url).digest("hex")}.bin`);
+    let response;
+    try {
+        response = await fetchImpl(url, { redirect: "follow", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    } catch (error) {
+        let cached;
+        try {
+            cached = await readFile(cacheFile);
+        } catch {
+            throw new Error(
+                `${error.message}, and no cached copy exists. Run \`docs-tooling.js extract --target external\` ` +
+                    `while online to fill ${path.relative(repoRoot, cacheDir)}/.`,
+            );
+        }
+        warn(`Using the cached copy of ${url}: ${error.message}`);
+        return cached;
+    }
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
     }
-    return response;
+    const body = Buffer.from(await response.arrayBuffer());
+    await mkdir(cacheDir, { recursive: true });
+    await writeFile(cacheFile, body);
+    return body;
 }
 
 export class ExternalDocsExtractor {
@@ -206,10 +237,11 @@ export class ExternalDocsExtractor {
      * @param {object} [options]
      * @param {(url: string) => Promise<ArrayBuffer>} [options.fetchInventory] - Fetches an inventory.
      * @param {(url: string) => Promise<string>} [options.fetchPage] - Fetches a hand-listed page.
+     * @param {string} [options.cacheDir] - Where the default fetchers keep copies for offline use.
      */
-    constructor({ fetchInventory, fetchPage } = {}) {
-        this.fetchInventory = fetchInventory || (async (url) => (await fetchOk(url)).arrayBuffer());
-        this.fetchPage = fetchPage || (async (url) => (await fetchOk(url)).text());
+    constructor({ fetchInventory, fetchPage, cacheDir } = {}) {
+        this.fetchInventory = fetchInventory || ((url) => cachedFetch(url, { cacheDir }));
+        this.fetchPage = fetchPage || (async (url) => (await cachedFetch(url, { cacheDir })).toString("utf-8"));
     }
 
     async extract({ outputPath, configPath = DEFAULT_CONFIG, lockPath = DEFAULT_LOCK } = {}) {
