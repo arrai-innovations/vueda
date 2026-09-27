@@ -7,13 +7,13 @@ status: draft
 
 # Lock Fields to Specific Write Actions
 
-This guide covers {@api py:class:vueda.core.serializers.ExcludeFieldsSerializerMixin}, which makes specific fields read-only for `create` or for `update`/`partial_update`, without maintaining separate serializer classes per action. It also covers the mixin's one hard requirement (a routed ViewSet's `serializer_class`, directly) and the three ways it is commonly misused, all of which are caught by a Django system check.
+{@api py:class:vueda.core.serializers.ExcludeFieldsSerializerMixin} makes named fields read-only for `create`, or for `update` and `partial_update`, on one serializer. Use it when the read and write field sets differ by only a few fields. For example, a timesheet's `supervisor` is set only after creation, and its `employee` cannot change once the timesheet exists.
 
-If the fields you need to differ between read and write are extensive enough that you would rather maintain two whole serializer classes, see [Split Read/Write Serializers Safely](split-read-write-serializers) instead; that guide covers `PerActionSerializerMixin` and per-action serializer classes. Reach for `ExcludeFieldsSerializerMixin` when the field set is otherwise identical and only a handful of fields need to be locked down for one action -- for example, a `supervisor` field that can only be set at creation, or an `employee` field that is immutable after creation.
+When the write field set differs enough that you want separate serializer classes, follow [Split Read/Write Serializers Safely](split-read-write-serializers) instead.
 
-## What the Mixin Does
+## Declare the Exclusions
 
-Add `ExcludeFieldsSerializerMixin` before the base VUEDA serializer in the MRO, then declare `exclude_create_fields` and/or `exclude_update_fields` on `Meta` as lists of field names:
+Put the mixin before {@api py:class:vueda.core.serializers.VuedaSerializer} in the class bases. List field names in `Meta.exclude_create_fields` and `Meta.exclude_update_fields`:
 
 ```python
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
@@ -28,26 +28,17 @@ class TimesheetSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
         exclude_update_fields = ["employee"]
 ```
 
-`exclude_create_fields` forces those fields to `read_only=True` when `self.context["view"].action == "create"`. `exclude_update_fields` does the same for both `update` and `partial_update`, so a single declaration covers PUT and PATCH. Both are additive to any `read_only`/`extra_kwargs` you already declare; the mixin never makes a field writable, only more restrictive.
+The mixin marks each `exclude_create_fields` entry read-only when the view's action is `create`. It marks each `exclude_update_fields` entry read-only when the action is `update` or `partial_update`, so one list covers `PUT` and `PATCH`. Any other action, including an {@term Extra Action}, gets no exclusions.
 
-Fields are not removed from `Meta.fields`. They stay present in `serializer.fields` and continue to appear in the response representation; the mixin only prevents that action from accepting new values for them.
+The mixin only adds read-only markings. A field that is read-only through `read_only_fields` or `extra_kwargs` stays read-only for every action. Excluded fields stay in `Meta.fields` and in every response.
 
-::: warning
-Avoid extra action names that are substrings of `"create"`, `"update"`, or `"partial_update"` (for example, an action literally named `date` or `up`) on a viewset that uses this mixin. The action match is a plain string containment check (`action in exclude_action`), not an equality check against the fixed set of `{"create", "update", "partial_update"}` -- it happens to work for `update`/`partial_update` because one is a substring of the other, but it means an unrelated action whose name is a substring of one of those three words would spuriously get the same fields excluded.
-:::
+The markings go through DRF's `extra_kwargs`, which reach only the fields the serializer builds from the model. A field declared on the serializer class ignores both lists and stays writable. List only generated fields.
 
-## The Silent-Drop Behavior
+Exclude only fields the database can leave empty: nullable columns, or columns with a default. A `create` that leaves a required column unset raises {@api ext:django:django.db.IntegrityError} on insert, and the client gets a `500`.
 
-Because excluded fields become `read_only` rather than rejected, submitting a value for one does not raise a validation error -- the value is silently ignored and the field keeps its previous (or default) value:
+## Attach the Serializer to Its Viewset
 
-- On `create`, submitting a value for a field in `exclude_create_fields` saves the object with that field unset (its model default, e.g. `None` for a nullable foreign key), not the submitted value.
-- On `update`/`partial_update`, submitting a value for a field in `exclude_update_fields` leaves the instance's existing value untouched.
-
-Neither case surfaces as a `400` response. If clients need an explicit rejection instead of a silent no-op (for example, to catch a client bug where a field is submitted that should never be sent for that action), use `Meta.exclude_create_fields`/`exclude_update_fields` together with an explicit check in `validate()` that raises `VuedaValidationError` when the field is present in `self.initial_data`, rather than relying on this mixin alone.
-
-## The One Valid Usage Pattern
-
-`get_extra_kwargs()` reads `self.context["view"].action`. That key is only ever populated when the serializer is instantiated as a routed ViewSet's `serializer_class` directly, servicing a real request -- DRF's `ViewSetMixin.initialize_request` is what sets `.action`, and it only runs for the view actually handling the request:
+The mixin reads the action from the view in the serializer context. That view is present only when the serializer is the {@api ext:drf:rest_framework.generics.GenericAPIView.serializer_class} of the routed viewset handling the request:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet
@@ -55,92 +46,80 @@ from vueda.core.viewsets import VuedaViewSet
 
 class TimesheetViewSet(VuedaViewSet):
     queryset = Timesheet.objects.all()
-    serializer_class = TimesheetSerializer  # the only valid placement
+    serializer_class = TimesheetSerializer
 ```
 
-This is also satisfied when `TimesheetSerializer` is registered as the {@term Canonical Serializer} via {@api py:function:vueda.info.registration.register} paired with this viewset -- registration and direct `serializer_class` assignment are the same placement from the mixin's perspective.
+Registering the pair with {@api py:function:vueda.info.registration.register} works the same way. That is the {@term Canonical Registration} most models use.
 
-## Misuse: Reached Without a View in Context
+Do not reach this serializer any other way. As a declared nested field on another serializer, or as an entry in another serializer's `Meta.expandable_fields`, it is built without a view in context. Schema generation (`manage.py spectacular`) and model info then fail with `KeyError: 'view'`. Put the exclusions on the routed serializer, and nest or expand a serializer without the mixin.
 
-`ExcludeFieldsSerializerMixin` crashes with a bare `KeyError: 'view'` the moment its `.fields` are built without a view in context. This happens whenever the serializer is only reachable indirectly, rather than being a routed ViewSet's own `serializer_class`:
+## Run the System Check
 
-**Nested as a declared field on another serializer**, the way `InvoiceSerializer` might nest `InvoiceLineSerializer`:
+Run `manage.py check` after you add the mixin or move a serializer that uses it. {@api py:function:vueda.core.checks.check_exclude_fields_serializer_usage} starts from every routed viewset and every registered serializer. From each, it follows nested fields and `Meta.expandable_fields`. It reports:
+
+- `vueda_core.E007` for a serializer with the mixin used as a nested field.
+- `vueda_core.E008` for a serializer with the mixin named in any `Meta.expandable_fields` entry, even when it is also routed.
+- `vueda_core.E009` for a serializer with the mixin registered with {@api py:function:vueda.info.registration.register_serializer}, which is a {@term Serializer-Only Registration}. [#162](https://github.com/arrai-innovations/vueda/issues/162) tracks support for that registration.
+
+Each error names the serializer and, for `E007` and `E008`, the parent serializer and field.
+
+## Reject Submitted Values Explicitly (Optional)
+
+A request that sends a value for an excluded field still succeeds. DRF skips read-only fields when it reads the body, so no `400` is returned:
+
+- On `create`, the field saves as its model default, for example `None` for a nullable foreign key.
+- On `update` and `partial_update`, the field keeps its stored value.
+
+To answer with a `400` instead, check the raw body in `validate()` and raise {@api py:class:vueda.core.exceptions.VuedaValidationError}:
 
 ```python
-class ParentSerializer(VuedaSerializer):
-    leaf = TimesheetSerializer()  # misuse: TimesheetSerializer has no view in context here
+from vueda.core.exceptions import VuedaValidationError
+
+
+class TimesheetSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
+    # Meta as above
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if self.context["view"].action == "create" and "supervisor" in self.initial_data:
+            raise VuedaValidationError({"supervisor": ["Set the supervisor after the timesheet exists."]})
+        return attrs
 ```
 
-`drf_writable_nested`'s field-building inspects the nested instance's validators while it is still unbound (no parent, so no context), which is when the `KeyError` fires.
+`validate()` runs only after every field passes field validation, so a request with other field errors reports those first.
 
-**Reachable only through `expandable_fields`**, the way `CustomerSerializer` might expand `UserSerializer`:
+## Hide the Field in Client Forms (Optional)
 
-```python
-class ParentSerializer(VuedaSerializer):
-    class Meta(VuedaSerializer.Meta):
-        expandable_fields = {"leaf": (TimesheetSerializer, {})}  # misuse
+The exclusions do not change {@term Model Info}. Model info describes the {@term Canonical Serializer} through its own endpoint's view, whose action matches neither list, so it reports excluded fields as writable. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md#how-model-info-uses-the-registry) describes how model info reads the registered serializer.
+
+The default create and update forms therefore render and submit excluded fields, and the server drops the values. To leave a field out of one form, set that view's `displayFields` and `submitFields` with {@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}:
+
+```js
+storeModelConfig().setConfig({ app: "timesheet", model: "timesheet" }, null, {
+    create: {
+        displayFields: ["period_start", "period_end", "employee"],
+        submitFields: ["period_start", "period_end", "employee"],
+    },
+    update: {
+        displayFields: ["period_start", "period_end", "supervisor"],
+        submitFields: ["period_start", "period_end", "supervisor"],
+    },
+});
 ```
 
-Both the `/info/` meta-API's expand-metadata generation and drf-spectacular's schema generation instantiate the expand target bare (no context) to describe it, which raises the same `KeyError`.
-
-**Registered with `register_serializer()` (no viewset)**:
-
-```python
-from vueda.info.registration import register_serializer
-
-register_serializer(TimesheetSerializer)  # misuse: no viewset means no view, ever
-```
-
-A {@term Serializer-Only Registration} never has a view in context, by definition, so any access to this serializer's fields fails immediately.
-
-All three misuse cases surface at the same two points: `manage.py spectacular` (or any request to a spectacular-served schema) and the `/info/` meta-API's field/expand metadata generation -- both build field metadata without a view for these code paths, regardless of the surrounding endpoint working fine for ordinary CRUD traffic.
-
-## System Check Coverage
-
-{@api py:function:vueda.core.checks.check_exclude_fields_serializer_usage} runs as a Django system check (registered in `CoreConfig.ready()`) and catches all three misuse patterns at `manage.py check` time, before either crash point is hit at runtime:
-
-| Check ID          | Misuse                                                          |
-| ----------------- | --------------------------------------------------------------- |
-| `vueda_core.E007` | Used as a nested field on another serializer                    |
-| `vueda_core.E008` | Reachable only through another serializer's `expandable_fields` |
-| `vueda_core.E009` | Registered with `register_serializer()` (no viewset)            |
-
-The check starts from every ViewSet reachable through the resolved URL conf and every serializer in the `vueda.info` registry, whether it was added with `register()` or `register_serializer()`. From each of those it follows declared nested serializer fields and `Meta.expandable_fields`. So it covers serializers that use `ExcludeFieldsSerializerMixin` anywhere in the app, not just ones you remember to test manually. Run `manage.py check` (CI should already do this) after adding or moving a serializer that uses this mixin.
-
-## Fields Stay Visible in Model Info and Schema Metadata
-
-`exclude_create_fields`/`exclude_update_fields` only affect the live `create`/`update`/`partial_update` request lifecycle of the serializer's own ViewSet. They do not remove the field from:
-
-- The `/info/` meta-API's `model_fields`, generated using the info endpoint's own view in context (not the model's registered ViewSet's action) -- the excluded field is reported the same as any other field.
-- The OpenAPI schema `drf-spectacular` generates for `get_schema_fields()` / `get_schema_expandable_fields()`.
-
-If a client-rendered form needs to actually omit the field (rather than just have the server ignore submitted values for it), exclude it from that action's serializer's `Meta.fields` entirely -- which means moving to the full [read/write serializer split](split-read-write-serializers) instead of this mixin.
+[Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md#view-specific-field-strategy) describes the {@term View Field Lists} and how each view uses them.
 
 ## Test Checklist
 
-After adding `exclude_create_fields`/`exclude_update_fields`:
-
-- A `create` request that submits a value for a field in `exclude_create_fields` saves successfully, with that field at its default/unset value, not the submitted one.
-- An `update` and a `partial_update` request that each submit a value for a field in `exclude_update_fields` save successfully, with the existing value unchanged.
-- `manage.py check` passes with no `vueda_core.E007`/`E008`/`E009` errors.
-- `manage.py spectacular` (or your CI's schema-generation step) succeeds for any viewset using this serializer.
+- A `create` that sends a value for each `exclude_create_fields` entry succeeds and saves the model default.
+- An `update` and a `partial_update` that send a value for each `exclude_update_fields` entry succeed and keep the stored value.
+- `manage.py check` reports no `vueda_core.E007`, `E008`, or `E009` errors.
+- `manage.py spectacular`, or your schema generation step, succeeds.
 
 ## Troubleshooting
 
-**`KeyError: 'view'` from `manage.py spectacular` or the `/info/` endpoint.** The serializer using `ExcludeFieldsSerializerMixin` is reachable as a nested field, an `expandable_fields` target, or a `register_serializer()`-only registration. Run `manage.py check` to get the specific `E007`/`E008`/`E009` error naming the offending serializer and field, then move the exclusion logic to the serializer that is actually the routed ViewSet's `serializer_class`, or drop the mixin from the nested/expanded copy.
+**`KeyError: 'view'` from `manage.py spectacular` or model info.** The serializer is nested or expanded somewhere. Run `manage.py check`: the `E007` or `E008` error names the parent serializer and field.
 
-**Submitted field value is silently ignored instead of erroring.** This is the mixin's designed behavior, not a bug -- the field is `read_only` for that action, so DRF drops it from `to_internal_value` rather than rejecting it. Add an explicit `validate()` check if the client-facing contract should be a `400` instead.
+**`IntegrityError` on create.** A field in `exclude_create_fields` has a required database column. Give the column a default, make it nullable, or remove the field from the list.
 
-**Field still appears in `/info/` `model_fields` or the OpenAPI schema after excluding it.** Expected -- see [Fields Stay Visible in Model Info and Schema Metadata](#fields-stay-visible-in-model-info-and-schema-metadata) above. This mixin changes what a write request accepts, not what metadata describes.
-
-**An unrelated custom action also gets fields excluded.** Check whether that action's name is a substring of `"create"`, `"update"`, or `"partial_update"` -- see the warning under [What the Mixin Does](#what-the-mixin-does).
-
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:class:vueda.core.serializers.ExcludeFieldsSerializerMixin}
-    - {@api py:function:vueda.core.serializers.ExcludeFieldsSerializerMixin.get_extra_kwargs}
-    - {@api py:function:vueda.core.checks.check_exclude_fields_serializer_usage}
-    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-    - {@api py:function:vueda.info.registration.register}
-    - {@api py:function:vueda.info.registration.register_serializer}
+**The OpenAPI schema marks the wrong fields read-only.** drf-spectacular describes the `create`, `update`, and `partial_update` request bodies with one shared component named after the serializer. Its read-only markings match only one of those actions.
