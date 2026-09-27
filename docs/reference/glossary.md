@@ -45,10 +45,10 @@ A per-action list of the relations a request to that action may {@term Expand}, 
 
 ## Auth-Scoped Stores
 
-The client stores whose cached data depends on the signed-in user's permissions: {@term Model Info}, {@term Model Config}, workflow, and model choices. When a different user signs in or the user signs out, the client empties all four, and composables fetch again. A failed model info or workflow fetch stays cached for that model until a user change or a page reload clears it.
+The client stores whose cached data depends on the signed-in user's permissions: {@term Model Info}, {@term Model Config}, workflow, and model choices. When a different user signs in or the user signs out, the client empties all four, and composables fetch again. A failed model info fetch, workflow fetch, or config build stays cached for its key until a user change, a store reset, or a page reload clears it.
 
 - Names: [`clearAuthScopedStores`]{@api js:function:@arrai-innovations/vueda/stores/authScope#clearAuthScopedStores}; [`identityGeneration`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.identityGeneration}; [`AuthScopeInvalidatedError`]{@api js:class:@arrai-innovations/vueda/utils/errors#AuthScopeInvalidatedError}
-- Described in: [Reactive Data Flow](../core-concepts/reactive-data-flow.md#store-fetch-lifecycles-and-normalization)
+- Described in: [Reactive Data Flow](../core-concepts/reactive-data-flow.md#when-caches-clear)
 
 ## Available Actions
 

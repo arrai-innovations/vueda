@@ -7,108 +7,131 @@ status: draft
 
 # Reactive Data Flow (Stores + Composables)
 
-VUEDA's client runtime divides reactive data flow across three layers with distinct authority boundaries: Pinia stores its own caching and normalization, composables provide component-scoped reactive adapters over those caches, and router guards prefetch data through stores without creating component-scoped reactive effects. Each layer has a specific role in the fetch lifecycle, and using the wrong layer in the wrong context can result in failures ranging from duplicate network requests to permanently stuck watchers.
+VUEDA's client loads {@term Model Info}, {@term Model Config}, workflow data, and choice lists through three layers. Pinia stores fetch and cache the data. Composables give components reactive access to those caches. Router guards call the stores directly before a view mounts.
 
-This page explains the authority each layer holds, the identity keys that partition cache state, and the fetch lifecycle contracts that govern de-duplication, error caching, and reference stability. The focus is on metadata, config, workflow, and choice flows, not on object {@term CRUD} payload shapes, which follow different caching and invalidation rules. For the configuration overlay that consumes model-info metadata, see [Configuration Surface and Defaults](./configuration-surface-and-defaults). For how cancellation propagates through the fetch layer, see [Cancellable Network Operations](./cancellable-network-operations). For how the server produces the metadata that stores consume, see [Server-Client Metadata Contract](./server-client-metadata-contract).
+This page describes how each store keys its cache, what it caches (failures included), when caches clear, and how composables and guards read them. Object and list rows follow separate rules: they load through {@term CRUD Adapter} functions, which [CRUD Adapter Layer](./crud-adapter-layer.md) describes.
 
-## Boundary and Authority
+## Stores, Composables, and Guards
 
-The three layers (stores, composables, and guards) are not interchangeable paths to the same data. Each occupies a distinct position in the application lifecycle and carries authority over a specific concern.
+**Stores** hold one cache per Pinia instance, shared by every component and route. Store actions fetch from the server, reshape the response, and write the result into keyed reactive maps. When two components need the same model info, both read one store entry, and the server sees one request. [`storeModelInfo`]{@api js:function:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo} renames the model info keys before it stores them. [Server-Client Metadata Contract](./server-client-metadata-contract.md#client-normalization) describes the client key casing.
 
-Stores are the cache and normalization authority. Store actions fetch remote data, normalize the wire shape into the client's internal representation, and persist results in keyed reactive maps. All downstream consumers (composables, guards, view components) read from these maps. Stores do not bind to component lifecycle events; they exist for the lifetime of the Pinia instance and are shared across all components and routes. When two components need the same model-info object, both read from the same store entry rather than issuing independent fetches.
+**Composables** connect one component to the stores. Each composable watches its inputs (usually `app`, `model`, and sometimes `view`) and calls the store action when they change. It exposes `loading`, `error`, and a handle into the store's data. Its watches run only while {@api js:function:@arrai-innovations/vueda/use/useIsActive#useIsActive} reports the component as active. That ref starts `false`, turns `true` on {@api ext:vue:onMounted} and {@api ext:vue:onActivated}, and turns `false` on {@api ext:vue:onDeactivated}. So a component that [`<KeepAlive>`]{@api ext:vue:KeepAlive} has deactivated fetches nothing for route parameters it no longer shows.
 
-Composables are component-scoped reactive adapters. They watch reactive inputs (typically route parameters like `app`, `model`, and `view`), invoke store actions when inputs change, and expose `toRef(...)` pointers into store state. Composables bind to component lifecycle hooks through {@api js:module:@arrai-innovations/vueda/use/useIsActive}, which gates fetch watches behind `onMounted` / `onActivated` / `onDeactivated`. This gating prevents fetches from running when a component is inactive, either because it has not yet mounted or because it has been deactivated by `<KeepAlive>`. Composables also provide a consistent loading/error surface so that components do not need to manage fetch state directly.
+**Router guards** run outside any component. {@api js:function:@arrai-innovations/vueda/router/guards#waitForModelStoreLoad} calls the store actions and awaits them as plain promises. A composable called outside component setup registers lifecycle hooks with no component to attach to. A development build logs a Vue warning for each hook, and nothing throws. The composable's `isActive` never turns `true`, so it never fetches. [`useModelConfig`]{@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig} also creates an effect scope, and outside a component nothing stops it. [Routing and View Resolution Model](./routing-and-view-resolution-model.md) describes the guard chain.
 
-Router guards are store-only consumers. Guards run outside component setup; there is no active component instance, no lifecycle hook registration, and no reactive scope owned by a component. Guard code calls store actions directly (for example, `storeModelInfo().fetchModelInfo(...)`) and awaits the result as a plain async operation. Composables must not be called from guards, because composables register lifecycle hooks via `useIsActive` and create watches gated by `isActive`, but `isActive` never transitions to `true` outside a component context. Guard work is expressed as plain async functions that return booleans or redirect objects.
+## Cache Keys
 
-## Identity Keys and Cache Partitions
+A cache key decides which callers share an entry. The stores build keys from the lowercased app label and model name.
 
-Store entries are keyed by identity strings that determine when data is reused versus refetched. The key choice is the boundary between shared cache hits and independent fetch cycles.
+- **`app.model`.** Model info, a model's permitted workflow transitions, and a model's workflow states use one entry per model, such as `myapp.widget`. One model info fetch serves every component, guard, and composable that asks for that model.
+- **Per object.** The workflow store keeps each object's state, transitions, and history under its primary key, inside the model's entry.
+- **Per field.** [`storeModelChoices`]{@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices} keeps one choice list per field inside the model's entry. Filter choices use a separate map and separate requests.
+- **`app.model-<view>`.** [`storeModelConfig`]{@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} keeps one built config per view, keyed by the view's action name. Examples are `myapp.widget-list`, `myapp.widget-update`, and `myapp.widget-retrieve` for the `read` view. A config built with no view uses `myapp.widget`.
 
-Most stores partition by `app.model`, computed by `getAppModelDotName({app, model})`. Model-info, workflow transitions, and choices all use this key granularity. A single model-info fetch for `myapp.widget` serves every component, guard, and composable that references the same model, regardless of which view or route triggered the fetch.
+The route guard builds only the no-view config. The destination view builds its own config when it mounts. It uses the model info the guard already cached, so that build sends no request.
 
-Model configuration adds a second dimension. `storeModelConfig` keys its built configs by `app.model.view`, computed by `getAppModelViewDotName`. This finer-grained key exists because configuration is view-specific: the list, detail, and `create` views for the same model may have different field sets, `expand` defaults, and action routing. A config built for `myapp.widget.list` is not reused for `myapp.widget.read`.
+## What Each Store Caches
 
-Choices stores partition at a finer granularity than other metadata stores. Choice fetches are keyed by model and field identity, so `storeModelChoices` maintains per-field entries within the `app.model` namespace. Filter choices follow the same pattern but use a separate code path from object-field choices.
+| Store                                                                                           | Caches results                  | Shares an in-flight request | Caches failures          |
+| ----------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------- | ------------------------ |
+| `storeModelInfo`                                                                                | Yes, per model                  | Yes                         | Yes, per model           |
+| [`storeWorkflow`]{@api js:function:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow} | Yes, per model or object        | Yes                         | Yes, per model or object |
+| `storeModelConfig`                                                                              | Yes, per built key              | Yes, the build              | Yes, per built key       |
+| `storeModelChoices`                                                                             | Stored; each new call refetches | Yes, per field              | No                       |
 
-## Store Fetch Lifecycles and Normalization
+### Cached Results
 
-Each store follows a common fetch lifecycle pattern, but the specifics of caching, de-duplication, and error handling vary by store.
+[`fetchModelInfo`]{@api js:method:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo.fetchModelInfo} and the workflow fetch actions check three things in order. A cached result resolves at once. A cached failure rejects at once. A request already in flight for the same key goes to the new caller too, so concurrent callers share one request. The store sends a request only when all three are absent. A settled request removes its in-flight entry.
 
-**Fetch, cache, and short-circuit.** When a store action is called, it first checks whether the result already exists in the cache map for the given key. If so, it resolves immediately from cache without issuing a network request. {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo} checks `infos[key]`, `storeModelConfig.getConfig` checks `builtConfigs[builtKey]`, and `storeWorkflow.fetchWorkflowTransition` checks `workflowTransitions[key]`. This short-circuit makes repeated calls for the same identity essentially free after the initial fetch.
+[`getConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.getConfig} checks two things. A built config resolves at once. Otherwise the caller gets the build already running for that key. [Model Config Lifecycle](#model-config-lifecycle) describes the build.
 
-**In-flight de-duplication (promise memoization).** When a fetch is in progress, the store retains the active Promise in a `promises` map keyed by the same identity string. Concurrent callers receive the same Promise rather than triggering a second network request. The memoized Promise is cleared in a `.finally` handler after resolution or rejection, so the next call after completion will either hit the cache (on success) or the error cache (on failure). All four metadata stores (model-info, model-config, workflow, and choices) implement this pattern.
+The choice actions, [`fetchChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.fetchChoices} and [`fetchFilterChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.fetchFilterChoices}, share a request already in flight for the same field. Every other call sends a new request, even when the store holds a list. Choice lists therefore follow changes to the rows behind them.
 
-**Normalization.** Model-info normalization is the most involved. `storeModelInfo` strips `model_` prefixes from top-level keys, rewrites `expands` to `expand`, and camelCases every top-level key, so `verbose_name` becomes `verboseName` and `column_totals` becomes `columnTotals`. It camelCases the descriptors inside `fields`, `filtering`, and `expand` and keeps their field-name keys, because those names are server lookup keys. It then identifies the primary key field by scanning `data.fields` for an entry with `{pk: true}`. If no PK field is found, the normalization throws an error, which is cached (see below).
+Each workflow fetch, such as [`fetchWorkflowTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.fetchWorkflowTransition}, first reads `workflowEnabled` from the model's cached model info. It fetches the model info when it is missing. A model without workflow resolves to an empty list with no workflow request. After a successful transition, [`executeTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition} writes the object's new state and transitions into the cache.
 
-**Error memoization.** Some stores cache the first failure per key and reject all future calls for that key without refetching. `storeModelInfo` and `storeWorkflow` both implement this pattern. Once an error is cached in `errors[key]`, subsequent calls check the errors map before the promises map and reject immediately. This prevents repeated failing fetches from thrashing the server, but it also means that a transient failure (network blip, server restart) becomes sticky until the store is reset or the page is reloaded. Not all stores do this: `storeModelChoices` has no `errors` cache and will retry on every call.
+### Cached Failures
 
-**Derived configuration.** `storeModelConfig.getConfig` is not a direct fetch; it is downstream of model-info. It first awaits `storeModelInfo.fetchModelInfo` to obtain the model-info object, then derives default config values from it (field lists, `expand` defaults, action routing), merges generic and view-specific overrides from any project-supplied config, and caches the merged result under `builtConfigs[builtKey]`. The build itself is memoized in `initialized[builtKey]`, so concurrent callers share the build Promise in the same way that concurrent fetchers share a network Promise.
+`storeModelInfo` keeps the first failure for each model in [`errors`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo.errors}. Every later call for that model rejects with the same error and sends no request. A failing model therefore costs the server one request, however often the client asks. A transient failure, such as a timeout during a deploy, also blocks that model until the cache clears.
 
-**Choices: fresh-by-default.** Unlike model-info and workflow, choices stores do not short-circuit based on existing stored values. `storeModelChoices.fetchChoices` and `fetchFilterChoices` de-duplicate concurrent work via per-field Promise memoization, but every non-concurrent call triggers a fresh network request. This design avoids long-lived choice caches that could go stale if the backing data changes, while still preventing duplicate requests during a single render cycle.
+A missing {@term Pk Marker} is one of these cached failures. After renaming the keys, the store sets `pk` to the name of the field that carries `pk: true`. When no field carries it, the store throws `storeModelInfo.fetchModelInfo: no pk field found for <app>.<model>`. It caches that error like any other. [Primary Key and Identifier Discipline](./pk-and-identifier-discipline.md) describes how the server sets the marker.
 
-## Composable Reactive Adapters
+The workflow store caches failures the same way. It keeps them per model for permitted transitions and states, and per object for object state, transitions, and history. A `403` from the permitted transitions request is cached as a [`WorkflowPermissionDeniedError`]{@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}. [Action Contract and Availability](./action-contract-and-availability.md) describes what the user sees then.
 
-Composables bridge the gap between store state and component rendering. They provide three things that stores do not: reactive input watching, activity gating, and a consistent loading/error interface.
+`storeModelConfig` keeps a failed build as the running build for its key. Every later `getConfig` for that key returns the same rejection. A build fails when model info fails, which leaves one cached failure in each store. It also fails when the merged `submitFields` names a field flattened from an expand.
 
-**Reactive input watching.** Each composable watches its reactive inputs, typically `app`; `model`; and optionally `view` and re-invokes the corresponding store action when those inputs change. When a user navigates from one model to another, the composable's watcher fires, fetches new data from the store, and updates its exposed references. Components do not need to manage this lifecycle; they consume the composable's refs and react to changes.
+`storeModelChoices` caches no failures. The next fetch for that field sends a new request.
 
-**Activity gating.** Composable fetch watches are gated behind an `isActive` ref provided by `useIsActive`. This ref starts as `false` and transitions to `true` on `onMounted` or `onActivated`, and back to `false` on `onDeactivated`. The gate prevents fetches from running during component setup (before mount) or while a component is deactivated inside a `<KeepAlive>` wrapper. Without this gate, a deactivated component's watchers could trigger fetches for stale route parameters.
+A composable shows a cached failure in its `error` ref each time the component asks for that key, and sends no request. The error may come from a failure that happened earlier.
 
-**Reference stability.** After a successful fetch, composables set their exposed ref to a `toRef(...)` pointer into the store's reactive map. `useModelInfo` sets `info` to `toRef(modelInfoStore.infos, key)`, `useModelConfig` sets `config` to `toRef(storeModelConfig.builtConfigs, key)`, and `useWorkflowTransitions` sets `transitions` to `toRef(workflowStore.workflowTransitions, key)`. This pointer-based approach means that if the store entry is updated later (for example, after a config override is applied), the composable's ref automatically reflects the change without re-fetching.
+## When Caches Clear
 
-Prior to the first successful fetch, composables expose a placeholder object that satisfies the expected shape. `useModelInfo` provides a placeholder with empty defaults so that template code can safely access properties without null-checking during the loading window.
+Three events empty the caches of all four stores: a change of signed-in user, a store reset, and a page reload. These are the {@term Auth-Scoped Stores}: the server filters their data by the signed-in user's permissions.
 
-## Loading and Error Surfaces
+### When the Signed-In User Changes
 
-Composables expose loading and error state as reactive refs. The loading ref is `true` while a fetch is in progress and `false` once it resolves or rejects. The error ref captures the rejection value when a fetch fails.
+Every path that can change who is signed in ends in [`fetchCurrentUser`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.fetchCurrentUser} on {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser}. These paths are sign-in, sign-out, reauthentication, two-factor authentication, and the first load. The action compares the user id in the response with the previous one. The first response after a page load sets the id and counts as no change. Any later change counts, including a change to signed out. Reauthentication and two-factor device changes keep the same id, so they clear nothing.
 
-For stores with error memoization (model-info, workflow), the error surface is sticky: once an error is cached, the composable's error ref reflects that cached error on every subsequent navigation to the same model key, without re-attempting the fetch. Components that render error states should be aware that the error may represent a historical failure, not a current one.
+On a change, the user store increments [`identityGeneration`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.identityGeneration} and calls {@api js:function:@arrai-innovations/vueda/stores/authScope#clearAuthScopedStores}. That function calls `clearAuthScoped()` on each of the four stores the application has used. It skips stores the application never created. Each store then:
 
-For choices with no error memoization, each fetch attempt can succeed or fail independently. The composable's error state resets on each new fetch cycle.
+- deletes its cached results, cached failures, and in-flight entries;
+- deletes keys in place, keeping the containers, so the handles composables hold still point at the live container;
+- increments its own generation counter.
 
-`useModelConfig` has a compounding loading surface because its fetch is downstream of model-info. If model-info fails, the config fetch never starts, and the config composable's error state reflects the upstream failure rather than a config-specific issue.
+`storeModelConfig` keeps the overrides that [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} stored, because they come from your code. It cancels each running build before it drops the built configs. `storeModelChoices` also drops lists that [`setChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.setChoices} or [`setFilterChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.setFilterChoices} seeded.
 
-## Route Guard Prefetch Boundary
+Each fetch records its store's generation counter when it starts. A response that arrives after the counter changed was filtered for the previous user. The store neither caches nor returns it, and caches no failure. The fetch rejects with {@api js:class:@arrai-innovations/vueda/utils/errors#AuthScopeInvalidatedError}. A config build in flight at that moment rejects with the same error.
 
-Router guards prefetch data that views will need, but they do so exclusively through stores. The {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} guard loads workflow transitions, model-info, and config in a single async path by calling store actions directly. This prefetch populates the store's caches so that when the destination component mounts and its composables initialize, the data is already available, and the composables' first fetch resolves immediately from cache.
+Consumers react to `identityGeneration`:
 
-Guards must not call composables. Composables depend on `useIsActive` to gate their watches, and `useIsActive` registers `onMounted` / `onActivated` / `onDeactivated` hooks. In the guard context, there is no component instance, so these hooks never fire, `isActive` never becomes `true`, and the composable's watches never execute. Additionally, `useModelConfig` allocates an `effectScope` that expects a component lifecycle owner for teardown. Creating this scope in the guard context leaks memory because nothing will dispose of it.
+- [`useModelInfo`]{@api js:function:@arrai-innovations/vueda/use/useModelInfo#useModelInfo}, `useModelConfig`, [`useWorkflowTransitions`]{@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}, and [`useModelChoices`]{@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices} watch it and fetch again. They ignore `AuthScopeInvalidatedError`. A fetch that was running when the user changed is followed by a new one.
+- [`requireModelInfo`]{@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} returns `false` on `AuthScopeInvalidatedError`, which cancels the navigation.
+- The routes that {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} generates recheck the route on screen. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#rechecking-after-the-authenticated-user-changes) describes that recheck.
 
-The guard/store boundary also means that guard errors follow store error semantics. If a guard's `fetchModelInfo` call fails, the error is cached in the model-info store. Subsequent navigation attempts to the same model, including retries, will hit the cached error and reject without a network request until the store is explicitly reset.
+Between the clear and the new result, a model info or config handle reads `undefined`, because its key is gone. Framework code that reads `config.formProps`, `config.actions`, or `config.actionRedirects` then throws a `TypeError`. Issue [#286](https://github.com/arrai-innovations/vueda/issues/286) tracks keeping the default shape in place.
 
-## Observable Failure Signatures
+The refetch also runs when the change is a sign-out. With no session, the server answers `403`. Model info and workflow cache those failures until the next user change. Issue [#284](https://github.com/arrai-innovations/vueda/issues/284) tracks skipping these requests while nobody is signed in.
 
-The layered architecture produces several characteristic failure patterns.
+### Store Reset
 
-**Cached failure prevents retry.** Repeated calls to `storeModelInfo.fetchModelInfo` or `storeWorkflow.fetchWorkflowTransition` for a key that previously failed reject immediately without issuing a new fetch. The only recovery path is to reset the store or reload the page. This affects both composable-driven and guard-driven fetch paths.
+Pinia's [`$reset()`]{@api ext:pinia:$reset} on one of these stores replaces each cache container with a new empty one. It drops cached results, cached failures, and in-flight entries. On `storeModelConfig` it also drops the `setConfig` overrides. Composables that already hold a handle keep reading the old container. None of them fetches again, because none of their watched inputs changed. VUEDA never calls `$reset()` itself.
 
-**Missing PK marker becomes a sticky failure.** If the server's model-info response does not include a field with `{pk: true}`, the normalization step in `storeModelInfo` throws `"no pk field found for <app.model>"`. This error is cached in `errors[key]`, so the model becomes permanently inaccessible until the store is reset. The root cause is always a server-side serializer that omits the PK field from the model-info payload.
+### Page Reload
 
-**Guard/composable boundary confusion.** Calling composables from guard code is a silent failure. The composable initializes, registers lifecycle hooks that never fire, creates watchers gated by `isActive` that never become `true`, and potentially leaks `effectScope` allocations. No error is thrown; the composable simply never produces data.
+A reload starts a new Pinia instance, so every store starts empty.
 
-**Workflow transition promise cleanup mismatch.** After a failed `fetchObjectTransitions`, subsequent calls can return the same cached rejected Promise because the `.finally` handler deletes from `promises.objectStates` instead of `promises.objectTransitions`. This means the de-duplication key is never cleared, and the rejected Promise persists.
+### Narrower Clears
 
-**Workflow object state/history cold-call failure.** `fetchObjectState` and `fetchObjectHistory` index into nested maps (`objectStates[key]`, `objectHistories[key]`) without initializing the per-`app.model` container objects. A cold call, one where no prior fetch has initialized the nested map for that key, can throw `TypeError` when trying to index into an undefined object.
+Two actions clear part of one store:
 
-## Relevant Implementation Surface
+- `setConfig` clears one model's built configs, running builds, and failed builds. [Model Config Lifecycle](#model-config-lifecycle) describes it.
+- [`initializeObjectTransitions`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.initializeObjectTransitions} empties one model's cached object transitions, with their failures and in-flight entries.
 
-- {@api js:function:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
-- {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices}
-- {@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices}
-- {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
-- {@api js:function:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow}
-- {@api js:module:@arrai-innovations/vueda/use/useModelInfo}
-- {@api js:function:@arrai-innovations/vueda/use/useModelInfo#useModelInfo}
-- {@api js:module:@arrai-innovations/vueda/use/useModelConfig}
-- {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}
-- {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
-- {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}
-- {@api js:module:@arrai-innovations/vueda/use/useWorkflowTransitions}
-- {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
-- {@api js:module:@arrai-innovations/vueda/router/guards}
-- {@api js:function:@arrai-innovations/vueda/router/guards#waitForModelStoreLoad}
-- {@api js:module:@arrai-innovations/vueda/utils/fetchSupport}
-- {@api js:function:@arrai-innovations/vueda/utils/fetchSupport#fetchHelper}
+## Model Config Lifecycle
+
+`getConfig({app, model, view})` returns the built config for its key, or the build already running for it. Otherwise it starts a build:
+
+1. It copies the stored overrides for the model and the view.
+2. It awaits `fetchModelInfo` for the model.
+3. It derives the default config from the model info and merges the overrides on top. [Contract-First Dynamic UI](./contract-first-dynamic-ui.md#configuration-precedence) describes the merge order.
+4. It checks `submitFields` and caches the result under the built key.
+
+`setConfig({app, model}, genericConfig, specificConfigs)` stores the overrides and files a `read` override under `retrieve`. It then clears this model's entries: keys equal to `app.model` or starting with `app.model-`. It cancels and removes each unfinished build, and removes each failed build, so the next `getConfig` builds again. It deletes every built config for the model. `setConfig` builds nothing; the next `getConfig` for each key starts a new build.
+
+Cancelling a build removes it from the running builds. The model info request it awaits keeps running, and model info caches its result as usual. Issue [#178](https://github.com/arrai-innovations/vueda/issues/178) tracks aborting that request.
+
+A build that `setConfig` replaced still resolves for its own caller, with the overrides it copied when it started. It caches nothing and leaves the replacement build's entry alone. A build replaced by a change of user rejects with `AuthScopeInvalidatedError`.
+
+`useModelConfig` starts its [`config`]{@api js:property:@arrai-innovations/vueda/use/useModelConfig#ModelConfigRawState.config} with a default shape of empty field lists and detail maps. After a build succeeds, `config` becomes a {@api ext:vue:toRef} handle into [`builtConfigs`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.builtConfigs}. `setConfig` deletes that key, and the composable does not watch overrides. So `config` reads `undefined` until `app`, `model`, `view`, or the signed-in user changes. The composable's `error` shows its own build failure or the model info failure from its `useModelInfo`.
+
+## Composable Handles
+
+After a successful fetch, each composable exposes a `toRef` handle into the store:
+
+- `useModelInfo` sets [`info`]{@api js:property:@arrai-innovations/vueda/use/useModelInfo#UseModelInfoRaw.info} to the model's entry in [`infos`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo.infos}.
+- `useModelConfig` sets `config` to the view's entry in `builtConfigs`.
+- `useWorkflowTransitions` sets [`transitions`]{@api js:property:@arrai-innovations/vueda/use/useWorkflowTransitions#WorkflowTransitionsRawState.transitions} to the model's entry in [`workflowTransitions`]{@api js:property:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.workflowTransitions}, through a second watch on the store.
+- `useModelChoices` sets each field in [`choices`]{@api js:property:@arrai-innovations/vueda/use/useModelChoices#UseModelChoicesRaw.choices} to that field's stored list.
+
+A store write to an existing key shows up through the handle without a new fetch. Before the first fetch succeeds, `useModelInfo` exposes a placeholder with empty values for the common model info keys. `useWorkflowTransitions` exposes an empty list. Templates can then read nested values during loading.
+
+Each composable sets `loading` while its fetch runs and clears `error` when a new fetch starts. When the inputs change during a fetch, the composable ignores the older result. It fetches for the current inputs once the older request settles. `useModelChoices` runs at most four field requests at once per instance.
