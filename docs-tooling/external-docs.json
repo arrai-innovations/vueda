@@ -50,6 +50,7 @@
             "rest_framework.generics.GenericAPIView.serializer_class": "https://www.django-rest-framework.org/api-guide/generic-views/#attributes",
             "rest_framework.pagination.PageNumberPagination": "https://www.django-rest-framework.org/api-guide/pagination/#pagenumberpagination",
             "rest_framework.permissions.AllowAny": "https://www.django-rest-framework.org/api-guide/permissions/#allowany",
+            "rest_framework.permissions.DjangoObjectPermissions": "https://www.django-rest-framework.org/api-guide/permissions/#djangoobjectpermissions",
             "rest_framework.relations.PrimaryKeyRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#primarykeyrelatedfield",
             "rest_framework.relations.SlugRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield",
             "rest_framework.serializers.BaseSerializer.to_internal_value": "https://www.django-rest-framework.org/api-guide/serializers/#to_internal_valueself-data",
