@@ -7,10 +7,10 @@ status: draft
 
 # Create a CRUDL Surface for a New Model
 
-This guide walks through the end-to-end process of standing up a fully functional {@term CRUDL} surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
+This guide walks through the end-to-end process of standing up a fully functional {@term CRUD} surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
 
 The guide assumes familiarity with the framework's layered architecture. If you have not yet read [Architecture Overview](../core-concepts/architecture-overview), start there; the server responsibility layers and convention-over-configuration principles it describes are the foundation for everything below.
-This flow starts with {@api py:class:vueda.core.models.VuedaModel} and builds a complete {@term CRUDL} surface from server conventions.
+This flow starts with {@api py:class:vueda.core.models.VuedaModel} and builds a complete {@term CRUD} surface from server conventions.
 
 ## Goal and Preconditions
 

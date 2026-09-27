@@ -54,7 +54,7 @@ heading.
 
 To change the text of an `{@api ...}` or `{@term ...}` link, put a bracketed
 label directly before the reference, as in
-`[queue items]{@term Queue Item (VDQ)}`. See "Link text" in `README.md`.
+`[queue items]{@term Queue Item}`. See "Link text" in `README.md`.
 
 ## VuedaDemo Blocks
 

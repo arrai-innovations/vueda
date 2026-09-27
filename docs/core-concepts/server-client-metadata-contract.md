@@ -13,7 +13,7 @@ This page describes each model-info section and the key names the server and the
 
 ## Why This Contract Exists
 
-The metadata gives every registered model a working default UI, so an application starts from a full {@term CRUDL} surface and can iterate quickly. The server describes each model's fields, actions, filters, ordering, permissions, and expands, and the client reads that description at runtime. With no client change, a field added to a serializer appears in forms and tables. An action the user lacks permission for shows no button.
+The metadata gives every registered model a working default UI, so an application starts from a full {@term CRUD} surface and can iterate quickly. The server describes each model's fields, actions, filters, ordering, permissions, and expands, and the client reads that description at runtime. With no client change, a field added to a serializer appears in forms and tables. An action the user lacks permission for shows no button.
 
 Most applications customize some views. The default UI covers what fits its conventions. Where a view needs tweaking or does not fit, you override a field, a widget, or the whole view; [Contract-First Dynamic UI](./contract-first-dynamic-ui) describes how. The metadata still drives everything the overrides leave alone.
 
@@ -40,7 +40,7 @@ Models with a composite primary key follow [Composite Primary Keys](../guides/co
 
 `type_db` and `type_model` come from the model field that the serializer field's `source` reaches, walked the way DRF reads it at runtime. Both are `null` when the source reaches no model field. The payload does not say why. [Failure Modes and Recovery](#failure-modes-and-recovery) covers the system check that reports these fields, and {@api py:module:vueda.info.field_resolution} documents the resolution rules.
 
-**`model_actions`** comes from the canonical viewset. It lists the built-in {@term CRUDL} actions the viewset implements and the requesting user passes: `list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`. Extra actions follow when `get_allowed_extra_actions` allows them. Each entry has `name`, `description`, `method_names`, `detail`, `bulk`, and, for a detail action, `parameters`: the URL argument names, such as `["pk"]`. Built-in actions come first, sorted by name, then extra actions, sorted by name. The order carries no priority. [Action Contract and Availability](./action-contract-and-availability) describes which actions appear and why.
+**`model_actions`** comes from the canonical viewset. It lists the built-in {@term CRUD} actions the viewset implements and the requesting user passes: `list`, `retrieve`, `create`, `update`, `partial_update`, `destroy`. Extra actions follow when `get_allowed_extra_actions` allows them. Each entry has `name`, `description`, `method_names`, `detail`, `bulk`, and, for a detail action, `parameters`: the URL argument names, such as `["pk"]`. Built-in actions come first, sorted by name, then extra actions, sorted by name. The order carries no priority. [Action Contract and Availability](./action-contract-and-availability) describes which actions appear and why.
 
 **`model_ordering`** has two keys. `default` lists the field names the server orders by when a request sends no `?o=`. `fields` lists the fields a client may order by, each with a semantic type, and an `ascending` direction on those in the default. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) describes the projection rules.
 

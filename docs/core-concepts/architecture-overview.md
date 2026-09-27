@@ -7,7 +7,7 @@ status: draft
 
 # Architecture Overview
 
-VUEDA is a metadata-driven framework for building admin-style {@term CRUDL} applications. A Django server defines models, serializers, and viewsets; a Vue client discovers those definitions at runtime through a metadata API and mechanically generates routes, forms, and views from them. No hand-wired per-model client code is required for standard surfaces, though the framework supports customization where needed.
+VUEDA is a metadata-driven framework for building admin-style {@term CRUD} applications. A Django server defines models, serializers, and viewsets; a Vue client discovers those definitions at runtime through a metadata API and mechanically generates routes, forms, and views from them. No hand-wired per-model client code is required for standard surfaces, though the framework supports customization where needed.
 
 The architecture cleanly splits authority: the server owns data integrity, permissions, and metadata shape; the client owns rendering, form state, and route resolution. Understanding where that boundary falls, and why, is the foundation for everything else in the system.
 
@@ -62,7 +62,7 @@ VDQ depends on workflow, because a queue item's lifecycle is a workflow state ma
 
 Workflow may read `vueda.history`, and history never imports workflow. `vueda.core` imports neither, so removing a feature app does not break the base classes.
 
-`vueda.user` works without VDQ. With VDQ installed, the user adapter queues a notification email or SMS as a {@term Queue Item (VDQ)} and a worker delivers it. Without VDQ, the adapter sends the same message inside the request, through Django's mail backend or the Twilio client. The templates and the message content do not change.
+`vueda.user` works without VDQ. With VDQ installed, the user adapter queues a notification email or SMS as a {@term Queue Item} and a worker delivers it. Without VDQ, the adapter sends the same message inside the request, through Django's mail backend or the Twilio client. The templates and the message content do not change.
 
 ### Installation is not model participation
 

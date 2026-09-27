@@ -7,9 +7,9 @@ status: draft
 
 # Workflow as a Permission Overlay
 
-Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same {@term CRUDL} permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
+Workflow permissions in VUEDA are not a separate authorization system; they are an overlay on the same {@term CRUD} permission codenames used by baseline model permissions. State permissions can grant or deny specific codenames for specific workflow states and user groups, modifying the outcome of standard permission checks without changing the underlying permission assignments. Transition permissions are a separate gate that controls who can execute specific workflow transitions, operating alongside but independently from CRUDL authorization.
 
-This page explains how state permissions, transition permissions, and DRF model-scope deferral compose with baseline CRUDL permissions, and how the client treats transition codes as part of the route {@term Action Namespace}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
+This page explains how state permissions, transition permissions, and DRF model-scope deferral compose with baseline CRUDL permissions, and how the client treats transition codes as part of {@term Route Admission}. For the full permission evaluation chain (layers 1-4), see [Permission Model](./permission-model). For the practical steps to configure workflow permissions, see [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions). For row-level filtering mechanics that interact with workflow state, see [Row-Level Permission Filtering](./row-level-permission-filtering). For transition UX and redirect behaviour, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
 
 ## Overlay Boundary and Authority
 
@@ -83,7 +83,7 @@ Model-level transition discovery has no concrete object and so cannot read a sta
 
 Transition execution rechecks object permissions after acquiring the row lock, so a state change since the initial check cannot bypass object read or an additional permission class. A bulk execute request reports an object the caller cannot read with the `404` a missing id produces, wording included, and rolls back the entire batch. The response never says which of the submitted ids exist.
 
-## Client {@term Action Namespace} Overlay
+## Transitions in {@term Route Admission}
 
 On the client, workflow transitions extend the action namespace that drives route admission and view resolution. The {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} route guard assembles the admissible action set from the model-info `model_actions` and workflow permitted transition codes. Transition codes are treated as action identifiers alongside standard CRUDL action names.
 

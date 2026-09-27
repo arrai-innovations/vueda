@@ -31,7 +31,7 @@ The model's workflow (if applicable) is configured with states, transitions, and
 
 Action and transition routes pass through `requireModelInfo` before rendering. The guard fetches model-info, assembles the action set (model-info actions, optional `routeActions` filter, workflow permitted transitions), normalizes the route's action name (`read` -> `retrieve`), and checks membership.
 
-For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard {@term CRUDL} routes; the guard does not distinguish between them at the admission level.
+For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard {@term CRUD} routes; the guard does not distinguish between them at the admission level.
 
 {@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. A transition code with no project override resolves to `ViewExecuteTransition`, which composes {@api vue:component:ModelActionForm} with a `run-action` that submits through `storeWorkflow.executeTransition` rather than the generic model-action endpoint; a project-supplied `ViewAction{App}{Model}{Code}.vue` or `ViewAction{Code}.vue` still takes priority over it for a matching code. When the action cannot be resolved at all, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
 

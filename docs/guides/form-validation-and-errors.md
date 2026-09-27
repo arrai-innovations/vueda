@@ -7,7 +7,7 @@ status: draft
 
 # Handle Form Validation and Server Errors
 
-This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard {@term CRUDL} forms (via `useObjectForm`) and custom forms that wire their own submission logic.
+This guide covers the end-to-end flow for getting server validation errors into form feedback, clearing them on user interaction, and gating submission on local versus server validation. It applies to both standard {@term CRUD} forms (via `useObjectForm`) and custom forms that wire their own submission logic.
 
 The guide assumes familiarity with the form state model. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there; it explains the two-channel state model (errors vs messages), the code-key namespacing (`required`, `validate`, `server`), the runtime reservation of the `server` namespace, and the submission pipeline that this guide builds on. For the server-side contract that produces the validation payloads, see [Error and Validation Contract](../core-concepts/error-and-validation-contract).
 

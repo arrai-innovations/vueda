@@ -24,7 +24,7 @@ The objective is a set of authentication views where:
 
 Before you begin:
 
-The client application must have the VUEDA theme registered, a `<Sonner />` toaster mounted, and the VUEDA {@term CRUDL} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
+The client application must have the VUEDA theme registered, a `<Sonner />` toaster mounted, and the VUEDA {@term CRUD} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
 
 The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
 

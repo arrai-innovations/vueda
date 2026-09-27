@@ -248,14 +248,14 @@ See [Backticks vs Links](#backticks-vs-links) for when to use `{@term ...}` vers
 
 Examples:
 
-- `{@term CRUDL}`
+- `{@term CRUD}`
 - `{@term Model Info}`
 
 ## Link text
 
 An `{@api ...}` link shows the target page's title, and a `{@term ...}` link shows the glossary heading. To show other text, put a label in square brackets directly before the reference, with no space between them:
 
-- `[queue items]{@term Queue Item (VDQ)}`
+- `[queue items]{@term Queue Item}`
 - ``[`AbstractEmailQueueItem`]{@api py:class:vueda.vdq.models.AbstractEmailQueueItem}``
 
 The label is inline Markdown, so wrap a code identifier in backticks. The reference still picks the target, and the validator checks it the same way. The form works inside table cells, because it holds no `|`.

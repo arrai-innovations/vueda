@@ -7,7 +7,7 @@ type: how-to
 
 # Client Plugin Prerequisites
 
-This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `setTheme` to provide component styling classes and on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
+This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `setTheme` to provide component styling classes and on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUD} data path used by built-in views.
 
 The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base tokens, see [Customize VUEDA Appearance](customize-vueda-appearance).
 
@@ -98,7 +98,7 @@ This must be called **before** any VUEDA component renders. Calling it before `c
 
 These must be called **before** any VUEDA store or composable attempts a data fetch. Calling them before `createApp` satisfies this requirement.
 
-**What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the {@term CRUDL} layer.
+**What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the {@term CRUD} layer.
 
 **What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUDL layer has no adapter to call, so it produces no output.
 

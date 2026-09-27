@@ -193,7 +193,7 @@ Nothing breaks when this happens — a client only asks for totals matching the 
 
 ## Client Rendering Strategy
 
-On the client, list {@term CRUDL} adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into `list` state. The data is available to the `list` view's rendering pipeline.
+On the client, list {@term CRUD} adaptors (`singlePagePaginatedListCrudAdaptor`, `allPagePaginatedListCrudAdaptor`) copy `responseData.columnTotals` into `list` state. The data is available to the `list` view's rendering pipeline.
 
 `useViewList` builds the request itself: it takes the totals the server advertises (`modelConfig.config.totalables`), intersects them with the columns currently visible, and sends them under `COLUMN_TOTALS_PARAM`. No app-specific configuration is needed for a declared total to render. Hiding the last totalled column stops the request asking for totals; showing it again restores both the request and the footer value.
 

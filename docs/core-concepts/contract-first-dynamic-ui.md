@@ -13,7 +13,7 @@ This page explains how the client turns that metadata into a default UI, and how
 
 ## The Default UI and Customization
 
-A model registered with a serializer and a viewset gets a complete {@term CRUDL} surface with no client code. When a field changes on the server, the form changes with it. When the server stops offering an action, its route goes away.
+A model registered with a serializer and a viewset gets a complete {@term CRUD} surface with no client code. When a field changes on the server, the form changes with it. When the server stops offering an action, its route goes away.
 
 The default UI is a starting point. A view that needs tweaking, or does not fit its conventions, takes overrides: for a field, for a widget, or for the whole view. Everything an override leaves alone still follows the metadata. [Configuration Precedence](#configuration-precedence) describes how overrides combine with the defaults.
 

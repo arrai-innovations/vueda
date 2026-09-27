@@ -101,7 +101,7 @@ The bar primitive, the stack model, reveal strategies, and the integration contr
 
 ## ViewList
 
-The list view is the entry point for every {@term CRUDL} resource: a title row with the create
+The list view is the entry point for every {@term CRUD} resource: a title row with the create
 action, an under-actions bar holding search and the filter and sort entry points, a constraints
 band for whatever is currently applied, {@api vue:component:ObjectsGrid} filling the card body,
 and a pagination footer.

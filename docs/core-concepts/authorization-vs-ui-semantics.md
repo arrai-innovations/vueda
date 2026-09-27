@@ -13,13 +13,13 @@ This page explains the boundary between these two systems, where each system der
 
 ## Authorization Authority Boundary
 
-The server is the sole authority for data access and mutation rights. DRF's default permission class, `ObjectPermissions`, enforces {@term CRUDL} codename checks on every request. Object-level decisions compose baseline model permissions with workflow-state overlays and row-level hooks via `VUEDAPermissionsMixin.has_perm`. This enforcement applies uniformly: model-info endpoints, CRUDL operations, workflow endpoints, and custom actions all pass through the same permission class.
+The server is the sole authority for data access and mutation rights. DRF's default permission class, `ObjectPermissions`, enforces {@term CRUD} codename checks on every request. Object-level decisions compose baseline model permissions with workflow-state overlays and row-level hooks via `VUEDAPermissionsMixin.has_perm`. This enforcement applies uniformly: model-info endpoints, CRUDL operations, workflow endpoints, and custom actions all pass through the same permission class.
 
 The client cannot enforce authorization. It has no access to permission codenames, group memberships, or row-level policy. What the client does have is metadata: the server tells it which actions are available, and the client uses that information to shape the UI. But metadata-driven UI shaping is not authorization. Hiding a button or blocking a route does not revoke the underlying API permission. A direct API call bypasses the client entirely and succeeds or fails based solely on server rules.
 
 This asymmetry is intentional. Duplicating permission logic on the client would require shipping codename semantics, group resolution, workflow state evaluation, and row-level hook logic to the browser; this would create a parallel authorization engine that would need to stay synchronized with the server. Instead, the client delegates authorization to the server and focuses on what it can own: which views to present and which actions to surface.
 
-## {@term Model-Scope vs Object-Scope Availability} Semantics
+## {@term Action Availability} Semantics
 
 The server provides action metadata at two distinct scopes, and the distinction matters for understanding what the client consumes.
 
@@ -49,7 +49,7 @@ For `list` views, the visible actions are the output of `useFilteredActions`. Fo
 
 This means that detail-view action buttons reflect current, per-object authorization truth. If a workflow state denies `update` permission on a specific object, the update button disappears from that object's `detail` view; not because the client evaluated a permission rule, but because the server's `available_actions` response excluded `update` for that instance.
 
-## Workflow Transition {@term Action Namespace}
+## Workflow Transitions as Actions
 
 Workflow transitions participate in the same action namespace as CRUDL and extra actions. They are not a separate routing or UI visibility system; transition codes are treated as first-class action identifiers at every level where actions are evaluated.
 

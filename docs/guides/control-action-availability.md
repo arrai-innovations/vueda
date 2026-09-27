@@ -15,7 +15,7 @@ The guide assumes familiarity with the action contract. If you have not read [Ac
 
 The objective is an implementation where:
 
-- `model_actions` in {@term Model Info} accurately reflects the requesting user's permitted actions, including both built-in {@term CRUDL} and extra actions.
+- `model_actions` in {@term Model Info} accurately reflects the requesting user's permitted actions, including both built-in {@term CRUD} and extra actions.
 - Object-level `available_actions` reflects per-object permission outcomes, including workflow state and row-level constraints.
 - Client route guards admit only actions that appear in the server-advertised action set (with optional config and workflow overlays).
 - Rendered UI controls are the intersection of config-filtered actions and object-level availability.
@@ -54,7 +54,7 @@ Object-level `available_actions` is computed during serialization and reflects w
 
 The field evaluates standard actions (retrieve, update, partial_update, destroy) through object-permission checks. `create` is excluded for concrete instances; it is a model-scope action. Allowed extra actions from `get_allowed_extra_actions(request, instance=instance)` are appended to the result.
 
-The object-level result can be narrower than model-scope metadata. This {@term Model-Scope vs Object-Scope Availability} divergence is by design. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). The model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
+The object-level result can be narrower than model-scope metadata. This {@term Action Availability} divergence is by design. A user may have model-level `update` permission (so `update` appears in `model_actions`), but a specific object may deny `update` due to workflow state or row-level constraints (so `update` is absent from that object's `available_actions`). The model-scope metadata is a superset that enables route admission, while the object-scope metadata drives per-object UI controls.
 
 ## Route Guard Wiring
 

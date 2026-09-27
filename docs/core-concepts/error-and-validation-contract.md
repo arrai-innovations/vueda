@@ -48,7 +48,7 @@ flowchart TD
 
 The server is the sole authority over validation outcomes. It decides what is valid, what is a warning, and what shape the error payload takes. The client is the authority over how those payloads are represented in the runtime state and rendered in the UI. Neither side has visibility into the other's internal logic; they communicate solely through HTTP responses.
 
-The contract has a single classification gate in the default transport: **HTTP 400 means form validation; everything else does not.** This constraint is deliberate. The client's {@term CRUDL} adapters, auth handlers, and action form components all share one rule. They wrap 400 responses in `FormValidationError` and route them into form state. `FormValidationError` extends `ServerFeedbackError`, the public base class for feedback errors the form system can ingest.
+The contract has a single classification gate in the default transport: **HTTP 400 means form validation; everything else does not.** This constraint is deliberate. The client's {@term CRUD} adapters, auth handlers, and action form components all share one rule. They wrap 400 responses in `FormValidationError` and route them into form state. `FormValidationError` extends `ServerFeedbackError`, the public base class for feedback errors the form system can ingest.
 
 Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths. They do not populate form feedback. A validation-shaped 500 will not appear in form fields unless a custom adapter converts it to a `ServerFeedbackError` subclass. The default adapters treat any 400 as validation feedback, even when the payload is generic.
 
@@ -86,7 +86,7 @@ Non-field errors use the stable key `non_field_errors`, defined by DRF's `NON_FI
 
 The `FormValidationError` constructor flattens the response payload into paths using a recursive path-flattening utility. This handles nested dicts and arrays: `{"items": [{"quantity": ["Too large"]}]}` flattens to a path like `items[0].quantity[0]`, which is then normalized to `items[0].quantity` for the error map key. The flattening also handles structured objects: a path ending in `.detail` indicates a structured feedback object rather than a string message, and the parent path (without `.detail`) is used as the key.
 
-## {@term Warning Channel} Semantics
+## {@term Warning Confirmation} Semantics
 
 Advisory warnings are not part of the HTTP 400 / `FormValidationError` contract described above; they use a separate status code and error class. Every warnings source — a serializer's `get_warnings()`, the viewset-level `get_warnings_for_object`/`get_warnings` hooks, `get_transition_warnings`, or a bare `gate_warnings` call — returns one of exactly two shapes:
 
@@ -105,7 +105,7 @@ The response gives the client no way to infer which of the two shapes `.messages
 
 `.bulk` flows alongside `.messages` through the rest of the rendering chain: `useConfirmationController`'s `request(messages, { bulk })` stores it as `confirmation.bulk`, and `FormConfirmDialog` exposes it on its `warnings` slot scope (`{ warnings, flatWarnings, bulk }`) next to the mapping itself. `FormConfirmDialog` otherwise treats `warnings` as opaque: its default rendering flattens every value into a plain message list and never resolves a field name or an object id. A view that wants shape-aware rendering — field headers, or grouping a bulk action's per-object shape by the object it belongs to — resolves that itself: `ViewCreate` and `ViewUpdate` render the aggregate shape via `FieldWarningsList`; `ModelActionForm` overrides the same slot to group the per-object shape, reading `bulk` from the slot scope to decide whether to group at all, then resolving each object id to a display label before handing that object's field-keyed warnings to `FieldWarningsList` too.
 
-See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-channel) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
+See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-confirmation) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
 
 ## Client Classification and Form-State Ingestion
 

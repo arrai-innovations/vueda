@@ -15,7 +15,7 @@ The guide assumes familiarity with VUEDA's workflow permission model. If you hav
 
 The objective is a workflow-enabled model where:
 
-- State permissions grant or deny specific {@term CRUDL} codenames based on the object's current workflow state and the user's groups.
+- State permissions grant or deny specific {@term CRUD} codenames based on the object's current workflow state and the user's groups.
 - Transition execution is gated by workflow-level and transition-level permission entries.
 - The combination of baseline permissions and workflow overlays produces a consistent, testable behaviour matrix.
 - Client route admission and action rendering reflect the permission outcomes.

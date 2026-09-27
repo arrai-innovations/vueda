@@ -13,7 +13,7 @@ const order = orderScenario();
 
 # Configure `list`/`read`/`create`/`update` Views
 
-This guide covers how to customize {@term CRUDL} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
+This guide covers how to customize {@term CRUD} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
 
 The guide assumes a working CRUDL surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
 

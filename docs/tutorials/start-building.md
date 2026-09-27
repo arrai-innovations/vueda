@@ -45,7 +45,7 @@ The v3 series is currently a prerelease. The templates select the v3 packages. W
 
 ## Scaffold a New Project
 
-VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new {@term integrator} project:
+VUEDA provides two [Copier](https://copier.readthedocs.io/) templates for scaffolding a new integrator project:
 
 - **`integrator-monorepo`**: minimal setup with direct `uv`/`pnpm` workflows.
 - **`integrator-monorepo-dx`**: DX-focused setup with repository automation via `just` (includes linting, formatting, git hooks, and `just serve` for running both servers concurrently).
@@ -305,7 +305,7 @@ class ProductOptionSerializer(VuedaSerializer):
 
 VUEDA provides a {@api py:class:vueda.core.viewsets.VuedaViewSet} base class which:
 
-- sets up default behavior for {@term CRUDL} actions
+- sets up default behavior for {@term CRUD} actions
 - integrates with VUEDA's permission system
 - extends DRF's `ModelViewSet` to cause more intentional errors when passing extra query parameters or fields (rather than silently ignoring them)
 - provides row-level filtering hooks
@@ -486,7 +486,7 @@ uv run python manage.py migrate
 
 ### Verify the New API Endpoints
 
-VUEDA enforces {@term CRUDL} permissions by default. Each model gets five permissions: `inventory.create_product`, `inventory.read_product`, `inventory.update_product`, `inventory.delete_product`, and `inventory.list_product`, and the same five for `optiontype` and `productoption`.
+VUEDA enforces {@term CRUD} permissions by default. Each model gets five permissions: `inventory.create_product`, `inventory.read_product`, `inventory.update_product`, `inventory.delete_product`, and `inventory.list_product`, and the same five for `optiontype` and `productoption`.
 
 Create a group with those 15 permissions and a user in that group:
 
@@ -528,7 +528,7 @@ If the login succeeded, `who-is` should now return your user info:
 curl -b $COOKIE_JAR http://localhost:8000/routes/vueda.user/who-is/
 ```
 
-Now test {@term CRUDL} on the inventory endpoints:
+Now test {@term CRUD} on the inventory endpoints:
 
 ```console
 # Create
@@ -569,7 +569,7 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## VUEDA Client
 
-The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, check the server connection and client setup, then add a sign-in route, a welcome view, and {@term CRUDL View Resolution}.
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, check the server connection and client setup, then add a sign-in route, a welcome view, and {@term CRUD Routes}.
 
 ### Connect to the Server
 
@@ -577,7 +577,7 @@ During local development the client dev server and Django run on different ports
 
 ### Check the Client Setup
 
-The scaffolded `client/src/index.css` and `client/src/main.js` already set up the client, so keep both files. `index.css` loads Tailwind, the theme's `base.css` tokens, and the fonts. `main.js` registers the Tailwind theme, the icons, and the {@term CRUDL} data adapters. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) for what each call does.
+The scaffolded `client/src/index.css` and `client/src/main.js` already set up the client, so keep both files. `index.css` loads Tailwind, the theme's `base.css` tokens, and the fonts. `main.js` registers the Tailwind theme, the icons, and the {@term CRUD} data adapters. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) for what each call does.
 
 ::: tip
 `setTheme(vuedaTailwind)` registers every component's default theme up front. It is the simplest path and the one this tutorial uses. If you later want to trim the bundle to just the components your app renders, VUEDA also supports per-family and fully-lazy registration; see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
@@ -690,7 +690,7 @@ export function getRouter(app, pinia) {
 }
 ```
 
-`crudComponents` maps each {@term CRUDL} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
+`crudComponents` maps each {@term CRUD} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
 
 ::: tip Per-model view overrides
 In a real project you may want a custom view for a specific model. The common pattern is a dynamic import with a fallback:

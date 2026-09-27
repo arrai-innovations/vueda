@@ -49,7 +49,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Control Action Availability in the UI](control-action-availability.md): Combine server action metadata, groups, and client filtering.
 - [Implement Row-Level Permissions](implement-row-level-permissions.md): Add queryset/object checks and verify `list` filtering behavior.
 - [Map Django and VUEDA Permission Names](permission-name-mapping.md): Configure and verify `PERMISSION_NAMES_MAPPING`.
-- [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over {@term CRUDL} permissions.
+- [Add Workflow State and Transition Permissions](workflow-state-permissions.md): Layer state-based grants/denies over {@term CRUD} permissions.
 - [Design Transition UX and Redirects](transition-ux-and-redirects.md): Integrate transitions with action routing and post-submit redirects.
 - [Manage Workflows and Generate Workflow Migrations](manage-workflows.md): Create, edit, and delete workflows through the UI, then capture those changes as a replayable migration.
 - [Manage Groups and Generate Group Migrations](manage-groups.md): Add, rename, and remove groups through the permission overview UI, then capture those changes as a replayable migration.

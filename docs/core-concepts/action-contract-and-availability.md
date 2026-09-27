@@ -15,7 +15,7 @@ This page explains the contract boundary, the metadata each layer produces and c
 
 The action contract divides authority between three scopes.
 
-The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in {@term CRUDL} operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
+The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in {@term CRUD} operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
 
 The server also computes per-object availability. When an object is serialized for a `detail` response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
 
@@ -59,9 +59,9 @@ The computation runs each standard action (retrieve, update, partial_update, des
 
 Extra actions are appended through `get_allowed_extra_actions(request, instance=instance)`. This is the same hook as the model-scope version, but with the instance argument, enabling object-specific filtering of extra action availability.
 
-The {@term Model-Scope vs Object-Scope Availability} distinction is fundamental to the contract. Model-scope metadata answers "Does this action exist and might this user be able to perform it?" Object-scope availability answers the question, "Can this user perform this action on this specific object right now?" The two can diverge legitimately: a user may have the model-level permission for `update` (so it appears in `model_actions`), but a specific object may be in a workflow state that denies `update` (so it is absent from that object's `available_actions`).
+The {@term Action Availability} distinction is fundamental to the contract. Model-scope metadata answers "Does this action exist and might this user be able to perform it?" Object-scope availability answers the question, "Can this user perform this action on this specific object right now?" The two can diverge legitimately: a user may have the model-level permission for `update` (so it appears in `model_actions`), but a specific object may be in a workflow state that denies `update` (so it is absent from that object's `available_actions`).
 
-## Client {@term Action Namespace} and {@term Route Admission}
+## Client Action Names and {@term Route Admission}
 
 The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set. Action name values (e.g., partial_update) are string values, not object keys, and are not camelCased by the store normalization. Client code compares action names in their original snake_case form.
 

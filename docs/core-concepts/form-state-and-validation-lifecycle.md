@@ -25,7 +25,7 @@ The form context, created by `useForm`, is a single reactive object with six sta
 
 **Errors and messages.** These are the two feedback channels. `state.errors` holds blocking validation feedback; `state.messages` holds non-blocking feedback (warnings). Both use the same two-dimensional structure: `state.errors[path][code] = value` and `state.messages[path][code] = value`. The `path` is a field name or a dot/bracket-delimited nested path. The `code` identifies the source: `required` and `validate` come from local validation, `server` comes from server validation ingestion. `state.anyError` and `state.anyMessage` are derived flags maintained by the mutation methods; they reflect whether any entries exist in the respective collections.
 
-The separation between errors and messages is the mechanism that makes VUEDA's {@term Warning Channel} work. Blocking validation failures from the server are routed into `state.errors` under the `server` code. Warnings from the server, surfaced via the confirmation gate, are routed into `state.messages` under the `server` code. The submission pipeline checks only `state.errors` when deciding whether to block; a warning does not appear there because it withholds the write itself, via `409 Conflict`, before the client's own gating runs. See [Error and Validation Contract](./error-and-validation-contract) for how the server shapes these two channels on the wire.
+The separation between errors and messages is the mechanism that makes VUEDA's {@term Warning Confirmation} work. Blocking validation failures from the server are routed into `state.errors` under the `server` code. Warnings from the server, surfaced via the confirmation gate, are routed into `state.messages` under the `server` code. The submission pipeline checks only `state.errors` when deciding whether to block; a warning does not appear there because it withholds the write itself, via `409 Conflict`, before the client's own gating runs. See [Error and Validation Contract](./error-and-validation-contract) for how the server shapes these two channels on the wire.
 
 **Touched and focused.** `state.touched` is a path-keyed boolean map tracking which fields have been blurred. `state.anyTouched` is derived from non-emptiness. `state.focused` holds the name of the currently focused field, or `null`. Local validation only activates after a field is touched, which prevents error messages from appearing on fields the user has not yet interacted with.
 
@@ -70,13 +70,13 @@ Server feedback enters the form state through a single method: `handleServerForm
 
 `FormValidationError` (parsed from a 400 response) extends `ServerFeedbackError`. It only populates `.errors`; its `.messages` stays empty. `ConfirmationRequiredError` (parsed from a 409 response) also extends `ServerFeedbackError`. It writes warnings into `.messages` from the response's `warnings` mapping.
 
-The shared `{errors, messages}` shape lets `handleServerFormValidationError` ingest server feedback without branching on error type. Callers still branch before ingestion to keep blocking errors separate from confirm-then-resubmit warnings. See [The Warning Channel](#the-warning-channel) below for the full 409 lifecycle.
+The shared `{errors, messages}` shape lets `handleServerFormValidationError` ingest server feedback without branching on error type. Callers still branch before ingestion to keep blocking errors separate from confirm-then-resubmit warnings. See [The Warning Confirmation](#the-warning-confirmation) below for the full 409 lifecycle.
 
 Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path; this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
 
 The clearing is triggered by field blur: `FieldContext.blur()` calls `clearServerErrors` with the field's `clearServerErrorDependents` configuration. This means server errors persist visually until the user interacts with the relevant field. Edits that do not blur (for example, programmatic value changes) do not clear server errors.
 
-## The {@term Warning Channel}
+## The {@term Warning Confirmation}
 
 The `state.messages` collection is the client-side representation of server warnings. Warnings are advisory: rather than failing a submission, they gate it behind an explicit confirmation, then let the same write proceed once the user accepts.
 
