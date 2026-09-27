@@ -17,29 +17,29 @@ const duration = ref({ days: 1, hours: 2, minutes: 30, seconds: 0 });
 
 # Form Widgets
 
-A widget is the control a generated form renders for one model field. The
-[Inputs](/reference/components/inputs) and
-[Date + Time](/reference/components/datetime) pages show the primitives a widget
-is built from; this page shows the widgets themselves, as a real
-{@api vue:component:FormModel} renders them.
+A {@term Widget} is the input a generated form renders for one field. This page
+shows each widget as {@api vue:component:FormModel} renders it. A widget can
+carry chrome its primitive lacks: a picker trigger, a remove control, a preview,
+or a notice in place of an input. The [Inputs](/reference/components/inputs) and
+[Date + Time](/reference/components/datetime) pages show the primitives the
+widgets use. [Components](/reference/components/) describes the skin rules
+every component page shares.
 
-The difference matters for a re-skin. A primitive is mounted with the props the
-demo passes it. A widget is mounted by the form, which supplies its props from
-model metadata, so it can carry chrome the primitive demo never shows: a picker
-trigger, an add or remove control, a preview, or a fallback for a field type
-with no widget of its own.
-
-Every demo below runs against one seeded model whose fields exist to select a
-widget. The caption on each names the field type pair that selects it, because
-that pair, not the field name, is what decides which widget a form renders.
-The mapping lives in `client/lib/utils/fieldMappings.js`.
+Every demo runs against one seeded model with one field per widget. The caption
+under each demo names the field's
+[`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}
+and
+[`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}
+pair, which selects the widget through the
+[type mapping tables]{@api js:module:@arrai-innovations/vueda/utils/fieldMappings}.
+[Field and Widget Resolution](/core-concepts/contract-first-dynamic-ui#field-and-widget-resolution)
+describes the lookup.
 
 ## Date and time
 
-Four widgets, all built on the segment controls from the
-[Date + Time](/reference/components/datetime) page. Each pairs a row of editable
-segments with a trigger that opens a calendar or clock popover. The range
-widgets render two segment groups and a separator in one shell.
+Four widgets cover date and time fields. The date widgets show editable segments
+and a trigger that opens a calendar. The time widgets show editable segments
+only. Each range widget shows both bounds on one row.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -59,16 +59,29 @@ widgets render two segment groups and a separator in one shell.
 </VuedaDemo>
 </ClientOnly>
 
+A time range with an error marks both bounds invalid.
+
+<VuedaDemo>
+  <DemoCard title="Time range: invalid">
+    <WidgetTimeRangeField :model-value="{ lower: '17:00:00', upper: '09:00:00' }" invalid />
+    <FieldMessage :messages="['End time must be later than start time.']" />
+    <template #footer>
+      <span>This specimen sets <code>invalid</code> directly; both bounds show the invalid state.</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
 ### Read-only dates
 
 A read view, a computed field, or a read-only model config renders a field
-without its editing controls. Date, time, and datetime fields then select
-{@api vue:component:WidgetDateTimeReadOnly} rather than the plain
-{@api vue:component:WidgetReadOnly}, so the value reads as a formatted date
-instead of the raw string the server sent. The display options come from
-`readOnlyWidgetProps` in `fieldMappings.js`, which carry the same values as the
-`columnProps` a list column uses, so the same field reads the same way in a list
-and on a read view. An empty date renders the same dash both places.
+without its input. Date, time, and datetime fields then render with
+{@api vue:component:WidgetDateTimeReadOnly}, which formats the value. Its display
+options come from the mapping entry's
+[`readOnlyWidgetProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.readOnlyWidgetProps}.
+They match the
+[`columnProps`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.columnProps}
+of the list column for the same type, so a field reads the same in a list and on
+a read view. An empty date renders the same dash in both.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -88,9 +101,6 @@ and on a read view. An empty date renders the same dash both places.
 </VuedaDemo>
 </ClientOnly>
 
-An empty date is the case the raw string handled worst: it rendered a label with
-nothing beside it.
-
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
   <DemoFormModel
@@ -106,23 +116,16 @@ nothing beside it.
 </VuedaDemo>
 </ClientOnly>
 
-<VuedaDemo>
-  <DemoCard title="Time range: invalid">
-    <WidgetTimeRangeField :model-value="{ lower: '17:00:00', upper: '09:00:00' }" invalid />
-    <FieldMessage :messages="['End time must be later than start time.']" />
-    <template #footer>
-      <span>This specimen explicitly sets <code>invalid</code>; both bounds show the range error and use a destructive focus ring.</span>
-    </template>
-  </DemoCard>
-</VuedaDemo>
-
 ## Duration
 
-A duration is stored as one value and entered through one spinner per time unit,
-rather than as an interval string. The widget shows minutes only by default; the
-`showDays`, `showHours`, and `showSeconds` props add the rest. Each spinner has
-a visible unit label; clicking it focuses that input. Style the labels through
-the {@api theme-key:WidgetDuration} `unitLabel` slot.
+{@api vue:component:WidgetDuration} enters a duration through one spinner per
+time unit. Only [`showMinutes`]{@api vue:component:WidgetDuration:prop:showMinutes}
+defaults to true;
+[`showDays`]{@api vue:component:WidgetDuration:prop:showDays},
+[`showHours`]{@api vue:component:WidgetDuration:prop:showHours}, and
+[`showSeconds`]{@api vue:component:WidgetDuration:prop:showSeconds} add the other
+units. Each spinner has a visible unit label, and clicking the label focuses its
+input. The {@api theme-key:WidgetDuration.unitLabel} slot styles the labels.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -144,20 +147,21 @@ the {@api theme-key:WidgetDuration} `unitLabel` slot.
   <DemoCard title="All duration units">
     <WidgetDuration v-model="duration" show-days show-hours show-seconds />
     <template #footer>
-      <span>Each enabled unit has its own label and input; segments wrap when space is limited.</span>
+      <span>Each enabled unit has its own label and input.</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ### Read-only durations
 
-Read-only duration fields select {@api vue:component:WidgetDurationReadOnly},
-which names the units the value holds instead of printing the interval the server
-sent. A `DurationField` sends `2 08:00:00`; the read row says "2 days, 8 hours". A
-`DurationSecondsField` sends a plain number of seconds, and the same widget reads
-it. Units holding zero are left out, and an empty value renders the same dash an
-empty date does. A list cell uses {@api vue:component:ColumnDuration}, which wraps
-the same display, so one field reads one way in both places.
+Read-only duration fields render with
+{@api vue:component:WidgetDurationReadOnly}, which names the units the value
+holds. A `DurationField` sends `2 08:00:00`, and the read row shows "2 days, 8
+hours". A `DurationSecondsField` sends a number of seconds, which the same widget
+reads. Units that hold zero are left out, and a duration of zero names its
+smallest unit ("0 seconds"). An empty value renders the same dash as an empty
+date. A list cell uses {@api vue:component:ColumnDuration}, which wraps the same
+display, so a field reads the same in both places.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -170,8 +174,8 @@ the same display, so one field reads one way in both places.
     :initial-values="{ leadTime: '2 08:00:00' }"
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>Lead time: the stored <code>2 08:00:00</code> reads as named units, and a zero unit is left out rather than printed</span>
-    <span>a duration of zero still names its smallest unit, because a recorded zero is not the same as no value</span>
+    <span>Lead time: the stored <code>2 08:00:00</code> reads as named units, and the zero minutes and seconds are left out</span>
+    <span>a duration of zero still names its smallest unit, because a recorded zero differs from no value</span>
     <span>theme key: {@api theme-key:DurationDisplay}, whose <code>dash</code> slot holds the empty value</span>
   </footer>
 </VuedaDemo>
@@ -179,17 +183,16 @@ the same display, so one field reads one way in both places.
 
 ## Choice
 
-Choices reach three different widgets. A single choice renders a select, which
-the [CRUD Views](/reference/components/views-crud) demos already show. The two
-below are the cases those demos never reach: a many-valued choice, and a boolean
-that carries labels for its two states.
+A single choice renders {@api vue:component:WidgetSelectDropdown}. The demo
+below shows the other two choice widgets: a many-valued choice, and a boolean
+with labels for its two states.
 
-{@api vue:component:WidgetSelectDropdown} treats empty-string, `null`, and
-`undefined` choices as no selection and omits them from the menu. Unless an
-explicit `placeholder` is supplied, it uses the first empty choice's label as
-the placeholder. Values `false` and `0` remain ordinary choices. Clear an active
-filter with its Remove control; in a custom form, reset the bound value to clear
-the selection.
+`WidgetSelectDropdown` treats empty-string, `null`, and `undefined` choices as no
+selection and leaves them out of the menu. Without a
+[`placeholder`]{@api vue:component:WidgetSelectDropdown:prop:placeholder}, it uses
+the first empty choice's label as the placeholder. The values `false` and `0` stay
+in the menu as ordinary choices. The menu has no empty item, so a user cannot
+clear a selection from it.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -199,14 +202,17 @@ the selection.
     :fields="['regions', 'expedited']"
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>Regions: <code>ChoiceField</code> / <code>CharField</code> with <code>many: true</code> selects {@api vue:component:WidgetCombobox} with <code>multiple: true</code>. A relation field selects the same widget, which is why this demo stands in for the picker a foreign key renders</span>
-    <span>Handling: <code>BooleanField</code> / <code>BooleanField</code> with <code>choices</code> selects {@api vue:component:WidgetRadioGroup}. The same field without choices selects a toggle instead</span>
+    <span>Regions: <code>ChoiceField</code> / <code>CharField</code> with <code>many: true</code> selects {@api vue:component:WidgetCombobox} with <code>multiple: true</code>. A relation field selects the same widget, so this demo also shows the picker a foreign key renders</span>
+    <span>Handling: <code>BooleanField</code> / <code>BooleanField</code> with <code>choices</code> selects {@api vue:component:WidgetRadioGroup}. The same field without choices selects {@api vue:component:WidgetToggle}</span>
     <span>theme keys: {@api theme-key:WidgetCombobox}, {@api theme-key:RadioGroup}</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 ## Structured data
+
+{@api vue:component:WidgetJson} edits a `JSON` field as text and submits the
+parsed value.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -224,14 +230,14 @@ the selection.
 
 ### Read-only JSON
 
-Read-only `JSON` fields select {@api vue:component:WidgetJsonReadOnly}, which
-indents the payload over several lines in the mono stack rather than printing it
-on one. A list cell has no room for that, so {@api vue:component:ColumnJson}
-renders the same value compact and truncates it past 200 characters. Both print
-the same `JSON` and give a null value the same dash an empty date gets.
-
-An empty object or array is a recorded value, so it reads as `{}` or `[]`. Only a
-null takes the dash.
+Read-only `JSON` fields render with {@api vue:component:WidgetJsonReadOnly},
+which prints the payload over several lines, indented by
+[`indent`]{@api vue:component:WidgetJsonReadOnly:prop:indent} spaces per level
+(2 by default). A list cell uses {@api vue:component:ColumnJson}, which prints the
+same value compact and truncates it past
+[`maxLength`]{@api vue:component:ColumnJson:prop:maxLength} characters (200 by
+default). Both render a null value as the same dash as an empty date. An empty
+object or array is a recorded value, so it reads as `{}` or `[]`.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -244,8 +250,7 @@ null takes the dash.
     :initial-values="{ metadata: { sku: 'BRG-6204', revision: 3, channels: ['direct', 'partner'] } }"
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>Metadata: the nesting is indented two spaces per level, and a long string value wraps rather than widening the row</span>
-    <span>size and leading are inherited, so the block keeps the read row's rhythm and a grid cell still follows <code>data-density</code></span>
+    <span>Metadata: each nesting level is indented, and a long string value wraps inside the row</span>
     <span>theme key: {@api theme-key:JsonDisplay}, whose <code>dash</code> slot holds the empty value</span>
   </footer>
 </VuedaDemo>
@@ -253,8 +258,10 @@ null takes the dash.
 
 ## Files and images
 
-Both widgets pair an upload control with a display of what is already stored, so
-an empty field and a populated one look different.
+Each widget shows an upload control while the field is empty. Once the field has
+a file, {@api vue:component:WidgetFile} shows it as a download link with remove
+and download controls, and {@api vue:component:WidgetImage} shows a preview with a
+remove control.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -265,18 +272,21 @@ an empty field and a populated one look different.
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>Datasheet: <code>FileField</code> / <code>FileField</code> selects {@api vue:component:WidgetFile}</span>
-    <span>Hero image: <code>ImageField</code> / <code>ImageField</code> selects {@api vue:component:WidgetImage}, which adds a thumbnail of the stored file</span>
+    <span>Hero image: <code>ImageField</code> / <code>ImageField</code> selects {@api vue:component:WidgetImage}</span>
     <span>theme keys: {@api theme-key:WidgetFile}, {@api theme-key:WidgetImage}, {@api theme-key:FileUpload}</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-## Unmapped fallback
+## Unmapped widget
 
-When a field's type pair has no widget, the form renders a diagnostic in place of
-the control rather than dropping the field. The diagnostic names the field, so a
-missing mapping is visible on the form instead of silently absent. The same
-fallback appears when a configured widget name does not resolve.
+IP address fields map to {@api vue:component:WidgetUnmapped} by default. It
+renders an alert that names the field in place of an input, so the field stays
+visible on the form. The alert sits in the field's content column and must not
+look like a control.
+[Map a Field Type to a Widget](/guides/custom-field-widget-rendering#map-a-field-type-to-a-widget)
+describes how to give the type a widget, and the error a field with no mapping
+renders.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -287,7 +297,6 @@ fallback appears when a configured widget name does not resolve.
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>Server IP: <code>IPAddressField</code> / <code>IPAddressField</code> selects {@api vue:component:WidgetUnmapped}</span>
-    <span>an application maps the type to a widget of its own through the model config, or overrides the field with a <code>widget(fieldName)</code> slot</span>
     <span>theme key: {@api theme-key:WidgetUnmapped}</span>
   </footer>
 </VuedaDemo>
