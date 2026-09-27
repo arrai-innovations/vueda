@@ -35,7 +35,7 @@ The top of the page shows a **Groups** section listing every group in the projec
 
 ### Permissions Sections
 
-Below the groups section, permissions are organized by app and model. Each app is a collapsible region with a sticky header showing the app label. Within each app, models are listed in their own subsections with a sticky model header. Permissions within each model are sorted in CRUDL order: create, read, update, delete, list, and then any remaining permissions alphabetically.
+Below the groups section, permissions are organized by app and model. Each app is a collapsible region with a sticky header showing the app label. Within each app, models are listed in their own subsections with a sticky model header. Permissions within each model are sorted in CRUD order: create, read, update, delete, list, and then any remaining permissions alphabetically.
 
 Each permission row shows:
 

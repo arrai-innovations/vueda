@@ -15,7 +15,7 @@ const order = orderScenario();
 
 This guide covers how to customize {@term CRUD} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
 
-The guide assumes a working CRUDL surface is already in place. If the model is not yet registered and routable, start with [Create a CRUDL Surface](./create-crudl-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
+The guide assumes a working CRUD surface is already in place. If the model is not yet registered and routable, start with [Create a CRUD Surface](./create-crud-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
 
 ## Goal and Preconditions
 
@@ -242,7 +242,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
 
-**Template route paths do not match project structure.** The provided project templates wire CRUDL routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
+**Template route paths do not match project structure.** The provided project templates wire CRUD routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
 
 ## Relevant Implementation Surface
 

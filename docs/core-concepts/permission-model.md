@@ -1,11 +1,11 @@
 ---
-title: Permission Model (CRUDL + Object + State)
+title: Permission Model (CRUD + Object + State)
 type: explanation
 audience: integrator
 status: draft
 ---
 
-# Permission Model (CRUDL + Object + State)
+# Permission Model (CRUD + Object + State)
 
 VUEDA enforces API authorization through a layered permission model. Every request passes through a DRF permission class that maps HTTP methods to permission codenames, a user-level permission mixin that composes baseline model permissions with {@term Workflow Overlay} and row-level hooks, and viewset-level queryset filtering that controls row visibility in list and bulk-`delete` operations. These layers evaluate in a fixed order, and each layer can override the decision of the one before it.
 
@@ -25,11 +25,11 @@ Authorization decisions flow through four layers, evaluated in order. Each layer
 
 The layered design means that the same permission codename can produce different outcomes for different objects of the same model. Two objects in different workflow states, or two objects that trigger different row-level logic, can yield opposite authorization decisions even though the user's baseline model permission is the same for both.
 
-## CRUDL Codename and Action Mapping
+## CRUD Codename and Action Mapping
 
 VUEDA replaces Django's default permission codename vocabulary. Where Django generates `add`, `change`, `view`, and `delete` codenames, VUEDA's base model meta declares `create`, `read`, `update`, `delete`, and `list` as the default permission set. The `patch_django` module monkey-patches Django's codename generation and built-in permission creation to use these names, so permission rows in `auth_permission` carry {@term CRUD} labels from initial migration onward. See [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) for the configuration and validation details.
 
-The DRF permission class `ObjectPermissions` maps HTTP methods to CRUDL codenames. The mapping is straightforward for write methods: `POST` requires `create_*`, `PUT` and `PATCH` require `update_*`, and `DELETE` requires `delete_*`. For `GET`, the mapping is action-sensitive. When the viewset action is `list`, the required codename is `list_*`. For all other `GET` actions (retrieve, custom `detail` actions), the required codename is `read_*`. This split means that a user can have list access without detail-read access, or vice versa; the two are independent permission decisions.
+The DRF permission class `ObjectPermissions` maps HTTP methods to CRUD codenames. The mapping is straightforward for write methods: `POST` requires `create_*`, `PUT` and `PATCH` require `update_*`, and `DELETE` requires `delete_*`. For `GET`, the mapping is action-sensitive. When the viewset action is `list`, the required codename is `list_*`. For all other `GET` actions (retrieve, custom `detail` actions), the required codename is `read_*`. This split means that a user can have list access without detail-read access, or vice versa; the two are independent permission decisions.
 
 The codename pattern is `{app_label}.{action}_{model_name}`. For a model `myapp.Widget`, the five base codenames are `myapp.create_widget`, `myapp.read_widget`, `myapp.update_widget`, `myapp.delete_widget`, and `myapp.list_widget`.
 
@@ -59,9 +59,9 @@ The full mechanics of queryset and instance filtering, including pagination inte
 
 ## Workflow Overlay and Transition Gates
 
-Workflow permissions operate on the same permission codename strings as baseline CRUDL permissions. A `StatePermission` entry targets a specific workflow state, group, and permission codename with a grant-or-deny flag. This means the workflow overlay does not create a parallel authorization namespace; it modifies the outcomes of the same codenames that model-level permissions use.
+Workflow permissions operate on the same permission codename strings as baseline CRUD permissions. A `StatePermission` entry targets a specific workflow state, group, and permission codename with a grant-or-deny flag. This means the workflow overlay does not create a parallel authorization namespace; it modifies the outcomes of the same codenames that model-level permissions use.
 
-Transition execution is a separate authorization surface from CRUDL operations. Executing a transition requires all of the following:
+Transition execution is a separate authorization surface from CRUD operations. Executing a transition requires all of the following:
 
 - The object is not locked by another action. If it is locked, the API returns a _try again_ validation error.
 - Workflow-level permission: at least one `WorkflowPermission` entry exists for the workflow content type, and the user has all of those permissions.

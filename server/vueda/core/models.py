@@ -1,4 +1,4 @@
-"""Abstract model bases with CRUDL permissions, singleton support, and email templates."""
+"""Abstract model bases with CRUD permissions, singleton support, and email templates."""
 
 __all__ = (
     "ActivatableBaseModel",
@@ -31,7 +31,7 @@ from vueda.core.options import resolve_vueda_options
 
 
 class BaseModelMeta:
-    """Default Django ``Meta`` base that replaces Django's add/change/view/delete permissions with CRUDL names."""
+    """Default Django ``Meta`` base that replaces Django's add/change/view/delete permissions with CRUD names."""
 
     default_permissions = ("create", "read", "update", "delete", "list")
 

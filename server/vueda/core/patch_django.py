@@ -1,4 +1,4 @@
-"""Monkey-patches Django permission codenames to use CRUDL naming conventions."""
+"""Monkey-patches Django permission codenames to use CRUD naming conventions."""
 
 __all__ = (
     "get_builtin_permissions",
@@ -114,7 +114,7 @@ _Options.__init__ = _patched_options_init
 # above, this decision does not move to call time; it reads the setting once here.
 #
 # DynamicObjectPermissions, and the workflow class built on it, are absent here on purpose. They
-# name a CRUDL action rather than a codename and resolve it through get_permission_names_mapping
+# name a CRUD action rather than a codename and resolve it through get_permission_names_mapping
 # when the check runs, so they follow a renamed action without being patched.
 permission_names_mapping = settings.PERMISSION_NAMES_MAPPING
 

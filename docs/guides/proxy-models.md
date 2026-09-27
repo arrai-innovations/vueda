@@ -1,17 +1,17 @@
 ---
-title: Expose a Proxy Model as a Separate CRUDL Surface
+title: Expose a Proxy Model as a Separate CRUD Surface
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Expose a Proxy Model as a Separate CRUDL Surface
+# Expose a Proxy Model as a Separate CRUD Surface
 
-This guide covers creating a Django proxy model on top of a `VuedaModel` and wiring it as a fully independent CRUDL surface with its own serializer, viewset, filterset, permissions, and model-info registration.
+This guide covers creating a Django proxy model on top of a `VuedaModel` and wiring it as a fully independent CRUD surface with its own serializer, viewset, filterset, permissions, and model-info registration.
 
 A proxy model shares the underlying database table with its concrete parent but has its own `ContentType`, its own permission codenames, and its own Python class. Use one when you need to expose the same data to different audiences under different access controls, or when you want a subset view of a model's rows with distinct API routing, without duplicating the database table.
 
-This guide assumes you already have a concrete model using `VuedaModel`. If you have not set up the base model yet, see [Create a CRUDL Surface for a New Model](./create-crudl-surface).
+This guide assumes you already have a concrete model using `VuedaModel`. If you have not set up the base model yet, see [Create a CRUD Surface for a New Model](./create-crud-surface).
 
 ## How History Tracking Works for Proxy Models
 

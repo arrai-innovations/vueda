@@ -15,7 +15,7 @@ from vueda.info.views import InfoOverviewView
 @pytest.mark.django_db
 class TestInfoOverviewPermissionOrder(BaseTestUserMixin, BaseTestGroupMixin):
     """
-    The overview lists each model's permissions in CRUDL order, then the remaining permissions by
+    The overview lists each model's permissions in CRUD order, then the remaining permissions by
     codename. The extra permissions are created out of codename order, so the test fails if the
     remaining permissions come back in database order.
     """

@@ -185,7 +185,7 @@ Django does not run system checks when starting a WSGI application. Run `manage.
 
 Only registered viewsets are checked, which in practice means all of them: registration is one viewset per model and a second registration for the same model fails at startup, so a model's totals are either checked or the model has no metadata surface at all. A viewset routed without being registered is the exception, and it declares its totals unchecked — worth knowing because the rule about multi-valued relations is the one nothing else enforces: such a path raises no error at any point and quietly inflates every total computed alongside it.
 
-A second CRUDL surface over the same data is a proxy model, which registers in its own right and is checked like any other — see [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery).
+A second CRUD surface over the same data is a proxy model, which registers in its own right and is checked like any other — see [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery).
 
 The check cannot tell you that a total name matches a column the client actually renders. `{"prcie": "price"}` passes every rule above and still renders nowhere, because no display column is named `prcie`. The server has no way to know better: total names are client column names, and `displayFields` is configured per project and per view.
 

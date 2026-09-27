@@ -379,7 +379,7 @@ class ProductOptionFilterSet(VuedaFilterSet):
 
 ### Router and URLs
 
-VUEDA provides {@api py:class:vueda.core.routers.VuedaRouter}, which builds on DRF's `SimpleRouter` to generate standard CRUDL routes, namespaces route names with the app label, and supports {@term Bulk Action}s via `@action(bulk=True)`.
+VUEDA provides {@api py:class:vueda.core.routers.VuedaRouter}, which builds on DRF's `SimpleRouter` to generate standard CRUD routes, namespaces route names with the app label, and supports {@term Bulk Action}s via `@action(bulk=True)`.
 
 `server/your_project/inventory/routers.py`:
 
@@ -421,7 +421,7 @@ urlpatterns = [
 ]
 ```
 
-The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`. The client requests each model at `/routes/<app_label>/<model_name>/`, so each router prefix is the model name. [Router and URL Wiring](../guides/create-crudl-surface.md#router-and-url-wiring) describes this rule.
+The template's `server/config/urls.py` already includes your project namespace under the `routes/` prefix, so the inventory endpoints will be available at `/routes/inventory/`. The client requests each model at `/routes/<app_label>/<model_name>/`, so each router prefix is the model name. [Router and URL Wiring](../guides/create-crud-surface.md#router-and-url-wiring) describes this rule.
 
 ### App Configuration and Model-Info Registration
 
@@ -612,7 +612,7 @@ const displayName = computed(() => userStore.loggedInUser?.name || userStore.log
 </template>
 ```
 
-### Configure CRUDL View Resolution and Routes
+### Configure CRUD View Resolution and Routes
 
 The scaffolded router calls {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
 
@@ -705,7 +705,7 @@ list: async ({ app, model }) => {
 },
 ```
 
-This lets you drop in a `ViewListInventoryProduct.vue` for one model while every other model keeps the default. See [Creating a CRUDL Surface](/guides/create-crudl-surface) for details.
+This lets you drop in a `ViewListInventoryProduct.vue` for one model while every other model keeps the default. See [Creating a CRUD Surface](/guides/create-crud-surface) for details.
 :::
 
 ### Verify in the Browser
@@ -767,4 +767,4 @@ import { setupModelConfig } from "./setupModelConfig.js";
 setupModelConfig();
 ```
 
-`detailLinkField` turns each row's `name` into a link to that product's read or update view; see [Link List Rows to Detail Views](../guides/link-list-rows-to-detail-views.md). The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUDL Views](/guides/configure-crud-views) for all available options.
+`detailLinkField` turns each row's `name` into a link to that product's read or update view; see [Link List Rows to Detail Views](../guides/link-list-rows-to-detail-views.md). The `fields` shorthand sets `displayFields`, `fetchFields`, and `submitFields` together. Per-view configs (keyed by action name) merge on top of the generic config. See [Configure CRUD Views](/guides/configure-crud-views) for all available options.

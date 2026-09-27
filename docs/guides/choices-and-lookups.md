@@ -8,7 +8,7 @@ status: draft
 # Model Choices, Lookup Fields, and Dynamic Options
 
 This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
-The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract).
+The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract).
 
 ## Goal and Preconditions
 
@@ -21,7 +21,7 @@ The objective is a model surface where:
 
 Before you begin, ensure the following are in place:
 
-The model is registered via `register()` with both a canonical serializer and viewset. The model-info endpoint returns complete metadata. If the model has related-model choice fields (foreign keys used as choice sources), the related model must also be registered so the choice endpoint can resolve its content type. The model's `formatted_name` strategy must be configured; choice endpoints use it to resolve display labels for related-model choices. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the four `formatted_name` strategies and their serializer wiring requirements.
+The model is registered via `register()` with both a canonical serializer and viewset. The model-info endpoint returns complete metadata. If the model has related-model choice fields (foreign keys used as choice sources), the related model must also be registered so the choice endpoint can resolve its content type. The model's `formatted_name` strategy must be configured; choice endpoints use it to resolve display labels for related-model choices. See [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract) for the four `formatted_name` strategies and their serializer wiring requirements.
 
 ## Registry and Route Preconditions
 
@@ -143,7 +143,7 @@ With choice loading wired, verify these behaviors:
 
 **Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer; either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
 
-**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. A system check (`vueda_info.E001`) catches this misconfiguration at startup. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUDL Surface](./create-crudl-surface#the-formatted_name-contract) for the configuration options.
+**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. A system check (`vueda_info.E001`) catches this misconfiguration at startup. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract) for the configuration options.
 
 **Filter choices are empty on initial page load.** This is expected behavior for lazily-loaded filter choices. The filter UI fetches choices when the dropdown is opened or when the URL already contains a filter value. If you need eager loading, configure `intendToFetch: true` and ensure the component is active at mount time.
 

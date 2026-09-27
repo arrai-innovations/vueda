@@ -1,19 +1,19 @@
 ---
-title: Set Up CRUDL for a Composite Primary Key Model
+title: Set Up CRUD for a Composite Primary Key Model
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Set Up CRUDL for a Composite Primary Key Model
+# Set Up CRUD for a Composite Primary Key Model
 
 This guide covers using Django's composite primary key feature in VUEDA. A composite primary key identifies each row using the combined values of two or more fields instead of a single generated `id`. VUEDA adds support for composite primary keys in serializers, viewsets, and filtersets, so they work within the standard model-info contract.
 
-For how Django defines composite primary key models, see the [Django documentation](https://docs.djangoproject.com/en/dev/topics/composite-primary-key/). This guide assumes familiarity with VUEDA's standard serializer, viewset, and filterset patterns. If you have not set up a basic CRUDL surface yet, read [Create a CRUDL Surface for a New Model](./create-crudl-surface) first.
+For how Django defines composite primary key models, see the [Django documentation](https://docs.djangoproject.com/en/dev/topics/composite-primary-key/). This guide assumes familiarity with VUEDA's standard serializer, viewset, and filterset patterns. If you have not set up a basic CRUD surface yet, read [Create a CRUD Surface for a New Model](./create-crud-surface) first.
 
 ## Goal and Preconditions
 
-The objective is a working CRUDL surface for a model that uses a composite primary key, including correct URL routing, serialization, and filtering.
+The objective is a working CRUD surface for a model that uses a composite primary key, including correct URL routing, serialization, and filtering.
 
 Before you begin:
 
@@ -51,7 +51,7 @@ class OrderLine(VuedaModel):
 
 Because `OrderLine` has no `id` field, `formatted_name` must either use a lookup expression pointing to another field or implement `get_formatted_name()`. Setting `formatted_name = None` without providing one of these alternatives will cause list and retrieve endpoints to return `null` for `formatted_name`. The choice endpoint failure this would cause is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served.
 
-When `formatted_name_lookup_expression` is set, `FormattedNameManager` — the default manager `FormattedNameBaseModel` provides — annotates every queryset the model builds with the expression, and `VuedaViewSet` does the same in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints, and it resolves outside a request too (see [Create a CRUDL Surface](create-crudl-surface#replacing-the-default-manager)).
+When `formatted_name_lookup_expression` is set, `FormattedNameManager` — the default manager `FormattedNameBaseModel` provides — annotates every queryset the model builds with the expression, and `VuedaViewSet` does the same in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints, and it resolves outside a request too (see [Create a CRUD Surface](create-crud-surface#replacing-the-default-manager)).
 
 ## Defining the Serializer
 

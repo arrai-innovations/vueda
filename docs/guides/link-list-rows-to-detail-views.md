@@ -9,7 +9,7 @@ status: draft
 
 Set `detailLinkField` in a model's list configuration to link an existing column to each row's `update` or `read` view. Choose a column that identifies the record, such as a purchase order's `reference`. No extra action column or field slot is required.
 
-This builds on [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views) and assumes a working CRUDL surface (see [Create a CRUDL Surface](./create-crudl-surface)).
+This builds on [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views) and assumes a working CRUD surface (see [Create a CRUD Surface](./create-crud-surface)).
 
 ## Opt In Through Model Config
 

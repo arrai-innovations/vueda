@@ -9,7 +9,7 @@ type: how-to
 
 This guide covers building sign-in, sign-up, re-authentication, and two-factor authentication views using VUEDA's `AuthorizingForm` component, the field/widget system, and the user store. It walks through the component hierarchy, the redirect chain, form value handling, MFA flow integration, and common variant patterns.
 
-The guide assumes familiarity with Vue component composition and VUEDA's field/widget architecture. For the field/widget composable surface, see [Custom Field/Widget Rendering](../guides/custom-field-widget-rendering). For client plugin registration (theme, CRUDL adapters, and related dependencies), see [Client Plugin Prerequisites](../guides/client-plugin-prerequisites).
+The guide assumes familiarity with Vue component composition and VUEDA's field/widget architecture. For the field/widget composable surface, see [Custom Field/Widget Rendering](../guides/custom-field-widget-rendering). For client plugin registration (theme, CRUD adapters, and related dependencies), see [Client Plugin Prerequisites](../guides/client-plugin-prerequisites).
 For the core auth form component contract, review {@api vue:component:AuthorizingForm}. Auth redirects and action gates in this guide map closely to {@term Transition} behavior.
 
 ## Goal and Preconditions
@@ -259,16 +259,16 @@ const handleSubmit = ({ formValues }) => {
 
 ## Hand-Authored Form Patterns
 
-Auth views use `FormField` and `WidgetTextInput` outside the metadata-driven CRUDL surface. In CRUDL views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
+Auth views use `FormField` and `WidgetTextInput` outside the metadata-driven CRUD surface. In CRUD views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
 
-The key differences from CRUDL forms:
+The key differences from CRUD forms:
 
-- **`formProps.initialValues`** must be defined explicitly. CRUDL forms populate initial values from a server-retrieved object; auth forms set them to empty strings or defaults.
+- **`formProps.initialValues`** must be defined explicitly. CRUD forms populate initial values from a server-retrieved object; auth forms set them to empty strings or defaults.
 - **Field `name` props** must match the keys the server endpoint expects. There is no model-info metadata to enforce naming.
 - **No `formModelName` prop.** Auth forms do not reference a model config, so config-driven field behaviour (read-only states, visibility rules) does not apply.
 - **`WidgetTextInput` type variants** are set directly. Use `type="password"` for password fields, `type="otp"` for one-time codes. The full set of supported types is: `text`, `password`, `number`, `otp`, and `mask`.
 
-Validation in hand-authored forms uses the same `FormField` props as CRUDL forms: `required`, `maxLength`, `minLength`, and `patternRegex` (available when `validation="text"` is set). Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FormField` with `name="email"`.
+Validation in hand-authored forms uses the same `FormField` props as CRUD forms: `required`, `maxLength`, `minLength`, and `patternRegex` (available when `validation="text"` is set). Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FormField` with `name="email"`.
 
 ### Update Form Values Programmatically
 

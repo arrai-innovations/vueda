@@ -41,7 +41,7 @@ designer can move from the visual to the override surface in one click.
 
 ## Views
 
-- [CRUDL Views](/reference/components/views-crudl)
+- [CRUD Views](/reference/components/views-crud)
 - [Action & Workflow Views](/reference/components/action-workflow)
 - [System Views](/reference/components/system-views)
 - [Auth & MFA Views](/reference/components/auth-and-mfa)

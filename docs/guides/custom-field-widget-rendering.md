@@ -23,7 +23,7 @@ The objective is a custom field or widget rendering that:
 
 Before you begin:
 
-The model has a canonical registration with working CRUDL views. Override rendering builds on top of the default form infrastructure; verify that default forms render and submit correctly before introducing overrides.
+The model has a canonical registration with working CRUD views. Override rendering builds on top of the default form infrastructure; verify that default forms render and submit correctly before introducing overrides.
 
 You understand the field/widget distinction. In VUEDA's form architecture, a **field** is the outer container that manages form state, labels, validation messages, and layout. A **widget** is the inner input control that handles user interaction and value adaptation. Overriding a field replaces the entire container; overriding a widget replaces only the input control within the existing field structure.
 

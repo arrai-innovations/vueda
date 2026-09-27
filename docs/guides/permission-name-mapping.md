@@ -28,7 +28,7 @@ The project has a Django settings module that calls `get_defaults` from `vueda.c
 
 `PERMISSION_NAMES_MAPPING` is a dictionary that maps Django's built-in action names to the codename strings used in `auth_permission` rows and runtime checks. The mapping runs through Django's `get_permission_codename` function, which VUEDA monkey-patches to apply the translation.
 
-The default mapping translates Django's vocabulary to CRUDL:
+The default mapping translates Django's vocabulary to CRUD:
 
 | Django action | VUEDA codename | Example for `myapp.Widget` |
 | ------------- | -------------- | -------------------------- |
@@ -41,7 +41,7 @@ The default mapping translates Django's vocabulary to CRUDL:
 
 `list` is an additional permission not part of the mapping; it is generated directly as `list_*`. VUEDA's base model meta declares `list` in `default_permissions` for VUEDA models. Additionally, `patch_django` patches `Options.__init__` to inject `list` into `default_permissions` for any Django model that does not already declare it, including third-party models. This means every model in the project — including Django's own `auth.Permission`, `auth.Group`, and `contenttypes.ContentType` — has a `list_*` permission row after migration.
 
-If your project needs to use the opposite mapping direction (such as mapping VUEDA names back to Django names for compatibility with third-party apps that expect `add`, `change`, or `view`), set `PERMISSION_NAMES_MAPPING` to match that need. Be aware that reverse mappings activate a code path in `patch_django` that rewrites the `perms_map` on `ObjectPermissions`. This ensures HTTP-method-to-codename resolution stays consistent with the mapping, but it also means the `perms_map` at runtime may differ from what the source code declares. `DynamicObjectPermissions`, and the `WorkflowObjectPermissions` class built on it, need no rewrite: they name the CRUDL action and resolve it through the mapping when the check runs. Validate explicitly if you use a non-default mapping.
+If your project needs to use the opposite mapping direction (such as mapping VUEDA names back to Django names for compatibility with third-party apps that expect `add`, `change`, or `view`), set `PERMISSION_NAMES_MAPPING` to match that need. Be aware that reverse mappings activate a code path in `patch_django` that rewrites the `perms_map` on `ObjectPermissions`. This ensures HTTP-method-to-codename resolution stays consistent with the mapping, but it also means the `perms_map` at runtime may differ from what the source code declares. `DynamicObjectPermissions`, and the `WorkflowObjectPermissions` class built on it, need no rewrite: they name the CRUD action and resolve it through the mapping when the check runs. Validate explicitly if you use a non-default mapping.
 
 The mapping must be decided before Django generates permission rows. Once `migrate` runs, the codenames in `auth_permission` are set. Changing the mapping after initial migration does not automatically update existing permission rows or group assignments.
 
@@ -77,7 +77,7 @@ The `get_builtin_permissions` patch includes deduplication logic. If the mapping
 
 Several runtime paths build codenames directly from `PERMISSION_NAMES_MAPPING` rather than going through the DRF permission class. These paths must resolve to the same codenames as in `auth_permission`.
 
-**CRUDL HTTP-method checks.** `ObjectPermissions.perms_map` maps HTTP methods to codename patterns. With the default mapping, `GET` resolves to `list_*` or `read_*`, `POST` to `create_*`, `PUT`/`PATCH` to `update_*`, `DELETE` to `delete_*`. With a reverse mapping, the patch rewrites `perms_map` entries to use the reversed names. Verify by making authenticated requests for each HTTP method and checking that the expected permission is required.
+**CRUD HTTP-method checks.** `ObjectPermissions.perms_map` maps HTTP methods to codename patterns. With the default mapping, `GET` resolves to `list_*` or `read_*`, `POST` to `create_*`, `PUT`/`PATCH` to `update_*`, `DELETE` to `delete_*`. With a reverse mapping, the patch rewrites `perms_map` entries to use the reversed names. Verify by making authenticated requests for each HTTP method and checking that the expected permission is required.
 
 **Row-level `list` filtering.** `ListRowLevelViewSetMixin.apply_row_level_filter` builds the `perm_type` by extracting the action prefix from the full codename. The prefix must match the mapping's output.
 
@@ -89,7 +89,7 @@ Several runtime paths build codenames directly from `PERMISSION_NAMES_MAPPING` r
 
 ## Verification Matrix
 
-Validate the mapping end-to-end by running a permission matrix. For each HTTP method and endpoint type, test with a user who holds only one CRUDL codename at a time.
+Validate the mapping end-to-end by running a permission matrix. For each HTTP method and endpoint type, test with a user who holds only one CRUD codename at a time.
 
 | Test scenario         | Expected codename             | Expected outcome                            |
 | --------------------- | ----------------------------- | ------------------------------------------- |
@@ -104,7 +104,7 @@ Validate the mapping end-to-end by running a permission matrix. For each HTTP me
 | Object history        | `read_*`                      | `200` if held, `403` if not                 |
 | Workflow object state | `read_*`                      | `200` if held, `403` if not                 |
 
-VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-default mapping, add project-level tests that cover the above matrix with your mapped codenames.
+VUEDA's own test suite exercises the default CRUD mapping. If you use a non-default mapping, add project-level tests that cover the above matrix with your mapped codenames.
 
 ## Troubleshooting
 

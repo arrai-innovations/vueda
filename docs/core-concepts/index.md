@@ -30,7 +30,7 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 
 ## Authorization and Behavior
 
-- [Permission Model (CRUDL + Object + State)](permission-model.md): Full permission evaluation model in VUEDA.
+- [Permission Model (CRUD + Object + State)](permission-model.md): Full permission evaluation model in VUEDA.
 - [Authorization vs UI Semantics](authorization-vs-ui-semantics.md): Why UI visibility and route semantics differ from server authorization, including why client-side Django-permission evaluation is not authoritative.
 - [Action Contract and Availability](action-contract-and-availability.md): `available_actions`, route actions, group filtering, and safe fallback behavior.
 - [Workflow as a Permission Overlay](workflow-permission-overlay.md): State permissions, transition permissions, and row-level outcomes.
@@ -39,9 +39,9 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 ## Client Runtime Model
 
 - [Reactive Data Flow (Stores + Composables)](reactive-data-flow.md): How stores/composables coordinate model info, config, and object data.
-- [Cancellable Network Operations](cancellable-network-operations.md): Why cancellation is built into CRUDL and fetch helpers.
+- [Cancellable Network Operations](cancellable-network-operations.md): Why cancellation is built into CRUD and fetch helpers.
 - [Form State and Validation Lifecycle](form-state-and-validation-lifecycle.md): Client-side form graph, touched/modified/ignored state, and server error integration.
-- [Routing and View Resolution Model](routing-and-view-resolution-model.md): How CRUDL routes and action routing resolve to concrete components.
+- [Routing and View Resolution Model](routing-and-view-resolution-model.md): How CRUD routes and action routing resolve to concrete components.
 - [Theming and Customization](theming-and-customization.md): The four-scope model (instance, component, family, brand) and the mechanisms that map to each.
 
 ## Operational Concepts

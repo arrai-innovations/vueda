@@ -180,7 +180,7 @@ the same display, so one field reads one way in both places.
 ## Choice
 
 Choices reach three different widgets. A single choice renders a select, which
-the [CRUDL Views](/reference/components/views-crudl) demos already show. The two
+the [CRUD Views](/reference/components/views-crud) demos already show. The two
 below are the cases those demos never reach: a many-valued choice, and a boolean
 that carries labels for its two states.
 

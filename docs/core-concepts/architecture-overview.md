@@ -112,7 +112,7 @@ View components (`ViewList`, `ViewCreate`, `ViewRead`, `ViewUpdate`) and the `Vi
 
 Three processes make up the runtime system. They share a database and cache but are otherwise isolated.
 
-The **web process** (WSGI) handles all synchronous request/response work: CRUDL operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
+The **web process** (WSGI) handles all synchronous request/response work: CRUD operations, metadata queries, workflow transitions, authentication, and webhook ingestion. All database writes in a request are wrapped in a transaction (`ATOMIC_REQUESTS`). Any unhandled exception causes the entire request to roll back. No partial writes persist.
 
 The **worker process** (Celery) handles asynchronous dispatch: email delivery, SMS delivery, and periodic status checks. Workers share the same database, cache, and Django settings as the web process, but they do not have access to HTTP request context or middleware. State changes to worker tasks follow the same workflow transition rules as the web process; there is no separate permission model for background work. However, because workers lack request context, any logic that depends on the current user or session must be passed explicitly rather than inferred from middleware.
 
@@ -170,7 +170,7 @@ The integration between server and client is driven by convention, not per-model
 
 The server is the sole authorization boundary. This is an architectural invariant, not a recommendation.
 
-Permissions are evaluated server-side at multiple layers: model-level CRUDL codenames, object-level checks, row-level queryset filtering, and workflow-state overlays. The metadata API reflects these decisions: action visibility in model-info is permission-sensitive, but the client treats metadata as advisory for UX purposes rather than as an enforcement mechanism.
+Permissions are evaluated server-side at multiple layers: model-level CRUD codenames, object-level checks, row-level queryset filtering, and workflow-state overlays. The metadata API reflects these decisions: action visibility in model-info is permission-sensitive, but the client treats metadata as advisory for UX purposes rather than as an enforcement mechanism.
 
 Client-side visibility decisions (e.g., hiding a button or disabling a field) improve the user experience but do not constitute security boundaries. A user who bypasses the client and calls the API directly still hits every server-side permission check. The client is structurally incapable of granting authority that the server did not advertise, and even if it could, the server would reject unauthorized requests independently.
 

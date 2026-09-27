@@ -35,15 +35,15 @@ Only certain transitions between states are valid:
 
 The canonical serializer is unique per model. Two Django apps cannot register different serializers for the same model. The system enforces this as a startup constraint: the error surfaces immediately when the application boots, not at runtime when a request happens to hit the conflict.
 
-When the same data genuinely needs a second surface — a different audience, different permissions, a different set of actions — the supported route is a Django proxy model. A proxy is its own model with its own `ContentType` and permission codenames, so it registers in its own right and gets a complete metadata surface and the full set of system checks, rather than competing for this model's single registration. See [Expose a Proxy Model as a Separate CRUDL Surface](../guides/proxy-models).
+When the same data genuinely needs a second surface — a different audience, different permissions, a different set of actions — the supported route is a Django proxy model. A proxy is its own model with its own `ContentType` and permission codenames, so it registers in its own right and gets a complete metadata surface and the full set of system checks, rather than competing for this model's single registration. See [Expose a Proxy Model as a Separate CRUD Surface](../guides/proxy-models).
 
 ## Viewset Presence and Metadata Completeness
 
 The distinction between serializer-only and full registration is architecturally significant because it determines which sections of the metadata response exist.
 
-Serializer-only registration produces a model-info entry containing field and expand schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUDL surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare. A serializer-only model can be used for an inline model that is saved along with its parent model and has its data loaded through expandable fields.
+Serializer-only registration produces a model-info entry containing field and expand schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUD surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare. A serializer-only model can be used for an inline model that is saved along with its parent model and has its data loaded through expandable fields.
 
-Full registration produces the complete metadata surface. Actions (CRUDL plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
+Full registration produces the complete metadata surface. Actions (CRUD plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
 
 In practice, this means that if a model appears in model-info but the client cannot generate routes or forms for it, the first thing to check is whether the model was registered with a viewset or only with a serializer.
 
@@ -82,7 +82,7 @@ The client does not distinguish between "unregistered" and "nonexistent." Both p
 
 ## Failure Modes
 
-**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields and generate inline forms via expandable fields, but cannot generate CRUDL routes for it. If the model needs CRUDL routes, actions, filters, or ordering metadata, then it must be registered with a viewset.
+**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields and generate inline forms via expandable fields, but cannot generate CRUD routes for it. If the model needs CRUD routes, actions, filters, or ordering metadata, then it must be registered with a viewset.
 
 **Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
 

@@ -33,7 +33,7 @@ Once `data.pk` is set, downstream consumers use it to resolve identifiers withou
 
 - **Model config** excludes the PK field from default `displayFields`, `fetchFields`, and `submitFields`. The exclusion uses `data.pk` as the key to filter, not a hardcoded `"id"`.
 - **Routing** uses `params.pk` as the route parameter name for `detail` views, independent of the model's actual PK field name. The route parameter is always named `pk`; its value is the PK field's value for the specific object.
-- **CRUDL operations** accept `pk` as a parameter on retrieve, patch, and delete functions. `defaultObjectUpdate` accepts a `pkKey` parameter (defaulting to `"id"`) to resolve the identifier from the submitted object.
+- **CRUD operations** accept `pk` as a parameter on retrieve, patch, and delete functions. `defaultObjectUpdate` accepts a `pkKey` parameter (defaulting to `"id"`) to resolve the identifier from the submitted object.
 - **Lookup context** coerces PK values to strings before cache-key comparison, ensuring that numeric and string representations of the same identifier map to the same cache entry.
 
 ## Identifier Transport Shapes

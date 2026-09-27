@@ -15,7 +15,7 @@ Now that your VUEDA project is set up with basic functionality, it's time to add
 
 A workflow gives your model named states and transitions. Each model instance tracks its current state. Transitions define valid state changes. The API provides endpoints for querying state, listing transitions, and executing transitions. Add state and transition permissions for extra access control if needed.
 
-Without a workflow, a model's CRUDL views work normally but lack state-driven behaviour. When the client requests `permitted_transitions` from the API, it receives a 404 if workflow URLs are not wired up. Likewise, the UI displays transition actions that appear empty if no workflow exists for the model. Wiring up workflow URLs eliminates the 404, while creating a workflow definition populates the transitions.
+Without a workflow, a model's CRUD views work normally but lack state-driven behaviour. When the client requests `permitted_transitions` from the API, it receives a 404 if workflow URLs are not wired up. Likewise, the UI displays transition actions that appear empty if no workflow exists for the model. Wiring up workflow URLs eliminates the 404, while creating a workflow definition populates the transitions.
 
 ## Wire Up Workflow URLs
 
@@ -245,10 +245,10 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## Verify in the Browser
 
-If you have the client running, navigate to the read or update view of a `Product` instance. The client reads `permitted_transitions` for routing and the object's `valid_transitions` field for its transition buttons. For a user in the `Product Editors` group, transition actions (such as "Publish") appear alongside the standard CRUDL actions.
+If you have the client running, navigate to the read or update view of a `Product` instance. The client reads `permitted_transitions` for routing and the object's `valid_transitions` field for its transition buttons. For a user in the `Product Editors` group, transition actions (such as "Publish") appear alongside the standard CRUD actions.
 
 ## What's Next
 
 You now have a workflow with states and transitions. The API only allows valid transitions, and the client shows available transitions in the UI.
 
-To control who can see or execute transitions, or to grant or deny CRUDL permissions by state, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md). To manage workflow definitions in the browser, see [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md).
+To control who can see or execute transitions, or to grant or deny CRUD permissions by state, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md). To manage workflow definitions in the browser, see [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md).

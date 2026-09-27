@@ -14,7 +14,7 @@ A scope comes from one of two sources:
 - **A hidden filter in the URL.** The server declares a filter with a hidden widget, and a link supplies its value as a query parameter.
 - **A declared `params` key.** Application code passes the value through the `ViewList` `params` prop and declares the key as a scope through the `scopes` prop.
 
-This guide assumes a working CRUDL surface (see [Create a CRUDL Surface](./create-crudl-surface)).
+This guide assumes a working CRUD surface (see [Create a CRUD Surface](./create-crud-surface)).
 
 ## Scope a List Through the URL
 

@@ -125,7 +125,7 @@ The server does not advertise a metadata version, and the client does not reques
 
 **An extra action named `read` is unreachable by name.** The route name `read` always maps to `retrieve`, so a route for an extra action named `read` checks `retrieve` instead.
 
-**Choice endpoint `500` from `formatted_name`.** A model that sets `formatted_name = None` without `formatted_name_lookup_expression` or `get_formatted_name()` makes relation choices that list it fail with `500`. The `vueda_info.E001` system check reports this wherever Django runs system checks, such as `manage.py check` and `runserver`. [Create a CRUDL Surface](../guides/create-crudl-surface) describes `formatted_name` configuration.
+**Choice endpoint `500` from `formatted_name`.** A model that sets `formatted_name = None` without `formatted_name_lookup_expression` or `get_formatted_name()` makes relation choices that list it fail with `500`. The `vueda_info.E001` system check reports this wherever Django runs system checks, such as `manage.py check` and `runserver`. [Create a CRUD Surface](../guides/create-crud-surface) describes `formatted_name` configuration.
 
 **Unresolved field source or lookup expression.** The `vueda_info.W001` system check reports a registered serializer's field whose `source`, or whose model `<field>_lookup_expression`, reaches no model field. The warning names the serializer, the field, and the path that failed. It is advisory: it never stops `manage.py check`, and model-info still returns `null` for that field's `type_db` and `type_model`.
 
@@ -137,4 +137,4 @@ A `source` failure is exempt in three cases:
 
 A `<field>_lookup_expression` failure is never exempt. The expression feeds `models.F()` for queryset annotation and Django admin's `lookup_field()`. Both resolve in the database, so a broken expression also breaks those uses, whatever the metadata says.
 
-**Serializer-only registration blocks navigation.** With empty `model_actions`, the route guard blocks every route for the model with an "Action Not Found" toast. That is the intended state for a model without its own CRUDL surface.
+**Serializer-only registration blocks navigation.** With empty `model_actions`, the route guard blocks every route for the model with an "Action Not Found" toast. That is the intended state for a model without its own CRUD surface.

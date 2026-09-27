@@ -147,7 +147,7 @@ Per-column sums a `list` response returns in `columnTotals`, computed over every
 A primary key made of several model fields, declared with Django's `CompositePrimaryKey`. VUEDA sends its value as a JSON array string, such as `["1", "42"]`, and reads that string from the pk segment of a detail URL.
 
 - Names: [`CompositePrimaryKeyField`]{@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}; [`VuedaCompositePrimaryKeyFilterSet`]{@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}
-- Described in: [Set Up CRUDL for a Composite Primary Key Model](../guides/composite-primary-keys.md)
+- Described in: [Set Up CRUD for a Composite Primary Key Model](../guides/composite-primary-keys.md)
 - Upstream: [Django: `CompositePrimaryKey`]{@api ext:django:django.db.models.CompositePrimaryKey}
 
 ## Composition Primitive
@@ -169,7 +169,7 @@ Django's `ContentType` row, which identifies a model by its `app_label` and mode
 VUEDA's five permission and action names: `create`, `read`, `update`, `delete`, and `list`. In VUEDA, CRUD always includes `list`. Codenames take the form `<app_label>.<name>_<model_name>`, such as `vueda_vdq.list_queueitem`. Client routes use these names. On the server, `read` covers `retrieve`, `update` also covers `partial_update`, and `delete` covers `destroy`.
 
 - Names: [`BaseModelMeta.default_permissions`]{@api py:property:vueda.core.models.BaseModelMeta.default_permissions}; [`ObjectPermissions.perms_map`]{@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}; [`getActionName`]{@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
-- Described in: [Permission Model](../core-concepts/permission-model.md#crudl-codename-and-action-mapping)
+- Described in: [Permission Model](../core-concepts/permission-model.md#crud-codename-and-action-mapping)
 - Upstream: [Django: `default_permissions`]{@api ext:django:django.db.models.Options.default_permissions}
 
 ## CRUD Adapter
@@ -177,7 +177,7 @@ VUEDA's five permission and action names: `create`, `read`, `update`, `delete`, 
 A function that performs one data operation, such as retrieve, update, or delete, for the reactive-helpers list and object composables. The adapters cover list operations too: list, bulk delete, and actions on several objects. `setupDefaultListCrud` and `setupDefaultObjectCrud` register VUEDA's REST adapters, and you can replace any of them.
 
 - Names: [`setupDefaultListCrud`]{@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud}; [`setupDefaultObjectCrud`]{@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud}
-- Described in: [CRUDL Adapter Layer](../core-concepts/crud-adapter-layer.md)
+- Described in: [CRUD Adapter Layer](../core-concepts/crud-adapter-layer.md)
 - Upstream: [reactive-helpers: `setListCrud`]{@api ext:reactive-helpers:setListCrud}; [reactive-helpers: `setObjectCrud`]{@api ext:reactive-helpers:setObjectCrud}
 
 ## CRUD Routes
@@ -265,7 +265,7 @@ The component that renders one field's label, help text, and error and warning m
 The display label each {@term VUEDA Model} exposes as `formatted_name`, which the client shows for related objects and choices. By default it is a stored generated column that copies the model's `name` field. A model can instead supply it through another expression, a lookup path, or a `get_formatted_name()` method.
 
 - Names: [`formatted_name`]{@api py:function:vueda.core.models.FormattedNameBaseModel.formatted_name}; [`formatted_name_lookup_expression`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_lookup_expression}; `get_formatted_name()`
-- Described in: [Create a CRUDL Surface](../guides/create-crudl-surface.md#the-formatted-name-contract)
+- Described in: [Create a CRUD Surface](../guides/create-crud-surface.md#the-formatted-name-contract)
 - Upstream: [Django: `GeneratedField`]{@api ext:django:django.db.models.GeneratedField}
 
 ## Group Management Page
@@ -338,7 +338,7 @@ The `model_actions` list in {@term Model Info}: the actions the model's viewset 
 The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The {@term CRUD Routes} are client paths, separate from this server path.
 
 - Names: [`getListUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getListUrl}; [`getDetailUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getDetailUrl}; [`setCustomUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#setCustomUrl}; [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}; `modelList`; `modelDetail`; `modelAction`; `modelDetailAction`
-- Described in: [Create a CRUDL Surface for a New Model](../guides/create-crudl-surface.md#router-and-url-wiring)
+- Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#router-and-url-wiring)
 - Upstream: [Django: `Options.app_label`]{@api ext:django:django.db.models.Options.app_label}
 
 ## Model Config

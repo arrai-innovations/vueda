@@ -183,7 +183,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         Get the permissions for a model. Read-only serializers only ever expose list/retrieve
         actions, so their create/update/delete permissions (which may still exist in the
-        database, since the model itself keeps the standard CRUDL permission set) are filtered
+        database, since the model itself keeps the standard CRUD permission set) are filtered
         out here rather than restricted on the model.
         """
         permissions = Permission.objects.filter(content_type=instance)

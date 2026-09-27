@@ -25,13 +25,13 @@ The objective is a form submission flow where:
 
 Before you begin, ensure the following are in place:
 
-The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and advisory warnings are surfaced through the warning confirmation gate: the serializer's `get_warnings()` hook for create/update, the viewset-level hook and helpers for deletes, activate/deactivate, and custom actions (see [Warnings That Require Confirmation](#warnings-that-require-confirmation)). For standard CRUDL surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
+The form uses `useForm` to create a form context and `useField` for each field (or a VUEDA field component that calls `useField` internally). The API endpoint follows VUEDA's server contract: validation failures return HTTP 400 with a payload that `VuedaValidationError` produces, and advisory warnings are surfaced through the warning confirmation gate: the serializer's `get_warnings()` hook for create/update, the viewset-level hook and helpers for deletes, activate/deactivate, and custom actions (see [Warnings That Require Confirmation](#warnings-that-require-confirmation)). For standard CRUD surfaces, `useObjectForm` provides the default submission pipeline described below. For custom forms, you will wire the equivalent logic manually.
 
 ## Request-Boundary Error Normalization
 
-VUEDA's client CRUDL adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. They wrap HTTP 400 responses in `FormValidationError`, which extends `ServerFeedbackError`. All other failure statuses produce `FetchError` or resolver-specific error types. Those types do not participate in form-context mapping unless an adapter deliberately throws a `ServerFeedbackError` subclass.
+VUEDA's client CRUD adapters (`objectCrud`, `listCrud`) and action form components (`ModelActionForm`) classify HTTP responses at the request boundary. They wrap HTTP 400 responses in `FormValidationError`, which extends `ServerFeedbackError`. All other failure statuses produce `FetchError` or resolver-specific error types. Those types do not participate in form-context mapping unless an adapter deliberately throws a `ServerFeedbackError` subclass.
 
-This classification is automatic for standard CRUDL operations (create, update, partial update, bulk delete) and model action execution. If you write a custom fetch wrapper for a non-standard endpoint, you must preserve this mapping:
+This classification is automatic for standard CRUD operations (create, update, partial update, bulk delete) and model action execution. If you write a custom fetch wrapper for a non-standard endpoint, you must preserve this mapping:
 
 ```js
 const response = await fetch(url, options);
@@ -56,7 +56,7 @@ The form context ingests `ServerFeedbackError` via `handleServerFormValidationEr
 
 `FormValidationError` (parsed from a 400 response) only ever populates `.errors`; its `.messages` is empty. Advisory warnings instead arrive through `ConfirmationRequiredError` (parsed from a 409 response). That class populates `.messages` directly from that response's `warnings` mapping.
 
-For standard CRUDL forms using `useObjectForm`, ingestion is automatic. `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is an ingestible `ServerFeedbackError` and not a `ConfirmationRequiredError`. For custom forms, call it explicitly in your error handler. Route `ConfirmationRequiredError` first when the form supports warning confirmation, or exclude it from the generic branch:
+For standard CRUD forms using `useObjectForm`, ingestion is automatic. `defaultOnSubmissionError` calls `handleServerFormValidationError` when the caught error is an ingestible `ServerFeedbackError` and not a `ConfirmationRequiredError`. For custom forms, call it explicitly in your error handler. Route `ConfirmationRequiredError` first when the form supports warning confirmation, or exclude it from the generic branch:
 
 ```js
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
@@ -363,7 +363,7 @@ With the validation pipeline wired, verify these behaviors:
 
 **The confirmation dialog never appears.** Confirm the server release implements the warning gate (responds 409, not 200/400), that the warnings source (serializer `get_warnings()`, viewset `get_warnings_for_object`/`get_warnings`, or a `gate_warnings` call) actually returns a non-empty mapping for the input, and that a `FormConfirmDialog` is bound to the confirmation controller. For object forms, the view shell renders the dialog (`ViewCreate` and `ViewUpdate` do; custom `useObjectForm` shells must add it themselves). For action and destroy views, `ActionForm` mounts the dialog itself; only standalone `useActionForm` callers must add one. When no dialog is registered on the controller, the submission resolves as cancelled and a console warning names the missing dialog; check the browser console.
 
-**Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUDL wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
+**Custom delete wrapper surfaces false failures.** If your endpoint uses a non-standard success status code (something other than 204 for delete), the default CRUD wrapper may interpret the response as a failure. Adapt the wrapper to recognize the endpoint's success codes while preserving the `400 → FormValidationError` mapping.
 
 **A bulk action's per-object warnings render as one flat, unlabeled group.** This means the `ConfirmationRequiredError` behind the confirmation reported `bulk: false` for a response that was actually the per-object shape. A custom `run-action` that issues its own bulk request must construct its `ConfirmationRequiredError` with `{ bulk: true }` itself — `ModelActionForm` reads `bulk` from that error (via `confirmation.bulk` and `FormConfirmDialog`'s `warnings` slot scope), not from its own selection count, so a one-object bulk request needs this set explicitly rather than left to default to `false`.
 

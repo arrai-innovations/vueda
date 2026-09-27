@@ -13,9 +13,9 @@ This page defines how authorization is enforced in VUEDA, including model-level 
 
 ## Permission Layers
 
-### 1) Model-Level CRUDL Permissions
+### 1) Model-Level CRUD Permissions
 
-VUEDA models use CRUDL-style codenames:
+VUEDA models use CRUD-style codenames:
 
 - `create_<model>`
 - `read_<model>`

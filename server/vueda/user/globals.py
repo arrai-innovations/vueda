@@ -9,7 +9,7 @@ CUD_CODENAMES = (
 # Exclude certain models and permissions from being able to have groups added to them.
 # In most cases these are objects that get generated via server
 # side code, and a user shouldn't be able to directly create one.
-# Codenames should be '*' for ignore all CRUDL permissions,
+# Codenames should be '*' for ignore all CRUD permissions,
 # 'CUD' for ignore 'create_', 'read_', and 'update_',
 # or 'create_', 'read_', 'update_', 'delete_', or list_ for a specific permission.
 APPS_MODELS_AND_PERMISSION_CODENAMES_TO_HIDE_FROM_PERMISSION_MANAGEMENT = (

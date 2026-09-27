@@ -25,7 +25,7 @@ from vueda.info import viewsets as info_viewsets
 
 # The choices endpoint checks "read" on the model under test, and also "list" on the related model
 # when the field is a relation. These are only those permissions, so each group is the set its own
-# test cases consult rather than a full CRUDL set for every store model.
+# test cases consult rather than a full CRUD set for every store model.
 ADMIN_PERMISSIONS = (
     ("employee", "User", "list"),
     ("store", "Cart", "list"),

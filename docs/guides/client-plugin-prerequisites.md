@@ -35,7 +35,7 @@ import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 
-// 1. Theme and CRUDL adapters (before app creation)
+// 1. Theme and CRUD adapters (before app creation)
 setTheme(vuedaTailwind);
 setupDefaultListCrud();
 setupDefaultObjectCrud();
@@ -92,7 +92,7 @@ This must be called **before** any VUEDA component renders. Calling it before `c
 
 **What fails without it:** Components render without any styling classes. The application is functional but visually unstyled. No runtime error occurs.
 
-## CRUDL Adapters
+## CRUD Adapters
 
 `setupDefaultListCrud()` and `setupDefaultObjectCrud()` register the HTTP adapter functions that VUEDA's composables use for every data operation (list, retrieve, create, update, patch, delete, bulk delete).
 
@@ -100,7 +100,7 @@ These must be called **before** any VUEDA store or composable attempts a data fe
 
 **What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the {@term CRUD} layer.
 
-**What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUDL layer has no adapter to call, so it produces no output.
+**What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUD layer has no adapter to call, so it produces no output.
 
 ## Controls and Widgets
 
@@ -172,7 +172,7 @@ After completing the registration sequence, verify the following:
 
 **Text renders in a system font, and headers wrap where the component reference does not.** The page loads no face with the family name in {@api css-token:vueda-font-sans} or {@api css-token:vueda-font-mono}, so the browser used a fallback. Load the default fonts or override the stacks; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
 
-**Lists load but show no data.** CRUDL adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
+**Lists load but show no data.** CRUD adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
 
 **Tooltips do not appear on hover.** No `TooltipProvider` is present above the component in the tree. The built-in shell components provide one; if you render tooltip-bearing components outside that shell, wrap them in a `TooltipProvider`.
 

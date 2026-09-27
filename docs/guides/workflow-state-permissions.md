@@ -91,7 +91,7 @@ State permissions are evaluated through `VUEDAPermissionsMixin.has_perm(..., obj
 
 ## Verify Permission Matrix by State and Group
 
-Build a test matrix that crosses user groups, workflow states, and CRUDL actions. For each combination, verify the expected outcome:
+Build a test matrix that crosses user groups, workflow states, and CRUD actions. For each combination, verify the expected outcome:
 
 | User group | Object state | `update` baseline | State overlay  | Expected `has_perm` |
 | ---------- | ------------ | ----------------- | -------------- | ------------------- |

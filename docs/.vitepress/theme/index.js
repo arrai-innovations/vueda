@@ -59,7 +59,7 @@ const theme = createArraiTheme({
     enhanceApp(ctx) {
         const { app } = ctx;
 
-        // Pinia backs the model-info/config stores the CRUDL demos render against.
+        // Pinia backs the model-info/config stores the CRUD demos render against.
         // Seeding the demo model lets <FormModel> resolve its config offline.
         const pinia = createPinia();
         app.use(pinia);

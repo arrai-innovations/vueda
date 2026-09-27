@@ -1,11 +1,11 @@
 ---
-title: Create a CRUDL Surface for a New Model
+title: Create a CRUD Surface for a New Model
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Create a CRUDL Surface for a New Model
+# Create a CRUD Surface for a New Model
 
 This guide walks through the end-to-end process of standing up a fully functional {@term CRUD} surface; `list`, `create`, `read`, `update`, and `delete`; for a new Django model in VUEDA. By the end, the model will be served by the REST API, discoverable through model-info, and navigable in the Vue client with metadata-driven routes, forms, and permission gating.
 
@@ -14,7 +14,7 @@ This flow starts with {@api py:class:vueda.core.models.VuedaModel} and builds a 
 
 ## Goal and Preconditions
 
-The objective is a single model that supports all five standard CRUDL actions; `list`, `create`, `retrieve`, `update`, and `destroy`; and that is fully registered with the metadata API so the client can discover it, generate routes, and render views without hand-wired per-model code.
+The objective is a single model that supports all five standard CRUD actions; `list`, `create`, `retrieve`, `update`, and `destroy`; and that is fully registered with the metadata API so the client can discover it, generate routes, and render views without hand-wired per-model code.
 
 Before you begin, ensure the following are in place:
 
@@ -24,7 +24,7 @@ The model's Django app is installed in `INSTALLED_APPS` and has an `AppConfig` w
 
 VUEDA's conventions begin at the model layer. Extend `VuedaModel` to inherit the framework's base infrastructure, including the default `formatted_name` generated field and the `BaseModelMeta` permission set.
 
-`BaseModelMeta` defines `default_permissions` as `("create", "read", "update", "delete", "list")`. These replace Django's default `add`/`change`/`delete`/`view` codenames with VUEDA's own CRUDL codenames. Permission evaluation throughout the stack; model-info action filtering, viewset permission checks, and client-side route gating; relies on these codenames being present. If your model's `Meta` does not inherit from `BaseModelMeta` (either directly or through `VuedaModel`), the permission machinery will not find the expected codenames and action visibility will break.
+`BaseModelMeta` defines `default_permissions` as `("create", "read", "update", "delete", "list")`. These replace Django's default `add`/`change`/`delete`/`view` codenames with VUEDA's own CRUD codenames. Permission evaluation throughout the stack; model-info action filtering, viewset permission checks, and client-side route gating; relies on these codenames being present. If your model's `Meta` does not inherit from `BaseModelMeta` (either directly or through `VuedaModel`), the permission machinery will not find the expected codenames and action visibility will break.
 
 ### The `formatted_name` Contract
 
@@ -204,13 +204,13 @@ Set a default sort order with the viewset's `ordering` attribute (or the model's
 
 `VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on `list` queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
 
-The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
+The viewset provides all five standard CRUD actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
 
 ::: warning
-`VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
+`VuedaViewSet` does not wrap its own CRUD handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
 :::
 
-Extra actions beyond the standard CRUDL set are defined using the `@action` decorator from `vueda.core.decorators`. Only add extra actions when you need distinct route or permission behavior that the standard actions do not cover. Extra actions appear in model-info's action list and are gated by `get_allowed_extra_actions` on the viewset.
+Extra actions beyond the standard CRUD set are defined using the `@action` decorator from `vueda.core.decorators`. Only add extra actions when you need distinct route or permission behavior that the standard actions do not cover. Extra actions appear in model-info's action list and are gated by `get_allowed_extra_actions` on the viewset.
 
 ## Router and URL Wiring
 
@@ -268,11 +268,11 @@ The imports are inside `ready()` deliberately. Registration resolves content typ
 
 The `register` function accepts the serializer as the first argument and the viewset as the second. It can also be used as a decorator on the viewset class, with just the serializer as the argument. Both styles produce the same result; a fully registered model that appears in model-info with complete metadata: fields, actions, filters, ordering, and permissions.
 
-Calling `register_serializer` instead of `register` produces a {@term Serializer-Only Registration}. The model will appear in model-info with field schema and permission metadata but without action, filter, or ordering metadata. This is appropriate for models that are referenced through expands but do not need their own CRUDL surface. It is not sufficient for a full CRUDL surface; the client cannot generate routes or forms for a model that lacks action metadata.
+Calling `register_serializer` instead of `register` produces a {@term Serializer-Only Registration}. The model will appear in model-info with field schema and permission metadata but without action, filter, or ordering metadata. This is appropriate for models that are referenced through expands but do not need their own CRUD surface. It is not sufficient for a full CRUD surface; the client cannot generate routes or forms for a model that lacks action metadata.
 
 ## Client Route Wiring
 
-On the client side, `makeCRUDRoutes` generates the two route records that handle all CRUDL navigation for all registered models: a `detail` route (`/:app/:model/:action/:pk`) and a `list` route (`/:app/:model/:action/`). Both routes share a guard chain that loads model-info before allowing navigation and verifies that the requested action is present in the computed allowlist. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full explanation of how route gating and view resolution work.
+On the client side, `makeCRUDRoutes` generates the two route records that handle all CRUD navigation for all registered models: a `detail` route (`/:app/:model/:action/:pk`) and a `list` route (`/:app/:model/:action/`). Both routes share a guard chain that loads model-info before allowing navigation and verifies that the requested action is present in the computed allowlist. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full explanation of how route gating and view resolution work.
 
 In the project's router setup, call `makeCRUDRoutes` and add the returned routes to the router:
 
@@ -296,9 +296,9 @@ The `actionRedirect` parameter is required. It specifies the route the guard sho
 
 The `requireModelInfo` guard computes its allowlist by intersecting server-advertised actions from model-info, any `routeActions` restrictions from client model-config, and workflow transition codes. This is the {@term Route Admission} check. The guard normalizes action names through a static action-map utility. The server uses `retrieve` and `partial_update`, while the client uses `read` and `update` in route paths. This normalization is automatic; you do not need to manually translate between naming conventions when defining routes.
 
-Once routes are wired, the `ViewActionRouter` component handles runtime view resolution. It selects the concrete view component based on the action parameter: built-in CRUDL components for standard actions (`list`, `create`, `read`, `update`), or dynamically imported project-level components for custom actions. No per-model client code is needed for standard CRUDL surfaces.
+Once routes are wired, the `ViewActionRouter` component handles runtime view resolution. It selects the concrete view component based on the action parameter: built-in CRUD components for standard actions (`list`, `create`, `read`, `update`), or dynamically imported project-level components for custom actions. No per-model client code is needed for standard CRUD surfaces.
 
-After the baseline CRUDL surface is working, view behavior can be customized through model config without forking core components. See [Configure CRUDL Views](./configure-crud-views) for the configuration API.
+After the baseline CRUD surface is working, view behavior can be customized through model config without forking core components. See [Configure CRUD Views](./configure-crud-views) for the configuration API.
 
 ## Grant Permissions
 
@@ -338,7 +338,7 @@ With all pieces in place, verify the surface end-to-end:
 
 ## Troubleshooting
 
-**Model does not appear in model-info.** The most common cause is a missing `register()` call. Verify that the app's `AppConfig.ready()` method calls `register` with both the serializer and viewset. A `register_serializer`-only registration produces metadata without actions, which is not sufficient for a CRUDL surface.
+**Model does not appear in model-info.** The most common cause is a missing `register()` call. Verify that the app's `AppConfig.ready()` method calls `register` with both the serializer and viewset. A `register_serializer`-only registration produces metadata without actions, which is not sufficient for a CRUD surface.
 
 **The list view shows a 404 error.** The client requested `/routes/<app_label>/<model_name>/` and the server does not serve that path. Check that the router registers the viewset under the model name and that the project mounts the app's URL module at `<app_label>/` under `routes/`. See [Router and URL Wiring](#router-and-url-wiring).
 

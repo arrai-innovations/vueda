@@ -1,5 +1,5 @@
 ---
-title: CRUDL Views
+title: CRUD Views
 status: draft
 audience: designer
 type: reference
@@ -37,7 +37,7 @@ const destroyViewProps = {
 
 </script>
 
-# CRUDL Views
+# CRUD Views
 
 Five view-scale layouts that form the backbone of every VUEDA application: list, create, read, update, and destroy. The new component introduced here is {@api vue:component:PageTitle}, the layout-level header that displays each view's title and page actions. The scroll-aware action bars these views use to keep submit and transition controls reachable on long forms ({@api vue:component:StickyBar} and the surrounding sticky-stack family) have their own page: [Sticky Chrome](./sticky-chrome.md). All other chrome — fields, field sets, alerts, ObjectsGrid, badges — is composed from earlier families.
 
@@ -319,7 +319,7 @@ Some of what a finished screen shows is a consumer addition rather than a view d
 - The detail action bar is generated from each record's `available_actions`, and each label is `startCase` applied to the DRF action name. Friendlier labels and extra entries come from project-defined actions, not from the view.
 - `ViewDestroy`'s buttons read "Yes, continue" and "Cancel, go back" unless the `confirm-button` slot overrides them.
 
-The highest-value theme keys for CRUDL views:
+The highest-value theme keys for CRUD views:
 
 - {@api theme-key:PageTitle} — `root`, `title`, `buttons`. Override `title` to change the heading size and weight (default: `text-[22px] font-semibold leading-[1.2]`).
 - StickyBar and the sticky-stack keys are covered on its own page: see [Sticky Chrome](./sticky-chrome.md#customization-surface).

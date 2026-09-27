@@ -44,9 +44,9 @@ const billScenario = customerScenario({
 
 # Action & Workflow Views
 
-Four view-scale layouts that handle model actions, workflow transitions, and audit history. Each builds on {@api vue:component:PageTitle} from the CRUDL family. The new piece introduced here is the **tone-tracked action banner**: a full-bleed strip below the title that grounds the action's purpose and risk level before the user reaches the submit button.
+Four view-scale layouts that handle model actions, workflow transitions, and audit history. Each builds on {@api vue:component:PageTitle} from the CRUD family. The new piece introduced here is the **tone-tracked action banner**: a full-bleed strip below the title that grounds the action's purpose and risk level before the user reaches the submit button.
 
-Banner tone follows action sentiment: `info` for neutral confirmations, `success` for activations and restorations, `warning` for irreversible non-destructive moves, and `destructive` for permanent deletions (the destroy variant lives in CRUDL Views). Skipping the banner leaves users wondering what the action will actually do.
+Banner tone follows action sentiment: `info` for neutral confirmations, `success` for activations and restorations, `warning` for irreversible non-destructive moves, and `destructive` for permanent deletions (the destroy variant lives in CRUD Views). Skipping the banner leaves users wondering what the action will actually do.
 
 ## ViewAction
 
@@ -274,7 +274,7 @@ The action banner, selected-objects panel, prompt block, and actions strip each 
 | Info banner            | `--info` as a 6 % background mix; the border stays `--border`                                       |
 | Success banner         | `--success` as a 6 % background mix, `border-success/20`                                            |
 | Warning banner         | `--warning` as a 6 % background mix, `border-warning/20`                                            |
-| Destructive banner     | `--destructive` via `bg-destructive/[0.06]`, `border-destructive/20` (see CRUDL Views)              |
+| Destructive banner     | `--destructive` via `bg-destructive/[0.06]`, `border-destructive/20` (see CRUD Views)               |
 | Prompt block           | `--primary` (2 px left rule at `border-primary/60`), `--muted` (background tint via `bg-muted/25`)  |
 | Selected-objects panel | `--muted` (`bg-muted/25`), `--border` (hairline), `--radius-vueda-card`                             |
 | Selected-object chip   | `--card` (fill), `--border` (hairline), `--radius-vueda-control`                                    |
