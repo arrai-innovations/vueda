@@ -107,7 +107,7 @@ url = reverse("orderline-detail", args=[json.dumps(order_line.pk)])
 
 ## Defining the FilterSet
 
-Use VuedaCompositePrimaryKeyFilterSet as the base, because it declares no default filters. Every filter you need (including ones for the fields that make up the composite key) must be declared explicitly. See [Composite Primary Key Filtering](../core-concepts/filtering-and-ordering-semantics#composite-primary-key-filtering) for the underlying constraint.
+Use {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet} as the base, because it declares no default filters. Every filter you need (including ones for the fields that make up the composite key) must be declared explicitly.
 
 ```python
 from django_filters import rest_framework

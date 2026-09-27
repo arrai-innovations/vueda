@@ -96,7 +96,9 @@ def ordering_term_field_names(term):
     Nothing here recognizes a particular function. ``flatten`` is ``BaseExpression``'s own tree walk,
     which every ``Func`` subclass inherits, and ``F`` is the only node that carries a field path — so
     every scalar function in ``django.db.models.functions`` is handled, along with any ``Func``
-    subclass an application writes and any function a future Django version adds.
+    subclass an application writes and any function a future Django version adds. The window
+    functions (``Rank``, ``RowNumber``, and the rest) are the exception, because Django accepts them
+    in ``order_by()`` only inside a ``Window(...)``.
 
     A field named only inside a boolean condition — the ``Q`` in ``Case(When(active=True, ...))`` —
     is not reported. The condition decides which value is sorted, not which column the sort reads, and
@@ -196,6 +198,14 @@ def ordering_term_distinct_column(queryset, term):
     A path that resolves to no field at all pairs with nothing. Such a term fails the query on its
     own account, and returning ``None`` leaves that failure to the ordering rather than turning it
     into a mismatched ``DISTINCT ON``.
+
+    ``VuedaSearchFilterBackend`` pairs the ordering only when the request sends ``o``, and orders by
+    search rank otherwise, so a viewset's default ordering reaches this during a search only through
+    an ``o`` that holds nothing but empty terms (``o=,``), which DRF answers with the default. An
+    ``o`` value is a plain field name, so it never carries a function or a multi-column term. Two
+    requested shapes still fail to pair: a relation whose related model declares a ``Meta.ordering``
+    (``o=customer``, which ``ordering_fields = "__all__"`` offers), and ``o=pk`` on a composite
+    primary key. A search whose ordering does not pair returns its rows in rank order.
 
     :param queryset: The queryset the term will be applied to, read for its model and annotations.
     :type queryset: django.db.models.QuerySet
