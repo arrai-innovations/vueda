@@ -9,11 +9,11 @@ import {
     parseInventory,
     registryIds,
 } from "../../../js/extractors/external-docs.js";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 function inventory(lines) {
     const header = "# Sphinx inventory version 2\n# Project: Example\n# Version: 1.0\n# The remainder is zlib.\n";
@@ -275,9 +275,45 @@ describe("cachedFetch", () => {
 });
 
 describe("installedVersions", () => {
+    let tempDir;
+    let originalPath;
+
+    beforeEach(async () => {
+        tempDir = await mkdtemp(path.join(os.tmpdir(), "external-installed-"));
+        originalPath = process.env.PATH;
+        // Run the lookup script with the system Python instead of a synced uv environment,
+        // and install a package by placing its metadata on the import path.
+        await writeFile(
+            path.join(tempDir, "uv"),
+            `#!/bin/sh
+[ "$1 $2 $3" = "run --no-sync python" ] || exit 64
+shift 3
+PYTHONPATH="${tempDir}" exec python3 "$@"
+`,
+            { mode: 0o755 },
+        );
+        const distInfo = path.join(tempDir, "vueda_installed-1.2.3.dist-info");
+        await mkdir(distInfo);
+        await writeFile(
+            path.join(distInfo, "METADATA"),
+            "Metadata-Version: 2.1\nName: vueda-installed\nVersion: 1.2.3\n",
+        );
+        process.env.PATH = tempDir + path.delimiter + originalPath;
+    });
+
+    afterEach(async () => {
+        process.env.PATH = originalPath;
+        await rm(tempDir, { recursive: true, force: true });
+    });
+
     it("reports an installed package's version and null for one that is not installed", async () => {
-        const versions = await installedVersions(["django", "vueda-no-such-package"]);
-        expect(versions.django).toMatch(/^\d+\.\d+/);
-        expect(versions["vueda-no-such-package"]).toBeNull();
-    }, 60000);
+        const versions = await installedVersions(["vueda-installed", "vueda-no-such-package"]);
+        expect(versions).toEqual({ "vueda-installed": "1.2.3", "vueda-no-such-package": null });
+    });
+
+    it("reports null for every package when the lookup fails", async () => {
+        await writeFile(path.join(tempDir, "uv"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+        const versions = await installedVersions(["vueda-installed"]);
+        expect(versions).toEqual({ "vueda-installed": null });
+    });
 });
