@@ -49,45 +49,49 @@ const uploadDropFile = ref(null);
 
 # Inputs
 
-The input family covers every text-entry, selection, and toggleable form
-control: labels, plain inputs, textareas, native selects, number fields,
-checkboxes, radio groups, tags inputs, and the OTP slot composer. They share
-the same control sizing as buttons (32 / 28 / 40 governed by
-{@api css-token:vueda-control-height} and its sm / lg companions) and the
-same focus treatment (2 px solid {@api css-token:ring} outline at 2 px
-offset). Border colors come from {@api css-token:border} and
-{@api css-token:input}; invalid states swap the outline to
-{@api css-token:destructive}.
+This page shows the {@term Visual Contract} of the text-entry, selection, and
+toggle controls: labels, text inputs, selects, number fields, checkboxes, radio
+groups, tags inputs, one-time code inputs, sliders, input groups, and file
+pickers. [Components](index.md) describes the rules every component page
+shares.
 
-This page is the visual contract the default theme guarantees. Use it as the
-target spec when you re-skin: every cell shown here should still read as the
-same control after a customization, even if its color, radius, or density
-shifts. If a cell breaks, the change has crossed from skin into design
-language.
+## Input shell
 
-For the mechanics of overriding any of this, see
-[Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). In
-brief: values (color, dimension, duration) belong in
-[CSS tokens](../theming/tokens.md); compositions (class arrangements,
-state recipes) belong in [theme keys](../theming/keys.md).
+The input shell is the field treatment shared by {@api vue:component:Input},
+{@api vue:component:Textarea}, {@api vue:component:NativeSelect},
+{@api vue:component:NumberFieldInput}, {@api vue:component:TagsInput}, and
+{@api vue:component:InputGroup}. The select trigger on
+[Selection + Command](selection-and-command.md) and the fields on
+[Date + Time](datetime.md) use it too. A re-skin keeps these states distinct
+wherever a control has them:
 
-Two corners worth flagging up front. The checkbox body uses
-{@api css-token:vueda-checkbox-radius} (4 px) rather than the 2 px slab
-{@api css-token:vueda-control-radius} so a 16 × 16 box reads as a chiclet next
-to the slab inputs and buttons it sits beside in a form. And the focus ring
-is rendered as a real `outline`, not a `box-shadow` sandwich, so it sits
-outside the border-box without seam artifacts at sharp 2 px corners.
+- **Rest:** a filled field with a bottom edge line. Hover steps the fill.
+- **Focus:** the edge line takes the focus color, and a focus ring surrounds
+  the whole field.
+- **Warning:** a field marked `data-warning="true"` and not invalid shows its
+  edge line in the warning color.
+- **Invalid:** `aria-invalid="true"` shows the edge line and the focus ring in
+  the destructive color.
+- **Read-only:** the fill drops away and the line softens, so the field reads
+  as displayed text.
+- **Disabled:** a disabled fill, edge, and text color at full opacity. The
+  value stays readable, and the field takes no pointer input.
+
+Every shell sits on the control height scale. {@api theme-key:Input.root} is
+the reference recipe. Current values: {@api css-token:field},
+{@api css-token:field-hover}, {@api css-token:field-line},
+{@api css-token:ring}, {@api css-token:warning}, {@api css-token:destructive},
+{@api css-token:border}, {@api css-token:disabled},
+{@api css-token:disabled-foreground}, {@api css-token:vueda-control-height},
+and {@api css-token:vueda-field-radius}.
 
 ## Label
 
-Label is a typographic primitive paired with a focusable control. The
-interesting axes are _content_ (text alone, text with an icon) and
-_pairing_ (with an enabled control versus a disabled one, where
-`peer-disabled:opacity-50` cascades the dimmed treatment from the sibling
-input).
+{@api vue:component:Label} is the text paired with a control. It holds text
+alone or text with an icon. When its control is disabled, the label dims with
+it; {@api theme-key:Label.root} lists the markup arrangements it detects.
 
-Theme key: {@api theme-key:Label}. Typography reads from
-{@api css-token:vueda-text-body} (13 px) at weight 500.
+Theme key: {@api theme-key:Label}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="content">
@@ -102,34 +106,23 @@ Theme key: {@api theme-key:Label}. Typography reads from
       </Label>
       <Input id="lbl-icon" readonly value="2026-04-23 14:22:06" />
     </div>
-    <template #footer>
-      <span>fg <code>--foreground</code></span>
-      <span>gap-2 between icon and text</span>
-    </template>
   </DemoCard>
   <DemoCard title="paired with disabled input">
     <div class="flex flex-col gap-2">
       <Label for="lbl-peer" class="peer-disabled:opacity-50">Legacy ID</Label>
       <Input id="lbl-peer" class="peer" disabled placeholder="—" />
     </div>
-    <template #footer>
-      <span><code>peer-disabled:opacity-50</code> cascades from sibling input</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## Input: state matrix
+## Input
 
-The state cube for plain inputs is the validation axis (default, invalid),
-the read mode (read/write, readonly, disabled), and the type axis (text,
-password, file). Focus is reproduced via the docs harness so the ring is
-visible without keyboard interaction; hover has no dedicated treatment in
-the default theme for this control.
+`Input` is the single-line text field and uses the [input shell](#input-shell).
+Its states combine validation (default, invalid) with the read mode (editable,
+read-only, disabled). The `type` attribute passes to the native element, so the
+browser draws the password mask and the file picker button.
 
-Theme key: {@api theme-key:Input}. Token surface: {@api css-token:input}
-(border), {@api css-token:background} (fill), {@api css-token:ring} (focus
-outline), {@api css-token:destructive} (invalid outline),
-{@api css-token:muted} (read-only fill).
+Theme key: {@api theme-key:Input}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="validation states">
@@ -150,10 +143,7 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input aria-invalid="true" placeholder="required" /></div>
     </div>
     <template #footer>
-      <span>rest: <code>--field</code> fill, bottom line <code>--field-line</code></span>
-      <span>focus: full edge and outline <code>--ring</code></span>
-      <span>invalid: full edge <code>--destructive</code></span>
-      <span>invalid outline <code>--destructive</code></span>
+      <span>invalid keeps its destructive edge with or without focus</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -166,9 +156,8 @@ outline), {@api css-token:destructive} (invalid outline),
       <div><Input disabled value="Archived" /></div>
     </div>
     <template #footer>
-      <span>readonly: no fill, <code>--border</code> bottom line</span>
-      <span>disabled opacity 50</span>
-      <span>disabled has no pointer events</span>
+      <span>read-only reads as displayed text</span>
+      <span>disabled keeps the value readable</span>
     </template>
   </DemoCard>
   <DemoCard title="input types" class="sm:col-span-2">
@@ -187,14 +176,12 @@ outline), {@api css-token:destructive} (invalid outline),
   </DemoCard>
 </VuedaDemo>
 
-## Textarea: state matrix
+## Textarea
 
-Textarea shares Input's border, focus, and invalid behavior; the only
-difference is height. The default theme uses
-[`field-sizing-content`](https://developer.mozilla.org/en-US/docs/Web/CSS/field-sizing)
-so the box grows with its content rather than scrolling internally.
+`Textarea` is the multi-line text field and uses the
+[input shell](#input-shell). Its height grows with its content.
 
-Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
+Theme key: {@api theme-key:Textarea}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="validation states">
@@ -211,8 +198,6 @@ Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
       <Textarea aria-invalid="true" value="Missing required detail." />
     </div>
     <template #footer>
-      <span>min-h-16</span>
-      <span>px-3 py-2</span>
       <span>grows with content</span>
     </template>
   </DemoCard>
@@ -225,23 +210,20 @@ Theme key: {@api theme-key:Textarea}. Token surface mirrors Input.
       <StateLabel>disabled</StateLabel>
       <Textarea disabled value="This document has been finalised and cannot be edited." />
     </div>
-    <template #footer>
-      <span>disabled opacity 50</span>
-      <span>resize disabled (height comes from content)</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## NativeSelect: state matrix
+## NativeSelect
 
-NativeSelect wraps a real `<select>` element with a custom chevron icon
-overlay so the chrome reads consistently across operating systems. The
-chevron sits inside the component template, not the consumer's markup.
+`NativeSelect` renders a native `<select>` in the [input shell](#input-shell)
+and draws its own chevron, so the closed control looks the same on every
+operating system. The value never runs under the chevron. The browser draws the
+open option list, including {@api vue:component:NativeSelectOptGroup} labels.
+A native select has no read-only state.
 
 Theme keys: {@api theme-key:NativeSelect},
 {@api theme-key:NativeSelectOption},
-{@api theme-key:NativeSelectOptGroup}. The chevron color reads from
-{@api css-token:muted-foreground} at 50% opacity.
+{@api theme-key:NativeSelectOptGroup}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default">
@@ -266,8 +248,7 @@ Theme keys: {@api theme-key:NativeSelect},
       </ForceState>
     </div>
     <template #footer>
-      <span>px-3 pr-9 (chevron gutter)</span>
-      <span>chevron <code>--muted-foreground</code>/50</span>
+      <span>the value stops short of the chevron</span>
     </template>
   </DemoCard>
   <DemoCard title="with optgroup">
@@ -288,36 +269,37 @@ Theme keys: {@api theme-key:NativeSelect},
   </DemoCard>
   <DemoCard title="invalid">
     <NativeSelect aria-invalid="true">
-      <NativeSelectOption>— select —</NativeSelectOption>
+      <NativeSelectOption>Select terms</NativeSelectOption>
       <NativeSelectOption>Net 15</NativeSelectOption>
       <NativeSelectOption>Net 30</NativeSelectOption>
     </NativeSelect>
-    <template #footer>
-      <span>border <code>--destructive</code></span>
-    </template>
   </DemoCard>
   <DemoCard title="disabled">
     <NativeSelect disabled>
       <NativeSelectOption>Not available</NativeSelectOption>
     </NativeSelect>
-    <template #footer>
-      <span>wrapper opacity 50 when select disabled</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## NumberField: state matrix
+## NumberField
 
-NumberField composes an input with paired decrement/increment buttons. The
-three sub-components all carry their own theme keys; the wrapper handles
-positioning of the steppers inside the input box.
+{@api vue:component:NumberField} pairs a `NumberFieldInput` with optional
+{@api vue:component:NumberFieldDecrement} and
+{@api vue:component:NumberFieldIncrement} steppers inside
+{@api vue:component:NumberFieldContent}. The input uses the
+[input shell](#input-shell), and the steppers sit inside its edge on either
+side of the value. The value sits centered in fixed-width numerals, so its
+width stays stable while it steps. A stepper dims when the value reaches
+[`min`]{@api vue:component:NumberField:prop:min} or
+[`max`]{@api vue:component:NumberField:prop:max}.
+[`formatOptions`]{@api vue:component:NumberField:prop:formatOptions} formats
+the displayed value for the locale.
 
 Theme keys: {@api theme-key:NumberField},
 {@api theme-key:NumberFieldContent},
 {@api theme-key:NumberFieldDecrement},
 {@api theme-key:NumberFieldIncrement},
-{@api theme-key:NumberFieldInput}. Numerals render as `tabular-nums` so
-columns of values stay aligned.
+{@api theme-key:NumberFieldInput}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default">
@@ -344,9 +326,7 @@ columns of values stay aligned.
       </ForceState>
     </div>
     <template #footer>
-      <span>tabular-nums</span>
-      <span>text-center</span>
-      <span>steppers inside the input box</span>
+      <span>steppers inside the input edge</span>
     </template>
   </DemoCard>
   <DemoCard title="invalid">
@@ -371,7 +351,7 @@ columns of values stay aligned.
       </NumberField>
     </div>
     <template #footer>
-      <span>full <code>--destructive</code> edge at rest; destructive focus ring on keyboard focus</span>
+      <span>invalid shows at rest and while focused</span>
     </template>
   </DemoCard>
   <DemoCard title="at minimum">
@@ -383,7 +363,7 @@ columns of values stay aligned.
       </NumberFieldContent>
     </NumberField>
     <template #footer>
-      <span>decrement opacity 20 when at <code>min</code></span>
+      <span>the decrement stepper dims at <code>min</code></span>
     </template>
   </DemoCard>
   <DemoCard title="locale-formatted">
@@ -406,28 +386,27 @@ columns of values stay aligned.
         <NumberFieldIncrement />
       </NumberFieldContent>
     </NumberField>
-    <template #footer>
-      <span>opacity 50 across input and steppers</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## Checkbox: state matrix
+## Checkbox
 
-Checkbox has a tri-state model (unchecked, checked, indeterminate) plus
-the standard focus / disabled / invalid axes. The check and minus glyphs
-ship as default slot content; consumers can override the indicator slot
-to use icon components instead of text glyphs.
+{@api vue:component:Checkbox} has three values: unchecked, checked, and
+indeterminate. Checked and indeterminate share one solid fill. The check and
+indeterminate marks come from the {@term Icon Registry}, and the
+[default slot]{@api vue:component:Checkbox:slot:default} replaces them. The box
+corner is rounder than the field corner, so the box reads as a separate kind of
+control from the text fields beside it.
 
-Theme key: {@api theme-key:Checkbox}. The body is a 24 × 24 square at
-{@api css-token:vueda-checkbox-radius} (4 px), intentionally rounder than
-the 2 px slab {@api css-token:vueda-control-radius} so the box reads as a
-chit rather than a miniature input next to its label.
+Focus shows a focus ring. Invalid shows the destructive color on the edge, and
+on the fill of a checked or indeterminate box. A disabled box keeps its mark
+and uses the disabled fill, edge, and mark color at full opacity. Disabled
+colors take precedence over invalid colors.
 
-Disabled checkboxes keep their check or indeterminate mark, but use
-{@api css-token:disabled} fill, {@api css-token:border} edge, and
-{@api css-token:disabled-foreground} ink instead of fading the whole control.
-Disabled colors take precedence over invalid colors.
+Theme key: {@api theme-key:Checkbox}. Current values:
+{@api css-token:vueda-checkbox-radius}, {@api css-token:primary},
+{@api css-token:destructive}, {@api css-token:disabled}, and
+{@api css-token:disabled-foreground}.
 
 <VuedaDemo>
   <DemoCard>
@@ -462,28 +441,25 @@ Disabled colors take precedence over invalid colors.
       <div><ForceState state="focus"><Checkbox aria-invalid="true" default-value="indeterminate" /></ForceState></div>
     </div>
     <template #footer>
-      <span>checked bg <code>--primary</code></span>
-      <span>checked fg <code>--primary-foreground</code></span>
-      <span>indeterminate same as checked</span>
-      <span>focus outline <code>--ring</code></span>
-      <span>invalid border <code>--destructive</code></span>
-      <span>invalid + checked bg <code>--destructive</code></span>
+      <span>indeterminate uses the checked fill</span>
+      <span>invalid recolors the fill of a checked box</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## RadioGroup: state matrix
+## RadioGroup
 
-RadioGroup is a controlled selection of mutually exclusive items; each
-item composes its own per-state appearance from the same scaffolding as
-Checkbox. The group itself only contributes layout (gap, orientation).
+{@api vue:component:RadioGroup} holds mutually exclusive
+{@api vue:component:RadioGroupItem} choices. Each item matches the checkbox in
+size and in its focus, invalid, and disabled treatments. The selected mark is
+a drawn dot in the item's selection color; invalid turns the dot destructive.
+The group only lays out its items.
+
+A disabled item keeps its dot visible. A disabled group applies the disabled
+treatment to every item.
 
 Theme keys: {@api theme-key:RadioGroup},
-{@api theme-key:RadioGroupItem}. The selected dot is a geometric circle
-inside the item, not a glyph, so it stays stable across font hydration.
-Disabled items use the same fill, edge, and ink tokens as disabled checkboxes;
-the selected dot remains visible. A disabled group applies this treatment to
-all its items.
+{@api theme-key:RadioGroupItem}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="vertical">
@@ -505,10 +481,6 @@ all its items.
         <Label for="terms-receipt">Due on receipt</Label>
       </div>
     </RadioGroup>
-    <template #footer>
-      <span>selected dot <code>--primary</code></span>
-      <span>border <code>--input</code></span>
-    </template>
   </DemoCard>
   <DemoCard title="horizontal">
     <RadioGroup default-value="draft" class="flex flex-row gap-5">
@@ -542,10 +514,6 @@ all its items.
       <div><RadioGroup><RadioGroupItem value="a" disabled /></RadioGroup></div>
       <div><RadioGroup><RadioGroupItem value="a" aria-invalid="true" /></RadioGroup></div>
     </div>
-    <template #footer>
-      <span>focus outline <code>--ring</code></span>
-      <span>invalid border <code>--destructive</code></span>
-    </template>
   </DemoCard>
   <DemoCard title="disabled group">
     <RadioGroup default-value="selected" disabled class="flex flex-row gap-5">
@@ -562,21 +530,22 @@ all its items.
   </DemoCard>
 </VuedaDemo>
 
-## TagsInput: composition matrix
+## TagsInput
 
-TagsInput is a chip container with a trailing input. The composition
-axis is _content_ (with chips, empty, full to invalid, disabled across
-the whole field). Per-chip focus is shown via `data-state="active"` on
-the item; a focused chip gets the same outline ring as the focused
-container, just scoped to the chip.
+`TagsInput` is an [input shell](#input-shell) that holds committed
+{@api vue:component:TagsInputItem} chips followed by a
+{@api vue:component:TagsInputInput} for the next entry. Chips wrap onto new
+rows as they accumulate. Each chip holds a {@api vue:component:TagsInputItemText}
+and a {@api vue:component:TagsInputItemDelete} button. Only one focus ring
+shows at a time: the field's while you type, or a chip's when a chip has
+focus.
 
 Theme keys: {@api theme-key:TagsInput},
 {@api theme-key:TagsInputItem},
 {@api theme-key:TagsInputItemText},
 {@api theme-key:TagsInputItemDelete},
-{@api theme-key:TagsInputInput}. Chips read at
-{@api css-token:vueda-chip-height} (20 px), the fourth step of the
-control-height ladder below sm.
+{@api theme-key:TagsInputInput}. Chip height:
+{@api css-token:vueda-chip-height}.
 
 <VuedaDemo class="grid gap-6">
   <DemoCard title="with chips">
@@ -588,9 +557,7 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Add tag…" />
     </TagsInput>
     <template #footer>
-      <span>gap-2 between chips</span>
-      <span>item bg <code>--secondary</code></span>
-      <span>active chip outline <code>--ring</code></span>
+      <span>a focused chip shows its own focus ring</span>
     </template>
   </DemoCard>
   <DemoCard title="empty">
@@ -610,7 +577,7 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Edit tags" aria-label="Invalid tags" />
     </TagsInput>
     <template #footer>
-      <span><code>aria-invalid="true"</code>: the field edge and keyboard focus ring both use <code>--destructive</code></span>
+      <span><code>aria-invalid="true"</code>: the field edge and focus ring use the destructive color</span>
     </template>
   </DemoCard>
   <DemoCard title="explicitly valid">
@@ -622,7 +589,7 @@ control-height ladder below sm.
       <TagsInputInput placeholder="Add tag…" aria-label="Valid tags" />
     </TagsInput>
     <template #footer>
-      <span><code>aria-invalid="false"</code>: the keyboard focus edge and ring use the normal <code>--ring</code> color</span>
+      <span><code>aria-invalid="false"</code>: the focus edge and ring use the normal focus color</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -633,32 +600,29 @@ control-height ladder below sm.
       </TagsInputItem>
       <TagsInputInput />
     </TagsInput>
-    <template #footer>
-      <span>opacity 50 across container, chips, delete buttons</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## InputOTP: composition matrix
+## InputOTP
 
-InputOTP composes a row of single-character slots, optionally separated
-into groups by a glyph. The interesting axis is _composition_ (single
-group, multiple groups with separator) and _state_ (resting, partially
-filled, invalid, disabled). The active slot's caret animation reads from
-the `--animate-caret-blink` token, which drives the `caret-blink`
-keyframes inlined at the base layer.
+{@api vue:component:InputOTP} shows a one-time code as a row of
+{@api vue:component:InputOTPSlot} cells, one character each. An
+{@api vue:component:InputOTPGroup} joins adjacent slots so they share one edge
+and read as one field. An {@api vue:component:InputOTPSeparator} between groups
+is decorative. The active slot shows a blinking caret.
+
+Set `aria-invalid="true"` on `InputOTP` to give every slot a destructive edge.
+The focus ring follows the active slot, including across separated groups, and
+uses the destructive color while invalid. Disabled takes precedence: disabled
+slots use the disabled fill, text, and edge colors at full opacity. Filled
+slots keep their characters and empty slots stay blank.
+
+In a form, the {@api vue:component:WidgetOTPInput} {@term Widget} renders this
+control.
 
 Theme keys: {@api theme-key:InputOTP},
 {@api theme-key:InputOTPGroup},
-{@api theme-key:InputOTPSlot}. Slots compose into the same border /
-focus surface as Input, with adjacent slots sharing seams via
-`first:rounded-l-md` / `last:rounded-r-md` rules.
-Set `aria-invalid="true"` on `InputOTP` to give every slot a destructive edge.
-The focus ring follows the active slot, including across separated groups, and
-uses the destructive color while invalid. Disabled state takes precedence.
-Disabled slots use {@api css-token:disabled} fill,
-{@api css-token:disabled-foreground} ink, and {@api css-token:border} edges at
-full opacity. Filled slots keep their digits and empty slots remain blank.
+{@api theme-key:InputOTPSlot}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="6-digit, fresh">
@@ -697,7 +661,7 @@ full opacity. Filled slots keep their digits and empty slots remain blank.
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span>separator is a typographic glyph, not a control</span>
+      <span>the separator is decorative and takes no input</span>
     </template>
   </DemoCard>
   <DemoCard title="complete, invalid">
@@ -707,7 +671,7 @@ full opacity. Filled slots keep their digits and empty slots remain blank.
       </InputOTPGroup>
     </InputOTP>
     <template #footer>
-      <span>slot border <code>--destructive</code></span>
+      <span>every slot shows the destructive edge</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled">
@@ -736,25 +700,26 @@ full opacity. Filled slots keep their digits and empty slots remain blank.
 
 ## Slider
 
-`Slider` is a track with one or more draggable thumbs, bound through `v-model` to
-an **array** of numbers. One entry renders one thumb, so the same component covers
-a single value and a range; the filled `range` segment spans from the track start
-to the thumb, or between two thumbs.
+{@api vue:component:Slider} is a track with one or more draggable thumbs. Its
+[`modelValue`]{@api vue:component:Slider:prop:modelValue} is an **array** of
+numbers, and each entry renders one thumb, so one component covers a single
+value and a range. The filled range runs from the track start to a single
+thumb, or between two thumbs.
 
-`step` quantises the value and `min-steps-between-thumbs` stops two thumbs from
-crossing. The component reports its value continuously as the thumb moves; it does
-not debounce, so a consumer driving a request off it should do that itself.
+[`step`]{@api vue:component:Slider:prop:step} quantizes the value, and
+[`minStepsBetweenThumbs`]{@api vue:component:Slider:prop:minStepsBetweenThumbs}
+keeps two thumbs apart. The slider emits its value on every change while a
+thumb moves and does not debounce.
+[`orientation`]{@api vue:component:Slider:prop:orientation} set to `vertical`
+turns the track upright.
 
-Slider measures its track, so it needs a real layout pass and is wrapped in
-`<ClientOnly>` here. That is a documentation detail rather than a usage rule: an
-application renders it normally.
+A disabled slider keeps its thumb positions and selected span visible, using
+disabled colors at full opacity in either orientation.
 
-Theme keys: {@api theme-key:Slider}. Token surface:
-{@api css-token:primary} (range fill), {@api css-token:muted} (track),
-{@api css-token:ring} (thumb focus).
-Disabled sliders use {@api css-token:disabled} for the track and
-{@api css-token:disabled-foreground} for the range and thumbs, at full opacity.
-Thumb positions and the selected span remain visible in either orientation.
+Theme keys: {@api theme-key:Slider}. Current values:
+{@api css-token:primary} (range), {@api css-token:muted} (track),
+{@api css-token:ring} (thumb focus), {@api css-token:disabled}, and
+{@api css-token:disabled-foreground}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="single value">
@@ -809,16 +774,21 @@ Thumb positions and the selected span remain visible in either orientation.
 
 ## InputGroup
 
-`InputGroup` welds addons onto one control so the group reads as a single field:
-the group owns the border, radius, and focus ring, and the inner control renders
-without its own shell. Put an `InputGroupInput` or `InputGroupTextarea` inside,
-then any number of `InputGroupAddon`s around it.
+`InputGroup` joins addons to one control so the group reads as a single field.
+The group draws the [input shell](#input-shell), including the edge, focus
+ring, and invalid state, and the inner control draws no shell of its own. Put
+an {@api vue:component:InputGroupInput} or
+{@api vue:component:InputGroupTextarea} inside, then any number of
+{@api vue:component:InputGroupAddon} elements around it.
 
-`align` places an addon: `inline-start` and `inline-end` sit beside the control on
-the same row, `block-start` and `block-end` sit above and below it. An addon holds
-whatever you give it, and the family ships two ready pieces: `InputGroupText` for
-static labels, prefixes, and units, and `InputGroupButton` for a pressable action
-(a ghost `xs` button by default, so it fits the row without competing with it).
+[`align`]{@api vue:component:InputGroupAddon:prop:align} places an addon.
+`inline-start` (the default) and `inline-end` sit beside the control on the
+same row; `block-start` and `block-end` sit above and below it. An addon holds
+any content. Two ready pieces ship with the family:
+{@api vue:component:InputGroupText} for static labels, prefixes, and units, and
+{@api vue:component:InputGroupButton} for an action. `InputGroupButton`
+defaults to a `ghost` [emphasis]{@term Tone and Emphasis} at `xs`
+[size]{@api vue:component:InputGroupButton:prop:size}, so it fits the row.
 
 Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
 {@api theme-key:InputGroupInput}, {@api theme-key:InputGroupText},
@@ -860,7 +830,7 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
     </InputGroup>
     <template #footer>
       <span>an addon takes arbitrary content; the icon here is not an <code>InputGroupText</code></span>
-      <span><code>InputGroupButton</code> defaults to a ghost <code>xs</code> button; this one opts into a filled primary. Its size travels as <code>data-size</code> for the addon recipe rather than as a <code>Button</code> size prop.</span>
+      <span><code>InputGroupButton</code> defaults to a ghost <code>xs</code> button; this one opts into a filled primary</span>
     </template>
   </DemoCard>
   <DemoCard title="textarea with a block addon" description=" (block-end)">
@@ -902,16 +872,18 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
 
 ## FileUpload
 
-`FileUpload` wraps a hidden native file input with a styled trigger reading
-"Choose file", and emits the chosen `File` through `v-model`. `accept` filters what the picker offers and
-`max-file-size` (bytes, default 1,000,000) rejects an oversized selection.
-`dropzone` adds a drop target around the trigger.
+{@api vue:component:FileUpload} hides a native file input behind a "Choose
+file" trigger and emits the chosen {@api ext:mdn:File} through
+[`modelValue`]{@api vue:component:FileUpload:prop:modelValue}.
+[`accept`]{@api vue:component:FileUpload:prop:accept} (default `*`) filters
+what the picker offers; a dropped file is not checked against it.
+[`maxFileSize`]{@api vue:component:FileUpload:prop:maxFileSize} (bytes,
+default 1,000,000) drops a larger file without emitting.
+[`dropzone`]{@api vue:component:FileUpload:prop:dropzone} adds a drop target
+and an "or drag and drop here" line around the trigger.
 
-The component is a **selection** surface only. Choosing a file hands your code a
-`File` object from the browser; nothing is transmitted, stored, or authorised
-until the application sends it. `accept` and `max-file-size` are client-side
-conveniences the browser and the component apply, so a server still has to
-validate type and size itself.
+The component selects a file and sends nothing. `accept` and `maxFileSize` run
+only in the browser, so the server must validate file type and size itself.
 
 Theme keys: {@api theme-key:FileUpload}.
 
