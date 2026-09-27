@@ -72,7 +72,13 @@ const warningsSlot = useSlotNameResolver(
 );
 </script>
 <template>
-    <Field v-if="!hidden" :orientation="orientation" :class="$attrs.class" data-qa="form-field">
+    <Field
+        v-if="!hidden"
+        :orientation="orientation"
+        :class="$attrs.class"
+        :data-disabled="fieldContext.state.disabled ? 'true' : undefined"
+        data-qa="form-field"
+    >
         <FieldLabel v-if="!hideLabel" :for="fieldId">
             <!-- @slot [field(fieldName)label, field-label] Override the label content for this field. -->
             <slot :name="labelSlot.name" :label="fieldContext.state.label" :required="fieldContext.state.required">

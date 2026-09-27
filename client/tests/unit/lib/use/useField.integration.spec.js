@@ -100,4 +100,27 @@ describe("lib/use/useField.js", () => {
             expect(form.state.valid.quantity).toBe(true);
         });
     });
+
+    describe("disabled widget (form integration)", () => {
+        scopedIt("marks the field shell disabled while its widget is disabled", async () => {
+            const renderState = reactive({ disabled: true });
+            const wrapper = mount(
+                defineComponent({
+                    setup() {
+                        useForm(reactive({ initialValues: { email: "" } }));
+                        return () =>
+                            h(FormField, { name: "email", label: "Email" }, () =>
+                                h(WidgetTextInput, { disabled: renderState.disabled }),
+                            );
+                    },
+                }),
+            );
+            await flushPromises();
+            expect(wrapper.get('[data-qa="form-field"]').attributes("data-disabled")).toBe("true");
+
+            renderState.disabled = false;
+            await flushPromises();
+            expect(wrapper.get('[data-qa="form-field"]').attributes("data-disabled")).toBeUndefined();
+        });
+    });
 });
