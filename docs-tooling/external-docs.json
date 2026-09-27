@@ -95,11 +95,18 @@
         "links": {
             "AbortController": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
             "Blob": "https://developer.mozilla.org/en-US/docs/Web/API/Blob",
+            "Date": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date",
             "DOMException": "https://developer.mozilla.org/en-US/docs/Web/API/DOMException",
             "File": "https://developer.mozilla.org/en-US/docs/Web/API/File",
             "FormData": "https://developer.mozilla.org/en-US/docs/Web/API/FormData",
             "JSON": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
             "TypeError": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError"
+        }
+    },
+    "luxon": {
+        "title": "Luxon",
+        "links": {
+            "DateTime": "https://moment.github.io/luxon/api-docs/index.html"
         }
     },
     "reactive-helpers": {
