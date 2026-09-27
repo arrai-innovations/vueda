@@ -57,6 +57,8 @@
             "rest_framework.serializers.BaseSerializer.to_representation": "https://www.django-rest-framework.org/api-guide/serializers/#to_representationself-instance",
             "rest_framework.serializers.ListSerializer": "https://www.django-rest-framework.org/api-guide/serializers/#listserializer",
             "rest_framework.serializers.ModelSerializer": "https://www.django-rest-framework.org/api-guide/serializers/#modelserializer",
+            "rest_framework.validators.UniqueTogetherValidator": "https://www.django-rest-framework.org/api-guide/validators/#uniquetogethervalidator",
+            "rest_framework.validators.UniqueValidator": "https://www.django-rest-framework.org/api-guide/validators/#uniquevalidator",
             "rest_framework.viewsets.ModelViewSet": "https://www.django-rest-framework.org/api-guide/viewsets/#modelviewset",
             "rest_framework.viewsets.ReadOnlyModelViewSet": "https://www.django-rest-framework.org/api-guide/viewsets/#readonlymodelviewset"
         }
