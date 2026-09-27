@@ -89,6 +89,7 @@
         "links": {
             "AbortController": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
             "Blob": "https://developer.mozilla.org/en-US/docs/Web/API/Blob",
+            "DOMException": "https://developer.mozilla.org/en-US/docs/Web/API/DOMException",
             "File": "https://developer.mozilla.org/en-US/docs/Web/API/File",
             "FormData": "https://developer.mozilla.org/en-US/docs/Web/API/FormData",
             "JSON": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
@@ -100,11 +101,15 @@
         "links": {
             "bulkDelete": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#bulkdelete",
             "cancellableFetch": "https://reactive-helpers.arrai.dev/v25/reference/api/utils/cancellableFetch.html#cancellablefetch",
+            "defaultListCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#defaultlistcrud",
             "defaultObjectCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/objectCrud.html#defaultobjectcrud",
             "getListCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#getlistcrud",
+            "ListArgsRaw": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#listargsraw",
             "setListCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#setlistcrud",
             "setObjectCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/objectCrud.html#setobjectcrud",
-            "unwrapNested": "https://reactive-helpers.arrai.dev/v25/reference/api/utils/unwrapNested.html#unwrapnested"
+            "unwrapNested": "https://reactive-helpers.arrai.dev/v25/reference/api/utils/unwrapNested.html#unwrapnested",
+            "useList": "https://reactive-helpers.arrai.dev/v25/reference/api/use/list.html#uselist",
+            "useObject": "https://reactive-helpers.arrai.dev/v25/reference/api/use/object.html#useobject"
         }
     }
 }
