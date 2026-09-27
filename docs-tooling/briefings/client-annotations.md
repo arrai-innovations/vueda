@@ -259,14 +259,14 @@ export const storeExample = defineStore("example", {
 
 Each prop, slot, slot binding, and event of a component has an API ID that links to its row or heading:
 
-| Member       | ID                                                | Example                                                  |
-| ------------ | ------------------------------------------------- | -------------------------------------------------------- |
-| Prop         | `vue:component:<Component>:prop:<name>`           | `vue:component:ObjectsGrid:prop:fieldClasses`            |
-| Slot         | `vue:component:<Component>:slot:<name>`           | `vue:component:ObjectsGridBodyCell:slot:value`           |
-| Slot binding | `vue:component:<Component>:slot:<name>.<binding>` | `vue:component:ObjectsGridBodyCell:slot:value.row-index` |
-| Event        | `vue:component:<Component>:event:<name>`          | `vue:component:Calendar:event:update:modelValue`         |
+| Member       | ID                                                | Example                                                 |
+| ------------ | ------------------------------------------------- | ------------------------------------------------------- |
+| Prop         | `vue:component:<Component>:prop:<name>`           | `vue:component:ObjectsGrid:prop:fieldClasses`           |
+| Slot         | `vue:component:<Component>:slot:<name>`           | `vue:component:ObjectsGridBodyCell:slot:value`          |
+| Slot binding | `vue:component:<Component>:slot:<name>.<binding>` | `vue:component:ObjectsGridBodyCell:slot:value.rowIndex` |
+| Event        | `vue:component:<Component>:event:<name>`          | `vue:component:Calendar:event:update:modelValue`        |
 
-A slot or event links to the component page, or to the component's slots or events page when it has one. A prop takes the name it is declared with. A slot binding takes the name the template writes, since Vue passes slot props without converting kebab-case to camelCase. The `name` attribute on `<slot>` is never a binding.
+A slot or event links to the component page, or to the component's slots or events page when it has one. A prop takes the name it is declared with. A slot binding takes the camelCase name slot content receives: Vue's compiler camelizes slot props, so `<slot :row-index>` binds `rowIndex`. The `name` attribute on `<slot>` is never a binding.
 
 A slot that passes on another slot's props with `v-bind="slotProps"` lists no bindings, because vue-docgen cannot see them. Link the slot that declares them instead.
 

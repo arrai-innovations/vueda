@@ -14,7 +14,7 @@ import { assertCanonical } from "../../../js/utils/validate-canonical.js";
 import { describe, expect, it } from "vitest";
 
 describe("VueDocgenNormalizer", () => {
-    it("drops the slot name attribute from a slot's bindings", () => {
+    it("drops the slot name attribute and camelizes bindings as slot content receives them", () => {
         const output = new VueDocgenNormalizer().normalize({
             sourceDir: "client/lib",
             files: [
@@ -23,7 +23,13 @@ describe("VueDocgenNormalizer", () => {
                     components: [
                         {
                             displayName: "Foo",
-                            slots: [{ name: "title", scoped: true, bindings: [{ name: "name" }, { name: "row" }] }],
+                            slots: [
+                                {
+                                    name: "title",
+                                    scoped: true,
+                                    bindings: [{ name: "name" }, { name: "row" }, { name: "row-index" }],
+                                },
+                            ],
                             tags: {},
                             sourceFiles: [],
                         },
@@ -32,7 +38,7 @@ describe("VueDocgenNormalizer", () => {
             ],
         });
         const slot = output.nodes.find((node) => node.id === "vue:component:Foo:slot:title");
-        expect(slot.signatures[0].parameters.map((binding) => binding.name)).toEqual(["row"]);
+        expect(slot.signatures[0].parameters.map((binding) => binding.name)).toEqual(["row", "rowIndex"]);
     });
 
     it("produces canonical output that validates against the schema", async () => {

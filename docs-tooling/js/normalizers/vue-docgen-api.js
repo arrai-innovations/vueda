@@ -39,11 +39,17 @@ function componentId(displayName) {
 }
 
 /**
- * Return a slot's bindings. vue-docgen reports a dynamic `:name` as a binding, but on `<slot>` the
- * `name` attribute selects the slot and Vue never passes it as a slot prop.
+ * Return a slot's bindings as slot content receives them.
+ *
+ * vue-docgen reports each binding as the template writes it. Vue's compiler camelizes slot outlet
+ * prop names, so `<slot :row-index="i">` gives slot content `rowIndex`, and the binding is named
+ * that way here. vue-docgen also reports a dynamic `:name` as a binding, but on `<slot>` the `name`
+ * attribute selects the slot and Vue never passes it as a slot prop.
  */
 function slotBindings(slot) {
-    return (slot.bindings || []).filter((binding) => binding.name !== "name");
+    return (slot.bindings || [])
+        .filter((binding) => binding.name !== "name")
+        .map((binding) => ({ ...binding, name: binding.name.replace(/-(\w)/g, (_, letter) => letter.toUpperCase()) }));
 }
 
 function slotId(componentIdValue, slotName) {
