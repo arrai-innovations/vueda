@@ -634,6 +634,29 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
 
+def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
+    """
+    Map each submitted expand that is neither a valid expand nor a valid wildcard to its message.
+
+    :param submitted_expand_fields: The ``e`` values from the request.
+    :param valid_expands: The expand paths the action permits.
+    :param valid_wildcard_expands: The wildcard values the action permits.
+    :returns: A dict of invalid expand to message; empty when every value is valid.
+    """
+    extra_keys = set(submitted_expand_fields) - (set(valid_expands) | set(valid_wildcard_expands))
+    if not extra_keys:
+        return {}
+    if valid_expands:
+        wildcards = ", ".join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))
+        message = (
+            f"Invalid expands. Permitted expands are {', '.join(sorted(valid_expands))}. "
+            f"Or use a wildcard to expand all: {wildcards}"
+        )
+    else:
+        message = "Invalid expands. No expands are permitted."
+    return dict.fromkeys(extra_keys, message)
+
+
 # Keyed weakly so a filterset class built at runtime (one composed per view, or per test) is
 # collectable once its last other reference goes away. A class declared in a module is referenced by
 # that module and lives as long as the process either way.
@@ -1022,26 +1045,43 @@ class NoExtraFieldsForViewSetMixin:
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string="Invalid expands. "
-                                + (
-                                    f"Permitted expands are {', '.join(sorted(valid_expands))}. Or use a wildcard to expand all: {', '.join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))}"
-                                    if valid_expands
-                                    else "No expands are permitted."
-                                ),
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
-
+            messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
+            if messages:
+                errors = {
+                    key: [{"message": ErrorDetail(string=message, code="invalid"), "code": "invalid"}]
+                    for key, message in messages.items()
+                }
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def validate_flex_expand_param_for_write(request, serializer):
+        """
+        Reject each ``e`` value a write action does not permit, before the body is validated.
+
+        drf-flex-fields keeps only the permitted expands and drops the rest without an error, so a
+        write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
+        expand and read the relation as a primary key. This applies the same rules and messages as
+        :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
+        ``f`` and ``om`` are not checked here.
+
+        :param request: The request whose ``e`` query values are checked.
+        :param serializer: The action's serializer, built with the action's serializer context.
+        :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
+        """
+        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] not in request.query_params:
+            return
+        submitted_expand_fields = frozenset(
+            serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+        )
+        if not submitted_expand_fields:
+            return
+        max_depth = max(field.count(".") for field in submitted_expand_fields) + 1
+        valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, max_depth
+        )
+        messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
+        if messages:
+            raise VuedaValidationError({key: [message] for key, message in messages.items()})
 
     def retrieve(self, request, *args, **kwargs):
         self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
@@ -1312,6 +1352,15 @@ class VuedaViewSet(
                 RuntimeWarning,
                 stacklevel=2,
             )
+
+    def create(self, request, *args, **kwargs):
+        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        # `partial_update` calls this too.
+        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        return super().update(request, *args, **kwargs)
 
     def destroy_validation(self, objs) -> None:
         """
