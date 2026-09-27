@@ -130,6 +130,21 @@ pre-commit:
                 - "docs/.vitepress/**"
                 - "**/AGENTS.md"
             run: docs-tooling/bin/docs-tooling.js validate --files {staged_files}
+        diction-md:
+            glob: "docs/**/*.md"
+            exclude:
+                - "docs/reference/api/**"
+                - "docs/reference/theming/**"
+                - "docs/reference/changelog/client.md"
+                - "docs/reference/changelog/server.md"
+                - "docs/temp/**"
+                - "docs/.generated/**"
+                - "docs/.vitepress/**"
+                - "**/node_modules/**"
+                - "**/AGENTS.md"
+                - "**/CLAUDE.md"
+                - "**/README.md"
+            run: pnpm exec diction-md --strict {staged_files}
         validate-doc-sources:
             glob:
                 - "client/lib/theme/vueda-tailwind/**/*.js"

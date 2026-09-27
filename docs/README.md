@@ -28,6 +28,7 @@ Use this guide when authoring pages under `docs/`.
   - [Callouts](#callouts)
   - [Backticks vs Links](#backticks-vs-links)
   - [Wording Cases](#wording-cases)
+  - [Prose Checks](#prose-checks)
 
 <!--TOC-->
 <!-- prettier-ignore-end -->
@@ -345,3 +346,20 @@ Examples:
 In documentation, the following rules should be applied:
 
 - Use 'JSON' instead of 'json'.
+
+## Prose Checks
+
+[diction-md](https://www.npmjs.com/package/@arrai-innovations/diction-md) checks the prose of authored pages. It skips code blocks, inline code, tables, and frontmatter.
+
+- Errors fail the check. With the default rules, only em dashes and en dashes are errors.
+- Warnings are advisory: long sentences and paragraphs, passive voice, reading grade, marketing words, inflated wording, empty framing, and idioms. Rewrite flagged text when the rewrite reads better.
+
+The pre-commit hook runs `diction-md --strict` on staged authored pages, so a staged page with a dash fails the commit. The hook skips generated pages, the changelog pages that the release build writes, `docs/temp/`, and `README.md` and `AGENTS.md` files. CI does not run the check yet. It will once the authored pages have no errors.
+
+Run the check on a page yourself, with warnings listed:
+
+```bash
+pnpm exec diction-md docs/guides/proxy-models.md
+```
+
+When a rule conflicts with correct wording, rewrite first. If the wording must stay, suppress the one category with a directive such as `<!-- diction-md-disable-next-line passive-voice -->`.

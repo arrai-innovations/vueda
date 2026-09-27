@@ -64,6 +64,9 @@ importers:
       '@arrai-innovations/commitlint-config':
         specifier: ^3.1.0
         version: 3.1.0
+      '@arrai-innovations/diction-md':
+        specifier: ^1.4.0
+        version: 1.4.0
       '@commitlint/cli':
         specifier: ^21.2.3
         version: 21.2.3(@types/node@25.0.9)(conventional-commits-parser@7.1.2)(typescript@5.9.3)
@@ -491,6 +494,11 @@ packages:
   '@arrai-innovations/commitlint-config@3.1.0':
     resolution: {integrity: sha512-ChUisH0BSbaWmXbiU7I25AklmlY0AKwGVgHN/5RetWEKz6l2Sz8n30XN2yhvyb+OdZEgGrh7XLl95iwkT2rnyg==}
     engines: {node: '>=22.12.0'}
+
+  '@arrai-innovations/diction-md@1.4.0':
+    resolution: {integrity: sha512-7xFi11n1q2SlzWOcJDjVxTpWC06qc2ivC46PnUSVFYBzke8ff1Gxh59rR+CeFJPhfmgvayoh6+bkm2nX0AqTjA==}
+    engines: {node: '>=22'}
+    hasBin: true
 
   '@arrai-innovations/reactive-helpers@25.0.0':
     resolution: {integrity: sha512-WHcynykOJ17U6Pi1U+54gfAUOJe7hvGU0ddQgw3AfKYeUf+QpsBTcDpNXP35zk/MjVt8Fz4vTAffdFP5Brr/+w==}
@@ -6319,6 +6327,8 @@ snapshots:
   '@arrai-innovations/commitlint-config@3.1.0':
     dependencies:
       '@commitlint/config-conventional': 21.2.2
+
+  '@arrai-innovations/diction-md@1.4.0': {}
 
   '@arrai-innovations/reactive-helpers@25.0.0(@vueuse/core@14.3.0(vue@3.5.27(typescript@5.9.3)))(lodash-es@4.18.1)(vue@3.5.27(typescript@5.9.3))':
     dependencies:
