@@ -5,12 +5,15 @@ __all__ = (
     "BaseModelMeta",
     "EmailTemplateBase",
     "FormattedNameBaseModel",
+    "FormattedNameManager",
     "Lookup",
     "SingletonModel",
     "VuedaModel",
     "apply_vueda_feature_policy",
     "supports_vueda_feature_policy",
 )
+
+from typing import ClassVar
 
 import django
 from django.contrib.admin.utils import lookup_field
@@ -165,6 +168,20 @@ class FormattedNameBaseModel(models.Model):
     )
 
     objects = FormattedNameManager()
+
+    formatted_name_lookup_expression: ClassVar[str | None] = None
+    """A lookup path, such as ``"customer__name"``, that gives this model's formatted name.
+
+    Declare it with ``formatted_name = None`` to name a column on this model or one reached through
+    single-valued relations. ``FormattedNameManager`` annotates ``formatted_name`` from it.
+    """
+
+    formatted_name_select_related: ClassVar[tuple[str, ...] | None] = None
+    """Relation paths to join whenever this model is queried, for a ``get_formatted_name()`` that reads them.
+
+    ``annotate_formatted_name`` passes them to ``select_related()``, so the method's relations load in
+    the same query instead of one extra query per row.
+    """
 
     class Meta(BaseModelMeta):
         abstract = True

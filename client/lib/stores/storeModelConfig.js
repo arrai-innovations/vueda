@@ -503,10 +503,33 @@ const mergeDeepProperties = (
  */
 export const storeModelConfig = defineStore("modelConfig", {
     state: () => ({
-        genericConfigs: {}, // view-independent config overrides
-        specificConfigs: {}, // view-specific config overrides
-        builtConfigs: {}, // a cache of merged configs, both generic and specific
-        initialized: {}, // a cache of promises for getConfig
+        /**
+         * View-independent config overrides that `setConfig` stores, keyed by app and model dot name.
+         *
+         * @type {{[appModelDotName: string]: OverridingModelConfig}}
+         */
+        genericConfigs: {},
+        /**
+         * View-specific config overrides that `setConfig` stores, keyed by app, model, and view dot name.
+         * A `read` view is stored under `retrieve`.
+         *
+         * @type {{[appModelViewDotName: string]: OverridingModelConfig}}
+         */
+        specificConfigs: {},
+        /**
+         * Finished configs that `getConfig` built from model info and both kinds of overrides. The key
+         * is the app, model, and view dot name, or the app and model dot name when no view was given.
+         *
+         * @type {{[builtKey: string]: ModelConfig}}
+         */
+        builtConfigs: {},
+        /**
+         * The in-flight `getConfig` builds, keyed like `builtConfigs`. A build removes its entry when
+         * it finishes, and each promise has a `cancel` method.
+         *
+         * @type {{[builtKey: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>}}
+         */
+        initialized: {},
         /**
          * Incremented by `clearAuthScoped`. Builds capture it before awaiting and discard their
          * result if it changed while the build was in flight.
@@ -543,8 +566,8 @@ export const storeModelConfig = defineStore("modelConfig", {
          * @param {{app: string, model: string}} params - The app and model identifiers.
          * @param {string} params.app - Django app label.
          * @param {string} params.model - Model name.
-         * @param {OverridingModelConfig|null} [genericConfig] - Overrides applied to all views.
-         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides. A `read` key
+         * @param {OverridingModelConfig|null} [genericConfig=null] - Overrides applied to all views.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs=null] - Per-view overrides. A `read` key
          *  applies to the read view, the same as `retrieve`.
          * @returns {void}
          * @example
@@ -597,6 +620,22 @@ export const storeModelConfig = defineStore("modelConfig", {
                 }
             }
         },
+        /**
+         * Builds the merged config for a model, or for one of its views, and caches it.
+         *
+         * The build fetches model info, derives default configs from it, then merges the generic and
+         * view-specific overrides on top. A cached config or an in-flight build for the same key is
+         * returned instead of starting a new build.
+         *
+         * @param {object} params - The model and view to build the config for.
+         * @param {string} params.app - Django app label.
+         * @param {string} params.model - Model name.
+         * @param {string|null} [params.view=null] - View name, such as `list` or `update`. Omit it for the
+         *  view-independent config.
+         * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>} A promise
+         *  for the built config, with a `cancel` method while the build is in flight. It rejects with
+         *  `AuthScopeInvalidatedError` if the authenticated user changes during the build.
+         */
         getConfig({ app, model, view = null }) {
             if (!app || !model) {
                 return Promise.reject(new Error("getConfig requires app and model"));

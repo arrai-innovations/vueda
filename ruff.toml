@@ -16,6 +16,11 @@ select = [
     "B0",
     "C4",
     "C90",
+    # Missing docstrings on public modules, functions, and packages: authored docs link public API, and an
+    # undocumented function has no generated page to link.
+    "D100",
+    "D103",
+    "D104",
     "DJ",
     "E",
     "W",
@@ -50,6 +55,17 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
+# The docstring rules cover the published server package only, and not its migrations.
+"!server/vueda/**" = [
+    "D100",
+    "D103",
+    "D104",
+]
+"**/migrations/*" = [
+    "D100",
+    "D103",
+    "D104",
+]
 "server/tests/*" = [
     "DJ008",
     "SIM",

@@ -87,8 +87,8 @@ const validateVariantConfig = (store, componentName, variantConfig) => {
 
 /**
  * Registers a new component with the given name.
- * @param {ComponentName} componentName
- * @param {ComponentConfig} componentConfig
+ * @param {ComponentName} componentName - The name of the component.
+ * @param {ComponentConfig} componentConfig - The default variant and spot names for the component.
  * @throws {Error} If the component configuration is invalid.
  * @this {ThemeState}
  * @returns {void}
@@ -100,9 +100,9 @@ function registerComponent(componentName, componentConfig) {
 
 /**
  * Registers a new variant for a component with the given name.
- * @param {ComponentName} componentName
- * @param {VariantName} variantName
- * @param {VariantConfig} variantConfig
+ * @param {ComponentName} componentName - The name of a registered component.
+ * @param {VariantName} variantName - The name of the variant.
+ * @param {VariantConfig} variantConfig - CSS classes keyed by spot name. Each spot must be one the component declares.
  * @throws {Error} If the variant configuration is invalid.
  * @this {ThemeState}
  * @returns {void}
@@ -117,7 +117,7 @@ function registerVariant(componentName, variantName, variantConfig) {
 
 /**
  * Clears a component with the given name.
- * @param {ComponentName} componentName
+ * @param {ComponentName} componentName - The name of the component to remove, along with its variants.
  * @returns {void}
  * @this {ThemeState}
  */
@@ -128,8 +128,8 @@ function clearComponent(componentName) {
 
 /**
  * Clears a variant for a component with the given name.
- * @param {ComponentName} componentName
- * @param {VariantName} variantName
+ * @param {ComponentName} componentName - The name of the component.
+ * @param {VariantName} variantName - The name of the variant to remove.
  * @returns {void}
  * @this {ThemeState}
  */
@@ -157,7 +157,17 @@ function clearAll() {
  */
 export const storeTheme = defineStore("theme", {
     state: () => ({
+        /**
+         * Registered component configurations keyed by component name.
+         *
+         * @type {{[componentName: ComponentName]: ComponentConfig}}
+         */
         components: {},
+        /**
+         * Registered variant configurations keyed by component name, then by variant name.
+         *
+         * @type {{[componentName: ComponentName]: {[variantName: VariantName]: VariantConfig}}}
+         */
         variants: {},
     }),
     actions: {

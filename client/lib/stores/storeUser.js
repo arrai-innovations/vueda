@@ -109,16 +109,62 @@ const authErrorResolver = (response, data) => {
  */
 export const storeUser = defineStore("user", {
     state: () => ({
+        /**
+         * Whether the last who-is response named an authenticated user.
+         *
+         * @type {boolean}
+         */
         loggedIn: false,
+        /**
+         * The last who-is response: the user's `id`, `email`, `name`, `totp_devices`, and `recently_logged_in`.
+         * An empty object before the first response; an anonymous response carries no `id`.
+         *
+         * @type {{[key: string]: *}}
+         */
         loggedInUser: {},
-        /** @type {boolean|undefined} */
+        /**
+         * Whether the first who-is request has finished. `undefined` before any request, and `false` while a refetch runs.
+         *
+         * @type {boolean|undefined}
+         */
         initialized: undefined,
+        /**
+         * Whether a request made by this store is in flight.
+         *
+         * @type {boolean}
+         */
         loading: false,
+        /**
+         * The error from the last failed request, or `null` when the last request succeeded or was cleared.
+         *
+         * @type {Error|null}
+         */
         error: null,
+        /**
+         * Whether `error` holds an error from the last failed request.
+         *
+         * @type {boolean}
+         */
         errored: false,
-        /** @type {Promise<void>|null} */
+        /**
+         * The who-is request that `init` started, so concurrent `init` calls wait on the same request.
+         *
+         * @type {Promise<void>|null}
+         */
         initializingPromise: null,
+        /**
+         * The `recently_logged_in` flag from the last who-is response.
+         * Route guards use it to ask for reauthentication before sensitive pages.
+         *
+         * @type {boolean|null}
+         */
         recentlyLoggedIn: false,
+        /**
+         * The allauth flow that a 401 response asks the client to continue, such as `mfa_authenticate` or `reauthenticate`.
+         * `null` when no flow is pending.
+         *
+         * @type {{id: string, is_pending?: boolean}|null}
+         */
         pendingFlow: null,
         /**
          * The id of the authenticated user, `null` while nobody is authenticated, and `undefined`
@@ -137,6 +183,14 @@ export const storeUser = defineStore("user", {
         identityGeneration: 0,
     }),
     actions: {
+        /**
+         * Fetches the current user from the who-is endpoint and updates the login state.
+         * When the authenticated user changes, clears the authorization-dependent stores and increments `identityGeneration`.
+         *
+         * @param {object} [options={}] - Fetch options.
+         * @param {boolean} [options.preserveError=false] - Whether to leave `error` and `errored` unchanged, on success and on failure.
+         * @returns {Promise<void>} Resolves once the state is updated; rejects with the request error.
+         */
         fetchCurrentUser({ preserveError = false } = {}) {
             // Captured synchronously, because the success handler below runs after an await and the
             // module-level active instance can belong to another Pinia by then.
@@ -190,6 +244,15 @@ export const storeUser = defineStore("user", {
                     }
                 });
         },
+        /**
+         * Signs the user in, then refetches the current user.
+         * When the server answers with a pending flow, such as two-factor authentication, sets `pendingFlow` and resolves instead of rejecting.
+         *
+         * @param {object} payload - The credentials to send.
+         * @param {string} payload.email - The user's email address.
+         * @param {string} payload.password - The user's password.
+         * @returns {Promise<void>} Resolves when signed in or a flow is pending; rejects with the request error otherwise.
+         */
         login(payload) {
             this.loading = true;
             this.error = null;
@@ -227,6 +290,12 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Signs the user out, then refetches the current user.
+         * When the store does not think the user is signed in, refetches first and skips the request if the server agrees.
+         *
+         * @returns {Promise<void>}
+         */
         logout() {
             if (!this.loggedIn) {
                 return this.fetchCurrentUser().then(() => {
@@ -238,6 +307,11 @@ export const storeUser = defineStore("user", {
             }
             return this._performLogout();
         },
+        /**
+         * Sends the logout request, then refetches the current user. `logout` calls this.
+         *
+         * @returns {Promise<void>}
+         */
         _performLogout() {
             this.loading = true;
             this.error = null;
@@ -268,6 +342,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Confirms the signed-in user's password again, clears `pendingFlow`, then refetches the current user.
+         *
+         * @param {object} payload - The credentials to send.
+         * @param {string} payload.password - The user's password.
+         * @returns {Promise<void>}
+         */
         reauthenticate(payload) {
             this.loading = true;
             this.error = null;
@@ -302,6 +383,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Asks the server to email a password reset link.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.email - The email address of the account to reset.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The decoded response data.
+         */
         forgotPassword(payload) {
             this.loading = true;
             this.error = null;
@@ -335,6 +423,15 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Changes the signed-in user's password.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.old_password - The current password.
+         * @param {string} payload.new_password1 - The new password.
+         * @param {string} payload.new_password2 - The new password again, for confirmation.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The decoded response data.
+         */
         changePassword(payload) {
             this.loading = true;
             this.error = null;
@@ -365,6 +462,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Handles an `UnauthorizedError` by setting `pendingFlow` from the flows the response lists, then refetching the current user.
+         * The refetch keeps the existing error and ignores its own failure. Other errors are ignored.
+         *
+         * @param {Error} error - The error from a failed request.
+         * @returns {Promise<void>|undefined} The refetch promise for an `UnauthorizedError`, otherwise `undefined`.
+         */
         _handle_error(error) {
             if (error instanceof UnauthorizedError) {
                 const flows = error.responseData?.data?.flows;
@@ -374,6 +478,15 @@ export const storeUser = defineStore("user", {
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
         },
+        /**
+         * Starts setting up a two-factor device for the signed-in user.
+         * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR code.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.method - The device method: `totp`, `email`, or `sms`.
+         * @param {string} [payload.destination] - The email address or phone number; required for `email` and `sms`.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} For `totp`, an object whose `meta` holds `totp_secret` and `totp_svg_data_uri`.
+         */
         setupTOTPDevice(payload) {
             this.loading = true;
             this.error = null;
@@ -408,6 +521,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Activates the device that `setupTOTPDevice` started, then refetches the current user to pick up its devices.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.code - The code from the device.
+         * @returns {Promise<void>}
+         */
         activateTOTPDevice(payload) {
             this.loading = true;
             this.error = null;
@@ -443,6 +563,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Completes a two-factor sign-in with a code, clears `pendingFlow`, then refetches the current user.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.code - The code from the user's device.
+         * @returns {Promise<void>}
+         */
         twoFactorAuthenticate(payload) {
             this.loading = true;
             this.error = null;
@@ -477,6 +604,16 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Sets a new password using the `pk` and `token` from a password reset link.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.password - The new password.
+         * @param {string} payload.password_confirm - The new password again, for confirmation.
+         * @param {string} payload.pk - The encoded user id from the reset link.
+         * @param {string} payload.token - The reset token from the reset link.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The decoded response data; `undefined` on success.
+         */
         resetPassword(payload) {
             this.loading = true;
             this.error = null;
@@ -510,6 +647,15 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Checks with the server whether a password reset link is still valid.
+         * Rejects with `InvalidResetPasswordLinkError` when the server answers 400.
+         *
+         * @param {object} params - The values from the reset link.
+         * @param {string} params.pk - The encoded user id.
+         * @param {string} params.token - The reset token.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The decoded response data, with a `detail` message.
+         */
         checkResetLinkIsValid(params) {
             this.loading = true;
             this.error = null;
@@ -543,6 +689,11 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Fetches the two-factor methods of the user who is signing in.
+         *
+         * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
+         */
         getTwoFactorAuthMethod() {
             this.loading = true;
             this.error = null;
@@ -571,6 +722,13 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Asks the server to send a two-factor code to the signing-in user's device for the given method.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.method - The delivery method: `email` or `sms`.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The decoded response data; `undefined` on success.
+         */
         sendTwoFactorAuthenticationCode(payload) {
             this.loading = true;
             this.error = null;
@@ -605,6 +763,11 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Generates a new set of recovery codes for the signed-in user, replacing any existing set.
+         *
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the new codes.
+         */
         generateRecoveryCode() {
             this.loading = true;
             this.error = null;
@@ -640,6 +803,11 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Fetches the signed-in user's recovery codes, and generates them when the user has none.
+         *
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the unused codes.
+         */
         getRecoveryCodes() {
             this.loading = true;
             this.error = null;
@@ -672,6 +840,11 @@ export const storeUser = defineStore("user", {
                     this.loading = false;
                 });
         },
+        /**
+         * Fetches the current user once, and waits for that request on later calls.
+         *
+         * @returns {Promise<void>}
+         */
         async init() {
             if (!this.initialized) {
                 this.initializingPromise = this.fetchCurrentUser();
@@ -680,6 +853,11 @@ export const storeUser = defineStore("user", {
                 await this.initializingPromise;
             }
         },
+        /**
+         * Clears `error` and `errored`.
+         *
+         * @returns {void}
+         */
         clearError() {
             this.error = null;
             this.errored = false;

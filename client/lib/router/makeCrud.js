@@ -121,6 +121,13 @@ async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, use
  * use it. Neither of those reruns the checks for a navigation that only changes the query string or
  * the primary key, since nothing about the checked metadata depends on either.
  *
+ * The two records are `actionrouter.detailview` at `/:app/:model/:action/:pk`, for one object, and
+ * `actionrouter.listview` at `/:app/:model/:action/`, for a model or several objects. The list route
+ * reads `pk` from the query string instead, as comma-separated primary keys (`?pk=4,7`), which a bulk
+ * action targets. Both routes pass `app`, `model`, `action`, and `pk` to the component as props. Either
+ * route may carry a `returnPath` query value, where an action view goes after it succeeds or is
+ * cancelled.
+ *
  * @param {object} params - The parameters.
  * @param {object} params.component - The component to use for the routes.
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.

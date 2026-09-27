@@ -52,6 +52,10 @@ Link glossary terms with `{@term ...}`. Ensure the term exists as a `##`
 heading in `docs/reference/glossary.md`, and keep spelling aligned with that
 heading.
 
+To change the text of an `{@api ...}` or `{@term ...}` link, put a bracketed
+label directly before the reference, as in
+`[queue items]{@term Queue Item (VDQ)}`. See "Link text" in `README.md`.
+
 ## VuedaDemo Blocks
 
 Verify `VuedaDemo` blocks by checking markup, imports or global registrations,

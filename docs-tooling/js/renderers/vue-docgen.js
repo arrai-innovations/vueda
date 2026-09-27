@@ -1,5 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildVueDocgenPathMap, vueDocgenEventsPath, vueDocgenSlotsPath } from "../utils/path-map.js";
+import { vueMemberAnchor } from "../utils/reference-index.js";
 import {
     escapeText,
     formatBindings,
@@ -14,13 +15,71 @@ import {
     renderTable,
 } from "./markdown.js";
 
+/**
+ * Wrap a table's name cell in the anchor its member id resolves to.
+ */
+function anchoredName(anchor, name) {
+    return `<span id="${anchor}">${name}</span>`;
+}
+
+function componentProps(node) {
+    return (node.members || []).filter((member) => member.kind === "prop");
+}
+
 function renderProps(node) {
-    const rows = formatMembers(node.members || [], "prop");
+    const props = componentProps(node);
+    const rows = formatMembers(props, "prop").map((row, position) => [
+        anchoredName(vueMemberAnchor("prop", props[position].name), row[0]),
+        ...row.slice(1),
+    ]);
     const table = renderTable(["Name", "Type", "Required", "Default", "Description"], rows);
     if (!table) {
         return "";
     }
     return [renderHeading(2, "Props"), "", table, ""].join("\n");
+}
+
+function renderBindings(slot) {
+    const bindings = slot.signatures?.[0]?.parameters || [];
+    const rows = formatBindings(bindings).map((row, position) => [
+        anchoredName(vueMemberAnchor("slot", slot.name, bindings[position].name), row[0]),
+        ...row.slice(1),
+    ]);
+    return renderTable(["Name", "Description"], rows);
+}
+
+function slotHeading(slot) {
+    return `${renderCodeInline(slot.name)} {#${vueMemberAnchor("slot", slot.name)}}`;
+}
+
+function eventHeading(event) {
+    return `${renderCodeInline(event.name)} {#${vueMemberAnchor("event", event.name)}}`;
+}
+
+/**
+ * Return the ids of slots and their bindings, one per anchor the slot section carries.
+ */
+function slotMemberIds(slots) {
+    return slots.flatMap((slot) => [
+        slot.id,
+        ...(slot.signatures?.[0]?.parameters || []).map((binding) => `${slot.id}.${binding.name}`),
+    ]);
+}
+
+/**
+ * Return the member ids the component page carries: its props, and its slots and events unless
+ * they have their own page.
+ */
+function componentMemberIds(node, index) {
+    const children = index.childrenOf.get(node.id) || [];
+    const ids = componentProps(node).map((prop) => `${node.id}:prop:${prop.name}`);
+    if (!index.pathMap?.has(`${node.id}:slots`)) {
+        ids.push(...slotMemberIds(children.filter((child) => child.kind === "slot")));
+    }
+    if (!index.pathMap?.has(`${node.id}:events`)) {
+        ids.push(...children.filter((child) => child.kind === "event").map((event) => event.id));
+    }
+    return ids;
 }
 
 function renderSlotFallbacks(slot) {
@@ -50,16 +109,14 @@ function renderSlots(node, index, filePath, pathMap) {
     } else {
         // No sub-page: full inline detail per slot.
         for (const slot of slots) {
-            lines.push(renderHeading(3, renderCodeInline(slot.name)));
+            lines.push(renderHeading(3, slotHeading(slot)));
             const scoped = slot.extensions?.vueDocgen?.scoped;
             lines.push("", scoped ? "Scoped slot." : "Slot.", "");
             const fallbackLine = renderSlotFallbacks(slot);
             if (fallbackLine) {
                 lines.push(fallbackLine, "");
             }
-            const signature = slot.signatures?.[0];
-            const bindings = formatBindings(signature?.parameters || []);
-            const table = renderTable(["Name", "Description"], bindings);
+            const table = renderBindings(slot);
             if (table) {
                 lines.push(renderHeading(4, "Bindings"), "", table, "");
             }
@@ -83,7 +140,7 @@ function renderEvents(node, index, filePath, pathMap) {
     } else {
         // No sub-page: full inline detail per event.
         for (const event of events) {
-            lines.push(renderHeading(3, renderCodeInline(event.name)));
+            lines.push(renderHeading(3, eventHeading(event)));
             if (event.description) {
                 lines.push("", event.description, "");
             } else {
@@ -103,10 +160,12 @@ function renderSource(node) {
 }
 
 export function renderVueDocgenNode(node, index, filePath, options = {}) {
+    const memberIds = componentMemberIds(node, index);
     const frontmatter = renderFrontmatter({
         id: node.id,
         kind: node.kind,
         source: "vue-docgen",
+        member_ids: memberIds.length ? memberIds : undefined,
     });
 
     const lines = [];
@@ -157,13 +216,18 @@ function renderSlotsPage(node, index) {
     }
     const lines = [];
     lines.push(
-        renderFrontmatter({ id: `${node.id}:slots`, kind: "slots", source: "vue-docgen" }),
+        renderFrontmatter({
+            id: `${node.id}:slots`,
+            kind: "slots",
+            source: "vue-docgen",
+            member_ids: slotMemberIds(slots),
+        }),
         renderHeading(1, `${normalizeTitle(node.name)} Slots`),
         "",
     );
 
     for (const slot of slots) {
-        lines.push(renderHeading(2, renderCodeInline(slot.name)));
+        lines.push(renderHeading(2, slotHeading(slot)));
         if (slot.description) {
             lines.push("", escapeText(slot.description), "");
         }
@@ -173,9 +237,7 @@ function renderSlotsPage(node, index) {
         if (fallbackLine) {
             lines.push(fallbackLine, "");
         }
-        const signature = slot.signatures?.[0];
-        const bindings = formatBindings(signature?.parameters || []);
-        const table = renderTable(["Name", "Description"], bindings);
+        const table = renderBindings(slot);
         if (table) {
             lines.push(renderHeading(3, "Bindings"), "", table, "");
         }
@@ -191,13 +253,18 @@ function renderEventsPage(node, index) {
     }
     const lines = [];
     lines.push(
-        renderFrontmatter({ id: `${node.id}:events`, kind: "events", source: "vue-docgen" }),
+        renderFrontmatter({
+            id: `${node.id}:events`,
+            kind: "events",
+            source: "vue-docgen",
+            member_ids: events.map((event) => event.id),
+        }),
         renderHeading(1, `${normalizeTitle(node.name)} Events`),
         "",
     );
 
     for (const event of events) {
-        lines.push(renderHeading(2, renderCodeInline(event.name)));
+        lines.push(renderHeading(2, eventHeading(event)));
         if (event.description) {
             lines.push("", escapeText(event.description), "");
         } else {

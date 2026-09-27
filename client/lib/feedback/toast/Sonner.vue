@@ -17,6 +17,9 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 /**
  * A toast notification container built on vue-sonner, providing styled toast popups
  * with registry-backed icons for success, info, warning, error, loading, and close states.
+ *
+ * It reads these icon names from the `Sonner` registry entry: `check` for success, `info`,
+ * `triangleExclamation` for warning, `close` for error and for the close button, and `loading`.
  */
 defineOptions({});
 
