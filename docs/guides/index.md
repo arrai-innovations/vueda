@@ -44,6 +44,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Build Nested/Inlined Writes](nested-writable-inlines.md): Handle writable nested relations and server validation behavior.
 - [Customize Field and Widget Rendering](custom-field-widget-rendering.md): Override field/widget components and props in model config.
 - [Handle Form Validation and Server Errors](form-validation-and-errors.md): Map server validation responses into VUEDA form context.
+- [Require Confirmation Before a Write](require-write-confirmation.md): Return warnings from the server and confirm them in the client before the write runs.
 
 ## Actions, Permissions, and Workflow
 
