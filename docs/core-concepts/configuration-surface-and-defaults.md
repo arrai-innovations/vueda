@@ -7,140 +7,120 @@ status: draft
 
 # Configuration Surface and Defaults
 
-VUEDA's runtime behaviour depends on configuration surfaces that span the server and client. Server defaults assemble Django settings, framework configuration, and VUEDA-specific values into a single dict. An env-adapter contract governs how required keys are read and validated at startup. Wire-level query parameter names form a shared namespace that both server and client must agree on. On the client side, model configuration defaults are derived from server-emitted metadata, and a small set of Vite environment variables governs CSRF and connection behaviour.
+A VUEDA project is configured in three places: the Django settings that {@api py:function:vueda.core.default_settings.get_defaults} builds, the query parameter names that the server and client both hold, and a few Vite environment variables on the client. This page describes what each one sets, which values a project must supply, and what fails when a value is missing or the two sides disagree. It also states the request transaction rule that these defaults put in place.
 
-This page explains each configuration surface, the authority boundaries between them, and the failure modes that emerge when configuration is missing, mistyped, or out of sync. This is not a catalogue of every setting or a how-to for overriding defaults: the authoritative list of default settings is the source code of `get_defaults` and `get_production_defaults`, and the API reference documents individual functions and modules. For the client-side store that consumes model-info to build config objects, see [Reactive Data Flow](./reactive-data-flow). For how query parameters interact with filtering and ordering, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the permission codename vocabulary, see [Permission Model](./permission-model).
+## Server Settings from `get_defaults`
 
-## Configuration Authority Boundaries
+`get_defaults(env)` reads values through an env adapter and returns a dict of Django settings. The adapter is any object with the methods of the {@api py:class:vueda.core.default_settings.EnvLike} protocol. VUEDA ships {@api py:class:vueda.core.config.TomlEnv}, which reads a mapping built by {@api py:function:vueda.core.config.load_toml} and checks the process environment first. A project's settings module applies the result with `locals().update(get_defaults(env))` and overrides individual keys after that line. VUEDA has no settings reference page yet ([#382](https://github.com/arrai-innovations/vueda/issues/382)), so the `get_defaults` source is the complete list of keys it sets.
 
-Configuration authority is divided across four layers, each with a different scope and override model.
+### Required keys
 
-The server defaults layer (`get_defaults` and `get_production_defaults`) defines the baseline. It reads values from an env adapter, computes derived settings, and returns a dict that projects assume as the starting point. This layer is the single point where VUEDA-specific defaults are established: query parameter names, permission names, permission classes, middleware stacks, security cookie flags, and installed apps. Projects consume these defaults and may override individual keys, but the defaults layer defines the contract shape that runtime code depends on.
+`get_defaults` reads these keys with no default, so the project must supply each one:
 
-The env adapter layer sits beneath defaults and governs how raw configuration values are read from the environment. The adapter is a protocol; any object that satisfies the `EnvLike` typing contract will work. The concrete implementation shipped with VUEDA is `TomlEnv`, which reads from a TOML file and optionally overlays process environment variables. The env adapter is responsible for type coercion (booleans, integers, lists, URLs) and for enforcing required-key semantics. Missing required keys and invalid type conversions are raised as exceptions at read time.
+- Identity and hosts: `SECRET_KEY`, `SITE_NAME`, `TIME_ZONE`, `ALLOWED_HOSTS`, `AUTH_USER_MODEL`.
+- Frontend: `FRONTEND_DOMAIN`, `FRONTEND_LOGIN_URL`, `CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`.
+- Storage: `DATABASE_URL`, `CACHE_URL`, `DATABASE_BACKUP_DIR`, `STATIC_ROOT`, `STATICFILES_DIRS`.
+- Email: `SUPPORT_EMAIL`, and `NO_REPLY_EMAIL`, the sender for password reset, welcome, and two-factor email.
+- Mailgun, only when `EMAIL_BACKEND` is `anymail.backends.mailgun.EmailBackend`: `ANYMAIL_MAILGUN_API_KEY`, `ANYMAIL_MAILGUN_SENDER_DOMAIN`, `ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY`, `ANYMAIL_WEBHOOK_SECRET`.
 
-The wire namespace layer defines query parameter names that must match between server and client. This layer is not negotiated at runtime; both sides hard-code the same literal strings. The server sets these in `REST_FRAMEWORK` and `REST_FLEX_FIELDS` settings; the client declares them as constants. Drift between the two is a wire contract break.
+`CACHE_URL` is required because sessions are stored in the cache. [Configure the Cache and Sessions](../guides/configure-cache-and-sessions) describes the backend choices.
 
-The client config layer derives model-specific UI configuration from server-emitted metadata. `storeModelConfig` builds a `ModelConfig` object by reading model-info (fields, expands, actions, filtering, ordering), computing defaults, and merging any project-supplied overrides. This layer operates entirely at runtime and depends on the server metadata contract being stable.
+VUEDA code also reads one setting that `get_defaults` never sets. The VDQ attachment serializer builds attachment URLs from `VDQ_URL`, so a project that serves VDQ attachments sets it itself.
 
-## Server Settings Assembly Surface
+### Optional keys
 
-`get_defaults(env)` accepts an env-adapter object and returns a dict containing all settings that VUEDA runtime code assumes. The function is organized around concern groups.
+Optional keys have defaults: {@api ext:django:setting:DEBUG} is `False`, `LANGUAGE_CODE` is `"en-us"`, `MEDIA_ROOT` is `"/tmp/media"`, `LOGS_FOLDER` is `"."`, and `EMAIL_BACKEND` is Django's console backend.
 
-Required keys are read from the env adapter without a default value, so the adapter must provide them or raise an exception. These include cryptographic identity keys (`SECRET_KEY`), persistence backends (`DATABASE_URL`, `DATABASE_BACKUP_DIR`), frontend integration surfaces (`ALLOWED_HOSTS`, `FRONTEND_DOMAIN`, `FRONTEND_LOGIN_URL`), cross-origin trust configuration (`CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`), authentication identity (`AUTH_USER_MODEL`), and project identity (`TIME_ZONE`, `SITE_NAME`, `SUPPORT_EMAIL`). The distinction between required and optional is intentional: required keys represent values that have no safe default and must be provided by the project deployer.
+By default the email backend lands in Django's deprecated {@api ext:django:setting:EMAIL_BACKEND} setting, with `EMAIL_TIMEOUT` set to 5. These settings still work on Django 6.1, and packages a project depends on may not yet support the replacement. Passing [`use_mailers=True`]{@api py:param:vueda.core.default_settings.get_defaults.use_mailers} puts the same backend in Django 6.1's {@api ext:django:setting:MAILERS} setting instead, as `{"default": {"BACKEND": ..., "OPTIONS": {"timeout": 5}}}`. Before opting in, read Django's [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/) and confirm that your email packages (for example `django-anymail`) support `MAILERS`. On Django versions before 6.1, `use_mailers=True` raises {@api ext:django:django.core.exceptions.ImproperlyConfigured}, because those versions ignore `MAILERS` and would send through Django's default SMTP backend.
 
-Optional keys provide defaults that work for development or common deployment patterns. `DEBUG` defaults to `False`, `LANGUAGE_CODE` to `"en-us"`, `MEDIA_ROOT` to `"/tmp/media"`, `LOGS_FOLDER` to `"."`, and email backend to the console backend. These can be overridden through the env adapter without affecting VUEDA's contract assumptions.
+### Derived values
 
-By default, `get_defaults` assembles email settings under Django's deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings, since those still work on Django 6.1 and third-party packages a project depends on may not yet support Django 6.1's replacement. Passing `use_mailers=True` assembles the same `EMAIL_BACKEND` value under Django 6.1's `MAILERS` setting instead (`MAILERS = {"default": {"BACKEND": ..., "OPTIONS": {"timeout": 5}}}`). Read Django's [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/) and confirm your email-related dependencies (for example `django-anymail`) support `MAILERS` before opting in. `use_mailers=True` raises `ImproperlyConfigured` on Django versions before 6.1, since those versions ignore `MAILERS` and would otherwise silently fall back to Django's default SMTP backend instead of the configured one.
+After reading keys, `get_defaults` computes these settings:
 
-Derived values are computed after the initial read pass. `INSTALLED_APPS` is assembled from core Django apps, third-party apps, and VUEDA's own apps. Database options are post-processed to enable atomic requests, set isolation level, and pin `CONN_MAX_AGE` to `0`. Optional dependency detection (for example, `drf_spectacular`) can mutate the apps list, REST framework defaults, and add additional settings blocks.
+- {@api ext:django:setting:INSTALLED_APPS} is `DJANGO_APPS`, then `VUEDA_APPS`, then `THIRD_PARTY_APPS`, then `LOCAL_APPS`. `get_defaults` appends `pgtrigger` and `pghistory` to the third-party apps.
+- `VUEDA_APPS` must include `vueda.history`, because the migrations of every app with a tracked model depend on it. Without it, `get_defaults` raises `ImproperlyConfigured`.
+- {@api py:class:vueda.history.middleware.VuedaHistoryMiddleware} goes into {@api ext:django:setting:MIDDLEWARE} directly after Django's `AuthenticationMiddleware`, since it reads `request.user`. The system checks `vueda_history.W001` and `vueda_history.W002` report a project that removes it or moves it before authentication.
+- `PGHISTORY_APPEND_ONLY` is `True` and `PGHISTORY_CREATED_AT_FUNCTION` is `"clock_timestamp()"`. The shipped migrations write both into their trigger SQL, so `get_defaults` sets them unconditionally.
+- The `default` database gets [`ATOMIC_REQUESTS`]{@api ext:django:setting:DATABASE-ATOMIC_REQUESTS} set to `True` and `CONN_MAX_AGE` set to `0`. On a PostgreSQL-family engine it also gets the `REPEATABLE READ` isolation level.
+- When `drf_spectacular` is importable, `get_defaults` adds it to the third-party apps, sets VUEDA's schema class in `REST_FRAMEWORK`, and adds `SPECTACULAR_SETTINGS`. Removing the package later removes these settings.
 
-The production defaults (`get_production_defaults`) layer adds additional requirements on top of `get_defaults`. `SENTRY_DSN` is required only in the production path, not in baseline defaults. This split allows development environments to omit telemetry configuration while production deployments enforce it.
+### Production defaults
 
-## Env Adapter Contract and Error Semantics
+{@api py:function:vueda.core.default_settings.get_production_defaults} returns the Sentry settings and makes `SENTRY_DSN` required. Nothing in VUEDA or the project templates calls this function or initializes Sentry, so a production settings file does both.
 
-The env adapter is a duck-typed object that provides typed accessors for configuration values. The `EnvLike` typing contract defines the expected interface: methods for reading strings, booleans, integers, lists, and URLs, each with optional default values. When a default is omitted, the key is treated as required.
+## Request Transactions
 
-`TomlEnv`, the concrete adapter shipped with VUEDA, reads configuration from a TOML file and optionally overlays process environment variables when `prefer_env` is true. When the environment overlay is active, a process environment variable with a matching key (after prefix stripping) takes precedence over the TOML-loaded value. This enables deployment-time overrides without modifying the TOML file.
+Every request to a view runs in one database transaction on the `default` database. `get_defaults` turns this on with `ATOMIC_REQUESTS`, and Django then wraps each view call in {@api ext:django:django.db.transaction.atomic}. The transaction commits when the view returns a response and rolls back when the view raises.
 
-Error semantics are strict and immediate. A missing required key raises `KeyError("Missing config key: ...")` at the point where `get_defaults` reads it, which typically means server startup fails before Django finishes configuration. Invalid type coercions raise `ValueError` with a descriptive message. For example, a non-boolean string for `DEBUG` or a non-integer string for `SITE_ID`. These errors surface during settings assembly, not at request time, so misconfiguration is caught early.
+DRF views catch exceptions and turn them into responses, so without further help Django would commit writes made before the error. VUEDA's exception handler, {@api py:function:vueda.core.exceptions.debug_stack_exception_handler}, marks the transaction for rollback before it builds any response. This covers every error it answers:
+
+- Validation, permission, and not-found errors.
+- Exceptions DRF does not handle, which become a `500` response.
+- The `409` that [`gate_warnings`]{@api py:function:vueda.core.exceptions.gate_warnings} raises during {@term Warning Confirmation}, so a withheld write keeps nothing it did before the gate.
+
+A {@term Dry Run} request also rolls back, after the action body returns. Two cases still commit:
+
+- A view that returns an error response directly, without raising, commits the writes it made, whatever the status code.
+- Only databases with `ATOMIC_REQUESTS` set take part. `get_defaults` sets the flag on the `default` entry it returns, so a project that replaces that entry or adds another database sets the flag itself.
 
 ## Wire Query Parameter Namespace
 
-The server and client share a fixed set of query parameter names for search, ordering, pagination, and flex-field control. These names are a wire contract: both sides must use the same strings, and there is no runtime negotiation or discovery mechanism for them.
+The server and client use the same fixed query parameter names, called {@term Wire Query Parameters}. Server settings define each name, and the client holds a matching constant in {@api js:module:@arrai-innovations/vueda/utils/constants}:
 
-The canonical names are: `s` for search, `o` for ordering, `p` for page number, `ps` for page size, `e` for expand, `f` for fields, `om` for omit, and `ct` for column totals. The server declares these in `REST_FRAMEWORK` settings (`SEARCH_PARAM`, `ORDERING_PARAM`), `REST_FLEX_FIELDS` settings (`EXPAND_PARAM`, `FIELDS_PARAM`, `OMIT_PARAM`), the top-level `COLUMN_TOTALS_PARAM` setting, and pagination class settings. The client declares the same values as constants in `@vueda/utils/constants`. Renaming any of them on the server requires the matching change in that file.
+| Name | Purpose       | Server setting                     | Client constant                                                                 |
+| ---- | ------------- | ---------------------------------- | ------------------------------------------------------------------------------- |
+| `s`  | Search        | `REST_FRAMEWORK["SEARCH_PARAM"]`   | {@api js:property:@arrai-innovations/vueda/utils/constants#SEARCH_PARAM}        |
+| `o`  | Ordering      | `REST_FRAMEWORK["ORDERING_PARAM"]` | {@api js:property:@arrai-innovations/vueda/utils/constants#ORDERING_PARAM}      |
+| `p`  | Page number   | `PAGE_QUERY_PARAM`                 | {@api js:property:@arrai-innovations/vueda/utils/constants#PAGE_PARAM}          |
+| `ps` | Page size     | `PAGE_SIZE_QUERY_PARAM`            | {@api js:property:@arrai-innovations/vueda/utils/constants#PAGE_SIZE_PARAM}     |
+| `e`  | Expand        | `REST_FLEX_FIELDS["EXPAND_PARAM"]` | {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}        |
+| `f`  | Fields        | `REST_FLEX_FIELDS["FIELDS_PARAM"]` | {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}        |
+| `om` | Omit          | `REST_FLEX_FIELDS["OMIT_PARAM"]`   | {@api js:property:@arrai-innovations/vueda/utils/constants#OMIT_PARAM}          |
+| `ct` | Column totals | `COLUMN_TOTALS_PARAM`              | {@api js:property:@arrai-innovations/vueda/utils/constants#COLUMN_TOTALS_PARAM} |
 
-::: info
-Parameter-name discovery — reporting these names in metadata so a client reads them rather than declaring them — is planned for after the v3.0.0 release, and is deliberately being taken up for the parameter set as a whole rather than one parameter at a time.
-:::
+{@api py:class:vueda.core.pagination.VUEDAPageNumberPagination} reads `PAGE_QUERY_PARAM` and `PAGE_SIZE_QUERY_PARAM`. DRF's own defaults for search and ordering are `search` and `ordering`; [DRF Ecosystem Compatibility Boundaries](./drf-ecosystem-deviations) describes that departure.
 
-What a project's declarations _do_ change is which column totals exist, and that is discovered: the `model_column_totals` model-info section reports each model's declared total names, so a client knows which columns can carry a total without per-model configuration. The name of the parameter that asks for them is not part of that section. See [Expose Aggregates in `list` Responses](../guides/list-column-totals).
+The client does not discover these names at runtime. [#301](https://github.com/arrai-innovations/vueda/issues/301) tracks reporting them to the client. Until then, renaming one on the server requires the same change to the client constant.
 
-The totals parameter is the only one of the eight that a project's own declarations change the shape of, so it is the only one the schema generator has to derive rather than describe once. `VuedaBaseAutoSchema.get_override_parameters` adds it to a `list` operation whose viewset declares `column_totals`, enumerating that viewset's own total names plus the wildcard values:
+The server builds its set of accepted query keys from the same settings. After a server-side rename, a client that still sends the old key gets a `400` "Invalid query parameter" response from `list` and `retrieve` on {@api py:class:vueda.core.viewsets.VuedaViewSet} and {@api py:class:vueda.core.viewsets.VuedaReadOnlyViewSet} endpoints. [Query parameter validation]{@term Query Parameter Validation} describes which keys each endpoint accepts.
 
-```yaml
-- in: query
-  name: ct
-  schema:
-      type: array
-      items:
-          type: string
-          enum: ["*", product_price, quantity, "~all"]
-  style: form
-  explode: false
-```
+`ct` is the one name whose accepted values depend on the viewset. When drf-spectacular is installed, [`get_override_parameters`]{@api py:function:vueda.core.open_api.VuedaBaseAutoSchema.get_override_parameters} documents it on each `list` operation whose viewset declares {@term Column Totals}, with that viewset's total names.
 
-It has to be added explicitly because it belongs to neither of the two surfaces drf-spectacular discovers parameters from: it is not a paginator's, and not a filter backend's. Without it a generated schema would describe a `columnTotals` response key that no documented request could populate. `style: form` with `explode: false` is the comma-separated spelling; repeating the parameter means the same thing to the server, but OpenAPI describes one serialization and comma-separated is what the client sends. The parameter is documented only where sending it does something — never on `retrieve`, which rejects it, and never on a viewset declaring no totals. Projects that do not install drf-spectacular, which is optional, are unaffected.
+## Permission Name Patch
 
-These short, single-letter names are a deliberate departure from DRF's upstream defaults (which use longer names like `search` and `ordering`). The short names reduce URL length, but the important property is that they are fixed. If a project overrides the server's query parameter settings without also updating the client constants, client requests will silently stop applying the intended search, ordering, pagination, or flex-field behaviour; the server will ignore the client's query keys because they do not match the expected names.
+VUEDA names permissions with its {@term CRUD} actions. The {@term Permission Mapping} setting, `PERMISSION_NAMES_MAPPING`, renames Django's actions. By default it maps `add` to `create`, `change` to `update`, and `view` to `read`. Importing {@api py:module:vueda.core.patch_django} from the project's settings applies it. The import patches four things:
 
-## Permission Codename Mapping Lifecycle
+- {@api py:function:vueda.core.patch_django.get_permission_codename} replaces Django's `get_permission_codename` and renames the action through the mapping.
+- {@api py:function:vueda.core.patch_django.get_builtin_permissions} replaces the function Django uses to build a model's default permission rows, and renames each action the same way.
+- Every model that does not declare its own {@api ext:django:django.db.models.Options.default_permissions} gets `list` added to them, third-party models included. This is where each model's `list` permission row comes from.
+- When the mapping is a reverse mapping (it maps to Django's names), the import rewrites {@api py:property:vueda.core.permissions.ObjectPermissions.perms_map} to check those names.
 
-VUEDA replaces Django's default permission codename vocabulary with {@term CRUD} names: `create`, `read`, `update`, `delete`, and `list` instead of `add`, `view`, `change`, and `delete`. This remapping is implemented as a monkey-patch applied at module import time. A setting ({@term Permission Mapping}) exists, so these names can be specified per project.
+The two replacement functions read the mapping when called and cache it until Django's {@api ext:django:django.test.signals.setting_changed} signal reports a change. The `perms_map` rewrite is decided once, when `patch_django` is imported. The import leaves {@api py:class:vueda.core.permissions.DynamicObjectPermissions} and {@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions} alone, because they resolve their action through the mapping when each check runs.
 
-In order for any changed permission names to take effect before permissions are created/used in migrations, and before permissions are created by `post_migrate`, we need to monkey-patch Django at the bottom of the project's `settings` file.
+[Map Django and VUEDA Permission Names](../guides/permission-name-mapping) gives the import placement and the steps for changing the mapping. [Permissions](../reference/permissions#permission-name-mapping) lists the setting's values.
 
-`vueda.core.patch_django` installs its monkey-patches at import time, but the decision it makes about `PERMISSION_NAMES_MAPPING` differs by call site:
+## Client Model Config
 
-- `get_permission_codename` and `get_builtin_permissions` read `settings.PERMISSION_NAMES_MAPPING` at call time, not at import time. The value is cached and the cache is cleared on Django's `setting_changed` signal, so `override_settings(PERMISSION_NAMES_MAPPING=...)` reaches both functions immediately.
-- Row-level filtering, model-info metadata, workflow state checks, and object history access each read `settings.PERMISSION_NAMES_MAPPING` directly at call time, rather than through `get_permission_codename`. They previously bound the setting to a module global at import, so they follow the same call-time contract as the two patched functions above.
-- Selecting whether `ObjectPermissions.perms_map` needs a reverse-mapping rewrite still happens once, at `patch_django` import time. This decision is not re-evaluated later, so a mapping change made after `patch_django` is imported does not change which `perms_map` entries are active. `DynamicObjectPermissions`, and the `WorkflowObjectPermissions` class built on it, take no such rewrite. They name a CRUD action and resolve it through the mapping when the check runs, so `patch_django` does not touch them.
+On the client, {@term Model Config} comes from {@term Model Info} and the overrides a project passes to [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}. [Reactive Data Flow](./reactive-data-flow) describes how {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} builds, caches, and clears configs. [Contract-First Dynamic UI](./contract-first-dynamic-ui#configuration-precedence) describes which layer wins when defaults and overrides disagree.
 
-Existing `auth_permission` rows keep the codenames created during migration regardless of any later mapping change. If you change `PERMISSION_NAMES_MAPPING` on a project that has already migrated, the permission rows and any group assignments must be updated to match; the setting only controls codename generation going forward and runtime codename resolution, not rows already written to the database.
+## Client Environment Variables
 
-If you use a reverse mapping (Django names as the mapped output), finalize `PERMISSION_NAMES_MAPPING` in settings before importing `patch_django`, so the `perms_map` rewrite it performs at import time reflects the mapping you intend to use. For the full permission evaluation model, see [Permission Model](./permission-model).
+Three Vite build-time variables configure the client:
 
-## Client ModelConfig Derivation and Cache
+- `VITE_CSRF_COOKIE_NAME` names the cookie the client reads, through {@api js:function:@arrai-innovations/vueda/utils/csrf#getCSRFValue}, to fill the `X-CSRFToken` header on writes. It must equal the server's {@api ext:django:setting:CSRF_COOKIE_NAME}. `get_defaults` leaves that setting at Django's `csrftoken`, and the project templates set both names only in their development settings.
+- `VITE_DJANGO_CONNECTION_PORT`, when set, is appended as a port to `window.location.hostname` to form {@api js:property:@arrai-innovations/vueda/utils/connectionHostname#connectionHostname}. Development setups use it when Vite and Django listen on different ports.
+- `VITE_PACKAGE_VERSION` is the project's client version, which {@api js:function:@arrai-innovations/vueda/use/useVersion#useVersion} reports as `projectClientVersion`. No VUEDA code sets it ([#300](https://github.com/arrai-innovations/vueda/issues/300)). While it is unset, `newClientAvailable` stays false.
 
-On the client side, `storeModelConfig` builds per-model, per-view configuration objects from server-emitted model-info metadata. This derivation is the bridge between the server's metadata contract and the client's UI rendering decisions.
+## Failure Modes
 
-The derivation starts with `getDefaultFromModelInfo`, which reads the model-info object's `fields`, `expand`, `actions`, `filtering`, and `ordering` entries and computes sensible defaults: which fields to fetch, display, and submit; which expands to request; which actions are available; and how to route action results. If the model-info object is missing any of these top-level keys, the function returns a minimal config shape with empty detail objects rather than throwing an error.
+**Missing required key.** `TomlEnv` raises `KeyError("Missing config key: <key>")` when `get_defaults` reads it, so the server fails at startup and names the key. `load_toml` returns an empty mapping for a missing file, so a missing `config.local.toml` shows up only as this error.
 
-Default action redirects use view-name strings (for example, `"read"`) even though the underlying server action name is `"retrieve"`. The mapping boundary is `viewToActionNameMap`, which translates between the client's view-oriented naming and the server's DRF-oriented naming. This translation is a stable convention, not a runtime lookup.
+**Invalid typed value.** Values from the environment are strings, and TOML values arrive typed; the typed accessors convert both. A boolean accepts `1`, `true`, `t`, `yes`, `y`, or `on`, and `0`, `false`, `f`, `no`, `n`, or `off`, in any case. Any other value, such as `"maybe"`, raises a `ValueError` that names the key. An integer or float accessor names the key only for an empty string. Any other bad string, such as `"abc"`, raises Python's own `ValueError`, which does not name the key.
 
-After defaults are computed, the config store merges in any project-supplied overrides; first generic overrides (applicable to all views of the model), then view-specific overrides. The merged result is cached under an `app.model.view` key. Subsequent requests for the same key return the cached config immediately.
+**Environment overlay surprises.** `TomlEnv` checks the process environment before the TOML mapping by default, because its `prefer_env` argument defaults to `True`. With a `prefix`, `TomlEnv` adds the prefix to the key for both lookups, so the TOML keys need it too.
 
-When a project calls `setConfig` to apply new overrides, the config store cancels any in-flight builds for the affected model and deletes cached built configs. This ensures that the next config request rebuilds from the new overrides rather than serving a stale cache entry.
+**Permission patch missing.** Without the `patch_django` import, Django creates permission rows under its own names (`add_*`, `change_*`, `view_*`) and creates no `list_*` rows. `ObjectPermissions` still checks `create_*`, `read_*`, `list_*`, `update_*`, and `delete_*`, so every check against an assigned permission fails. The symptom is `403` responses that do not match the user's assigned permissions. When the mapping changes later, existing permission rows keep the codenames they were created with.
 
-## Client Runtime Env Surface
+**Reverse mapping set after the import.** If a reverse mapping is set after `patch_django` is imported, `ObjectPermissions.perms_map` keeps the entries selected at import. Its HTTP method checks then disagree with the mapping in effect. `DynamicObjectPermissions` and `WorkflowObjectPermissions` are unaffected.
 
-A small number of Vite build-time environment variables configure client-side behaviour that cannot be derived from server metadata.
-
-`VITE_CSRF_COOKIE_NAME` specifies the name of the CSRF cookie that the client reads to populate the `X-CSRFToken` header on unsafe HTTP methods. If this variable is unset, the CSRF utility reads from an undefined cookie name, and requests send an empty or missing CSRF token. The server then rejects the request with a CSRF failure, which results in a `403` response for any `POST`, `PUT`, `PATCH`, or `DELETE` operation.
-
-`VITE_DJANGO_CONNECTION_PORT` optionally specifies the port for the Django backend connection hostname. When set, it is appended to the hostname used by the client's fetch utilities. This is primarily useful in development environments where the Vite dev server and Django run on different ports.
-
-## Observable Failure Modes
-
-Configuration failures surface at different points in the application lifecycle depending on which layer is affected.
-
-**Missing required server keys.** The env adapter raises `KeyError("Missing config key: ...")` during `get_defaults` execution, which typically aborts server startup. The error message names the missing key. This is the most common configuration failure during initial project setup.
-
-**Invalid typed values.** `TomlEnv` raises `ValueError` when a typed accessor cannot coerce the raw value; for example, `"yes"` for a boolean field that expects `"true"` or `"false"`, or `"abc"` for an integer field. The error message includes the key name and the invalid value.
-
-**Optional dependency coupling.** If `drf_spectacular` is importable, `get_defaults` mutates the apps list, REST framework schema class, and adds `SPECTACULAR_SETTINGS`. If the dependency is removed after initial setup, these settings disappear, which can change the shape of the settings dict. This is not a failure per se, but it means that the presence or absence of an optional dependency changes the runtime settings surface.
-
-**Permission mapping drift.** Omitting the `vueda.core.patch_django` import leaves `get_permission_codename` and `get_builtin_permissions` unpatched: permissions are created and checked under Django's default codenames (`add_*`, `view_*`, `change_*`) rather than VUEDA's CRUD names. The symptom is authorization failures that seem unrelated to the actual permission assignments. If `patch_django` is imported but a reverse mapping is finalized in settings only after that import, `ObjectPermissions.perms_map` keeps the rewrite selected at import time, which can leave HTTP-method-to-codename resolution out of sync with the mapping actually in effect. This drift does not reach `DynamicObjectPermissions` or `WorkflowObjectPermissions`, which resolve their CRUD action through the mapping at check time.
-
-**Server/client query parameter drift.** Overriding the server's query parameter settings without updating the client constants breaks the wire contract. Client requests continue to send the original parameter names, which the server ignores because they no longer match the parameter names it expects. The symptom is that search, ordering, pagination, or flex-field selections have no effect; requests succeed but return unfiltered, unordered, or unpaginated results.
-
-**Client CSRF env missing.** When `VITE_CSRF_COOKIE_NAME` is unset, the CSRF utility constructs headers with an undefined cookie name. The server's CSRF middleware returns a `403` for unsafe HTTP methods. This failure is particularly confusing because `GET` requests work normally, so the application appears functional until the first mutation.
-
-**Model-info PK omission in config derivation.** `getDefaultFromModelInfo` expects `modelInfo.pk` to be present when computing default field lists. If the pk field is missing (because the server serializer omits it), the client will throw errors, because the pk field is required.
-
-## Relevant Implementation Surface
-
-- {@api py:module:vueda.core.default_settings}
-- {@api py:function:vueda.core.default_settings.get_defaults}
-- {@api py:function:vueda.core.default_settings.get_production_defaults}
-- {@api py:module:vueda.core.config}
-- {@api py:class:vueda.core.config.TomlEnv}
-- {@api py:class:vueda.core.open_api.VuedaBaseAutoSchema}
-- {@api py:module:vueda.core.patch_django}
-- {@api py:module:vueda.core.permissions}
-- {@api js:module:@arrai-innovations/vueda/utils/constants}
-- {@api js:module:@arrai-innovations/vueda/utils/actionMap}
-- {@api js:module:@arrai-innovations/vueda/utils/csrf}
-- {@api js:module:@arrai-innovations/vueda/utils/connectionHostname}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
+**CSRF cookie name missing or wrong.** When `VITE_CSRF_COOKIE_NAME` is unset or differs from `CSRF_COOKIE_NAME`, the client sends no valid token. The server's CSRF check then answers `403` to `POST`, `PUT`, `PATCH`, and `DELETE` requests. `GET` requests still work, so the application looks healthy until the first write.
