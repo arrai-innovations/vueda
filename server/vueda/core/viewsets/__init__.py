@@ -30,6 +30,7 @@ from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
@@ -1389,12 +1390,17 @@ class VuedaViewSet(
     def apply_object_permission_filter(self, queryset):
         """
         Keep only objects the current request can access at object-permission level.
+
+        Every refusal ``check_object_permissions`` can raise drops the object, the same set
+        ``vueda.core.permissions.check_action_permission`` treats as a refusal. That includes
+        ``Http404``, which DRF's ``DjangoObjectPermissions`` raises for a write when the user also
+        cannot read the object, and Django's ``PermissionDenied`` from a viewset override.
         """
         allowed_ids = []
         for instance in queryset:
             try:
                 self.check_object_permissions(self.request, instance)
-            except (NotAuthenticated, PermissionDenied):
+            except (NotAuthenticated, PermissionDenied, DjangoPermissionDenied, Http404):
                 continue
             allowed_ids.append(instance.pk)
         return queryset.filter(pk__in=allowed_ids)
