@@ -4,17 +4,20 @@
  * Builds the `ext:<package>:<name>` ids that authored pages use to link upstream documentation.
  * `external-docs.json` lists each package. A package whose documentation publishes a Sphinx
  * inventory (`objects.inv`) contributes every Python object and setting in it, at the version
- * `uv.lock` pins. Any other package lists its links by hand, and each of those pages is fetched to
- * confirm the page and its anchor exist.
+ * installed in the docs environment, or the one `uv.lock` pins when it is not installed. Any other
+ * package lists its links by hand, and each of those pages is fetched to confirm the page and its
+ * anchor exist.
  *
  * The result is a flat map of id to `{ href, title }`, written to `.generated/external-ids.json`,
  * which the reference validator and the VitePress site both read. Every download is also kept in
  * `.cache/external/`, which this extract falls back to when the network is unavailable.
  */
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { inflateSync } from "node:zlib";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -60,8 +63,8 @@ export function parseInventory(buffer) {
  * Return `{ [packageName]: version }` from the text of `uv.lock`.
  *
  * A lockfile can pin two versions of one package for different Python versions (Django 5.2 below
- * Python 3.12 and 6.1 above, for example). The highest one wins, which is the one the docs build
- * environment runs.
+ * Python 3.12 and 6.1 above, for example). The highest one wins. The extractor prefers the version
+ * installed in the docs environment and uses this only for a package that environment lacks.
  */
 export function lockVersions(lockText) {
     const versions = {};
@@ -232,21 +235,58 @@ export async function cachedFetch(url, { cacheDir = DEFAULT_CACHE_DIR, fetchImpl
     return body;
 }
 
+const INSTALLED_VERSIONS_SCRIPT = `
+import importlib.metadata, json, sys
+versions = {}
+for name in sys.argv[1:]:
+    try:
+        versions[name] = importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        versions[name] = None
+print(json.dumps(versions))
+`;
+
+/**
+ * Return `{ [packageName]: version|null }` for the packages installed in the docs environment's Python.
+ *
+ * The API reference documents the server against these versions, so links to their documentation
+ * use the same ones. A package that is not installed, or a failed lookup, maps to null.
+ */
+export async function installedVersions(names) {
+    try {
+        const { stdout } = await promisify(execFile)(
+            "uv",
+            ["run", "--no-sync", "python", "-c", INSTALLED_VERSIONS_SCRIPT, ...names],
+            { cwd: repoRoot },
+        );
+        return JSON.parse(stdout);
+    } catch {
+        return Object.fromEntries(names.map((name) => [name, null]));
+    }
+}
+
 export class ExternalDocsExtractor {
     /**
      * @param {object} [options]
      * @param {(url: string) => Promise<ArrayBuffer>} [options.fetchInventory] - Fetches an inventory.
      * @param {(url: string) => Promise<string>} [options.fetchPage] - Fetches a hand-listed page.
      * @param {string} [options.cacheDir] - Where the default fetchers keep copies for offline use.
+     * @param {(names: string[]) => Promise<{[name: string]: string|null}>} [options.findInstalledVersions] -
+     *  Reports the installed version of each Python package.
      */
-    constructor({ fetchInventory, fetchPage, cacheDir } = {}) {
+    constructor({ fetchInventory, fetchPage, cacheDir, findInstalledVersions } = {}) {
+        this.findInstalledVersions = findInstalledVersions || installedVersions;
         this.fetchInventory = fetchInventory || ((url) => cachedFetch(url, { cacheDir }));
         this.fetchPage = fetchPage || (async (url) => (await cachedFetch(url, { cacheDir })).toString("utf-8"));
     }
 
     async extract({ outputPath, configPath = DEFAULT_CONFIG, lockPath = DEFAULT_LOCK } = {}) {
         const config = JSON.parse(await readFile(configPath, "utf-8"));
-        const versions = lockVersions(await readFile(lockPath, "utf-8"));
+        const lockedVersions = lockVersions(await readFile(lockPath, "utf-8"));
+        const lockPackages = Object.values(config)
+            .map((packageConfig) => packageConfig.lockPackage)
+            .filter(Boolean);
+        const installed = await this.findInstalledVersions(lockPackages);
 
         const ids = {};
         for (const [packageKey, packageConfig] of Object.entries(config)) {
@@ -254,7 +294,7 @@ export class ExternalDocsExtractor {
                 Object.assign(ids, registryIds(packageKey, packageConfig));
                 continue;
             }
-            const version = versions[packageConfig.lockPackage];
+            const version = installed[packageConfig.lockPackage] ?? lockedVersions[packageConfig.lockPackage];
             const base = fillVersion(packageConfig.base, version);
             const inventoryUrl = packageConfig.inventory
                 ? fillVersion(packageConfig.inventory, version)

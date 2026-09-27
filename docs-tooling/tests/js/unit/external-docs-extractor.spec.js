@@ -3,6 +3,7 @@ import {
     cachedFetch,
     checkRegistryLinks,
     fillVersion,
+    installedVersions,
     inventoryIds,
     lockVersions,
     parseInventory,
@@ -178,6 +179,7 @@ describe("ExternalDocsExtractor", () => {
                 return EXAMPLE_INVENTORY;
             },
             fetchPage: async () => '<a id="thing"></a>',
+            findInstalledVersions: async () => ({ example: null }),
         });
         await extractor.extract({ outputPath, configPath, lockPath });
 
@@ -189,6 +191,35 @@ describe("ExternalDocsExtractor", () => {
         expect(ids["ext:site:thing"]).toEqual({ href: "https://site.test/page#thing", title: "Site: thing" });
     });
 
+    it("links the version installed in the docs environment over the lockfile's", async () => {
+        const dir = await mkdtemp(path.join(os.tmpdir(), "external-docs-"));
+        const configPath = path.join(dir, "external-docs.json");
+        const lockPath = path.join(dir, "uv.lock");
+        await writeFile(
+            configPath,
+            JSON.stringify({
+                example: { title: "Example", lockPackage: "example", base: "https://example.test/en/{minor}/" },
+            }),
+        );
+        // The lockfile pins 6.1 for newer Pythons, but this environment runs 5.2.
+        await writeFile(lockPath, '[[package]]\nname = "example"\nversion = "6.1"\n');
+
+        const requested = [];
+        const extractor = new ExternalDocsExtractor({
+            fetchInventory: async (url) => {
+                requested.push(url);
+                return EXAMPLE_INVENTORY;
+            },
+            findInstalledVersions: async (names) => {
+                expect(names).toEqual(["example"]);
+                return { example: "5.2.17" };
+            },
+        });
+        await extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath });
+
+        expect(requested).toEqual(["https://example.test/en/5.2/objects.inv"]);
+    });
+
     it("fails when a hand-listed link is broken", async () => {
         const dir = await mkdtemp(path.join(os.tmpdir(), "external-docs-"));
         const configPath = path.join(dir, "external-docs.json");
@@ -198,7 +229,10 @@ describe("ExternalDocsExtractor", () => {
             JSON.stringify({ site: { title: "Site", links: { thing: "https://site.test/p#x" } } }),
         );
         await writeFile(lockPath, "");
-        const extractor = new ExternalDocsExtractor({ fetchPage: async () => "<p></p>" });
+        const extractor = new ExternalDocsExtractor({
+            fetchPage: async () => "<p></p>",
+            findInstalledVersions: async () => ({}),
+        });
         await expect(
             extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath }),
         ).rejects.toThrow("https://site.test/p#x: no element has this id");
@@ -238,4 +272,12 @@ describe("cachedFetch", () => {
         const gone = async () => new Response("", { status: 404 });
         await expect(cachedFetch("https://site.test/c", { cacheDir, fetchImpl: gone })).rejects.toThrow("HTTP 404");
     });
+});
+
+describe("installedVersions", () => {
+    it("reports an installed package's version and null for one that is not installed", async () => {
+        const versions = await installedVersions(["django", "vueda-no-such-package"]);
+        expect(versions.django).toMatch(/^\d+\.\d+/);
+        expect(versions["vueda-no-such-package"]).toBeNull();
+    }, 60000);
 });

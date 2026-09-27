@@ -217,7 +217,7 @@ Link a name from another project's documentation with `{@api ext:<package>:<name
 
 The link text is the package and the name ("Django: GeneratedField"), and the link opens the upstream page. A labeled link shows the label and keeps the package and name as its hover title.
 
-`docs-tooling/external-docs.json` lists the packages. Most Python packages publish a Sphinx inventory, and `just docs-extract` downloads it at the version `uv.lock` pins. Every Python object in it becomes `ext:<package>:<import path>`, and every Django setting becomes `ext:django:setting:<NAME>`. Use the path the upstream docs use, which is usually the public import path (`django.db.models.Manager`, not `django.db.models.manager.Manager`). To find a name, search the extracted ids:
+`docs-tooling/external-docs.json` lists the packages. Most Python packages publish a Sphinx inventory, and `just docs-extract` downloads it for the version installed in the docs environment, the same version the API reference documents. A package that environment lacks falls back to the version `uv.lock` pins. Every Python object in it becomes `ext:<package>:<import path>`, and every Django setting becomes `ext:django:setting:<NAME>`. Use the path the upstream docs use, which is usually the public import path (`django.db.models.Manager`, not `django.db.models.manager.Manager`). To find a name, search the extracted ids:
 
 ```bash
 grep -o '"ext:django:[^"]*Manager[^"]*"' docs-tooling/.generated/external-ids.json
