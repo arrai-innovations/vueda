@@ -634,6 +634,20 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
 
 
+def permitted_expand_depths(serializer):
+    """
+    Return the dot count of each path in the action's permit list, or an empty list without one.
+
+    Validation walks the expand tree only as deep as it needs. Walking as deep as the permit list
+    too lets an error message list a dotted permit, such as ``customer.user``, when the request
+    names only ``customer``.
+
+    :param serializer: The action's serializer, whose context may hold ``permitted_expands``.
+    :returns: One dot count per permitted path.
+    """
+    return [path.count(".") for path in serializer.context.get("permitted_expands") or ()]
+
+
 def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
     """
     Map each submitted expand that is neither a valid expand nor a valid wildcard to its message.
@@ -1007,6 +1021,7 @@ class NoExtraFieldsForViewSetMixin:
                 max(
                     [field.count(".") for field in submitted_fields]
                     + [field.count(".") for field in submitted_expand_fields]
+                    + permitted_expand_depths(serializer)
                 )
                 + 1
             )
@@ -1075,7 +1090,9 @@ class NoExtraFieldsForViewSetMixin:
         )
         if not submitted_expand_fields:
             return
-        max_depth = max(field.count(".") for field in submitted_expand_fields) + 1
+        max_depth = (
+            max([field.count(".") for field in submitted_expand_fields] + permitted_expand_depths(serializer)) + 1
+        )
         valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
             serializer, 0, max_depth
         )
