@@ -7,13 +7,17 @@ status: draft
 
 # Model Feature Policy
 
-A VUEDA model declares which framework features it participates in through one nested class:
+A model's {@term Feature Policy} declares which framework features the model participates in. You write it as one nested class:
 
 ```py
+from django.db import models
+
 from vueda.core.models import VuedaModel
 
 
 class CustomerOrder(VuedaModel):
+    temporary_token = models.CharField(max_length=64, blank=True)
+
     class Vueda:
         class History:
             enabled = True
@@ -23,29 +27,29 @@ class CustomerOrder(VuedaModel):
             enabled = True
 ```
 
-`class Vueda` is the only place a model author declares feature participation. Feature integrations read the resolved policy rather than the classes written above. One declaration can therefore drive server behaviour, metadata, schema, and migration generation.
+`class Vueda` is the only place a model author declares feature participation. Feature integrations read the resolved policy, which combines these classes with defaults and inheritance. One declaration therefore drives server behavior, metadata, schema, and migration generation.
 
-Django's `class Meta` cannot hold these options. Django rejects unknown `Meta` attributes while it constructs a model. Widening the accepted names would change that behaviour for every model in the process, whether or not it belongs to VUEDA. `class Vueda` is a separate namespace, so `Meta` stays limited to Django's own model options.
+`class Vueda` is separate from Django's `class Meta` because Django rejects unknown `Meta` attributes while it constructs a model. Widening the accepted names would change that behavior for every model in the process, including models outside VUEDA. The separate namespace keeps `Meta` limited to Django's own model options.
 
 ## Which Models Carry Policy
 
-Every model built on a VUEDA model base carries feature policy: `VuedaModel`, `Lookup`, `SingletonModel`, `EmailTemplateBase`, and anything derived from them. `VuedaModel` and `Lookup` are siblings rather than parent and child, so the policy deliberately covers both. Their current common root is `FormattedNameBaseModel`; integrations use `supports_vueda_feature_policy()` rather than repeating that inheritance check.
+Every {@term VUEDA Model} carries feature policy. That covers models built on [`VuedaModel`]{@api py:class:vueda.core.models.VuedaModel} or [`Lookup`]{@api py:class:vueda.core.models.Lookup}. It also covers the abstract bases derived from `VuedaModel`, [`SingletonModel`]{@api py:class:vueda.core.models.SingletonModel} and [`EmailTemplateBase`]{@api py:class:vueda.core.models.EmailTemplateBase}. `VuedaModel` and `Lookup` are siblings, and both derive from [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}. Integrations test membership with [`supports_vueda_feature_policy()`]{@api py:function:vueda.core.models.supports_vueda_feature_policy}, so they do not depend on that inheritance.
 
-A model that is not built on a VUEDA base has no policy. Declaring `class Vueda` on one is a system-check error rather than a silent no-op.
+A model built on another base has no policy. Declaring `class Vueda` on one is a system-check error.
 
-A model VUEDA ships carries the policy VUEDA declared for it, and a project cannot change that policy. History reads it while Django builds the model, and VUEDA's published migrations already hold the event models it produced. A project's own models are the other case. Their policy is the project's to write, and `makemigrations` writes the resulting event models and triggers into the project's own migrations.
+A model VUEDA ships carries the policy VUEDA declared for it, and a project cannot change that policy. History reads the policy while Django builds the model, and VUEDA's published migrations already hold the event models that policy produced. Your own models carry the policy you write, and `makemigrations` writes the resulting event models and triggers into your project's migrations.
 
 ## Sections and Options
 
-A section is a nested class named after a feature, and its attributes are that feature's options. Each installed feature app registers the sections it owns. The registration defines each option's default, accepted types, validation, inheritance behaviour, and effect on migration generation.
+A section is a nested class named after a feature, and its attributes are that feature's options. Each installed feature app registers the sections it provides. The registration defines each option's default, accepted types, validation, inheritance behavior, and effect on migration generation.
 
-Core does not know any feature's defaults. Whether history defaults on or workflow defaults off is a decision the owning app registers. Core knows only the names of first-party sections, which is what lets it tell an absent feature app from a misspelt section.
+Core holds no feature defaults. `vueda.history` registers history as on by default, and `vueda.workflow` registers workflow as off by default. Core knows only the names of the first-party sections, `History` and `Workflow`, so it can tell an absent feature app from a misspelled section.
 
-A section always resolves, whether or not a model declares it. An undeclared section takes the registered defaults, so a feature always reads a complete set of values.
+Every registered section resolves for every model, whether or not the model declares it. An undeclared section takes the registered defaults, so a feature always reads a complete set of values.
 
 ## Reading the Resolved Policy
 
-Feature integrations, metadata, schema, and migration code read one normalized object per model:
+Feature integrations, metadata, schema, and migration code read one resolved object per model, a [`VuedaOptions`]{@api py:class:vueda.core.options.VuedaOptions}:
 
 ```py
 from vueda.core.options import get_vueda_options
@@ -60,14 +64,16 @@ options["History"].is_declared("enabled") # True: the author wrote it
 options["History"].migration_values()     # only the migration-relevant options
 ```
 
-`get_vueda_options()` resolves a model's policy on first access and caches it on the model. `is_declared()` separates an explicit choice from a registered default, which a feature needs when the two mean different things.
+[`get_vueda_options()`]{@api py:function:vueda.core.options.get_vueda_options} resolves a model's policy on first access and caches it on the model. It raises {@api ext:python:TypeError} for a model that is not a VUEDA model. [`is_declared()`]{@api py:function:vueda.core.options.SectionOptions.is_declared} separates an explicit choice from a registered default, which a feature needs when the two mean different things. [`migration_values()`]{@api py:function:vueda.core.options.SectionOptions.migration_values} returns the options that the feature's migration generation reads.
 
 ## Inheritance
 
-An abstract or concrete base's declaration reaches every concrete model built from it. A subclass changes one option without redeclaring the sections or options it inherits, and without subclassing the parent's `Vueda` class:
+A declaration on an abstract or concrete base reaches every concrete model built from it. A subclass changes one option without redeclaring the sections or options it inherits, and without subclassing the parent's `Vueda` class:
 
 ```py
 class AuditedBase(VuedaModel):
+    temporary_token = models.CharField(max_length=64, blank=True)
+
     class Vueda:
         class History:
             enabled = True
@@ -84,16 +90,18 @@ class ImportRow(AuditedBase):
             reason = "High-churn staging data"
 ```
 
-`ImportRow` resolves to `enabled = False`, keeps the inherited `exclude_fields`, and adds its own `reason`.
+`ImportRow` resolves to `enabled = False`, keeps the inherited `exclude_fields`, and adds its own `reason`. `reason` is a note for readers of the code, and VUEDA does not act on it.
 
-Declarations apply in reverse method resolution order, from the most basic base down to the model itself, so a later declaration wins. Under multiple inheritance that makes the leftmost base win, matching ordinary Python attribute lookup.
+Declarations apply in reverse method resolution order, from the most basic base down to the model itself, so a later declaration wins. Under multiple inheritance, the leftmost base wins, which matches ordinary Python attribute lookup.
 
-A feature may register an option that accumulates instead of replacing. Without such a feature-specific merge rule, an explicit child value replaces the inherited value.
+A feature may register an option that accumulates inherited and declared values. Every other option uses replacement: an explicit child value replaces the inherited value.
 
-`History.exclude_fields` uses replacement. A child that does not declare it inherits the parent value. A child that declares it replaces the parent value. To extend the parent exclusions, reference them explicitly:
+`History.exclude_fields` uses replacement. A child that does not declare it inherits the parent value, and a child that declares it replaces the parent value. To extend the parent exclusions, reference them explicitly:
 
 ```py
 class ImportRow(AuditedBase):
+    staging_note = models.TextField(blank=True)
+
     class Vueda:
         class History:
             exclude_fields = [
@@ -102,29 +110,39 @@ class ImportRow(AuditedBase):
             ]
 ```
 
-Multi-table inheritance follows the same policy rules. Each concrete child receives its own resolved options and may override its parent. Feature contributors must apply behavior from the exact model's policy and define how their database artifacts behave across parent and child tables.
+Multi-table inheritance follows the same rules. Each concrete child resolves its own policy, inherits its concrete parent's declarations, and may override them.
 
 ## Proxy Models
 
-A proxy model takes the policy of its concrete model, and declaring `class Vueda` on a proxy is a system-check error.
+A proxy model takes the policy of its concrete model. Declaring `class Vueda` on a proxy is a system-check error.
 
-History triggers attach to the shared database table, and workflow resolves a proxy to its concrete model when it records object state. Core cannot apply a separate proxy policy consistently, so accepting one would mean ignoring it.
+History triggers attach to the shared database table, and workflow resolves a proxy to its concrete model when it records object state. A separate proxy policy could not apply consistently, so VUEDA rejects one. [Expose a Proxy Model as a Separate CRUD Surface](../guides/proxy-models#how-history-tracking-works-for-proxy-models) describes how history behaves for a proxy.
 
 ## Feature Apps That Are Not Installed
 
-Installing a feature app makes its feature available. The owning section then decides whether a given model participates. Every supported configuration installs `vueda.history`, so history tracks eligible models by default unless they opt out. `vueda.workflow` is optional, and a model must explicitly opt in even where a project installs it. [Django App Boundaries](./architecture-overview#django-app-boundaries) covers which apps a configuration may omit.
+Installing a feature app makes its feature available, and the model's section decides whether the model participates. Every supported configuration installs `vueda.history`, so history tracks each eligible model unless its policy opts out. `vueda.workflow` is optional, and a model opts in explicitly even where a project installs it. [Django App Boundaries](./architecture-overview#django-app-boundaries) lists which apps a configuration may omit.
 
-Declaring a section whose feature app is absent is a system-check error naming the app to install. A model that declares a `Workflow` section in a project without `vueda.workflow` reports that error. A section name no installed app owns is a separate error listing the sections that are available. System checks report both cases.
+Declaring a section whose feature app is not installed is a system-check error that names the app to install. For example, a model that declares a `Workflow` section in a project without `vueda.workflow` reports that error. A section name that no installed app registers is a separate error, which lists the sections that are available.
 
 ## Validation
 
-Resolution never raises. A faulty declaration becomes a system check error. `manage.py check`, `runserver`, and `migrate` report the model and option instead of failing while Django imports models.
+Resolving a VUEDA model's policy never raises. A faulty declaration becomes a system-check error that names the model and the option. `manage.py check`, `runserver`, and `migrate` report it, so the fault never surfaces as an error while Django imports models.
 
-The checks report unknown or unavailable sections, unknown options, and invalid values. They also report options outside a section, proxy declarations, and declarations on models that do not support VUEDA policy.
+[`check_model_feature_policy`]{@api py:function:vueda.core.checks.check_model_feature_policy} reports these codes:
+
+| Code              | Cause                                                                             |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `vueda_core.E010` | A section that no installed app registers. The hint lists the available sections. |
+| `vueda_core.E011` | A first-party section whose app is not installed. The hint names the app.         |
+| `vueda_core.E012` | An option the section does not define.                                            |
+| `vueda_core.E013` | An invalid option value, or a section that fails its feature's own validation.    |
+| `vueda_core.E014` | A `class Vueda` declaration on a proxy model.                                     |
+| `vueda_core.E015` | An attribute directly inside `class Vueda`, outside any section.                  |
+| `vueda_core.E016` | A `class Vueda` declaration on a model that is not a VUEDA model.                 |
 
 ## Extension Contract for Feature Apps
 
-A feature app registers its section at import time in its `apps` module. Django imports every application configuration before it imports any models module. Registration therefore finishes before Django constructs the first model, whatever order `INSTALLED_APPS` uses. Registering from `AppConfig.ready()` is too late.
+A feature app registers its section with [`register_feature_section()`]{@api py:function:vueda.core.features.register_feature_section} when Django imports the app's `apps` module. Django imports every application configuration before it imports any models module. Registration therefore finishes before Django constructs the first model, whatever order {@api ext:django:setting:INSTALLED_APPS} uses. {@api ext:django:django.apps.AppConfig.ready} runs too late for registration.
 
 ```py
 # myfeature/apps.py
@@ -159,38 +177,48 @@ class MyFeatureConfig(AppConfig):
     label = "myfeature"
 ```
 
-`FeatureOption` describes one option:
+If a second app registers a section name that another app already registered, the call raises {@api ext:django:django.core.exceptions.ImproperlyConfigured}.
+
+[`FeatureOption`]{@api py:class:vueda.core.features.FeatureOption} describes one option:
 
 - `default` is the value a model gets without a declaration.
-- `types` restricts accepted values by `isinstance`.
+- `types` restricts accepted values by {@api ext:python:isinstance}.
 - `validate` receives a declared value and returns an error message, or `None` when the value is acceptable.
 - `merge` combines an inherited value with an overriding one. Without it, a declaration replaces the inherited value.
 - `migration_relevant` marks an option whose value the feature's migration generation reads.
 
-`FeatureSection.validate` receives the model and its resolved section, and returns error messages for rules that span options. Resolution runs it before the contributor. Resolution omits a failed section from contribution and turns its messages into system-check errors.
+[`FeatureSection.validate`]{@api py:property:vueda.core.features.FeatureSection.validate} receives the model and its resolved section, and returns error messages for rules that span options. Resolution runs it before any contributor, and turns its messages into system-check errors.
 
-`FeatureSection.contribute` runs once per concrete model, immediately after Django prepares it. It may call `model.add_to_class()` to add a database field, a `GenericRelation`, or a descriptor. A database field added here reaches `ModelState`, which is what keeps a migration-relevant option visible to migration generation. Contributors run in `contribute_order`, lowest first, with the section name breaking a tie. A feature that reads a model's finished field list sets a high order so it runs after every feature that adds one. History does this, which is why an event model includes the fields another feature contributed. VUEDA omits any section it could not resolve or validate, so a feature never acts on a faulty declaration.
+[`FeatureSection.contribute`]{@api py:property:vueda.core.features.FeatureSection.contribute} runs once per concrete model, on {@api ext:django:django.db.models.signals.class_prepared}, after Django builds the model's fields. It may call `model.add_to_class()` to add a database field, a {@api ext:django:django.contrib.contenttypes.fields.GenericRelation}, or a descriptor. A database field added here reaches the migration state, which keeps a migration-relevant option visible to `makemigrations`.
 
-A contributor receives every concrete multi-table child separately with that child's resolved policy. The feature must decide whether a database artifact belongs to the parent table, the child table, or both. It must not add a local field that clashes with a field inherited from a concrete parent.
+Contributors run in [`contribute_order`]{@api py:property:vueda.core.features.FeatureSection.contribute_order}, lowest first, with the section name breaking a tie. A feature that reads a model's finished field list sets a high order, so it runs after every feature that adds a field. History does this, which is why an event model includes the fields another feature contributed. VUEDA skips the contributor of any section with an error, so a feature never acts on a faulty declaration.
+
+A contributor receives each concrete multi-table child separately, with that child's resolved policy. Your feature decides whether a database artifact belongs to the parent table, the child table, or both. It must not add a local field that clashes with a field inherited from a concrete parent.
 
 A proxy model gets no contributor pass of its own, because its concrete model already received one for the shared table.
 
 ## History and Workflow
 
-History derives from this policy. `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. No base class or decorator takes part.
+{@term Model History} follows the [`History` section]{@api py:property:vueda.history.apps.HISTORY_SECTION}. `History.enabled` decides whether a model is tracked, and `History.exclude_fields` decides which of its columns reach the event model. History also leaves any field named `password` out of the event model, whatever `exclude_fields` says. The History section reports these cases as `vueda_core.E013`:
 
-Workflow derives from this policy too. `Workflow.enabled` is the only declaration an author writes, and it defaults to `False`, so installing `vueda.workflow` opts no model in. An enabled model receives:
+- `exclude_fields` names a field the model does not have.
+- A {@api ext:django:django.db.models.GeneratedField} stays in while `exclude_fields` excludes a field it reads. Exclude the generated field too.
+- A model with a {@term Composite Primary Key} keeps history enabled. pghistory cannot track such a model, so it must set `enabled = False`.
 
-- the workflow model methods, such as `available_transitions()`, `apply_transition()`, and the `on_transition()` and `get_transition_warnings()` hooks, which VUEDA adds to the end of the model's bases;
-- an `ObjectState` row in the workflow's initial state whenever a save finds none;
-- `workflow_state_code`, `workflow_state_name`, and `valid_transitions` on every `VuedaSerializer` of the model;
-- a `workflow_state` filter on every `VuedaFilterSet` of the model;
-- the state-permission overlay on its viewsets, and `workflow_enabled: true` in its model info.
+Event rows accumulate for as long as a model is tracked. [Purge Model History Rows](../guides/purge-model-history) describes that storage and how to remove old rows.
 
-The methods sit last in the method resolution order. A method the model or one of its other bases defines takes precedence, and an override reaches the default through `super()`. A model field that would hide one of these attributes, such as a field named `workflow`, is a system-check error.
+A {@term Workflow-Enabled Model} follows the [`Workflow` section]{@api py:property:vueda.workflow.apps.WORKFLOW_SECTION}. `Workflow.enabled` is its only option, and it defaults to `False`, so installing `vueda.workflow` enables workflow on no model. An enabled model receives:
 
-A secondary serializer, such as a compact one nested in another model's payload, opts out of the workflow fields with `Meta.workflow_fields = False`. `valid_transitions` resolves the permitted transitions of every row it renders, so a nested serializer that keeps it pays that cost per row. Opting out changes no permission: the workflow endpoints still decide which transitions a user may see and take.
+- the methods of [`WorkflowModelMethods`]{@api py:class:vueda.workflow.models.WorkflowModelMethods}, such as [`available_transitions()`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}, [`apply_transition()`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}, and the [`on_transition()`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition} and [`get_transition_warnings()`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings} hooks, which VUEDA adds to the end of the model's bases;
+- an {@term Object State} in the workflow's initial state whenever a save finds none;
+- `workflow_state_code`, `workflow_state_name`, and {@term Valid Transitions} on every [`VuedaSerializer`]{@api py:class:vueda.core.serializers.VuedaSerializer} of the model;
+- a `workflow_state` filter on every [`VuedaFilterSet`]{@api py:class:vueda.core.filters.VuedaFilterSet} of the model;
+- the {@term Workflow Overlay} on its viewsets, and [`workflow_enabled: true`]{@api py:property:vueda.info.serializers.ModelInfoSerializer.workflow_enabled} in its {@term Model Info}.
 
-The policy declares participation, and a `Workflow` definition in the database supplies the states, transitions, and permissions. A `Workflow` row does not make a model a workflow model. An enabled model without a definition raises {@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError} on every workflow path. The API returns it as HTTP 500. Code outside VUEDA reads a model's participation with {@api py:function:vueda.core.installed_apps.workflow_enabled}. [Manage Workflows](../guides/manage-workflows#enabling-workflow-on-a-model-with-existing-rows) covers adding workflow to a model that already has rows.
+The methods sit last in the method resolution order. A method the model or one of its other bases defines takes precedence, and an override reaches the default through {@api ext:python:super}. A model field that would hide one of these attributes, such as a field named `workflow`, is a system-check error (`vueda_core.E013`).
 
-The client reads the same flag, which its model-info store holds as `workflowEnabled`. Its workflow store requests transitions, states, and history only for a model whose model info has `workflowEnabled: true`, and returns an empty list for any other model without a request. The flag controls which requests the client sends. The server still enforces workflow permissions and transition rules.
+A secondary serializer, such as a compact one nested in another model's payload, leaves out the workflow fields with `Meta.workflow_fields = False` ([`WorkflowFieldsSerializerMixin`]{@api py:class:vueda.core.serializers.WorkflowFieldsSerializerMixin}). `valid_transitions` resolves the permitted transitions of every row it renders, so a nested serializer that keeps it pays that cost per row. Leaving the fields out changes no permission. The workflow endpoints still decide which transitions a user may see and take.
+
+The policy declares participation, and a {@term Workflow} definition in the database supplies the states, transitions, and permissions. A `Workflow` row alone does not enable workflow on a model. For an enabled model without a definition, saving an object and every workflow request raise {@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError}. The API returns it as HTTP 500. [Manage Workflows](../guides/manage-workflows#enabling-workflow-on-a-model-with-existing-rows) describes the checks that warn about a missing definition and how to add workflow to a model that already has rows. Code outside VUEDA reads a model's participation with {@api py:function:vueda.core.installed_apps.workflow_enabled}.
+
+The client reads the same flag as [`workflowEnabled`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.workflowEnabled} in the model's model info. [`storeWorkflow`]{@api js:function:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow} sends a workflow request only for a model whose model info has `workflowEnabled: true`, and fetches that model info first when it is not cached. For any other model it returns an empty list without a workflow request. The flag controls which requests the client sends. The server still enforces workflow permissions and transition rules.
