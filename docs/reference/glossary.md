@@ -157,6 +157,13 @@ An underscore-prefixed {@term Theme Key}, such as `_ButtonBase`, that styles no 
 - Names: `composes`; example [`_ButtonBase`]{@api theme-key:\_ButtonBase}; [`ComponentTheme`]{@api js:type:@arrai-innovations/vueda/use/useTheme#ComponentTheme}
 - Described in: [Theming and Customization](../core-concepts/theming-and-customization.md#family-meta-keys)
 
+## Computed Field
+
+A form field that renders read-only in `FormField` and outside the {@term Form Context}. You name computed fields in the model config's `computedFields` list or the form's `computedFields` prop, which replaces the list.
+
+- Names: [`computedFields` prop]{@api vue:component:FormModel:prop:computedFields}; [`computedFields` config]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.computedFields}
+- Described in: [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md#field-and-widget-resolution)
+
 ## Content Type
 
 Django's `ContentType` row, which identifies a model by its `app_label` and model name. VUEDA uses content types to identify the model behind model info, permissions, workflows, and queue items.
