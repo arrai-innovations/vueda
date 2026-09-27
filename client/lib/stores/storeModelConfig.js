@@ -88,6 +88,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
  * @property {string[]} [submitFields] - field paths sent in the create/update request body by default
  * @property {string[]} [expand] - field names to expand by default
+ * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {ActionPermissionConfig} [actions] - actions to display by default
  * @property {string[]} [filterables] - filters to display in list view
