@@ -26,11 +26,27 @@ def register(canonical_serializer, canonical_viewset=None):
     Register a model so that it can be used with ModelInfoViewSet. You should do this in the ready method of an
      AppConfig, not as a side effect of importing viewsets or serializers.
 
+    Called with both arguments, it registers the model at once and returns ``canonical_viewset``.
+
+    Called with only ``canonical_serializer``, it registers nothing and returns a class decorator.
+    Applying the decorator to a viewset class registers the serializer with that viewset and returns
+    the class unchanged::
+
+        @register(OrderSerializer)
+        class OrderViewSet(VuedaViewSet):
+            ...
+
+    The decorator form registers when the viewsets module is imported, so it takes effect only if
+    something imports that module. To register a model without a viewset, use
+    ``register_serializer``.
+
     :param canonical_serializer: The serializer to use as a reference for the model. Only a ``Meta.model``
      is required; it does not need to inherit ``VuedaSerializer``. The ``/info/`` meta-API falls back to
      defaults for any ``VuedaExpandableFieldsSerializerMixin`` hooks (``generate_expand_model_info``,
      ``get_expand_model_info``, ``get_field_model_info``) the serializer doesn't define.
-    :param canonical_viewset: The viewset to use as a reference for the model.
+    :param canonical_viewset: The viewset to use as a reference for the model. When omitted, the call
+     returns the class decorator described above.
+    :return: ``canonical_viewset`` when it is given; otherwise the class decorator.
     """
 
     def decorator(decorated_canonical_viewset):
