@@ -88,7 +88,12 @@ class Workflow(Lookup):
 
 class WorkflowPermission(models.Model):
     """
-    The permissions that are required to get available transitions for a given object or execute a transition.
+    One permission a user must hold to use a workflow's transitions.
+
+    ``check_workflow_permission`` passes only when the workflow has at least one row and the user
+    holds every permission the rows name. Given ``obj``, it passes the object to ``has_perms``, so
+    state rules and row-level hooks decide for that object. A workflow with no rows denies every user,
+    superusers included; only programmatic use (``user=None``) skips the check.
     """
 
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE)
@@ -343,7 +348,12 @@ class Transition(models.Model):
 
 class TransitionPermission(models.Model):
     """
-    The permissions that are required to execute a transition.
+    One permission a user must hold to execute a transition.
+
+    ``check_transition_permission`` allows the transition only when it has at least one row and
+    the user holds every permission the rows name, checked against the object so that state rules
+    and row-level hooks apply. A transition with no rows is denied to every user, superusers
+    included, which keeps it for system use; only programmatic use (``user=None``) passes it.
     """
 
     transition = models.ForeignKey(
