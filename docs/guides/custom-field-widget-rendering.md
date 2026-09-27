@@ -7,157 +7,84 @@ status: draft
 
 # Customize Field and Widget Rendering
 
-This guide covers how to override field and widget rendering for form and filter surfaces without forking core {@term CRUD} view components. VUEDA provides three override mechanisms (model config, per-instance view props, and slot-level replacement) with a defined precedence order. Custom components must preserve the field/widget contract to remain compatible with VUEDA's form state and validation lifecycle.
+This guide shows how to replace the component VUEDA renders for a form or filter field, change the props it receives, or write your own. Fields you leave alone keep their defaults.
 
-The guide assumes familiarity with VUEDA's form concepts. If you have not read [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle), start there. For the server-client metadata contract that drives default field/widget resolution, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract).
-For the default resolver and override touchpoints, see {@api js:module:@arrai-innovations/vueda/use/useFieldRenderer}. Most cross-view overrides in this guide are keyed by {@term Model Config}.
+[Configuration Precedence](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes how view props, model config, and the defaults combine, and the cases that do not follow that order.
 
-## Goal and Preconditions
+## Before You Start
 
-The objective is a custom field or widget rendering that:
+- The model has a {@term Canonical Registration} with working CRUD views. Check that its default forms render and submit before you add overrides.
+- Each form field renders a {@term Form Field} that wraps a {@term Widget}. Replacing the field component replaces the label, help text, and messages around the input. Replacing the widget replaces only the input.
 
-- Replaces default rendering for specific fields without modifying core components.
-- Preserves form state, validation hooks, touched/focus state, and read-only handling.
-- Uses the correct override mechanism for the scope of the change (global model config vs. per-view vs. per-field slot).
-- Fails explicitly when misconfigured, rather than silently rendering defaults.
+## Choose Where to Override
 
-Before you begin:
+| To change                                          | Use                                              |
+| -------------------------------------------------- | ------------------------------------------------ |
+| One field in every view of a model, or in one view | [Model config](#set-an-override-in-model-config) |
+| One field in a view or form you render yourself    | [View or form props](#pass-overrides-as-props)   |
+| The markup around one field in one rendered form   | [A slot](#replace-one-field-with-a-slot)         |
+| Every field of one type, in every model            | [A type mapping](#map-a-field-type-to-a-widget)  |
 
-The model has a canonical registration with working CRUD views. Override rendering builds on top of the default form infrastructure; verify that default forms render and submit correctly before introducing overrides.
+## Set an Override in Model Config
 
-You understand the field/widget distinction. In VUEDA's form architecture, a **field** is the outer container that manages form state, labels, validation messages, and layout. A **widget** is the inner input control that handles user interaction and value adaptation. Overriding a field replaces the entire container; overriding a widget replaces only the input control within the existing field structure.
-
-## Override Surface Selection
-
-Three override surfaces are available, evaluated in precedence order:
-
-**Per-instance view props** take the highest precedence. When a view component passes `fieldComponents`, `widgetComponents`, `fieldProps`, or `widgetProps` as props to `FormModel` or `DetailView`, those values override any model config settings for that specific view instance.
-
-**Model config** provides portable, model-wide overrides. Setting overrides through `storeModelConfig.setConfig` applies them across all views that use `useModelConfig` for that model. This is the preferred surface for overrides that should be consistent across create, update, and `read` views.
-
-**Type-derived defaults** are the fallback. When no override is specified, form-model resolution selects field and widget components based on the serializer field type and metadata from the server. This is the standard behaviour when no overrides are configured.
-
-Choose the narrowest scope that achieves the goal. For a model-wide override (such as always rendering a specific field as a tabular inline), use model config. For a view-specific override (such as showing a simplified widget only on the `create` form), use per-instance props. For a single-field visual tweak that does not require a different component, use slot overrides.
-
-## Component Registration Strategy
-
-Override entries support three value shapes:
-
-**Direct component references** pass a Vue component object directly. This is the most straightforward approach and provides compile-time verification:
+1. Get the store with {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}.
+2. Call [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} with the model, a generic layer for every view, and optional per-view layers keyed by view name.
+3. Key each override by the field name. Use {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.fieldComponents} and {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.widgetComponents} to replace components, and {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.fieldProps} and {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.widgetProps} to add props.
 
 ```js
-import MyCustomWidget from "./MyCustomWidget.vue";
+import StatusWidget from "./StatusWidget.vue";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
-modelConfigStore.setConfig({ app: "myapp", model: "mymodel" }, { widgetComponents: { status: MyCustomWidget } });
-```
+const modelConfigStore = storeModelConfig();
 
-**String keys** reference components from the `availableFields` and `availableWidgets` registries. Use this when the target component is already registered in VUEDA's lookup tables:
-
-```js
 modelConfigStore.setConfig(
-    { app: "myapp", model: "mymodel" },
+    { app: "myapp", model: "order" },
     {
-        fieldComponents: { line_items: "FieldSetTabularInline" },
-        widgetComponents: { "line_items.status": "WidgetSelectDropdown" },
+        widgetProps: { phone: { mask: "###-###-####" } },
+    },
+    {
+        create: { widgetComponents: { status: () => StatusWidget } },
+        update: { widgetComponents: { status: "WidgetSelectDropdown" } },
     },
 );
 ```
 
-**Factory functions** return a component dynamically. Use this for conditional rendering logic that depends on runtime state.
+A component entry takes one of three values:
 
-Unknown string keys fail explicitly during form-model resolution. If you reference a string key that is not in the available fields/widgets registry, the error surfaces at form setup time, not silently at render time.
+- **A function that returns a component**, such as `() => StatusWidget`. The store keeps its values in reactive state, and the function keeps the component out of it. VUEDA calls the function with no arguments, so it can read reactive state but receives no field or view context.
+- **The name of a built-in component** in {@api js:property:@arrai-innovations/vueda/utils/formLookups#availableFields} or {@api js:property:@arrai-innovations/vueda/utils/formLookups#availableWidgets}, such as `"WidgetSelectDropdown"` for {@api vue:component:WidgetSelectDropdown}.
+- **A component object.**
 
-## Custom Component Contract Checklist
+A name that is not in the registry makes that field render an error in place of its input: `No widget component named "X" for field "f" in app "a" model "m"`. The rest of the form still renders.
 
-Custom components must preserve the field or widget contract to remain compatible with VUEDA's form infrastructure.
+Filter forms on the list view read `fieldComponents` and `widgetComponents` from the `list` view's model config, keyed by filter name. A generic-layer entry therefore also replaces the filter input of the same name. Put form-only component overrides in the `create` and `update` layers.
 
-**For custom field components**, preserve `FIELD_PROPS` and `FIELD_EMITS` behavior. The standard approach is to use the `useField` composable, which wires form state registration, validation hooks, and label/help/feedback rendering. A custom field that skips `useField` must manually implement the same state management interface, or form submission and validation will not function correctly.
+## Pass Overrides as Props
 
-**For custom widget components**, preserve `WIDGET_PROPS` and `WIDGET_EMITS` behavior. Use the `useWidget` composable to handle value adaptation, touch/focus state tracking, and validation flag propagation:
-
-```js
-const props = defineProps({
-    ...WIDGET_PROPS,
-    myDomainProp: { type: Object, default: () => ({}) },
-});
-const emit = defineEmits([...WIDGET_EMITS]);
-const widget = useWidget(props, emit);
-```
-
-Spreading `WIDGET_PROPS` and `WIDGET_EMITS` alongside custom props ensures the component receives all standard widget inputs and can emit all standard widget events. The `useWidget` composable manages the standard behaviours; your custom logic extends it without replacing the contract.
-
-When a custom widget renders slot content (labels, help text, validation feedback), pass the incoming slot renderers through. Dropping the slot passthrough removes expected label/help/feedback behaviour from the rendered field.
-
-## Slot Override Patterns
-
-Slot overrides provide per-field rendering customization without replacing the entire component. `FieldRenderer` exposes slot targets for each field:
-
-- `field(<name>)`: replaces the entire field container for the named field.
-- `field(<name>)default`: replaces the default content within the field container.
-- `widget(<name>)`: replaces the widget for the named field.
-- `widget(<name>)default`: replaces the default content within the widget.
-
-For filter rendering, the same slot contract applies with `filter-` prefixes: `filter-widget(<name>)`, `filter-field(<name>)`, etc.
-
-A slot override that wraps the default component while adding behaviour:
+When you render a form yourself, pass the same four maps as props. {@api vue:component:FormModel}, {@api vue:component:ViewCreate}, {@api vue:component:ViewUpdate}, and {@api vue:component:DetailView} accept [`fieldComponents`]{@api vue:component:FormModel:prop:fieldComponents}, [`widgetComponents`]{@api vue:component:FormModel:prop:widgetComponents}, [`fieldProps`]{@api vue:component:FormModel:prop:fieldProps}, and [`widgetProps`]{@api vue:component:FormModel:prop:widgetProps}.
 
 ```vue
-<template #widget(line_items.status)="slotProps">
-    <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
-        <template v-for="[slotName, slotRenderer] of slotProps.slots" #[slotName]="innerProps" :key="slotName">
-            <component :is="slotRenderer" v-bind="innerProps" />
-        </template>
-    </component>
+<template>
+    <ViewCreate app="myapp" model="order" :widget-components="{ status: 'WidgetSelectDropdown' }" />
 </template>
 ```
 
-This pattern renders the default widget component with all its standard props and slots, while giving you a template scope to add surrounding markup or conditional logic. The slot renderer passthrough (`slotProps.slots`) is important; without it, the widget loses its label, help text, and validation feedback slots.
+For the same field, a prop wins over model config. A prop entry wins even when it is an unknown name: the field renders the error, although model config has a valid entry for it.
 
-Slot key format must be exact. `widget(fieldName)` and `widget(fieldName)default` are different targets. `filter-widget(fieldName)` is different from `widget(fieldName)`. Typos or incorrect formats cause the slot override to silently have no effect.
+{@api vue:component:ViewRead} takes none of these props. Set the `read` layer in model config for the read view.
 
-## Expanded Field and Read-Only Edge Cases
+Model config {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.formProps} can also carry these keys. When it and a view prop set the same key, which one wins depends on the view, as [Configuration Precedence](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes.
 
-Expanded relation fields require specific targeting. The base field of an expanded relation may resolve without a direct widget component; the expanded subfields are the meaningful targets. Use flattened keys with dots for subfield targeting:
+## Target Expanded Fields
+
+An [expanded]{@term Expand} relation renders as an {@term Inline}, and its subfields render inside it. Key overrides for a subfield by its dotted name, `<expand>.<field>`:
 
 ```js
 modelConfigStore.setConfig(
     { app: "myapp", model: "order" },
     {
-        widgetComponents: { "line_items.amount": MyAmountWidget },
-        widgetProps: { "line_items.amount": { step: 0.01 } },
-    },
-);
-```
-
-Overriding the base expanded field as if it were a simple widget can silently miss. The base expanded widget may be `null`; target the subfields (`expand.field`) instead.
-
-Read-only view handling and field-level `readOnly` metadata can force read-only widget resolution even when writable widget overrides are present. When a view is in `read` mode, the form infrastructure may select a read-only widget variant even when a writable widget override is configured. Verify override behaviour in both writable and read-only view modes.
-
-When a widget entry is missing or `null` during renderer resolution, `WidgetUnmapped` is rendered and surfaces an explicit UI error. This is a development-time signal that a required widget mapping is absent, not a graceful fallback.
-
-## Verification Checklist
-
-After configuring overrides, verify the following:
-
-- The overridden field/widget renders in create, update, and `read` views as expected.
-- Form submission still works, field values are captured and included in the request payload.
-- Validation errors for the overridden field are displayed correctly.
-- Touch/focus state tracking works, leaving the field triggers validation if configured.
-- Read-only mode renders appropriately for the overridden component.
-- Filter forms using the same field render with the correct override (or default, if filter overrides are not configured).
-- Inline fieldsets with overridden subfields handle row indexing correctly.
-
-## Portable Example Patterns
-
-**Config-level override** for consistent model-wide behavior:
-
-```js
-modelConfigStore.setConfig(
-    { app: "myapp", model: "mymodel" },
-    {
         fieldComponents: { line_items: "FieldSetTabularInline" },
         widgetComponents: { "line_items.status": "WidgetSelectDropdown" },
-        fieldProps: { line_items: { showCreateButton: false } },
         widgetProps: { "line_items.amount": { step: 0.01 } },
     },
     {
@@ -169,50 +96,153 @@ modelConfigStore.setConfig(
 );
 ```
 
-**Custom widget wrapper** that extends standard behavior:
+The expanded field itself has a field component ({@api vue:component:FieldSetTabularInline} here) and no widget, so a `widgetComponents` entry for `line_items` has no effect. [Build Nested/Inlined Writes](./nested-writable-inlines) describes the inline setup and how the rows save.
 
-```js
+## Replace One Field with a Slot
+
+Use a slot when one rendered form needs different markup for one field. Pass the slot to `FormModel`, or to a view, which forwards its slots to the form. Each field renders through {@api vue:component:FieldRenderer}, which offers four slots per field:
+
+- [`field(<name>)`]{@api vue:component:FieldRenderer:slot:field(fieldName)} replaces the field component and everything in it.
+- [`field(<name>)default`]{@api vue:component:FieldRenderer:slot:field(fieldName)default} replaces the content inside the field component, which holds the widget.
+- [`widget(<name>)`]{@api vue:component:FieldRenderer:slot:widget(fieldName)} replaces the widget.
+- [`widget(<name>)default`]{@api vue:component:FieldRenderer:slot:widget(fieldName)default} fills the widget's default slot.
+
+Filter forms use the same names with a `filter-` prefix, such as `filter-widget(status)`. {@api vue:component:ViewList} forwards them to its filter forms.
+
+To change only the label, help text, or messages of a {@api vue:component:FormField}, fill its [`field(<name>)label`]{@api vue:component:FormField:slot:field(fieldName)label}, [`field(<name>)help`]{@api vue:component:FormField:slot:field(fieldName)help}, [`field(<name>)errors`]{@api vue:component:FormField:slot:field(fieldName)errors}, or [`field(<name>)warnings`]{@api vue:component:FormField:slot:field(fieldName)warnings} slot.
+
+This slot wraps the default widget in extra markup:
+
+```vue
+<template #widget(line_items.status)="slotProps">
+    <div class="status-cell">
+        <component :is="slotProps.widgetComponent" v-bind="slotProps.widgetProps">
+            <template v-for="[slotName, slotRenderer] of slotProps.slots" #[slotName]="innerProps" :key="slotName">
+                <component :is="slotRenderer" v-bind="innerProps" />
+            </template>
+        </component>
+    </div>
+</template>
+```
+
+`slotProps.slots` holds the other slots you passed to the form, as `[name, renderer]` pairs. Pass them through, as above, when you render the default component yourself. Without the passthrough, your label, help, message, and named widget slots do not reach the component.
+
+A slot name must match exactly, including the dotted name and the `filter-` prefix. A misspelled slot name is ignored, and the field renders its default.
+
+`FormModel`'s [`fields`]{@api vue:component:FormModel:slot:fields} slot replaces the loop that renders a `FieldRenderer` for each field, and with it the forwarding of the per-field slots above. A per-field slot applies inside a custom `fields` layout only when that layout renders a `FieldRenderer` for the field and forwards the slot to it.
+
+## Write a Custom Widget
+
+A widget spreads {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}. It returns a {@api js:interface:@arrai-innovations/vueda/use/useWidget#WidgetContext} that connects the widget to the field around it: the value, touched and focus state, and validation flags.
+
+```vue
+<script setup>
+import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { FieldContextSymbol } from "@vueda/utils/symbols.js";
+import { inject } from "vue";
+
+defineOptions({ inheritAttrs: false });
 const props = defineProps({
     ...WIDGET_PROPS,
-    myDomainProp: { type: Object, default: () => ({}) },
+    placeholder: { type: String, default: "" },
 });
 const emit = defineEmits([...WIDGET_EMITS]);
+const fieldContext = inject(FieldContextSymbol, null);
 const widget = useWidget(props, emit);
+</script>
+
+<template>
+    <input
+        :id="fieldContext?.state.fieldId"
+        v-model="widget.state.adaptedValue"
+        :name="widget.state.combinedName"
+        :placeholder="placeholder"
+        :disabled="widget.state.disabled"
+        :aria-invalid="widget.state.validationState.invalid || undefined"
+        :aria-required="widget.state.required || undefined"
+        v-bind="$attrs"
+        @blur="widget.blur"
+        @focus="widget.focus"
+    />
+</template>
 ```
+
+- Bind the value through `widget.state.adaptedValue` or `widget.state.combinedValue`. Writing to either updates the form value.
+- Call `widget.blur` and `widget.focus` from the control. Blur marks the field touched.
+- Use {@api js:property:@arrai-innovations/vueda/utils/symbols#FieldContextSymbol} for the field's `fieldId`, so the field's label points at your control.
+
+Assign the widget through model config, props, or a type mapping. Your own props, such as `placeholder` here, come from `widgetProps`.
+
+## Write a Custom Field
+
+A field component spreads {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useField#useField}. It registers the field with the form and returns the {@api js:interface:@arrai-innovations/vueda/use/useField#FieldContext} that the widget reads. `FieldRenderer` puts the widget in the field's default slot.
+
+```vue
+<script setup>
+import { FIELD_EMITS, FIELD_PROPS, useField } from "@vueda/use/useField.js";
+
+defineOptions({ inheritAttrs: false });
+const props = defineProps({
+    ...FIELD_PROPS,
+    hidden: { type: Boolean, default: false },
+});
+const emit = defineEmits([...FIELD_EMITS]);
+const field = useField(props, emit, { showsErrors: () => !props.hidden });
+</script>
+
+<template>
+    <slot v-if="hidden" />
+    <div v-else class="my-field">
+        <label :for="field.state.fieldId">{{ field.state.label }}</label>
+        <slot />
+        <p v-for="(message, code) in field.state.errors" :key="code">{{ message }}</p>
+    </div>
+</template>
+```
+
+`FieldRenderer` passes `hidden` as `true` for fields inside an inline, which render their widget alone. Declare it, and any other `FormField` prop your field needs, such as `validation` or `orientation`. An undeclared prop falls through as an HTML attribute. The `showsErrors` option tells the form whether this field shows its own errors; a hidden field leaves them to the form-level summary.
+
+## Map a Field Type to a Widget
+
+The default widget for a field comes from type mapping tables keyed by the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}. [Field and Widget Resolution](../core-concepts/contract-first-dynamic-ui#field-and-widget-resolution) describes the lookup.
+
+An editable field whose type has no mapping has no widget. That field renders an error in place of its input, `No widget component found for field "f" in app "a" model "m"`, and the rest of the form still renders. Some types map to {@api vue:component:WidgetUnmapped}, which renders a notice in place of an input. By default these are IP address fields.
+
+To give a type a widget in every model, call {@api js:function:@arrai-innovations/vueda/utils/fieldMappings#mergeDefaultFieldMappings} in your client entry, before the app mounts:
+
+```js
+import { mergeDefaultFieldMappings } from "@vueda/utils/fieldMappings.js";
+import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
+
+mergeDefaultFieldMappings({
+    IPAddressField: {
+        IPAddressField: { widget: WidgetTextInput, default: true },
+        GenericIPAddressField: { widget: WidgetTextInput },
+    },
+});
+```
+
+The outer key is the `typeSerializer`, and the inner key is the `typeModel`. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.default} applies when `typeModel` is empty. An entry can also set [`readOnlyWidget`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.readOnlyWidget} for read-only rendering, and [`widgetProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.widgetProps} or [`fieldProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.fieldProps}.
+
+## Check the Result
+
+- The field renders as intended in the create, update, and read views.
+- A submit sends the field's value.
+- Server errors for the field appear beside it.
+- Leaving the field marks it touched.
+- In an inline, every row's copy of the field renders and saves.
+- The list view's filter of the same name renders the input you intend.
 
 ## Troubleshooting
 
-**Override has no effect.** Verify the field name matches the form's field path exactly. For expanded subfields, use dot notation (`expand.field`). Check that the override surface has higher precedence than the currently rendering surface. A model config override will not take effect if per-instance props are also set for the same field.
+**The override has no effect.** Check that the key matches the field name exactly, with the dotted name for an expanded subfield. A field that renders read-only ignores `widgetComponents`, and a {@term Computed Field} ignores `fieldComponents`; [Exceptions](../core-concepts/contract-first-dynamic-ui#exceptions) describes both and what works instead. A view prop for the same field wins over model config.
 
-**"Unknown mapping" error at form setup.** A string key passed to `fieldComponents` or `widgetComponents` does not match any entry in `availableFields` or `availableWidgets`. Verify the string key matches a registered component name exactly.
+**The field shows `No widget component named "X"` or `No field component named "X"`.** The name is not in `availableWidgets` or `availableFields`. Check the spelling, or pass the component through a function.
 
-**Widget renders but loses label/help/validation feedback.** The custom component or slot override is not passing through slot renderers. Ensure the template includes the slot passthrough pattern when wrapping the default component.
+**The field shows `No widget component found`.** The field's type has no mapping. Add one with `mergeDefaultFieldMappings`, or set a `widgetComponents` entry for the field.
 
-**`WidgetUnmapped` renders for a field.** The widget resolution could not find a component for this field. Check that the field's serializer type is mapped in `formLookups`, or provide an explicit override.
+**`WidgetUnmapped` renders for a field.** The field's type maps to it. Map the type to a widget, as in [Map a Field Type to a Widget](#map-a-field-type-to-a-widget).
 
-**Override works in edit mode but not read mode.** Read-only view handling may select a different widget variant. Check that the override is compatible with read-only rendering, or provide separate overrides for read and write modes via per-instance view props.
+**A slot override loses your label, help, or message slots.** The slot renders the default component without passing `slotProps.slots` through. Add the passthrough shown in [Replace One Field with a Slot](#replace-one-field-with-a-slot).
 
-## Relevant Implementation Surface
-
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda/use/useModelConfig}
-    - {@api js:module:@arrai-innovations/vueda/use/useFormModel}
-    - {@api js:function:@arrai-innovations/vueda/use/useFormModel#useFormModel}
-    - {@api js:module:@arrai-innovations/vueda/use/useFieldRenderer}
-    - {@api js:function:@arrai-innovations/vueda/use/useFieldRenderer#useFieldRenderer}
-    - {@api js:module:@arrai-innovations/vueda/use/useField}
-    - {@api js:function:@arrai-innovations/vueda/use/useField#useField}
-    - {@api js:module:@arrai-innovations/vueda/use/useWidget}
-    - {@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}
-    - {@api js:module:@arrai-innovations/vueda/utils/buildForm}
-    - {@api js:module:@arrai-innovations/vueda/utils/formLookups}
-- Vue.js Components:
-    - {@api vue:component:FormModel}
-    - {@api vue:component:FieldRenderer}
-    - {@api vue:component:DetailView}
-    - {@api vue:component:FilterForm}
-    - {@api vue:component:FieldSetTabularInline}
-    - {@api vue:component:WidgetSelectDropdown}
-    - {@api vue:component:WidgetUnmapped}
+**The override works in the update view but not the read view.** The read view renders every field read-only, which uses the read-only widget. Replace the field component, fill the `widget(<name>)` slot, or give the type a `readOnlyWidget`.
