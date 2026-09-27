@@ -205,6 +205,6 @@ Confirm the setup in the browser's network panel:
 
 **Expanded field columns show no values.** `displayFields` names an `expand.subfield` key, but the view's `expand` does not name that relation. Without the expand, the client builds no `fieldDetails` entry for the key, and the server returns the related primary key. Add the relation to `expand`.
 
-**A write with a nested object returns a type error on the relation.** The request's `e` misspells the relation or omits it, so the server reads the relation as a primary key. Field errors stop validation before the unknown `e` name is reported. Correct `e`, and the nested object is accepted.
+**A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. A misspelled or unpermitted `e` name answers a `400` that names it before the body is validated.
 
 **A custom detail component has no action availability.** {@api js:function:@arrai-innovations/vueda/use/useDetailView#useDetailView} always adds `available_actions` to `f`, and {@api vue:component:DetailView}, `ViewRead`, and `ViewUpdate` fetch through it. Code that fetches with {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve} directly must add it to `f`.

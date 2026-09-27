@@ -69,7 +69,7 @@ A `list` request accepts no expand until the viewset sets `permit_list_expands`.
 
 **Writes.** A create or update save sends the view's `fetchFields` and the pk in `f`. Writes do not check `f`. A field the write serializer lacks is missing from the save response, and no error reports it ([#395](https://github.com/arrai-innovations/vueda/issues/395)). Declare every fetched field on the write serializer, or narrow the view's `fetchFields`.
 
-A save also sends in `e` each configured expand whose form value is set. The write serializer rejects an expand it does not declare with `400`, once the body passes field validation.
+A save also sends in `e` each configured expand whose form value is set. The write action rejects an expand its serializer does not declare, or its permit list leaves out, with `400` before it validates the body.
 
 **The pk.** {@api vue:component:ViewCreate} redirects to the update view by default. That redirect, and a redirect to the read view, take the pk from the save response. Include the pk in the write serializer's `Meta.fields`.
 

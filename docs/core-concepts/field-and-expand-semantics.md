@@ -49,7 +49,7 @@ The request method alone decides which fields the body must contain. A `create` 
 
 `e` also changes how the body is read. A relation named in `e` accepts a nested object, and a relation left out of `e` accepts a primary key. [Nested Write Compatibility](./nested-write-compatibility) describes the nested body and how the serializer handles it.
 
-A write does not check `f` names. `PATCH ?f=bogus` returns `200` with the body `{}` ([#395](https://github.com/arrai-innovations/vueda/issues/395)). A write does check `e` names: once the body passes field validation, {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin} returns a `400` keyed by each unknown expand.
+A write does not check `f` names. `PATCH ?f=bogus` returns `200` with the body `{}` ([#395](https://github.com/arrai-innovations/vueda/issues/395)). A write does check `e` names. Before it validates the body, a `create`, `update`, or `partial_update` checks each name against the action's permitted expands with [`validate_flex_expand_param_for_write`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param_for_write}. An unknown or unpermitted name returns a `400` keyed by that name, with the same message a read gets.
 
 ## Field Metadata Contract
 
