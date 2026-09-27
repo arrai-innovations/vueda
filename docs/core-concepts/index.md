@@ -6,7 +6,7 @@ type: index
 
 # Core Concepts
 
-Core Concepts explains the "why" behind VUEDA defaults and the contracts that let server and client work together predictably.
+Core Concepts explains the "why" behind VUEDA defaults and the contracts that let server and client work together predictably. These pages assume you know Django, Django REST framework, and Vue ([What you need to know](../tutorials/start-building#what-you-need-to-know)).
 
 ## System Foundations
 

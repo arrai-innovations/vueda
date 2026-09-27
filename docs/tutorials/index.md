@@ -6,7 +6,7 @@ type: index
 
 # Tutorials
 
-Tutorials teach VUEDA by walking through a concrete task from start to finish. Each tutorial assumes no prior success with the topic and ends with a working result you can build on.
+Tutorials teach VUEDA by walking through a concrete task from start to finish. Each tutorial assumes no prior success with the topic and ends with a working result you can build on. They assume you know Django, Django REST framework, and Vue ([What you need to know](start-building#what-you-need-to-know)).
 
 If you already have a running project and need to accomplish something specific, the [Guides](/guides/) section is a better starting point.
 

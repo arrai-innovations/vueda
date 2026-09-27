@@ -6,7 +6,7 @@ type: index
 
 # Reference
 
-Reference pages define stable contracts, terminology, and operational knobs for integrators.
+Reference pages define stable contracts, terminology, and operational knobs for integrators. These pages assume you know Django, Django REST framework, and Vue ([What you need to know](../tutorials/start-building#what-you-need-to-know)).
 
 ## Core Reference
 

@@ -6,7 +6,7 @@ type: index
 
 # Guides
 
-Guides are task-focused how-tos for integrators. They assume you know your domain model and want concrete steps for wiring server and client behavior.
+Guides are task-focused how-tos for integrators. They assume you know your domain model and want concrete steps for wiring server and client behavior. They assume you know Django, Django REST framework, and Vue ([What you need to know](../tutorials/start-building#what-you-need-to-know)).
 
 ## Environment & Networking
 

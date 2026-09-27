@@ -33,6 +33,16 @@ For a more complete example, try [Widget Warehouse](https://www.widgetwarehouse.
 Run the server under an ASGI server instead of Django's `runserver`. The DX template's `just serve` runs gunicorn with uvicorn workers, the same setup as production. VUEDA's planned websocket support will also need ASGI. Both templates already depend on `gunicorn` and `uvicorn`. With the minimal template, run this from `server/`: `uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000`.
 :::
 
+### What you need to know
+
+The VUEDA docs assume you can already build with these tools. They explain what VUEDA adds and link the upstream docs for the rest.
+
+- [Python](https://docs.python.org/3/tutorial/): modules, classes, and virtual environments
+- [Django](https://docs.djangoproject.com/en/stable/intro/): apps, models, migrations, and settings
+- [Django REST framework](https://www.django-rest-framework.org/tutorial/quickstart/): serializers, viewsets, routers, and permissions
+- [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide): ES modules, promises, and `async` / `await`
+- [Vue](https://vuejs.org/guide/introduction): single-file components, props, slots, and the Composition API
+
 ## Environment Setup
 
 This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like shell (Linux, macOS, WSL2, etc.) for running commands. Adjust accordingly for other environments (PowerShell, cmd.exe, etc.).

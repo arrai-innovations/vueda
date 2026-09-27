@@ -52,6 +52,8 @@ to use a different (read: shorter) title in the sidebar or browser tabs than the
 - `designer`: focused on the visual contract and customization surface (tokens, theme keys, family meta keys); concerned with reskinning or rebranding VUEDA, not building features with it
 - `contributor`: focused on details relevant to contributing to VUEDA itself (e.g. maintainers and package authors)
 
+`integrator` and `contributor` pages assume the reader knows Django, Django REST framework, and Vue, as the "What you need to know" list in `tutorials/start-building.md` states. Link upstream docs for those concepts instead of explaining them.
+
 ### `type`
 
 - `tutorial`: focused on teaching a concept through a specific example or use case; may include references to concepts but not detailed explanations
