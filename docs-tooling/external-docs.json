@@ -30,6 +30,7 @@
     "drf": {
         "title": "DRF",
         "links": {
+            "rest_framework.authentication.SessionAuthentication": "https://www.django-rest-framework.org/api-guide/authentication/#sessionauthentication",
             "rest_framework.decorators.action": "https://www.django-rest-framework.org/api-guide/viewsets/#marking-extra-actions-for-routing",
             "rest_framework.exceptions.NotAuthenticated": "https://www.django-rest-framework.org/api-guide/exceptions/#notauthenticated",
             "rest_framework.exceptions.PermissionDenied": "https://www.django-rest-framework.org/api-guide/exceptions/#permissiondenied",
@@ -47,6 +48,7 @@
             "rest_framework.generics.GenericAPIView.get_serializer_class": "https://www.django-rest-framework.org/api-guide/generic-views/#get_serializer_classself",
             "rest_framework.generics.GenericAPIView.lookup_field": "https://www.django-rest-framework.org/api-guide/generic-views/#attributes",
             "rest_framework.generics.GenericAPIView.serializer_class": "https://www.django-rest-framework.org/api-guide/generic-views/#attributes",
+            "rest_framework.pagination.PageNumberPagination": "https://www.django-rest-framework.org/api-guide/pagination/#pagenumberpagination",
             "rest_framework.permissions.AllowAny": "https://www.django-rest-framework.org/api-guide/permissions/#allowany",
             "rest_framework.relations.PrimaryKeyRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#primarykeyrelatedfield",
             "rest_framework.relations.SlugRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield",
