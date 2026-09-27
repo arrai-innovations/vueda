@@ -29,13 +29,13 @@ The table uses the default mapping. Under Django's names, the codenames change a
 
 A permission class maps each request method to a codename. [`ObjectPermissions`]{@api py:class:vueda.core.permissions.ObjectPermissions} is the default class for VUEDA viewsets, and its [`perms_map`]{@api py:property:vueda.core.permissions.ObjectPermissions.perms_map} holds the mapping.
 
-| Method            | `ObjectPermissions`, default mapping                          | `ObjectPermissions`, Django's names |
-| ----------------- | ------------------------------------------------------------- | ----------------------------------- |
-| `GET`             | `list_` for the `list` action; `read_` for every other action | `view_` for every action            |
-| `POST`            | `create_`                                                     | `add_`                              |
-| `PUT`, `PATCH`    | `update_`                                                     | `change_`                           |
-| `DELETE`          | `delete_`                                                     | `delete_`                           |
-| `HEAD`, `OPTIONS` | None                                                          | None                                |
+| Method         | `ObjectPermissions`, default mapping                          | `ObjectPermissions`, Django's names |
+| -------------- | ------------------------------------------------------------- | ----------------------------------- |
+| `GET`, `HEAD`  | `list_` for the `list` action; `read_` for every other action | `view_` for every action            |
+| `POST`         | `create_`                                                     | `add_`                              |
+| `PUT`, `PATCH` | `update_`                                                     | `change_`                           |
+| `DELETE`       | `delete_`                                                     | `delete_`                           |
+| `OPTIONS`      | None                                                          | None                                |
 
 Endpoints that name their model in the URL use [`DynamicObjectPermissions`]{@api py:class:vueda.core.permissions.DynamicObjectPermissions} or its subclass [`WorkflowObjectPermissions`]{@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}. These are the workflow endpoints that address a model's data and [workflow state history]{@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}. Their [`crudl_perms_map`]{@api py:property:vueda.core.permissions.DynamicObjectPermissions.crudl_perms_map} names an action, which the class resolves through the mapping on each check.
 
