@@ -7,181 +7,139 @@ status: draft
 
 # Error and Validation Contract
 
-VUEDA defines a contract for how validation failures, warnings, and request errors flow from the server to the client and ultimately into form state. The contract spans four boundaries: server exception shaping, HTTP status classification, client error parsing, and form-context ingestion. Understanding where authority resides at each boundary and what happens when a response does not conform is essential for diagnosing validation behaviour.
-
-This page explains the contract itself: what shapes are produced, how they are classified, and where they end up. For the client-side state model that consumes this contract, see [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle). For practical steps on wiring validation into forms, see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors).
+This page describes the error bodies VUEDA's server sends and the client error classes that parse them. It covers the `400` validation body, the `409` body of {@term Warning Confirmation}, and the class each {@term CRUD Adapter} throws for each status. [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle.md) describes how a form stores these errors and runs the confirmation. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors.md) and [Require Confirmation Before a Write](../guides/require-write-confirmation.md) give the steps.
 
 ```mermaid
 flowchart TD
     subgraph Server
-        VVE["VuedaValidationError"]
-        EH["Exception Handler<br/>+ serverStack"]
+        RAISE["VuedaValidationError<br/>or ConfirmationRequired"]
+        EH["debug_stack_exception_handler"]
     end
 
-    VVE -- "field: [msg]" --> EH
-    EH -- "HTTP 400" --> GATE
+    RAISE --> EH
+    EH -- "400: field-keyed errors + serverStack" --> GATE
+    EH -- "409: confirmation_required, digest, warnings" --> GATE
 
-    subgraph Client["Client Adapter"]
-        GATE{{"Status<br/>= 400?"}}
-        FVE["FormValidationError<br/>(ServerFeedbackError)"]
+    subgraph Client["Write adapter"]
+        GATE{{"Status"}}
     end
 
-    GATE -- "Yes" --> FVE
-    GATE -- "No" --> FE["FetchError<br/>(no form feedback)"]
+    GATE -- "400" --> FVE["FormValidationError"]
+    GATE -- "409" --> CRE["ConfirmationRequiredError"]
+    GATE -- "other" --> FE["FetchError"]
 
-    FVE -- "flatten paths" --> ERR
-
-    subgraph FormState["Form State (useForm)"]
-        ERR["state.errors[field].server<br/>(blocks submission)"]
-    end
-
-    ERR --> RENDER_E["FormMessage / FieldMessage<br/>severity=error (red)"]
-
-    style Server fill:#f8f4e8,stroke:#c9a227
-    style Client fill:#e8f0f8,stroke:#2768c9
-    style FormState fill:#e8f8ec,stroke:#27c94a
+    FVE --> ERR["Form state: errors under the server code"]
+    CRE --> MSG["Form state: messages under the server code"]
 ```
 
-<!-- diagram caption="Validation flow from server exception to form feedback rendering" -->
+<!-- diagram caption="How a write's validation error or warning travels from the server to form state" -->
 
 ## Boundary and Authority
 
-The server is the sole authority over validation outcomes. It decides what is valid, what is a warning, and what shape the error payload takes. The client is the authority over how those payloads are represented in the runtime state and rendered in the UI. Neither side has visibility into the other's internal logic; they communicate solely through HTTP responses.
+The server decides what is valid, what is a warning, and the shape of each error body. The client decides how it stores and shows those bodies. The two sides share only the HTTP status and the JSON body.
 
-The contract has a single classification gate in the default transport: **HTTP 400 means form validation; everything else does not.** This constraint is deliberate. The client's {@term CRUD} adapters, auth handlers, and action form components all share one rule. They wrap 400 responses in `FormValidationError` and route them into form state. `FormValidationError` extends `ServerFeedbackError`, the public base class for feedback errors the form system can ingest.
-
-Non-400 failures (`FetchError`, `ListFilterError`, or resolver-specific classes) follow generic error handling paths. They do not populate form feedback. A validation-shaped 500 will not appear in form fields unless a custom adapter converts it to a `ServerFeedbackError` subclass. The default adapters treat any 400 as validation feedback, even when the payload is generic.
+A write adapter reads the status first. A `400` carries validation feedback, and a `409` carries warnings that need confirmation. Any other failure is a generic error that never enters form state. Read requests follow different rules, which [Client Classification and Form-State Ingestion](#client-classification-and-form-state-ingestion) lists.
 
 ## Wire Error Shapes and Status Branches
 
-### The canonical validation shape
+The generated REST pages do not declare the validation `400` body or the `409` confirmation body ([#376](https://github.com/arrai-innovations/vueda/issues/376), [#145](https://github.com/arrai-innovations/vueda/issues/145)). Some of their error examples do not match what the server sends ([#238](https://github.com/arrai-innovations/vueda/issues/238)). This section describes the bodies the server sends.
 
-Server validation failures are produced by `VuedaValidationError`, which extends DRF's `ValidationError` with normalization guarantees. The constructor normalizes scalar values into a list and preserves dict/list structures recursively. This means the client can always expect either a field-keyed dict (`{"field": ["message"]}`) or a non-field list (`["message"]`), never a bare string.
+### The validation shape
 
-The exception handler (`debug_stack_exception_handler`) adds two transformations before the response is sent. First, if the top-level detail is a list (non-field errors), it rewrites it to `{non_field_errors: [...]}` using DRF's `NON_FIELD_ERRORS_KEY` setting. This ensures that non-field errors always arrive under a stable key that the client can look up. Second, it appends a `serverStack` property to the response payload: in DEBUG mode and tests, this includes the full traceback; in production, it includes only the exception text. The client strips `serverStack` from the payload before parsing field paths.
+VUEDA's validation code raises {@api py:class:vueda.core.exceptions.VuedaValidationError}, a subclass of {@api ext:drf:rest_framework.exceptions.ValidationError}. A field-keyed error is a JSON object whose keys are field names, such as `{"name": ["Too long."]}`. The value is usually a list of messages, and a plain string also reaches the client under its field name. An error raised with a single message or a list becomes a {@term Non-Field Error}.
 
-### Input-shape rejection
+{@api py:function:vueda.core.exceptions.debug_stack_exception_handler} shapes every error body before the server sends it:
 
-VUEDA deliberately deviates from DRF's default behaviour for unknown fields in requests. Where DRF silently ignores unrecognized input fields, VUEDA rejects them. This policy is motivated by a practical concern: silent acceptance of unknown fields can lead developers to believe their data is being persisted when it is not.
+- A validation error whose detail is a list moves under the `non_field_errors` key: `{"non_field_errors": ["..."]}`.
+- Every error body gets a `serverStack` string. Under `DEBUG`, or when the `IN_TESTS` setting is true, it holds the full traceback. Otherwise it holds the exception class and message.
+- An exception that DRF does not handle becomes a `500` with a `detail` message and `serverStack`.
 
-The rejection operates at two layers:
+The `409` confirmation body is the one response without `serverStack`. The handler also marks the request's transaction for rollback before it answers, as [Configuration Surface and Defaults](./configuration-surface-and-defaults.md#request-transactions) describes.
 
-**At the serializer layer**, `NoExtraFieldsSerializerMixin` (included in `VuedaSerializer`) overrides `validate()` to compare the incoming `initial_data` keys against the serializer's declared `fields`. Unknown input fields produce a field-keyed 400 response: `{"unknown_field": ["Invalid field. Valid fields are ..."]}`. The mixin also checks `expand` parameters at the serializer level, comparing requested expands against `expandable_fields`. These rejections are field-keyed 400s that map cleanly to `FormValidationError` on the client.
+A `400` that is not a validation error carries a `detail` string: `{"detail": "..."}`. Malformed JSON produces one, and so does {@api py:class:vueda.core.exceptions.BadRequestException}.
 
-The mixin is aware of complex field name syntax; it parses bracket-indexed (`items[0]quantity`) and dot-delimited (`items.quantity`) names to extract the base field for comparison. It also intentionally skips validation for nested serializers (checking whether the serializer is the top-level one for the view), avoiding redundant checks on child serializers.
+### Unknown input fields
 
-**At the viewset layer**, `NoExtraFieldsForViewSetMixin` (included in `VuedaViewSet`) validates query parameters on list and `retrieve` actions. This validation has two distinct paths with different error behaviours:
+{@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}, part of {@api py:class:vueda.core.serializers.VuedaSerializer}, rejects a write body key that the view's serializer does not declare. Each unknown key gets its own entry with the message `Invalid field.  Valid fields are ...`. The mixin checks a key such as `items[0]quantity` or `items.quantity` by its base name, `items`. It does not check keys inside a nested serializer's payload. It always accepts `formatted_name` on a model that has one.
 
-For flex-field parameters (`f` for fields, `e` for expands), the mixin calls `validate_flex_expand_and_field_param`. Invalid field or `expand` names produce field-keyed 400 responses (`{"invalid_field": [...]}` or `{"invalid_expand": [...]}`), which map to `FormValidationError` on the client. The expand validation accounts for action-specific `permitted_expands` context, allowing different actions to permit different `expand` sets.
+A write action also rejects an `e` value that it does not permit, in the same shape and before it validates the body. [Field and Expand Semantics](./field-and-expand-semantics.md) describes which expands each action permits.
 
-For unrecognized query parameters, the mixin builds an allowlist that differs by action. On `list`, the allowlist is the filterset class's declared filters (when the viewset declares `filterset_class`) plus recognized framework parameters (pagination, ordering, search, flex-fields); a viewset with no `filterset_class` accepts only the framework parameters. On `retrieve`, the allowlist is just the flex-field parameters (`e`, `f`, `om`), since a detail route identifies its object by primary key and has no use for filter, pagination, ordering, or search parameters. A query parameter outside the applicable allowlist raises a `VuedaValidationError` with a field-keyed 400 response: `{"unknown_param": ["Invalid query parameter. Valid filters are ..."]}`. All unrecognized parameters are reported in a single response. This is consistent with flex-field validation and NoExtraFieldsSerializerMixin. The client sees a `FormValidationError` and can route the errors into the form state.
+On `list` and `retrieve`, the server rejects unknown query parameters, as [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes ({@term Query Parameter Validation}). One of those errors has a different shape. An invalid `f` or `e` name on a read returns entries of the form `[{"message": "...", "code": "invalid"}]` with no `serverStack`, because that response skips the exception handler ([#375](https://github.com/arrai-innovations/vueda/issues/375)).
 
-The `om` (omit) flex-field parameter is an additional asymmetry: it is recognized as a valid query parameter (not rejected as unknown), but its values are not validated against the serializer's field list at either the serializer or viewset layer.
+### Other error statuses
+
+A `403` or `404` from a VUEDA view carries `{"detail": "..."}` plus `serverStack`. These statuses never carry validation feedback. For example, the choices endpoints answer `404` for an unknown model, field, or filter, and `403` when permission is denied, as {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} and {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describe. The client raises a {@api js:class:@arrai-innovations/vueda/stores/storeModelChoices#ModelChoicesError} for these, which never enters form state.
 
 ## Non-Field and Nested Path Semantics
 
-The client preserves field paths from the server payload as-is in form state. A server error keyed by `address.city` becomes `state.errors["address.city"]`. A server error for an array item keyed by `items[0].quantity` becomes `state.errors["items[0].quantity"]`. The client does not parse or decompose these paths; they are treated as opaque string keys.
+{@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} turns a `400` body into a map from {@term Field Path} to a list of entries. It removes `serverStack` from the body first and keeps it as its own `serverStack` property. It then flattens the body into paths and drops a trailing list index from each path:
 
-Non-field errors use the stable key `non_field_errors`, defined by DRF's `NON_FIELD_ERRORS_KEY` setting. The server's exception handler ensures this key is used even when the original exception was a bare list. On the client, `NON_FIELD_ERRORS_KEY` is mirrored as a constant, and form feedback components check for it specifically when rendering form-level (non-field) feedback.
+| `400` body                                       | Key in `errors`            |
+| ------------------------------------------------ | -------------------------- |
+| `{"name": ["Too long."]}`                        | `name`                     |
+| `{"name": "Too long."}`                          | `name`                     |
+| `{"address": {"city": ["Required."]}}`           | `address.city`             |
+| `{"items": [{"quantity": ["Too large."]}]}`      | `items[0].quantity`        |
+| `{"non_field_errors": ["Already exists."]}`      | `non_field_errors`         |
+| `{"detail": "Malformed request."}`               | `detail`                   |
+| `{"non_field_errors": [{"detail": "...", ...}]}` | `non_field_errors`         |
+| `{"non_field_errors": [{"rows": [1, 2]}]}`       | `non_field_errors[0].rows` |
 
-The `FormValidationError` constructor flattens the response payload into paths using a recursive path-flattening utility. This handles nested dicts and arrays: `{"items": [{"quantity": ["Too large"]}]}` flattens to a path like `items[0].quantity[0]`, which is then normalized to `items[0].quantity` for the error map key. The flattening also handles structured objects: a path ending in `.detail` indicates a structured feedback object rather than a string message, and the parent path (without `.detail`) is used as the key.
+The client does not map these paths onto the form's field tree. A key matches a field only when it equals that field's path. The client mirrors DRF's non-field key as {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}, and {@api vue:component:FormMessage} reads that key for form-level errors.
+
+An entry object with a `detail` key is a structured feedback object. It stays whole under the path that holds it, so its other properties reach the renderer with it. An object without a `detail` key splits into one path per value, as the last table row shows. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors.md) shows how to render structured objects.
+
+A key can name something other than a field. A bulk delete answers `{"9": ["Object with pk=9 does not exist."]}` for a pk that is missing or that the user may not delete.
 
 ## {@term Warning Confirmation} Semantics
 
-Advisory warnings are not part of the HTTP 400 / `FormValidationError` contract described above; they use a separate status code and error class. Every warnings source — a serializer's `get_warnings()`, the viewset-level `get_warnings_for_object`/`get_warnings` hooks, `get_transition_warnings`, or a bare `gate_warnings` call — returns one of exactly two shapes:
+Warnings are advisory. The server withholds a write that has unacknowledged warnings and answers `409 Conflict` with this body:
 
-- **Aggregate**: `{field: [messages]}`, for a single object. Use `non_field_errors` for a warning not tied to a field. A serializer's `get_warnings()` always uses this shape — create/update has no bulk/list variant, so there is no other object to attribute a warning to. `get_warnings_for_object(action, obj)` and `get_transition_warnings(transition, user)` are likewise single-instance hooks that always return this shape for their one instance.
-- **Per-object**: `{object_id: {field: [messages]}}`, for a bulk request — one entry per warned object, keyed by `str(pk)`, so the response can attribute each warning back to the object that triggered it. Only the framework builds this shape, by calling the single-instance hook above once per instance and nesting each result under its object id: `WarningConfirmationMixin`'s default `get_warnings(action, objs)` does this for `get_warnings_for_object`, and `WorkflowViewSet.execute_transition` does it for `get_transition_warnings`.
+```json
+{
+    "confirmation_required": true,
+    "digest": "3f2a9c1e0b7d4a61",
+    "warnings": { "quantity": ["Exceeds usual order size."] }
+}
+```
 
-Which shape a request gets is decided by which hook handled it, never by counting the objects a request happens to affect — a bulk request can affect exactly one object and still gets the per-object shape, because it went through `get_warnings`/`execute_transition`'s bulk path rather than the single-instance hook.
+{@api py:function:vueda.core.exceptions.gate_warnings} produces this answer. It computes the digest from the warnings and compares it with the request's `Acknowledge-Warnings` header ({@api py:property:vueda.core.exceptions.ACKNOWLEDGE_WARNINGS_HEADER}). A match lets the write proceed, and anything else returns the `409` with nothing written. [Require Confirmation Before a Write](../guides/require-write-confirmation.md) describes the server hooks that produce warnings.
 
-None of these hooks enforce this shape in code: `gate_warnings` only checks the mapping for truthiness and digests it as opaque JSON, so nothing raises if a caller returns something else. But the client's default rendering (below) only understands these two shapes; a caller that deviates is expected to also supply its own client-side rendering to interpret whatever it returns instead. When the mapping is non-empty and the request has not acknowledged it, the write is withheld and the response is `409 Conflict` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` instead of a 400.
+The `warnings` mapping has one of two shapes, chosen by the request path:
 
-The client parses this 409 into a `ConfirmationRequiredError`, which also extends `ServerFeedbackError`. It populates `.messages` directly from the response's `warnings` mapping. It leaves `.errors` empty, since a confirmation response carries no blocking errors. `handleServerFormValidationError(error)` ingests the shared base-class shape without branching: it reads `error.errors` into `state.errors[name].server` and `error.messages` into `state.messages[name].server`.
+- **Aggregate**, `{field: [messages]}`, for a request on one object. Create, update, and partial update use it, as do the detail routes of `destroy`, `activate`, `deactivate`, and transitions. A warning not tied to a field uses the `non_field_errors` key.
+- **Per-object**, `{object_id: {field: [messages]}}`, for a bulk request. Each warned object gets one entry keyed by `str(pk)`. {@api py:class:vueda.core.viewsets.WarningConfirmationMixin} builds it for bulk `destroy`, `activate`, and `deactivate`, and the workflow viewset builds it for a transition on several objects.
 
-Callers still branch on class before ingestion. `FormValidationError` and custom `ServerFeedbackError` subclasses use the blocking-feedback path. `ConfirmationRequiredError` uses the confirm-then-resubmit path when it carries a digest.
+A bulk request that affects one object still gets the per-object shape. An action declared with `confirm=True` always sends the aggregate shape, with its message under `non_field_errors`. A custom action that calls `gate_warnings` chooses its own shape, because `gate_warnings` checks only that the mapping is not empty. The client's default rendering understands only these two shapes.
 
-The response gives the client no way to infer which of the two shapes `.messages` is in from the payload alone — a per-object mapping and a plain field-keyed mapping are both just JSON objects. So `ConfirmationRequiredError` also carries `.bulk`: `true` for the per-object shape, `false` for the aggregate shape. This is not derived from the response body; it is set by whichever client call constructed the error, because that call is the only place that knows which request path (single-object or bulk) it took.
-
-`.bulk` flows alongside `.messages` through the rest of the rendering chain: `useConfirmationController`'s `request(messages, { bulk })` stores it as `confirmation.bulk`, and `FormConfirmDialog` exposes it on its `warnings` slot scope (`{ warnings, flatWarnings, bulk }`) next to the mapping itself. `FormConfirmDialog` otherwise treats `warnings` as opaque: its default rendering flattens every value into a plain message list and never resolves a field name or an object id. A view that wants shape-aware rendering — field headers, or grouping a bulk action's per-object shape by the object it belongs to — resolves that itself: `ViewCreate` and `ViewUpdate` render the aggregate shape via `FieldWarningsList`; `ModelActionForm` overrides the same slot to group the per-object shape, reading `bulk` from the slot scope to decide whether to group at all, then resolving each object id to a display label before handing that object's field-keyed warnings to `FieldWarningsList` too.
-
-See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle#the-warning-confirmation) for the full confirm-then-resubmit lifecycle, and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors#warnings-that-require-confirmation) for implementation steps on both sides.
+The client raises {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError} for a `409`. It holds the `warnings` mapping as `messages`, the digest as `digest`, and an empty `errors` map. The body does not say which shape `messages` has, so the calling adapter sets `bulk`. The bulk adapters set it to `true` and the object adapters to `false`. [`storeWorkflow.executeTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition} sets it to `true` when the caller passes a list of pks. {@api vue:component:FormConfirmDialog} passes `bulk` to its [`warnings` slot]{@api vue:component:FormConfirmDialog:slot:warnings}, where {@api vue:component:ModelActionForm} uses it to group warnings by object. [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle.md) describes the confirm-and-resubmit flow.
 
 ## Client Classification and Form-State Ingestion
 
-Client CRUD adapters all follow the same classification rule. This includes `objectCrud` for object mutations, `listCrud` for bulk delete, `storeUser` for authentication, and `ModelActionForm` for action execution. HTTP 400 becomes `FormValidationError`. Everything else becomes `FetchError` or a more specific non-form error class. Custom adapters that replace the transport can throw a `ServerFeedbackError` subclass. Use that when custom blocking feedback should enter the same form-state ingestion path.
+Each default adapter maps a failed response to an error class:
 
-`FormValidationError` construction happens at the adapter layer, before the error reaches any form-context handler. The constructor:
+| Call                                                                                                                                                                                                                                                | `400`                                                                                 | `409`                                                      | Other failure                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch} | `FormValidationError`                                                                 | `ConfirmationRequiredError`, `bulk` false                  | {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}                                                                  |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}, {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectExecuteAction}                                                                           | `FormValidationError`                                                                 | `ConfirmationRequiredError`, `bulk` false                  | `FetchError`                                                                                                                      |
+| {@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultObjectsDelete}, {@api js:function:@arrai-innovations/vueda/utils/listCrud#defaultListExecuteAction}                                                                                | `FormValidationError`                                                                 | `ConfirmationRequiredError`, `bulk` true                   | `FetchError`                                                                                                                      |
+| `storeWorkflow.executeTransition`                                                                                                                                                                                                                   | `FormValidationError`                                                                 | `ConfirmationRequiredError`, `bulk` true for a list of pks | {@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowError}                                                       |
+| {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} sign-in, password, and two-factor actions                                                                                                                                    | `FormValidationError`                                                                 | a `FetchError` subclass                                    | {@api js:class:@arrai-innovations/vueda/stores/storeUser#UnauthorizedError} for `401` or `403`, otherwise a `FetchError` subclass |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}                                                                                                                                                                  | `FetchError`                                                                          | `FetchError`                                               | `FetchError`                                                                                                                      |
+| {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor}, {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}                                                           | {@api js:class:@arrai-innovations/vueda/utils/errors#ListFilterError} or `FetchError` | as `400`                                                   | as `400`                                                                                                                          |
 
-1. Strips `serverStack` from the payload and stores it separately.
-2. Flattens the remaining payload into paths.
-3. Extracts structured-object paths (those with a `.detail` suffix) and string paths.
-4. Builds the `errors` map from all paths. `messages` is always empty.
+The list adapters raise `ListFilterError` when the error body has a key named after a query parameter the request sent, and `FetchError` otherwise. [CRUD Adapter Layer](./crud-adapter-layer.md#status-codes) lists the parameters this check leaves out. In `storeUser`, the reset-link check is the one call whose `400` is not form feedback: it raises {@api js:class:@arrai-innovations/vueda/stores/storeUser#InvalidResetPasswordLinkError}.
 
-Call `handleServerFormValidationError(error)` with a `ServerFeedbackError` to ingest form feedback. The method iterates `error.errors` and `error.messages`, writing each entry under the `server` code key. The `server` code distinguishes server-originated feedback from local validation (`required`, `validate`) in the two-dimensional error storage.
+`FormValidationError` and `ConfirmationRequiredError` both extend {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}. That class carries two maps keyed by field path: [`errors`]{@api js:property:@arrai-innovations/vueda/utils/errors#ServerFeedbackError.errors} for blocking feedback and [`messages`]{@api js:property:@arrai-innovations/vueda/utils/errors#ServerFeedbackError.messages} for warnings. `FormValidationError` fills only `errors`, and `ConfirmationRequiredError` fills only `messages`. [`handleServerFormValidationError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError} writes both maps into the {@term Form Context} as {@term Server Feedback}.
 
-The `server` code is reserved and runtime-enforced in client form APIs. Local calls that try to write `server` through `updateError` or `updateMessage` throw; only `handleServerFormValidationError` is allowed to populate that namespace.
-
-`clearServerErrors(name, dependents)` is the selective clearing mechanism. It deletes only the `server` code for a given field (from both errors and messages), then recurses through dependent paths. The `$parent` placeholder in dependent paths resolves to the dot-delimited parent of the current field's name, enabling sibling-field clearing in nested/array structures.
-
-First-error resolution (`getFirstErrorField`) scans the error map in a defined priority order: `non_field_errors` first, then displayed fields in their declared order. For array fields, it expands the search to bracket-keyed paths. For fields using dot-delimited nesting conventions, it resolves the parent array and searches nested keys within items. This ensures that first-error scroll navigation reaches the correct DOM element regardless of how the error path is structured.
-
-## Permission and Not-Found Branches
-
-Not all server error responses participate in the validation contract. Some endpoints use non-400 status codes for failures that are structurally different from validation.
-
-The choices and filter-choices endpoints (`ModelInfoChoicesViewSet`, `ModelInfoFilterSetChoicesViewSet`) under {@term Model Info} use **404** for invalid model, field, or filter identifiers, and **403** for permission denials. These are not validation failures; they indicate that the requested resource does not exist or is inaccessible. On the client, these responses produce `FetchError` instances (not `FormValidationError`), which are surfaced through generic error handling rather than form feedback.
-
-This means that a form component fetching choices for a field that references an invalid model will not see a validation error in the form UI. The error will appear in whatever error boundary or catch handler the component uses for `FetchError`, which is typically a toast or a loading-error state rather than field-level feedback.
+Form code branches on the class first. A `ConfirmationRequiredError` with a `digest` starts the confirmation, and any other `ServerFeedbackError` becomes field and form errors. A replacement adapter can throw its own `ServerFeedbackError` subclass, and forms store its maps the same way. An error of any other class stays out of form state.
 
 ## Observable Failure Signatures
 
-**Non-object response payloads.** `FormValidationError` assumes an object-like payload (`const data = { ...responseData }`). If the server returns a non-object 400 response (for example, a bare string or an array), the spread produces unexpected keys or an empty object, and the resulting error/message maps may be sparse or empty.
+**A key no component shows.** A `detail` key, a pk key, or a path that matches no rendered field has no field to show it. {@api vue:component:ActionForm} lists these errors in its validation summary. The object form views, {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate}, have no such summary, so the reader sees only the save failure toast.
 
-**Non-field errors with no `FormMessage`.** `non_field_errors` entries are rendered by `FormMessage` placed inside a form context. Field-scope `FieldMessage` instances do not pick up non-field errors. If a form does not include a `FormMessage`, non-field errors will appear in state but be invisible in the UI.
+**Non-object bodies.** `FormValidationError` spreads the body into an object. A string body becomes one entry per character, keyed `0`, `1`, and so on, and an array body becomes one entry per item. VUEDA's handler always sends an object, so these bodies come from a proxy or a non-VUEDA view.
 
-**Choices endpoint 404 vs validation 400.** A missing or invalid model/field/filter on a choices endpoint returns 404, not 400. Code that only handles `FormValidationError` will miss these failures. The error surfaces as a `FetchError` and must be caught separately.
+**Read errors skip form state.** A `400` on `list` or `retrieve` is a `ListFilterError` or a `FetchError`, never a `FormValidationError`. Code that catches only `FormValidationError` misses it.
 
-**Omit parameter not validated.** The `om` flex-field parameter is accepted as a recognized query parameter but its values are not checked against the serializer's field list. Invalid `omit` values pass through silently rather than producing a validation error.
-
-## Relevant Implementation Surface
-
-- {@api py:module:vueda.core.exceptions}
-- {@api py:function:vueda.core.exceptions.debug_stack_exception_handler}
-- {@api py:class:vueda.core.exceptions.VuedaValidationError}
-- {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}
-- {@api py:function:vueda.core.serializers.NoExtraFieldsSerializerMixin.validate}
-- {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.list}
-- {@api py:class:vueda.info.viewsets.ModelInfoChoicesBaseViewSet}
-- {@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions}
-- {@api py:function:vueda.info.viewsets.ModelInfoChoicesViewSet.validate_queryset}
-- {@api py:function:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet.validate_queryset}
-- {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
-- {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
-- {@api js:module:@arrai-innovations/vueda/utils/errors}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.errors}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.messages}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#FormValidationError.serverStack}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.digest}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.messages}
-- {@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.bulk}
-- {@api js:module:@arrai-innovations/vueda/utils/objectCrud}
-- {@api js:module:@arrai-innovations/vueda/utils/listCrud}
-- {@api js:module:@arrai-innovations/vueda/stores/storeUser}
-- {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
-- {@api js:module:@arrai-innovations/vueda/use/useConfirmationController}
-- {@api js:module:@arrai-innovations/vueda/use/useForm}
-- {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError}
-- {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearServerErrors}
-- {@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.getFirstErrorField}
-- {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}
-- {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
-- {@api vue:component:ActionForm}
-- {@api vue:component:ModelActionForm}
-- {@api vue:component:FormConfirmDialog}
+**A `409` without a digest.** Form code starts the confirmation only when the error carries a `digest`. A custom exception handler that drops the digest turns the `409` into an ordinary failure, because there is nothing to acknowledge.
