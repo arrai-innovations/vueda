@@ -210,12 +210,28 @@ const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedCon
  * action's `warnings` is keyed by object id (`{ [pk]: {field: [messages]} }`); a single-object
  * action's `warnings` is already one object's field-messages mapping, so it becomes the sole
  * group, with no pk to resolve a display name for.
+ *
+ * A bulk mapping can also hold message lists keyed by field rather than by object: an
+ * `@action(confirm=True)` gate sends `{ non_field_errors: [message] }` on its bulk route too.
+ * Those entries form one leading group with no pk, so a field key is never read as an object id.
  */
 const resolveWarningGroups = (warnings, bulk) => {
     if (!bulk) {
         return [{ pk: undefined, fieldMessages: warnings }];
     }
-    return Object.entries(warnings ?? {}).map(([pk, fieldMessages]) => ({ pk, fieldMessages }));
+    const groups = [];
+    const unkeyedMessages = {};
+    for (const [key, value] of Object.entries(warnings ?? {})) {
+        if (Array.isArray(value)) {
+            unkeyedMessages[key] = value;
+        } else {
+            groups.push({ pk: key, fieldMessages: value });
+        }
+    }
+    if (Object.keys(unkeyedMessages).length) {
+        groups.unshift({ pk: undefined, fieldMessages: unkeyedMessages });
+    }
+    return groups;
 };
 </script>
 
