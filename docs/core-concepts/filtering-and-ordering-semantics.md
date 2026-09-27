@@ -193,7 +193,7 @@ A ranked search across a many-valued relation with no `o` can return an object o
 
 ## Filter Choices and Permission Surfaces
 
-Choices for a queryset-backed or value-derived filter change with the data, so model info does not include them. The client loads them from {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}. It loads the first page of 200 ([#381](https://github.com/arrai-innovations/vueda/issues/381)). [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups.md) describes the choice endpoints.
+Choices for a queryset-backed or value-derived filter change with the data, so model info does not include them. The client loads them from {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}. It loads the first page of 200 ([#381](https://github.com/arrai-innovations/vueda/issues/381)). [`ModelInfoFilterSetChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describes that endpoint.
 
 The endpoint returns:
 

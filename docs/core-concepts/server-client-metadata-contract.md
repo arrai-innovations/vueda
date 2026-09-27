@@ -85,7 +85,7 @@ Relational choices are not inlined in model-info. Related tables can hold thousa
 - Field choices: {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}.
 - Filter choices: {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}.
 
-Both check `read` on the model, plus `list` on the related model for a relation. The client requests one page of up to 200 options per field and shows only that page. Choice values are strings, including primary keys; [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) describes that rule. [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups) describes endpoint behavior, ordering, permissions, and filtering.
+Both check `read` on the model, plus `list` on the related model for a relation. The client requests one page of up to 200 options per field and shows only that page. Choice values are strings, including primary keys; [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) describes that rule. [`ModelInfoChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} and [`ModelInfoFilterSetChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describe endpoint behavior, ordering, permissions, and filtering.
 
 ## Client Normalization
 

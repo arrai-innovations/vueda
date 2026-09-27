@@ -1,173 +1,186 @@
 ---
-title: Model Choices, Lookup Fields, and Dynamic Options
+title: Choice-Backed Fields and Lookup Models
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Model Choices, Lookup Fields, and Dynamic Options
+# Choice-Backed Fields and Lookup Models
 
-This guide covers the end-to-end flow for loading dynamic option lists; both field-level choices (from serializer/model definitions) and filter-level choices (from filterset definitions); using VUEDA's info endpoints and client composables. By the end, choice-backed fields and filter lookups will load their options dynamically, respect permissions, and handle edge cases like empty labels and lazy loading.
-The guide assumes familiarity with the identifier and metadata contracts. If you have not read [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline), start there; it explains how choice values are normalized to strings and why identifier comparison uses string equality. For the model registration and `formatted_name` configuration that choice endpoints depend on, see [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract).
+This guide shows how to give a field a set of options, how to build a widget that loads those options, and how to declare a {@term Lookup} model for a table of codes and names.
 
-## Goal and Preconditions
+A {@term Choice-Backed Field} carries `choices` in its {@term Model Info} entry. The value is either the full list of `{label, value}` pairs, or `true` when the options are another model's rows. Choice values are always strings. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#choice-identifier-value-semantics) explains why.
 
-The objective is a model surface where:
+## Make a Field Choice-Backed
 
-- Choice-backed fields load their options from the server dynamically, not from hardcoded client-side lists.
-- Filter dropdowns load their options from the filter-choices endpoint, with lazy loading where appropriate.
-- Permission checks are enforced: field choices require model `read` permission, and related-model choices additionally require `list` permission on the related model.
-- Choice values arrive as strings regardless of the database column's native type, so client-side comparison works without coercion.
+1. Declare the options on the server.
+    - For a fixed set, give the model field Django's [`choices`]{@api ext:django:django.db.models.Field.choices}. For a filter, use a [`ChoiceFilter`]{@api ext:django-filter:django_filters.filters.ChoiceFilter}.
+    - For another model's rows, add a [`ForeignKey`]{@api ext:django:django.db.models.ForeignKey} or [`ManyToManyField`]{@api ext:django:django.db.models.ManyToManyField} to that model. For a filter, use a [`ModelChoiceFilter`]{@api ext:django-filter:django_filters.filters.ModelChoiceFilter}. To offer the values a column already holds, use an [`AllValuesFilter`]{@api ext:django-filter:django_filters.filters.AllValuesFilter}.
 
-Before you begin, ensure the following are in place:
+2. Give the related model a label. Each option shows the related row's {@term Formatted Name}. [Create a CRUD Surface](./create-crud-surface.md#the-formatted-name-contract) describes how to set it.
 
-The model is registered via `register()` with both a canonical serializer and viewset. The model-info endpoint returns complete metadata. If the model has related-model choice fields (foreign keys used as choice sources), the related model must also be registered so the choice endpoint can resolve its content type. The model's `formatted_name` strategy must be configured; choice endpoints use it to resolve display labels for related-model choices. See [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract) for the four `formatted_name` strategies and their serializer wiring requirements.
+3. Make the options reachable. Where the default UI loads options depends on how you declare the field:
 
-## Registry and Route Preconditions
+    | Model info `choices` | Declared as                                                                                                                              | Default UI loads options from                                                                                                                                   |
+    | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | A list               | Fixed choices on a field or filter                                                                                                       | The list itself, with no request                                                                                                                                |
+    | `true`               | A form field with a [`PrimaryKeyRelatedField`]{@api ext:drf:rest_framework.relations.PrimaryKeyRelatedField}, the default for a relation | The related model's list endpoint, searched as the user types                                                                                                   |
+    | `true`               | A form field with a [`SlugRelatedField`]{@api ext:drf:rest_framework.relations.SlugRelatedField}                                         | {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}                                                                            |
+    | `true`               | A filter                                                                                                                                 | {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}, when the filter form opens or the URL holds a value for the filter |
 
-Choice endpoints resolve the target model through Django's {@term Content Type} framework, which requires the model to be registered with VUEDA's info registry. An unregistered model; even one with a perfectly defined serializer and viewset; will produce a 404 response from choice endpoints with the message `"Unable to find the content type ..."`.
+    For the list endpoint, register and route the related model like any other model, as [Create a CRUD Surface](./create-crud-surface.md) describes. Users who fill the field need `read` and `list` on the related model.
 
-Registration must happen in the app's `AppConfig.ready()` method. Attempting to wire choice loading before registration (for example, in a module-level initialization) risks content-type resolution errors. If a choice endpoint returns 404 and the model code exists, verify that `register()` is called in `ready()` and that the app is in `INSTALLED_APPS`.
+    For the choice endpoints, users need `read` on the source model. When the options are another model's rows, they also need `list` on that model. [`ModelInfoChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} and [`ModelInfoFilterSetChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describe each endpoint's checks, errors, ordering, and filter narrowing.
 
-The choice endpoints use two URL patterns:
+4. Check the model info. Request `GET /routes/vueda.info/model_info/<app_label>/<model>/` ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}). Find the field under `model_fields` or the filter under `model_filtering`. Fixed choices appear as a list. Another model's rows appear as `"choices": true`, with `app_label` and `model` naming the related model.
 
-- **Field choices**: {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
-- **Filter choices**: {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
+## Build a Widget That Loads Choices
 
-Both require the `app_label` and `model` to match a registered content type, and the `field` to match a valid choice field or filter name on the registered serializer or filterset respectively.
+The default widgets cover most choice-backed fields. Write a custom widget when a field needs a presentation they do not offer. The widget below shows the options as radio buttons.
 
-## Field Choice Endpoint Wiring
+1. Write the widget. For a field whose `choices` is `true`, the form passes the widget `fieldApp`, `fieldModel`, and `fieldName`, which name the source model and the field. [`useModelChoices`]{@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices} loads the options from the field choices endpoint:
 
-The field choices endpoint serves option lists for serializer fields that have choices defined; either static choices on the field definition or dynamic choices from a related-model queryset (foreign key fields).
+    ```vue
+    <script setup>
+    import { useModelChoices } from "@vueda/use/useModelChoices.js";
+    import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+    import { computed, ref, toRef } from "vue";
 
-### Permission model
+    const props = defineProps({
+        ...WIDGET_PROPS,
+        fieldApp: { type: String, required: true },
+        fieldModel: { type: String, required: true },
+        fieldName: { type: String, required: true },
+    });
+    const emit = defineEmits([...WIDGET_EMITS]);
+    const widget = useWidget(props, emit);
 
-Permission checks differ by choice source type:
+    // Load the options once the field holds a value or gets focus.
+    const hasBeenFocused = ref(false);
+    const modelChoices = useModelChoices({
+        [props.fieldName]: {
+            app: toRef(props, "fieldApp"),
+            model: toRef(props, "fieldModel"),
+            intendToFetch: computed(() => widget.state.combinedValue != null || hasBeenFocused.value),
+            isFilter: false,
+        },
+    });
+    const options = computed(() => modelChoices.choices[props.fieldName]?.results ?? []);
 
-- **Static choices** (choices defined directly on the serializer field): the requesting user needs `read` permission on the source model.
-- **Related-model choices** (foreign key fields where choices come from a queryset): the requesting user needs `read` permission on the source model and `list` permission on the related model.
+    // Choice values are strings, so compare the field's value as a string.
+    const selected = computed({
+        get: () => (widget.state.combinedValue == null ? null : String(widget.state.combinedValue)),
+        set: (value) => {
+            widget.state.combinedValue = value;
+        },
+    });
+    </script>
 
-If permission checks fail, the endpoint returns 403.
+    <template>
+        <fieldset @focusin.once="hasBeenFocused = true">
+            <label v-for="option in options" :key="option.value">
+                <input v-model="selected" type="radio" :value="option.value" :disabled="props.readOnly" />
+                {{ option.label }}
+            </label>
+        </fieldset>
+    </template>
+    ```
 
-### Invalid field handling
+    [`WIDGET_PROPS`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS} and [`useWidget`]{@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget} connect the widget to the form. Set `isFilter: true` to load from the filter choices endpoint instead.
 
-Requesting choices for a field that does not have choices defined returns 404. The response includes a `detail` message that lists the valid choice field names when available, helping diagnose field-name typos or misconfigured serializer definitions.
+2. Assign the widget to the field with [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}:
 
-### Response shape
+    ```js
+    import OrderStateRadios from "./OrderStateRadios.vue";
+    import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
-Choice responses are lists of `{label, value}` objects. For related-model choices, the label is resolved through the {@term Formatted Name} priority chain: `get_formatted_name()` method first, then `formatted_name_lookup_expression` annotation, then the direct `formatted_name` field, then static field choices. The value is normalized to a string regardless of the database column's native type. See [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline#choice-identifier-value-semantics) for why this normalization exists.
+    storeModelConfig().setConfig(
+        { app: "store", model: "customerorder" },
+        { widgetComponents: { order_state: OrderStateRadios } },
+    );
+    ```
 
-## Filter Choice Endpoint Wiring
+    [Customize Field and Widget Rendering](./custom-field-widget-rendering.md) describes the other ways to assign a widget, and the widget contract.
 
-The filter choices endpoint serves option lists for filterset-defined filters; the filters that appear in the `list` view's filter UI.
+3. Check the result. Open the create view and focus the field. The browser sends one request to `/routes/vueda.info/model_info_choices/<app_label>/<model>/<field>/`.
 
-### Empty values
+The client asks for one page of 200 options per field. Issue [#381](https://github.com/arrai-innovations/vueda/issues/381) tracks reaching rows past the first 200. Each new fetch sends a new request, and components that ask at the same time share one. [Reactive Data Flow](../core-concepts/reactive-data-flow.md#cached-results) describes the choice store.
 
-Filter choice responses omit empty-valued options. For filters, "no selection" or "all" is represented by leaving the filter query parameter out of the request, not by selecting an empty option. If a UI needs a clear or all control, render it outside the server-provided choices list.
+## Declare a Lookup Model
 
-`empty_label` and `empty_value` can still appear in `model_filtering` metadata when the underlying filter exposes them, but the filter choices endpoint does not prepend a synthetic empty option.
+[`Lookup`]{@api py:class:vueda.core.models.Lookup} is an abstract base for tables of codes and names, such as order states. It subclasses [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}, the base it shares with `VuedaModel`. It adds a unique `code`, a `name`, and a `formatted_name` column that copies `name`.
 
-### Permission model
+1. Declare the model, and point a relation at it:
 
-Filter choice permissions follow the same pattern as field choices: model `read` permission is required, and related-model filters additionally require `list` permission on the related model.
+    ```python
+    from django.db import models
 
-### Invalid filter handling
+    from vueda.core.models import BaseModelMeta, Lookup, VuedaModel
 
-Requesting choices for a filter name that does not exist on the filterset returns 404. As with field choices, the response message helps identify valid filter names.
 
-### Response shape
+    class OrderState(Lookup):
+        class Meta(BaseModelMeta):
+            ordering = ["name"]
 
-Filter choice responses follow the same `{label, value}` structure as field choices. Values are normalized to strings. For queryset-backed filter choices, the queryset is filtered and paginated according to the filter's configuration before choices are extracted.
 
-### Dynamic filtering and typeahead
+    class CustomerOrder(VuedaModel):
+        name = models.CharField(max_length=255)
+        order_state = models.ForeignKey(OrderState, on_delete=models.PROTECT)
 
-The filter-choices endpoint is designed for interactive search: the client can pass the user's current input as a query parameter matching the filter's field name, and the endpoint narrows the returned options accordingly. For filters with `startswith`, `istartswith`, `contains`, or `icontains` lookup expressions, this narrowing happens in-memory on static choice lists and is applied directly to queryset-backed filters. This makes the endpoint well-suited for typeahead dropdowns that progressively reduce the option list as the user types.
+        class Meta(BaseModelMeta):
+            pass
+    ```
 
-For queryset-backed `ModelChoiceFilter` filters and `AllValues`-style filters, the endpoint also considers the other active filter parameters when building the choice queryset. The returned options reflect only the values present in the currently filtered dataset, not the full set of possible values.
+    Base each `Meta` on [`BaseModelMeta`]{@api py:class:vueda.core.models.BaseModelMeta}, which gives the model VUEDA's `create`, `read`, `update`, `delete`, and `list` permissions.
 
-## Client Fetch Strategy
+2. Add a serializer, filterset, and viewset:
 
-The client loads choices through two coordinated layers: {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices} for state management and deduplication, and {@api js:module:@arrai-innovations/vueda/use/useModelChoices} for reactive fetching with intent controls.
+    ```python
+    from vueda.core.filters import VuedaFilterSet
+    from vueda.core.serializers import VuedaLookupSerializer
+    from vueda.core.viewsets import VuedaViewSet
 
-### `useModelChoices` configuration
 
-`useModelChoices` accepts per-field configuration that controls when and how choices are fetched:
+    class OrderStateSerializer(VuedaLookupSerializer):
+        class Meta(VuedaLookupSerializer.Meta):
+            model = OrderState
 
-```javascript
-const choices = useModelChoices({
-    status: {
-        app: "myapp",
-        model: "order",
-        intendToFetch: true,
-        isFilter: false,
-    },
-    category: {
-        app: "myapp",
-        model: "order",
-        intendToFetch: true,
-        isFilter: true,
-    },
-});
-```
 
-- **`intendToFetch`**: controls whether the composable fetches choices for this field. When `false`, the field's choices are not loaded. This enables conditional loading; for example, loading choices only when a form section is expanded.
-- **`isFilter`**: when `true`, the composable uses the filter-choices endpoint instead of the field-choices endpoint.
+    class OrderStateFilterSet(VuedaFilterSet):
+        class Meta:
+            model = OrderState
+            fields = ["id", "code", "name"]
 
-The composable does not fetch when the component is inactive (unmounted or deactivated). This prevents background fetches for components that are not visible.
 
-### Store-level deduplication
+    class OrderStateViewSet(VuedaViewSet):
+        queryset = OrderState.objects.all()
+        serializer_class = OrderStateSerializer
+        filterset_class = OrderStateFilterSet
+        search_fields = ["name", "code"]
+    ```
 
-`storeModelChoices` deduplicates in-flight fetches per `app.model.field` key. If multiple components request choices for the same field simultaneously, only one network request is made. Subsequent requesters receive the same promise and resolve with the same data.
+    [`VuedaLookupSerializer`]{@api py:class:vueda.core.serializers.VuedaLookupSerializer} lists `id`, `code`, `name`, and `formatted_name`. The form's relation widget sends typed text to `search_fields`. It loads several selected rows at once through the `id` filter.
 
-### Filter UI lazy loading
+3. Route the viewset under the model name, and register it in your app's [`ready()`]{@api ext:django:django.apps.AppConfig.ready}:
 
-The default filter UI (`FilterFieldForm`, rendered by the add-filter menu and the chip edit popover) fetches filter choices lazily; either when the filter form is opened or when the current query already includes a value for that filter. This means filter choices are not loaded on initial page load unless the URL contains filter parameters. Expecting eager availability of filter choices (for example, reading them synchronously after component mount) will produce empty option lists until user interaction triggers the fetch.
+    ```python
+    router.register(r"orderstate", OrderStateViewSet)
+    ```
 
-## Verification Checklist
+    ```python
+    def ready(self):
+        from vueda.info import register
 
-With choice loading wired, verify these behaviors:
+        from .serializers import OrderStateSerializer
+        from .viewsets import OrderStateViewSet
 
-- Field choice dropdowns load options dynamically from the field-choices endpoint.
-- Filter dropdowns load options from the filter-choices endpoint, either on open or when the URL contains a filter value.
-- Choice values arrive as strings in the response (inspect the network response).
-- Related-model choices show `formatted_name`-derived labels, not raw PKs or `__str__` output.
-- A user without `read` permission on the source model receives 403 from choice endpoints.
-- A user without `list` permission on a related model receives 403 from related-model choice endpoints.
-- Requesting choices for an invalid field or filter name returns 404 with a helpful message.
-- Filter choice lists do not contain empty-value options. The clear or all state is handled outside the returned choices.
-- Multiple components requesting the same field's choices do not produce duplicate network requests.
+        register(OrderStateSerializer, OrderStateViewSet)
+    ```
 
-## Troubleshooting
+    [Create a CRUD Surface](./create-crud-surface.md#router-and-url-wiring) describes the router prefix and [model-info registration](./create-crud-surface.md#model-info-registration).
 
-**Choice endpoint returns 404 with "Unable to find the content type".** The model is not registered with VUEDA's info registry. Verify that `register()` is called in the app's `AppConfig.ready()` method with both the serializer and viewset. A `register_serializer`-only registration is not sufficient for choice endpoints.
+4. Create and apply the migration. Add the rows through a data migration or the model's CRUD views.
 
-**Choice endpoint returns 404 for a valid field name.** The field must have choices defined on the serializer; either static choices in the field definition or a related-model queryset source. A plain `CharField` without choices will return 404 from the field-choices endpoint even though it exists in model-info metadata.
+5. Grant permissions. Users who set `order_state` need `read` and `list` on the lookup model, for example `store.read_orderstate` and `store.list_orderstate`. Users who maintain the table also need `create`, `update`, and `delete`.
 
-**Related-model choice labels show raw values instead of formatted names.** The related model's `formatted_name` strategy is not configured correctly. If the model sets `formatted_name = None`, it must provide either `formatted_name_lookup_expression` or a `get_formatted_name()` method. A system check (`vueda_info.E001`) catches this misconfiguration at startup. If using `get_formatted_name()`, the related model's serializer must declare `formatted_name = serializers.SerializerMethodField()`. See [Create a CRUD Surface](./create-crud-surface#the-formatted_name-contract) for the configuration options.
-
-**Filter choices are empty on initial page load.** This is expected behavior for lazily-loaded filter choices. The filter UI fetches choices when the dropdown is opened or when the URL already contains a filter value. If you need eager loading, configure `intendToFetch: true` and ensure the component is active at mount time.
-
-**Choice values fail equality checks in the client.** Verify that the client is comparing string values. Choice endpoints normalize values to strings, but if the client holds a numeric PK from a different source (such as a route parameter parsed as a number), the comparison will fail. Coerce both sides to strings before comparing, or rely on the lookup-context manager's built-in string coercion.
-
-**Multiple choice requests fire for the same field.** `storeModelChoices` deduplicates by `app.model.field` key. If the key components differ (for example, different casing of the model name), the store treats them as separate keys and fires separate requests. Ensure consistent `app` and `model` values across all choice-loading call sites.
-
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:module:vueda.info.registration}
-    - {@api py:module:vueda.info.viewsets}
-    - {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet}
-    - {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet}
-    - {@api py:class:vueda.info.serializers.ModelInfoChoicesSerializer}
-    - {@api py:class:vueda.info.serializers.ModelInfoFilterSetChoicesSerializer}
-- REST:
-    - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
-    - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeModelChoices}
-    - {@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices}
-    - {@api js:module:@arrai-innovations/vueda/use/useModelChoices}
-    - {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}
-- Vue.js Components:
-    - {@api vue:component:FilterFieldForm}
-    - {@api vue:component:FilterChip}
+The model info for `customerorder` now shows `"choices": true` on `order_state`, with `model` set to `orderstate`. The create and update forms search `OrderState` rows and show each row's `formatted_name`.

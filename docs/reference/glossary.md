@@ -115,10 +115,10 @@ The viewset registered with a model's {@term Canonical Serializer}. {@term Model
 
 ## Choice-Backed Field
 
-A field or filter whose {@term Model Info} entry carries `choices`. A list of `{label, value}` pairs with string values is the complete set. The value `true` means the choices come from a queryset, and the client fetches them from a choices endpoint.
+A field or filter whose {@term Model Info} entry carries `choices`. A list of `{label, value}` pairs with string values is the complete set. The value `true` means the choices come from a queryset, and the client loads them from the server when the field needs them.
 
 - Names: [`FieldInfo.choices`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.choices}; [`FilterInfo.choices`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FilterInfo.choices}; [`model_info_choices`]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}; [`model_info_filter_choices`]{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}; [`useModelChoices`]{@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}; [`storeModelChoices`]{@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices}
-- Described in: [Model Choices, Lookup Fields, and Dynamic Options](../guides/choices-and-lookups.md)
+- Described in: [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups.md)
 - Upstream: [Django: `Field.choices`]{@api ext:django:django.db.models.Field.choices}
 
 ## Client Affordance

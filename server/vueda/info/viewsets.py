@@ -101,6 +101,28 @@ class ChoicesQueryset(collections.abc.Sequence):
 
 
 class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, GenericViewSet):
+    """
+    Base of the two choice endpoints, which list the ``{label, value}`` options of one field or
+    filter on a registered model.
+
+    The URL names the model by ``app_label`` and ``model`` (the lowercase model name its content
+    type stores) and the field or filter by ``field``. A request passes three checks in order:
+
+    1. The model must be registered with ``register`` or ``register_serializer``. Otherwise the
+       endpoint answers 404 with ``Unable to find the content type "<app_label>.<model>".`` The
+       model that a relation points at does not need to be registered.
+    2. ``resolve_choices`` finds the field or filter. A name the model does not offer answers 404,
+       and the message lists the valid names.
+    3. ``check_permissions`` checks ``read`` on the model, plus ``list`` on the related model when
+       the options are another model's rows. A missing permission answers 403. The codenames go
+       through ``PERMISSION_NAMES_MAPPING``. The viewset sets no ``permission_classes``, so these
+       are the only permission checks.
+
+    Every ``value`` is a string, whatever the column type. Responses are paginated like other VUEDA
+    lists. The search and ordering filter backends are removed, so the endpoints take no search or
+    ordering parameter.
+    """
+
     object = None  # type: ContentType
     queryset = ContentType.objects.all()
     permission_classes = []
@@ -203,9 +225,31 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
 
 class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     """
-    This viewset is for providing metadata about field choices to front-end clients. This is a read-only viewset.
+    List the choices of one field on a model's canonical serializer.
 
-    Effectively, this is a custom model viewset for content types.
+    The ``field`` URL segment names a field of that serializer. A field without ``choices`` answers
+    404. The permissions depend on what backs the field:
+
+    - A model field needs ``read`` on the model.
+    - A model relation needs ``read`` on the model and ``list`` on the related model.
+    - A serializer-only field, which is neither, needs ``read`` on the model. When it has a
+      ``queryset``, it also needs ``list`` on that queryset's model.
+
+    A field with static choices (a ``ChoiceField``, or a model field with ``choices``) returns every
+    entry, sorted by label, with the value converted to a string. Blank entries stay in the list,
+    since a create or update form can offer them.
+
+    A related field (``PrimaryKeyRelatedField``, ``SlugRelatedField``, or a many-related field)
+    returns the rows of the serializer field's queryset. The value is the primary key as a string,
+    or the ``slug_field`` value for a ``SlugRelatedField``. The label is the related model's
+    formatted name, and options are sorted by it. The label comes from the first of these that the
+    related model provides:
+
+    1. A ``get_formatted_name()`` method, called on each row.
+    2. The column that a string ``formatted_name_lookup_expression`` names.
+    3. The ``formatted_name`` column.
+
+    A related model with none of the three raises ``FieldError``.
     """
 
     serializer_class = ModelInfoChoicesSerializer
@@ -425,9 +469,36 @@ class FilterChoicesQueryset(collections.abc.Sequence):
 
 class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
     """
-    This viewset is for providing metadata about filtering choices to front-end clients. This is a read-only viewset.
+    List the choices of one filter in the ``filterset_class`` of a model's canonical viewset.
 
-    Effectively, this is a custom model viewset for content types.
+    The ``field`` URL segment names a filter of that filterset. A model with no canonical viewset, or
+    a viewset with no ``filterset_class``, answers 404, as does a name the filterset lacks. A filter
+    with a ``queryset`` (``ModelChoiceFilter``, ``ModelMultipleChoiceFilter``) needs ``read`` on the
+    model and ``list`` on the model of the queryset that ``get_queryset(request)`` returns. Every
+    other filter needs ``read`` on the model.
+
+    The endpoint builds the filterset from the request's query parameters over ``objects.all()`` on
+    the model. It does not call the viewset's ``get_queryset``, so the viewset's row filtering does
+    not narrow the options. What the options are depends on the filter:
+
+    - A filter with a ``queryset`` returns the rows of that queryset that the matching rows of the
+      model reference. The value is the primary key as a string. The label follows the same order as
+      field choices: ``get_formatted_name()``, then ``formatted_name_lookup_expression``, then the
+      ``formatted_name`` column. Options are sorted by label.
+    - ``AllValuesFilter`` and ``AllValuesMultipleFilter`` return the distinct values of the column in
+      the matching rows, sorted by value. Each label is the value as a string.
+    - A filter with static choices (``ChoiceFilter``, ``TypedChoiceFilter``, ``BooleanFilter``, and
+      similar) returns the choices of its form widget.
+
+    For the first two kinds, the matching rows are those that the request's other filter parameters
+    select. The filter's own parameter is left out, so it never narrows them. For static choices,
+    the other parameters have no effect. The filter's own parameter narrows static choices only when
+    the filter's ``lookup_expr`` is ``contains``, ``icontains``, ``startswith``, or ``istartswith``.
+    The endpoint then keeps each choice whose value contains, or starts with, the parameter,
+    ignoring case for all four. Labels are not compared.
+
+    Static and column-value options omit empty values (``EMPTY_VALUES``), because a request without
+    the filter's parameter already means "no filter".
     """
 
     serializer_class = ModelInfoFilterSetChoicesSerializer

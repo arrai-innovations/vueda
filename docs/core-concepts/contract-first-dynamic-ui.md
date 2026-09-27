@@ -49,7 +49,7 @@ A read-only field takes its type's read-only widget, or {@api vue:component:Widg
 
 ### Form Generation
 
-The form builder turns each field's metadata into a field component, a widget component, props for each, and choice-loading behaviour. Fields with static choices get their options inline in the metadata. Fields marked `choices: true` get options from the [choices endpoint]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}: the widget fetches them when it holds a value or first gets focus. [Choices and Lookups](../guides/choices-and-lookups) describes the endpoint behaviour.
+The form builder turns each field's metadata into a field component, a widget component, props for each, and choice-loading behaviour. Fields with static choices get their options inline in the metadata. Fields marked `choices: true` load their options from the server: a relation's widget searches the related model's list endpoint, and a slug relation's widget fetches from the [choices endpoint]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/} when it holds a value or first gets focus. [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups) lists where each kind of field loads its options.
 
 The client flattens expanded relations into [dotted field names]{@term Field Path} (`expandName.fieldName`). An override for a nested field uses the same keys as one for a base field. Composables and symbol-based provide and inject share [form state]{@term Form Context}: values, errors, touched state, and modification tracking. Nested field sets join the same form without passing props down.
 
