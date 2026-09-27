@@ -492,18 +492,15 @@ class PermissionDeleteView(PermissionRequiredMixin, View):
         group_name = group.name
         permission.group_set.remove(group)
 
-        obj_is_used = group.permissions.exists()
-
+        # Removing a permission never deletes the group, even its last one: the group's user
+        # memberships would go with it, and no group migration can restore them.
         GroupChange.objects.create(
             group_name=group_name,
-            change_type=GroupChange.UNASSOCIATED if obj_is_used else GroupChange.DELETED,
+            change_type=GroupChange.UNASSOCIATED,
             historical_permission_codename=permission.codename,
             historical_permission_content_type_app_label=permission.content_type.app_label,
             historical_permission_content_type_model_name=permission.content_type.model,
         )
-
-        # if not obj_is_used:
-        #     group.delete()
 
         return JsonResponse({"state": "succeeded"})
 

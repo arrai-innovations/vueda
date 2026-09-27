@@ -61,9 +61,10 @@ describe("lib/utils/resolveColumnComponents.js", () => {
             expect(component).toBe(availableColumns.ColumnText);
         });
 
-        scopedIt("ignores an unknown string key and falls through", () => {
-            const component = resolveColumnComponent({ name: "a" }, { a: "ColumnNope" });
-            expect(component).toBe(availableColumns.ColumnText);
+        scopedIt("throws on an unknown string key, naming the key and the column", () => {
+            expect(() => resolveColumnComponent({ name: "a" }, { a: "ColumnNope" })).toThrow(
+                'No column component named "ColumnNope" for column "a"',
+            );
         });
 
         scopedIt("calls a () => component override for its component, as the form chain does", () => {
@@ -71,14 +72,22 @@ describe("lib/utils/resolveColumnComponents.js", () => {
             expect(component).toBe(CustomColumn);
         });
 
-        scopedIt("falls through when a () => component override returns nothing", () => {
-            const component = resolveColumnComponent({ name: "a" }, { a: () => undefined }, { a: CustomColumn });
-            expect(component).toBe(CustomColumn);
+        scopedIt("throws when a () => component override returns nothing", () => {
+            expect(() => resolveColumnComponent({ name: "a" }, { a: () => undefined }, { a: CustomColumn })).toThrow(
+                'No column component returned by the function configured for column "a"',
+            );
         });
 
-        scopedIt("falls through from an unknown prop string key to the config override", () => {
-            const component = resolveColumnComponent({ name: "a" }, { a: "ColumnNope" }, { a: CustomColumn });
-            expect(component).toBe(CustomColumn);
+        scopedIt("does not cover an unknown prop string key with the config override", () => {
+            expect(() => resolveColumnComponent({ name: "a" }, { a: "ColumnNope" }, { a: CustomColumn })).toThrow(
+                'No column component named "ColumnNope" for column "a"',
+            );
+        });
+
+        scopedIt("throws on an unknown config string key", () => {
+            expect(() => resolveColumnComponent({ name: "a" }, undefined, { a: "ColumnNope" })).toThrow(
+                'No column component named "ColumnNope" for column "a"',
+            );
         });
     });
 
@@ -159,6 +168,19 @@ describe("lib/utils/resolveColumnComponents.js", () => {
             expect(Object.keys(result)).toEqual(["a", "b"]);
             expect(result.a.component).toBe(availableColumns.ColumnText);
             expect(result.a.props).toEqual({});
+        });
+
+        scopedIt("contains a column whose override names no component", () => {
+            const result = resolveColumns({
+                fields: [{ name: "a" }, { name: "b" }],
+                propComponents: { a: "ColumnNope" },
+                propProps: { a: { extra: "EX" } },
+            });
+            expect(result.a.component).toBeNull();
+            expect(result.a.props).toEqual({});
+            expect(result.a.error.message).toBe('No column component named "ColumnNope" for column "a"');
+            expect(result.b.component).toBe(availableColumns.ColumnText);
+            expect(result.b.error).toBeUndefined();
         });
 
         scopedIt("skips fields without a name", () => {
