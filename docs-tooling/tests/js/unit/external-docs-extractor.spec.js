@@ -3,16 +3,17 @@ import {
     cachedFetch,
     checkRegistryLinks,
     fillVersion,
+    installedVersions,
     inventoryIds,
     lockVersions,
     parseInventory,
     registryIds,
 } from "../../../js/extractors/external-docs.js";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 function inventory(lines) {
     const header = "# Sphinx inventory version 2\n# Project: Example\n# Version: 1.0\n# The remainder is zlib.\n";
@@ -178,6 +179,7 @@ describe("ExternalDocsExtractor", () => {
                 return EXAMPLE_INVENTORY;
             },
             fetchPage: async () => '<a id="thing"></a>',
+            findInstalledVersions: async () => ({ example: null }),
         });
         await extractor.extract({ outputPath, configPath, lockPath });
 
@@ -189,6 +191,35 @@ describe("ExternalDocsExtractor", () => {
         expect(ids["ext:site:thing"]).toEqual({ href: "https://site.test/page#thing", title: "Site: thing" });
     });
 
+    it("links the version installed in the docs environment over the lockfile's", async () => {
+        const dir = await mkdtemp(path.join(os.tmpdir(), "external-docs-"));
+        const configPath = path.join(dir, "external-docs.json");
+        const lockPath = path.join(dir, "uv.lock");
+        await writeFile(
+            configPath,
+            JSON.stringify({
+                example: { title: "Example", lockPackage: "example", base: "https://example.test/en/{minor}/" },
+            }),
+        );
+        // The lockfile pins 6.1 for newer Pythons, but this environment runs 5.2.
+        await writeFile(lockPath, '[[package]]\nname = "example"\nversion = "6.1"\n');
+
+        const requested = [];
+        const extractor = new ExternalDocsExtractor({
+            fetchInventory: async (url) => {
+                requested.push(url);
+                return EXAMPLE_INVENTORY;
+            },
+            findInstalledVersions: async (names) => {
+                expect(names).toEqual(["example"]);
+                return { example: "5.2.17" };
+            },
+        });
+        await extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath });
+
+        expect(requested).toEqual(["https://example.test/en/5.2/objects.inv"]);
+    });
+
     it("fails when a hand-listed link is broken", async () => {
         const dir = await mkdtemp(path.join(os.tmpdir(), "external-docs-"));
         const configPath = path.join(dir, "external-docs.json");
@@ -198,7 +229,10 @@ describe("ExternalDocsExtractor", () => {
             JSON.stringify({ site: { title: "Site", links: { thing: "https://site.test/p#x" } } }),
         );
         await writeFile(lockPath, "");
-        const extractor = new ExternalDocsExtractor({ fetchPage: async () => "<p></p>" });
+        const extractor = new ExternalDocsExtractor({
+            fetchPage: async () => "<p></p>",
+            findInstalledVersions: async () => ({}),
+        });
         await expect(
             extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath }),
         ).rejects.toThrow("https://site.test/p#x: no element has this id");
@@ -237,5 +271,49 @@ describe("cachedFetch", () => {
         await cachedFetch("https://site.test/c", { cacheDir, fetchImpl: ok("fresh") });
         const gone = async () => new Response("", { status: 404 });
         await expect(cachedFetch("https://site.test/c", { cacheDir, fetchImpl: gone })).rejects.toThrow("HTTP 404");
+    });
+});
+
+describe("installedVersions", () => {
+    let tempDir;
+    let originalPath;
+
+    beforeEach(async () => {
+        tempDir = await mkdtemp(path.join(os.tmpdir(), "external-installed-"));
+        originalPath = process.env.PATH;
+        // Run the lookup script with the system Python instead of a synced uv environment,
+        // and install a package by placing its metadata on the import path.
+        await writeFile(
+            path.join(tempDir, "uv"),
+            `#!/bin/sh
+[ "$1 $2 $3" = "run --no-sync python" ] || exit 64
+shift 3
+PYTHONPATH="${tempDir}" exec python3 "$@"
+`,
+            { mode: 0o755 },
+        );
+        const distInfo = path.join(tempDir, "vueda_installed-1.2.3.dist-info");
+        await mkdir(distInfo);
+        await writeFile(
+            path.join(distInfo, "METADATA"),
+            "Metadata-Version: 2.1\nName: vueda-installed\nVersion: 1.2.3\n",
+        );
+        process.env.PATH = tempDir + path.delimiter + originalPath;
+    });
+
+    afterEach(async () => {
+        process.env.PATH = originalPath;
+        await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it("reports an installed package's version and null for one that is not installed", async () => {
+        const versions = await installedVersions(["vueda-installed", "vueda-no-such-package"]);
+        expect(versions).toEqual({ "vueda-installed": "1.2.3", "vueda-no-such-package": null });
+    });
+
+    it("reports null for every package when the lookup fails", async () => {
+        await writeFile(path.join(tempDir, "uv"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+        const versions = await installedVersions(["vueda-installed"]);
+        expect(versions).toEqual({ "vueda-installed": null });
     });
 });

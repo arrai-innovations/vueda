@@ -145,17 +145,24 @@ export const scanFileRefs = (content) => {
 /**
  * Validate references across the given files.
  *
+ * By default an unknown API id or glossary term is an error. With
+ * `warnUnknown`, it is a warning instead, so a draft can link a symbol
+ * before the generator produces its id.
+ *
  * @param {object} options
  * @param {string[]} options.files - markdown files to scan
  * @param {string|string[]} options.apiRoots - path or paths to indexed reference trees (api, theming, etc.)
  * @param {string} options.glossaryFile - path to docs/reference/glossary.md
  * @param {string} [options.externalIdsFile] - path to the extracted upstream documentation ids
- * @returns {{ errors: { file: string, line: number, message: string }[], apiIndexSize: number, glossaryIndexSize: number }}
+ * @param {boolean} [options.warnUnknown=false] - report unknown ids and terms as warnings
+ * @returns {{ errors: { file: string, line: number, message: string }[], warnings: { file: string, line: number, message: string, type: "api"|"term", value: string }[], apiIndexSize: number, glossaryIndexSize: number }}
  */
-export const validateReferences = ({ files, apiRoots, glossaryFile, externalIdsFile }) => {
+export const validateReferences = ({ files, apiRoots, glossaryFile, externalIdsFile, warnUnknown = false }) => {
     const apiIndex = addExternalIds(buildApiIndex(apiRoots), externalIdsFile);
     const glossaryIndex = buildGlossaryIndex(glossaryFile);
     const errors = [];
+    const warnings = [];
+    const unknown = warnUnknown ? warnings : errors;
 
     for (const filePath of files) {
         if (!fs.existsSync(filePath)) {
@@ -167,24 +174,54 @@ export const validateReferences = ({ files, apiRoots, glossaryFile, externalIdsF
         for (const ref of refs) {
             if (ref.type === "api") {
                 if (!apiIndex.has(ref.value)) {
-                    errors.push({
+                    unknown.push({
                         file: filePath,
                         line: ref.line,
                         message: `Unknown API id "${ref.value}"`,
+                        type: "api",
+                        value: ref.value,
                     });
                 }
             } else if (ref.type === "term") {
                 const key = normalizeTerm(stripInlineMarkdown(ref.value));
                 if (!glossaryIndex.has(key)) {
-                    errors.push({
+                    unknown.push({
                         file: filePath,
                         line: ref.line,
                         message: `Unknown glossary term "${ref.value}"`,
+                        type: "term",
+                        value: ref.value,
                     });
                 }
             }
         }
     }
 
-    return { errors, apiIndexSize: apiIndex.size, glossaryIndexSize: glossaryIndex.size };
+    return { errors, warnings, apiIndexSize: apiIndex.size, glossaryIndexSize: glossaryIndex.size };
+};
+
+/**
+ * Group unknown-reference warnings by the id or term they name.
+ *
+ * Each entry lists how many times the reference appears and the files that
+ * use it, sorted by type, then by use count (highest first), then by value.
+ *
+ * @param {{ file: string, type: "api"|"term", value: string }[]} warnings
+ * @returns {{ type: "api"|"term", value: string, count: number, files: string[] }[]}
+ */
+export const summarizeUnknownReferences = (warnings) => {
+    const groups = new Map();
+    for (const warning of warnings) {
+        const key = `${warning.type}\0${warning.value}`;
+        let group = groups.get(key);
+        if (!group) {
+            group = { type: warning.type, value: warning.value, count: 0, files: new Set() };
+            groups.set(key, group);
+        }
+        group.count += 1;
+        group.files.add(warning.file);
+    }
+    return [...groups.values()]
+        .map((group) => ({ ...group, files: [...group.files].sort() }))
+        .sort((a, b) => a.type.localeCompare(b.type) || b.count - a.count || a.value.localeCompare(b.value));
 };
