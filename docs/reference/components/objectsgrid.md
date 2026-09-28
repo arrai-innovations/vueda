@@ -120,12 +120,12 @@ Below `tableBreakpoint`, each row renders as a card.
 - **Fields:** inside a card, {@api theme-key:ObjectsGrid.cardContainer} aligns the fields into a label column and a value column. The label comes from {@api theme-key:ObjectsGridCardCell.header} and the value from {@api theme-key:ObjectsGridCardCell.value}.
 - **Header band:** each card labels its own fields, so the header row group is hidden.
 
-The demo uses `tableBreakpoint="inf"` so the cards show at every practical viewport width.
+The demo uses `tableBreakpoint="inf"` so the cards show at every practical viewport width. It also removes the three-column step with a theme override, because the demo sits in a column narrower than the viewport.
 
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">card layout · same rows and fields</header>
   <ClientOnly>
-    <ObjectsGrid :objects-in-order="accounts.slice(0, 3)" :fields="compactFields" table-breakpoint="inf" :field-props="{ statusClasses }">
+    <ObjectsGrid :objects-in-order="accounts.slice(0, 3)" :fields="compactFields" table-breakpoint="inf" :field-props="{ statusClasses }" :theme-override="{ ObjectsGrid: { bodyRowGroup: { class: { 'lg:grid-cols-3': false } } } }">
       <template #[`field(account)`]="{ obj, formatted }">
         <span class="inline-flex min-w-0 items-center gap-2">
           <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-border bg-muted font-mono text-[10px] font-semibold text-muted-foreground">{{ obj.initials }}</span>
@@ -176,7 +176,7 @@ When the grid has no rows and is not loading, it renders one empty-state row:
   </DemoCard>
   <DemoCard title="card skeletons">
     <ClientOnly>
-      <ObjectsGrid loading :skeleton-rows="2" :objects-in-order="[]" :fields="compactFields" table-breakpoint="inf" />
+      <ObjectsGrid loading :skeleton-rows="2" :objects-in-order="[]" :fields="compactFields" table-breakpoint="inf" :theme-override="{ ObjectsGrid: { bodyRowGroup: { class: { 'sm:grid-cols-2': false, 'lg:grid-cols-3': false } } } }" />
     </ClientOnly>
   </DemoCard>
   <DemoCard title="empty: first run">

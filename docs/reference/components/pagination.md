@@ -22,6 +22,7 @@ import NativeSelectOption from "@vueda/controls/native-select/NativeSelectOption
 import { ref } from "vue";
 
 const barPage = ref(1);
+const barPerPage = ref("25");
 const widgetPage = ref(3);
 const widgetPerPage = ref(25);
 </script>
@@ -152,7 +153,7 @@ Theme keys: {@api theme-key:NavigationPaginationBar},
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
             Rows
-            <NativeSelect class="w-auto">
+            <NativeSelect v-model="barPerPage" :theme-override="{ NativeSelect: { root: { class: { 'w-full': false } } } }">
               <NativeSelectOption value="10">10</NativeSelectOption>
               <NativeSelectOption value="25">25</NativeSelectOption>
               <NativeSelectOption value="50">50</NativeSelectOption>

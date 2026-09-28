@@ -789,7 +789,7 @@ application holds the sorting, selection, and paging state, for example with
       <div class="flex items-center gap-3">
         <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
           Rows
-          <NativeSelect v-model="recipePageSize" class="w-auto">
+          <NativeSelect v-model="recipePageSize" :theme-override="{ NativeSelect: { root: { class: { 'w-full': false } } } }">
             <NativeSelectOption value="5">5</NativeSelectOption>
             <NativeSelectOption value="25">25</NativeSelectOption>
             <NativeSelectOption value="50">50</NativeSelectOption>
