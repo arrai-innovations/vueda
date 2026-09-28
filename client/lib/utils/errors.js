@@ -155,7 +155,8 @@ export class FormValidationError extends ServerFeedbackError {
          * @type {{[path: string]: string[]}}
          */
         this.errors = objectErrorPaths.concat(stringErrorPaths).reduce((acc, path) => {
-            const normalizedPath = path.split("[").slice(0, -1).join("[");
+            // A list entry ends in `[n]`; the field it belongs to is the path without that index.
+            const normalizedPath = path.replace(/\[\d+\]$/, "");
             if (!acc[normalizedPath]) {
                 acc[normalizedPath] = [];
             }

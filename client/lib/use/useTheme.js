@@ -31,9 +31,9 @@ export { getTheme, mergeTheme, patchTheme, setTheme };
  * @vueda-spread props
  */
 export const THEME_OVERRIDE_PROPS = {
-    /** A partial theme object merged with the component's default theme; accepts a class string, class array, or theme object. */
+    /** A partial ThemeObject keyed by component name, merged over this component's theme and provided to descendants. */
     themeOverride: {
-        type: [String, Object, Array],
+        type: Object,
         default: null,
     },
 };

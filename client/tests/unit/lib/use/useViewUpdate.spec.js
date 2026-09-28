@@ -9,6 +9,7 @@ import { useObject404 } from "@vueda/use/useObject404.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import cloneDeep from "lodash-es/cloneDeep.js";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, nextTick, reactive, ref } from "vue";
 
@@ -92,6 +93,7 @@ describe("lib/use/useViewUpdate.js", () => {
             model: "testModel",
             pk: "42",
             submitFields: undefined,
+            fetchFields: undefined,
             redirectAfter: null,
             relatedObjectRules: {},
             calculatedObjectRules: {},
@@ -278,6 +280,22 @@ describe("lib/use/useViewUpdate.js", () => {
             const { props: objectFormProps } = useObjectForm.mock.calls[0][0];
             expect(objectFormProps.verboseName).toBe("widget");
         });
+
+        scopedIt("submitFields comes from props when provided", () => {
+            props.submitFields = ["name", "status"];
+            useViewUpdate(props);
+            const { props: objectFormProps } = useObjectForm.mock.calls[0][0];
+            expect(objectFormProps.submitFields).toEqual(["name", "status"]);
+        });
+
+        scopedIt("submitFields falls back to modelConfig when the prop is omitted or empty", async () => {
+            useViewUpdate(props);
+            const { props: objectFormProps } = useObjectForm.mock.calls[0][0];
+            expect(objectFormProps.submitFields).toEqual(["name"]);
+            props.submitFields = [];
+            await nextTick();
+            expect(objectFormProps.submitFields).toEqual(["name"]);
+        });
     });
 
     describe("submit-side useObject setup", () => {
@@ -294,20 +312,27 @@ describe("lib/use/useViewUpdate.js", () => {
             expect(fields).toContain("id");
         });
 
-        scopedIt("FIELDS_PARAM uses submitFields from props when provided", () => {
-            props.submitFields = ["name", "status"];
+        scopedIt("FIELDS_PARAM uses fetchFields from props when provided", () => {
+            props.fetchFields = ["name", "status"];
             useViewUpdate(props);
             const objectCall = useObject.mock.calls[0][0];
             const fields = objectCall.props.params[FIELDS_PARAM];
-            expect(fields).toContain("name");
-            expect(fields).toContain("status");
+            expect(fields).toEqual(["name", "status", "id"]);
         });
 
-        scopedIt("FIELDS_PARAM falls back to modelConfig submitFields", () => {
+        scopedIt("FIELDS_PARAM falls back to modelConfig fetchFields", () => {
             useViewUpdate(props);
             const objectCall = useObject.mock.calls[0][0];
             const fields = objectCall.props.params[FIELDS_PARAM];
-            expect(fields).toContain("name");
+            expect(fields).toEqual(["id", "name"]);
+        });
+
+        scopedIt("FIELDS_PARAM falls back to modelConfig fetchFields when the prop is empty", () => {
+            props.fetchFields = [];
+            useViewUpdate(props);
+            const objectCall = useObject.mock.calls[0][0];
+            const fields = objectCall.props.params[FIELDS_PARAM];
+            expect(fields).toEqual(["id", "name"]);
         });
 
         scopedIt("EXPAND_PARAM filters expand fields by non-null form values", () => {
@@ -555,5 +580,180 @@ describe("lib/use/useViewUpdate.js", () => {
                 expect(errorWrapper.text()).toContain("Failed to fetch");
             },
         );
+    });
+
+    describe("real composition: submission and response field selection", () => {
+        /**
+         * Wires the real useViewUpdate() the same way "submission failure visibility" does, but with a
+         * model config that fetches more than it submits, and a server stub that records each save's
+         * body and `f` parameter and recomputes `total` from the submitted `quantity`.
+         */
+        const buildSelectionViewUpdate = async ({ config, retrieved }) => {
+            setActivePinia(createPinia());
+            const { useDetailView: realUseDetailView } = await vi.importActual("@vueda/use/useDetailView.js");
+            const { useObjectForm: realUseObjectForm } = await vi.importActual("@vueda/use/useObjectForm.js");
+            const { useForm: realUseForm } = await vi.importActual("@vueda/use/useForm.js");
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+
+            Object.assign(mockModelConfig.config, config);
+            useModelConfig.mockReturnValue(mockModelConfig);
+            useIsActive.mockReturnValue(ref(true));
+            useFilteredActions.mockReturnValue(reactive({ actions: [] }));
+            useObject404.mockReturnValue(undefined);
+            useDetailView.mockImplementation(realUseDetailView);
+            useObjectForm.mockImplementation(realUseObjectForm);
+            useForm.mockImplementation(realUseForm);
+
+            let serverObject = { ...retrieved };
+            const retrieve = vi.fn(() => Promise.resolve({ ...serverObject }));
+            const saves = [];
+            const update = vi.fn(({ object, params }) => {
+                saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
+                serverObject = { ...serverObject, ...object, total: serverObject.unit_price * object.quantity };
+                return Promise.resolve({ ...serverObject });
+            });
+            let callCount = 0;
+            useObject.mockImplementation((options) => {
+                callCount += 1;
+                return callCount === 1
+                    ? realUseObject({ ...options, handlers: { retrieve } })
+                    : realUseObject({ ...options, handlers: { update } });
+            });
+
+            const result = await withSetup(() => useViewUpdate(props));
+            return { result, retrieve, saves };
+        };
+
+        const orderConfig = {
+            displayFields: ["quantity", "total"],
+            fetchFields: ["quantity", "unit_price", "total", "notes"],
+            submitFields: ["quantity"],
+            fieldDetails: {},
+        };
+        const orderRetrieved = { id: "42", quantity: 1, unit_price: 5, total: 5, notes: "packed" };
+
+        const editAndSubmit = async (result, name, value) => {
+            const { default: flushPromises } = await import("flush-promises");
+            result.formContext.registerIsModifiedHook(name, () => true);
+            result.formContext.updateValue(name, value);
+            await flushPromises();
+            await result.objectForm.submit();
+            await flushPromises();
+        };
+
+        scopedIt("submits only submitFields, leaving fetched and displayed fields out of the body", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: orderConfig,
+                retrieved: orderRetrieved,
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+
+            // `total` is displayed and `notes` is fetched but not displayed. Sending `notes` back would
+            // overwrite a change another user made after this form loaded.
+            expect(saves).toHaveLength(1);
+            expect(saves[0].body).toEqual({ quantity: 2 });
+        });
+
+        scopedIt("requests fetchFields in the save response and exposes them on the save result", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: orderConfig,
+                retrieved: orderRetrieved,
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+
+            expect(saves[0].fields).toEqual(expect.arrayContaining(["id", "quantity", "unit_price", "total", "notes"]));
+            expect(result.objectForm.state.object).toMatchObject({ quantity: 2, unit_price: 5, total: 10 });
+        });
+
+        scopedIt("keeps the body narrow across saves while fetched fields refresh", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: orderConfig,
+                retrieved: orderRetrieved,
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+            expect(result.instanceObject.state.object.total).toBe(10);
+
+            await editAndSubmit(result, "quantity", 3);
+            expect(saves).toHaveLength(2);
+            expect(saves[1].body).toEqual({ quantity: 3 });
+            expect(result.instanceObject.state.object.total).toBe(15);
+            expect(result.objectForm.state.object.total).toBe(15);
+        });
+
+        scopedIt("uses the submitFields prop over the model config", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            props.submitFields = ["quantity", "notes"];
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: orderConfig,
+                retrieved: orderRetrieved,
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+
+            expect(saves[0].body).toEqual({ quantity: 2, notes: "packed" });
+        });
+
+        scopedIt("keeps falsy submitted values and still drops ignored fields", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: {
+                    ...orderConfig,
+                    fetchFields: ["quantity", "unit_price", "active", "note", "tags", "photo"],
+                    submitFields: ["quantity", "active", "note", "tags", "photo"],
+                },
+                retrieved: {
+                    id: "42",
+                    quantity: 0,
+                    unit_price: 5,
+                    active: false,
+                    note: null,
+                    tags: [],
+                    photo: "a.png",
+                },
+            });
+            await flushPromises();
+
+            result.formContext.ignore("photo");
+            await editAndSubmit(result, "quantity", 0);
+
+            expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [] });
+        });
+
+        scopedIt("sends a nested value whole under a top-level entry and narrows a dotted entry", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const lines = [
+                { id: 1, sku: "A-1", count: 2 },
+                { id: 2, sku: "B-2", count: 1 },
+            ];
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: {
+                    ...orderConfig,
+                    fetchFields: ["quantity", "unit_price", "lines", "address"],
+                    submitFields: ["quantity", "lines", "address.city"],
+                },
+                retrieved: {
+                    id: "42",
+                    quantity: 1,
+                    unit_price: 5,
+                    lines,
+                    address: { street: "1 Main St", city: "Calgary" },
+                },
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+
+            expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" } });
+        });
     });
 });

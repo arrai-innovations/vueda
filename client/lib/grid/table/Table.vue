@@ -3,7 +3,10 @@ import "@vueda/theme/vueda-tailwind/grid/Table.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 
 /**
- * A table wrapper component providing a scrollable container and styled table element.
+ * A table wrapper component providing a framed, scrollable container and styled table element.
+ *
+ * The frame sits outside the scroll container, so rows and sticky header cells scroll inside
+ * it and never paint over its edge.
  *
  * Supports a sticky-header mode (`sticky` prop) that pins `thead` cells to the
  * top of the scroll container, and a three-tier density mode (`density` prop:
@@ -34,14 +37,11 @@ const theme = useTheme("Table", props);
 </script>
 
 <template>
-    <div
-        data-slot="table-container"
-        :data-sticky="props.sticky ? '' : null"
-        :class="theme('container')"
-        :style="theme.hideStyle?.value"
-    >
-        <table data-slot="table" :data-density="props.density ?? null" :class="[theme('table'), props.class]">
-            <slot />
-        </table>
+    <div data-slot="table-frame" :class="theme('frame')" :style="theme.hideStyle?.value">
+        <div data-slot="table-container" :data-sticky="props.sticky ? '' : null" :class="theme('container')">
+            <table data-slot="table" :data-density="props.density ?? null" :class="[theme('table'), props.class]">
+                <slot />
+            </table>
+        </div>
     </div>
 </template>

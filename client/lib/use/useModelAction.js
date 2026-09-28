@@ -233,7 +233,9 @@ export function useModelAction(props) {
         const redirects = modelConfig.config.actionRedirects || {};
         let redirect = redirects[props.action];
         if (redirect === undefined) {
-            redirect = redirects.default;
+            // A successful destroy removed the row, so no detail view of it can load. Cancel keeps the
+            // default, because the row still exists.
+            redirect = props.action === "destroy" && result === "success" ? "list" : redirects.default;
         }
         if (typeof redirect === "function") {
             redirect = redirect({ bulk: redirectBulk.value, result });

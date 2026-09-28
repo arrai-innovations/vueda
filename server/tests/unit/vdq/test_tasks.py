@@ -104,6 +104,21 @@ def test_check_previously_received_message_sid_updates_queue_item(monkeypatch, s
 
 
 @pytest.mark.django_db
+def test_check_previously_received_message_sid_retries_until_the_sid_is_stored(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "vueda.vdq.tasks.TwilioQueueItemHandler.update_sms_qi", lambda self, *args, **kwargs: calls.append(args)
+    )
+
+    # Called directly, Celery re-raises the exception that a worker would retry on.
+    with pytest.raises(QueueItem.DoesNotExist):
+        check_previously_received_message_sid("UNSTORED", "delivered")
+
+    assert QueueItem.DoesNotExist in check_previously_received_message_sid.autoretry_for
+    assert calls == []
+
+
+@pytest.mark.django_db
 def test_queue_processor_on_retry_updates_queue_item(monkeypatch):
     monkeypatch.setattr("vueda.vdq.tasks.TwilioQueueItemHandler", SimpleNamespace)
 

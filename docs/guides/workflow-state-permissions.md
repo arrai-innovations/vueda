@@ -22,7 +22,7 @@ The objective is a workflow-enabled model where:
 
 Before you begin:
 
-The target model must use `HasWorkflowModelMixin` so that workflow state rows are auto-created on save. Verify that newly created objects receive the workflow's initial state before testing permission scenarios.
+The target model must enable `class Vueda.Workflow` so that workflow state rows are auto-created on save. Verify that newly created objects receive the workflow's initial state before testing permission scenarios.
 
 The model must have an active workflow with defined states and transitions. State permissions, transition permissions, and workflow permissions are stored as database rows; they must be created through migrations, fixtures, or programmatic setup.
 
@@ -170,15 +170,15 @@ Current object state and workflow state history are the exception in the other d
 ## Relevant Implementation Surface
 
 - Python:
-    - {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_workflow_permission}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_state_permission}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition_permission}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.available_transitions}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.check_transition}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_checked_transition}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.apply_transition}
-    - {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.get_transition_warnings}
+    - {@api py:class:vueda.workflow.models.WorkflowModelMethods}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_state_permission}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_checked_transition}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}
+    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}
     - {@api py:function:vueda.core.exceptions.gate_warnings}
     - {@api py:class:vueda.workflow.models.StatePermission}
     - {@api py:class:vueda.workflow.models.TransitionPermission}

@@ -73,6 +73,9 @@ export const availableWidgets = {
     WidgetNumberInput: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetNumberInput.vue")).default),
     ),
+    WidgetOTPInput: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetOTPInput.vue")).default),
+    ),
     WidgetRadioGroup: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadioGroup.vue")).default),
     ),

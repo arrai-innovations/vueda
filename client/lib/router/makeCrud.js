@@ -126,7 +126,7 @@ async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, use
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
  * @param {string[]} [params.groups=null] - The groups required to access the views.
- * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
+ * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups. Required when `groups` names at least one group.
  * @param {object} params.actionRedirect - The route to redirect if model/action not found.
  * @param {import('vue').App} params.vueApp - The Vue app instance.
  * @param {import('vue-router').Router} params.router - The Vue router instance.
@@ -165,6 +165,11 @@ export function makeCRUDRoutes({
     if (!actionRedirect) {
         throw new Error(
             "makeCRUDRoutes: actionRedirect is required (e.g. { name: 'not-found' }) so guards can redirect on missing model/action.",
+        );
+    }
+    if (groups?.length && !groupsRedirect) {
+        throw new Error(
+            "makeCRUDRoutes: groupsRedirect is required when groups names a group (e.g. { name: 'denied' }) so the groups guard can redirect a user outside them.",
         );
     }
     const beforeEnter = [];

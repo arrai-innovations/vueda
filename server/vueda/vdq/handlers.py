@@ -74,7 +74,8 @@ def send_email(qi) -> None:
     body = detail.text
     html = detail.html
     subject = detail.subject
-    email = EmailMultiAlternatives(subject, body, from_email, [to_email])
+    reply_to = [receiver.email for receiver in detail.reply_to.all()]
+    email = EmailMultiAlternatives(subject, body, from_email, [to_email], reply_to=reply_to)
     for attachment in detail.attachments.all():
         if attachment.content_disposition_is_inline and attachment.content_id_string:
             content = attachment.get_content()

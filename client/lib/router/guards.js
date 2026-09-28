@@ -56,10 +56,11 @@ export async function waitForModelStoreLoad(app, model, pinia) {
     // # don't use useModelInfo or useModelConfig here to avoid creating reactive effects outside a component scope #
     // ##############################################################################################################
     const args = { app, model };
-    const modelWorkflowStore = storeWorkflow(pinia);
-    const transitions = await modelWorkflowStore.fetchWorkflowTransition(app, model);
     const modelInfoStore = storeModelInfo(pinia);
     const infoStore = await modelInfoStore.fetchModelInfo(args);
+    // Reads `workflowEnabled` from the model info fetched above, and requests nothing for a model without workflow.
+    const modelWorkflowStore = storeWorkflow(pinia);
+    const transitions = await modelWorkflowStore.fetchWorkflowTransition(app, model);
     const modelConfig = storeModelConfig(pinia);
     const configStore = await modelConfig.getConfig(args);
     return [infoStore, configStore, transitions];
@@ -281,37 +282,64 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * Require model info to be loaded before accessing the route.
  *
  * @param {import('vue').App} instance - The Vue app instance.
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found, workflow
- *  discovery is denied, or the action is not allowed.
+ * The route's action is allowed when model info lists it (narrowed by the model config's `routeActions`) or
+ * when it is a workflow transition code the user may take. When the server denies workflow discovery for the
+ * model with a 403, the model's CRUD actions still follow model info, and only transition routes are refused.
+ *
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found, the
+ *  action is not allowed, or the route is a transition and workflow discovery is denied.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} `true` when the model exists
- *  and the action is allowed, a redirect route when it does not (including when the server denies workflow
- *  discovery for this model with a 403), or `false` to cancel the navigation because the authenticated user
- *  changed while the metadata was being fetched.
+ *  and the action is allowed, a redirect route when it does not, or `false` to cancel the navigation because
+ *  the authenticated user changed while the metadata was being fetched.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     try {
-        const [infoStore, configStore, transitionStore] = await waitForModelStoreLoad(
-            to.params.app,
-            to.params.model,
-            pinia,
-        );
+        const args = { app: to.params.app, model: to.params.model };
+        let infoStore;
+        let configStore;
+        let transitionStore;
+        let workflowDenial = null;
+        try {
+            [infoStore, configStore, transitionStore] = await waitForModelStoreLoad(args.app, args.model, pinia);
+        } catch (e) {
+            if (!(e instanceof WorkflowPermissionDeniedError)) {
+                throw e;
+            }
+            // Workflow discovery grants transitions only. Its denial stays recorded in the workflow store,
+            // and model info, which loaded first, still decides the model's CRUD actions, as it does for a
+            // model without a workflow.
+            workflowDenial = e;
+            infoStore = await storeModelInfo(pinia).fetchModelInfo(args);
+            configStore = await storeModelConfig(pinia).getConfig(args);
+        }
+        // Validated even when the route is a CRUD action, so a malformed transition surfaces on first use.
+        const transitionCodes = transitionStore ? getTransitionActionCodes(transitionStore) : [];
         let actions = infoStore.actions.map((action) => action.name);
         if (Array.isArray(configStore.routeActions)) {
             actions = actions.filter((action) => configStore.routeActions.includes(action));
         }
-        if (transitionStore) {
-            actions = actions.concat(getTransitionActionCodes(transitionStore));
-        }
         const actionName = getActionName(to.params.action);
-        if (actions.length && actions.includes(actionName)) {
+        if (actions.includes(actionName)) {
             return true;
-        } else {
-            toast.error("Action Not Found");
+        }
+        if (workflowDenial) {
+            // The route is not a CRUD action this user has, so it can only be a transition, and the server
+            // denied the discovery that would name the transitions this user may take.
+            toast.error("Permission Denied", {
+                description:
+                    workflowDenial.responseData?.detail ?? "You do not have permission to perform this action.",
+                duration: 15000,
+            });
             return resolveRedirect(redirectTo, router);
         }
+        if (transitionCodes.includes(actionName)) {
+            return true;
+        }
+        toast.error("Action Not Found");
+        return resolveRedirect(redirectTo, router);
     } catch (e) {
         if (e instanceof AuthScopeInvalidatedError) {
             // The authenticated user changed while this navigation was resolving, so the metadata it
@@ -324,17 +352,6 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
         }
         if (e instanceof ModelInfoError) {
             toast.error("Model Not Found");
-            return resolveRedirect(redirectTo, router);
-        }
-        if (e instanceof WorkflowPermissionDeniedError) {
-            // The server denied workflow discovery for this model, so the transitions it would have
-            // contributed to `actions` are unknowable. Treat that denial the same as an action this
-            // user's `actions` list does not contain, rather than approving the route or leaving the
-            // navigation to fail uncaught.
-            toast.error("Permission Denied", {
-                description: e.responseData?.detail ?? "You do not have permission to perform this action.",
-                duration: 15000,
-            });
             return resolveRedirect(redirectTo, router);
         }
         throw e;

@@ -116,6 +116,24 @@ A derived name may end in a lookup expression rather than a relation segment, an
 
 A multi-widget filter's own suffix keeps a different separator instead, rather than extending the dot grammar further: a `RangeFilter` declared `distributor__id` derives the public name `distributor.id` the same way any other `__`-joined declared name does, then is reachable as `distributor.id_min`/`distributor.id_max` — never `distributor.id.min` — while `distributor__id__in`, a `NumberArrayFilter` declared the same way, derives `distributor.id.in` and needs no suffix at all, since an array filter's values arrive as one comma-separated (or repeated) parameter rather than one parameter per bound. The underscore carries meaning, rather than being cosmetic: the client's own filter-value handling recovers which suffix a wire key carries by splitting it on `_`, which only works because the suffix separator differs from the path separator — a dot-joined suffix would be exactly as ambiguous as a lookup expression is above.
 
+The `vueda_info.E012` system check reports filters that accept the same public query parameter. For example, both filters below accept `distributor.id_min`:
+
+```python
+class ProductFilterSet(VuedaFilterSet):
+    distributor__id = filters.RangeFilter(field_name="distributor__id")
+    distributor__id_min = filters.NumberFilter(field_name="distributor__id", lookup_expr="gte")
+```
+
+Remove the second filter when the range filter already provides the needed lower bound. If both filters are needed, give the second one a distinct name:
+
+```python
+class ProductFilterSet(VuedaFilterSet):
+    distributor__id = filters.RangeFilter(field_name="distributor__id")
+    distributor__id_gte = filters.NumberFilter(field_name="distributor__id", lookup_expr="gte")
+```
+
+The second filter now accepts `distributor.id_gte`. The check also catches names generated from `Meta.fields`, including a related field whose name ends in `_min` and collides with a range filter's lower-bound key.
+
 ## Queryset Ordering
 
 An `order_by()` on a viewset's `queryset` attribute is a real ordering that no declaration describes. DRF's `OrderingFilter` reads a view's `ordering` attribute and nothing else, so with none declared it applies no ordering at all and hands the queryset back as it found it — ordering included. The list arrives sorted the way the queryset asked, while `model_ordering.default` reports the viewset's `ordering` or the model's `Meta.ordering`, neither of which had any part in it.

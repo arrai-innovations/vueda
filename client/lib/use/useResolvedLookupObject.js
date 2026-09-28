@@ -88,15 +88,16 @@ export function useResolvedLookupObject(app, model, pk, fields, expand) {
                 () => toRaw(internalState.fields),
                 () => toRaw(internalState.expand),
             ],
-            async ([a, m, id, f, e], [, , , , oldF, oldE]) => {
+            async ([a, m, id, f, e], [oldA, oldM, oldId, oldF, oldE]) => {
                 if (!a || !m || !id) {
                     await cancelInflightRequest();
                     assignReactiveObject(internalState.object, {});
                     return;
                 }
 
-                // primitive non changes won't trigger the watch, but array non-changes will
-                if (isEqual(oldF, f) && isEqual(oldE, e)) {
+                // a new fields or expand array with the same contents triggers the watch; skip it only
+                // when the object it names is unchanged too
+                if (a === oldA && m === oldM && id === oldId && isEqual(oldF, f) && isEqual(oldE, e)) {
                     return;
                 }
 

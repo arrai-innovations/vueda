@@ -24,7 +24,7 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
-from django.core.exceptions import ImproperlyConfigured
+from django.core.validators import EMPTY_VALUES
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
@@ -36,7 +36,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
-from vueda.core.installed_apps import workflow_is_installed
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import replace_refs_with_schema
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
@@ -48,6 +48,7 @@ from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -122,10 +123,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     verbose_name = serializers.SerializerMethodField()
     verbose_name_plural = serializers.SerializerMethodField()
+    workflow_enabled = serializers.SerializerMethodField()
 
     class Meta:
         model = ContentType
-        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural"]
+        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"]
         expandable_fields = {
             "model_permissions": serializers.SerializerMethodField,
             "model_fields": serializers.SerializerMethodField,
@@ -146,42 +148,26 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     def get_verbose_name_plural(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name_plural
 
+    def get_workflow_enabled(self, instance: object) -> bool:
+        """Whether the model enables ``class Vueda.Workflow``, so a client may offer workflow controls.
+
+        This describes the interface, not what the viewer may do. The workflow endpoints still decide
+        which transitions a user may see and take.
+        """
+        return workflow_enabled(instance.model_class())
+
     @property
     def data(self):
-        if not workflow_is_installed():
-            return super().data
+        model = self.canonical["serializer"].Meta.model
 
-        # Local imports, because the workflow app is optional.
-        from vueda.workflow.models import HasWorkflowModelMixin
-        from vueda.workflow.models import Workflow
-        from vueda.workflow.serializers import HasWorkflowSerializerMixin
-        from vueda.workflow.views import HasWorkflowViewMixin
+        if workflow_enabled(model):
+            # Local import, because the workflow app is optional. Raises WorkflowNotConfiguredError,
+            # which the exception handler reports, when the model has no workflow definition.
+            from vueda.workflow.models import get_workflow_for_model
 
-        serializer = self.canonical["serializer"]
-        viewset = self.canonical["viewset"]
-        model = serializer.Meta.model
+            get_workflow_for_model(model)
 
-        errors = []
-
-        if not issubclass(model, HasWorkflowModelMixin):
-            errors.append(f"{model.__name__} is missing HasWorkflowModelMixin inheritance.")
-
-        if not issubclass(serializer, HasWorkflowSerializerMixin):
-            errors.append(f"{serializer.__name__} is missing HasWorkflowSerializerMixin inheritance.")
-
-        if viewset is not None and not issubclass(viewset, HasWorkflowViewMixin):
-            errors.append(f"{viewset.__name__} is missing HasWorkflowViewMixin inheritance.")
-
-        if not Workflow.objects.filter(content_type=ContentType.objects.get_for_model(model)).exists():
-            errors.append(f"{model.__name__} has no workflow configured.")
-
-        # If the length of errors becomes 4 (everything errored) or 3 if no viewset,
-        # then workflow is not set up for this model.
-        if errors and len(errors) != (4 if viewset is not None else 3):
-            raise ImproperlyConfigured(errors)
-
-        ret = super().data
-        return ret
+        return super().data
 
     def get_model_permissions(self, instance):
         """
@@ -470,7 +456,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         model_name = meta.model_name
 
         action_data = []
-        for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+        for action in implemented_builtin_actions(viewset):
             if user is not None and not check_action_permission(called_viewset, request, None, action):
                 continue
 
@@ -581,7 +567,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         rather than a parameter at a time.
 
         A viewset with no ``column_totals``, or one whose declaration isn't a mapping, reports no
-        fields -- the same thing its ``list`` action offers. ``vueda_info.E011`` reports the
+        fields -- the same thing its ``list`` action offers. ``vueda_info.E013`` reports the
         misconfigured declaration itself.
 
         Read from the ``column_totals`` attribute rather than through
@@ -1140,20 +1126,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "filterset_name": filterset.__class__.__name__,
             }
 
-        if isinstance(choices, ChoiceIterator):
-            choices = [{"label": label, "value": value} for (value, label) in choices]
-            # Convert choices to be {label:label,value:value}.
-            # if choices are list of tuples
-        if choices and isinstance(choices[0], tuple):
-            choices_list = []
-            for value, label in choices:
-                choices_list.append(
-                    {
-                        "label": label,
-                        "value": str(value),  # Convert ints to strings.
-                    }
-                )
-            return choices_list, None
+        if isinstance(choices, ChoiceIterator) or (choices and isinstance(choices[0], tuple)):
+            # Match the filter choices endpoint: values as strings, since a filter value arrives as a
+            # query string, and no empty option, since "no filter" is the absence of the parameter.
+            return [
+                {"label": str(label), "value": str(value)} for value, label in choices if value not in EMPTY_VALUES
+            ], None
 
         return choices, None
 
@@ -1306,7 +1284,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             for filter_name, filter_obj in filterset.filters.items():
                 field = filter_obj.field
 
-                if filter_obj.exclude or field.disabled:
+                # A disabled form field accepts no input. A negated filter (`exclude=True`) is an
+                # ordinary filter the list endpoint accepts, so it is reported like any other.
+                if field.disabled:
                     continue
 
                 widget = field.widget

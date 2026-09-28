@@ -28,10 +28,9 @@ from vueda.vdq.permissions import QueueItemObjectPermission
 from vueda.vdq.schedulers import schedule_queue_item
 from vueda.vdq.serializers import QueueItemSerializer
 from vueda.vdq.serializers import SentItemSerializer
-from vueda.workflow.views import HasWorkflowViewMixin
 
 
-class DefaultSendQueueViewSet(HasWorkflowViewMixin, VuedaReadOnlyViewSet):
+class DefaultSendQueueViewSet(VuedaReadOnlyViewSet):
     queryset = QueueItem.objects.select_related("receiver")
     serializer_class = QueueItemSerializer
     permission_classes = [ObjectPermissions]
@@ -59,7 +58,7 @@ class DefaultSendQueueViewSet(HasWorkflowViewMixin, VuedaReadOnlyViewSet):
 SendQueueViewSet = getattr(settings, "SEND_QUEUE_VIEWSET", DefaultSendQueueViewSet)
 
 
-class DefaultSentItemViewSet(HasWorkflowViewMixin, VuedaReadOnlyViewSet):
+class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
     queryset = SentItem.objects.select_related("receiver")
     serializer_class = SentItemSerializer
     permission_classes = [QueueItemObjectPermission]

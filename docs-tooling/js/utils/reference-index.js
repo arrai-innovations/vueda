@@ -15,6 +15,9 @@ export const memberNameFromId = (memberId) => {
     if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
         return "";
     }
+    if (memberId.startsWith("css-token:")) {
+        return `--${memberId.slice("css-token:".length)}`;
+    }
     const qualName = memberId.replace(/^[^:]+:[^:]+:/, "");
     const hashName = qualName.includes("#") ? qualName.split("#").pop() : qualName;
     if (hashName.includes(".")) {
@@ -24,6 +27,17 @@ export const memberNameFromId = (memberId) => {
 };
 
 export const formatApiMemberTitle = (pageTitle, memberName) => (memberName ? `${pageTitle}.${memberName}` : pageTitle);
+
+/**
+ * Title for a member id listed on a page titled `pageTitle`.
+ *
+ * A CSS token is known by its custom-property name alone, so its title omits the token group
+ * page it sits on.
+ */
+export const apiMemberTitle = (pageTitle, memberId) => {
+    const memberName = memberNameFromId(memberId);
+    return memberId.startsWith("css-token:") ? memberName : formatApiMemberTitle(pageTitle, memberName);
+};
 
 export const themeKeySlotAnchor = (componentName, slotName) => `theme-key-${componentName}-${slotName}`;
 

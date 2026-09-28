@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import ValidationError
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
@@ -24,6 +26,7 @@ from vueda import info
 from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import VuedaReadonlyListSerializer
+from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
@@ -857,6 +860,44 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
         # ?f=/?om= narrow the response only -- the write above validated and stored every field.
         assert serializer.data == expected_data(instance.pk), serializer.data
 
+    def _update_serializer(self, instance, data, action):
+        method = "PATCH" if action == "partial_update" else "PUT"
+        context = {"request": FakeRequest({}, data, method)}
+        context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, action)
+        return _PlainSpecialCareSerializer(
+            instance=instance, data=data, context=context, partial=action == "partial_update"
+        )
+
+    @pytest.mark.parametrize("action", ["update", "partial_update"])
+    def test_update_to_a_taken_unique_value_is_a_field_error(self, action):
+        store_models.SpecialCare.objects.create(code="taken")
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(instance, {"code": "taken"}, action)
+
+        assert serializer.is_valid(), serializer.errors
+        with pytest.raises(ValidationError) as exc_info:
+            serializer.save()
+
+        assert list(exc_info.value.detail) == ["code"]
+        instance.refresh_from_db()
+        assert instance.code == "mine"
+
+    def test_update_keeping_its_own_unique_value_succeeds(self):
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(
+            instance, {"code": "mine", "field_that_contains_the_name": "Renamed"}, "update"
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().field_that_contains_the_name == "Renamed"
+
+    def test_partial_update_without_the_unique_field_skips_its_check(self):
+        instance = store_models.SpecialCare.objects.create(code="mine")
+        serializer = self._update_serializer(instance, {"field_that_contains_the_name": "Renamed"}, "partial_update")
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().code == "mine"
+
 
 class TestPrimaryKeyListSerializer:
     def test_valid_pk_list(self):
@@ -908,6 +949,50 @@ class TestVuedaSerializerFieldMapping:
         from vueda.core.fields.serializers import ImageField as VuedaImageField
 
         assert self._lookup(models.ImageField) is VuedaImageField
+
+
+@pytest.mark.django_db
+class TestAvailableActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    An object's ``available_actions`` offers only the built-in actions its viewset implements. A
+    requester holding every codename on a model served by a read-only viewset is offered list and
+    retrieve on the object, not the write actions that viewset has no route for.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer Data Admin": [
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
+            ("store", "CustomerData", "create"),
+            ("store", "CustomerData", "update"),
+            ("store", "CustomerData", "delete"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "customer_data_admin@domain.invalid": {
+            "name": "Customer Data Admin",
+            "password": "testpass",
+            "groups": ["Customer Data Admin"],
+        },
+    }
+
+    def test_write_actions_are_not_offered(self):
+        user = self.users["customer_data_admin@domain.invalid"]
+        customer = store_models.Customer.objects.create(user=user)
+        django_request = APIRequestFactory().get("/")
+        force_authenticate(django_request, user=user)
+        view = store_viewsets.CustomerDataViewSet(
+            action="retrieve", action_map={"get": "retrieve"}, format_kwarg=None, kwargs={}
+        )
+        view.request = view.initialize_request(django_request)
+        serializer = store_serializers.CustomerDataSerializer(
+            customer.data, context={"request": view.request, "view": view}
+        )
+        field = AvailableActionsField()
+        field.bind(field_name="available_actions", parent=serializer)
+
+        assert field.get_value(customer.data) == ["list", "retrieve"]
 
 
 @pytest.mark.django_db
@@ -997,6 +1082,23 @@ class TestVuedaReadonlySerializer:
         data_expand_item = next(item for item in expand_items if item["name"] == "data")
 
         assert data_expand_item["read_only"] is True
+
+    def test_expandable_field_metadata_keeps_pk_outside_static_fields(self):
+        """Static ``f`` options that leave out the nested pk still report it, whatever its name."""
+
+        class _ParentSerializer(store_serializers.ProductSerializer):
+            class Meta(store_serializers.ProductSerializer.Meta):
+                expandable_fields = {
+                    "distributor": (
+                        store_serializers.DistributorSerializer,
+                        {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["name"]},
+                    )
+                }
+
+        expand_items = _ParentSerializer().generate_expand_model_info()
+        distributor_item = next(item for item in expand_items if item["name"] == "distributor")
+
+        assert set(distributor_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]) == {"id", "name"}
 
 
 @pytest.mark.django_db

@@ -14,6 +14,7 @@ __all__ = (
     "VuedaReadonlyListSerializer",
     "VuedaReadonlySerializer",
     "VuedaSerializer",
+    "WorkflowFieldsSerializerMixin",
     "ensure_flex_fields_applied",
 )
 
@@ -25,6 +26,8 @@ from typing import ClassVar
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
@@ -35,6 +38,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields.serializers import FileField as VuedaFileField
 from vueda.core.fields.serializers import ImageField as VuedaImageField
 from vueda.core.formatted_name import annotate_formatted_name
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import TemplatedTextField
@@ -237,18 +241,71 @@ class FlexFieldsWriteableNestedSerializerMixin(
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
 
+    def update_or_create_reverse_relations(self, instance, reverse_relations):
+        """
+        Save each reverse relation's rows, matching submitted pks only against the parent's rows.
+
+        drf-writable-nested looks up submitted child pks across the whole child table, then saves
+        each match with its foreign key set to this parent. A pk that belongs to another parent's
+        row would move that row here and update it, although the request was authorized only for
+        this parent. Each relation is saved on its own, so the lookup can be limited to rows that
+        already belong to this parent. A pk outside that set matches no row, and the library saves
+        that entry as a new row, as it does for any unknown pk.
+
+        Many-to-many relations keep the library's lookup, because linking an existing row by pk is
+        what a nested many-to-many write does.
+        """
+        for field_name, relation in reverse_relations.items():
+            self._reverse_relation_lookup = self._get_reverse_relation_lookup(instance, relation[0])
+            try:
+                super().update_or_create_reverse_relations(instance, {field_name: relation})
+            finally:
+                self._reverse_relation_lookup = None
+
+    def _get_reverse_relation_lookup(self, instance, related_field):
+        """Return the filter that selects the rows of ``related_field`` that belong to ``instance``."""
+        if isinstance(related_field, GenericRelation):
+            return self._get_generic_lookup(instance, related_field)
+        if related_field.many_to_many:
+            return None
+        return {related_field.name: instance}
+
+    def _prefetch_related_instances(self, field, related_data):
+        """Fetch the existing rows the submitted pks name, within the parent's rows when a lookup is set."""
+        queryset = field.Meta.model.objects.filter(pk__in=self._extract_related_pks(field, related_data))
+        lookup = getattr(self, "_reverse_relation_lookup", None)
+        if lookup is not None:
+            queryset = queryset.filter(**lookup)
+        return {str(related_instance.pk): related_instance for related_instance in queryset}
+
     def _extract_relations(self, validated_data):
+        # A read-only serializer validates any input, even a missing key, to `{}`, which the
+        # library pops from `validated_data` as a direct relation to save. Keep a model instance
+        # passed to `save()` for a read-only direct relation, so the parent still stores it.
+        readonly_values = {
+            field.source: validated_data[field.source]
+            for field in self._writable_fields
+            if isinstance(field, VuedaReadonlySerializer) and field.source in validated_data
+        }
         relations, reverse_relations = super()._extract_relations(validated_data)
 
-        # Tuple, so we can modify inline, as needed.
+        # Tuples, so we can modify inline, as needed. You cannot create or update a readonly
+        # serializer, so its relation takes no part in the save.
+        for field_name, (field, field_source) in tuple(relations.items()):
+            if isinstance(field, VuedaReadonlySerializer):
+                del relations[field_name]
+                if isinstance(readonly_values.get(field_source), models.Model):
+                    validated_data[field_source] = readonly_values[field_source]
         for field_name, (_related_field, field, _field_source) in tuple(reverse_relations.items()):
-            # You cannot create or update a readonly serializer.
             if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
                 del reverse_relations[field_name]
 
         return relations, reverse_relations
 
     def update(self, instance, validated_data):
+        # UniqueFieldsMixin moves unique checks from field validation to create/update, and the
+        # super() call below skips its update, so run the check here before anything is written.
+        self._validate_unique_fields(validated_data)
         relations, reverse_relations = self._extract_relations(validated_data)
 
         # Create or update direct relations (foreign key, one-to-one)
@@ -382,7 +439,7 @@ class VuedaExpandableFieldsSerializerMixin:
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name, field in tuple(fields.items()):
-                        if field_name == "pk":  # Always keep the pk.
+                        if field_name == field_meta.pk.name:  # Always keep the pk.
                             continue
                         if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
                             del fields[field_name]
@@ -638,11 +695,60 @@ class VuedaListSerializer(serializers.ListSerializer):
         return super().to_representation(data)
 
 
+class WorkflowFieldsSerializerMixin:
+    """
+    Adds the workflow fields to a serializer whose model enables ``class Vueda.Workflow``.
+
+    It sits just above ``ModelSerializer``, below flex-fields, so ``?f=`` and ``?omit=`` select the
+    workflow fields the same way they select a model field. A workflow field the serializer declares
+    itself replaces the default and does not have to be listed in ``Meta.fields``.
+    """
+
+    def get_field_names(self, declared_fields, info):
+        if self._receives_workflow_fields(getattr(self.Meta, "model", None)):
+            from vueda.workflow.serializers import WORKFLOW_SERIALIZER_FIELDS
+
+            # A declared workflow field that Meta.fields leaves out is added by get_fields, so
+            # ModelSerializer must not reject it as declared but not included.
+            listed = getattr(self.Meta, "fields", None)
+            listed = set(listed) if isinstance(listed, (list, tuple)) else set()
+            declared_fields = {
+                name: field
+                for name, field in declared_fields.items()
+                if name not in WORKFLOW_SERIALIZER_FIELDS or name in listed
+            }
+        return super().get_field_names(declared_fields, info)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self._receives_workflow_fields(getattr(self.Meta, "model", None)):
+            from vueda.workflow.serializers import workflow_serializer_fields
+
+            for field_name, field in workflow_serializer_fields().items():
+                if field_name in fields:
+                    continue
+                declared = self._declared_fields.get(field_name)
+                fields[field_name] = copy.deepcopy(declared) if declared is not None else field
+        return fields
+
+    def _receives_workflow_fields(self, model):
+        """Whether this serializer's model enables ``class Vueda.Workflow`` and it has not opted out.
+
+        Every serializer of a workflow model receives the workflow fields unless its ``Meta`` sets
+        ``workflow_fields = False``. That opt-out is for a secondary serializer, such as a compact one
+        nested in a different model's payload, since ``valid_transitions`` resolves permitted
+        transitions for every row it renders.
+        """
+        meta = getattr(self, "Meta", None)
+        return model is not None and getattr(meta, "workflow_fields", True) and workflow_enabled(model)
+
+
 class VuedaSerializer(
     NoExtraFieldsSerializerMixin,
     VuedaExpandableFieldsSerializerMixin,
     FlexFieldsWriteableNestedSerializerMixin,
     FormattedNameSerializerMixin,
+    WorkflowFieldsSerializerMixin,
     serializers.ModelSerializer,
 ):
     """
@@ -661,6 +767,14 @@ class VuedaSerializer(
         if model is not None and not is_tracked(model):
             # An opted-out model publishes no revision, because it records nothing to revise.
             fields.pop("object_revision", None)
+        return fields
+
+    def get_field_model_info(self, fields):
+        fields = super().get_field_model_info(fields)
+        if self._receives_workflow_fields(getattr(getattr(self, "Meta", None), "model", None)):
+            from vueda.workflow.serializers import workflow_field_model_info
+
+            fields = workflow_field_model_info(fields)
         return fields
 
     def _reload_with_revision(self, instance):

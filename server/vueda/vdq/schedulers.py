@@ -10,10 +10,12 @@ __all__ = (
 import typing
 from collections.abc import Mapping
 from collections.abc import Sequence
+from functools import partial
 from itertools import chain
 
 from celery.exceptions import CeleryError
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.db.transaction import atomic
 from kombu.exceptions import OperationalError
 
@@ -31,12 +33,21 @@ from vueda.vdq.tasks import send_message
 
 
 def schedule_queue_item(queue_item: QueueItem) -> None:
+    """
+    Publish the send task once the current transaction commits. A broker failure at publish time moves the
+    queue item to ``errored`` with the exception in ``result``.
+    """
+    transaction.on_commit(partial(_publish_queue_item, queue_item))
+
+
+def _publish_queue_item(queue_item: QueueItem) -> None:
     try:
-        send_message.delay_on_commit(queue_item.pk, queue_item.method)
+        send_message.delay(queue_item.pk, queue_item.method)
     except (OperationalError, CeleryError) as e:
-        queue_item.fast_transition("error")
-        queue_item.result = f"Failed to enqueue a Celery task for QueueItem: {e!s}"
-        queue_item.save()
+        with transaction.atomic():
+            queue_item.fast_transition("error")
+            queue_item.result = f"Failed to enqueue a Celery task for QueueItem: {e!s}"
+            queue_item.save()
 
 
 def _prepare_attachments(queue_item_attachment_class, attachments):

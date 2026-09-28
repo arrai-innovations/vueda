@@ -52,7 +52,6 @@ const uniqueKeyForSlot = computed(() =>
                 :column-count="columnCount"
                 :field="field"
                 v-bind="fieldProps"
-                gird-type="table-header"
                 :is-table-layout="true"
                 :is-card-layout="false"
                 name="label"

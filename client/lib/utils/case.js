@@ -103,7 +103,8 @@ export const getAppModelDotName = memoize(
 
 /**
  * Get the app model view dot name for a given app, model, and view.
- * We rely on startsWith() on the resulting key to filter them using getAppModelDotName().
+ * Keys for one model are the getAppModelDotName() key alone or followed by "-", so filter them with
+ * startsWith() on that key plus "-", not on the bare key, which also matches models with longer names.
  * @param {object} params - The parameters.
  * @param {string} params.app - The app name.
  * @param {string} params.model - The model name.

@@ -10,6 +10,24 @@ import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
 
+const REAUTHENTICATION_FLOW_IDS = ["reauthenticate", "mfa_reauthenticate"];
+
+/**
+ * Pick the flow a 401 response asks the client to continue: the one allauth marks `is_pending`, or, for a
+ * signed-in user whose session needs reauthentication, the first reauthentication flow. Other listed flows
+ * are only available, not pending.
+ *
+ * @param {{id: string, is_pending?: boolean}[]} flows
+ * @returns {{id: string, is_pending?: boolean}|null}
+ */
+function selectPendingFlow(flows) {
+    return (
+        flows.find((flow) => flow.is_pending) ??
+        flows.find((flow) => REAUTHENTICATION_FLOW_IDS.includes(flow.id)) ??
+        null
+    );
+}
+
 /**
  * An error for use from the user store.
  * @extends {FetchError}
@@ -61,31 +79,7 @@ const authErrorResolver = (response, data) => {
     return new UserError("Unexpected error occurred", response, data);
 };
 /**
- * @typedef {import('pinia').Store<
- *   'user',
- *   {
- *       loggedIn: boolean,
- *       loggedInUser: object,
- *       principalId: (string|number|null|undefined),
- *       identityGeneration: number,
- *       initialized: boolean|undefined,
- *       loading: boolean,
- *       error: Error|null,
- *       errored: boolean,
- *       initializingPromise: Promise<void>|null,
- *   },
- *   {},
- *   {
- *       fetchCurrentUser: () => Promise<void>,
- *       login: (payload: object) => Promise<void>,
- *       logout: () => Promise<void>,
- *       forgotPassword: () => Promise<void>,
- *       resetPassword: () => Promise<void>,
- *       checkResetLinkIsValid: () => Promise<void>,
- *       init: () => Promise<void>,
- *       clearError: () => void,
- *   },
- * >} UserStore
+ * @typedef {ReturnType<typeof storeUser>} UserStore
  */
 
 /**
@@ -112,7 +106,6 @@ const authErrorResolver = (response, data) => {
  *   user.logout(); // logout
  *   user.fetchCurrentUser(); // fetch the current user
  * ```
- * @returns {UserStore} The store for user.
  */
 export const storeUser = defineStore("user", {
     state: () => ({
@@ -328,7 +321,12 @@ export const storeUser = defineStore("user", {
                 UserError,
                 undefined,
                 undefined,
-                authErrorResolver,
+                (response, data) => {
+                    if (response.status === 429) {
+                        return new UserError("Password reset requested too recently", response, data);
+                    }
+                    return authErrorResolver(response, data);
+                },
             )
                 .then((responseData) => {
                     return responseData;
@@ -376,7 +374,7 @@ export const storeUser = defineStore("user", {
             if (error instanceof UnauthorizedError) {
                 const flows = error.responseData?.data?.flows;
                 if (flows && flows.length > 0) {
-                    this.pendingFlow = flows.at(-1);
+                    this.pendingFlow = selectPendingFlow(flows);
                 }
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
@@ -533,7 +531,7 @@ export const storeUser = defineStore("user", {
                 undefined,
                 (response, data) => {
                     if (response.status === 400) {
-                        return new InvalidResetPasswordLinkError(response, data);
+                        return new InvalidResetPasswordLinkError("Invalid password reset link", response, data);
                     }
                     return new UserError("Unexpected error occurred", response, data);
                 },

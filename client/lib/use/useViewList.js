@@ -146,7 +146,8 @@ import cloneDeep from "lodash-es/cloneDeep.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
-import { computed, effectScope, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import pick from "lodash-es/pick.js";
+import { computed, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -210,6 +211,7 @@ const VIEW_NAME = "list";
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
  * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
+ * @property {Error[]} columnErrors - Errors from columns whose `columnComponents` override names no component. ViewList shows them and renders no cells for those columns.
  * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
  * @property {object} columnTotals - Map of display column name to that column's total, for the totals this request asked for. Totals are opt-in: the request carries the intersection of the totals the server advertises (`modelConfig.config.totalables`) and the currently visible columns, under `COLUMN_TOTALS_PARAM`, so hiding the last totalled column stops asking for totals at all and this is `{}`. The server computes them during the same list request that returns the rows, and each response replaces this map rather than merging into it, so a total is always as fresh as the rows beside it and can never describe data that has since changed.
  * @property {boolean} loading - Combined loading state (model config + instance list).
@@ -348,8 +350,6 @@ export function useViewList(options) {
     );
     let restoreStoredPreferences = isEmpty(route.query);
     const preferenceArgs = () => ({ app: unref(appRef), model: unref(modelRef) });
-    const preferenceQueryFrom = (query) =>
-        omit(query, [ORDERING_PARAM, ...hiddenFilterKeys.value, ...callerOwnedFilterKeys.value]);
     const queryWithCurrentSort = (query, sorted) => {
         const nextQuery = { ...query };
         const value = formatSortQuery(sorted);
@@ -553,6 +553,21 @@ export function useViewList(options) {
         return { supported, unsupported };
     });
     const validFilterables = computed(() => visibleFilterSupport.value.supported);
+    // Saved filter preferences hold what the reader chose: the valid filters' query keys and the
+    // search term. Query parameters the list does not use, server-hidden filter values, and
+    // filters `params` supplies stay in the URL only, and a stored key outside this set is not
+    // restored.
+    const preferenceFiltersFrom = (filterParams, search) => ({
+        ...filterParams,
+        ...(search ? { [SEARCH_PARAM]: search } : {}),
+    });
+    const preferenceQueryFrom = (storedFilters) => {
+        const filterableDetails = filterablesState.filterableDetails || {};
+        return pick(storedFilters, [
+            ...validFilterables.value.flatMap((fieldName) => filterKeysOf(fieldName, filterableDetails[fieldName])),
+            SEARCH_PARAM,
+        ]);
+    };
     // One warning per unsupported filter per list visit, keyed by app, model, and filter so the
     // record for one model never silences the same filter name on the next. Watching the target
     // too reruns the check under the new model's name whichever order the metadata and the target
@@ -581,9 +596,8 @@ export function useViewList(options) {
     // editable widget, so their value never enters `addedFilters`; it comes from the URL alone.
     // Read with the same param-key resolution the editable filter form uses, so a hidden filter
     // that declares suffixes resolves to the same keys a visible one does. Independent of whether
-    // the URL currently carries a value for a key: used to keep a hidden filterable's keys out of
-    // what gets read from or written to the saved filter preference, where a stored key can exist
-    // with no matching URL value yet. `rawHiddenFilterParams` below is the value-bearing counterpart.
+    // the URL currently carries a value for a key: URL scopes and `clearUrlScopes` need every key
+    // a hidden filterable owns. `rawHiddenFilterParams` below is the value-bearing counterpart.
     const hiddenFilterables = computed(() => {
         const filterableDetails = filterablesState.filterableDetails || {};
         return (filterablesState.filterables || [])
@@ -784,13 +798,8 @@ export function useViewList(options) {
                 Object.assign(routeQuery, newFilterParams);
             }
             if (!isEqual(routeQuery, route.query)) {
-                // Dropped while model metadata is still loading: `preferenceQueryFrom`
-                // needs `hiddenFilterKeys` to know which query keys a hidden filterable owns, and
-                // that list is empty until metadata resolves. Saving before then would store a
-                // hidden filterable's value (still present in `routeQuery` from the mount URL) as if
-                // it were a reader-chosen filter or search term.
-                if ((filtersChanged || searchChanged) && modelConfig.loading === false) {
-                    listPreferenceStore.setFilters(preferenceArgs(), preferenceQueryFrom(routeQuery));
+                if (filtersChanged || searchChanged) {
+                    listPreferenceStore.setFilters(preferenceArgs(), preferenceFiltersFrom(newFilterParams, newSearch));
                 }
                 router.push({ query: routeQuery });
             }
@@ -908,14 +917,14 @@ export function useViewList(options) {
             }
             // Deferred until model metadata resolves (added as a watch source above so this
             // reruns once it does, even if route.query itself stays otherwise unchanged):
-            // `hiddenFilterKeys` needs it to know which stored keys a hidden filterable owns, so a
-            // stored value could otherwise be restored unfiltered and then read back out through
-            // `hiddenFilterParams` as if the mount URL itself had carried it.
+            // `preferenceQueryFrom` restores only the valid filters' keys, and `validFilterables`
+            // is empty until then.
             if (!isInitialized.filters && modelConfig.loading === false) {
                 isInitialized.filters = true;
                 const storedFilters = listPreferenceStore.getFilters(preferenceArgs());
-                if (storedFilters && isEmpty(newQuery)) {
-                    newQuery = omit(storedFilters, [...hiddenFilterKeys.value, ...callerOwnedFilterKeys.value]);
+                const restoredQuery = storedFilters && isEmpty(newQuery) ? preferenceQueryFrom(storedFilters) : {};
+                if (!isEmpty(restoredQuery)) {
+                    newQuery = restoredQuery;
                     restoreFiltersFromQuery(newQuery);
                     router.push({ query: newQuery });
                 }
@@ -1106,7 +1115,7 @@ export function useViewList(options) {
     );
 
     // A declared total whose name matches no display column at all is the one misconfiguration the
-    // server's `vueda_info.E011` check cannot catch: `column_totals` keys name client columns, and
+    // server's `vueda_info.E013` check cannot catch: `column_totals` keys name client columns, and
     // the server has no idea what those are, since `displayFields` is configured per project and per
     // view. Nothing fails for it — the total is simply never requested and never rendered — so this
     // is the only place it can be said out loud.
@@ -1159,10 +1168,17 @@ export function useViewList(options) {
             configProps: modelConfig.config?.columnProps,
         });
         for (const resolved of Object.values(resolvedColumns)) {
-            resolved.component = markRaw(toRaw(resolved.component));
+            if (resolved.component) {
+                resolved.component = markRaw(toRaw(resolved.component));
+            }
         }
         return resolvedColumns;
     });
+    const columnErrors = computed(() =>
+        Object.values(columnComponents.value)
+            .map((resolved) => resolved.error)
+            .filter(Boolean),
+    );
     // Slot names ViewList injects defaults for; excluded from the generic
     // consumer-slot forward loop so an injected default and a forwarded
     // consumer slot never double-render the same column.
@@ -1194,7 +1210,6 @@ export function useViewList(options) {
     });
 
     const buttonSlotProps = reactive({});
-    const bspEffectScope = effectScope();
     watch(
         [bulkActions, targetlessActions, availableTransitions],
         ([newBulkActions, newTargetlessActions, newTransitions]) => {
@@ -1207,22 +1222,16 @@ export function useViewList(options) {
             );
             for (const addedKey of addedKeys) {
                 const isBulk = bulkActionSet.has(addedKey) || availableTransitionsSet.has(addedKey);
-                bspEffectScope.run(() => {
-                    buttonSlotProps[addedKey] = {
-                        app: appRef,
-                        model: modelRef,
-                        view: addedKey,
-                        label: memoizedStartCase(addedKey),
-                        click: isBulk ? detailActionOnClick(addedKey) : undefined,
-                        selectedObjects: isBulk ? selectedObjects : undefined,
-                        disabled: isBulk ? computed(() => (!addedKey) in availableTransitions.value) : undefined,
-                    };
-                });
+                buttonSlotProps[addedKey] = {
+                    app: appRef,
+                    model: modelRef,
+                    view: addedKey,
+                    label: memoizedStartCase(addedKey),
+                    click: isBulk ? detailActionOnClick(addedKey) : undefined,
+                    selectedObjects: isBulk ? selectedObjects : undefined,
+                };
             }
             for (const removedKey of removedKeys) {
-                if (buttonSlotProps[removedKey].disabled) {
-                    buttonSlotProps[removedKey].disabled.effect?.stop();
-                }
                 delete buttonSlotProps[removedKey];
             }
         },
@@ -1338,10 +1347,7 @@ export function useViewList(options) {
                     }
                     const canonicalQuery = queryWithCurrentSort(
                         {
-                            ...omit(listPreferenceStore.getFilters(preferenceArgs()), [
-                                ...hiddenFilterKeys.value,
-                                ...callerOwnedFilterKeys.value,
-                            ]),
+                            ...preferenceQueryFrom(listPreferenceStore.getFilters(preferenceArgs())),
                             ...route.query,
                         },
                         sentSorted.value,
@@ -1443,6 +1449,7 @@ export function useViewList(options) {
             computedFieldObjects,
             specialSlots,
             columnComponents,
+            columnErrors,
             columnSlots,
             columnTotals,
             loading,

@@ -17,9 +17,8 @@ import { createArraiTheme } from "@arrai-innovations/vitepress-theme";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import fontAwesomeFreeIcons from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+import "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
-import { setTheme } from "@vueda/use/useTheme.js";
 import throttle from "lodash-es/throttle.js";
 import { createPinia } from "pinia";
 import { useData } from "vitepress";
@@ -27,7 +26,6 @@ import { defineComponent, h, watch } from "vue";
 
 faConfig.autoAddCss = false;
 
-setTheme(vuedaTailwind);
 setIcons(fontAwesomeFreeIcons);
 
 const DarkModeTransitionGuard = defineComponent({

@@ -1522,7 +1522,6 @@ EXPECTED_RESULTS = [
                 },
                 "shipping_method": {
                     "choices": [
-                        {"label": "---------", "value": ""},
                         {"label": "Regular", "value": "regular"},
                         {"label": "Express", "value": "express"},
                     ],
@@ -1540,6 +1539,27 @@ EXPECTED_RESULTS = [
                     "type_db": "CharField",
                     "type_model": "CharField",
                     "type_filter": "ChoiceField",
+                },
+                "workflow_state": {
+                    "app_label": "vueda_workflow",
+                    "choices": True,
+                    "empty_label": "---------",
+                    "error_messages": {
+                        "invalid_choice": "Select a valid choice. That choice is not one of the available choices.",
+                    },
+                    "filterset_name": "CustomerOrderFilterSet",
+                    "help_text": "Multiple values may be separated by commas.",
+                    "hidden": False,
+                    "input_type": "select",
+                    "label": "Status",
+                    "lookup_exprs": ["in"],
+                    "model": "state",
+                    "null_label": None,
+                    "null_value": "null",
+                    "required": False,
+                    "type_db": "ForeignKey",
+                    "type_model": "ForeignKey",
+                    "type_filter": "ModelChoiceInField",
                 },
             },
             "expected_ordering": {
@@ -2109,10 +2129,6 @@ EXPECTED_RESULTS = [
                 "condition": {
                     "choices": [
                         {
-                            "label": "---------",
-                            "value": "",
-                        },
-                        {
                             "label": "New",
                             "value": "new",
                         },
@@ -2146,7 +2162,6 @@ EXPECTED_RESULTS = [
                 },
                 "disabled": {
                     "choices": [
-                        {"label": "Unknown", "value": ""},
                         {"label": "Yes", "value": "true"},
                         {"label": "No", "value": "false"},
                     ],
@@ -3869,7 +3884,6 @@ EXPECTED_RESULTS = [
                 },
                 "is_added": {
                     "choices": [
-                        {"label": "Unknown", "value": ""},
                         {"label": "Yes", "value": "true"},
                         {"label": "No", "value": "false"},
                     ],

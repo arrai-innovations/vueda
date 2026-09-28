@@ -661,9 +661,8 @@ class TestVuedaSearchFilterDistinct:
         """A column total counts a matched row once, not once per joined row.
 
         The search matches two special_care entries per product. A `SUM` over the joined rows would
-        count each product's quantity twice. `vueda_info.E011` does not cover this case: `quantity` is
-        a column on Product itself, and the join comes from the search rather than from the declared
-        path.
+        count each product's quantity twice. `vueda_info.E013` cannot catch it either: `quantity` is a column on Product
+        itself, and the join arrives from the search rather than from the declared path.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_totals"
 

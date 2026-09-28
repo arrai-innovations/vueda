@@ -30,11 +30,16 @@ from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django.http import Http404
+from django_filters.filters import AllValuesFilter
+from django_filters.filters import AllValuesMultipleFilter
 from rest_flex_fields import WILDCARD_VALUES
 from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
@@ -83,7 +88,7 @@ def _column_total_zero(model, path):
     on the class, so the answer never changes for a given pair and is worked out once per process.
 
     A path that doesn't resolve gets the numeric zero, which is never used: ``aggregate()`` raises
-    ``FieldError`` for it on the same call, and ``vueda_info.E011`` reports it at check time. A path
+    ``FieldError`` for it on the same call, and ``vueda_info.E013`` reports it at check time. A path
     naming a queryset annotation is the exception -- it resolves against the query rather than
     ``_meta``, so :func:`_column_total_zero_for` handles that one before this is reached.
     """
@@ -272,7 +277,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     relations that match at most one related row. A relation that can match several -- a reverse
     foreign key, a many-to-many -- joins a row per related object and would inflate *every* total in
     the same ``aggregate()`` call, not just its own, which is why such a path is rejected outright
-    rather than aggregated on its own. The ``vueda_info.E011`` system check reports a declaration
+    rather than aggregated on its own. The ``vueda_info.E013`` system check reports a declaration
     that breaks any of these rules; see ``vueda.info.checks``.
     """
 
@@ -292,7 +297,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         This viewset's ``column_totals`` mapping, or ``{}`` when it declares none.
 
         Anything that isn't a mapping reads as "none declared" rather than raising here: a
-        misconfigured declaration is the ``vueda_info.E011`` system check's to report, and a request
+        misconfigured declaration is the ``vueda_info.E013`` system check's to report, and a request
         is not the place to find out about it. The effect is that such a viewset offers no totals at
         all, which is also what its metadata advertises.
 
@@ -372,7 +377,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         The sum runs over the matched rows re-selected by primary key rather than over ``queryset``
         itself. ``SUM`` counts a row once per joined match, so a query that reached through a
         multi-valued relation would total a row's value as many times as it has related rows --
-        silently, as a number that looks plausible. ``vueda_info.E011`` keeps the declared *path*
+        silently, as a number that looks plausible. ``vueda_info.E013`` keeps the declared *path*
         single-valued, but the join can arrive from somewhere the check cannot see: a
         ``filterset_class`` filter spanning a reverse FK or M2M, or a ``RowLevelPermissions``
         ``Q`` doing the same. Re-selecting by pk means a row is summed once however it was matched,
@@ -543,6 +548,11 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
     if depth < max_depth:
         if hasattr(serializer, "fields"):
             valid_fields.update(serializer.fields.keys())
+            if depth > 0:
+                # An expanded object always omits available_actions (see
+                # VuedaExpandableFieldsSerializerMixin._get_expanded_field_names), so it is not a
+                # field the request can ask for there.
+                valid_fields.discard("available_actions")
 
         permitted_expands = None
         if "permitted_expands" in serializer.context and hasattr(serializer, "_flex_options_rep_only"):
@@ -572,7 +582,10 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_wildcard_expands.add(value)
 
                 for field_name, serializer_data in serializer.Meta.expandable_fields.items():
-                    if permitted_expands is not None and field_name not in permitted_expands:
+                    if permitted_expands is not None and not any(
+                        permitted == field_name or permitted.startswith(f"{field_name}.")
+                        for permitted in permitted_expands
+                    ):
                         continue
 
                     valid_fields.add(field_name)
@@ -608,13 +621,77 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     add_valid_child_names(valid_fields, field_name, child_valid_fields)
                     add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
+                if permitted_expands is not None:
+                    # drf-flex-fields keeps a requested expand only when the permit list names it as
+                    # written, or when the request holds a root wildcard, and drops the rest silently.
+                    # Accept only what it would keep, so anything else is reported instead.
+                    valid_expands &= permitted_expands
+                    valid_wildcard_expands = {
+                        value
+                        for value in valid_wildcard_expands
+                        if value in WILDCARD_VALUES or value in permitted_expands
+                    }
+
     return valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields
+
+
+def permitted_expand_depths(serializer):
+    """
+    Return the dot count of each path in the action's permit list, or an empty list without one.
+
+    Validation walks the expand tree only as deep as it needs. Walking as deep as the permit list
+    too lets an error message list a dotted permit, such as ``customer.user``, when the request
+    names only ``customer``.
+
+    :param serializer: The action's serializer, whose context may hold ``permitted_expands``.
+    :returns: One dot count per permitted path.
+    """
+    return [path.count(".") for path in serializer.context.get("permitted_expands") or ()]
+
+
+def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
+    """
+    Map each submitted expand that is neither a valid expand nor a valid wildcard to its message.
+
+    :param submitted_expand_fields: The ``e`` values from the request.
+    :param valid_expands: The expand paths the action permits.
+    :param valid_wildcard_expands: The wildcard values the action permits.
+    :returns: A dict of invalid expand to message; empty when every value is valid.
+    """
+    extra_keys = set(submitted_expand_fields) - (set(valid_expands) | set(valid_wildcard_expands))
+    if not extra_keys:
+        return {}
+    if valid_expands:
+        wildcards = ", ".join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))
+        message = (
+            f"Invalid expands. Permitted expands are {', '.join(sorted(valid_expands))}. "
+            f"Or use a wildcard to expand all: {wildcards}"
+        )
+    else:
+        message = "Invalid expands. No expands are permitted."
+    return dict.fromkeys(extra_keys, message)
 
 
 # Keyed weakly so a filterset class built at runtime (one composed per view, or per test) is
 # collectable once its last other reference goes away. A class declared in a module is referenced by
 # that module and lives as long as the process either way.
 _FILTERSET_QUERY_PARAM_NAMES = weakref.WeakKeyDictionary()
+
+
+def iter_filterset_query_param_names(filterset):
+    """Yield each accepted parameter name with the filter that binds it."""
+    for filter_name, filter_obj in filterset.filters.items():
+        # AllValuesFilter.field reads the database to build choices. Its widget comes from the
+        # field class or the explicit override, neither of which depends on those choices.
+        if isinstance(filter_obj, (AllValuesFilter, AllValuesMultipleFilter)):
+            widget = filter_obj.extra.get("widget", filter_obj.field_class.widget)
+        else:
+            widget = filter_obj.field.widget
+        if hasattr(widget, "suffixes"):
+            for suffix in widget.suffixes:
+                yield f"{filter_name}_{suffix}", filter_name
+        else:
+            yield filter_name, filter_name
 
 
 def get_filterset_query_param_names(filterset_class, get_queryset):
@@ -635,9 +712,9 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     the first request handled by this process saw, so values added later would be rejected as
     invalid choices for the rest of the process.
 
-    The names depend only on the filterset class, so they are built once per class. Instantiating a
-    filterset reads every filter's field, which is a query per value-derived filter, and this runs on
-    every list request.
+    The names depend only on the filterset class, so they are built once per class. Value-derived
+    filters get their widgets without building their form fields, which would query the database for
+    choices during a system check or on a list request's first cache miss.
 
     A filterset that names its model in ``Meta`` is instantiated without a queryset, which leaves it
     to build the default one for that model. Passing the view's queryset instead would make this
@@ -659,17 +736,9 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     # its model from the queryset the filterset holds.
     queryset = None if filterset_class._meta.model is not None else get_queryset()
 
-    names = set()
-    for filter_name, filter_obj in filterset_class(queryset=queryset).filters.items():
-        widget = filter_obj.field.widget
-        # If the filter has suffixes, then we need to use those with the filter name.
-        if hasattr(widget, "suffixes"):
-            for suffix in widget.suffixes:
-                names.add(f"{filter_name}_{suffix}")
-        else:
-            names.add(filter_name)
-
-    names = frozenset(names)
+    names = frozenset(
+        name for name, _filter_name in iter_filterset_query_param_names(filterset_class(queryset=queryset))
+    )
     _FILTERSET_QUERY_PARAM_NAMES[filterset_class] = names
     return names
 
@@ -953,6 +1022,7 @@ class NoExtraFieldsForViewSetMixin:
                 max(
                     [field.count(".") for field in submitted_fields]
                     + [field.count(".") for field in submitted_expand_fields]
+                    + permitted_expand_depths(serializer)
                 )
                 + 1
             )
@@ -991,26 +1061,45 @@ class NoExtraFieldsForViewSetMixin:
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
-            extra_keys = submitted_expand_fields - (valid_expands | valid_wildcard_expands)
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string="Invalid expands. "
-                                + (
-                                    f"Permitted expands are {', '.join(sorted(valid_expands))}. Or use a wildcard to expand all: {', '.join(sorted(valid_wildcard_expands, key=sort_by_dot_count_alphabetically))}"
-                                    if valid_expands
-                                    else "No expands are permitted."
-                                ),
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
-
+            messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
+            if messages:
+                errors = {
+                    key: [{"message": ErrorDetail(string=message, code="invalid"), "code": "invalid"}]
+                    for key, message in messages.items()
+                }
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def validate_flex_expand_param_for_write(request, serializer):
+        """
+        Reject each ``e`` value a write action does not permit, before the body is validated.
+
+        drf-flex-fields keeps only the permitted expands and drops the rest without an error, so a
+        write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
+        expand and read the relation as a primary key. This applies the same rules and messages as
+        :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
+        ``f`` and ``om`` are not checked here.
+
+        :param request: The request whose ``e`` query values are checked.
+        :param serializer: The action's serializer, built with the action's serializer context.
+        :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
+        """
+        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] not in request.query_params:
+            return
+        submitted_expand_fields = frozenset(
+            serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+        )
+        if not submitted_expand_fields:
+            return
+        max_depth = (
+            max([field.count(".") for field in submitted_expand_fields] + permitted_expand_depths(serializer)) + 1
+        )
+        valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
+            serializer, 0, max_depth
+        )
+        messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
+        if messages:
+            raise VuedaValidationError({key: [message] for key, message in messages.items()})
 
     def retrieve(self, request, *args, **kwargs):
         self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
@@ -1282,6 +1371,15 @@ class VuedaViewSet(
                 stacklevel=2,
             )
 
+    def create(self, request, *args, **kwargs):
+        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        # `partial_update` calls this too.
+        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        return super().update(request, *args, **kwargs)
+
     def destroy_validation(self, objs) -> None:
         """
         Override to validate objects before deletion. Raise ``VuedaValidationError``
@@ -1292,12 +1390,17 @@ class VuedaViewSet(
     def apply_object_permission_filter(self, queryset):
         """
         Keep only objects the current request can access at object-permission level.
+
+        Every refusal ``check_object_permissions`` can raise drops the object, the same set
+        ``vueda.core.permissions.check_action_permission`` treats as a refusal. That includes
+        ``Http404``, which DRF's ``DjangoObjectPermissions`` raises for a write when the user also
+        cannot read the object, and Django's ``PermissionDenied`` from a viewset override.
         """
         allowed_ids = []
         for instance in queryset:
             try:
                 self.check_object_permissions(self.request, instance)
-            except (NotAuthenticated, PermissionDenied):
+            except (NotAuthenticated, PermissionDenied, DjangoPermissionDenied, Http404):
                 continue
             allowed_ids.append(instance.pk)
         return queryset.filter(pk__in=allowed_ids)
@@ -1342,6 +1445,11 @@ class VuedaViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. An override must handle that case before reading
+        ``request.user``. With no request, this method offers every extra action, the same answer
+        :func:`vueda.core.permissions.check_action_permission` gives with no request.
 
         ``history_list`` is additionally gated on read authorization here, checked the same way an
         object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
@@ -1390,8 +1498,12 @@ class VuedaViewSet(
                     cpk_field = field
 
             if has_composite_primary_key:
-                # 'CompositePrimaryKey' must be named 'pk'.
-                self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+                # 'CompositePrimaryKey' must be named 'pk'. A key that does not convert names no
+                # object, so answer 404 the way DRF's get_object_or_404 does for a malformed pk.
+                try:
+                    self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
+                except (TypeError, ValueError, ValidationError) as exc:
+                    raise Http404 from exc
 
         return super().get_object()
 
@@ -1450,6 +1562,10 @@ class VuedaReadOnlyViewSet(
     def get_allowed_extra_actions(self, request, *, instance=None):
         """
         Override this function to change if a user is allowed to do a certain action.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. An override must handle that case before reading
+        ``request.user``.
 
         Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
         unconditionally, including no read gate for ``history_list``: that action is defined only

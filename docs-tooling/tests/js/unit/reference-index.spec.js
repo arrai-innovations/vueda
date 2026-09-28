@@ -1,4 +1,5 @@
 import {
+    apiMemberTitle,
     cssTokenAnchor,
     formatApiMemberTitle,
     memberAnchorFromId,
@@ -16,6 +17,10 @@ describe("memberNameFromId", () => {
     it("returns the slot name for a theme-key slot", () => {
         expect(memberNameFromId("theme-key:StickyBar.root")).toBe("root");
     });
+
+    it("returns the custom-property name for a css token", () => {
+        expect(memberNameFromId("css-token:vueda-gap-sm")).toBe("--vueda-gap-sm");
+    });
 });
 
 describe("formatApiMemberTitle", () => {
@@ -25,6 +30,16 @@ describe("formatApiMemberTitle", () => {
 
     it("appends a non-empty member name", () => {
         expect(formatApiMemberTitle("StickyBar", "root")).toBe("StickyBar.root");
+    });
+});
+
+describe("apiMemberTitle", () => {
+    it("titles a css token by its custom-property name alone", () => {
+        expect(apiMemberTitle("Base tokens", "css-token:vueda-hairline-width")).toBe("--vueda-hairline-width");
+    });
+
+    it("prefixes other members with the page title", () => {
+        expect(apiMemberTitle("StickyBar", "theme-key:StickyBar.root")).toBe("StickyBar.root");
     });
 });
 

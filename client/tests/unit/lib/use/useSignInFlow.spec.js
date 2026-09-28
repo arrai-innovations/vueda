@@ -68,14 +68,14 @@ describe("lib/use/useSignInFlow.js", () => {
             expect(routerPush).toHaveBeenCalledWith({ name: "welcome" });
         });
 
-        scopedIt("prefers route ?redirect query param over prop and skips toast", async () => {
+        scopedIt("prefers route ?redirect query param over prop and shows toast", async () => {
             routeQuery = { redirect: "/home" };
             useSignInFlow({ redirect: "/dashboard", formProps: {} });
             isActiveRef.value = true;
             store.loggedIn = true;
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith("/home");
-            expect(toastMock.success).not.toHaveBeenCalled();
+            expect(toastMock.success).toHaveBeenCalledWith("Signed In", expect.any(Object));
         });
 
         scopedIt("reports a rejected navigation instead of announcing success", async () => {
@@ -122,6 +122,7 @@ describe("lib/use/useSignInFlow.js", () => {
             store.loggedIn = true;
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith("/gone");
+            expect(toastMock.success).not.toHaveBeenCalled();
             expect(toastMock.error).toHaveBeenCalled();
             consoleError.mockRestore();
         });
@@ -164,6 +165,14 @@ describe("lib/use/useSignInFlow.js", () => {
             store.pendingFlow = { id: "mfa_authenticate" };
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "2fa" });
+        });
+
+        scopedIt("carries the ?redirect query param to 2fa", async () => {
+            routeQuery = { redirect: "/home" };
+            useSignInFlow({ redirect: "/dashboard", formProps: {} });
+            store.pendingFlow = { id: "mfa_authenticate" };
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "2fa", query: { redirect: "/home" } });
         });
 
         scopedIt("ignores unrelated pending flow ids", async () => {

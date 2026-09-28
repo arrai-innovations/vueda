@@ -1,0 +1,2 @@
+- **`ViewActionNotFound` suggestions**:
+    - The suggested actions and the "Browse all actions" button now point at the closest model's real routes. The view read the model-info store with the wrong key shape, so it took a key inside the model info as the model name and listed a fixed set of actions with links that did not resolve. Suggestions now use each action's route name, and detail actions appear only when the tried route has a pk, which their links reuse.

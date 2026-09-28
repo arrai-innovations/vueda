@@ -61,6 +61,7 @@ from django.db.models import Q
 from django.db.transaction import atomic
 
 from vueda.core.audit import audited_action
+from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
@@ -1139,7 +1140,7 @@ class Command(BaseCommand):
 
             content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
-            if issubclass(model, models.HasWorkflowModelMixin):
+            if workflow_enabled(model):
                 app_config = django_apps.get_app_config(app_label)
                 migrations_path = get_migrations_path(app_config)
 
@@ -2223,10 +2224,14 @@ class Command(BaseCommand):
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
 
-        for workflow in models.Workflow.objects.all():
-            model_class = workflow.content_type.model_class()
-            if model_class is not None:
-                manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
+        # The developer fakes the new migration locally, so its state sync never runs here. The
+        # command gives the local objects the states the migration would, unless this is a dry run,
+        # which writes nothing.
+        if not self.dry_run:
+            for workflow in models.Workflow.objects.all():
+                model_class = workflow.content_type.model_class()
+                if model_class is not None:
+                    manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
 
         if not changes_by_app:
             self.stdout.write(self.style.SUCCESS("No workflow changes detected."))

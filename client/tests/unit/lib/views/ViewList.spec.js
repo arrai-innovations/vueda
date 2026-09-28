@@ -968,6 +968,105 @@ describe("lib/views/ViewList.vue", () => {
             expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets" } });
             wrapper.unmount();
         });
+
+        scopedIt("saves only valid filters and search, keeping unused query parameters in the URL", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { not_a_valid_filter: "true", tag: ["red", "blue"] };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets" },
+            );
+            expect(route.query).toEqual({ not_a_valid_filter: "true", tag: ["red", "blue"], category: "widgets" });
+
+            wrapper.vm.list.listState.search = "bolt";
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets", [SEARCH_PARAM]: "bolt" },
+            );
+            expect(route.query).toEqual({
+                not_a_valid_filter: "true",
+                tag: ["red", "blue"],
+                category: "widgets",
+                [SEARCH_PARAM]: "bolt",
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("saves a range filter under its suffixed query keys", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { created_after: "2024-01-01", created_before: "2024-02-01" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            wrapper.vm.list.listState.search = "bolt";
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { created_after: "2024-01-01", created_before: "2024-02-01", [SEARCH_PARAM]: "bolt" },
+            );
+            wrapper.unmount();
+        });
+
+        scopedIt("does not save a hidden filter's URL value when a filterables override omits it", async () => {
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            route.query = { id: "1,2" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", filterables: ["category"] } });
+            await vue.nextTick();
+
+            wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets" },
+            );
+
+            wrapper.vm.list.listState.search = "bolt";
+            await vue.nextTick();
+
+            expect(listPreferenceStoreMock.setFilters).toHaveBeenLastCalledWith(
+                { app: "app", model: "model" },
+                { category: "widgets", [SEARCH_PARAM]: "bolt" },
+            );
+            expect(route.query).toEqual({ id: "1,2", category: "widgets", [SEARCH_PARAM]: "bolt" });
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            wrapper.unmount();
+        });
+
+        scopedIt("restores only valid filters and search from stored preferences", async () => {
+            mockedInject.mockReturnValueOnce({});
+            listPreferenceStoreMock.getFilters.mockReturnValue({
+                id: "1,2",
+                not_a_valid_filter: "true",
+                category: "widgets",
+                [SEARCH_PARAM]: "bolt",
+            });
+            route.params = { action: "list" };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", filterables: ["category"] } });
+            await vue.nextTick();
+            await vue.nextTick();
+            await vue.nextTick();
+
+            expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets", [SEARCH_PARAM]: "bolt" } });
+            expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+            expect(wrapper.vm.list.listState.params.not_a_valid_filter).toBeUndefined();
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                expect.objectContaining({ field: "category", value: "widgets" }),
+            ]);
+            wrapper.unmount();
+        });
     });
 
     describe("Sorting and route synchronization", () => {
@@ -975,7 +1074,7 @@ describe("lib/views/ViewList.vue", () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.sortables = ["field1", "field2"];
             const storedSorting = ["field1", "field2"];
-            listPreferenceStoreMock.getFilters.mockReturnValue({ status: "active" });
+            listPreferenceStoreMock.getFilters.mockReturnValue({ category: "widgets" });
             listPreferenceStoreMock.getSorting.mockReturnValue(storedSorting);
 
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
@@ -986,9 +1085,9 @@ describe("lib/views/ViewList.vue", () => {
             expect(listPreferenceStoreMock.getSorting).toHaveBeenCalledWith({ app: "app", model: "model" });
             expect(listPreferenceStoreMock.setSorting).not.toHaveBeenCalled();
             expect(routerReplace).toHaveBeenCalledWith({
-                query: { status: "active", [ORDERING_PARAM]: "field1,field2" },
+                query: { category: "widgets", [ORDERING_PARAM]: "field1,field2" },
             });
-            expect(route.query).toEqual({ status: "active", [ORDERING_PARAM]: "field1,field2" });
+            expect(route.query).toEqual({ category: "widgets", [ORDERING_PARAM]: "field1,field2" });
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(storedSorting);
             wrapper.unmount();
         });
@@ -1306,7 +1405,7 @@ describe("lib/views/ViewList.vue", () => {
     describe("Filter and search synchronization", () => {
         scopedIt("keeps filter parameters when clearing search input", async () => {
             mockedInject.mockReturnValueOnce({});
-            route.query = { [SEARCH_PARAM]: "search-term", [ORDERING_PARAM]: "-name", filter: "status" };
+            route.query = { [SEARCH_PARAM]: "search-term", [ORDERING_PARAM]: "-name", category: "widgets" };
             modelConfig.config.sortables = ["name"];
             const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
             await vue.nextTick();
@@ -1323,10 +1422,10 @@ describe("lib/views/ViewList.vue", () => {
 
             expect(listPreferenceStoreMock.setFilters).toHaveBeenCalledWith(
                 { app: "app", model: "model" },
-                { filter: "status" },
+                { category: "widgets" },
             );
             expect(routerPush).toHaveBeenCalledWith({
-                query: { [ORDERING_PARAM]: "-name", filter: "status" },
+                query: { [ORDERING_PARAM]: "-name", category: "widgets" },
             });
             expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-name"]);
             wrapper.unmount();
@@ -2152,6 +2251,40 @@ describe("lib/views/ViewList.vue", () => {
             const cell = wrapper.find('[data-column="field.name"]');
             expect(cell.find('[data-qa="custom-column"]').exists()).toBe(true);
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("reports a columnComponents override that names no component", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": "ColumnNope" } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(true);
+            expect(columnError.vm.$attrs["while-text"]).toBe("rendering the list columns");
+            expect(columnError.vm.$attrs.error.map((error) => error.message)).toEqual([
+                'No column component named "ColumnNope" for column "field.name"',
+            ]);
+            const cell = wrapper.find('[data-column="field.name"]');
+            expect(cell.exists()).toBe(true);
+            expect(cell.text()).toBe("");
+            wrapper.unmount();
+        });
+
+        scopedIt("shows no column error when every override resolves", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(false);
+            expect(columnError.vm.$attrs.error).toEqual([]);
             wrapper.unmount();
         });
     });
@@ -3157,6 +3290,35 @@ describe("lib/views/ViewList.vue", () => {
                 modelConfig.loading = true;
                 modelConfig.config.filterables = [];
                 modelConfig.config.filterableDetails = {};
+            });
+
+            scopedIt("restores only valid filters from stored preferences once metadata loads", async () => {
+                mockedInject.mockReturnValueOnce({});
+                listPreferenceStoreMock.getFilters.mockReturnValue({
+                    id: "1,2",
+                    not_a_valid_filter: "true",
+                    category: "widgets",
+                });
+                route.params = { action: "list" };
+                const wrapper = mount(ViewList, {
+                    props: { app: "app", model: "model", filterables: ["category"] },
+                });
+                await vue.nextTick();
+
+                expect(routerPush).not.toHaveBeenCalled();
+
+                await loadMetadata({
+                    category: { typeFilter: "ChoiceField", label: "Category" },
+                    id: { typeFilter: "DecimalInField", hidden: true, label: "Id Is In", lookupExprs: ["in"] },
+                });
+                await vue.nextTick();
+
+                expect(routerPush).toHaveBeenCalledWith({ query: { category: "widgets" } });
+                expect(wrapper.vm.list.listState.params.id).toBeUndefined();
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([
+                    expect.objectContaining({ field: "category", value: "widgets" }),
+                ]);
+                wrapper.unmount();
             });
 
             scopedIt("shows a hidden URL filter's scope and sends its value once metadata loads", async () => {

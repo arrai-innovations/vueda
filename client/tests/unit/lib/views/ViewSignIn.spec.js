@@ -1,3 +1,4 @@
+import { RouterLinkStub } from "./passwordResetStubs.js";
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
@@ -10,7 +11,7 @@ let actionBarProps;
 
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
-    props: ["runAction", "formProps", "header", "subTitle", "actionErrorSummary", "onSubmissionSuccessHandler"],
+    props: ["runAction", "formProps", "header", "subTitle", "actionErrorSummary"],
     emits: ["form-object", "form-context"],
     setup(props, { slots, emit }) {
         emit("form-object", { value: {} });
@@ -19,6 +20,7 @@ const AuthorizingFormStub = defineComponent({
             h("div", [
                 slots["action-form-inner"] ? slots["action-form-inner"]({}) : null,
                 slots["action-bar"] ? slots["action-bar"](actionBarProps) : null,
+                slots.suffix ? slots.suffix() : null,
             ]);
     },
 });
@@ -141,15 +143,6 @@ describe("lib/views/ViewSignIn.vue", () => {
 
             expect(loginMock).toHaveBeenCalledWith({ email: "ada@example.com", password: "secret" });
         });
-
-        scopedIt("suppresses ActionForm's default success toast so useSignInFlow owns success", () => {
-            // useSignInFlow shows the "Signed In" toast and redirects; without overriding the
-            // success handler, ActionForm would also fire a generic "Action Succeeded" toast.
-            const wrapper = mount(ViewSignIn);
-            const handler = wrapper.findComponent(AuthorizingFormStub).props("onSubmissionSuccessHandler");
-            expect(typeof handler).toBe("function");
-            expect(handler()).toBeUndefined();
-        });
     });
 
     describe("Action bar", () => {
@@ -173,6 +166,23 @@ describe("lib/views/ViewSignIn.vue", () => {
             actionBarProps = { loading: true };
             const wrapper = mount(ViewSignIn);
             expect(wrapper.get("button").attributes("disabled")).toBeDefined();
+        });
+    });
+
+    describe("Forgot password link", () => {
+        scopedIt("shows no link without forgotPasswordTo", () => {
+            const wrapper = mount(ViewSignIn, { global: { stubs: { RouterLink: RouterLinkStub } } });
+            expect(wrapper.find("a").exists()).toBe(false);
+        });
+
+        scopedIt("links to forgotPasswordTo when it is set", () => {
+            const wrapper = mount(ViewSignIn, {
+                props: { forgotPasswordTo: { name: "forgot-password" } },
+                global: { stubs: { RouterLink: RouterLinkStub } },
+            });
+            const link = wrapper.find("a");
+            expect(link.text()).toBe("Forgot password?");
+            expect(JSON.parse(link.attributes("data-to"))).toEqual({ name: "forgot-password" });
         });
     });
 });

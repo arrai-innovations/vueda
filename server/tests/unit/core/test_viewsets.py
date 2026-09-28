@@ -40,6 +40,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import VuedaListSerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
+from vueda.core.utils import implemented_builtin_actions
 from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
@@ -86,6 +87,22 @@ def test_vueda_read_only_viewset_excludes_write_actions():
     assert not hasattr(VuedaReadOnlyViewSet, "update")
     assert not hasattr(VuedaReadOnlyViewSet, "partial_update")
     assert not hasattr(VuedaReadOnlyViewSet, "destroy")
+
+
+def test_implemented_builtin_actions_of_read_only_viewset():
+    assert implemented_builtin_actions(VuedaReadOnlyViewSet) == ("list", "retrieve")
+    assert implemented_builtin_actions(store_viewsets.CustomerDataViewSet()) == ("list", "retrieve")
+
+
+def test_implemented_builtin_actions_of_full_viewset():
+    assert implemented_builtin_actions(store_viewsets.DistributorViewSet) == (
+        "list",
+        "retrieve",
+        "create",
+        "update",
+        "partial_update",
+        "destroy",
+    )
 
 
 def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
@@ -645,9 +662,29 @@ class TestStoreProductViewSet:
         )
         assert (
             str(response.data["distributor.brands"][0]["message"])
-            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.available_actions, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
         assert "history" not in response.data
+
+    def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
+        """An expanded object never renders ``available_actions``, so requesting it is invalid."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,distributor.available_actions",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert "distributor.available_actions" in response.data
 
 
 @pytest.mark.django_db
@@ -1859,6 +1896,86 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         self.assert_response(response, 400)
         assert "invalid_field_name" in response.data
         assert "period_start" not in response.data
+
+    def _patch_timesheet(self, api_client, expand, data):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand},
+            ),
+            data=data,
+            format="json",
+        )
+        return response, t1
+
+    @pytest.mark.parametrize("expand", ["bogus", "supervisor"])
+    def test_partial_update_rejects_an_expand_the_permit_list_leaves_out(self, api_client, monkeypatch, expand):
+        """drf-flex-fields drops an expand the action's permit list leaves out; the write reports it."""
+        monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
+
+        response, t1 = self._patch_timesheet(api_client, expand, {"period_end": "2024-03-01"})
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            expand: [
+                ErrorDetail(
+                    "Invalid expands. Permitted expands are employee. Or use a wildcard to expand all: *, ~all",
+                    code="invalid",
+                )
+            ]
+        }, response.data
+        t1.refresh_from_db()
+        assert t1.period_end == datetime.date(2024, 2, 29)
+
+    def test_partial_update_accepts_a_permitted_expand(self, api_client, monkeypatch):
+        monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
+
+        response, t1 = self._patch_timesheet(api_client, "employee", {"period_end": "2024-03-01"})
+
+        self.assert_response(response, 200)
+        assert response.data["employee"]["id"] == t1.employee_id
+        t1.refresh_from_db()
+        assert t1.period_end == datetime.date(2024, 3, 1)
+
+    def test_partial_update_reports_an_unknown_expand_before_body_errors(self, api_client):
+        """With no permit list, an unknown expand is reported before the body is validated."""
+        response, t1 = self._patch_timesheet(api_client, "bogus", {"employee": 999999})
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert list(errors) == ["bogus"], response.data
+        assert str(errors["bogus"][0]).startswith("Invalid expands. Permitted expands are employee, "), response.data
+        t1.refresh_from_db()
+        assert t1.employee.employee_number == "abcd-1234"
+
+    def test_create_rejects_an_expand_when_the_permit_list_is_empty(self, api_client, monkeypatch):
+        monkeypatch.setattr(TimesheetViewSet, "permit_create_expands", [], raising=False)
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+
+        response = api_client.post(
+            reverse("timesheet.timesheet-list", query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee"}),
+            data={"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("Invalid expands. No expands are permitted.", code="invalid")]}, (
+            response.data
+        )
+        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
 
 
 class _OrderItemCompositePKResponse(TypedDict):

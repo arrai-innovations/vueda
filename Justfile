@@ -134,12 +134,6 @@ docs-normalize:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
 
 docs-render:
-  rm -rf {{justfile_directory()}}/docs/reference/api
-  rm -rf {{justfile_directory()}}/docs/reference/theming/tokens
-  rm -f {{justfile_directory()}}/docs/reference/theming/tokens.md
-  rm -rf {{justfile_directory()}}/docs/reference/theming/keys
-  rm -f {{justfile_directory()}}/docs/reference/theming/keys.md
-  mkdir -p {{justfile_directory()}}/docs/reference/api
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render
 
 docs-api:

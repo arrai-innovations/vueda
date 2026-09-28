@@ -39,7 +39,8 @@ const makeSearchParamsString = (searchParams) => {
  * - If a property is an array, it appends each element in the array.
  * - If a property is an object (excluding `File` instances), it appends each nested property.
  * - If a property is a `File`, it appends it directly.
- * - If a property is empty or undefined, it appends an empty string.
+ * - If a property is `null` or `undefined`, it appends an empty string. Other falsy values such as
+ *   `false`, `0`, and `""` are appended as their string form.
  *
  * @param {{ [key: string]: unknown }} object - The source object to convert into `FormData`.
  * @returns {FormData} - A `FormData` instance containing key-value pairs from the object, formatted for multipart form submission.
@@ -47,7 +48,7 @@ const makeSearchParamsString = (searchParams) => {
 const getFormData = (object) => {
     const formData = new FormData();
     for (const key in object) {
-        if (object[key]) {
+        if (object[key] !== null && object[key] !== undefined) {
             if (Array.isArray(object[key])) {
                 const o = object[key];
                 o.forEach((value, i) => {
@@ -237,9 +238,10 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
  * @param {string} args.pk - The primary key of the object to patch.
  * @param {object} args.partialObject - The partial object to patch.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
+ * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
  */
-export function defaultObjectPatch({ target, pk, partialObject, params }) {
+export function defaultObjectPatch({ target, pk, partialObject, params, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = params ? makeSearchParamsString(params) : "";
@@ -251,6 +253,9 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
     };
     if (!hasFile) {
         headers["Content-Type"] = "application/json";
+    }
+    if (acknowledgeWarnings) {
+        headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
     const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
 
@@ -269,6 +274,9 @@ export function defaultObjectPatch({ target, pk, partialObject, params }) {
             }
             if (response.status === 400) {
                 throw new FormValidationError(responseData, response);
+            }
+            if (response.status === 409) {
+                throw new ConfirmationRequiredError(responseData, response, { bulk: false });
             }
             throw new FetchError("Failed to patch object", response, responseData);
         },

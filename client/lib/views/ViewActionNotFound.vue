@@ -9,6 +9,7 @@ import "@vueda/theme/vueda-tailwind/views/ViewActionNotFound.theme.js";
 import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { viewToActionNameMap } from "@vueda/utils/actionMap.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { stringSimilarity } from "string-similarity-js";
 import { computed, inject, toRef } from "vue";
@@ -18,8 +19,10 @@ import { useRoute, useRouter } from "vue-router";
  * Error view displayed when a requested model action route does not exist.
  * Composes `SystemMessageCard(tone="info")` with a "404" crest showing the
  * unrecognized `app/model/action` key, a `TriedUrlCallout` highlighting the
- * action segment as the error, a `SuggestionList(shape="action")` listing all
- * model-defined actions sorted by string similarity to the tried action,
+ * action segment as the error, a `SuggestionList(shape="action")` listing the
+ * closest model's actions by route name, sorted by string similarity to the
+ * tried action (detail actions only when the tried route has a pk, which their
+ * links reuse),
  * a `DiagnosticStrip` debug footer, and a `Back` + `Browse all actions`
  * actions row. HTTP verb chips in the action shape remain empty until the
  * server exposes per-action verb metadata.
@@ -66,37 +69,55 @@ const findClosestMatch = (input, options) => {
     return bestMatch;
 };
 
+// The store keys model info by `getAppModelDotName`, "app.model". A model name has no dot, so the
+// last one separates the two.
+const loadedModels = computed(() =>
+    Object.keys(modelInfoStore.infos).map((key) => {
+        const dot = key.lastIndexOf(".");
+        return { key, app: key.slice(0, dot), model: key.slice(dot + 1) };
+    }),
+);
+
 const closestApp = computed(() => {
-    const apps = Object.keys(modelInfoStore.infos);
+    const apps = [...new Set(loadedModels.value.map((entry) => entry.app))];
     return findClosestMatch(app.value, apps);
 });
 
-const closestModel = computed(() => {
+const closestEntry = computed(() => {
     if (!closestApp.value) {
         return null;
     }
-    const models = Object.keys(modelInfoStore.infos[closestApp.value] || {});
-    return findClosestMatch(model.value, models);
+    const entries = loadedModels.value.filter((entry) => entry.app === closestApp.value);
+    const closest = findClosestMatch(
+        model.value,
+        entries.map((entry) => entry.model),
+    );
+    return entries.find((entry) => entry.model === closest) || null;
 });
 
-const modelActions = computed(() => {
-    if (!closestApp.value || !closestModel.value) {
+const closestModel = computed(() => closestEntry.value?.model || null);
+
+// Server action names whose route segment differs: `retrieve` is routed as `read`, and
+// `partial_update` has no route of its own because `update` serves it.
+const actionToRouteName = Object.fromEntries(Object.entries(viewToActionNameMap).map(([view, name]) => [name, view]));
+const unroutedActions = new Set(["partial_update"]);
+
+const suggestions = computed(() => {
+    if (!closestEntry.value) {
         return [];
     }
-    const modelData = modelInfoStore.infos[closestApp.value][closestModel.value];
-    return modelData?.actions || ["list", "create", "update", "read"];
-});
-
-const suggestions = computed(() =>
-    [...modelActions.value]
-        .map((name) => ({ name, score: stringSimilarity(action.value || "", name) }))
+    const pk = route.params.pk;
+    const base = `/${closestApp.value}/${closestModel.value}`;
+    return (modelInfoStore.infos[closestEntry.value.key]?.actions || [])
+        .filter(({ name, detail }) => !unroutedActions.has(name) && (!detail || pk))
+        .map(({ name, detail }) => {
+            const routeName = actionToRouteName[name] || name;
+            const path = detail ? `${base}/${routeName}/${pk}` : `${base}/${routeName}`;
+            return { name: routeName, path, score: stringSimilarity(action.value || "", routeName) };
+        })
         .sort((a, b) => b.score - a.score)
-        .map(({ name }) => ({
-            label: name,
-            sub: `/${closestApp.value}/${closestModel.value}/${name}`,
-            to: `/${closestApp.value}/${closestModel.value}/${name}`,
-        })),
-);
+        .map(({ name, path }) => ({ label: name, sub: path, to: path }));
+});
 
 const actionKey = computed(() => `${app.value}/${model.value}/${action.value}`);
 

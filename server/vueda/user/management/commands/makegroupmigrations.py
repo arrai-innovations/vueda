@@ -116,11 +116,11 @@ def migrate_step(
             permission.group_set.add(group)
 
         case GroupChangeTypes.UNASSOCIATED.value | GroupChangeTypes.DELETED.value:
+            # Removing a permission never deletes the group, so its user memberships survive.
+            # `deleted` was recorded when a group's last permission was removed, and replays the same
+            # way as `unassociated`.
             if permission is not None and group is not None:
                 permission.group_set.remove(group)
-
-            if change_type == GroupChangeTypes.DELETED.value and not group.permissions.exists():
-                group.delete()
 
 
 # Migration-only entry point; its existence makes the underlying function testable.
@@ -185,7 +185,8 @@ def backwards_migrate_groups(apps, changed_items):
         # Reverse everything
         match change_type:
             case GroupChangeTypes.ADDED.value:
-                change_type = GroupChangeTypes.DELETED.value
+                # Undo the permission grant and keep the group, which may have gained members since.
+                change_type = GroupChangeTypes.UNASSOCIATED.value
             case GroupChangeTypes.ASSOCIATED.value:
                 change_type = GroupChangeTypes.UNASSOCIATED.value
             case GroupChangeTypes.CHANGED.value:

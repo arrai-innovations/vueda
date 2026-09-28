@@ -1,12 +1,12 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { getAppModelDotName } from "@vueda/utils/case.js";
+import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { createPinia, setActivePinia } from "pinia";
 
 const dummyModelInfo = {
-    app_label: "tim",
+    appLabel: "tim",
     model: "timesheet",
-    verbose_name: "timesheet",
-    verbose_name_plural: "timesheets",
+    verboseName: "timesheet",
+    verboseNamePlural: "timesheets",
     pk: "id",
     fields: {
         id: {
@@ -324,8 +324,8 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.initialized = {};
 
             const incompleteModelInfo = {
-                verbose_name: "Incomplete Model",
-                verbose_name_plural: "Incomplete Models",
+                verboseName: "Incomplete Model",
+                verboseNamePlural: "Incomplete Models",
             };
 
             mockedFetchModelInfo.mockResolvedValue(incompleteModelInfo);
@@ -573,6 +573,20 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.submitFields).toEqual(["description"]);
 
             expect(config.widgetProps.default).toEqual({ size: "medium", color: "blue" });
+        });
+
+        scopedIt("applies a read view config to the retrieve view that looks it up", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, null, {
+                read: { displayFields: ["name"] },
+            });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "retrieve" });
+
+            expect(config.displayFields).toEqual(["name"]);
         });
 
         scopedIt("merges shallow and deep properties correctly", async () => {
@@ -1018,6 +1032,63 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.verboseName).toBe("timesheet");
         });
 
+        scopedIt("does not cache a build that setConfig superseded while it was in flight", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            let resolveFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
+            );
+
+            const staleBuild = store.getConfig({ app: "testApp", model: "testModel" });
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+            resolveFetch(dummyModelInfo);
+            await staleBuild;
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.verboseName).toBe("Updated Timesheet");
+        });
+
+        scopedIt("keeps the newer build in flight when a superseded build completes", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            let resolveStaleFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveStaleFetch = resolve;
+                }),
+            );
+            let resolveCurrentFetch;
+            mockedFetchModelInfo.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveCurrentFetch = resolve;
+                }),
+            );
+
+            const args = { app: "testApp", model: "testModel" };
+            const key = getAppModelDotName(args);
+            const staleBuild = store.getConfig(args);
+            store.setConfig(args, { verboseName: "Updated Timesheet" });
+            const currentBuild = store.getConfig(args);
+            resolveStaleFetch(dummyModelInfo);
+            await staleBuild;
+
+            expect(store.initialized).toHaveProperty(key);
+            expect(store.builtConfigs).not.toHaveProperty(key);
+
+            const joined = store.getConfig(args);
+            resolveCurrentFetch(dummyModelInfo);
+            expect((await currentBuild).verboseName).toBe("Updated Timesheet");
+            expect((await joined).verboseName).toBe("Updated Timesheet");
+            expect(mockedFetchModelInfo).toHaveBeenCalledTimes(2);
+        });
+
         scopedIt("cancels the in-flight promise when setConfig is called", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
@@ -1036,6 +1107,29 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(cancelMock).toHaveBeenCalled();
 
             expect(store.initialized).not.toHaveProperty(getAppModelDotName({ app: "testApp", model: "testModel" }));
+        });
+
+        scopedIt("leaves configs of a model whose name extends this model's name", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            const itemModel = { app: "testApp", model: "testModelItem" };
+            await store.getConfig(itemModel);
+            await store.getConfig({ ...itemModel, view: "list" });
+
+            const cancellablePromise = new Promise(() => {});
+            const cancelMock = vi.fn();
+            cancellablePromise.cancel = cancelMock;
+            mockedFetchModelInfo.mockReturnValue(cancellablePromise);
+            store.getConfig({ ...itemModel, view: "update" });
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { verboseName: "Updated Timesheet" });
+
+            expect(cancelMock).not.toHaveBeenCalled();
+            expect(store.initialized).toHaveProperty(getAppModelViewDotName({ ...itemModel, view: "update" }));
+            expect(store.builtConfigs).toHaveProperty(getAppModelDotName(itemModel));
+            expect(store.builtConfigs).toHaveProperty(getAppModelViewDotName({ ...itemModel, view: "list" }));
         });
     });
     describe("clearAuthScoped", () => {

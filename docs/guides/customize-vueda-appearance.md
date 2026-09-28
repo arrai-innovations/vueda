@@ -15,12 +15,12 @@ For the conceptual model behind these mechanisms (what each scope means and how 
 
 ## Pick the right scope
 
-| Goal                                                                                                    | Scope     | Mechanism                  | Section                                                                 |
-| ------------------------------------------------------------------------------------------------------- | --------- | -------------------------- | ----------------------------------------------------------------------- |
-| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop       | [Override one instance](#override-one-instance)                         |
-| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `setTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
-| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `setTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
-| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override         | [Re-skin via tokens](#re-skin-via-tokens)                               |
+| Goal                                                                                                    | Scope     | Mechanism                    | Section                                                                 |
+| ------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- | ----------------------------------------------------------------------- |
+| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop         | [Override one instance](#override-one-instance)                         |
+| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `patchTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
+| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `patchTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
+| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override           | [Re-skin via tokens](#re-skin-via-tokens)                               |
 
 If a customization touches values (colors, dimensions, durations), it almost always belongs in tokens. If it touches composition (a different class arrangement, a different state recipe), it belongs in the JavaScript theme.
 
@@ -65,14 +65,12 @@ const borderlessInputs = {
 
 ## Restyle one component system-wide
 
-Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} at app startup to merge an override into the default theme. Every instance of the component picks up the override as its baseline.
+Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} at app startup to merge an override into the default theme. Import defaults before applying the patch, as in [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered). Every instance of the component picks up the override as its baseline.
 
 ```js
 // main.js
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { patchTheme, setTheme } from "@vueda/use/useTheme.js";
-
-setTheme(vuedaTailwind);
+import "@vueda/theme/vueda-tailwind/index.js";
+import { patchTheme } from "@vueda/use/useTheme.js";
 
 patchTheme({
     Button: {
@@ -81,7 +79,7 @@ patchTheme({
 });
 ```
 
-`patchTheme` merges the override; existing Button classes are preserved. To replace the entry entirely, use `setTheme` with a complete theme object.
+`patchTheme` merges the override; existing Button classes are preserved. `setTheme` replaces the entire registry, including earlier patches; reserve it for installing a complete theme object.
 
 Per-instance overrides still merge on top, so specific instances stay customizable. Patching a leaf entry does not reach components that merely look like it (calendar day cells, pagination items); restyle the family for those.
 
@@ -91,6 +89,9 @@ When the change should affect Button, calendar day triggers, pagination items, d
 
 ```js
 // main.js
+import "@vueda/theme/vueda-tailwind/index.js";
+import { patchTheme } from "@vueda/use/useTheme.js";
+
 patchTheme({
     _ButtonGhost: {
         root: {
@@ -191,7 +192,7 @@ To confirm the fonts loaded, run `document.fonts.check('600 16px "IBM Plex Sans"
 
 **Reaching for `setTheme` to change a value.** If the change is a color, dimension, or duration, it almost certainly belongs in a CSS token. Reaching for `setTheme` produces a customization that does not propagate through composition or to surfaces you forgot to override.
 
-**Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `patchTheme` or `setTheme` at app startup.
+**Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `patchTheme` after the defaults have registered.
 
 **Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
 

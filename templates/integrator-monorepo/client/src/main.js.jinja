@@ -19,20 +19,19 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
+// Register all defaults before applying project patches. For per-component
+// loading, omit this import; components register defaults when their modules load.
+// Project patches must still run after the defaults they customize have loaded.
+// Keep the base.css import in your stylesheet with either loading path.
+import "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
-import { setTheme } from "@vueda/use/useTheme.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { getRouter } from "./router/index.js";
 import TheApp from "./TheApp.vue";
 
 faConfig.autoAddCss = false;
 
-// Register the built-in vueda-tailwind theme up front (the global-eager path).
-// Two leaner paths exist: import only the families you use
-// (e.g. import "@vueda/theme/vueda-tailwind/controls/index.js";), or drop this
-// call entirely and let each component register its own theme as it renders
-// (the fully-lazy path). Keep the base.css import in your stylesheet either way.
-setTheme(vuedaTailwind);
 setIcons({
     Checkbox: {
         check: { component: FontAwesomeIcon, props: { icon: faCheck } },
@@ -54,6 +53,11 @@ setIcons({
         triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
     },
 });
+
+// Lists, reads, and saves go through these adapters; without them every
+// data request rejects with "Crud method ... is not implemented."
+setupDefaultListCrud();
+setupDefaultObjectCrud();
 
 const app = createApp(TheApp);
 const pinia = createPinia();

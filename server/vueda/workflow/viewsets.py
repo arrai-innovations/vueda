@@ -2,6 +2,7 @@
 
 __all__ = ("WorkflowViewSet",)
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import Http404
 from rest_framework import mixins
@@ -15,14 +16,16 @@ from rest_framework.response import Response
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.history.revision import object_revision
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
-from vueda.workflow.models import HasWorkflowModelMixin
+from vueda.workflow.models import Transition
 from vueda.workflow.models import Workflow
+from vueda.workflow.models import get_workflow_for_model
 from vueda.workflow.permissions import WorkflowObjectPermissions
 from vueda.workflow.serializers import WorkflowSerializer
 
@@ -53,11 +56,21 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         return Workflow.objects.all()
 
     def get_workflow(self):
-        return get_object_or_404(
-            Workflow,
-            content_type__app_label=self.kwargs["app_label"],
-            content_type__model=self.kwargs["model"].replace("_", ""),
+        """Return the workflow of the model the request names.
+
+        A model that does not enable ``class Vueda.Workflow`` has no workflow here, whatever rows
+        exist, and raises ``Http404``. An enabled model without a definition raises
+        ``WorkflowNotConfiguredError``.
+        """
+        content_type = get_object_or_404(
+            ContentType,
+            app_label=self.kwargs["app_label"],
+            model=self.kwargs["model"].replace("_", ""),
         )
+        model = content_type.model_class()
+        if model is None or not workflow_enabled(model):
+            raise Http404("No workflow matches the given query.")
+        return get_workflow_for_model(model)
 
     def get_object(self):
         """Return the target object, checking its permissions, or the workflow the request names."""
@@ -129,7 +142,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         # get_object has already checked this object's read permission, so reaching here means the
         # caller may read the object whose state this reports.
         instance = self.get_object()
-        if not isinstance(instance, HasWorkflowModelMixin):
+        if not workflow_enabled(instance):
             return Response(
                 data={"detail": "Object does not have a workflow."},
                 exception=Exception("Object does not have a workflow."),
@@ -236,6 +249,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     @action(detail=True, bulk=True, methods=["patch"], url_path=r"execute-transition(?:/(?P<object_id>[^/.]+))?")
     def execute_transition(self, request, app_label, model, object_id=None):
         transition_code = request.data.get("transition_code")
+        if not isinstance(transition_code, str) or not transition_code:
+            raise VuedaValidationError({"transition_code": ["This field is required."]})
         if object_id:
             instance = self.get_object()
             transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
@@ -314,7 +329,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         """
         try:
             return instance.check_transition(transition_code, request.user)
-        except (PermissionDenied, InvalidTransitionError) as e:
+        except (PermissionDenied, InvalidTransitionError, Transition.DoesNotExist) as e:
             raise VuedaValidationError(str(e))
 
     def _apply_transition_to_instance(self, instance, transition_code, request):

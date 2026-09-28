@@ -17,7 +17,7 @@ VDQ handles email and SMS dispatch through a queued, observable lifecycle. It is
 
 **Database rows own persistence and coordination.** The `QueueItem` row is the single source of truth for a queued item's existence, metadata, and operational state. Workers and callbacks read and write queue item fields (`task_id`, `retry_delay`, `result`, provider identifiers) to coordinate without shared memory.
 
-**Workflow state owns lifecycle visibility.** The `QueueItem` model uses `HasWorkflowModelMixin`, so each queue item has an associated workflow state that tracks its position in the dispatch lifecycle. The state is queryable and filterable, and it drives `list`/`detail` endpoint semantics (active queue vs sent history).
+**Workflow state owns lifecycle visibility.** The `QueueItem` model enables `class Vueda.Workflow`, so each queue item has an associated workflow state that tracks its position in the dispatch lifecycle. The state is queryable and filterable, and it drives `list`/`detail` endpoint semantics (active queue vs sent history).
 
 **Celery owns task scheduling and retry.** The Celery task layer handles async dispatch timing, transient failure retry with backoff, and worker distribution. Celery does not have a lifecycle state; it updates the queue item's workflow state as a side effect of task execution.
 
@@ -105,8 +105,8 @@ The view enforces authentication but does not perform object-level permission ch
 ## Relevant Implementation Surface
 
 - {@api py:module:vueda.vdq}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_available_transitions}
-- {@api py:function:vueda.workflow.models.HasWorkflowModelMixin.fast_transition}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_available_transitions}
+- {@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_transition}
 - {@api rest:endpoint:GET:/vueda.vdq/queueitem/}
 - {@api rest:endpoint:GET:/vueda.vdq/sentitem/}
 - {@api rest:endpoint:POST:/vueda.vdq/sentitem/resend/}

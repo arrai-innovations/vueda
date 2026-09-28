@@ -5,6 +5,7 @@ import pytest
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -14,6 +15,7 @@ from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
 from vueda import info
+from vueda.info.serializers import ModelInfoSerializer
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 
@@ -591,6 +593,81 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
         names = {action["name"] for action in self.model_actions(api_client)}
 
         assert "history-list" in names
+
+
+@pytest.mark.django_db
+class TestModelActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    ``model_actions`` offers only the built-in actions the canonical viewset implements. A
+    requester holding every codename on a model served by a read-only viewset is offered list and
+    retrieve, not the write actions that viewset has no route for.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Customer Data Admin": [
+            ("contenttypes", "ContentType", "list"),
+            ("contenttypes", "ContentType", "read"),
+            ("store", "CustomerData", "list"),
+            ("store", "CustomerData", "read"),
+            ("store", "CustomerData", "create"),
+            ("store", "CustomerData", "update"),
+            ("store", "CustomerData", "delete"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "customer_data_admin@domain.invalid": {
+            "name": "Customer Data Admin",
+            "password": "testpass",
+            "groups": ["Customer Data Admin"],
+        },
+    }
+
+    @pytest.fixture(autouse=True)
+    def registry(self):
+        register_model("store", "customerdata")
+        yield
+        info.registration.get_empty_registry()
+
+    def test_write_actions_are_not_offered(self, api_client):
+        api_client.force_authenticate(user=self.users["customer_data_admin@domain.invalid"])
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("store", "customerdata")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        names = [action["name"] for action in response.data["model_actions"]]
+        assert names == ["list", "retrieve"]
+
+
+@pytest.mark.django_db
+class TestModelActionsWithoutRequester:
+    """
+    With no request in context (schema generation, or an integrator building model info outside a
+    request), ``model_actions`` skips the permission check but still offers only the built-in
+    actions the canonical viewset implements.
+    """
+
+    @staticmethod
+    def model_action_names(app_label, model_name):
+        register_model(app_label, model_name)
+        try:
+            content_type = ContentType.objects.get(app_label=app_label, model=model_name)
+            serializer = ModelInfoSerializer(content_type, context={})
+            return [action["name"] for action in serializer.get_model_actions(content_type)]
+        finally:
+            info.registration.get_empty_registry()
+
+    def test_read_only_viewset_offers_list_and_retrieve(self):
+        assert self.model_action_names("store", "customerdata") == ["list", "retrieve"]
+
+    def test_full_viewset_offers_every_builtin_action(self):
+        names = self.model_action_names("store", "cart")
+
+        assert {"list", "retrieve", "create", "update", "partial_update", "destroy"} <= set(names)
 
 
 @pytest.mark.django_db

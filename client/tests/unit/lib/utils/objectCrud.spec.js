@@ -137,6 +137,23 @@ describe("lib/utils/objectCrud.js", () => {
             expect(result).toEqual({ id: 6 });
         });
 
+        it("sends false and 0 as values in FormData, and only null and undefined as empty", async () => {
+            getListUrl.mockReturnValue("list-url");
+            getJsonOrText.mockResolvedValue({ id: 7 });
+            global.fetch = vi.fn(() => Promise.resolve(new Response("{}", { status: 201 })));
+
+            await objectCrud.defaultObjectCreate({
+                target: { app: "blog", model: "article" },
+                object: { file: new File(["data"], "file.txt"), active: false, count: 0, note: null, extra: undefined },
+            });
+
+            const body = fetch.mock.calls[0][1].body;
+            expect(body.get("active")).toBe("false");
+            expect(body.get("count")).toBe("0");
+            expect(body.get("note")).toBe("");
+            expect(body.get("extra")).toBe("");
+        });
+
         it("passes params to makeSearchParamsString", async () => {
             getDetailUrl.mockReturnValue("detail-url");
             const params = {
@@ -317,6 +334,41 @@ describe("lib/utils/objectCrud.js", () => {
             await expect(
                 objectCrud.defaultObjectPatch({ target: { app: "a", model: "b" }, pk: "2", partialObject: {} }),
             ).rejects.toBeInstanceOf(errors.FetchError);
+        });
+
+        it("throws ConfirmationRequiredError on 409 with parsed digest and warnings", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const body = { confirmation_required: true, digest: "ghi789", warnings: { count: ["unusual"] } };
+            const response = new Response(JSON.stringify(body), { status: 409 });
+            getJsonOrText.mockResolvedValue(body);
+            cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+            const error = await objectCrud
+                .defaultObjectPatch({ target: { app: "a", model: "b" }, pk: "3", partialObject: { title: "hi" } })
+                .catch((e) => e);
+            expect(error).toBeInstanceOf(errors.ConfirmationRequiredError);
+            expect(error.digest).toBe("ghi789");
+            expect(error.messages).toEqual({ count: ["unusual"] });
+            expect(error.bulk).toBe(false);
+        });
+
+        it("sends the Acknowledge-Warnings header when acknowledgeWarnings is set", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const response = new Response(JSON.stringify({ id: 3 }), { status: 200 });
+            getJsonOrText.mockResolvedValue({ id: 3 });
+            cancellableFetch.mockImplementation((url, opts, transform) => transform(response));
+
+            await objectCrud.defaultObjectPatch({
+                target: { app: "a", model: "b" },
+                pk: "3",
+                partialObject: { title: "hi" },
+                acknowledgeWarnings: "ghi789",
+            });
+            expect(cancellableFetch).toHaveBeenCalledWith(
+                "detail-url",
+                expect.objectContaining({ headers: expect.objectContaining({ "Acknowledge-Warnings": "ghi789" }) }),
+                expect.any(Function),
+            );
         });
     });
 

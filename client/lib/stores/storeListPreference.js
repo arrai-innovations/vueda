@@ -35,37 +35,9 @@ const saveToLocalStorage = (data) => {
  * @property {boolean} initialized
  * @property {Record<string, ListPreferenceEntry>} preferences
  *
- * @typedef {import('pinia').Store<
- *   'listPreference',
- *   ListPreferenceState,
- *   {
- *     getPreferences: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => ListPreferenceEntry | {},
- *     getHiddenColumns: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => string[],
- *     getFilters: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => Record<string, unknown>,
- *     getSorting: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => string[] | null,
- *     getPerPage: (state: ListPreferenceState) =>
- *       (args: ListPreferenceArgs) => number | string | null,
- *   },
- *   {
- *     init: () => void,
- *     setHiddenColumns: (args: ListPreferenceArgs, hiddenColumns: string[]) => void,
- *     setFilters: (args: ListPreferenceArgs, filters: Record<string, unknown>) => void,
- *     setSorting: (args: ListPreferenceArgs, sorting: string[]) => void,
- *     setPerPage: (args: ListPreferenceArgs, perPage: number | string) => void,
- *     clearPreferences: (args: ListPreferenceArgs) => void,
- *     clearHiddenColumns: (args: ListPreferenceArgs) => void,
- *     clearFilters: (args: ListPreferenceArgs) => void,
- *     clearSorting: (args: ListPreferenceArgs) => void,
- *     clearPerPage: (args: ListPreferenceArgs) => void,
- *   }
- * >} ListPreferenceStore
+ * @typedef {ReturnType<typeof storeListPreference>} ListPreferenceStore
  */
 
-/** @type {ListPreferenceStore} */
 export const storeListPreference = defineStore("listPreference", {
     state: () => ({
         initialized: false,

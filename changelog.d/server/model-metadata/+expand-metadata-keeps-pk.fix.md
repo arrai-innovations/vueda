@@ -1,0 +1,2 @@
+- **Expand metadata keeps the nested primary key (`model_expands`)**:
+    - An `expandable_fields` entry with static `f` options that left out the nested model's primary key also dropped that key from the expand's `f` metadata, because the check compared field names to the literal `"pk"`. It now compares them to the nested model's primary key name, so `id` stays in the metadata.

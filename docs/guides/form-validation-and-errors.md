@@ -133,6 +133,27 @@ Field-level feedback is rendered automatically by `FormField` via `FieldMessage`
 </form-field>
 ```
 
+### Action Form Validation Summary
+
+`ActionForm` shows a validation summary above its fields when a field error has no rendered field showing it. The summary lists errors for these fields:
+
+- a field rendered with `hidden`
+- a field inside a collapsed inline field set
+- a field whose renderer failed
+- a key the form does not render
+
+A form whose errors all render beside their fields shows no summary. Each row names its field by the label shown above the input. When no rendered field reports a label, the row uses the error key.
+
+A custom field component tells the form whether it shows its own errors through the third argument to `useField`. The default is `true`. A component that renders no inline error messages passes `showsErrors`, so its errors move into the summary:
+
+```js
+const field = useField(props, emit, { showsErrors: () => false });
+```
+
+A field still counts as showing its errors when a slot override replaces its error rendering. Those slots are `field(fieldName)errors`, `field-errors`, and a field set's `field-set-level-chores`. An override of those slots should render the errors it receives.
+
+The `validation-summary` slot replaces the summary. It receives `entries` (each `{ field, label, messages }`), `count`, and `title`, covering only the errors the summary would list.
+
 ### Structured Feedback Objects
 
 Most feedback entries are plain strings. When a single message needs to carry structured payload (e.g. a list of offending rows that should render as a bullet list), the server may emit an object instead of a string:
@@ -231,10 +252,14 @@ Override `get_warnings` itself instead when bulk needs different or bulk-optimiz
 
 A targetless custom action has no queryset and no single instance for either hook to key by; it calls `gate_warnings` directly from the action body instead (see the custom action example below), rather than overriding either hook here.
 
-**Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model using {@api py:class:vueda.workflow.models.HasWorkflowModelMixin}:
+**Server: gate a workflow transition with `get_transition_warnings`.** Workflow transitions have no serializer either, so they use a model-level hook next to `allow_transition`. Override `get_transition_warnings(transition, user=None)` on a model that enables workflow. The default comes from {@api py:class:vueda.workflow.models.WorkflowModelMethods}:
 
 ```python
-class Order(HasWorkflowModelMixin, models.Model):
+class Order(VuedaModel):
+    class Vueda:
+        class Workflow:
+            enabled = True
+
     def get_transition_warnings(self, transition, user=None):
         if transition.code == "cancel" and self.paid:
             return {"non_field_errors": ["Cancelling a paid order issues a refund."]}

@@ -31,8 +31,8 @@ const demoModel = { app: "showcase", model: "contactBook" };
 storeModelInfo().infos[getAppModelDotName(demoModel)] = {
     appLabel: demoModel.app,
     model: demoModel.model,
-    verbose_name: "Contact book",
-    verbose_name_plural: "Contact books",
+    verboseName: "Contact book",
+    verboseNamePlural: "Contact books",
     pk: "id",
     fields: fieldDetails,
     expand: [contactsExpansion],

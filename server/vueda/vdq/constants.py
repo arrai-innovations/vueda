@@ -1,4 +1,4 @@
-"""Constants for the VUEDA Delivery Queue."""
+"""Constants for the VUEDA Dispatch Queue."""
 
 __all__ = ("QUEUE_ITEM_DONE_STATES",)
 

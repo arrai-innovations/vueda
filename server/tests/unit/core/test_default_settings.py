@@ -69,6 +69,22 @@ def test_use_mailers_respects_email_backend_override_or_rejects_by_django_versio
     assert defaults["ANYMAIL_MAILGUN_API_KEY"] == "key"
 
 
+def test_mailgun_backend_sets_the_anymail_webhook_secret():
+    env = _env(
+        EMAIL_BACKEND="anymail.backends.mailgun.EmailBackend",
+        ANYMAIL_MAILGUN_API_KEY="key",
+        ANYMAIL_MAILGUN_SENDER_DOMAIN="domain.invalid",
+        ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY="signing-key",
+        ANYMAIL_WEBHOOK_SECRET="user:pass",
+    )
+
+    defaults = get_defaults(env)
+
+    # Anymail reads the basic-auth secret from ANYMAIL_WEBHOOK_SECRET or ANYMAIL["WEBHOOK_SECRET"].
+    assert defaults["ANYMAIL_WEBHOOK_SECRET"] == "user:pass"
+    assert "WEBHOOK_SECRET" not in defaults
+
+
 def test_isolation_level_is_set_for_postgres():
     defaults = get_defaults(_env(DATABASE_URL="postgres://vueda@localhost:5432/vueda"))
 
@@ -168,4 +184,18 @@ def test_omitting_the_cache_url_is_rejected():
     del config["CACHE_URL"]
 
     with pytest.raises(KeyError, match="CACHE_URL"):
+        get_defaults(TomlEnv(config, environ={}))
+
+
+def test_no_reply_email_is_read_from_config():
+    assert get_defaults(_env())["NO_REPLY_EMAIL"] == "no-reply@domain.invalid"
+
+
+def test_omitting_the_no_reply_email_is_rejected():
+    # The user app sends account email from this address, so a project without it would fail only
+    # when the first password reset or welcome email is sent.
+    config = {**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")}
+    del config["NO_REPLY_EMAIL"]
+
+    with pytest.raises(KeyError, match="NO_REPLY_EMAIL"):
         get_defaults(TomlEnv(config, environ={}))

@@ -13,7 +13,7 @@ import merge from "lodash-es/merge.js";
  * Describes how a DRF serializer field type maps to a list column adapter.
  *
  * @typedef {object} ColumnMappingEntry
- * @property {string} column - The adapter name, a key into `availableColumns`.
+ * @property {string} column - The adapter name, a key into `availableColumns`. A name with no entry makes the column report an error.
  * @property {object} [columnProps] - Default props forwarded to the adapter for this type.
  * @property {boolean} [default] - Whether this is the default mapping for its serializer field type (used when `typeModel` is unknown).
  */

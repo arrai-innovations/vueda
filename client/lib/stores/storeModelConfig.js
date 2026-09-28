@@ -4,6 +4,7 @@
  */
 import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
+import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { formatSortField } from "@vueda/utils/sortedFields.js";
@@ -47,8 +48,8 @@ import { defineStore } from "pinia";
  * @property {string} verboseNamePlural - the human-readable plural name of the model
  * @property {string[]} displayFields - field names to display by default
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
- * @property {string[]} fetchFields - field names to fetch by default
- * @property {string[]} submitFields - field names to submit on create/update by default
+ * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default
  * @property {string[]} expand - field names to expand by default
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -71,8 +72,9 @@ import { defineStore } from "pinia";
  * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field name
  * @property {object} actionRedirects - mapping of action name to destination view
  *  when cancelling or after successful completion. The `default` key is used
- *  when no action-specific redirect exists. Values can be strings or functions
- *  receiving `{bulk, result}` and returning a view name.
+ *  when no action-specific redirect exists, except that a successful destroy with no `destroy` entry
+ *  goes to the list. Values can be strings or functions receiving `{bulk, result}` and returning a
+ *  view name.
  */
 
 /**
@@ -83,9 +85,10 @@ import { defineStore } from "pinia";
  * @property {string} [verboseNamePlural] - the human-readable plural name of the model
  * @property {string[]} [displayFields] - field names to display by default
  * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
- * @property {string[]} [fetchFields] - field names to fetch by default
- * @property {string[]} [submitFields] - field names to submit on create/update by default
+ * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
+ * @property {string[]} [submitFields] - field paths sent in the create/update request body by default
  * @property {string[]} [expand] - field names to expand by default
+ * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {ActionPermissionConfig} [actions] - actions to display by default
  * @property {string[]} [filterables] - filters to display in list view
@@ -166,8 +169,8 @@ const getDefaultFromModelInfo = (modelInfo) => {
     });
     return [
         {
-            verboseName: modelInfo.verbose_name,
-            verboseNamePlural: modelInfo.verbose_name_plural,
+            verboseName: modelInfo.verboseName,
+            verboseNamePlural: modelInfo.verboseNamePlural,
             displayFields: fields,
             detailLinkField: null,
             fetchFields: fields,
@@ -498,25 +501,6 @@ const mergeDeepProperties = (
 
 /**
  * A store for model configuration.
- *
- * @returns {import('pinia').Store<
- *     'modelConfig',
- *     {
- *         genericConfigs: {[key: string]: ModelConfig},
- *         specificConfigs: {[key: string]: OverridingModelConfig},
- *         builtConfigs: {[key: string]: ModelConfig},
- *         initialized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
- *     },
- *     {
- *         setConfig: (
- *             {app: string, model: string},
- *             genericConfig: OverridingModelConfig=null,
- *             specificConfigs: {[view: string]: OverridingModelConfig}=null
- *         ) => void,
- *         getConfig: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>,
- *     }
- * >}
- *
  */
 export const storeModelConfig = defineStore("modelConfig", {
     state: () => ({
@@ -561,7 +545,8 @@ export const storeModelConfig = defineStore("modelConfig", {
          * @param {string} params.app - Django app label.
          * @param {string} params.model - Model name.
          * @param {OverridingModelConfig|null} [genericConfig] - Overrides applied to all views.
-         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs] - Per-view overrides. A `read` key
+         *  applies to the read view, the same as `retrieve`.
          * @returns {void}
          * @example
          * ```js
@@ -589,14 +574,18 @@ export const storeModelConfig = defineStore("modelConfig", {
             }
             if (specificConfigs) {
                 for (const [view, specificConfig] of Object.entries(specificConfigs)) {
-                    const key = getAppModelViewDotName({ app, model, view });
+                    // Views look their config up by action name, so a `read` key is stored as `retrieve`.
+                    const key = getAppModelViewDotName({ app, model, view: getActionName(view) });
                     this.specificConfigs[key] = specificConfig;
                 }
             }
 
+            // the generic key, or a view key built from it; a bare prefix would also match other models
+            const isThisModel = (key) => key === genericKey || key.startsWith(`${genericKey}-`);
+
             // Cancel in-flight requests for this model
             for (const key of Object.keys(this.initialized)) {
-                if (key.startsWith(genericKey) && !this.builtConfigs[key]) {
+                if (isThisModel(key) && !this.builtConfigs[key]) {
                     this.initialized[key]?.cancel?.();
                     delete this.initialized[key];
                 }
@@ -604,7 +593,7 @@ export const storeModelConfig = defineStore("modelConfig", {
 
             for (const key of Object.keys(this.builtConfigs)) {
                 // if the builtConfig is for this app/model, we need to rebuild delete it
-                if (key.startsWith(genericKey)) {
+                if (isThisModel(key)) {
                     delete this.builtConfigs[key];
                 }
             }
@@ -629,9 +618,14 @@ export const storeModelConfig = defineStore("modelConfig", {
             }
 
             let promiseCancel = null;
+            let build = null;
+            // setConfig and clearAuthScoped drop this build's entry when they supersede it; a
+            // superseded build still answers its own caller, but must not cache its result or
+            // remove the entry of the build that replaced it.
+            const isCurrentBuild = () => this.initialized[builtKey] === build;
 
             // otherwise, build the config and cache the promise
-            this.initialized[builtKey] = (async () => {
+            build = (async () => {
                 // clone each to avoid mutation of original configs
                 const customGenericConfig = cloneDeep(this.genericConfigs[genericKey] || {});
                 const customSpecificConfig = specificKey ? cloneDeep(this.specificConfigs[specificKey]) || {} : {};
@@ -676,16 +670,21 @@ export const storeModelConfig = defineStore("modelConfig", {
                     customSpecificConfig,
                 );
 
-                this.builtConfigs[builtKey] = builtConfig;
-                delete this.initialized[builtKey];
+                if (isCurrentBuild()) {
+                    this.builtConfigs[builtKey] = builtConfig;
+                    delete this.initialized[builtKey];
+                }
                 return builtConfig;
             })();
-            this.initialized[builtKey].cancel = () => {
+            build.cancel = () => {
                 promiseCancel?.();
-                delete this.initialized[builtKey];
+                if (isCurrentBuild()) {
+                    delete this.initialized[builtKey];
+                }
             };
+            this.initialized[builtKey] = build;
 
-            return this.initialized[builtKey];
+            return build;
         },
     },
 });

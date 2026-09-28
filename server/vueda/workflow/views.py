@@ -1,8 +1,6 @@
 """Django views for workflow administration and API integration."""
 
 __all__ = (
-    "HasWorkflowViewMixin",
-    "HasWorkflowViewSetMixin",
     "WorkflowAddView",
     "WorkflowDeleteView",
     "WorkflowEditView",
@@ -11,6 +9,7 @@ __all__ = (
     "WorkflowTransitionEditView",
 )
 
+from django.apps import apps as django_apps
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
@@ -22,22 +21,11 @@ from django.utils.timezone import now
 from django.views import View
 from django.views.generic import TemplateView
 
+from vueda.core.installed_apps import workflow_enabled
 from vueda.user.mixins import LogoutMixin
 from vueda.workflow import models
 from vueda.workflow.globals import CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT
 from vueda.workflow.mixins import WorkflowUrlsMixin
-
-
-class HasWorkflowViewMixin:
-    """
-    Marker for REST framework views whose model participates in a workflow.
-
-    Permission classes own model-scope deferral. This mixin deliberately does not suppress
-    permission failures because the complete permission expression may contain unrelated gates.
-    """
-
-
-HasWorkflowViewSetMixin = HasWorkflowViewMixin
 
 
 class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
@@ -47,7 +35,7 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
 
     template_name = "workflow/overview.jinja2"
 
-    permission_required = ("workflow.read_workflow",)
+    permission_required = ("vueda_workflow.read_workflow",)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -67,7 +55,7 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
         )
         # organize workflows by app
         context["apps"] = {}
-        context["models_without_workflow_mixin"] = []
+        context["models_without_workflow_policy"] = []
         for workflow in workflows:
             app_label = workflow.content_type.app_label
             model_cls = workflow.content_type.model_class()
@@ -75,15 +63,16 @@ class WorkflowOverviewView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMix
                 context["apps"][app_label] = {}
             context["apps"][app_label][model_cls] = workflow
 
-            # we want to warn about model classes that have workflow, but do not inherit from HasWorkflowMixin.
-            if not issubclass(model_cls, models.HasWorkflowModelMixin):
-                context["models_without_workflow_mixin"].append(
+            # Warn about a workflow row whose model does not enable workflow in its class Vueda policy.
+            if not workflow_enabled(model_cls):
+                context["models_without_workflow_policy"].append(
                     (workflow.content_type.app_label, workflow.content_type.model, model_cls.__name__)
                 )
 
-        # we also want to warn about model classes that inherit from HasWorkflowMixin, but do not have a workflow.
+        # Warn about a model that enables workflow but has no workflow row.
         context["models_without_workflow_row"] = []
-        for model in models.HasWorkflowModelMixin.__subclasses__():
+        # A proxy shares its concrete model's workflow row, so only concrete models are listed.
+        for model in (model for model in django_apps.get_models() if workflow_enabled(model) and not model._meta.proxy):
             content_type = ContentType.objects.get_for_model(model)
             # Some models don't make sense having a workflow.
             if issubclass(model, CLASSES_TO_HIDE_FROM_WORKFLOW_MANAGEMENT):
@@ -103,7 +92,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
     http_method_names = [
         "post",
     ]
-    permission_required = ("workflow.delete_workflow",)
+    permission_required = ("vueda_workflow.delete_workflow",)
 
     def post(self, request, *args, **kwargs):
         pk = kwargs["pk"]
@@ -122,7 +111,7 @@ class WorkflowDeleteView(PermissionRequiredMixin, View):
 class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/add.jinja2"
 
-    permission_required = ("workflow.create_workflow",)
+    permission_required = ("vueda_workflow.create_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -157,7 +146,7 @@ class WorkflowAddView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, T
 class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_workflow",)
+    permission_required = ("vueda_workflow.update_workflow",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -250,7 +239,7 @@ class WorkflowEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, 
 class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_state",)
+    permission_required = ("vueda_workflow.update_state",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.
@@ -310,7 +299,7 @@ class WorkflowStateEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMi
 class WorkflowTransitionEditView(WorkflowUrlsMixin, LogoutMixin, PermissionRequiredMixin, TemplateView):
     template_name = "workflow/edit.jinja2"
 
-    permission_required = ("workflow.update_transition",)
+    permission_required = ("vueda_workflow.update_transition",)
 
     def get(self, request, *args, **kwargs):
         # Local import, so django doesn't blow up when the django_content_type table doesn't exist.

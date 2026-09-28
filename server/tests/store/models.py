@@ -13,7 +13,6 @@ from django.db.models.functions import Cast
 
 from vueda.core.models import Lookup
 from vueda.core.models import VuedaModel
-from vueda.workflow.models import HasWorkflowModelMixin
 
 
 class Customer(VuedaModel):
@@ -152,7 +151,7 @@ class OrderState(Lookup):
     pass
 
 
-class CustomerOrder(HasWorkflowModelMixin, VuedaModel):
+class CustomerOrder(VuedaModel):
     order_number = models.DecimalField(max_digits=7, decimal_places=0)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
@@ -166,6 +165,10 @@ class CustomerOrder(HasWorkflowModelMixin, VuedaModel):
         output_field=models.CharField(),
         db_persist=True,
     )
+
+    class Vueda:
+        class Workflow:
+            enabled = True
 
     class Meta(VuedaModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]

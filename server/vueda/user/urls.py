@@ -30,6 +30,8 @@ user_patterns = [
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),
     path("change_password/", PasswordChangeView.as_view(), name="change_password"),
+    path("forgot-password/", views.VuedaForgotPasswordView.as_view(), name="forgot_password"),
+    path("reset-password/", views.VuedaResetPasswordView.as_view(), name="reset_password"),
 ]
 
 urlpatterns = [
