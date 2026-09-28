@@ -25,9 +25,9 @@ The swap runs only on a serializer that is an instance of the view's serializer 
 
 DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation the body omits get no `initial_data`.
 
-## Read-Only Reverse Relations
+## Read-Only Relations
 
-When the mixin collects reverse relations to write, it drops each one whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. These serializers mark a relation as display only. Data the body sends for such a relation is discarded without an error. The request succeeds and the parent saves, but the related rows do not change.
+When the mixin collects relations to write, it drops each one whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. This applies to forward relations (a foreign key or one-to-one on the parent) and to reverse relations. These serializers mark a relation as display only. Data the body sends for such a relation is discarded without an error. The request succeeds and the parent saves, but the related rows do not change, and the parent keeps its stored foreign key.
 
 ## Write Order
 
@@ -46,7 +46,7 @@ An update writes rows in this order:
 5. Each reverse relation row in the body is updated or created.
 6. The parent is reloaded with {@api ext:django:django.db.models.Model.refresh_from_db}.
 
-A row in the body updates the existing row whose primary key it carries, under `pk` or the model's primary key name. A row without a primary key creates a new row.
+A row in the body updates the existing row whose primary key it carries, under `pk` or the model's primary key name. For a reverse foreign key, reverse one-to-one, or generic relation, the server looks for that row only among the parent's own rows. A row whose primary key matches none of them, or that has no primary key, creates a new row. A many-to-many row matches any row of the related model, because a nested many-to-many write links existing rows.
 
 Removal applies only to a reverse relation whose key is in the body. A body that omits the key leaves every row of that relation in place. A `PATCH` that sends the key sends the relation's full set of rows. What removal does depends on the relation:
 

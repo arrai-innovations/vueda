@@ -78,11 +78,13 @@ The default create and update views send each name in the model config's [`expan
 
 ## Send the Full Set of Children on Update
 
-On an update, the server matches each child object to an existing row by its `pk` or primary key field, such as `id`:
+On an update, the server matches each child object to one of the parent's existing rows by its `pk` or primary key field, such as `id`:
 
-- A child with a matching primary key updates that row.
-- A child with no primary key, or one that matches no row, creates a row.
+- A child whose primary key matches one of the parent's rows updates that row.
+- A child with no primary key, or one whose primary key matches none of the parent's rows, creates a row.
 - An existing row missing from the list is removed.
+
+A many-to-many child can match any row of the related model, because the write links existing rows.
 
 Removal depends on the relation. The server deletes a reverse foreign key row and unlinks a many-to-many row. It sets a `SET_NULL` or `SET_DEFAULT` foreign key to null or its default. A `PROTECT` foreign key fails the request with a `400`.
 
