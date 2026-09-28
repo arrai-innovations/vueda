@@ -107,7 +107,7 @@ storeModelConfig().setConfig({ app: "timesheet", model: "timesheet" }, null, {
 });
 ```
 
-[Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md#view-specific-field-strategy) describes the {@term View Field Lists} and how each view uses them.
+[Configure `list`/`read`/`create`/`update` Views](configure-crud-views.md#choose-each-views-field-lists) describes the {@term View Field Lists} and how each view uses them.
 
 ## Test Checklist
 

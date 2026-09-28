@@ -141,7 +141,7 @@ If `params` carries any key of a filter, visible or hidden, `params` supplies th
 
 - the add-filter menu does not offer it,
 - a URL value for it stays in the URL, but the list does not send it, restore it as a filter chip, or show it as a URL scope,
-- saved list preferences do not store or restore it. [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views#list-behaviour-and-defaults) describes list preferences.
+- saved list preferences do not store or restore it. [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views#list-preferences) describes list preferences.
 
 When your code removes the filter's keys from `params`, the filter behaves as usual again. The menu offers it, and a URL value still in the URL applies again as a filter chip or a URL scope. The sort, the search term, and other filters are unaffected throughout.
 

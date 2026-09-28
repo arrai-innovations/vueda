@@ -13,52 +13,45 @@ const order = orderScenario();
 
 # Configure `list`/`read`/`create`/`update` Views
 
-This guide covers how to customize {@term CRUD} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
+The built-in {@term CRUD} views render from {@term Model Info}, so a registered model starts with working `list`, `read`, `create`, and `update` pages. When one view needs different fields, actions, or list controls, you change it through {@term Model Config} overrides. Views you do not override keep the defaults.
 
-The guide assumes a working CRUD surface is already in place. If the model is not yet registered and routable, start with [Create a CRUD Surface](./create-crud-surface). For the metadata contract that model config consumes, see [Server-Client Metadata Contract](../core-concepts/server-client-metadata-contract). For expand and sparse field controls specifically, see [Use Expand and Sparse Field Controls](./expand-and-fields-controls).
-
-## Goal and Preconditions
-
-The objective is a model whose `list`, `read`, `create`, and `update` views behave correctly with customized field sets, action availability, and interaction defaults, all controlled through `storeModelConfig` overrides rather than per-view component forks.
-
-Before you begin, ensure the following are in place:
-
-The model is registered with both a serializer and a viewset, and model-info returns complete metadata (fields, actions, filtering, ordering). The client routes are wired via {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} and the model is navigable in the browser. You have read access to the model-info response for the model you are configuring, so you can verify which fields, actions, and expansions the server advertises.
+This guide assumes a working CRUD surface: the model is registered with a viewset, and {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} wires its routes (see [Create a CRUD Surface](./create-crud-surface)). Keep the model's model-info response at hand, so you can check which fields, actions, and expands the server lists. [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes how model config ranks against component props and server defaults.
 
 ## Baseline Config from Model Info
 
-`storeModelConfig` derives a complete default configuration from model-info the first time a model's config is requested. Understanding this baseline is essential because every override you set replaces part of it.
+{@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} builds each view's config from model info. You override only the keys that need to change. The defaults are:
 
-The defaults are:
+- The {@term View Field Lists}, [`displayFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.displayFields} and [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}: every serializer field except the pk and fields marked [`hidden`]{@api rest:schema:ModelInfoField}. Two views narrow `displayFields`:
+    - `create` shows only writable fields. A new record has no value for a read-only field, and the server ignores input for one.
+    - `list` shows only fields whose model-info entry does not set [`list_default`]{@api rest:schema:ModelInfoField} to `false`. A workflow model's serializers set it on `workflow_state_code` and `valid_transitions` ({@api py:function:vueda.workflow.serializers.workflow_serializer_fields}), so a workflow list shows `workflow_state_name` alone.
+- [`submitFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.submitFields}: the writable fields.
+- [`expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.expand}: every relation that model info lists for {@term Expand}.
+- [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} and [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions}: every action in the user's {@term Model Actions}.
+- [`actionDetails`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actionDetails}: each action's model-info entry, keyed by action name, including its `detail` and `bulk` flags.
+- [`fieldDetails`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldDetails}: each field's model-info entry, keyed by field name.
+- [`filterables`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.filterables}: the filters in model info's [`model_filtering`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_filtering}.
+- [`sortables`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.sortables}: the field names in [`model_ordering.fields`]{@api rest:schema:ModelInfoOrdering}.
+- [`sorted`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.sorted}: the server's default order from `model_ordering.default`. A descending field carries a leading `-`.
+- [`showTotalRecordNum`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.showTotalRecordNum} is `true`, and [`allowColumnHiding`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.allowColumnHiding} is `false`.
+- [`actionRedirects`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actionRedirects}: `{ default: "update" }` when the user can update, else `"read"`, then `"list"`, then `null`.
 
-- `displayFields` and `fetchFields`: every serializer field except the PK and fields marked `hidden`. Two views narrow this default:
-    - `create` displays only writable fields. A new record has no value yet for a read-only field, and the server ignores input for one.
-    - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. A workflow model's serializers set it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
-- `submitFields`: the same fields minus read-only ones.
-- `expand`: all expandable field names declared on the serializer.
-- `routeActions` and `actions`: all action names from model-info.
-- `filterables`: all keys from the filterset definition.
-- `sortables`: every field name in the model-info `model_ordering.fields` list — the fields a client may order by.
-- `sorted`: the server's default sort order, from `model_ordering.default` (each name reversed with a leading `-` when its `ascending` flag is `false`).
-- `actionDetails`: keyed by action name, each entry carries the `detail`, `bulk`, and other properties from the server's action metadata.
-- `fieldDetails`: keyed by field name, each entry carries the field's type, label, choices, constraints, and other metadata.
-- `actionRedirects`: `{ default: "update" }` if `update` is available, then `"read"` (from `retrieve`), then `"list"`, then `null`.
+## Register Overrides with `setConfig`
 
-To override any of these, call `storeModelConfig().setConfig()` with the model identity, an optional generic override (applied to all views), and an optional view-specific override map:
+Call [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} when the application starts, before any view of the model renders. It takes the model, a model-wide override, and a map of per-view overrides:
 
 ```js
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
 storeModelConfig().setConfig(
     { app: "myapp", model: "widget" },
-    // Generic overrides (all views)
+    // Model-wide overrides (every view)
     {
         displayFields: ["name", "status", "category"],
         fetchFields: ["name", "status", "category", "description"],
         submitFields: ["name", "status", "category", "description"],
         expand: ["category"],
     },
-    // View-specific overrides
+    // Per-view overrides
     {
         create: { submitFields: ["name", "category"] },
         list: { displayFields: ["name", "status"] },
@@ -66,62 +59,27 @@ storeModelConfig().setConfig(
 );
 ```
 
-Generic overrides apply to every view. View-specific overrides are merged on top and take precedence for that view. If you set an empty array for `displayFields`, `fetchFields`, or `submitFields`, the config falls back to the model-info-derived defaults rather than producing an empty field set.
+For the same key, the per-view override wins over the model-wide one. Key a per-view override by route name (`list`, `read`, `create`, `update`) or by action name. `read` and `retrieve` name the same view.
 
-The narrower `create` and `list` defaults apply only when no override names that field list or the `fields` shorthand. A generic `displayFields` therefore reaches the `create` and `list` views unchanged. For `list`, an unset `fetchFields` follows the resolved `displayFields`, so naming list columns is enough to fetch them.
+Each call replaces what it names. A model-wide object replaces the stored model-wide override, and `{}` clears it. Each per-view key replaces that view's stored override. Pass `null` for a level you want to keep.
 
-### Restore the full field list
+## Choose Each View's Field Lists
 
-Before these defaults, every view started from every non-PK, non-hidden field, and `submitFields` included read-only fields. To bring a read-only field back to a create form, or a flagged field back to a list, name the fields for that view:
+Each view uses the three field lists this way:
 
-```js
-storeModelConfig().setConfig(
-    { app: "myapp", model: "purchaseorder" },
-    {},
-    {
-        create: { displayFields: ["reference", "supplier", "total_value"] },
-        list: { displayFields: ["reference", "workflow_state_code", "workflow_state_name"] },
-    },
-);
-```
+- {@api vue:component:ViewList} requests `fetchFields` and renders a column for each `displayFields` entry. It always adds the pk to the request. When you name only `displayFields`, the list's `fetchFields` follow them.
+- {@api vue:component:ViewRead} and {@api vue:component:ViewUpdate} retrieve `fetchFields` and `expand` through {@api js:function:@arrai-innovations/vueda/use/useDetailView#useDetailView}. They also request the object's {@term Available Actions}.
+- {@api vue:component:ViewCreate} and `ViewUpdate` render `displayFields`, and create derives its initial values from them. The form's [`fields`]{@api vue:component:FormModel:prop:fields} prop replaces the list. `ViewUpdate` takes `fields` as its own prop, and `ViewCreate` passes it through [`formProps`]{@api vue:component:ViewCreate:prop:formProps}.
 
-To change the list default for one field in every project that uses a serializer, set the flag in the serializer field's `style`. `style={"list_default": False}` leaves a field out of the default list, and `style={"list_default": True}` keeps a field the mixin would leave out.
-
-To consume the resolved config in a component, use {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}:
-
-```js
-import { useModelConfig } from "@vueda/use/useModelConfig.js";
-
-const modelConfig = useModelConfig(
-    toRef(props, "app"),
-    toRef(props, "model"),
-    "list", // view name
-);
-
-// modelConfig.config contains the resolved ModelConfig object
-// modelConfig.info contains the raw model-info from the server
-// modelConfig.loading / modelConfig.errored / modelConfig.error for state
-```
-
-## View-Specific Field Strategy
-
-Each view consumes a different subset of the config's field properties. Aligning your overrides to what each view actually reads prevents surprises.
-
-**`ViewList`** fetches using `fetchFields` and renders columns using `displayFields`. The fetch request always injects the PK into `fetchFields` even if it is not listed, so the list can identify rows for navigation and selection. A custom cell slot that reads a field with no column needs that field named in `fetchFields`. Column metadata (labels, types, sort eligibility) comes from `fieldDetails`. If `displayFields` includes a field that is not in `fetchFields`, the column will render with a missing value.
-
-**`DetailView`** (used by `ViewRead` and `ViewUpdate`) retrieves using `fetchFields` and `expand`. It requests `available_actions` alongside the object data to render action buttons. Field rendering in the detail layout also reads from `fieldDetails`, including `expand.subfield` keys for expanded relation fields.
-
-**`ViewCreate`** and **`ViewUpdate`** render the fields in `displayFields` by default. Explicit `FormModel` field props can override that selection. `fieldDetails` supplies labels, types, required flags, and validation constraints. Create also uses `displayFields` to derive initial form values.
-
-Each save request draws on three separate field lists:
+A save uses all three lists:
 
 - `displayFields` selects the fields the form renders.
-- `submitFields` selects the values sent in the request body. A form value that `submitFields` omits stays out of the body, even when the form displays or fetched it.
-- `fetchFields` selects the fields the server returns, through the `f` query parameter. `ViewUpdate` uses it for retrieval and for the save response. `ViewCreate` uses it for the save response. Both views add the PK.
+- `submitFields` selects the values the request body carries. A value outside `submitFields` stays out of the body, even when the form shows it.
+- `fetchFields` selects the fields the save response returns, through {@term Sparse Fields}. Both views add the pk.
 
-A top-level `submitFields` name such as `lines` sends that field's whole value, including nested inline rows. A dotted path such as `address.city` sends only that nested value.
+A top-level `submitFields` name, such as `lines`, sends that field's whole value, including nested inline rows. A dotted path, such as `address.city`, sends only that nested value. Do not name a subfield of an expanded relation: the view's config then fails to build, with an error that names the path.
 
-An order form can render and submit `quantity` while a custom summary reads the server-calculated `unit_price` and `total`:
+For example, an order form can render and submit `quantity` while a summary reads the server-calculated `unit_price` and `total`:
 
 ```js
 storeModelConfig().setConfig(
@@ -134,7 +92,7 @@ storeModelConfig().setConfig(
 );
 ```
 
-The save response is available as `objectForm.state.object`. `ViewUpdate` also retrieves the object again after each save. The summary therefore sees fresh values after every save, and neither `unit_price` nor `total` joins the next request body.
+The save response is available as [`objectForm.state.object`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.object}, and `ViewUpdate` retrieves the object again after each save. The summary shows fresh values after every save, and neither `unit_price` nor `total` joins the next request body.
 
 The demo below runs that configuration against an offline server. Change the quantity and submit, then compare the request log with the summary.
 
@@ -167,96 +125,145 @@ The demo below runs that configuration against an offline server. Change the qua
 </VuedaDemo>
 </ClientOnly>
 
-Each list resolves in this order, and an omitted or empty list at any level falls through to the next:
+Create and update resolve `submitFields` and `fetchFields` in this order:
 
-1. The view's `submitFields` or `fetchFields` prop.
-2. The view-specific config.
-3. The model-wide config, or its `fields` shorthand.
-4. The defaults derived from model info.
+1. The view's [`submitFields`]{@api vue:component:ViewCreate:prop:submitFields} or [`fetchFields`]{@api vue:component:ViewCreate:prop:fetchFields} prop, when it is not empty.
+2. The per-view override.
+3. The model-wide override.
+4. The `fields` shorthand from either override, which sets all three lists at once.
+5. The defaults from model info.
 
-Fields marked ignored stay out of the body even when `submitFields` names them. `submitFields` only narrows what the client sends. The server still validates each write against the serializer's writable fields and the user's permissions.
+An omitted list falls through to the next step. An empty list in a per-view override skips the model-wide list and falls through to the `fields` shorthand, then the defaults.
 
-When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
+{@term Ignored Field} values stay out of the body even when `submitFields` names them. `submitFields` narrows only what the client sends. The server still validates each write against the serializer's writable fields and the user's permissions.
 
-## Action and Route Strategy
+When `expand` is not empty, the config adds each expanded relation's subfields to `fieldDetails` under dotted keys. With `category` expanded, `fieldDetails["category.name"]` holds the metadata for the category's `name`, and you can override it there.
 
-Three config properties control action visibility at different layers, and keeping them aligned is important for predictable behaviour.
+### Show a Field the Defaults Leave Out
 
-**`routeActions`** constrains which actions the `requireModelInfo` route guard permits. If `routeActions` is set, the guard filters model-info actions down to only those names that appear in the array. An action not in `routeActions` will produce an "Action Not Found" toast and redirect, even if the server advertises it. `routeActions` must use server-canonical action names (`retrieve`, not `read`), because the guard normalizes route action names before checking the list. See [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) for the full guard chain.
+To show a read-only field on a create form, or a `list_default: false` field in a list, name the view's fields:
 
-**`actions`** narrows which actions are visible to view components through `useFilteredActions`. This controls the rendering of buttons in `ViewList`, `DetailView`, and `ViewCreate`. An action that passes the route guard but is not in `actions` will not appear as an action button, though the user can still navigate to it directly by URL.
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "purchaseorder" }, null, {
+    create: { displayFields: ["reference", "supplier", "total_value"] },
+    list: { displayFields: ["reference", "workflow_state_code", "workflow_state_name"] },
+});
+```
 
-**`actionDetails`** controls how each action is classified in the UI layer. `storeModelConfig` derives `actionDetails` from the server's action metadata, keyed by action name. Each entry carries at least `detail` and `bulk` flags:
+The narrower `create` and `list` defaults apply only when no override names that list or the `fields` shorthand. A model-wide `displayFields` reaches `create` and `list` unchanged.
 
-- `ViewList` uses `actionDetails[action].detail` and `.bulk` to classify actions into row-level (detail) actions, bulk actions (operating on selected rows), and targetless actions (neither detail nor bulk, rendered as standalone buttons).
-- `DetailView` and `ViewCreate` use `actionDetails[action].detail` to separate detail actions (shown per-object) from non-detail actions (shown as general buttons).
-- `useLinkModelView` checks `actionDetails[action].detail || actionDetails[action].bulk` to decide whether a PK is required before enabling navigation links.
+To change a field's list default wherever a serializer is used, set the flag in the serializer field's `style`. `style={"list_default": False}` leaves the field out of the default list. `style={"list_default": True}` keeps a field that {@api py:class:vueda.core.serializers.WorkflowFieldsSerializerMixin} would leave out.
 
-If an action is present in `actions` but missing from `actionDetails`, UI classification checks will drop it from rendered action buttons. When overriding `actionDetails`, ensure every action in `actions` has a corresponding entry.
+## Choose Actions and Routes
 
-## List Behaviour and Defaults
+Three keys control actions. Name actions in each by {@term Canonical Action Name}, such as `retrieve` for the `read` route.
 
-`ViewList` exposes several config properties for tuning list interaction beyond field selection.
+### Limit Which Routes Open
 
-**`filterables`** controls which fields appear in the filter UI. The default is all keys from the model's filterset definition. Override this to restrict which filters are available to the user. `filterableDetails` carries the metadata for each filterable field (type, choices, label) and is typically left at its default.
+`routeActions` narrows which actions {@term Route Admission} lets a route open. Set it in the model-wide override, because the route guard reads only the model-wide config:
 
-**`sortables`** controls which columns support sorting. The default is every field name the model-info `model_ordering.fields` list advertises. That list is not just the viewset's declared `ordering_fields`: it also covers the serializer-derived fields DRF falls back to when `ordering_fields` is absent, and every field named in `model_ordering.default`, which is always requestable — see [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics). **`sorted`** sets the initial sort state; it defaults to the server's own default sort order (`model_ordering.default`), not an empty sort — `ViewList` opens already sorted the way the server would sort it if no `?o=` were sent. A stored user preference, once one exists, takes precedence over this default; `SortGroup`'s `Reset sort` control restores it explicitly.
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, { routeActions: ["list", "retrieve", "update"] });
+```
 
-**List controls:**
+A route for another model action shows an "Action Not Found" toast and redirects to the `makeCRUDRoutes` [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}. A workflow transition code still opens, whatever `routeActions` lists. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) describes the full guard chain.
 
-- `showTotalRecordNum`: show the total record count in the list footer (default: `true`).
-- `allowColumnHiding`: allow the user to show/hide columns (default: `false`).
+### Limit Which Buttons Render
 
-Configure the rows-per-page selector through the `ViewList` props `pageSizeOptions` and `defaultPageSize`. Include `"all"` in `pageSizeOptions` to let users load every page, or set `defaultPageSize="all"` to start in that mode.
+`actions` narrows which action buttons the views render. An action left out of `actions` can still open by URL, so use `routeActions` to close the route as well.
 
-List preferences (visible columns, sort state, page size) are persisted per-user when preference persistence is enabled. Model config and `ViewList` prop overrides set the initial defaults; user preferences take precedence after the first interaction.
+`actions` takes a list of action names, or an object ({@api js:type:@arrai-innovations/vueda/stores/storeModelConfig#ActionPermissionConfig}) that maps each action to `true` or to a list of group names. With the object form, a user sees an action's button when its value is `true` or when the user belongs to one of the listed groups:
 
-Saved filters hold what the reader chose: the filters they added and their search term. A hidden filter's URL value, such as an `?id=1,2` deep link, and query parameters the list does not use stay in the URL for that visit and are never saved. Opening the list with no query parameters restores only saved filters the list still offers and the saved search term.
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { actions: { create: true, destroy: ["managers"] } },
+});
+```
 
-## Verification Checklist
+Group membership here only hides buttons. The server still checks each request's permissions.
 
-With config overrides in place, verify the surface end-to-end:
+### Check How Each Action Is Grouped
 
-- `list` view renders only the columns specified in `displayFields` and fetches the fields specified in `fetchFields`. The PK column is included in the fetch even if it's omitted from the config.
-- `read` view renders all expected fields, including expanded sub-fields if `expand` is configured.
-- `create` form renders the fields specified in `displayFields` for the `create` view, unless explicit form field props override them. Submission succeeds and redirects according to `actionRedirects`.
-- `update` form renders the fields specified in `displayFields` for the `update` view, unless explicit form field props override them. Submission succeeds and redirects correctly.
-- Action buttons in `list` and `detail` views match the `actions` list. Detail actions, bulk actions, and targetless actions are classified correctly per `actionDetails`.
-- Navigating to an action excluded from `routeActions` produces an "Action Not Found" toast and redirects.
-- Filters and sort controls reflect the `filterables` and `sortables` overrides.
-- List controls (`showTotalRecordNum`, `allowColumnHiding`, page-size options) produce the expected UI behaviour.
+`actionDetails` decides where an action's button renders. Model info supplies an entry for each action it lists, and a view renders no button for an action without one. The `detail` and `bulk` flags group the buttons:
+
+- `ViewList` renders a `bulk` action in the selection strip, and an action with neither flag as a button in the page title. It renders no button for a `detail` action that is not `bulk`. [Link List Rows to Read and Update Views](./link-list-rows-to-detail-views) sets up navigation from a row to its read or update view.
+- The read and update views render a `detail` action only when the object's `available_actions` includes it. They render actions without `detail` from the model's action list.
+- `ViewCreate` renders only actions without `detail`.
+
+{@api vue:component:LinkModelView} requires a pk before it enables a link to a `detail` or `bulk` action, or to a workflow transition code. If you override `actionDetails`, keep these flags matching the server's action metadata.
+
+## Choose the Redirect After a Save
+
+After a successful save, `ViewCreate` and `ViewUpdate` go where their `redirectAfter` prop sends them:
+
+- [`ViewCreate` `redirectAfter`]{@api vue:component:ViewCreate:prop:redirectAfter} defaults to `"update"`, which opens the new record's update view. It also accepts `"read"` and `"list"`.
+- [`ViewUpdate` `redirectAfter`]{@api vue:component:ViewUpdate:prop:redirectAfter} defaults to `null`, which stays on the page. It also accepts `"read"` and `"list"`.
+
+`actionRedirects` sets the {@term Action Redirect} for views that run through {@api vue:component:ModelActionForm}, such as destroy, extra actions, and workflow transitions. Create and update do not read it. [Design Transition UX and Redirects](./transition-ux-and-redirects#redirect-precedence-and-route-targets) describes how an action form picks its redirect.
+
+## Set List Controls
+
+These keys and `ViewList` props shape the list:
+
+- `filterables` sets which filters the filter menu offers. The `ViewList` [`filterables`]{@api vue:component:ViewList:prop:filterables} prop replaces it.
+- `sortables` sets which columns offer sorting. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics) describes which fields the server accepts for ordering.
+- `sorted` sets the sort the list opens with. A saved sort preference wins over it, and {@api vue:component:SortGroup}'s "Reset sort" control returns to it.
+- `showTotalRecordNum` shows the total record count in the pagination bar. `allowColumnHiding` shows a control that lets the user hide columns. The `ViewList` props of the same names override both.
+- The `ViewList` props [`pageSizeOptions`]{@api vue:component:ViewList:prop:pageSizeOptions} and [`defaultPageSize`]{@api vue:component:ViewList:prop:defaultPageSize} set the rows-per-page choices and the starting size. Include `"all"` in `pageSizeOptions` to let users load every row, or set `defaultPageSize` to `"all"` to start there.
+
+### List Preferences
+
+`ViewList` saves a user's list choices in the browser's local storage, one entry per app and model. It saves:
+
+- the columns the user hid,
+- the sort the user chose,
+- the page size,
+- the filters the user added, and the search term.
+
+Preferences belong to the browser. Everyone who signs in on that browser shares them, and signing out does not clear them. To clear a model's entry, call {@api js:method:@arrai-innovations/vueda/stores/storeListPreference#storeListPreference.clearPreferences}.
+
+Your config and props set the starting state, and a saved preference wins over them. The list restores hidden columns on every visit. It restores the sort, page size, filters, and search term only when it opens with no query parameters. It restores a saved page size only when `pageSizeOptions` still offers it, and a saved filter only when the list still offers that filter.
+
+A hidden filter's URL value, such as an `?id=1,2` link, stays in the URL for that visit and is never saved. Query parameters the list does not use are not saved either. [Open a Scoped List](./scope-a-list) describes which filters `params` supplies and keeps out of preferences.
+
+## Verify the Result
+
+To read the resolved config in a component, call {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig} with the app, model, and view name:
+
+```js
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
+
+// modelConfig.config: the resolved config for the list view
+// modelConfig.info: the model info from the server
+// modelConfig.loading, modelConfig.errored, modelConfig.error: load state
+```
+
+Then check each view in the browser:
+
+- The list renders a column for each `displayFields` entry, and its request's `f` carries the `fetchFields` plus the pk.
+- The read view renders the expected fields, including expanded subfields when `expand` names the relation.
+- The create and update forms render the view's `displayFields`, and each save's body carries only `submitFields`.
+- After a save, create and update go where their `redirectAfter` sends them.
+- Each view shows the action buttons that `actions` and `actionDetails` allow.
+- A route for an action outside `routeActions` shows "Action Not Found" and redirects.
+- The filter menu and sort controls match `filterables` and `sortables`.
+- After you hide a column and reload the list without query parameters, the column stays hidden.
 
 ## Troubleshooting
 
-**List columns show empty values for some fields.** `displayFields` includes a field that is not in `fetchFields`. The field is rendered as a column, but its value is never fetched. Add the field to `fetchFields` or remove it from `displayFields`.
+**A list column shows no values.** The list override sets `fetchFields` and leaves the field out. Add the field to `fetchFields`, or remove `fetchFields` from the list override so it follows `displayFields`.
 
-**Action button is missing from the view.** Check three things in order. First, confirm the action is present in the model-info response (`model_actions`); if not, the user may lack the permission. Second, check that the action is included in the `actions` config for that view. Third, verify that `actionDetails` has an entry for the action; a missing entry causes `useFilteredActions` to drop it.
+**An action button is missing.** Check in this order:
 
-**"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Entries in `routeActions` are compared against the server action names from `model_actions` (`retrieve`, `update`, `partial_update`, `destroy`, and so on). The only client route name that differs from its server action name is `read`, which the guard normalizes to `retrieve`; every other route segment (`update`, `destroy`, etc.) already matches its server action name. Use `retrieve` rather than `read` in `routeActions`.
+1. The model-info response lists the action in `model_actions`. If not, the user lacks the permission for it.
+2. The view's `actions` includes the action. With the object form, the user belongs to one of its groups.
+3. On a read or update view, the object's `available_actions` includes a `detail` action.
+4. The action's `actionDetails` flags put it in a group the view renders. A list renders no button for a `detail` action that is not `bulk`.
 
-**Create/update form rejects a field on submission.** Check the field's error message and submitted value against the server serializer's validation rules. A required field that `submitFields` leaves out never reaches the server, so a create request fails validation for it. Add the field to `submitFields`, or give it a default on the server.
+**A route shows "Action Not Found".** `routeActions` leaves the action out. Set `routeActions` in the model-wide override, and use `retrieve` for the `read` route.
 
-**Action renders in the wrong category (detail vs. targetless).** The `actionDetails` entry for the action has incorrect `detail` or `bulk` flags. For example, setting `detail: false` on a per-object action moves it from the row-level action list to the targetless button area. Review the server's action metadata and adjust `actionDetails` overrides to match the intended classification.
+**A create request fails validation for a required field.** `submitFields` leaves the field out, so its value never reaches the server. Add the field to `submitFields`, or give it a default on the server.
 
-**Links to an action are always enabled, even without a selected object.** `useLinkModelView` checks `actionDetails[action].detail || actionDetails[action].bulk` to decide if a PK is required. If neither flag is set, the link is enabled unconditionally. Set `detail: true` or `bulk: true` on the action's `actionDetails` entry to gate the link on row selection.
-
-**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
-
-**Template route paths do not match project structure.** The provided project templates wire CRUD routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
-
-## Relevant Implementation Surface
-
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
-    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
-    - {@api js:module:@arrai-innovations/vueda/use/useModelConfig}
-    - {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}
-    - {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}
-    - {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}
-    - {@api js:module:@arrai-innovations/vueda/router/guards}
-- Vue.js Components:
-    - {@api vue:component:ViewList}
-    - {@api vue:component:DetailView}
-    - {@api vue:component:ViewRead}
-    - {@api vue:component:ViewCreate}
-    - {@api vue:component:ViewUpdate}
+**An expanded subfield has no `fieldDetails` entry.** The config adds dotted subfield keys only when `expand` names the relation. Add the relation to `expand` for that view.
