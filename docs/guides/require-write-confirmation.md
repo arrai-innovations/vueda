@@ -143,7 +143,7 @@ A validation error in the body shows only after the user confirms. For an action
 
 ## Confirm Warnings on the Client
 
-1. The stock views need no setup. `ViewCreate` and `ViewUpdate` render a {@api vue:component:FormConfirmDialog} for their form. {@api vue:component:ActionForm} mounts its own dialog. {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewDestroy}, and {@api vue:component:ViewExecuteTransition} build on it through {@api vue:component:ModelActionForm}, as can your own shells.
+1. The stock views need no setup. `ViewCreate` and `ViewUpdate` render a {@api vue:component:FormConfirmDialog} for their form. {@api vue:component:ActionForm} mounts its own dialog. {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewDeactivate}, {@api vue:component:ViewDestroy}, and {@api vue:component:ViewExecuteTransition} build on it through {@api vue:component:ModelActionForm}, as can your own shells.
 
 2. In a custom shell that calls {@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm}, bind a dialog to its [`confirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.confirmation} controller:
 
@@ -252,7 +252,6 @@ A validation error in the body shows only after the user confirms. For an action
 - The write is not a bulk create or update, which is never gated.
 - A dialog is bound to the controller. Without one, the browser console shows a warning and the submit resolves as cancelled.
 - A project `EXCEPTION_HANDLER` that replaces {@api py:function:vueda.core.exceptions.debug_stack_exception_handler} keeps the `digest` in the 409 body. Without a digest, the client treats the 409 as an error.
-- The stock `deactivate` route renders {@api vue:component:ViewDeactivate}, which does not show the dialog. A warned deactivation there fails with a 409 error message.
 
 **The dialog opens again after the user confirms.** The warnings changed between the two requests, so the digest changed. Keep warning text the same across requests: a message that includes the current time changes the digest every time.
 
