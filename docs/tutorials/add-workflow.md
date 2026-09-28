@@ -7,21 +7,13 @@ type: tutorial
 
 # Add Workflow to a Model
 
-In this tutorial, you will add workflow support to an existing VUEDA model. By the end, your model will track state, support transitions via the API, and provide a debug admin UI for managing workflow definitions during development.
+In this tutorial, we add a {@term Workflow} to the `Product` model from [Start Building](start-building.md). A product starts as a draft, and a `publish` transition moves it to published. By the end, the API reports each product's state and executes transitions, and the client shows transition buttons.
 
-Now that your VUEDA project is set up with basic functionality, it's time to add workflow features. The following steps build directly on the foundational work you've completed, using the Product model as an example.
-
-## What Workflow Adds
-
-A workflow gives your model named states and transitions. Each model instance tracks its current state. Transitions define valid state changes. The API provides endpoints for querying state, listing transitions, and executing transitions. Add state and transition permissions for extra access control if needed.
-
-Without a workflow, a model's CRUD views work normally but lack state-driven behaviour. When the client requests `permitted_transitions` from the API, it receives a 404 if workflow URLs are not wired up. Likewise, the UI displays transition actions that appear empty if no workflow exists for the model. Wiring up workflow URLs eliminates the 404, while creating a workflow definition populates the transitions.
+We work as the Start Building user, `you@domain.invalid`. Its group grants the `inventory` permissions, and we add a second group for the workflow.
 
 ## Wire Up Workflow URLs
 
-`vueda.workflow` is in `INSTALLED_APPS` by default, and its migrations run during the initial `migrate`. Add URL routing to finish the setup.
-
-The copier templates wire up `vueda.info` and `vueda.user` URLs but do not include `vueda.workflow`. Add it to your project's `config/urls.py`:
+{@api py:module:vueda.workflow} is in {@api ext:django:setting:INSTALLED_APPS} by default, and its migrations ran with your first `migrate`. The project templates route the `vueda.info` and `vueda.user` URLs but leave out `vueda.workflow`. Add the [workflow URL patterns]{@api py:module:vueda.workflow.urls} to `server/config/urls.py`:
 
 ```python
 from django.urls import include, path
@@ -45,25 +37,13 @@ urlpatterns = [
 ]
 ```
 
-This registers two sets of endpoints under the `routes/` prefix:
+This adds the workflow API under `routes/vueda.workflow/workflows/<app_label>/<model>/`. While {@api ext:django:setting:DEBUG} is on, it also adds the workflow management views under `routes/vueda.workflow/`.
 
-- **API endpoints** at `routes/vueda.workflow/workflows/{app_label}/{model}/...` for querying state, listing transitions, and executing transitions.
-- **Debug admin views** (only when `DEBUG=True`) at `routes/vueda.workflow/overview/`, `routes/vueda.workflow/add/`, and `routes/vueda.workflow/edit/{pk}/` for managing workflow definitions through a browser UI.
+## Enable Workflow on the Model
 
-After registering the URLs, restart your server to apply the changes.
-
-## Enable Workflow on Your Model
-
-To use workflow, declare `class Vueda.Workflow` with `enabled = True` on your model. VUEDA then creates an `ObjectState` record on save, tracks state, and adds methods to query or execute transitions. The model's serializers and filtersets receive the workflow fields and the `workflow_state` filter without further changes.
-
-Update your model in `server/your_project/inventory/models.py`:
+In `server/your_project/inventory/models.py`, add `class Vueda` with a `Workflow` class to `Product`:
 
 ```python
-from django.db import models
-
-from vueda.core.models import BaseModelMeta, VuedaModel
-
-
 class Product(VuedaModel):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64, unique=True)
@@ -77,33 +57,26 @@ class Product(VuedaModel):
         ordering = ["name", "id"]
 ```
 
-Enabling workflow needs no new migration for your model. It adds no database columns, and it tracks per-instance state in the `ObjectState` table from the `vueda.workflow` migrations.
+`Product` is now a {@term Workflow-Enabled Model}. VUEDA gives each product an {@term Object State} record when it is saved. The product serializer and filterset gain the workflow fields and the [`workflow_state` filter]{@api py:class:vueda.core.filters.WorkflowStateFilterSetMixin}. The model needs no new migration, because object states live in a `vueda.workflow` table.
 
-Until the model has a workflow definition, saving a `Product` raises `WorkflowNotConfiguredError`. Create the definition next.
+Until the model has a workflow definition, saving a `Product` raises {@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError}. We create the definition next.
 
-## Create a Workflow Definition
+## Create the Workflow Definition
 
-A workflow definition consists of:
+A workflow definition has four parts:
 
-- A **Workflow** object, linked to a content type (one workflow per model).
-- **State** objects belonging to the workflow.
-- An **InitialState** object, designating which state new instances receive on first save.
-- **Transition** objects, each with a target state and one or more **TransitionSource** entries that define valid source states.
+- A {@api py:class:vueda.workflow.models.Workflow} linked to the model's {@term Content Type}. Each model has at most one.
+- {@api py:class:vueda.workflow.models.State} rows, here `draft` and `published`.
+- An {@api py:class:vueda.workflow.models.InitialState}, the state a new object receives on its first save.
+- {@api py:class:vueda.workflow.models.Transition} rows. Each has a target state and one or more {@api py:class:vueda.workflow.models.TransitionSource} rows naming the states it leaves from.
 
-Choose how you want to create your workflow definition. The following options cater to different development needs.
+From `server/`, open a Django shell:
 
-### Option A: Debug Admin UI
+```console
+uv run python manage.py shell
+```
 
-When `DEBUG=True`, go to `http://localhost:8000/routes/vueda.workflow/overview/` in your browser. Log in as a superuser if needed. This page lists workflows and flags models that enable workflow but have no workflow definition.
-
-1. On the overview page, click **Add** to start a new workflow. Choose the content type for your model (for example, `inventory | product`). Enter a code and a descriptive name for the workflow, then save it.
-2. After creating the workflow, go to its edit page. Click **Add State** to define each state your model should support (for example, `draft` and `published`). Save each state as you add it.
-3. Set the initial state by selecting one of your defined states (such as `draft`) to be the default for new objects, then save this selection.
-4. Click **Add Transition** to define transitions between states. For example, create a `publish` transition that moves from `draft` to `published`. Then, create an `unpublish` transition that moves from `published` back to `draft`. For each transition, specify both a target state and at least one valid source state.
-
-The workflow activates immediately. New `Product` instances are now saved with the initial state. The API reports transitions after you [grant workflow permissions](#grant-workflow-permissions).
-
-### Option B: Django Shell
+Create the workflow, its two states, the initial state, and two transitions:
 
 ```python
 from django.contrib.contenttypes.models import ContentType
@@ -114,6 +87,8 @@ from vueda.workflow.models import (
     TransitionSource,
     Workflow,
 )
+
+from your_project.inventory.models import Product
 
 ct = ContentType.objects.get_for_model(Product)
 
@@ -139,38 +114,25 @@ unpublish = Transition.objects.create(
 TransitionSource.objects.create(transition=unpublish, source=published)
 ```
 
-### Option C: Data Migrations
+Keep the shell open for the next step.
 
-To version workflow definitions, use the `makeworkflowmigrations` command. It scans workflow history and creates a Django migration to manage workflow objects.
+The Starter Kit product from Start Building has no object state yet, because we saved it before the workflow existed. In a second terminal, from `server/`, give it the initial state with {@api py:class:vueda.workflow.management.commands.backfillworkflowstates.Command}:
 
-1. Create or modify workflow objects with the debug admin UI or shell.
-2. Run `python manage.py makeworkflowmigrations` to generate a migration.
-3. Commit the migration. Other developers and CI apply it with `migrate`.
-
-With this approach, your project's workflow definitions stay consistent across environments.
+```console
+uv run python manage.py backfillworkflowstates inventory.Product
+# Expect: inventory.Product: created 1 object state(s).
+```
 
 ## Grant Workflow Permissions
 
-Workflow endpoints answer `403` until the workflow has a workflow permission. A transition with no transition permission is hidden from every user. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) explains both gates.
+Until the workflow has a {@term Workflow Permission}, no user can list or execute its transitions. A transition with no {@term Transition Permission} is hidden from every user. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) explains both gates.
 
-From `server/`, open a Django shell:
-
-```console
-uv run python manage.py shell
-```
-
-Create one workflow permission and one permission per transition. Then grant them to a group, and add the user you log in with. Replace the email with that user's email.
+In the same shell, create one workflow permission and one permission per transition. Then grant them to a group, and add our user to it:
 
 ```python
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
-from django.contrib.contenttypes.models import ContentType
-from vueda.workflow.models import TransitionPermission, Workflow, WorkflowPermission
-
-from your_project.inventory.models import Product
-
-ct = ContentType.objects.get_for_model(Product)
-workflow = Workflow.objects.get(content_type=ct)
+from vueda.workflow.models import TransitionPermission, WorkflowPermission
 
 read_product = Permission.objects.get(content_type=ct, codename="read_product")
 update_product = Permission.objects.get(content_type=ct, codename="update_product")
@@ -190,20 +152,17 @@ editors.permissions.add(read_workflow, read_product, update_product)
 get_user_model().objects.get(email="you@domain.invalid").groups.add(editors)
 ```
 
-The `permitted_transitions` endpoint also requires `vueda_workflow.read_workflow`, so the group holds it too.
+The transition endpoints also check `vueda_workflow.read_workflow`, so the group grants it. The group also grants the two `inventory` permissions the rows name, so it holds everything this workflow needs.
 
 ## Verify the API
 
-With the workflow wired up, verify that the API returns the correct response. Using the same authentication setup from [Start Building](start-building.md):
+Log in with curl as in [Start Building](start-building.md#verify-the-new-api-endpoints), so `$COOKIE_JAR` and `$CSRF_TOKEN` are set. Then request the model's {@term Permitted Transitions}:
 
 ```console
-# Check permitted transitions for Product
 curl -b $COOKIE_JAR \
   http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/permitted_transitions/
-# Expect: 200 with a list of transition codes (e.g. [{"code": "publish", "name": "Publish"}, ...])
+# Expect: 200 with [{"code": "publish", "name": "Publish"}, {"code": "unpublish", "name": "Unpublish"}]
 ```
-
-If you have existing `Product` instances created before the workflow was added, they will not yet have an `ObjectState` record. Re-saving them (or calling `product.create_object_state()`) assigns the initial state.
 
 Create a product. It starts in the `draft` state.
 
@@ -217,21 +176,19 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 PRODUCT_ID=3  # replace with the "id" from the response
 ```
 
-For that object, check its current state and available transitions:
+Read the product's [state]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/} and the [transitions it can take]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/} from that state:
 
 ```console
-# Object state
 curl -b $COOKIE_JAR \
   http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-state/$PRODUCT_ID/
 # Expect: 200 with {"state": {"code": "draft", "name": "Draft"}, ...}
 
-# Transitions available for this object in its current state
 curl -b $COOKIE_JAR \
   http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/object-transitions/$PRODUCT_ID/
 # Expect: 200 with [{"code": "publish", "name": "Publish"}]
 ```
 
-Execute a transition:
+[Execute]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/} the `publish` transition by sending its code as `transition_code`:
 
 ```console
 curl -b $COOKIE_JAR -c $COOKIE_JAR \
@@ -240,15 +197,19 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
   -X PATCH \
   http://localhost:8000/routes/vueda.workflow/workflows/inventory/product/execute-transition/$PRODUCT_ID/ \
   -d '{"transition_code": "publish"}'
-# Expect: 200 with {"new_state": {"code": "published", ...}, "new_transitions": [...]}
+# Expect: 200 with {"new_state": {"code": "published", ...}, "new_transitions": [{"code": "unpublish", "name": "Unpublish"}]}
 ```
+
+The product is now published, and `unpublish` is the one transition it can take.
 
 ## Verify in the Browser
 
-If you have the client running, navigate to the read or update view of a `Product` instance. The client reads `permitted_transitions` for routing and the object's `valid_transitions` field for its transition buttons. For a user in the `Product Editors` group, transition actions (such as "Publish") appear alongside the standard CRUD actions.
+With the client running, log in as `you@domain.invalid` and reload the page, so the client reads the new permissions. Open the read view of the Starter Kit product. A **Publish** button appears beside the standard {@term CRUD} actions. On the Workflow Kit product, which we published, the button reads **Unpublish**.
+
+The list view builds its transition buttons from the model's permitted transitions, and a detail view builds them from the object's {@term Valid Transitions}. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#ui-affordance-filtering-layers) describes where each view's buttons come from.
 
 ## What's Next
 
-You now have a workflow with states and transitions. The API only allows valid transitions, and the client shows available transitions in the UI.
-
-To control who can see or execute transitions, or to grant or deny CRUD permissions by state, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md). To manage workflow definitions in the browser, see [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md).
+- [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md) describes building a workflow in the workflow management views and shipping it to other environments as a {@term Workflow Migration}.
+- [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions.md) adds {@term State Permission} rules that grant or deny {@term CRUD} permissions by state.
+- [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) explains how the workflow, transition, and state gates combine.
