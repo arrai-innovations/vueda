@@ -18,7 +18,7 @@ import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
 import { validateClientSymbols } from "../js/validators/client-symbols.js";
-import { validateReferences } from "../js/validators/references.js";
+import { summarizeUnknownReferences, validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -514,11 +514,12 @@ async function runValidate(argv) {
     }
 
     const externalIdsFile = path.join(repoRoot, "docs-tooling", ".generated", "external-ids.json");
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({
+    const { errors, warnings, apiIndexSize, glossaryIndexSize } = validateReferences({
         files,
         apiRoots,
         glossaryFile,
         externalIdsFile,
+        warnUnknown: argv.warnUnknown,
     });
 
     const clientLibDir = path.join(repoRoot, "client", "lib");
@@ -532,10 +533,27 @@ async function runValidate(argv) {
         `Checked ${symbols.checkedFiles} authored file(s) against ${symbols.componentCount} client components`,
     );
 
+    const relative = (file) => path.relative(process.cwd(), file).split(path.sep).join("/");
+
+    if (warnings.length > 0) {
+        for (const warning of warnings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
+            console.log(`${relative(warning.file)}:${warning.line}: warning: ${warning.message}`);
+        }
+        const summary = summarizeUnknownReferences(warnings);
+        console.log("");
+        console.log(`Unknown references: ${summary.length} distinct, ${warnings.length} use(s)`);
+        for (const entry of summary) {
+            const label = entry.type === "api" ? "API id" : "glossary term";
+            console.log(`  ${label} "${entry.value}": ${entry.count} use(s)`);
+            for (const file of entry.files) {
+                console.log(`    ${relative(file)}`);
+            }
+        }
+    }
+
     if (errors.length > 0) {
         for (const error of errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
-            const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
-            console.log(`${rel}:${error.line}: ${error.message}`);
+            console.log(`${relative(error.file)}:${error.line}: ${error.message}`);
         }
         process.exit(1);
     }
@@ -664,12 +682,19 @@ yargs(hideBin(process.argv))
         "validate",
         "Validate {@api} and {@term} references in documentation",
         (y) =>
-            y.option("files", {
-                alias: "f",
-                array: true,
-                type: "string",
-                describe: "Specific files to validate (default: all authored docs)",
-            }),
+            y
+                .option("files", {
+                    alias: "f",
+                    array: true,
+                    type: "string",
+                    describe: "Specific files to validate (default: all authored docs)",
+                })
+                .option("warn-unknown", {
+                    type: "boolean",
+                    default: false,
+                    describe:
+                        "Report unknown API ids and glossary terms as warnings with a summary, and exit 0 when nothing else fails",
+                }),
         runValidate,
     )
     .demandCommand(1)

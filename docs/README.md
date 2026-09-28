@@ -16,6 +16,7 @@ Use this guide when authoring pages under `docs/`.
   - [Diátaxis Types](#diátaxis-types)
   - [Topic Owners](#topic-owners)
   - [Generated API docs](#generated-api-docs)
+    - [Checking references](#checking-references)
   - [Changelog authoring](#changelog-authoring)
     - [Theming IDs](#theming-ids)
     - [Upstream IDs](#upstream-ids)
@@ -185,6 +186,12 @@ Examples:
 - `{@api theme-key:Card}` (links to the per-component theme-keys page)
 - `{@api theme-key:Card.root}` (links to a slot anchor on that page)
 - `{@api css-token:vueda-card-radius}` (links to the token anchor under its group page)
+
+### Checking references
+
+`just docs-validate` regenerates the reference pages and fails on any `{@api}` ID or `{@term}` name that does not exist. CI runs the same check, and the production site build fails on the same references.
+
+`just docs-validate-draft` reports those unknown references as warnings instead. At the end it lists each one once, with its use count and pages. It exits 0 when nothing else fails. Use it on a draft branch where a page links a symbol before the generator produces its ID. The list shows which generator gaps to close before the branch can merge. The dev server (`just docs-serve`) shows an unknown reference as its raw text.
 
 ## Changelog authoring
 
