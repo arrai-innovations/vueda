@@ -63,7 +63,7 @@ These guards change only what the client shows. The server checks sign-in and re
 ## Add the Forgot and Reset Password Flow
 
 1. Give the forgot password endpoint a working cache. {@api py:class:vueda.user.views.VuedaForgotPasswordView} accepts one request per address per minute and answers `429` to the next. [Configure the Cache and Sessions](configure-cache-and-sessions.md) describes the backends that keep this limit across processes.
-2. Set `FRONTEND_DOMAIN` and `FRONTEND_RESET_URL` (default `/reset-password`) on the server. The emailed link is built from them, with an encoded account id as the last path segment and the reset `token` in the query string.
+2. Set `FRONTEND_DOMAIN` and `FRONTEND_RESET_URL` (default `/reset-password`) on the server. `FRONTEND_DOMAIN` is the client's origin with its scheme, such as `https://app.example.com`. The emailed link is built from them, with an encoded account id as the last path segment and the reset `token` in the query string.
 3. Make sure the server can send email. The user adapter named by `VUEDA_USER_ADAPTER` sends the message, and queues it with {@term VDQ (VUEDA Dispatch Queue)} when `vueda.vdq` is installed.
 4. Route `forgot-password` and `reset-password`. `ViewResetPassword` needs `pk` from the path and `token` from the query:
 
@@ -153,7 +153,7 @@ The server validates every submit. [`login`]{@api js:method:@arrai-innovations/v
 
 `AuthorizingForm` watches the user store while the view is active. It acts on mount and after each change to the sign-in state:
 
-1. When [`pendingFlow`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.pendingFlow} is a two-factor sign-in (`id` is `mfa_authenticate`), it navigates to `2fa`.
+1. When [`pendingFlow`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.pendingFlow} is a two-factor sign-in (`id` is `mfa_authenticate`), it navigates to `2fa`. The `redirect` query value goes with it.
 2. Once the user signs in, it navigates to the first destination present: the `redirect` query value, the [`redirect` prop]{@api vue:component:AuthorizingForm:prop:redirect}, then `{ name: "welcome" }`.
 
 With [`requireRecentLogin`]{@api vue:component:AuthorizingForm:prop:requireRecentLogin}, step 2 also waits for [`recentlyLoggedIn`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.recentlyLoggedIn}.
@@ -208,7 +208,7 @@ const handleSubmit = ({ formValues }) => {
 
 For SMS and email, the view must first send a code with [`sendTwoFactorAuthenticationCode`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.sendTwoFactorAuthenticationCode}, passing the chosen `method`.
 
-On success, `twoFactorAuthenticate` clears `pendingFlow` and reloads the current user, and the redirect chain continues. The navigation to `2fa` drops the `redirect` query value. After the code, the user reaches `welcome` unless the two-factor view sets `redirect`.
+On success, `twoFactorAuthenticate` clears `pendingFlow` and reloads the current user. The two-factor view's redirect chain then continues from the `redirect` query value that sign-in passed on.
 
 ## Build a Re-Authentication View
 
