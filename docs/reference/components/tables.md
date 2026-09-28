@@ -94,13 +94,15 @@ describes the rules every component page shares.
 
 ## Table
 
-`Table` renders a scroll container around the `<table>` element. The
-container draws the table's frame: the card fill, the card radius, and a
-hairline edge. Wide tables scroll sideways inside it.
+`Table` renders a frame around a scroll container that holds the `<table>`
+element. The frame ({@api theme-key:Table.frame}) draws the card fill, the
+card radius, and a {@term Hairline} edge. Rows and sticky header cells scroll
+inside the frame, so they never cover its edge. Wide tables scroll sideways
+inside it.
 
 - **Dividers:** a hairline on each row's cells divides it from the next row,
   and the header row from the body.
-- **Last row:** the container edge closes the table below the last body row.
+- **Last row:** the frame edge closes the table below the last body row.
 - **Footer:** `TableFooter` rows take a muted fill and muted text, with a
   divider above the first footer row. Use it for totals and summaries.
 - **Caption:** `TableCaption` renders low-emphasis text below the rows.
