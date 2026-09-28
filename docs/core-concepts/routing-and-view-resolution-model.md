@@ -7,127 +7,111 @@ status: draft
 
 # Routing and View Resolution Model
 
-VUEDA does not statically enumerate a route for every model-action combination. Instead, two parameterized route records accept any `{app, model, action}` tuple, a guard chain validates the tuple against metadata before any view renders, and a runtime multiplexer selects the correct view component. The result is a routing surface that adapts automatically as models are registered, actions are added, and workflow transitions change, all without per-model route definitions.
+VUEDA registers two parameterized routes that accept any app, model, and action. A route guard chain checks each navigation against the model's metadata, and {@api vue:component:ViewActionRouter} then picks the view component to render. A model you register on the server gets working routes without per-model route definitions, and you add a custom view only where a model needs one.
 
-This page explains how route records are structured, how the guard chain gates navigation, how action names are normalized across boundaries, and how the view component is ultimately resolved. For where routing sits within the broader client architecture, see [Architecture Overview](./architecture-overview). For the full derivation pipeline that routing feeds into, see [Contract-First Dynamic UI](./contract-first-dynamic-ui).
+This page describes the route records, {@term Route Admission} (the checks a navigation must pass), how action names map between routes and metadata, what happens when a check fails, and {@term Action View Resolution}. [Architecture Overview](./architecture-overview.md) places routing in the client, and [Contract-First Dynamic UI](./contract-first-dynamic-ui.md) describes how the resolved views build their fields from metadata.
 
 ## Route Records and Names
 
-**{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} produces exactly two route records that cover the entire {@term CRUD} and action surface.** The `detail` route, named `actionrouter.detailview`, matches the path `/:app/:model/:action/:pk` and carries object identity as `params.pk`. The non-`detail` route, named `actionrouter.listview`, matches `/:app/:model/:action/`. Multi-object selection is encoded as `query.pk`, a comma-delimited string that the route's `props` function splits into an array.
+{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} returns the two {@term CRUD Routes}:
 
-Both `:app` and `:model` segments are derived from the model-info response, which uses Django's `ContentType` fields: `app_label` (the app's label, typically the last segment of the dotted Python path) and `model` (the class name lowercased with no separators). For example, a model class `ProductOption` in an app labeled `inventory` produces client URLs like `/inventory/productoption/list/`. The naming follows Django's `model_name` convention, but the enforcement is VUEDA's: the client reads `app_label` and `model` from model-info and constructs route paths from them automatically. Server-side DRF router prefixes (e.g. `router.register("product-options", ...)`) are independent and do not need to match.
+- `actionrouter.detailview` matches `/:app/:model/:action/:pk` and targets one object.
+- `actionrouter.listview` matches `/:app/:model/:action/` and targets a model, or several objects listed in the `pk` query value.
 
-This two-route design means that one URL schema supports both single-object and multi-object action contexts without requiring additional route definitions. A `detail` action like `read` resolves to the `detail` route with a scalar PK in the path. A `list` action resolves to the non-`detail` route. A bulk action resolves to the non-`detail` route with multiple PKs encoded in the query string. The route name and PK shape are the only structural differences.
+Both records pass `app`, `model`, `action`, and `pk` to the route component as props. The list record splits `query.pk` on commas into an array, so a key that contains a comma arrives as fragments. [Primary Key and Identifier Discipline](./pk-and-identifier-discipline.md#identifier-transport) describes that limit. A [`pathPrefix`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.pathPrefix} is prepended to both paths.
 
-**{@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo} is the programmatic interface for constructing route targets into this family.** It is an async helper that fetches model-info for the given `{app, model}` pair and returns a `RouteLocationRaw` object targeting the correct route name. When `pk` is a scalar string, the returned target names `actionrouter.detailview` with `pk` in `params`. When `pk` is an array, the target name is `actionrouter.listview`, with the PKs joined into `query.pk`. Callers use `getCRUDForTo` to generate consistent route targets without duplicating the naming or path conventions that `makeCRUDRoutes` defines. For the practical steps of wiring these routes into an application, see [Create a CRUD Surface](../guides/create-crud-surface).
+The `:app` and `:model` segments are the model's `app_label` and lowercase model name, the pair {@term Model Info} is keyed by. Nothing derives them for you: the guard fetches model info with the segments it receives, so a pair the server does not recognize fails the route. These segments form the client URL only. The client builds its API request paths separately, as the {@term Model API Path}, and [Create a CRUD Surface](../guides/create-crud-surface.md#router-and-url-wiring) describes that convention.
 
-`makeCRUDRoutes` enforces one hard precondition at build time: the `actionRedirect` parameter must be provided. This is the route target that guards redirect to when a model or action cannot be found. If `actionRedirect` is falsy, `makeCRUDRoutes` throws immediately; the router cannot be constructed. This is intentional: without a fallback destination, the guard chain has nowhere to send blocked navigations, and the failure would surface as silent navigation drops rather than a clear bootstrap error.
+{@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo} builds a route target into this pair without any request. A scalar `pk` names `actionrouter.detailview` with `pk` in `params`. An array `pk` names `actionrouter.listview` and joins the keys into `query.pk`. With no `pk`, the target is the list record.
+
+`makeCRUDRoutes` throws before it registers anything in two cases. [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect} is missing: it is the destination for every model and action failure. [`groups`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.groups} names a group and [`groupsRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.groupsRedirect} is missing: it is the destination for a group membership failure.
 
 ## Route Guard Chain
 
-**The guard chain runs before any view component mounts and determines whether navigation is allowed.** `makeCRUDRoutes` builds the `beforeEnter` array in a fixed order: `requireAuth` (if `authRedirect` is provided), then `requireModelInfo` (always), then `requireGroups` (if `groups` are specified). The guards execute sequentially. If any guard returns a redirect, navigation is diverted, and subsequent guards are not executed.
+`makeCRUDRoutes` registers one `beforeEach` guard on the router you pass it. The guard acts only on navigations to the two generated route names, so routes the application registers itself pass through untouched. It also skips a navigation that keeps the same record, app, model, and action, such as a change of `pk` or of the query string, because none of the checked metadata depends on them.
 
-`requireAuth` checks whether the user is logged in. If the user is unauthenticated, it redirects to the auth route, preserving the original target path in the `redirect` query parameter.
+The guard runs up to three checks, in this order:
 
-**{@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} is the central gating function.** It loads the model-info, model-config, and workflow transition stores for the target `{app, model}` via `waitForModelStoreLoad`, then computes an allowlist of permitted action names. If the route's action, after normalization, is present in that allowlist, navigation proceeds. If not, the guard displays an "Action Not Found" error toast and returns a redirect to `actionRedirect`. If the model-info fetch itself fails with a `ModelInfoError` (the typed error surface for missing or unregistered models), the guard emits a "Model Not Found" error toast and redirects. Any other exception type is rethrown, aborting navigation entirely.
+1. {@api js:function:@arrai-innovations/vueda/router/guards#requireAuth}, when you pass [`authRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.authRedirect}.
+2. {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}, always.
+3. {@api js:function:@arrai-innovations/vueda/router/guards#requireGroups}, when you pass `groups`.
 
-If the authenticated user changes while the guard is fetching, it returns `false`. Vue Router cancels that navigation, because the metadata that arrived describes the user it replaced.
+A check approves by returning `true` or nothing. The first check that returns anything else decides the navigation, and later checks do not run.
 
-`requireGroups` checks group membership. If the logged-in user is a superuser or belongs to at least one of the required groups, navigation proceeds. Otherwise, a permission-denied toast is displayed, and navigation is redirected.
+`requireAuth` waits for the current user to load. If nobody is signed in, it redirects to `authRedirect` and adds a `redirect` query value holding the full path of the route that was refused. After sign-in, the sign-in view returns to that path; [Build Auth Views](../guides/build-auth-views.md#redirect-chain) describes the order in which it picks a destination.
 
-The guard chain is where the client applies metadata-driven access rules. Entry into either generated record runs it, and no view mounts until `requireModelInfo` finds the requested action in the computed allowlist. This is what the [Architecture Overview](./architecture-overview) describes as the "routing and gating" client responsibility layer; route entry is blocked until the contract is satisfied.
+`requireModelInfo` loads the model info, the permitted transitions, and the {@term Model Config} for the route's app and model, in that order. It then checks the route's action against the action allowlist, which [Metadata and Allowlist Inputs](#metadata-and-allowlist-inputs) describes. A listed action passes. Every other outcome is in [Failure Modes](#failure-modes).
 
-These checks decide what the client shows. They do not enforce authorization. The server checks every request on its own, so a route the client admits still returns only what that request may see.
+`requireGroups` passes for a user who belongs to at least one of the listed groups, and for a superuser. Anyone else sees a "Permission Denied" toast and is redirected to `groupsRedirect`.
+
+These checks decide which views the client opens. The server authorizes every request on its own, so a route the client admits still returns only what that user may see. [Authorization vs UI Semantics](./authorization-vs-ui-semantics.md) describes the boundary between the two.
 
 ## Rechecking After the Authenticated User Changes
 
-**A change of authenticated user reruns the guard chain against the route on screen.** Vue Router calls `beforeEnter` when a navigation enters a route record. A change of user is not a navigation, so the chain would otherwise never see it. `makeCRUDRoutes` watches `identityGeneration` on {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser} and runs the same checks, in the same order, against the current route.
+A change of authenticated user is not a navigation, so the `beforeEach` guard never sees it. `makeCRUDRoutes` therefore watches [`identityGeneration`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.identityGeneration} on {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser}. When it changes, the same checks run in the same order against the route on screen.
 
-A route the new user may still use keeps its URL, and the recheck adds no history entry. A route they may not use gives way to the destination configured for the check that denied it. The recheck uses `replace` rather than `push`, so the back button does not return to it. These checks describe only the two generated records, so a route the application registered itself never moves.
+A route the new user may still use keeps its URL, and the recheck adds no history entry. A route they may not use is replaced by the destination of the check that denied it. The recheck calls `router.replace`, so the back button does not return to the denied route. The recheck ignores routes the application registered itself.
 
-Two races end the recheck without a redirect. If the user changes again while a check is pending, the recheck that second change triggers decides instead. If the application navigates while a check is pending, that navigation ran the chain on entry, and an older answer does not override it.
+Two races end the recheck without a redirect. If the user changes again while a check is pending, the recheck for that later change decides. If the application navigates while a check is pending, that navigation already ran the chain, and the older answer is discarded.
 
 ## Metadata and Allowlist Inputs
 
-**The action allowlist that `requireModelInfo` computes is the intersection of three metadata sources.** Understanding these sources is essential for diagnosing why a particular action is or is not navigable.
+`requireModelInfo` builds the allowlist from three inputs:
 
-The first source is **model-info actions**. The `actions` array from model-info contains the action names the server advertises for the model, already filtered by the requesting user's permissions. This is the base set. For what model-info provides and how action visibility is permission-sensitive, see [Server-Client Metadata Contract](./server-client-metadata-contract).
+1. The action names in the model info `actions` list. These are the user's {@term Model Actions}, already filtered by the server for that user's permissions.
+2. [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} from the model config, when it is an array. It keeps only the model actions it names. A name the server did not report adds nothing.
+3. The codes of the user's {@term Permitted Transitions}, appended after the `routeActions` filter. `routeActions` never removes a transition code.
 
-The second source is **model-config route restrictions**. If `config.routeActions` is an array, the guard filters the model-info actions down to only those names that appear in `routeActions`. This can narrow the navigable set, but cannot widen it: an action name in `routeActions` that the server did not advertise is simply ignored. Route action filtering is one of the override surfaces described in [Configure CRUD Views](../guides/configure-crud-views).
+The guard reads `routeActions` from the model-wide config. A `routeActions` value in a view-specific config has no effect on the guard. Its default lists every action model info reports, so the allowlist starts as the full set of model actions. [Configure CRUD Views](../guides/configure-crud-views.md#limit-which-routes-open) describes where to set it.
 
-The third source is **workflow transition codes**. After the filtered action set is computed, workflow transition codes are unioned into the allowlist. The guard requests them only after model-info loads, and only for a model whose model-info has `workflowEnabled: true` in the model-info store. Any other model contributes no transition codes and sends no workflow request. Each transition object must have a string `code` property; this is the machine identifier, not the display `name`. Transition codes extend the navigable set beyond what model-info actions alone would allow, because workflow transitions represent state-machine operations that are not standard CRUD actions.
+Transition codes come from the workflow store only for a {@term Workflow-Enabled Model}. For any other model, or when [`setUsingVuedaWorkflow(false)`]{@api js:function:@arrai-innovations/vueda/stores/storeWorkflow#setUsingVuedaWorkflow} is in effect, the store returns an empty list and sends no request. Each {@term Transition} contributes its `code`; its `name` is display text.
 
-The final allowlist is: model-info action names, optionally filtered by `routeActions`, plus workflow transition codes. The route's action parameter, after normalization, must appear in this set for navigation to proceed.
-
-A model must be [registered](./canonical-registration-and-discovery) with a viewset to have actions in its model-info response. Serializer-only registration produces field metadata but no action metadata, leaving the allowlist empty and blocking all navigations to that model.
+A model with a {@term Serializer-Only Registration} reports no actions. Its allowlist is empty, so every route to it fails. [Canonical Registration and Model Discovery](./canonical-registration-and-discovery.md) describes the difference a viewset makes.
 
 ## Action Name Normalization
 
-**The client uses UI-friendly names in route paths that differ from the canonical names the server uses in model-info.** The most prominent example is `read` in route paths mapping to `retrieve` in model-info action names. The `getActionName` utility handles this translation through a static mapping table (`viewToActionNameMap`).
+Route segments and model info name one action differently: the route segment `read` is the {@term Canonical Action Name} `retrieve`. {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName} translates a route segment through [`viewToActionNameMap`]{@api js:property:@arrai-innovations/vueda/utils/actionMap#viewToActionNameMap}, which holds only that entry. Every other name maps to itself.
 
-Normalization applies at two points in the routing pipeline. In the guard, `requireModelInfo` calls `getActionName(to.params.action)` before checking the allowlist, so the route action `read` correctly matches the server-advertised action `retrieve`. In the view resolver, `ViewActionRouter` calls `getActionName(props.action)` when searching for a matching action or transition in the metadata.
+Both the guard and `ViewActionRouter` translate the route's action before they compare it with metadata. The built-in view registry is keyed by the untranslated route segment, so the read view is registered as `read`. A route with the segment `retrieve` passes the guard, but the registry has no `retrieve` entry. That route opens a view by the naming convention in [View Component Resolution Order](#view-component-resolution-order).
 
-The normalization is asymmetric by design. It maps UI route names to canonical server names for metadata matching, but the raw route action string, not the normalized name, is used as the key into the `crudComponents` registry and for dynamic import naming conventions. This means the `crudComponents` registry is keyed by client-facing names (`read`, `list`, `create`, `update`) while the metadata matching uses server-canonical names (`retrieve`, `list`, `create`, `update`). The distinction matters because a custom component registered under the raw action string in `crudComponents` will be resolved correctly, while the guard's allowlist check uses the normalized name against metadata.
-
-## Action and Transition Matching
-
-**`requireModelInfo` and `ViewActionRouter` both match the current action against metadata, but they serve different purposes and operate at different levels of strictness.** The guard determines whether navigation is allowed. The view resolver determines which component to render.
-
-In the guard, matching is a simple inclusion check: the normalized action name must appear in the computed allowlist. The allowlist is a flat array of strings: model-info action names (optionally filtered) and workflow transition codes. If the normalized action is present, the guard passes. If not, navigation is redirected. The guard does not distinguish between CRUD actions and workflow transitions; both are just strings in the same list.
-
-In `ViewActionRouter`, matching is more granular because the resolver must select the correct component type. After normalization, the resolver checks the `actions` array for an action whose `name` matches, and separately checks the `transitions` array for a transition whose `code` matches. This distinction matters because a matched CRUD action can route through the `crudComponents` registry while a matched transition cannot; both still fall through the same naming-convention and terminal-fallback chain described below, ending at `ViewExecuteTransition` for a transition and `ViewAction` for everything else.
-
-The guard and the resolver can theoretically disagree if the metadata changes between guard evaluation and component rendering (for example, if a reactive store update occurs mid-navigation). In practice, both consume the same underlying store data, so disagreement is rare. But it is architecturally possible for the guard to permit navigation to an action that the resolver then cannot match, in which case `ViewActionNotFound` renders.
-
-## View Component Resolution Order
-
-**`ViewActionRouter` is the runtime multiplexer that selects a concrete view component based on the current action, metadata state, and component registry.** It does not render UI itself, it delegates to exactly one resolved component. The resolution follows a fixed priority chain that always terminates.
-
-**The current view stays mounted while the destination resolves.** On initial entry, the resolver renders `ViewLoading`. During later navigation, it retains the current component and its props while model configuration, workflow metadata, and the destination component load. Once ready, it switches the component and props together. A newer navigation discards an obsolete component result. If the resolved component stays the same, Vue reuses its instance; a different component replaces it and its children.
-
-**Missing metadata produces a not-found view.** If the actions array and transitions array are both absent (null or undefined), the resolver renders `ViewActionNotFound`. This covers the case where metadata fetch succeeded, but the model has no actions or transitions, typically a serializer-only registration that should not have been navigated to.
-
-**Unknown actions and transitions produce a not-found view.** If actions or transitions exist but the current action matches neither an action `name` nor a transition `code`, the resolver renders `ViewActionNotFound`.
-
-**Built-in CRUD components are checked next, for a CRUD action match.** If the current action matched a CRUD action `name` (not a transition `code`) and the raw action string (not the normalized name) is a key in the `crudComponents` registry, that component is loaded. The default registry maps `list`, `create`, `update`, `read`, `destroy`, `activate`, `deactivate`, and `history-list` to their corresponding built-in view components. Projects can extend or override the registry using `setCrudComponents`, which merges custom entries into the existing map.
-
-**Project-specific action views are resolved by naming convention.** If the action is not in the `crudComponents` registry, the resolver attempts dynamic imports following a two-tier naming convention, for both CRUD actions and transition codes alike. First, it tries a model-specific component: `@/views/ViewAction{App}{Model}{Action}.vue`. If that import fails, it falls back to an action-generic component: `@/views/ViewAction{Action}.vue`. App, model, and action names (or the transition code) are converted to PascalCase for the import path.
-
-To use this convention with an installed VUEDA package, pass the consumer's `src` path as the `@` entry in `vuedaViteConfig({ extraAliases: { "@": ... } })`, as the integrator templates do. The helper then lets Vite transform variable imports in VUEDA's action router while leaving other dependencies excluded. If the application also sets `build`, merge that block with the helper's `build` block so `dynamicImportVarsOptions` is preserved. Without the alias, built-in views and explicit `setCrudComponents` entries still work, but convention-named action views are not discovered.
-
-**The terminal fallback depends on whether the match was a transition.** If both dynamic imports fail, the resolver renders `ViewExecuteTransition` when the current action matched a transition `code`, or `ViewAction` when it matched a CRUD action `name`. `ViewExecuteTransition` composes `ModelActionForm` with a `run-action` that submits through `storeWorkflow.executeTransition` (carrying `transition_code`) instead of the generic model-action endpoint `ViewAction` uses. This ensures the resolution chain always terminates with a rendered component; there is no path through the logic that produces no output.
-
-The resolution order means that the `crudComponents` registry takes priority over project-specific naming-convention imports, and a project-specific naming-convention import takes priority over either terminal fallback. A project that registers a custom component in `crudComponents` for an action name that also has a `ViewAction{Action}.vue` file will see the registry entry win. This is by design: `setCrudComponents` is the explicit override mechanism, and naming-convention discovery is the implicit fallback ahead of the framework's own terminal views.
+`routeActions` holds canonical names, because the guard compares it with model info names before it compares the translated route action. A `routeActions` list that names `read` removes `retrieve` from the allowlist, so every `read` route for that model fails with "Action Not Found".
 
 ## Failure Modes
 
-**Missing `actionRedirect` crashes router bootstrap.** `makeCRUDRoutes` throws if `actionRedirect` is falsy, which prevents the router from being constructed at all. This is a build-time failure; it occurs before any navigation. The error message identifies the problem directly, but the symptom in the application is that no routes are registered.
+`requireModelInfo` redirects to `actionRedirect` in three cases:
 
-**Redirect loops from self-gated `actionRedirect` targets.** If the `actionRedirect` destination is itself a route that passes through `requireModelInfo` (including another route in the CRUD family), a failing guard will redirect to a destination that also fails its guard, producing repeated redirects. The visible symptom is a cascade of "Action Not Found" or "Model Not Found" toasts with no stable landing view. The `actionRedirect` must point to a route that is not gated by `requireModelInfo`.
+- **The action is not in the allowlist.** The user sees an "Action Not Found" toast.
+- **Model info fails to load.** The store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfoError}, and the user sees "Model Not Found".
+- **The server answers the permitted transitions request with `403`.** The workflow store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}, and the user sees "Permission Denied". The guard loads transitions before it checks the action, so this blocks every route of the model, list and read included. A workflow with no workflow permission rows returns `403` to every user; [Workflow as a Permission Overlay](./workflow-permission-overlay.md#failure-surfaces-and-symptom-signatures) describes the causes. Issue [#372](https://github.com/arrai-innovations/vueda/issues/372) tracks route access when workflow discovery is denied.
 
-**Toasts require a mounted toaster surface.** `requireModelInfo` and `requireGroups` report denials and lookup failures by calling the `toast` function imported from `@arrai-innovations/vue-sonner`. This is a plain module import, so no service registration is needed and the guard never throws when the toaster is absent. If no `<Sonner />` toaster is mounted in the app, those `toast(...)` calls silently produce no notification: the guard still redirects, but the user sees no message explaining why.
+The model info and workflow stores cache these failures per model, so later navigations to that model fail without a new request. {@term Auth-Scoped Stores} describes when those caches clear.
 
-**`routeActions` filtering does not normalize action names.** The `routeActions` array is compared against canonical model-info action names directly. Using UI route names (such as `read`) in `routeActions` will fail to match the corresponding canonical name (`retrieve`), causing the guard to emit an "Action Not Found" toast and redirect even though the action exists in model-info. The `routeActions` array must use server-canonical names.
+Other failures do not redirect:
 
-**Strict workflow transition shape.** The guard requires every transition object to have a string `code` property. A transition entry with a missing or non-string `code` causes the guard to throw an error immediately rather than treating the entry as unavailable. The error message identifies the malformed transition, but the symptom is that navigation to any action on that model fails; the exception occurs during allowlist computation, before any individual action is checked.
+- **The authenticated user changes while the metadata loads.** The store rejects with {@api js:class:@arrai-innovations/vueda/utils/errors#AuthScopeInvalidatedError}, and `requireModelInfo` returns `false`. Vue Router cancels the navigation, because the metadata described the previous user. The recheck in [Rechecking After the Authenticated User Changes](#rechecking-after-the-authenticated-user-changes) decides where the application goes.
+- **A permitted transition has no string `code`.** The guard throws `requireModelInfo: workflow transition is missing a string code` while it builds the allowlist, so every route of that model fails, whatever its action.
+- **Any other error.** A workflow error other than `403`, or any unexpected exception, propagates and aborts the navigation.
 
-**A denied workflow transition fetch redirects, and other workflow fetch errors abort navigation.** When the server answers the workflow transition fetch with a 403, the store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}. `requireModelInfo` then shows a "Permission Denied" toast and redirects to `actionRedirect`, the same as for an action missing from the allowlist. Any other workflow fetch error propagates uncaught and aborts navigation. The workflow store caches both kinds of failure, so later navigations to the same model fail from cache rather than retrying.
+A redirect loops when `actionRedirect` itself passes through `requireModelInfo` and fails, for example another route in the CRUD pair for the same model. The user sees repeated "Action Not Found" or "Model Not Found" toasts and no stable view.
 
-**Comma-delimited PK arrays are lossy for PKs containing commas.** The `list` route encodes multiple PKs as `query.pk` by joining them with commas, and reconstructs the array by splitting on commas. If a string PK itself contains a comma, the split produces incorrect values. This is a structural limitation of the encoding scheme rather than a bug; the system assumes PKs do not contain commas.
+The guards report failures through `toast` from `@arrai-innovations/vue-sonner`. When no {@api vue:component:Sonner} toaster is mounted, the redirect still happens but the user sees no message. [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md#toast-notifications) describes mounting it.
 
-**`getCRUDForTo` error message mismatch.** When called with `throwOnUndefinedPk: true`, `getCRUDForTo` checks `modelInfo.actions[].detail` but its current logic throws when `pk` is missing for non-`detail` actions and does not throw for `detail` actions. The error message references "`detail` views" regardless, which can be misleading when diagnosing route construction failures.
+## View Component Resolution Order
 
-## Relevant Implementation Surface
+`makeCRUDRoutes` renders the component you pass as `component`, normally `ViewActionRouter`. It renders one resolved view and nothing of its own. On first entry it shows {@api vue:component:ViewLoading}. On later navigation it keeps the current view and its props while the model config, the permitted transitions, and the destination component load, then switches the component and its props together. A result from a superseded navigation is discarded. When the resolved component is the same, Vue keeps its instance.
 
-- {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}
-- {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}
-- {@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo}
-- {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}
-- {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
-- {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}
-- {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
-- {@api vue:component:ViewActionRouter}
-- {@api vue:component:ViewExecuteTransition}
-- {@api vue:component:ViewAction}
-- {@api vue:component:ViewActionNotFound}
-- {@api vue:component:ViewLoading}
+`ViewActionRouter` translates the route's action with `getActionName`, then resolves the view in this order:
+
+1. **Unknown action.** If the translated action matches no model info action `name` and no permitted transition `code`, it renders {@api vue:component:ViewActionNotFound}.
+2. **Built-in registry.** If no transition matched and the untranslated route action is a key in [`crudComponents`]{@api js:property:@arrai-innovations/vueda/router/routerComponent#crudComponents}, it calls that entry's loader with `{app, model, action, pk}` and renders the component the loader returns. The default keys are `list`, `create`, `update`, `read`, `destroy`, `activate`, `deactivate`, and `history-list`. A transition with the same code as a registry key skips the registry.
+3. **Model-specific convention.** It imports `@/views/ViewAction<App><Model><Action>.vue`.
+4. **Action convention.** If that import fails, it imports `@/views/ViewAction<Action>.vue`.
+5. **Generic view.** If both imports fail, it renders {@api vue:component:ViewExecuteTransition} for a transition code, or {@api vue:component:ViewAction} for a model action.
+
+Each name in a convention path is the route segment in title case with spaces removed, so a model with the segment `productoption` becomes `Productoption`. The model-specific view for an `approve` action on `/inventory/productoption/approve/` is `ViewActionInventoryProductoptionApprove.vue`. With an installed VUEDA package, Vite finds these files only when the `@` alias points at your application's source. You set it through [`extraAliases`]{@api js:param:@arrai-innovations/vueda/vite#vuedaViteConfig:options.extraAliases} in {@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig}, and [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) describes the setup. Without it, the built-in registry and the generic views still work.
+
+{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} merges entries into the registry, adding keys or replacing the default loader for a key. A registry entry wins over a convention file for the same action. The loader receives the route's app, model, action, and pk, so one replacement loader can return a custom view for one model and the default view for the others.
+
+`ViewExecuteTransition` submits through [`executeTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition} with the transition code. `ViewAction` submits to the model's action endpoint.
+
+The resolver does not apply `routeActions`, and it reads the same stores as the guard at a later moment. A route that passed the guard can therefore render `ViewActionNotFound` when the metadata changes between the guard and the resolver, for example after a refresh removes the action.

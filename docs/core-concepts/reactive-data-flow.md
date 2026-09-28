@@ -55,7 +55,7 @@ Each workflow fetch, such as [`fetchWorkflowTransition`]{@api js:method:@arrai-i
 
 A missing {@term Pk Marker} is one of these cached failures. After renaming the keys, the store sets `pk` to the name of the field that carries `pk: true`. When no field carries it, the store throws `storeModelInfo.fetchModelInfo: no pk field found for <app>.<model>`. It caches that error like any other. [Primary Key and Identifier Discipline](./pk-and-identifier-discipline.md) describes how the server sets the marker.
 
-The workflow store caches failures the same way. It keeps them per model for permitted transitions and states, and per object for object state, transitions, and history. A `403` from the permitted transitions request is cached as a [`WorkflowPermissionDeniedError`]{@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}. [Action Contract and Availability](./action-contract-and-availability.md) describes what the user sees then.
+The workflow store caches failures the same way. It keeps them per model for permitted transitions and states, and per object for object state, transitions, and history. A `403` from the permitted transitions request is cached as a [`WorkflowPermissionDeniedError`]{@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#failure-modes) describes what the user sees then.
 
 `storeModelConfig` keeps a failed build as the running build for its key. Every later `getConfig` for that key returns the same rejection. A build fails when model info fails, which leaves one cached failure in each store. It also fails when the merged `submitFields` names a field flattened from an expand.
 
