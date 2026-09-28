@@ -84,6 +84,23 @@ describe("lib/utils/resolveColumnComponents.js", () => {
             );
         });
 
+        scopedIt("throws on a type mapping column that names no component", () => {
+            columnMappings.CharField = { CharField: { column: "ColumnNope", default: true } };
+            expect(() =>
+                resolveColumnComponent({ name: "a", typeSerializer: "CharField", typeModel: "CharField" }),
+            ).toThrow('No column component named "ColumnNope" in the type mapping for column "a"');
+        });
+
+        scopedIt("an override still wins over a broken type mapping", () => {
+            columnMappings.CharField = { CharField: { column: "ColumnNope", default: true } };
+            const component = resolveColumnComponent(
+                { name: "a", typeSerializer: "CharField", typeModel: "CharField" },
+                undefined,
+                { a: CustomColumn },
+            );
+            expect(component).toBe(CustomColumn);
+        });
+
         scopedIt("throws on an unknown config string key", () => {
             expect(() => resolveColumnComponent({ name: "a" }, undefined, { a: "ColumnNope" })).toThrow(
                 'No column component named "ColumnNope" for column "a"',
