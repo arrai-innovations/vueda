@@ -88,8 +88,11 @@ and {@api css-token:vueda-field-radius}.
 ## Label
 
 {@api vue:component:Label} is the text paired with a control. It holds text
-alone or text with an icon. When its control is disabled, the label dims with
-it; {@api theme-key:Label.root} lists the markup arrangements it detects.
+alone or text with an icon. A label dims under a `group` ancestor with
+`data-disabled="true"`, or after a disabled control marked `peer`.
+{@api theme-key:Label.root} lists these arrangements. Inside a
+{@api vue:component:FormField}, the label dims while the field's widget is
+disabled, as [Field shell](./forms#field-shell) describes.
 
 Theme key: {@api theme-key:Label}.
 
@@ -107,10 +110,10 @@ Theme key: {@api theme-key:Label}.
       <Input id="lbl-icon" readonly value="2026-04-23 14:22:06" />
     </div>
   </DemoCard>
-  <DemoCard title="paired with disabled input">
-    <div class="flex flex-col gap-2">
-      <Label for="lbl-peer" class="peer-disabled:opacity-50">Legacy ID</Label>
-      <Input id="lbl-peer" class="peer" disabled placeholder="—" />
+  <DemoCard title="inside a disabled group">
+    <div class="group flex flex-col gap-2" data-disabled="true">
+      <Label for="lbl-disabled">Legacy ID</Label>
+      <Input id="lbl-disabled" disabled placeholder="—" />
     </div>
   </DemoCard>
 </VuedaDemo>

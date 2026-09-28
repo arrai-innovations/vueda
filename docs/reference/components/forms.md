@@ -59,7 +59,7 @@ The [`orientation`]{@api vue:component:Field:prop:orientation} prop sets the lay
 | `horizontal`         | Label beside the content column. The label width is capped so the content keeps room.                                                     |
 | `responsive`         | Vertical in a narrow `FieldGroup`, horizontal in a wide one. It needs a `FieldGroup` ancestor, because it responds to that group's width. |
 
-{@api vue:component:FormField}, the default {@term Form Field}, builds this shell from the field's label, help text, and messages. For a required field it appends an asterisk to the label, hidden from assistive technology. The asterisk is part of `FormField`'s markup, so no theme key reaches it. To change the indicator, replace the label through the [`field(<name>)label`]{@api vue:component:FormField:slot:field(fieldName)label} slot, which receives `label` and `required`. The demo composes its chip and "optional" markers that way.
+{@api vue:component:FormField}, the default {@term Form Field}, builds this shell from the field's label, help text, and messages. While the field's widget is disabled, `FormField` sets `data-disabled="true"` on the `Field`, and the label dims. For a required field it appends an asterisk to the label, hidden from assistive technology. The asterisk is part of `FormField`'s markup, so no theme key reaches it. To change the indicator, replace the label through the [`field(<name>)label`]{@api vue:component:FormField:slot:field(fieldName)label} slot, which receives `label` and `required`. The demo composes its chip and "optional" markers that way.
 
 Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}, {@api theme-key:FieldDescription}, {@api theme-key:FieldGroup}.
 
