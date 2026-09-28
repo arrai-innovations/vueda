@@ -167,6 +167,14 @@ describe("lib/use/useSignInFlow.js", () => {
             expect(routerPush).toHaveBeenCalledWith({ name: "2fa" });
         });
 
+        scopedIt("carries the ?redirect query param to 2fa", async () => {
+            routeQuery = { redirect: "/home" };
+            useSignInFlow({ redirect: "/dashboard", formProps: {} });
+            store.pendingFlow = { id: "mfa_authenticate" };
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "2fa", query: { redirect: "/home" } });
+        });
+
         scopedIt("ignores unrelated pending flow ids", async () => {
             useSignInFlow({ formProps: {} });
             store.pendingFlow = { id: "some_other_flow" };
