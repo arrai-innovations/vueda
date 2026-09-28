@@ -122,10 +122,10 @@ class FormattedNameManager(models.Manager):
     ``FormattedNameManager`` as the base (``FormattedNameManager.from_queryset(WidgetQuerySet)``).
     A manager declared on an abstract base shadows this one just as readily, and is the easier case
     to miss, since the model that names a lookup expression can be several classes away from the one
-    that names the manager. ``VUEDAUserManager`` and ``SentItemManager`` sit on concrete models that
-    have a ``formatted_name`` column, so they have no annotation to lose. The ``vueda_info.E009``
-    system check reports a model whose default manager doesn't provide the annotation it needs,
-    rather than leaving it to fail at query time.
+    that names the manager. ``VUEDAUserManager`` sits on a model with a ``formatted_name`` column,
+    and ``SentItemManager`` on one that computes it with ``get_formatted_name()``, so neither has an
+    annotation to lose. The ``vueda_info.E009`` system check reports a model whose default manager
+    doesn't provide the annotation it needs, rather than leaving it to fail at query time.
 
     **The base manager is not this manager.** Django builds ``Model._base_manager`` itself, as a
     plain ``models.Manager``, unless ``Meta.base_manager_name`` names one — so it carries no
@@ -174,6 +174,16 @@ class FormattedNameBaseModel(models.Model):
 
     Declare it with ``formatted_name = None`` to name a column on this model or one reached through
     single-valued relations. ``FormattedNameManager`` annotates ``formatted_name`` from it.
+
+    Such a model may name its own ``formatted_name`` in ``Meta.ordering``. Django's ``models.E015``
+    check resolves ordering terms against the model's fields, so VUEDA withholds that one term from
+    it, and checks every other term as usual. It withholds the term only when the default manager
+    is a ``FormattedNameManager``. ``Meta.ordering`` applies to every queryset, including those a
+    management command, a data migration, or the admin builds, and only the manager's annotation
+    makes the term valid there. With any other default manager, ``models.E015`` reports the term,
+    and ``vueda_info.E009`` also reports the manager for a registered model. A related path such as
+    ``customer__formatted_name`` is never withheld. ``FormattedNameManager`` describes the one
+    queryset its annotation does not reach, Django's base manager.
     """
 
     formatted_name_select_related: ClassVar[tuple[str, ...] | None] = None
