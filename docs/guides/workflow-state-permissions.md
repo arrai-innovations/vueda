@@ -7,193 +7,150 @@ status: draft
 
 # Add Workflow State and Transition Permissions
 
-This guide covers configuring workflow-aware {@term Workflow Overlay} rules so that allowed {@term Transition} actions and object actions depend on both baseline permissions and the object's current workflow state. It walks through workflow-level gate permissions, transition permissions, state grant/deny rules, and verification of the resulting behaviour matrix.
+Use this guide to control who can take each {@term Transition} of a {@term Workflow}, and to grant or deny {@term CRUD} permissions by an object's workflow state. You add {@term Workflow Permission}, {@term Transition Permission}, and {@term State Permission} rows, give groups the permissions those rows name, and then check the results with users from those groups.
 
-The guide assumes familiarity with VUEDA's workflow permission model. If you have not read [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay), start there; it explains the overlay boundary, state permission evaluation, model-scope bypass, and transition gate mechanics. For the broader permission model, see [Permission Model](../core-concepts/permission-model). For transition UX and redirect behaviour on the client, see [Design Transition UX and Redirects](../guides/transition-ux-and-redirects).
+[Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes how the server evaluates these rows.
 
-## Goal and Preconditions
+## Before You Begin
 
-The objective is a workflow-enabled model where:
+- The model is a {@term Workflow-Enabled Model} with a workflow definition: states, an initial state, and transitions with their source states. [Manage Workflows and Generate Workflow Migrations](./manage-workflows.md) gives the steps.
+- Your user model includes {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}. Its [`has_perm`]{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm} applies state rules to object checks.
+- Your model viewsets use {@api py:class:vueda.core.permissions.ObjectPermissions}. It is the default permission class, so a viewset that sets no `permission_classes` already uses it.
+- Your test users belong to groups that grant the permissions named below. A superuser passes every object check, so it cannot show what a group member sees.
 
-- State permissions grant or deny specific {@term CRUD} codenames based on the object's current workflow state and the user's groups.
-- Transition execution is gated by workflow-level and transition-level permission entries.
-- The combination of baseline permissions and workflow overlays produces a consistent, testable behaviour matrix.
-- Client route admission and action rendering reflect the permission outcomes.
-
-Before you begin:
-
-The target model must enable `class Vueda.Workflow` so that workflow state rows are auto-created on save. Verify that newly created objects receive the workflow's initial state before testing permission scenarios.
-
-The model must have an active workflow with defined states and transitions. State permissions, transition permissions, and workflow permissions are stored as database rows; they must be created through migrations, fixtures, or programmatic setup.
-
-The API stack must use `ObjectPermissions` (or `WorkflowObjectPermissions`) as the permission class. The user model must include `VUEDAPermissionsMixin`.
-
-## Configure Workflow and Transition Permission Rows
-
-### Workflow-level permissions
-
-Create `WorkflowPermission` entries that associate the workflow's content type with specific groups. These entries gate access to the workflow's transition machinery as a whole:
+The examples use a `myapp.Widget` model with states `draft`, `review`, and `published`. Its transitions are `submit` (draft to review) and `approve` (review to published). `approve` needs a custom permission, which you declare in the model's {@api ext:django:django.db.models.Options.permissions}:
 
 ```python
-WorkflowPermission.objects.create(
-    workflow=workflow,
-    content_type=content_type,
-    group=editors_group,
-)
+class Widget(VuedaModel):
+    class Meta:
+        permissions = [("approve_widget", "Can approve widget")]
+
+    class Vueda:
+        class Workflow:
+            enabled = True
 ```
 
-Without at least one `WorkflowPermission` entry for a user's groups, `available_transitions(user=...)` raises `PermissionDenied`. The user will see no transitions, and all workflow endpoints will return `403`.
+## Choose Where to Create the Rows
 
-### Transition-level permissions
+- **In the browser:** add the rows on the workflow, state, and transition edit forms that [Manage Workflows and Generate Workflow Migrations](./manage-workflows.md) describes. Then run [`makeworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.makeworkflowmigrations.Command} to write a {@term Workflow Migration}. Give groups their permissions on the {@term Group Management Page}, and run [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command} to write a {@term Group Permission Migration}. [Manage Groups and Generate Group Migrations](./manage-groups.md) gives those steps.
+- **In code:** create the rows in a test fixture or a Django shell, as the steps below show.
 
-Create `TransitionPermission` entries for each transition that should be executable:
+The code in the steps shares this setup:
 
 ```python
-TransitionPermission.objects.create(
-    transition=approve_transition,
-    group=managers_group,
-)
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from vueda.workflow.models import StatePermission, TransitionPermission, Workflow, WorkflowPermission
+
+from myapp.models import Widget
+
+ct = ContentType.objects.get_for_model(Widget)
+workflow = Workflow.objects.get(content_type=ct)
+read_widget = Permission.objects.get(content_type=ct, codename="read_widget")
+update_widget = Permission.objects.get(content_type=ct, codename="update_widget")
+approve_widget = Permission.objects.get(content_type=ct, codename="approve_widget")
+read_workflow = Permission.objects.get(content_type__app_label="vueda_workflow", codename="read_workflow")
+
+editors, _ = Group.objects.get_or_create(name="Widget Editors")
+reviewers, _ = Group.objects.get_or_create(name="Widget Reviewers")
 ```
 
-Transitions without any `TransitionPermission` rows are treated as not executable. They will not appear in `permitted_transitions`, and `check_transition_permission` will return `False`. This is not a misconfiguration; it is the expected behaviour for transitions that should not be user-executable (e.g., system-only transitions triggered by code).
+## Gate the Workflow
 
-## Configure State Grant/Deny Rows
+A workflow or transition gate passes only when it has at least one row and the user holds every permission its rows name. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes both gates.
 
-Create `StatePermission` entries to override baseline model permissions for specific states:
+1. Add a [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission} row for each permission a user needs to use the workflow at all:
+
+    ```python
+    WorkflowPermission.objects.create(workflow=workflow, permission=read_widget)
+    ```
+
+2. Give each group that uses the workflow those permissions, plus `vueda_workflow.read_workflow`. Most workflow endpoints check `vueda_workflow.read_workflow` first.
+
+    ```python
+    editors.permissions.add(read_workflow, read_widget, update_widget)
+    reviewers.permissions.add(read_workflow, read_widget, approve_widget)
+    ```
+
+## Gate Each Transition
+
+1. Add a [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission} row for each permission a user needs to take the transition:
+
+    ```python
+    TransitionPermission.objects.create(transition=workflow.transitions.get(code="submit"), permission=update_widget)
+    TransitionPermission.objects.create(transition=workflow.transitions.get(code="approve"), permission=approve_widget)
+    ```
+
+2. Leave a transition without rows when only your code should take it. No user can take it, and code applies it with [`fast_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_transition}, which skips permission checks.
+
+The transition check runs against the object, so state rules on the permissions it names apply.
+
+## Grant or Deny Permissions by State
+
+Add a [`StatePermission`]{@api py:class:vueda.workflow.models.StatePermission} row for each permission a group gains or loses in one state. `grant_or_deny=True` grants and `False` denies. The permission's content type selects the model. A grant can give a permission the group's baseline lacks, and a deny can remove one it has. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes how rules combine.
+
+This example lets reviewers edit a widget under review, and stops editors from editing a published one:
 
 ```python
-# Grant `update` permission to editors when the object is in the "review" state
 StatePermission.objects.create(
-    state=review_state,
-    permission=update_permission,
-    content_type=content_type,
-    group=editors_group,
+    state=workflow.states.get(code="review"),
+    permission=update_widget,
+    group=reviewers,
     grant_or_deny=True,
 )
-
-# Deny `update` permission to all editors when the object is in the "published" state
 StatePermission.objects.create(
-    state=published_state,
-    permission=update_permission,
-    content_type=content_type,
-    group=editors_group,
+    state=workflow.states.get(code="published"),
+    permission=update_widget,
+    group=editors,
     grant_or_deny=False,
 )
 ```
 
-The evaluation rules:
+State rules apply only to checks that have an object. A check without an object returns the {@term Baseline Permission}.
 
-- **Grant (`grant_or_deny=True`)**: overrides a baseline `False` for this state/group/codename combination. The user gains object-level access that they would not otherwise have.
-- **Deny (`grant_or_deny=False`)**: overrides a baseline `True`. The user loses the object-level access they would otherwise have. Deny wins over grant when a user's groups produce conflicting rules for the same state and codename.
-- **No matching rows**: the baseline model permission decision stands.
+## Check Object Permissions by State
 
-State permissions are evaluated through `VUEDAPermissionsMixin.has_perm(..., obj=instance)`. They are object-scope checks; they have no effect without a concrete object and its current state.
+Create one user in each group and one widget in each state. Django caches a user's permissions on the user object, so fetch the user again after you change its groups or their permissions.
 
-## Verify Permission Matrix by State and Group
+Expected results for `myapp.update_widget`:
 
-Build a test matrix that crosses user groups, workflow states, and CRUD actions. For each combination, verify the expected outcome:
-
-| User group | Object state | `update` baseline | State overlay  | Expected `has_perm` |
-| ---------- | ------------ | ----------------- | -------------- | ------------------- |
-| Editors    | draft        | `True`            | none (no rule) | `True`              |
-| Editors    | review       | `False`           | grant          | `True`              |
-| Editors    | published    | `True`            | deny           | `False`             |
-| Viewers    | review       | `False`           | none (no rule) | `False`             |
-
-Verify the matrix through `has_perm` calls with concrete objects:
+| Group            | Object state | {@term Baseline Permission} | State rule | Expected `has_perm` |
+| ---------------- | ------------ | --------------------------- | ---------- | ------------------- |
+| Widget Editors   | draft        | `True`                      | none       | `True`              |
+| Widget Editors   | published    | `True`                      | deny       | `False`             |
+| Widget Reviewers | review       | `False`                     | grant      | `True`              |
+| Widget Reviewers | draft        | `False`                     | none       | `False`             |
 
 ```python
-assert user.has_perm("myapp.update_widget", obj=draft_widget) is True
-assert user.has_perm("myapp.update_widget", obj=review_widget) is True
-assert user.has_perm("myapp.update_widget", obj=published_widget) is False
+assert editor.has_perm("myapp.update_widget", obj=draft_widget) is True
+assert editor.has_perm("myapp.update_widget", obj=published_widget) is False
+assert reviewer.has_perm("myapp.update_widget", obj=review_widget) is True
+assert reviewer.has_perm("myapp.update_widget", obj=draft_widget) is False
 ```
 
-Pay attention to the model-scope bypass behaviour: when state-permission grant rows are present, model-scope checks may return `True` for users who lack the baseline model permission, deferring the final decision to object scope. This means the HTTP status code for denied requests may shift from `403` to `404`.
+Then send the same updates through the model's API. The reviewer lacks the baseline permission, but the state grant lets the request continue to the object check ({@term Model-Scope Deferral}). The reviewer's `PATCH` to the widget under review succeeds, and the one to the draft widget answers `403`. [Permissions](../reference/permissions.md#status-codes) lists the status code for each refusal.
 
-## Validate Transition Execution (Dry-Run and Commit)
+## Check the Transition Endpoints
 
-### Permitted transitions
+Sign in as each test user and call the workflow endpoints for `myapp/widget`:
 
-Verify `permitted_transitions` results for each user:
+1. [`GET permitted_transitions/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/} lists the transitions whose permissions the user holds. The check has no object, so state rules do not apply. Expect `submit` for an editor and `approve` for a reviewer. A user without the workflow's permissions gets `403`.
+2. [`GET object-transitions/{object_id}/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/} lists the transitions the user can take from the object's current state. Expect `submit` for an editor on a draft widget, and an empty list for an editor on a widget under review.
+3. The object payload's {@term Valid Transitions} field lists the same transitions as `object-transitions`. It is empty for a user without the workflow's permissions.
+4. [`GET object-state/{object_id}/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/} and [workflow state history]{@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/} need only `read` on the object. Check that a user with `myapp.read_widget` and no workflow permissions reads both.
+5. [`PATCH execute-transition/{object_id}/`]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/} with `{"transition_code": "submit"}` moves a draft widget to `review` for an editor. The response has `new_state` and `new_transitions`.
+6. Check the refusals. Each of these answers `400` with a validation error: a missing or unknown `transition_code`, a transition that does not leave the current state, a user without the workflow or transition permissions, and a row another request has locked. A user who cannot read the object gets `403`. The [bulk form]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/} with `object_ids` answers `404` for an object the user cannot read. When any object fails, it applies no transition.
 
-- Users with both workflow-level and transition-level permissions see the expected transitions.
-- Users with workflow-level permission but no matching transition permissions see an empty list.
-- Users without workflow-level permission see `403`.
+[Permissions](../reference/permissions.md#status-codes) lists these status codes with the others.
 
-### Object transitions
+### Dry-Run a Transition
 
-Verify `object-transitions` for specific objects:
+Send the execute request with the `Dry-Run: true` header to preview it. The server skips the row lock and runs the same checks. It writes the transition inside the request transaction, returns the projected `new_state` and `new_transitions`, and then rolls the transaction back. It calls [`on_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition} with `dry_run=True`, so an override that works outside the database should check `dry_run`. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#dry-run-and-mutation-semantics) describes dry runs for every action.
 
-- The transition list reflects the object's current state (only transitions valid from that state).
-- Transitions the user lacks permission for are excluded.
+### Confirm Transition Warnings
 
-### Execution
+If the model overrides [`get_transition_warnings`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}, the first execute request answers `409`. The check runs after the permission checks and before any write, in dry runs too. [Require Confirmation Before a Write](./require-write-confirmation.md#warn-on-a-workflow-transition) gives the steps.
 
-Verify transition execution for both dry-run and commit modes:
+## Check the Client
 
-**Dry-run** (`Dry-Run: true` header): skips row lock and state persistence. Returns the projected `new_state` and `new_transitions` without modifying the object. Use dry-run for preview or validation flows.
-
-**Commit** (no `Dry-Run` header): acquires a row lock via `select_for_update(skip_locked=True)`, executes the transition, and persists the state change. Returns `new_state` and `new_transitions` reflecting the committed change.
-
-Verify failure cases:
-
-- Executing a transition from an invalid source state returns `400` (not `403`). The error comes from `InvalidTransitionError` converted to a validation response.
-- Executing a transition without proper permissions returns `400` with a permission error message.
-- Lock acquisition failure returns `400` with `"This object cannot be updated right now. Please try again."`.
-
-Verify the warning-confirmation gate: when a model overrides `get_transition_warnings`, executing a transition with unacknowledged warnings returns `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written, and resubmitting with the `Acknowledge-Warnings` header set to that `digest` lets the transition proceed. The gate runs before the row lock, for both the single-object and bulk (`object_ids`) request forms; a bulk request gates once with one digest over all instances (`{object_id: {field: [messages]}}`), and none of them transition until the batch is acknowledged. The `object_id` keys are always the resolved instance's primary key cast to `str`, regardless of whether the request's `object_ids` were numbers or strings — `execute_transition` normalizes to that instance-derived value rather than echoing the request's own type back, so the same batch always gates on the same digest no matter how its ids were typed.
-
-## Endpoint Checks and Expected Errors
-
-**`object-state`** returns `403` when the user lacks object `read_*` permission for the target instance. The permission codename uses `PERMISSION_NAMES_MAPPING["read"]` when configured.
-
-**`permitted_transitions`** returns an empty list when the workflow does not exist for the given `app_label/model` pair, without requiring `vueda_workflow.read_workflow`; it still requires the user to hold the target model's `read` permission. When a workflow exists for the pair, it returns `403` when the user lacks `vueda_workflow.read_workflow` or workflow-level permissions.
-
-**`execute_transition`** returns `400` for all execution failures (permission denied, invalid transition, lock failure), in validation-style format rather than HTTP authorization-style. It returns `409` instead when `get_transition_warnings` reports unacknowledged warnings; that check runs after the `400` checks and before any write, so blocking failures still take precedence over the warning gate.
-
-Workflow definitions, transition discovery, and transition execution require `vueda_workflow.read_workflow` at the viewset permission-check phase. This check runs before any transition-specific logic. Test that a user without this permission receives a `403` from those endpoints.
-
-Current object state and workflow state history are the exception in the other direction: they report the target object's own data, so they require that object's `read` permission and not `read_workflow`. Test that a user who can read an object, and holds no workflow permission at all, still reads its state and state history.
-
-`permitted_transitions` skips the gate in one further case: when the target model has no configured workflow, the viewset falls through to the target model's own `read` permission check, so the endpoint can report "no transitions" to any user who can read the model. That case does not apply once a workflow is configured for the model; `read_workflow` is required from that point on.
-
-## Known Limitations and Gaps
-
-**State-permission lookup uses `.first()` across matching groups.** When multiple groups produce overlapping rules for the same permission and state, the query returns the first match. The deny-wins rule operates across the matched set, but the evaluation order within the query is database-dependent for equal-priority rows.
-
-**A matching state grant defers a model-scope denial.** A state rule defers `ObjectPermissions.has_permission` or `WorkflowObjectPermissions.has_permission` only when it grants, matches the caller's groups, the requested codename, the model content type, and the workflow, and only for an action that reaches a per-object decision. Deferring can change which status code a denied request receives (`403` becomes `404` on a model viewset). Adding an unrelated state rule changes no decision.
-
-**Transitions without `TransitionPermission` rows are invisible.** They do not appear in `permitted_transitions` and cannot be executed through the API. If a transition should be system-only, this is correct behaviour. If it should be user-executable, add `TransitionPermission` entries.
-
-**Some workflow permission behavior is more code-defined than test-covered.** Detailed state-permission combinations on `object_state` and `permitted_transitions` endpoints may have behavior paths that are not fully exercised in the current test suite. Verify complex scenarios in your project's tests.
-
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:class:vueda.workflow.models.WorkflowModelMethods}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_state_permission}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_checked_transition}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}
-    - {@api py:function:vueda.core.exceptions.gate_warnings}
-    - {@api py:class:vueda.workflow.models.StatePermission}
-    - {@api py:class:vueda.workflow.models.TransitionPermission}
-    - {@api py:class:vueda.workflow.models.WorkflowPermission}
-    - {@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}
-    - {@api py:function:vueda.core.permissions.ObjectPermissions.has_permission}
-    - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_state}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
-- REST:
-    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
-    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
-    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
-    - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
+Sign in to the client as each test user. Transition routes and list view transition buttons follow `permitted_transitions`, and detail view buttons follow `valid_transitions`. A user whom `permitted_transitions` refuses still reaches the model's CRUD routes. A transition route redirects that user with a "Permission Denied" toast. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md) describes route admission, and [Action Contract and Availability](../core-concepts/action-contract-and-availability.md) describes where each button comes from.
