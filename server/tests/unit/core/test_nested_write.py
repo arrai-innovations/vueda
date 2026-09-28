@@ -12,6 +12,7 @@ created objects are absent from current_ids and are therefore deleted immediatel
 being created.  The fixed order (delete first, then create) avoids the problem entirely.
 """
 
+import json
 from typing import ClassVar
 
 import pytest
@@ -184,7 +185,8 @@ class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
     @pytest.mark.parametrize("kept_indexes", [[1], [], [0, 1]], ids=["remove-one", "remove-all", "clear-mark"])
-    def test_parent_update_deletes_only_omitted_children(self, api_client, kept_indexes):
+    @pytest.mark.parametrize("body_format", ["json", "multipart"])
+    def test_parent_update_deletes_only_omitted_children(self, api_client, kept_indexes, body_format):
         api_client.force_authenticate(user=self.users["invoice_updater@domain.invalid"])
         invoice = store_models.Invoice.objects.create(name="Test Invoice")
         lines = [
@@ -201,10 +203,13 @@ class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
                 for index in kept_indexes
             ],
         }
+        if body_format == "multipart":
+            payload = {key: json.dumps(value) for key, value in payload.items()}
+            payload["__vueda_multipart"] = json.dumps({"version": 1, "files": {}})
         response = api_client.patch(
             reverse("store.invoice-detail", kwargs={"pk": invoice.pk}),
             data=payload,
-            format="json",
+            format=body_format,
         )
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert set(store_models.InvoiceLine.objects.filter(invoice=invoice).values_list("pk", flat=True)) == {
