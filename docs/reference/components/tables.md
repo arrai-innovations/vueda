@@ -76,6 +76,13 @@ const setRecipeSelectAll = (value) => {
 
 # Tables
 
+::: tip Which table to use
+For a native HTML table that keeps its table layout at every width, use these
+primitives. For a table-like list that breaks down into cards on narrow
+screens, use [ObjectsGrid](objectsgrid.md). {@api vue:component:ViewList}
+builds each model's list on ObjectsGrid.
+:::
+
 This page shows the {@term Visual Contract} of the table primitives:
 {@api vue:component:Table}, {@api vue:component:TableHeader},
 {@api vue:component:TableBody}, {@api vue:component:TableFooter},
@@ -84,10 +91,6 @@ This page shows the {@term Visual Contract} of the table primitives:
 {@api vue:component:TableEmpty}, and {@api vue:component:TableRowActions}.
 It ends with a DataTable recipe that composes them. [Components](index.md)
 describes the rules every component page shares.
-
-The primitives render a native HTML table for tables you compose yourself.
-{@api vue:component:ViewList} renders its rows through ObjectsGrid, which
-[ObjectsGrid](objectsgrid.md) describes.
 
 ## Table
 
@@ -579,9 +582,10 @@ Theme key: {@api theme-key:TableRowActions}. Current values:
 
 ## DataTable recipe
 
-This recipe composes a data table from the table primitives with a toolbar, a filter chip rail, a selection bar, and a
-pagination footer. Your application holds the sorting, selection, and paging
-state, for example with [TanStack Vue Table](https://tanstack.com/table/latest/docs/framework/vue/vue-table).
+This recipe composes a data table by hand from the table primitives with a
+toolbar, a filter chip rail, a selection bar, and a pagination footer. Your
+application holds the sorting, selection, and paging state, for example with
+[TanStack Vue Table](https://tanstack.com/table/latest/docs/framework/vue/vue-table).
 
 - **Toolbar and chips:** search sits on the left and view controls on the
   right. Active filters show as removable chips below the toolbar.

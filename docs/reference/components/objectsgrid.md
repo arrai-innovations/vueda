@@ -47,9 +47,11 @@ const statusClasses = {
 
 # ObjectsGrid
 
-This page shows the {@term Visual Contract} of {@api vue:component:ObjectsGrid}, the responsive object list that {@api vue:component:ViewList} and {@api vue:component:FieldSetTabularInline} render their rows through. It also covers the grid's cell components: {@api vue:component:ObjectsGridTableHeader}, {@api vue:component:ObjectsGridBodyCell}, {@api vue:component:ObjectsGridCardCell}, {@api vue:component:ObjectsGridBodyCellSkeleton}, and {@api vue:component:ObjectsGridCardCellSkeleton}. [Components](index.md) describes the rules every component page shares.
+::: tip Which table to use
+For a table-like list that breaks down into cards on narrow screens, use ObjectsGrid. For a native HTML table that keeps its table layout at every width, use the [Tables](tables.md) primitives.
+:::
 
-ObjectsGrid renders its own table and card markup.
+This page shows the {@term Visual Contract} of {@api vue:component:ObjectsGrid}, the responsive object list that {@api vue:component:ViewList} and {@api vue:component:FieldSetTabularInline} render their rows through. It also covers the grid's cell components: {@api vue:component:ObjectsGridTableHeader}, {@api vue:component:ObjectsGridBodyCell}, {@api vue:component:ObjectsGridCardCell}, {@api vue:component:ObjectsGridBodyCellSkeleton}, and {@api vue:component:ObjectsGridCardCellSkeleton}. [Components](index.md) describes the rules every component page shares.
 
 ## Layout switch
 
