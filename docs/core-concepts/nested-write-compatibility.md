@@ -37,6 +37,18 @@ This propagation is necessary because some validation paths on nested serializer
 
 The propagation is conditional: only fields whose names are present in the incoming data receive `initial_data`. Fields the client omitted from the payload do not have `initial_data` set, and neither does a relation left as a flat PK field because `e` did not name it -- a plain PK field is not a serializer instance, so the propagation loop's `isinstance` check skips it.
 
+## Related-row Authorization
+
+A nested forward foreign key, forward one-to-one relation, or many-to-many entry can address a row outside the parent's ownership. Before saving a mutation, VUEDA resolves the related model's canonical viewset from the metadata registry. An absent viewset, an unsupported action, or missing request context denies the mutation.
+
+The related viewset receives the authenticated request with the nested payload as its data and the related action as its context: `create` with POST for new rows, or `update` with PUT for existing rows. Its `check_permissions` runs first; `get_object` then resolves an existing row through the viewset's queryset and `check_object_permissions`. This preserves action-specific permission classes, viewset overrides, object rules, and workflow-state grants and denials. The viewset's create/update handler is not executed; the nested serializer still owns validation and saving.
+
+A pk-only entry resolves and links an existing row without calling its serializer's `save`. It does not require the related model's create fields or update permission. Link visibility remains the relation queryset's contract. Unknown pks fail rather than selecting the create path.
+
+The serializer wraps `save()` in a database transaction. A later nested denial or validation error rolls back earlier related writes, parent writes, and relation changes, including writes through parent-owned reverse inlines. Custom hooks that affect external services must arrange their own commit-time execution.
+
+For configuration and payload examples, see [Permissions for Related Rows](../guides/nested-writable-inlines#permissions-for-related-rows).
+
 ## Reverse Relation Write Filtering
 
 When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. These serializer wrappers signal that the relation is display-only; it should be expanded for `read` responses, but should not participate in write operations.
