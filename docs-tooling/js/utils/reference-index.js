@@ -15,6 +15,9 @@ export const memberNameFromId = (memberId) => {
     if (memberId.startsWith("theme-key:") && !memberId.includes(".")) {
         return "";
     }
+    if (memberId.startsWith("css-token:")) {
+        return `--${memberId.slice("css-token:".length)}`;
+    }
     const pyParam = pythonParameterParts(memberId);
     if (pyParam) {
         return `${pyParam.functionName}.${pyParam.parameterName}`;
@@ -40,12 +43,17 @@ export const formatApiMemberTitle = (pageTitle, memberName) => (memberName ? `${
 /**
  * Title for a member id listed on a page titled `pageTitle`.
  *
- * A Vue slot or event can sit on the component's slots or events page, whose title is not the
- * component's name, so a Vue member takes its title from the component in the id.
+ * A CSS token is known by its custom-property name alone, so its title omits the token group
+ * page it sits on. A Vue slot or event can sit on the component's slots or events page, whose
+ * title is not the component's name, so a Vue member takes its title from the component in the id.
  */
 export const apiMemberTitle = (pageTitle, memberId) => {
+    const memberName = memberNameFromId(memberId);
+    if (memberId.startsWith("css-token:")) {
+        return memberName;
+    }
     const vueMember = vueMemberParts(memberId);
-    return formatApiMemberTitle(vueMember ? vueMember.component : pageTitle, memberNameFromId(memberId));
+    return formatApiMemberTitle(vueMember ? vueMember.component : pageTitle, memberName);
 };
 
 export const themeKeySlotAnchor = (componentName, slotName) => `theme-key-${componentName}-${slotName}`;

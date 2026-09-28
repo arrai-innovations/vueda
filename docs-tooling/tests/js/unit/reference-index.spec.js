@@ -17,6 +17,10 @@ describe("memberNameFromId", () => {
     it("returns the slot name for a theme-key slot", () => {
         expect(memberNameFromId("theme-key:StickyBar.root")).toBe("root");
     });
+
+    it("returns the custom-property name for a css token", () => {
+        expect(memberNameFromId("css-token:vueda-gap-sm")).toBe("--vueda-gap-sm");
+    });
 });
 
 describe("formatApiMemberTitle", () => {
@@ -129,6 +133,10 @@ describe("cssTokenAnchor", () => {
 });
 
 describe("apiMemberTitle", () => {
+    it("titles a css token by its custom-property name alone", () => {
+        expect(apiMemberTitle("Base tokens", "css-token:vueda-hairline-width")).toBe("--vueda-hairline-width");
+    });
+
     it("titles a Vue member by its component, whatever page lists it", () => {
         expect(apiMemberTitle("ObjectsGrid Slots", "vue:component:ObjectsGrid:slot:cell.rowIndex")).toBe(
             "ObjectsGrid.cell.rowIndex",

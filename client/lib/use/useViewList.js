@@ -1115,7 +1115,7 @@ export function useViewList(options) {
     );
 
     // A declared total whose name matches no display column at all is the one misconfiguration the
-    // server's `vueda_info.E011` check cannot catch: `column_totals` keys name client columns, and
+    // server's `vueda_info.E013` check cannot catch: `column_totals` keys name client columns, and
     // the server has no idea what those are, since `displayFields` is configured per project and per
     // view. Nothing fails for it — the total is simply never requested and never rendered — so this
     // is the only place it can be said out loud.
