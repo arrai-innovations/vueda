@@ -1,8 +1,7 @@
 /**
  * @module use/themeRegistry
- * @description Mutable holder for the registered default theme, plus the
- * registration API (`setTheme` / `patchTheme` / `getTheme`) and the theme-merge
- * helper.
+ * @description Stores base theme data and project overrides separately, with
+ * registration, override, and theme-merge APIs.
  *
  * Split out of `useTheme.js` so per-component `*.theme.js` modules can register
  * their entries through a module that test specs do not mock. Specs mock the
@@ -26,6 +25,14 @@ import { shallowRef } from "vue";
  */
 export const defaultTheme = shallowRef({});
 
+/**
+ * Project overrides applied after base slots by useTheme. Kept separate so
+ * base registration, snapshots, and replacement cannot overwrite them.
+ *
+ * @private
+ */
+export const projectTheme = shallowRef({});
+
 const mergeWithCb = (objValue, srcValue, key) => {
     const isObjFunction = isFunction(objValue);
     const isSrcFunction = isFunction(srcValue);
@@ -47,7 +54,7 @@ const mergeWithCb = (objValue, srcValue, key) => {
     if (isFunctionInvolved) {
         return (args) =>
             mergeWith(
-                isObjFunction ? objValue(args) : objValue,
+                cloneDeep(isObjFunction ? objValue(args) : objValue),
                 isSrcFunction ? srcValue(args) : srcValue,
                 mergeWithCb,
             );
@@ -118,7 +125,7 @@ export function mergeTheme(...themes) {
 }
 
 /**
- * Get the default theme.
+ * Get a cloned base theme snapshot. Project overrides are excluded.
  *
  * @returns {import('@vueda/use/useTheme.js').ThemeObject} - The default theme.
  */
@@ -127,7 +134,8 @@ export function getTheme() {
 }
 
 /**
- * Set the default theme. Wholesale replace.
+ * Replace the base theme, including previous base patches. Project overrides
+ * remain in effect; use clearThemeOverrides to remove them.
  *
  * @param {import('@vueda/use/useTheme.js').ThemeObject} newTheme - The new default theme.
  */
@@ -159,4 +167,29 @@ export function patchTheme(partialTheme) {
     }
     // Reassign .value (rather than mutating in place) so shallowRef triggers reactivity.
     defaultTheme.value = next;
+}
+
+/**
+ * Merge project overrides above the base theme regardless of registration order.
+ * Later calls combine classes and replace explicit compose lists. Component-level
+ * loaders belong in the base registry; overrides contain component theme data,
+ * including function-valued slots and classes.
+ *
+ * @param {import('@vueda/use/useTheme.js').ThemeObject} partialTheme - Project theme overrides.
+ * @returns {void}
+ */
+export function overrideTheme(partialTheme) {
+    // Compose lists use replacement semantics, so clone the incoming data as
+    // well as the existing store to avoid retaining caller-owned arrays.
+    projectTheme.value = mergeTheme(projectTheme.value, cloneDeep(partialTheme));
+}
+
+/**
+ * Remove all project overrides without changing base entries or loaders.
+ * Mounted consumers resolve against the base again.
+ *
+ * @returns {void}
+ */
+export function clearThemeOverrides() {
+    projectTheme.value = {};
 }
