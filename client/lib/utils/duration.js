@@ -1,6 +1,6 @@
 /**
  * @module utils/duration
- * @description Parses and serializes Django-style duration strings (D HH:MM:SS) to and from plain objects,
+ * @description Parses and serializes Django-style duration strings ([D ]HH:MM:SS) to and from plain objects,
  * and normalizes either serialized shape (that string or a number of seconds) into whole units for display.
  */
 
@@ -25,18 +25,29 @@ export function parseDuration(durationString) {
 }
 
 /**
- * Serializes a duration plain object back into a Django-style duration string (D HH:MM:SS).
+ * Serializes a duration plain object into DRF's duration string (`[D ]HH:MM:SS`), the format a Django
+ * `DurationField` reads. Missing units count as zero, and larger units absorb overflow, so
+ * `{ minutes: 90 }` serializes as `01:30:00`. The day count appears only when it is nonzero. A
+ * negative total carries its sign on the day count while the clock part stays positive, as Django
+ * writes it: minus one hour is `-1 23:00:00`. Sub-second precision is dropped.
  *
  * @param {{days?: number, hours?: number, minutes?: number, seconds?: number}} durationObject - The duration to serialize.
  * @returns {string} The formatted duration string.
  */
 export function convertDurationToString(durationObject) {
+    const totalSeconds = Math.trunc(
+        (durationObject.days || 0) * 86400 +
+            (durationObject.hours || 0) * 3600 +
+            (durationObject.minutes || 0) * 60 +
+            (durationObject.seconds || 0),
+    );
+    const days = Math.floor(totalSeconds / 86400);
+    const clockSeconds = totalSeconds - days * 86400;
     const padWithZero = (num) => String(num).padStart(2, "0");
-    const days = padWithZero(durationObject.days || 0);
-    const hours = padWithZero(durationObject.hours || 0);
-    const minutes = padWithZero(durationObject.minutes || 0);
-    const seconds = padWithZero(durationObject.seconds || 0);
-    return `${days} ${hours}:${minutes}:${seconds}`;
+    const clock = [Math.floor(clockSeconds / 3600), Math.floor((clockSeconds % 3600) / 60), clockSeconds % 60]
+        .map(padWithZero)
+        .join(":");
+    return days ? `${days} ${clock}` : clock;
 }
 
 /**
