@@ -27,6 +27,7 @@ import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
@@ -278,11 +279,24 @@ class FlexFieldsWriteableNestedSerializerMixin(
         return {str(related_instance.pk): related_instance for related_instance in queryset}
 
     def _extract_relations(self, validated_data):
+        # A read-only serializer validates any input, even a missing key, to `{}`, which the
+        # library pops from `validated_data` as a direct relation to save. Keep a model instance
+        # passed to `save()` for a read-only direct relation, so the parent still stores it.
+        readonly_values = {
+            field.source: validated_data[field.source]
+            for field in self._writable_fields
+            if isinstance(field, VuedaReadonlySerializer) and field.source in validated_data
+        }
         relations, reverse_relations = super()._extract_relations(validated_data)
 
-        # Tuple, so we can modify inline, as needed.
+        # Tuples, so we can modify inline, as needed. You cannot create or update a readonly
+        # serializer, so its relation takes no part in the save.
+        for field_name, (field, field_source) in tuple(relations.items()):
+            if isinstance(field, VuedaReadonlySerializer):
+                del relations[field_name]
+                if isinstance(readonly_values.get(field_source), models.Model):
+                    validated_data[field_source] = readonly_values[field_source]
         for field_name, (_related_field, field, _field_source) in tuple(reverse_relations.items()):
-            # You cannot create or update a readonly serializer.
             if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
                 del reverse_relations[field_name]
 

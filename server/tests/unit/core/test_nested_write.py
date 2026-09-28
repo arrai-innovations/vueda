@@ -15,6 +15,7 @@ being created.  The fixed order (delete first, then create) avoids the problem e
 from typing import ClassVar
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 
@@ -22,6 +23,10 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from tests.utils import FakeRequest
+from tests.utils import FakeView
+from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.serializers import VuedaSerializer
 
 
 @pytest.mark.django_db
@@ -248,3 +253,91 @@ class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
         other_line.refresh_from_db()
         assert other_line.invoice_id == other_invoice.pk
         assert other_line.name == "Other line"
+
+
+class _CustomerReadonlySerializer(VuedaReadonlySerializer):
+    class Meta(VuedaReadonlySerializer.Meta):
+        model = store_models.Customer
+        fields = ["id", "user"] + VuedaSerializer.Meta.fields
+
+
+class _CartWithReadonlyCustomerSerializer(VuedaSerializer):
+    customer = _CustomerReadonlySerializer(required=False)
+
+    class Meta(VuedaSerializer.Meta):
+        model = store_models.Cart
+        fields = ["id", "customer", "reserved_until"] + VuedaSerializer.Meta.fields
+
+
+class _CartExpandingReadonlyCustomerSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = store_models.Cart
+        fields = ["id", "customer", "reserved_until"] + VuedaSerializer.Meta.fields
+        expandable_fields = {"customer": (_CustomerReadonlySerializer, {})}
+
+
+@pytest.mark.django_db
+class TestReadonlyForwardRelation(BaseTestUserMixin):
+    """A read-only nested serializer on a forward foreign key never takes part in the save."""
+
+    users_to_create: ClassVar[dict] = {
+        "cart_owner@domain.invalid": {"name": "Cart Owner", "password": "testpass", "groups": []},
+        "other_customer@domain.invalid": {"name": "Other Customer", "password": "testpass", "groups": []},
+    }
+
+    def _serializer(self, instance, data, method):
+        request = FakeRequest({}, data, method)
+        queryset = store_models.Cart.objects.filter(pk=instance.pk) if instance else None
+        view = FakeView(request, _CartWithReadonlyCustomerSerializer, queryset=queryset)
+        return _CartWithReadonlyCustomerSerializer(
+            instance, data=data, partial=method == "PATCH", context={"request": request, "view": view}
+        )
+
+    @pytest.mark.parametrize(
+        "sends_customer",
+        [False, True],
+        ids=["body-omits-relation", "body-sends-relation"],
+    )
+    def test_update_saves_and_keeps_the_foreign_key(self, sends_customer):
+        customer = store_models.Customer.objects.create(user=self.users["cart_owner@domain.invalid"])
+        other = store_models.Customer.objects.create(user=self.users["other_customer@domain.invalid"])
+        cart = store_models.Cart.objects.create(customer=customer)
+        data = {"reserved_until": "10:00"}
+        if sends_customer:
+            data["customer"] = {"id": other.pk}
+
+        serializer = self._serializer(cart, data, "PATCH")
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        cart.refresh_from_db()
+        assert cart.customer_id == customer.pk
+        assert str(cart.reserved_until) == "10:00:00"
+
+    def test_create_keeps_a_foreign_key_passed_to_save(self):
+        customer = store_models.Customer.objects.create(user=self.users["cart_owner@domain.invalid"])
+
+        serializer = self._serializer(None, {"reserved_until": "10:00"}, "POST")
+        assert serializer.is_valid(), serializer.errors
+        cart = serializer.save(customer=customer)
+
+        assert cart.customer_id == customer.pk
+
+    def test_update_through_an_expanded_readonly_relation_keeps_the_foreign_key(self):
+        customer = store_models.Customer.objects.create(user=self.users["cart_owner@domain.invalid"])
+        cart = store_models.Cart.objects.create(customer=customer)
+        data = {"reserved_until": "10:00"}
+        request = FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["customer"]}, data, "PATCH")
+        view = FakeView(
+            request, _CartExpandingReadonlyCustomerSerializer, queryset=store_models.Cart.objects.filter(pk=cart.pk)
+        )
+        serializer = _CartExpandingReadonlyCustomerSerializer(
+            cart, data=data, partial=True, context={"request": request, "view": view}
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        cart.refresh_from_db()
+        assert cart.customer_id == customer.pk
+        assert str(cart.reserved_until) == "10:00:00"
