@@ -11,8 +11,8 @@ import { computed, useSlots } from "vue";
  * a PATCH request to the deactivate endpoint when the user confirms. It shares its body with
  * ViewActivate: the selected objects, the page title, the "Go Back" action, warning confirmation,
  * and bulk requests. Attributes and slots pass through to ModelActionForm, so a wrapping page can
- * adapt it, for example to a self-service account page with `confirmText`, `actionVerboseName`,
- * and the `confirm-message` slot.
+ * adapt it, for example to a self-service account page with `confirmText`, `bannerTitle`,
+ * `actionSuccessSummary`, and the `confirm-message` slot.
  */
 defineOptions({
     inheritAttrs: false,
