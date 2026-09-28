@@ -3,12 +3,14 @@ import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
 import { ThemeKeysExtractor, extractThemeKeysPayload } from "../js/extractors/theme-keys.js";
+import { ConfigurationNormalizer } from "../js/normalizers/configuration.js";
 import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
 import { ThemeKeysNormalizer } from "../js/normalizers/theme-keys.js";
 import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
 import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
+import { renderConfigurationBundle } from "../js/renderers/configuration.js";
 import { renderCssTokensBundle } from "../js/renderers/css-tokens.js";
 import { renderOpenApiBundle } from "../js/renderers/openapi.js";
 import { renderPdocBundle } from "../js/renderers/pdoc.js";
@@ -47,6 +49,21 @@ async function extractPython(outDir) {
             cwd: path.join(repoRoot, "server"),
             env: { ...process.env, DJANGO_SETTINGS_MODULE: "doc_settings" },
         },
+    );
+}
+
+async function extractConfiguration(outDir) {
+    await execFileAsync(
+        "uv",
+        [
+            "run",
+            "--no-sync",
+            "python",
+            path.join(repoRoot, "docs-tooling", "py", "dump_configuration.py"),
+            "--output",
+            path.join(outDir, "configuration.json"),
+        ],
+        { cwd: repoRoot },
     );
 }
 
@@ -106,6 +123,7 @@ function expandTargets(targets) {
         set.add("components");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("configuration");
         set.delete("all");
     }
     return Array.from(set);
@@ -120,6 +138,7 @@ function expandNormalizeTargets(targets) {
         set.add("pdoc");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("configuration");
         set.delete("all");
     }
     return Array.from(set);
@@ -131,6 +150,9 @@ async function runExtract(argv) {
 
     for (const target of targets) {
         switch (target) {
+            case "configuration":
+                await extractConfiguration(outDir);
+                break;
             case "python":
                 await extractPython(outDir);
                 break;
@@ -157,6 +179,10 @@ async function runExtract(argv) {
 
 async function runNormalize(argv) {
     const defaults = {
+        configuration: {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "configuration.json"),
+            output: path.join(repoRoot, "docs-tooling", ".generated", "configuration.canonical.json"),
+        },
         typedoc: {
             input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.json"),
             output: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
@@ -192,6 +218,9 @@ async function runNormalize(argv) {
     for (const source of requestedSources) {
         let normalizer;
         switch (source) {
+            case "configuration":
+                normalizer = new ConfigurationNormalizer();
+                break;
             case "typedoc":
                 normalizer = new TypeDocNormalizer();
                 break;
@@ -324,6 +353,10 @@ function addIndexPages(outputs) {
 
 async function runRender(argv) {
     const defaults = {
+        configuration: {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "configuration.canonical.json"),
+            output: path.join(repoRoot, "docs", "reference"),
+        },
         typedoc: {
             input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
             output: path.join(repoRoot, "docs", "reference", "api"),
@@ -352,7 +385,7 @@ async function runRender(argv) {
 
     // Sources whose output should NOT have auto-generated index.md pages
     // appended (the renderer emits its own group/index pages).
-    const skipIndexFor = new Set(["css-tokens", "theme-keys"]);
+    const skipIndexFor = new Set(["css-tokens", "theme-keys", "configuration"]);
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
 
@@ -402,6 +435,9 @@ async function runRender(argv) {
         let renderer;
         let rendererOptions;
         switch (source) {
+            case "configuration":
+                renderer = renderConfigurationBundle;
+                break;
             case "typedoc":
                 renderer = renderTypeDocBundle;
                 break;
@@ -449,6 +485,7 @@ async function runRender(argv) {
     const pruneRoots = fullDefaultRender
         ? [
               path.join(reference, "api"),
+              path.join(reference, "configuration.md"),
               path.join(reference, "theming", "tokens"),
               path.join(reference, "theming", "tokens.md"),
               path.join(reference, "theming", "keys"),
@@ -571,7 +608,16 @@ yargs(hideBin(process.argv))
                 .option("target", {
                     alias: "t",
                     array: true,
-                    choices: ["all", "python", "rest", "javascript", "components", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "python",
+                        "rest",
+                        "javascript",
+                        "components",
+                        "css-tokens",
+                        "theme-keys",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which extractors to run",
                 })
@@ -590,7 +636,16 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "typedoc",
+                        "vue-docgen",
+                        "openapi",
+                        "pdoc",
+                        "css-tokens",
+                        "theme-keys",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which source format to normalize",
                 })
@@ -614,7 +669,16 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "typedoc",
+                        "vue-docgen",
+                        "openapi",
+                        "pdoc",
+                        "css-tokens",
+                        "theme-keys",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which source format to render",
                 })
