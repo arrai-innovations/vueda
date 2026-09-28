@@ -615,7 +615,7 @@ A row that names one permission a user must hold to execute one transition. The 
 A second sign-in step that asks for a one-time code from an authenticator app, SMS, or email. VUEDA stores each method a user registers as a `TOTPDevice`. The server requires the code; the client routes to the `2fa` page when the server asks for it.
 
 - Names: [`TOTPDevice`]{@api py:class:vueda.user.models.TOTPDevice}; [`storeUser.twoFactorAuthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorAuthenticate}; [2FA endpoint]{@api rest:endpoint:POST:/vueda.user/2fa/authenticate/}; `TWO_FACTOR_AUTHENTICATION_OPTIONS`
-- Described in: [Build Auth Views](../guides/build-auth-views.md#mfa-flow-handling)
+- Described in: [Build Auth Views](../guides/build-auth-views.md#route-two-factor-sign-in)
 
 ## Valid Transitions
 

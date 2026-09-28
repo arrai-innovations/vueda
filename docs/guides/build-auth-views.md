@@ -7,60 +7,93 @@ type: how-to
 
 # Build Auth Views
 
-This guide covers building sign-in, sign-up, re-authentication, and two-factor authentication views using VUEDA's `AuthorizingForm` component, the field/widget system, and the user store. It walks through the component hierarchy, the redirect chain, form value handling, MFA flow integration, and common variant patterns.
+VUEDA ships views for sign-in, {@term Two-Factor Authentication}, password changes and resets, and device setup. This guide routes them, adds the forgot and reset password flow, and builds your own form when a view needs changes. [Auth & MFA Views](../reference/components/auth-and-mfa.md) shows each view's layout.
 
-The guide assumes familiarity with Vue component composition and VUEDA's field/widget architecture. For the field/widget composable surface, see [Custom Field/Widget Rendering](../guides/custom-field-widget-rendering). For client plugin registration (theme, CRUD adapters, and related dependencies), see [Client Plugin Prerequisites](../guides/client-plugin-prerequisites).
-For the core auth form component contract, review {@api vue:component:AuthorizingForm}. Auth redirects and action gates in this guide map closely to {@term Transition} behavior.
+## Before You Begin
 
-## Goal and Preconditions
+- Complete [Client Plugin Prerequisites](client-plugin-prerequisites.md): the theme, the {@term CRUD} adapters, and a mounted {@api vue:component:Sonner} toaster. The auth views report results through toasts.
+- The server's root `urls.py` includes {@api py:module:vueda.user.urls} under `routes/`. The scaffolded project does this, and {@api js:module:@arrai-innovations/vueda/stores/storeUser} sends its requests to those paths.
 
-The objective is a set of authentication views where:
+## Route the Shipped Views
 
-- Sign-in collects credentials through `FormField`/`WidgetTextInput` and submits them through the user store's `login` action.
-- `AuthorizingForm` watches the user store for login state changes and redirects automatically on success.
-- MFA flows are detected from the server response and route the user to a two-factor authentication view.
-- Re-authentication views enforce a `recentlyLoggedIn` check for sensitive operations.
-- Server-side validation errors surface through the standard `ActionForm` error handling.
+The library navigates to the route names below, so your router must define each one you use.
 
-Before you begin:
+| Route name        | What sends the user there                                                                                                    | View                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `sign-in`         | Your `requireAuth` guards; `ViewTwoFactorAuth` when no sign-in is waiting for a code; the password views' `signInTo` default | {@api vue:component:ViewSignIn}                        |
+| `2fa`             | `AuthorizingForm`, when the server asks for a second factor                                                                  | {@api vue:component:ViewTwoFactorAuth}                 |
+| `reauthenticate`  | `AuthForm`, when the server asks for {@term Reauthentication}; `requireRecentAuth` when you pass it this route               | Your own; see [below](#build-a-re-authentication-view) |
+| `welcome`         | `AuthorizingForm` after sign-in, when neither a `redirect` query value nor a `redirect` prop is set                          | Your landing page                                      |
+| `forgot-password` | `ViewResetPassword`'s "Request a new link" button                                                                            | {@api vue:component:ViewForgotPassword}                |
+| `reset-password`  | The emailed reset link                                                                                                       | {@api vue:component:ViewResetPassword}                 |
 
-The client application must have the VUEDA theme registered, a `<Sonner />` toaster mounted, and the VUEDA {@term CRUD} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
+The integrator template's `client/src/router/index.js` defines `welcome`, `sign-in`, `forgot-password`, and `reset-password`. Add `2fa` and `reauthenticate` beside them:
 
-The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
-
-## Component Hierarchy
-
-Auth views are built from three layers:
-
-**`AuthorizingForm`** wraps `ActionForm` and adds login-aware redirect logic. It watches `storeUser` for changes to `loggedIn`, `recentlyLoggedIn`, and `pendingFlow`, and routes the user on success or MFA detection.
-
-**`ActionForm`** handles the submit lifecycle: validation, calling `runAction`, displaying toasts, and routing success/error responses.
-
-**`FormField` / `WidgetTextInput`** provide the form inputs. In auth views, these are used in "hand-authored" mode (fields are declared in the template, not driven by model-info metadata).
-
-The typical template structure is:
-
-```vue
-<AuthorizingForm :run-action="handleSubmit" :form-props="formProps">
-    <template #action-form-inner>
-        <FormField label="Email" name="email" required>
-            <WidgetTextInput :required="true" type="text" autocomplete="username" />
-        </FormField>
-        <FormField label="Password" name="password" required>
-            <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
-        </FormField>
-    </template>
-</AuthorizingForm>
+```js
+{
+    path: "/2fa/",
+    name: "2fa",
+    component: async () => (await import("@vueda/views/ViewTwoFactorAuth.vue")).default,
+    meta: { title: "Two-Factor Authentication" },
+    beforeEnter: () => requireUnauth(signedInHome, router, pinia),
+},
+{
+    path: "/reauthenticate/",
+    name: "reauthenticate",
+    component: () => import("@/views/ViewReauthenticate.vue"),
+    meta: { title: "Confirm Your Identity" },
+    beforeEnter: (to) => requireAuth({ name: "sign-in" }, to, router, pinia),
+},
 ```
 
-`AuthorizingForm` passes `runAction` and `formProps` down to `ActionForm`. Field components register themselves with the form context through `useField`, and `ActionForm` collects their values at submit time.
+`ViewReauthenticate.vue` is the view you build in [Build a Re-Authentication View](#build-a-re-authentication-view).
+
+{@api vue:component:ViewChangePassword}, {@api vue:component:ViewSetupDevice}, and {@api vue:component:ViewRecoveryCodes} act for a signed-in user, so route them at any path behind `requireAuth`. `ViewSetupDevice` takes `app` and `model` props that name the device model.
+
+## Guard the Routes
+
+Add a guard to each route's `beforeEnter`:
+
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireAuth} sends a signed-out user to the route you pass, usually `sign-in`, and records the refused path in the `redirect` query parameter. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#route-guard-chain) describes it and how `makeCRUDRoutes` applies it.
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireUnauth} sends a signed-in user to the route you pass. Use it on the sign-in, two-factor, and password reset routes.
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireRecentAuth} sends a user who has not confirmed their identity recently to the route you pass, usually `reauthenticate`, with the same `redirect` query parameter.
+
+These guards change only what the client shows. The server checks sign-in and recent authentication on every request.
+
+## Add the Forgot and Reset Password Flow
+
+1. Give the forgot password endpoint a working cache. {@api py:class:vueda.user.views.VuedaForgotPasswordView} accepts one request per address per minute and answers `429` to the next. [Configure the Cache and Sessions](configure-cache-and-sessions.md) describes the backends that keep this limit across processes.
+2. Set `FRONTEND_DOMAIN` and `FRONTEND_RESET_URL` (default `/reset-password`) on the server. The emailed link is built from them, with an encoded account id as the last path segment and the reset `token` in the query string.
+3. Make sure the server can send email. The user adapter named by `VUEDA_USER_ADAPTER` sends the message, and queues it with {@term VDQ (VUEDA Dispatch Queue)} when `vueda.vdq` is installed.
+4. Route `forgot-password` and `reset-password`. `ViewResetPassword` needs `pk` from the path and `token` from the query:
+
+    ```js
+    {
+        path: "/reset-password/:pk/",
+        name: "reset-password",
+        component: async () => (await import("@vueda/views/ViewResetPassword.vue")).default,
+        props: (route) => ({ pk: route.params.pk, token: String(route.query.token ?? "") }),
+        beforeEnter: () => requireUnauth(signedInHome, router, pinia),
+    },
+    ```
+
+    The path must match `FRONTEND_RESET_URL`.
+
+5. Link the sign-in view to the flow with [`forgotPasswordTo`]{@api vue:component:ViewSignIn:prop:forgotPasswordTo}, for example `props: { forgotPasswordTo: { name: "forgot-password" } }` on the `sign-in` route. The view shows a "Forgot password?" link only when this prop is set.
+
+The flow then behaves as follows:
+
+- `ViewForgotPassword` calls [`forgotPassword`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.forgotPassword}. The server answers the same way whether or not an account uses the address, and the view shows "Check Your Email" either way.
+- `ViewResetPassword` checks the link on mount with [`checkResetLinkIsValid`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.checkResetLinkIsValid}. A rejected link replaces the form with a message and a "Request a new link" button.
+- On submit, `ViewResetPassword` calls [`resetPassword`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.resetPassword}. A password the server's validators reject appears as an error on the password field. After a successful reset, the view goes to `signInTo`.
 
 ## Build a Sign-In View
 
-Define form initial values and a submit handler that calls the user store:
+Use {@api vue:component:AuthorizingForm} when a sign-in form must differ from `ViewSignIn`. It wraps {@api vue:component:ActionForm} and sends the user on after sign-in.
 
 ```vue
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
@@ -81,53 +114,68 @@ const handleSubmit = ({ formValues }) => {
 </script>
 
 <template>
-    <AuthorizingForm header="Sign In" :run-action="handleSubmit" :form-props="formProps">
+    <AuthorizingForm
+        header="Sign In"
+        action-error-summary="Sign In Failed"
+        :run-action="handleSubmit"
+        :form-props="formProps"
+    >
         <template #action-form-inner>
-            <FormField label="Email" name="email" required>
+            <FormField validation="text" label="Email" name="email">
                 <WidgetTextInput :required="true" autocomplete="username" />
             </FormField>
-            <FormField label="Password" name="password" required>
+            <FormField validation="text" label="Password" name="password">
                 <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
             </FormField>
+        </template>
+        <template #action-bar="{ loading }">
+            <Button type="submit" tone="primary" :disabled="loading">Sign In</Button>
         </template>
     </AuthorizingForm>
 </template>
 ```
 
-The `handleSubmit` function receives `{ formValues }` from `ActionForm`'s submit cycle. `formValues` contains the current field values (keyed by `name`), excluding any fields marked as ignored. The function must return a promise; `ActionForm` uses the resolution or rejection to drive success/error toasts.
+Write the fields this way:
 
-## Redirect Chain
+- Set every field in `formProps.initialValues`. The form has no server object to start from.
+- Give each {@api vue:component:FormField} the `name` the endpoint expects. `runAction` receives `{ formValues }`, keyed by field name, without {@term Ignored Field} values.
+- Set [`validation="text"`]{@api vue:component:FormField:prop:validation} to enable `maxLength`, `minLength`, and `patternRegex` on a field.
+- Pass `type` to {@api vue:component:WidgetTextInput} for the native input type, such as `password`.
+- Replace the [`action-bar` slot]{@api vue:component:ActionForm:slots}. The default bar has a confirm and a cancel button, and a sign-in form has nowhere to cancel to.
 
-After a successful login, `AuthorizingForm` evaluates redirect targets in priority order:
+The server validates every submit. [`login`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.login} ends in one of these outcomes:
 
-1. **MFA pending flow.** If `storeUser.pendingFlow` has `id === "mfa_authenticate"`, the component routes to the `2fa` named route immediately. No success toast is shown; the user must complete MFA first.
+- It resolves when the user is signed in or the server asks for a second factor. `AuthorizingForm` shows no toast for the submit itself, because the redirect announces the sign-in. Pass [`onSubmissionSuccessHandler`]{@api vue:component:AuthorizingForm:prop:onSubmissionSuccessHandler} to run your own code instead; `ViewForgotPassword` does this to show its message.
+- A `400` response becomes {@term Server Feedback}: each error appears on the field with the same `name`, and a {@term Non-Field Error} appears on the form. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) describes the error shapes.
+- Any other failure shows an error toast titled by [`actionErrorSummary`]{@api vue:component:ActionForm:prop:actionErrorSummary}, or "Action Failed" when it is unset.
 
-2. **Query parameter redirect.** If `route.query.redirect` is present, the component uses that path. This supports the pattern where a route guard redirects an unauthenticated user to sign-in with `?redirect=/original-path`.
+### Redirect Chain
 
-3. **Prop redirect.** If the `redirect` prop is set on `AuthorizingForm`, the component uses that value. This is the static fallback for views that always redirect to a specific destination.
+`AuthorizingForm` watches the user store while the view is active. It acts on mount and after each change to the sign-in state:
 
-4. **Default.** If none of the above match, the component routes to `{ name: "welcome" }`.
+1. When [`pendingFlow`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.pendingFlow} is a two-factor sign-in (`id` is `mfa_authenticate`), it navigates to `2fa`.
+2. Once the user signs in, it navigates to the first destination present: the `redirect` query value, the [`redirect` prop]{@api vue:component:AuthorizingForm:prop:redirect}, then `{ name: "welcome" }`.
 
-On a successful redirect, `AuthorizingForm` shows a toast: "You are now signed in and have been redirected."
+With [`requireRecentLogin`]{@api vue:component:AuthorizingForm:prop:requireRecentLogin}, step 2 also waits for [`recentlyLoggedIn`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.recentlyLoggedIn}.
 
-The `requireRecentLogin` prop adds an additional check: the redirect only fires when both `loggedIn` and `recentlyLoggedIn` are true. Use this prop for re-authentication views where a fresh login is required.
+After the navigation completes, a "Signed In" toast appears. When it fails, a "Signed in, but could not open the next page" toast appears, and the console logs `[vueda] Sign-in redirect failed for` with the destination.
 
-## MFA Flow Handling
+Because the chain runs on mount, a signed-in user who opens a view built on `AuthorizingForm` is sent on at once.
 
-When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler extracts the last flow from the array and sets it as `pendingFlow`.
+## Route Two-Factor Sign-In
 
-`AuthorizingForm` watches `pendingFlow`. When it detects a flow with `id === "mfa_authenticate"`, it routes to the `2fa` named route. The login state remains `loggedIn: false` until MFA completes.
+When an account has two-factor authentication, the login endpoint answers `401` and lists the next steps under `data.flows` in the response body. The store sets `pendingFlow` to the step the server marks pending, and `login` resolves. `AuthorizingForm` then navigates to `2fa`. `loggedIn` stays `false` until the server accepts a code.
 
-Build a two-factor authentication view following the same pattern, but calling `userStore.twoFactorAuthenticate` instead of `login`:
+`ViewTwoFactorAuth` handles every method. The user picks a method, requests a code for SMS or email, and enters it; a recovery code goes through the same form. Route it as `2fa` and use it as it is where you can.
+
+A custom two-factor view for authenticator app codes submits [`twoFactorAuthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorAuthenticate} and uses {@api vue:component:WidgetOTPInput} for the code:
 
 ```vue
 <script setup>
-import InputOTP from "@vueda/controls/input-otp/InputOTP.vue";
-import InputOTPGroup from "@vueda/controls/input-otp/InputOTPGroup.vue";
-import InputOTPSlot from "@vueda/controls/input-otp/InputOTPSlot.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
+import WidgetOTPInput from "@vueda/widgets/WidgetOTPInput.vue";
 import { reactive } from "vue";
 
 const userStore = storeUser();
@@ -138,9 +186,7 @@ const formProps = reactive({
 });
 
 const handleSubmit = ({ formValues }) => {
-    return userStore.twoFactorAuthenticate({
-        code: formValues.code,
-    });
+    return userStore.twoFactorAuthenticate({ code: formValues.code });
 };
 </script>
 
@@ -152,26 +198,30 @@ const handleSubmit = ({ formValues }) => {
         :form-props="formProps"
     >
         <template #action-form-inner>
-            <FormField label="Code" name="code" required>
-                <InputOTP :maxlength="6">
-                    <InputOTPGroup>
-                        <InputOTPSlot v-for="i in 6" :key="i" :index="i - 1" />
-                    </InputOTPGroup>
-                </InputOTP>
+            <FormField label="Code" name="code">
+                <WidgetOTPInput :required="true" :maxlength="6" />
             </FormField>
         </template>
     </AuthorizingForm>
 </template>
 ```
 
-On success, `twoFactorAuthenticate` clears `pendingFlow` and sets `loggedIn: true`. `AuthorizingForm` then evaluates the redirect chain as normal.
+For SMS and email, the view must first send a code with [`sendTwoFactorAuthenticationCode`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.sendTwoFactorAuthenticationCode}, passing the chosen `method`.
+
+On success, `twoFactorAuthenticate` clears `pendingFlow` and reloads the current user, and the redirect chain continues. The navigation to `2fa` drops the `redirect` query value. After the code, the user reaches `welcome` unless the two-factor view sets `redirect`.
 
 ## Build a Re-Authentication View
 
-Some operations require proof that the user logged in recently (not just that they have an active session). Build a re-authentication view with `requireRecentLogin: true`:
+The server requires a recent sign-in for sensitive requests, such as setting up a two-factor device. When it refuses one, the user reaches the `reauthenticate` route in one of two ways:
+
+- `AuthForm` navigates there when a submit fails with `401` or `403`, or when the server's `401` lists a reauthentication step. It shows "Please verify your account again before proceeding" and records the current path in the `redirect` query value.
+- `requireRecentAuth` navigates there before the route opens, with the same query value.
+
+Build the view with `requireRecentLogin` so that it waits for a recent sign-in, then returns to the `redirect` path:
 
 ```vue
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
@@ -198,19 +248,22 @@ const handleSubmit = ({ formValues }) => {
         :require-recent-login="true"
     >
         <template #action-form-inner>
-            <FormField label="Password" name="password" required>
+            <FormField validation="text" label="Password" name="password">
                 <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
             </FormField>
+        </template>
+        <template #action-bar="{ loading }">
+            <Button type="submit" tone="primary" :disabled="loading">Confirm</Button>
         </template>
     </AuthorizingForm>
 </template>
 ```
 
-The `requireRecentLogin` prop tells `AuthorizingForm` to wait for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets this flag when the login or reauthentication occurred within a recent window.
+[`reauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.reauthenticate} clears `pendingFlow` and reloads the current user. `recentlyLoggedIn` then stays `true` for `ACCOUNT_REAUTHENTICATION_TIMEOUT` seconds after the last sign-in or confirmation (default 300).
 
-## Build a Change-Password View
+## Build a Form for a Signed-In Operation
 
-Change-password is another hand-authored form variant. It uses `AuthForm` (a simpler wrapper than `AuthorizingForm` that does not watch login state or redirect):
+Use {@api vue:component:AuthForm} for a form a signed-in user submits, such as a password change. It sends the user to `reauthenticate` when the server asks, as described above. After a successful submit, `ActionForm` shows its success toast, and `AuthForm` navigates to the `returnPath` query value, or else to its [`redirect` prop]{@api vue:component:AuthForm:prop:redirect}. With neither set, the user stays on the page.
 
 ```vue
 <script setup>
@@ -230,51 +283,32 @@ const formProps = reactive({
 });
 
 const handleSubmit = ({ formValues }) => {
-    return userStore.changePassword({
-        old_password: formValues.old_password,
-        new_password1: formValues.new_password1,
-        new_password2: formValues.new_password2,
-    });
+    return userStore.changePassword(formValues);
 };
 </script>
 
 <template>
     <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps">
         <template #action-form-inner>
-            <FormField label="Current Password" name="old_password" required>
-                <WidgetTextInput :required="true" type="password" />
+            <FormField validation="text" label="Current Password" name="old_password">
+                <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
             </FormField>
-            <FormField label="New Password" name="new_password1" required>
-                <WidgetTextInput :required="true" type="password" />
+            <FormField validation="text" label="New Password" name="new_password1">
+                <WidgetTextInput :required="true" type="password" autocomplete="new-password" />
             </FormField>
-            <FormField label="Confirm New Password" name="new_password2" required>
-                <WidgetTextInput :required="true" type="password" />
+            <FormField validation="text" label="Confirm New Password" name="new_password2">
+                <WidgetTextInput :required="true" type="password" autocomplete="new-password" />
             </FormField>
         </template>
     </AuthForm>
 </template>
 ```
 
-`AuthForm` and `AuthorizingForm` share the same layout and slot structure. The difference is that `AuthForm` does not watch login state and does not redirect. Use `AuthForm` for authenticated operations that stay on the current page after success.
+`AuthForm` and `AuthorizingForm` both forward `ActionForm`'s slots, such as `action-form-inner` and `action-bar`.
 
-## Hand-Authored Form Patterns
+## Fill Field Values from Code
 
-Auth views use `FormField` and `WidgetTextInput` outside the metadata-driven CRUD surface. In CRUD views, field components are rendered automatically from model-info metadata. In auth views, you declare fields manually in the template.
-
-The key differences from CRUD forms:
-
-- **`formProps.initialValues`** must be defined explicitly. CRUD forms populate initial values from a server-retrieved object; auth forms set them to empty strings or defaults.
-- **Field `name` props** must match the keys the server endpoint expects. There is no model-info metadata to enforce naming.
-- **No `formModelName` prop.** Auth forms do not reference a model config, so config-driven field behaviour (read-only states, visibility rules) does not apply.
-- **`WidgetTextInput` type variants** are set directly. Use `type="password"` for password fields, `type="otp"` for one-time codes. The full set of supported types is: `text`, `password`, `number`, `otp`, and `mask`.
-
-Validation in hand-authored forms uses the same `FormField` props as CRUD forms: `required`, `maxLength`, `minLength`, and `patternRegex` (available when `validation="text"` is set). Server-side validation errors are mapped by field name; if the server returns `{ "email": ["This field is required."] }`, the error surfaces on the `FormField` with `name="email"`.
-
-### Update Form Values Programmatically
-
-`AuthForm`, `AuthorizingForm`, and `ViewSignIn` emit two form-related events on mount. The `form-object` event provides a readonly ref for observing current values. The `form-context` event provides the form context, including the supported `updateValue(name, value)` mutation method.
-
-Capture the form context when a custom control needs to fill or replace field values:
+`AuthForm`, `AuthorizingForm`, and the shipped views built on them emit two events on mount (see {@api vue:component:AuthorizingForm:events}). `form-object` passes a readonly ref to the current values. `form-context` passes the {@term Form Context}. Change values with its [`updateValue(name, value)`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateValue} method:
 
 ```vue
 <script setup>
@@ -301,49 +335,27 @@ const fillCredentials = () => {
 </template>
 ```
 
-Do not assign properties through the ref emitted by `form-object`. Its value comes from the form context's readonly state and Vue will reject the write.
+Writing through the `form-object` ref fails, because the form state is readonly.
 
 ## Verification Checklist
 
-After building auth views, verify the following:
-
-- Submitting valid credentials logs the user in and triggers a redirect.
-- Submitting invalid credentials displays a server-provided error message on the form.
-- Navigating to a protected route while unauthenticated redirects to sign-in with `?redirect=/original-path`, and successful login returns to the original path.
-- When MFA is required, the sign-in form routes to the 2FA view instead of completing the redirect.
-- Completing 2FA clears `pendingFlow` and triggers the normal redirect chain.
-- The re-authentication view only redirects when `recentlyLoggedIn` is true.
-- The change-password view displays per-field validation errors from the server (e.g., "This password is too common.").
+- Valid credentials sign the user in and open the next page with a "Signed In" toast.
+- Invalid credentials show the server's message on the form.
+- Opening a protected route while signed out goes to `sign-in` with `?redirect=/original-path`, and signing in returns to that path.
+- For an account with two-factor authentication, sign-in opens `2fa`, and a valid code completes it.
+- A request that needs a recent sign-in opens `reauthenticate`, and confirming returns to the original page.
+- A forgot password request shows "Check Your Email", and a second request for the same address within a minute is refused.
+- The emailed link opens `reset-password`, and a password the validators reject shows an error on the password field.
+- The change-password form shows server errors on its fields, such as "This password is too common."
 
 ## Troubleshooting
 
-**Sign-in succeeds but no redirect occurs.** Check that the view uses `AuthorizingForm`, not `AuthForm`. `AuthForm` does not watch login state. Also verify that the router has a route named `welcome` (the default redirect target) or that the `redirect` prop is set.
+**Sign-in succeeds but the page does not change.** A "Signed in, but could not open the next page" toast means the destination failed. The console line `[vueda] Sign-in redirect failed for` names it. The usual cause is a missing `welcome` route; define it or set the `redirect` prop.
 
-**MFA flow is not detected after login.** The server must return a `401` with a `flows` array. If the response lacks `flows`, `pendingFlow` will not be set. Inspect the raw API response. Also verify that the router has a route named `2fa`.
+**Two-factor sign-in is not detected.** Inspect the login response. It must be a `401` with the pending step under `data.flows`. Also check that the router defines `2fa`.
 
-**Form values are not sent to the server.** Verify that field `name` props match the keys the server expects. `ActionForm` reads values from `formContext.state.submittingValues`, which uses the field `name` as the key.
+**Form values do not reach the server.** Check that each field's `name` matches the key the endpoint expects.
 
-**Toast shows "You are now signed in" but the page does not navigate.** The redirect target route may not exist. Check the router configuration for the target named route. If using `route.query.redirect`, verify the path matches an existing route.
+**The re-authentication view redirects at once.** The user already signed in or confirmed within the reauthentication window, so `recentlyLoggedIn` is `true` on mount. The server accepts the recent sign-in, so no confirmation is needed.
 
-**Re-authentication redirect fires immediately.** If the user already has a recent login, `recentlyLoggedIn` is already true and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
-
-## Relevant Implementation Surface
-
-- Vue.js Components:
-    - {@api vue:component:AuthorizingForm}
-    - {@api vue:component:AuthForm}
-    - {@api vue:component:ActionForm}
-    - {@api vue:component:FormField}
-    - {@api vue:component:WidgetTextInput}
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeUser}
-    - {@api js:module:@arrai-innovations/vueda/use/useField}
-    - {@api js:module:@arrai-innovations/vueda/use/useWidget}
-    - {@api js:module:@arrai-innovations/vueda/use/useForm}
-- REST:
-    - {@api rest:endpoint:POST:/vueda.user/login/}
-    - {@api rest:endpoint:POST:/vueda.user/logout/}
-    - {@api rest:endpoint:GET:/vueda.user/who-is/}
-    - {@api rest:endpoint:POST:/vueda.user/2fa/authenticate/}
-    - {@api rest:endpoint:POST:/vueda.user/reauthenticate/}
-    - {@api rest:endpoint:POST:/vueda.user/change_password/}
+**Forgot password requests fail with a server error.** The cooldown needs a reachable cache; see [Configure the Cache and Sessions](configure-cache-and-sessions.md).
