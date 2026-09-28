@@ -6,7 +6,7 @@
  * component's theme entry, not the entire navigation family.
  */
 import "@vueda/theme/vueda-tailwind/controls/_ButtonPrimitives.theme.js";
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

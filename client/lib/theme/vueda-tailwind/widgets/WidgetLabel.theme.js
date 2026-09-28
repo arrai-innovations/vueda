@@ -5,7 +5,7 @@
  * for Phase 3 or future aggregator wiring, but is not currently imported by an
  * SFC because there is no WidgetLabel.vue in this tree.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

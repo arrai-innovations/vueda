@@ -12,7 +12,7 @@
  */
 import "./_ButtonPrimitives.theme.js";
 import { resolveButtonVariant } from "@vueda/controls/button/buttonVariant.js";
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     // ---------- Checkbox ----------
@@ -27,7 +27,7 @@ patchTheme({
                 // load-bearing: the indicator is `Presence`-gated (absent when unchecked), so
                 // without them the empty box falls back to line-height and its baseline shifts
                 // between states. See the slot JSDoc above for the layout consequence.
-                "hairline inline-flex items-center justify-center align-middle size-6 shrink-0 rounded-vueda-checkbox shadow-vueda-control transition-shadow disabled:cursor-not-allowed [&_svg]:size-4 [&_svg]:shrink-0",
+                "hairline inline-flex items-center justify-center align-middle size-6 shrink-0 rounded-vueda-checkbox transition-shadow disabled:cursor-not-allowed [&_svg]:size-4 [&_svg]:shrink-0",
 
                 // Dark-mode rest edge. Opaque --input (L 0.26) sits inside the row-hover
                 // accent band (bg-accent/50 ≈ L 0.255), so an unchecked box's edge vanishes

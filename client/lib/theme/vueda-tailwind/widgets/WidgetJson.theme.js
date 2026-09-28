@@ -14,7 +14,7 @@
  * this file.
  */
 import { tags } from "@lezer/highlight";
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
