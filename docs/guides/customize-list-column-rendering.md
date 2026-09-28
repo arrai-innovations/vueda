@@ -7,219 +7,224 @@ status: draft
 
 # Customize List Column Rendering
 
-This guide covers how to control how individual `list` columns render, without forking {@api vue:component:ViewList} or the grid cells beneath it. VUEDA derives a type-aware **column adapter** for each column from the same server metadata that drives form widgets, and lets you override that choice through three surfaces (model config, per-instance view props, and a per-column slot) with a defined precedence order.
+This guide shows how to change the component that renders a column's cells in {@api vue:component:ViewList}, change the props it receives, or write your own. Columns you leave alone keep their defaults.
 
-This is the `list`-side companion to [Customize Field and Widget Rendering](./custom-field-widget-rendering), which covers form and filter surfaces. The mechanics are deliberately parallel: a type-derived default, the same three override surfaces, and string-keyed component references. It builds on [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views) and assumes a working CRUD surface (see [Create a CRUD Surface](./create-crud-surface)).
+Each cell renders through a {@term Column Adapter}. [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes how model config and view props combine in general. This guide gives the order for list columns.
 
-If you want to link a row to its **own** `read`/`update` view (an "Edit"/"View" affordance per row), that is a different task covered in [Link List Rows to Read and Update Views](./link-list-rows-to-detail-views). This guide is about how a column's **value** renders, including auto-linking a foreign-key column to the _related_ model's detail view. The two are complementary, see [Column Links Versus Row Links](#column-links-versus-row-links) below.
+To link a row to its own read or update view, use a {@term Row Link}. [Link List Rows to Read and Update Views](./link-list-rows-to-detail-views) describes it, including which adapters it wraps.
 
-## Goal and Preconditions
+## Before You Start
 
-The objective is a column rendering that:
-
-- Replaces the default plain-text cell for specific columns without modifying the grid.
-- Uses the correct override surface for the scope of the change (model-wide config vs. per-view props vs. per-column slot).
-- Receives the column's full cell context (value, formatted value, row object, primary key, field metadata) so it can render richly.
-
-Before you begin, you have a model with a canonical registration and a working `list` view. Default columns render as text out of the box, so verify the list renders before introducing overrides.
+- The model has a {@term Canonical Registration} with a working `list` view ([Create a CRUD Surface](./create-crud-surface)). Check that the list renders before you add overrides.
+- You know the field name of each column you want to change. Overrides are keyed by field name.
 
 ## How Default Columns Are Chosen
 
-Every `list` column renders through a **column adapter**: a small component that receives the grid cell's value-slot props and decides what to draw. VUEDA ships six:
+VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}:
 
-- `ColumnText` is the universal fallback. It renders the cell's pre-formatted value as plain text, reproducing the historical cell output. Object and array values (an inlined related object, or a range) render as compact JSON rather than `[object Object]`.
-- `ColumnDateTime` wraps {@api vue:component:DateTimeDisplay} for date, time, and datetime columns.
-- `ColumnBoolean` wraps {@api vue:component:BooleanDisplay} to word a boolean column Yes or No.
-- `ColumnDuration` wraps {@api vue:component:DurationDisplay} to name a duration column's units.
-- `ColumnJson` wraps {@api vue:component:JsonDisplay} to render a `JSON` column compact and in the mono stack, truncated past `maxLength` (200 characters by default).
-- `ColumnModelLink` wraps {@api vue:component:LinkModelView} to render a foreign-key column as a link to the related row's detail view.
+| Serializer type          | Model type                     | Adapter                              | Default props                                              |
+| ------------------------ | ------------------------------ | ------------------------------------ | ---------------------------------------------------------- |
+| `BooleanField`           | `BooleanField`                 | {@api vue:component:ColumnBoolean}   |                                                            |
+| `NullBooleanField`       | `NullBooleanField`             | `ColumnBoolean`                      |                                                            |
+| `DateField`              | `DateField`                    | {@api vue:component:ColumnDateTime}  | `{ showTime: false }`                                      |
+| `DateTimeField`          | `DateTimeField`                | `ColumnDateTime`                     | `{ showTime: true }`                                       |
+| `TimeField`              | `TimeField`                    | `ColumnDateTime`                     | `{ format: "t", showRelative: false, showTooltip: false }` |
+| `DurationField`          | `DurationField`                | {@api vue:component:ColumnDuration}  |                                                            |
+| `DurationSecondsField`   | `DurationField`                | `ColumnDuration`                     |                                                            |
+| `JSONField`              | `JSONField`                    | {@api vue:component:ColumnJson}      |                                                            |
+| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | {@api vue:component:ColumnModelLink} | `{ view: "read" }`                                         |
 
-The default adapter for a column is derived from the column's serializer field type, using the same metadata flow as form widgets. The mapping table lives in `columnMappings` (the `list`-column analogue of `fieldMappings`), keyed by `typeSerializer` then `typeModel`:
+Every other type renders through {@api vue:component:ColumnText}. That includes many relations and `SlugRelatedField`.
 
-| Serializer type          | Model type                     | Adapter           | Default props                                              |
-| ------------------------ | ------------------------------ | ----------------- | ---------------------------------------------------------- |
-| `BooleanField`           | `BooleanField`                 | `ColumnBoolean`   |                                                            |
-| `NullBooleanField`       | `NullBooleanField`             | `ColumnBoolean`   |                                                            |
-| `DateField`              | `DateField`                    | `ColumnDateTime`  | `{ showTime: false }`                                      |
-| `DateTimeField`          | `DateTimeField`                | `ColumnDateTime`  | `{ showTime: true }`                                       |
-| `TimeField`              | `TimeField`                    | `ColumnDateTime`  | `{ format: "t", showRelative: false, showTooltip: false }` |
-| `DurationField`          | `DurationField`                | `ColumnDuration`  |                                                            |
-| `DurationSecondsField`   | `DurationField`                | `ColumnDuration`  |                                                            |
-| `JSONField`              | `JSONField`                    | `ColumnJson`      |                                                            |
-| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | `ColumnModelLink` | `{ view: "read" }`                                         |
+The adapters render as follows:
 
-Any type with no entry falls back to `ColumnText`, so columns you do not configure render exactly as before. This makes the whole system additive: adopting it changes nothing until a column matches a mapping or you configure an override.
+- `ColumnText` renders the cell value as text. It renders nothing for `null` or `undefined`. It renders an object or array as compact `JSON`, cut at 200 characters.
+- `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
+- `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
+- `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
+- `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
+- `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}.
 
-::: info
-Many relations (`ManyToManyField` / `ManyRelatedField`) and `SlugRelatedField` are intentionally **not** mapped. A many-relation list value is an array of bare primary keys with no labels, so `ColumnText` renders it as compact JSON rather than a misleading single link. See [Many Relations and Slug Relations](#many-relations-and-slug-relations).
-:::
+`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, and `JsonDisplay` render a dash for an empty value.
 
-## Override Surface Selection
+## Choose Where to Override
 
-Four sources resolve a column's adapter, evaluated highest precedence first:
+| To change                                      | Use                                               |
+| ---------------------------------------------- | ------------------------------------------------- |
+| One column of a model, in every list           | [Model config](#set-an-override-in-model-config)  |
+| One column in a `ViewList` you render yourself | [`ViewList` props](#pass-overrides-as-props)      |
+| The markup of one column in one rendered list  | [A slot](#replace-a-column-with-a-slot)           |
+| Every column of one type, in every model       | [A type mapping](#map-a-field-type-to-an-adapter) |
 
-1. **A consumer `field(<name>)` slot** on `<ViewList>` (or a wrapper like `DefaultViewList`). A slot you provide always wins; VUEDA injects the resolved adapter only as the _default_ content of that slot.
-2. **The `columnComponents` prop** on `<ViewList>` (per-instance, programmatic).
-3. **`modelConfig.config.columnComponents[<name>]`** (model-wide, via `setConfig`). The preferred surface for behavior that should be consistent across views.
-4. **The type default** from `columnMappings`, else `ColumnText`.
+For one column, the first of these that is set picks the adapter:
 
-Choose the narrowest scope that achieves the goal. For a model-wide rule (always render `category` as a link), use model config. For a view-specific tweak, use the per-instance prop. For a one-off layout change on a single view, use the slot.
+1. A `field(<name>)` slot on `ViewList`.
+2. The `ViewList` `columnComponents` prop.
+3. The model config's `columnComponents`.
+4. The type mapping, else `ColumnText`.
 
-`columnProps` layers separately and additively, lowest to highest: the type-default `columnProps`, then `modelConfig.config.columnProps[<name>]`, then the `columnProps` prop. So you can keep the default adapter and only adjust its props (for example, turn off the relative-time tooltip on a datetime column).
+Props combine separately, as [Change Only an Adapter's Props](#change-only-an-adapter-s-props) describes.
 
-## Component Registration Strategy
+## Set an Override in Model Config
 
-Override entries accept the same three value shapes as the form override chain:
-
-**Direct component reference** passes a Vue component object. The most straightforward approach:
+1. Get the store with {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}.
+2. Call [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} when the application starts. [Register Overrides with `setConfig`](./configure-crud-views#register-overrides-with-setconfig) describes its arguments.
+3. In the `list` layer, set [`columnComponents`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.columnComponents} to choose adapters. Set [`columnProps`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.columnProps} to add props. Key both by field name.
 
 ```js
 import ColumnStatusBadge from "./ColumnStatusBadge.vue";
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 
-modelConfigStore.setConfig({ app: "myapp", model: "widget" }, { columnComponents: { status: ColumnStatusBadge } });
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: {
+        columnComponents: {
+            status: () => ColumnStatusBadge,
+            release_date: "ColumnDateTime",
+        },
+        columnProps: {
+            release_date: { showTime: false, format: "yyyy-LL-dd" },
+        },
+    },
+});
 ```
 
-**String key** references a built-in adapter from the `availableColumns` registry by name (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). Use this to apply a built-in adapter to a column that would not get it by type, or with different props:
+A `columnComponents` entry takes one of three values:
+
+- **A function that returns a component**, such as `() => ColumnStatusBadge`. VUEDA calls it with no arguments. Use this form for your own components. The store keeps its values in reactive state and merges plain objects between layers; the function keeps the component out of both.
+- **The name of a built-in adapter** in {@api js:property:@arrai-innovations/vueda/utils/columnLookups#availableColumns}: `"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, or `"ColumnModelLink"`. Use a name to give a column a built-in adapter that its type does not map to.
+- **A component object.** Use this form in the `columnComponents` prop. In model config, wrap the component in a function.
+
+The model-wide layer also applies to the list view. When both layers set `columnComponents`, the list gets the entries of both. For a column that both layers name, the `list` layer wins. `columnProps` merges each column's props across the layers, key by key.
+
+## Pass Overrides as Props
+
+When you render `ViewList` yourself, pass [`columnComponents`]{@api vue:component:ViewList:prop:columnComponents} and [`columnProps`]{@api vue:component:ViewList:prop:columnProps}. They take the same values as the model config keys.
+
+```vue
+<template>
+    <ViewList app="myapp" model="widget" :column-components="{ category: 'ColumnText' }" />
+</template>
+```
+
+For the same column, a `columnComponents` prop entry wins over model config. It wins even when it names no adapter. The column then shows the error described in [Troubleshooting](#troubleshooting), even if model config has a valid entry for it.
+
+## Change Only an Adapter's Props
+
+To keep a column's adapter and change how it renders, set only `columnProps`. The adapter receives the type mapping's default props first. The model config's `columnProps` for the column come next, then the `columnProps` prop. A later source wins for the same key.
+
+This hides the time on one datetime column:
 
 ```js
-modelConfigStore.setConfig(
-    { app: "myapp", model: "widget" },
-    {
-        columnComponents: { release_date: "ColumnDateTime" },
-        columnProps: { release_date: { showTime: false, format: "yyyy-LL-dd" } },
-    },
-);
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { columnProps: { updated_at: { showTime: false } } },
+});
 ```
 
-**Factory function** returns a component dynamically (`() => MyComponent`), for conditional selection.
+Each built-in adapter's generated page lists its props. The ones you are most likely to set:
 
-The first surface that sets a column wins. If its string key names no registered adapter, or its factory returns nothing, the list shows an error naming the column and the key, and renders that column's cells empty. The other columns render normally.
+- `ColumnDateTime`: `format` (default `"absolute"`, or a Luxon format string), `showTime`, `showRelative`, `showTooltip`, `tooltipFormat`.
+- `ColumnBoolean`: `trueLabel`, `falseLabel`.
+- `ColumnDuration`: `format` (default `"long"`).
+- `ColumnJson`: `maxLength`.
+- `ColumnModelLink`: `view` (default `"read"`), `app` and `model`, `label`, `button`.
 
-## Custom Column Component Contract
+## Link a Foreign Key Column
 
-A column adapter is an ordinary component that receives the grid cell's value-slot props. These are the public contract, identical for table and card layouts:
+A `ForeignKey` or `OneToOneField` column renders through `ColumnModelLink` with no configuration. It reads the related model from the field's [`appLabel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.appLabel} and [`model`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.model}. Model info sends both for writable and read-only relation fields.
 
-`field`, `value`, `formatted`, `obj`, `relatedObj`, `calculatedObj`, `pk`, `pkKey`, `rowIndex`, `columnIndex`, `rowCount`, `columnCount`, `isTableLayout`, `isCardLayout`, plus any `fieldProps` the grid carries (which include `modelInfo` and `modelConfig`). Your resolved `columnProps` are merged on top of these.
+- **Related pk:** a scalar cell value is the pk. An object value uses its `id`, else its `pk`.
+- **Link text:** the `label` prop, else the cell's `formatted` value. For a scalar foreign key, the text is the pk.
+- **No link:** when no related model or no pk resolves, or the value is an array, the cell renders the text without a link.
 
-A few conventions keep custom adapters well-behaved:
+When the field carries no related model, supply one through `columnProps`:
 
-- **Declare only the props you consume**, and set `defineOptions({ inheritAttrs: false })`. The cell passes many context props; without `inheritAttrs: false`, the ones you do not declare leak onto your root element as DOM attributes. All three built-in adapters do this.
-- `value` is the raw field value; `formatted` is the server/grid pre-formatted string. `pk` is the **row's** primary key, not a foreign-key target. (`ColumnModelLink` derives the target pk from `value`, not `pk`, for exactly this reason.)
-- Render a sensible empty state. `ColumnText` renders an empty string for nullish values; `DateTimeDisplay`, `BooleanDisplay`, `DurationDisplay`, and `JsonDisplay` render a dash.
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { columnProps: { category: { app: "myapp", model: "widgetcategory" } } },
+});
+```
 
-A minimal custom adapter:
+The link controls navigation in the UI only. When the user follows it, the target view's route guard and the server still check the user's access.
+
+## Replace a Column with a Slot
+
+A [`field(<name>)`]{@api vue:component:ViewList:slots} slot on `ViewList` replaces the column's content and wins over every adapter. It receives the same props as an adapter ([Write a Column Adapter](#write-a-column-adapter)).
+
+```vue
+<template>
+    <ViewList app="myapp" model="widget">
+        <template #[`field(sku)`]="{ value, obj }">
+            <code>{{ value }}</code>
+            <span v-if="obj.is_active" class="ml-2 text-green-600">active</span>
+        </template>
+    </ViewList>
+</template>
+```
+
+{@api vue:component:ObjectsGrid} renders the slot in both the table cell and the card cell. If you wrap `ViewList` in your own component, forward the slot to it.
+
+## Map a Field Type to an Adapter
+
+To change the default for a type in every model, call {@api js:function:@arrai-innovations/vueda/utils/columnMappings#mergeColumnMappings} in your client entry, before the app mounts. It deep-merges your entries into `columnMappings`. The outer key is the `typeSerializer`, and the inner key is the `typeModel`.
+
+This shows times as hours and minutes in every list:
+
+```js
+import { mergeColumnMappings } from "@vueda/utils/columnMappings.js";
+
+mergeColumnMappings({
+    TimeField: {
+        TimeField: { columnProps: { format: "HH:mm" } },
+    },
+});
+```
+
+An entry's [`column`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.column} names an adapter in `availableColumns`, and [`columnProps`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.columnProps} holds its default props. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.default} applies when `typeModel` is empty. A `column` that names no adapter renders `ColumnText`.
+
+## Write a Column Adapter
+
+An adapter is a Vue component. `ViewList` passes it the cell's slot props, with the column's resolved `columnProps` on top. The table cell and the card cell pass the same props:
+
+- [`value`]{@api vue:component:ObjectsGridBodyCell:slot:value.value}: the field's value in the row.
+- [`formatted`]{@api vue:component:ObjectsGridBodyCell:slot:value.formatted}: in a `ViewList` cell, the same value as `value`.
+- [`obj`]{@api vue:component:ObjectsGridBodyCell:slot:value.obj}: the row object. [`relatedObj`]{@api vue:component:ObjectsGridBodyCell:slot:value.relatedObj} and [`calculatedObj`]{@api vue:component:ObjectsGridBodyCell:slot:value.calculatedObj} hold the row's related and calculated objects.
+- [`pk`]{@api vue:component:ObjectsGridBodyCell:slot:value.pk}: the row's primary key. A foreign key's target pk is in `value`.
+- [`field`]{@api vue:component:ObjectsGridBodyCell:slot:value.field}: the column's field descriptor.
+- `rowIndex`, `columnIndex`, `rowCount`, `columnCount`, `isTableLayout`, and `isCardLayout`: the cell's position and the current layout.
+- `pkKey`, `modelInfo`, and `modelConfig`: the model's pk field name, its {@term Model Info}, and its {@term Model Config}.
+
+Declare only the props you use. Set `inheritAttrs: false` so the others do not become attributes on your root element. The built-in adapters do both.
 
 ```vue
 <script setup>
 defineOptions({ inheritAttrs: false });
 defineProps({
-    value: { type: [String, Number], default: "" },
-    formatted: { type: [String, Number], default: "" },
+    value: { type: Number, default: null },
 });
 </script>
 
 <template>
-    <span :class="value >= 0 ? 'text-green-600' : 'text-red-600'">{{ formatted }}</span>
+    <span v-if="value != null" :class="value >= 0 ? 'text-green-600' : 'text-red-600'">{{ value }}</span>
 </template>
 ```
 
-## The Built-in Adapters
+Register it through a function in model config, or pass it in the `columnComponents` prop.
 
-### ColumnDateTime
+## Check the Result
 
-Wraps {@api vue:component:DateTimeDisplay}, binding the cell's raw `value` and forwarding display configuration from `columnProps`. Props: `format` (default `"absolute"`, which reads better than the inline default in a dense table), `showTime`, `showRelative`, `showTooltip`, `tooltipFormat`, `inline`. The `columnMappings` defaults already pick sensible values per type (date columns hide the time; time columns drop the date-relative tooltip); override through `columnProps` when a specific column needs different formatting.
-
-### ColumnModelLink
-
-Wraps {@api vue:component:LinkModelView} to render a foreign-key column as a link to the related row's detail view. It owns the target/pk/label resolution and the no-link guard that list views used to repeat by hand. Resolution order:
-
-- **Target model:** the field's own `appLabel`/`model` (populated by the server for relation fields), then `app`/`model` supplied through `columnProps`, then no link.
-- **Target pk:** a scalar `value` is the pk; an object `value` uses `value.id ?? value.pk`.
-- **Label:** an explicit `label` prop, then `formatted`, then `value.formatted_name`/`.name`/`.id`/`.pk`, then `value`.
-- **Guard:** when no target model or no pk resolves (or the value is an array), it degrades to plain label text with no link.
-
-Props: `view` (default `"read"`), `app`/`model` (fallback target when the field omits it), `label`, `button`.
-
-For **writable** foreign keys, the server already emits the related model's `app_label`/`model` in `model_fields`, so `ColumnModelLink` links them with zero configuration. If a column does not link (the server did not supply the target, for example a read-only relation on an older server), supply the target through `columnProps`:
-
-```js
-modelConfigStore.setConfig(
-    { app: "myapp", model: "widget" },
-    { columnProps: { category: { app: "myapp", model: "widgetcategory" } } },
-);
-```
-
-## Slot Overrides
-
-A consumer `field(<name>)` slot replaces a column's content entirely and takes precedence over every resolved adapter. This is the same slot used throughout the list guides:
-
-```vue
-<template #[`field(sku)`]="{ value, obj }">
-    <code>{{ value }}</code>
-    <span v-if="obj.is_active" class="ml-2 text-green-600">active</span>
-</template>
-```
-
-VUEDA injects the resolved adapter as the _default_ content of each `field(<name>)` slot, so providing your own slot simply overrides that default. Injection covers both the table body cell and the card cell, because {@api vue:component:ObjectsGrid} maps `field(<name>)` into both.
-
-## Column Links Versus Row Links
-
-These two affordances are easy to confuse, so be deliberate about which you want:
-
-- **`ColumnModelLink` (this guide)** links a foreign-key column to the **related** model's detail view. The `category` column on a widget list links to _that category's_ `read` page. It is automatic for writable foreign keys.
-- **Row self-links** ([Link List Rows to Read and Update Views](./link-list-rows-to-detail-views)) link a row to **its own** `read`/`update` view, using `detailLinkField` on an existing identifying column, or a hand-placed {@api vue:component:LinkModelView} for custom content. The row's `name` column links to _that widget's own_ `read` page.
-
-They compose cleanly: a widget list can auto-link its `category`/`supplier` foreign-key columns (column links) while also linking its `name` column to the widget's own detail view (a configured row link). A `ColumnModelLink` or custom adapter is not wrapped by `detailLinkField`; its existing controls keep their behavior. Explicit field slots also retain precedence.
-
-## Edge Cases
-
-### Many Relations and Slug Relations
-
-Many relations (`ManyToManyField`) and `SlugRelatedField` are not mapped to an adapter. A many-relation list value, when not expanded, is an array of bare primary keys (`[2, 1]`) with no per-item labels and no stable order, so a single link would be wrong and per-item links would show only numbers. `ColumnText` renders the array as compact JSON instead. If you need linked items, expand the relation so each item is an object with a label, then provide a custom adapter through `columnComponents`.
-
-### Object and JSON Columns
-
-A `JSONField` column resolves to `ColumnJson`, which renders compact `JSON` in the mono stack and truncates past `maxLength`. A read view indents the same value over several lines through `WidgetJsonReadOnly`; a cell has one line, so the two differ in layout while printing the same `JSON`.
-
-A column whose value is an inlined object (an expanded relation rendered directly) or a range has no type-specific adapter, so it falls back to `ColumnText`, which renders compact JSON, truncated when very large. Provide a custom adapter when such a column needs structured rendering.
-
-### Server Metadata Availability
-
-Auto-linking depends on the server emitting the related model's `app_label`/`model` for the relation field. Writable foreign keys carry it; read-only relations carry it on current servers but may not on older ones. When the target is absent, `ColumnModelLink` degrades to text. Supply `columnProps: { <col>: { app, model } }` as the explicit fallback. This affects only the rendered link; it is not an authorization control. The target view still enforces its own route guard and server permissions when the link is followed.
-
-## Verification Checklist
-
-After configuring column overrides, verify:
-
-- The column renders with the expected adapter in both table and card layouts (resize below `tableBreakpoint` to confirm the card cell).
-- A configured foreign-key column links to the correct related row (the URL contains the related row's primary key), and renders as plain text when the value is empty.
-- Date/time columns render with the intended format and empty values render a dash.
-- A consumer `field(<name>)` slot still overrides the resolved adapter where you provide one.
-- Columns you did not configure are unchanged from the plain-text default.
+- Each changed column renders its adapter in the table layout. Below the list's [`tableBreakpoint`]{@api vue:component:ViewList:prop:tableBreakpoint}, it renders the adapter in the card layout too.
+- A foreign key column links to the related row, and its URL carries the related row's pk. An empty value renders without a link.
+- Columns you did not change render as before.
+- No column error shows above the list.
 
 ## Troubleshooting
 
-**A foreign-key column renders text, not a link.** The related model's target is not resolving. Confirm the server emits `app_label`/`model` for that field in `model_fields`, or supply `columnProps: { <col>: { app, model } }`. Also confirm the value is a scalar pk or an object with `id`/`pk`; an array value (a many relation) intentionally does not link.
+**The list shows "There was an error while rendering the list columns."** A `columnComponents` entry names no adapter, or its function returned nothing. The message names the column, such as `No column component named "Nope" for column "status"`. That column's cells render empty, and the other columns render normally. Check the name against `availableColumns`, or pass your own component through a function. The error shows even when a `field(<name>)` slot fills the column. A list you build on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} gets these errors in [`columnErrors`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListListGroup.columnErrors}.
 
-**An override has no effect.** Check the column name matches the field name exactly, and that no higher-precedence surface is also set (a consumer `field(<col>)` slot beats the `columnComponents` prop, which beats model config). Register `setConfig` overrides at bootstrap, before the first CRUD navigation, for the same reason described in the [row-link guide](./link-list-rows-to-detail-views#opt-in-through-model-config).
+**The override has no effect.** Check that the key matches the field name exactly. A `field(<name>)` slot wins over both override maps, and a `columnComponents` prop entry wins over model config. A `setConfig` call made after the list has built its config does not reach it, so call `setConfig` when the application starts.
 
-**The list shows "No column component named".** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). Pass a direct component reference for a custom adapter.
+**A foreign key column renders text without a link.** The value is empty or an array, or no related model resolved. Check the field's `app_label` and `model` in the [model info response]{@api rest:schema:ModelInfoField}. Or supply `app` and `model` through `columnProps`.
 
-**Surplus attributes appear on a custom adapter's root element.** Add `defineOptions({ inheritAttrs: false })` and declare only the cell props you consume.
+**A many relation renders as `[2, 1]`.** A many relation's list value is an array of pks, and `ColumnText` renders it as `JSON`. To render linked items, expand the relation so each item carries a label, and write an adapter for it.
 
-## Relevant Implementation Surface
-
-- Vue.js Components:
-    - {@api vue:component:ViewList}
-    - {@api vue:component:DateTimeDisplay}
-    - {@api vue:component:LinkModelView}
-    - {@api vue:component:ObjectsGridBodyCell}
-    - {@api vue:component:ObjectsGridCardCell}
-- JavaScript:
-    - {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList}
-    - {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig}
-    - {@api js:interface:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig}
-- Related guides:
-    - [Customize Field and Widget Rendering](./custom-field-widget-rendering)
-    - [Link List Rows to Read and Update Views](./link-list-rows-to-detail-views)
-    - [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views)
+**Attributes you did not set appear on your adapter's root element.** Add `defineOptions({ inheritAttrs: false })`.
