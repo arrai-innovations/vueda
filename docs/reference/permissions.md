@@ -118,7 +118,7 @@ The status code a refused request returns depends on the check that refused it. 
 
 ## Permission Name Mapping
 
-`PERMISSION_NAMES_MAPPING` renames permission actions (see {@term Permission Mapping}). [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) gives the steps to set it and check the result. VUEDA supports two values.
+`PERMISSION_NAMES_MAPPING` renames permission actions (see {@term Permission Mapping}). [Map Django and VUEDA Permission Names](../guides/permission-name-mapping) gives the steps to set it and check the result. VUEDA supports two values. The [`check_permission_names_mapping`]{@api py:function:vueda.core.checks.check_permission_names_mapping} system check reports any other value as `vueda_core.E018`.
 
 The default, from {@api py:function:vueda.core.default_settings.get_defaults}:
 

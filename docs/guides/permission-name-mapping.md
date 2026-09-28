@@ -18,17 +18,17 @@ Settle the mapping before the project's first `migrate`. Migration writes one {@
 VUEDA's viewsets honour two kinds of mapping:
 
 - **The default**, from {@api py:function:vueda.core.default_settings.get_defaults}. It maps `add` to `create`, `change` to `update`, and `view` to `read`. Use it for a new project.
-- **Django's names.** It maps VUEDA's actions to `add`, `change`, and `view`. Use it for a database whose permission rows and group assignments already use Django's names.
+- **Django's names.** It maps `create` to `add`, `update` to `change`, and both `read` and `list` to `view`. Use it for a database whose permission rows and group assignments already use Django's names.
 
 [Permissions](../reference/permissions#permission-name-mapping) lists the values for both.
 
 The two differ in what the viewsets check. {@api py:class:vueda.core.permissions.ObjectPermissions} checks `create_`, `read_`, `list_`, `update_`, and `delete_` codenames. Importing {@api py:module:vueda.core.patch_django} changes that for each mapping value that is `add`, `change`, or `view` and is not also a key. The import rewrites the matching entries of [`perms_map`]{@api py:property:vueda.core.permissions.ObjectPermissions.perms_map} to check that name.
 
 ::: warning
-Map actions only to the default names or to `add`, `change`, and `view`. A mapping such as `"delete": "remove"` or `"list": "browse"` creates permission rows that `ObjectPermissions` never checks.
+Use one of these two mappings exactly. Any other mapping, such as `"delete": "remove"`, creates permission rows that `ObjectPermissions` never checks. The [`check_permission_names_mapping`]{@api py:function:vueda.core.checks.check_permission_names_mapping} system check reports it as `vueda_core.E018`, which stops `migrate` and `runserver`.
 :::
 
-Under Django's names, a `view` value makes every `GET` on a viewset require the `view_` codename, for both list and detail. Map `list` to `view` as well, so that [row-level list filtering]{@api py:function:vueda.core.permissions.filter_rows_for_user} and the choice endpoints check the same codename as the viewset.
+Under Django's names, every `GET` on a viewset requires the `view_` codename, for both list and detail. [Row-level list filtering]{@api py:function:vueda.core.permissions.filter_rows_for_user} and the choice endpoints check the same codename.
 
 ## Set Mapping and Patch Import Order
 
@@ -92,7 +92,7 @@ Under Django's names, the `GET` list and `GET` detail rows both require `myapp.v
 
 **Django and third-party models refuse every request.** Their rows use `add_`, `change_`, and `view_`, and they have no `list_` row. The leaf settings module in use does not import `patch_django`. VUEDA models are unaffected, because they declare CRUD action names. Check the settings module that each entry point uses: the server, the test runner, and `manage.py`.
 
-**A renamed action has rows but no effect.** The mapping names a value other than the default names or `add`, `change`, and `view`. See [Choose a Mapping](#choose-a-mapping).
+**`manage.py check` reports `vueda_core.E018`.** The mapping is neither the default nor the full mapping to Django's names. Set it to one of the two in [Choose a Mapping](#choose-a-mapping), then move group assignments from the old codenames to the new rows.
 
 **List access cannot be granted without detail access.** A `view` mapping makes list and detail require the same codename.
 
