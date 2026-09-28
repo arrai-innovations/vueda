@@ -147,7 +147,7 @@ import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, effectScope, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -1210,7 +1210,6 @@ export function useViewList(options) {
     });
 
     const buttonSlotProps = reactive({});
-    const bspEffectScope = effectScope();
     watch(
         [bulkActions, targetlessActions, availableTransitions],
         ([newBulkActions, newTargetlessActions, newTransitions]) => {
@@ -1223,22 +1222,16 @@ export function useViewList(options) {
             );
             for (const addedKey of addedKeys) {
                 const isBulk = bulkActionSet.has(addedKey) || availableTransitionsSet.has(addedKey);
-                bspEffectScope.run(() => {
-                    buttonSlotProps[addedKey] = {
-                        app: appRef,
-                        model: modelRef,
-                        view: addedKey,
-                        label: memoizedStartCase(addedKey),
-                        click: isBulk ? detailActionOnClick(addedKey) : undefined,
-                        selectedObjects: isBulk ? selectedObjects : undefined,
-                        disabled: isBulk ? computed(() => (!addedKey) in availableTransitions.value) : undefined,
-                    };
-                });
+                buttonSlotProps[addedKey] = {
+                    app: appRef,
+                    model: modelRef,
+                    view: addedKey,
+                    label: memoizedStartCase(addedKey),
+                    click: isBulk ? detailActionOnClick(addedKey) : undefined,
+                    selectedObjects: isBulk ? selectedObjects : undefined,
+                };
             }
             for (const removedKey of removedKeys) {
-                if (buttonSlotProps[removedKey].disabled) {
-                    buttonSlotProps[removedKey].disabled.effect?.stop();
-                }
                 delete buttonSlotProps[removedKey];
             }
         },
