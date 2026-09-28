@@ -21,207 +21,393 @@ changed_data = [
             "content_type_id": {"app_label": "vueda_vdq", "model": "queueitem"},
             "historical_app_label": "vueda_vdq",
             "historical_model": "queueitem",
-            "id": {"code": "queueitem"},
+            "id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
             "name": "QueueItem",
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 3, 56, 493209, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 3, 56, 493209, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "workflow",
     },
     {
         "changes": {
             "code": "awaiting",
-            "id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Awaiting",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 503426, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 503426, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "cancelled",
-            "id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "cancelled",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Cancelled",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 508189, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 508189, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "delayed",
-            "id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Delayed",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 510984, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 510984, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "errored",
-            "id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "errored",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Errored",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 513716, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 513716, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "queued",
-            "id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Queued",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 515619, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 515619, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "sending",
-            "id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Sending",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 518025, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 518025, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "succeeded",
-            "id": {"code": "succeeded", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "succeeded",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Succeeded",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 520100, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 520100, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "code": "unconfirmed",
-            "id": {"code": "unconfirmed", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "unconfirmed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Unconfirmed",
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 522288, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 5, 38, 522288, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "state",
     },
     {
         "changes": {
             "id": {
-                "state_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-                "workflow_id": {"code": "queueitem"},
+                "state_id": {
+                    "code": "queued",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
             },
-            "state_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "state_id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 6, 11, 217880, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 6, 11, 217880, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "initialstate",
     },
     {
         "changes": {
             "code": "await",
-            "id": {"code": "await", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "await",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Await",
-            "target_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 538152, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 538152, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "cancel",
-            "id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "cancel",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Cancel",
-            "target_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "cancelled",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 550470, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 550470, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "delay",
-            "id": {"code": "delay", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "delay",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Delay",
-            "target_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 552497, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 552497, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "error",
-            "id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Error",
-            "target_id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "errored",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 554005, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 554005, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "retry",
-            "id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "retry",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Retry",
-            "target_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 555471, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 555471, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "send",
-            "id": {"code": "send", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "send",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Send",
-            "target_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 556886, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 556886, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "succeed",
-            "id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "succeed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Succeed",
-            "target_id": {"code": "succeeded", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "succeeded",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 558273, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 558273, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
     {
         "changes": {
             "code": "timeout",
-            "id": {"code": "timeout", "workflow_id": {"code": "queueitem"}},
+            "id": {
+                "code": "timeout",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
             "name": "Timeout",
-            "target_id": {"code": "unconfirmed", "workflow_id": {"code": "queueitem"}},
-            "workflow_id": {"code": "queueitem"},
+            "target_id": {
+                "code": "unconfirmed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 561215, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 6, 561215, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transition",
     },
@@ -234,67 +420,183 @@ changed_data = [
                 "historical_permission_codename": "list_queueitem",
                 "historical_permission_content_type_app_label": "vueda_vdq",
                 "historical_permission_content_type_model_name": "queueitem",
-                "workflow_id": {"code": "queueitem"},
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
             },
             "permission_id": {
                 "codename": "list_queueitem",
                 "content_type_id": {"app_label": "vueda_vdq", "model": "queueitem"},
             },
-            "workflow_id": {"code": "queueitem"},
+            "workflow_id": {"code": "queueitem", "historical_app_label": "vueda_vdq", "historical_model": "queueitem"},
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 45, 381055, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 8, 45, 381055, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "workflowpermission",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "await", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "sending",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "await",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "await", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "await",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 20, 623407, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 20, 623407, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "queued",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "cancel",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "cancel",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 285515, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 285515, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "delayed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "cancel",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "cancel",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 285515, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 285515, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "errored",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "cancel",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "errored",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "cancel",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 289281, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 9, 42, 289281, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
@@ -307,145 +609,439 @@ changed_data = [
                 "historical_permission_codename": "can_cancel",
                 "historical_permission_content_type_app_label": "vueda_vdq",
                 "historical_permission_content_type_model_name": "queueitem",
-                "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+                "transition_id": {
+                    "code": "cancel",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
             "permission_id": {
                 "codename": "can_cancel",
                 "content_type_id": {"app_label": "vueda_vdq", "model": "queueitem"},
             },
-            "transition_id": {"code": "cancel", "workflow_id": {"code": "queueitem"}},
+            "transition_id": {
+                "code": "cancel",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 3, 570134, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 3, 570134, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionpermission",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "delay", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "awaiting",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "delay",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "delay", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "delay",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 21, 816652, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 21, 816652, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "delay", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "sending",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "delay",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "delay", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "delay",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 21, 816652, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 10, 21, 816652, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "awaiting",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "error",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 681572, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 681572, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "delayed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "error",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 685368, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 685368, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "sending",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "error",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 687567, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 687567, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "queued",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "error",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 687567, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 2, 687567, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "delayed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "retry",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "retry",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 31, 716803, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 31, 716803, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "errored",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "retry",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "errored", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "errored",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "retry",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 31, 719559, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 11, 31, 719559, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "send", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "delayed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "send",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "delayed", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "send", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "delayed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "send",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 26, 154811, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 26, 154811, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "send", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "queued",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "send",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "queued", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "send", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "queued",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "send",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 26, 157940, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 26, 157940, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
@@ -458,54 +1054,152 @@ changed_data = [
                 "historical_permission_codename": "can_retry",
                 "historical_permission_content_type_app_label": "vueda_vdq",
                 "historical_permission_content_type_model_name": "queueitem",
-                "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+                "transition_id": {
+                    "code": "retry",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
             "permission_id": {
                 "codename": "can_retry",
                 "content_type_id": {"app_label": "vueda_vdq", "model": "queueitem"},
             },
-            "transition_id": {"code": "retry", "workflow_id": {"code": "queueitem"}},
+            "transition_id": {
+                "code": "retry",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 55, 373727, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 16, 55, 373727, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionpermission",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "awaiting",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "succeed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "succeed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 18, 831906, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 18, 831906, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "sending",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "succeed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "sending", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "sending",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "succeed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 18, 835129, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 18, 835129, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
     {
         "changes": {
             "id": {
-                "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "timeout", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "awaiting",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "timeout",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "awaiting", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "timeout", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "awaiting",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "timeout",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 29, 698411, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 9, 19, 17, 17, 29, 698411, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
