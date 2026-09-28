@@ -670,3 +670,35 @@ class TestSessionCacheChecks:
 
         assert [warning.id for warning in warnings] == ["vueda_core.W001"]
         assert "'sessions'" in warnings[0].msg
+
+
+class TestPermissionNamesMappingCheck:
+    def test_default_mapping_passes(self, settings):
+        from vueda.core.checks import check_permission_names_mapping
+
+        settings.PERMISSION_NAMES_MAPPING = {"add": "create", "change": "update", "view": "read"}
+        assert check_permission_names_mapping(app_configs=None) == []
+
+    def test_django_names_mapping_passes(self, settings):
+        from vueda.core.checks import check_permission_names_mapping
+
+        settings.PERMISSION_NAMES_MAPPING = {"create": "add", "update": "change", "read": "view", "list": "view"}
+        assert check_permission_names_mapping(app_configs=None) == []
+
+    @pytest.mark.parametrize(
+        "mapping",
+        [
+            {"add": "create", "change": "update", "view": "read", "delete": "remove"},
+            {"add": "insert", "change": "update", "view": "read"},
+            {"create": "add", "update": "change", "read": "view"},
+            {},
+        ],
+        ids=["renamed-delete", "renamed-add", "django-names-without-list", "empty"],
+    )
+    def test_other_mappings_are_reported(self, settings, mapping):
+        from vueda.core.checks import check_permission_names_mapping
+
+        settings.PERMISSION_NAMES_MAPPING = mapping
+        errors = check_permission_names_mapping(app_configs=None)
+        assert [error.id for error in errors] == ["vueda_core.E018"]
+        assert repr(mapping) in errors[0].msg

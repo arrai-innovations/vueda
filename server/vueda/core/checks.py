@@ -415,3 +415,35 @@ def check_session_cache_is_shared(app_configs, **kwargs):
             id="vueda_core.W001",
         )
     ]
+
+
+# The two PERMISSION_NAMES_MAPPING values whose permission rows VUEDA's viewsets check. See
+# check_permission_names_mapping.
+_DEFAULT_PERMISSION_NAMES_MAPPING = {"add": "create", "change": "update", "view": "read"}
+_DJANGO_PERMISSION_NAMES_MAPPING = {"create": "add", "update": "change", "read": "view", "list": "view"}
+
+
+def check_permission_names_mapping(app_configs, **kwargs):
+    """Report a ``PERMISSION_NAMES_MAPPING`` whose codenames ``ObjectPermissions`` does not check.
+
+    The mapping names the codenames Django writes when it creates permission rows. The
+    ``ObjectPermissions`` codenames follow it in two cases only: the default mapping, and the
+    full mapping to Django's own names, which ``vueda.core.patch_django`` rewrites
+    ``ObjectPermissions.perms_map`` for at import. Any other mapping creates rows that the
+    viewsets never check, so a grant of the renamed permission has no effect. A mapping to
+    Django's names that leaves out ``list`` also splits a list between two codenames: the
+    viewset checks ``view_``, and row-level list filtering checks ``list_``.
+    """
+    mapping = getattr(settings, "PERMISSION_NAMES_MAPPING", None)
+    if mapping in (_DEFAULT_PERMISSION_NAMES_MAPPING, _DJANGO_PERMISSION_NAMES_MAPPING):
+        return []
+    return [
+        Error(
+            f"PERMISSION_NAMES_MAPPING is {mapping!r}, which VUEDA's viewsets do not check.",
+            hint=(
+                f"Use the default mapping from get_defaults, {_DEFAULT_PERMISSION_NAMES_MAPPING!r}, or "
+                f"the mapping to Django's names, {_DJANGO_PERMISSION_NAMES_MAPPING!r}."
+            ),
+            id="vueda_core.E018",
+        )
+    ]
