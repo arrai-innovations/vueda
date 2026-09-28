@@ -467,10 +467,23 @@ export function useWidget(props, emit) {
     if (unref(fieldContext)) {
         dependencyValuesId = unref(fieldContext).registerDependencyValues(toRef(state, "displayDependencies"));
     }
+    // Report the disabled state to the field, so the field shell can dim its label. A field
+    // context from a test or an older custom field may not offer the method.
+    watch(
+        [fieldContext, () => state.disabled],
+        ([fc, disabled], [previousFc] = []) => {
+            if (previousFc && previousFc !== fc) {
+                previousFc.reportWidgetDisabled?.(false);
+            }
+            fc?.reportWidgetDisabled?.(!!disabled);
+        },
+        { immediate: true },
+    );
     onUnmounted(() => {
         if (dependencyValuesId) {
             unref(fieldContext).unregisterDependencyValues(dependencyValuesId);
         }
+        unref(fieldContext)?.reportWidgetDisabled?.(false);
     });
 
     return widgetContext;

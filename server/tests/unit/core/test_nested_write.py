@@ -168,7 +168,7 @@ class TestCreateIssue(BaseTestUserMixin, BaseTestGroupMixin):
 @pytest.mark.django_db
 class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
-        "Invoice Updater": [("store", "Invoice", "update")],
+        "Invoice Updater": [("store", "Invoice", "update"), ("store", "Invoice", "create")],
     }
     users_to_create: ClassVar[dict] = {
         "invoice_updater@domain.invalid": {
@@ -206,3 +206,45 @@ class TestNestedInlineRemoval(BaseTestUserMixin, BaseTestGroupMixin):
             lines[index].pk for index in kept_indexes
         }
         assert store_models.InvoiceLine.objects.filter(pk=other_line.pk).exists()
+
+    def test_parent_update_leaves_another_parents_child_unchanged(self, api_client):
+        """A child pk that belongs to another parent neither moves nor updates that row."""
+        api_client.force_authenticate(user=self.users["invoice_updater@domain.invalid"])
+        invoice = store_models.Invoice.objects.create(name="Test Invoice")
+        other_invoice = store_models.Invoice.objects.create(name="Other Invoice")
+        other_line = store_models.InvoiceLine.objects.create(invoice=other_invoice, name="Other line", amount="30.00")
+
+        response = api_client.patch(
+            reverse("store.invoice-detail", kwargs={"pk": invoice.pk}),
+            data={"invoice_lines": [{"id": other_line.pk, "name": "Taken line", "amount": "1.00"}]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        other_line.refresh_from_db()
+        assert other_line.invoice_id == other_invoice.pk
+        assert other_line.name == "Other line"
+        # The pk matches none of this parent's rows, so the entry saves as a new row here.
+        assert list(store_models.InvoiceLine.objects.filter(invoice=invoice).values_list("name", flat=True)) == [
+            "Taken line"
+        ]
+
+    def test_parent_create_leaves_another_parents_child_unchanged(self, api_client):
+        """A create treats a child pk from another parent as a new row, and leaves that row alone."""
+        api_client.force_authenticate(user=self.users["invoice_updater@domain.invalid"])
+        other_invoice = store_models.Invoice.objects.create(name="Other Invoice")
+        other_line = store_models.InvoiceLine.objects.create(invoice=other_invoice, name="Other line", amount="30.00")
+
+        response = api_client.post(
+            reverse("store.invoice-list"),
+            data={
+                "name": "New Invoice",
+                "invoice_lines": [{"id": other_line.pk, "name": "Taken line", "amount": "1.00"}],
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED, response_body(response)
+        other_line.refresh_from_db()
+        assert other_line.invoice_id == other_invoice.pk
+        assert other_line.name == "Other line"

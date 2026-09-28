@@ -1,0 +1,2 @@
+- **A field's `validate` prop shows its error inside a form (`FormField`, `useField`)**:
+    - Inside a form context, a `validate` function never produced an error: a returned message and a returned `false` both counted as valid, so only a field without a form showed the error. The field now shows the returned message, or "Validation Failed" for any other non-`true` result, and form submit checks count it as a local error.
