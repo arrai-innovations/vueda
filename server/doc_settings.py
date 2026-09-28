@@ -14,7 +14,7 @@ env = TomlEnv(
         "ALLOWED_HOSTS": ["docs.local"],
         "CORS_ALLOWED_ORIGINS": ["http://docs.local"],
         "CSRF_TRUSTED_ORIGINS": ["http://docs.local"],
-        "FRONTEND_DOMAIN": "docs.local",
+        "FRONTEND_DOMAIN": "http://docs.local",
         "FRONTEND_LOGIN_URL": "/login",
         "TIME_ZONE": "UTC",
         "SITE_NAME": "VUEDA",

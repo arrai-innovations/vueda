@@ -99,6 +99,30 @@ describe("lib/objects-grid/ColumnModelLink.vue", () => {
         });
     });
 
+    describe("labelling an expanded relation", () => {
+        scopedIt("labels the link from the object when the cell passes it as formatted", () => {
+            const category = { id: 7, formatted_name: "Widgets" };
+            const wrapper = mount(ColumnModelLink, {
+                props: {
+                    value: category,
+                    formatted: category,
+                    field: { appLabel: "catalog", model: "widgetcategory" },
+                },
+            });
+            expect(lmvProps).toMatchObject({ pk: 7 });
+            expect(link(wrapper).text()).toBe("Widgets");
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps a numeric formatted value as the label", () => {
+            const wrapper = mount(ColumnModelLink, {
+                props: { value: 7, formatted: 0, field: { appLabel: "catalog", model: "widgetcategory" } },
+            });
+            expect(link(wrapper).text()).toBe("0");
+            wrapper.unmount();
+        });
+    });
+
     describe("degrading to text", () => {
         scopedIt("renders plain text when no target model is resolvable", () => {
             const wrapper = mount(ColumnModelLink, { props: { value: 5, formatted: "Widgets", field: {} } });

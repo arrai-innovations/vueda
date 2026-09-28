@@ -1,0 +1,3 @@
+- **Create and update requests reject expands the action does not permit (`permit_<action>_expands`)**:
+    - With a `permit_create_expands`, `permit_update_expands`, or `permit_partial_update_expands` list set, drf-flex-fields dropped any `e` value the list did not name, so an unknown or unpermitted expand returned 200 and the relation was read as a primary key. These requests now return the same "Invalid expands" 400 as list and detail requests. The check runs before the request body is validated, so an expand error is reported even when the body also has field errors.
+      _Add each expand your client sends on writes to the action's permit list, or stop sending it._

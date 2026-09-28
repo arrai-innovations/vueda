@@ -93,7 +93,11 @@ export function useSignInFlow(options) {
         ([newActive, newLoggedIn, recentlyLoggedIn, newPendingFlow]) => {
             if (newPendingFlow) {
                 if (newPendingFlow.id === "mfa_authenticate") {
-                    router.push({ name: "2fa" });
+                    // The two-factor view signs the user in, so it needs the refused path to send
+                    // them back to. A `redirect` option stays with this view; the two-factor view
+                    // takes its own.
+                    const redirect = route.query?.redirect;
+                    router.push(redirect ? { name: "2fa", query: { redirect } } : { name: "2fa" });
                 }
             }
             if (newActive && newLoggedIn && (!options.requireRecentLogin || recentlyLoggedIn)) {

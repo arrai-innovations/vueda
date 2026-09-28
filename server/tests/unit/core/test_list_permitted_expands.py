@@ -54,6 +54,30 @@ class TestListPermittedExpands:
             "Invalid expands. Permitted expands are cart_items, customer. Or use a wildcard to expand all: *, ~all"
         ), response_body(response)
 
+    @pytest.mark.parametrize("requested", ["customer", "cart_items"])
+    def test_the_message_lists_a_dotted_permit_the_request_is_shallower_than(
+        self, admin_client, monkeypatch, requested
+    ):
+        """With only `customer.user` permitted, `e=customer` does not report "No expands are permitted"."""
+        monkeypatch.setattr(store_viewsets.CartViewSet, "permit_list_expands", ["customer.user"])
+
+        response = self.list_with_expand(admin_client, requested)
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert str(response.data[requested][0]["message"]) == (
+            "Invalid expands. Permitted expands are customer.user. Or use a wildcard to expand all: *, ~all"
+        ), response_body(response)
+
+    def test_a_dotted_permit_is_expanded(self, admin_client, monkeypatch):
+        monkeypatch.setattr(store_viewsets.CartViewSet, "permit_list_expands", ["customer.user"])
+
+        response = self.list_with_expand(admin_client, "customer.user")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert all(isinstance(row["customer"]["user"], dict) for row in response.data["results"]), response_body(
+            response
+        )
+
 
 def test_a_dotted_permit_entry_permits_that_path():
     serializer = store_serializers.CartSerializer(context={"permitted_expands": ["customer.user"]})

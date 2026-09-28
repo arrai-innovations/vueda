@@ -37,7 +37,7 @@ Default outputs live in `docs-tooling/.generated/`:
 - Canonical bundles: `*.canonical.json`
 - Rendered Markdown: `docs/reference/api/` for code references, and `docs/reference/theming/` for theme keys and CSS tokens
 
-The root `just docs-render` command writes API references under `docs/reference/api/` and theming references under `docs/reference/theming/` for VitePress.
+The root `just docs-render` command writes API references under `docs/reference/api/` and theming references under `docs/reference/theming/` for VitePress. It rewrites only the pages whose contents changed and deletes pages the render no longer produces, so a running `just docs-serve` reprocesses only what changed. A render limited with `--source` or redirected with `--output` deletes nothing.
 
 ## Sources
 

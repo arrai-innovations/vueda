@@ -2253,6 +2253,40 @@ describe("lib/views/ViewList.vue", () => {
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
             wrapper.unmount();
         });
+
+        scopedIt("reports a columnComponents override that names no component", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": "ColumnNope" } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(true);
+            expect(columnError.vm.$attrs["while-text"]).toBe("rendering the list columns");
+            expect(columnError.vm.$attrs.error.map((error) => error.message)).toEqual([
+                'No column component named "ColumnNope" for column "field.name"',
+            ]);
+            const cell = wrapper.find('[data-column="field.name"]');
+            expect(cell.exists()).toBe(true);
+            expect(cell.text()).toBe("");
+            wrapper.unmount();
+        });
+
+        scopedIt("shows no column error when every override resolves", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(false);
+            expect(columnError.vm.$attrs.error).toEqual([]);
+            wrapper.unmount();
+        });
     });
 
     describe("Bulk selection read-out", () => {

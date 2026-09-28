@@ -1,0 +1,2 @@
+- **A bulk `confirm=True` action's warning renders as one message (`ModelActionForm`)**:
+    - An action declared with `confirm=True` sends its warning as `{"non_field_errors": [message]}`, also on its bulk route. The confirmation dialog read `non_field_errors` as an object id and labelled a group with it. Message lists in a bulk warning mapping now render as one group with no object label, ahead of the per-object groups.

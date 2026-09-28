@@ -576,14 +576,12 @@ Replace `client/src/main.js` with:
 ```javascript
 import TheApp from "./TheApp.vue";
 import { getRouter } from "./router/index.js";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { setTheme } from "@vueda/use/useTheme.js";
+import "@vueda/theme/vueda-tailwind/index.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 
-setTheme(vuedaTailwind);
 setupDefaultListCrud();
 setupDefaultObjectCrud();
 
@@ -599,10 +597,10 @@ app.mount("#the-app");
 export default app;
 ```
 
-`setTheme(vuedaTailwind)` registers the built-in Tailwind CSS theme so that all VUEDA components receive their default styling classes. The theme system is CSS-framework-agnostic; `vuedaTailwind` is a first-party preset that maps component slots to Tailwind utility classes. {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. VUEDA's controls and widgets are first-party components (built on Reka UI) and need no third-party UI plugin registration. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each step.
+The side-effect import of `@vueda/theme/vueda-tailwind/index.js` registers all built-in theme defaults before app creation. The theme system is CSS-framework-agnostic; `vueda-tailwind` maps component slots to Tailwind utility classes. {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register the HTTP adapters that VUEDA's composables use for every CRUDL operation. VUEDA's controls and widgets are first-party components (built on Reka UI) and need no third-party UI plugin registration. See [Client Plugin Prerequisites](/guides/client-plugin-prerequisites) for details on each step.
 
 ::: tip
-`setTheme(vuedaTailwind)` registers every component's default theme up front. It is the simplest path and the one this tutorial uses. If you later want to trim the bundle to just the components your app renders, VUEDA also supports per-family and fully-lazy registration; see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
+For per-family or per-component loading and the order required for project patches, see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
 :::
 
 ### Add a Sign-In View

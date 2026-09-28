@@ -61,4 +61,66 @@ describe("lib/use/useField.js", () => {
             expect(form.state.labels).toEqual({});
         });
     });
+
+    describe("validate prop (form integration)", () => {
+        const mountValidatedField = async (validate) => {
+            let form;
+            mount(
+                defineComponent({
+                    setup() {
+                        form = useForm(reactive({ initialValues: { quantity: -1 } }));
+                        return () =>
+                            h(FormField, { name: "quantity", label: "Quantity", validate }, () => h(WidgetTextInput));
+                    },
+                }),
+            );
+            await flushPromises();
+            form.setAllTouched();
+            await flushPromises();
+            return form;
+        };
+
+        scopedIt("writes a returned string as the field's validate error", async () => {
+            const form = await mountValidatedField((value) => (value > 0 ? true : "Must be positive"));
+
+            expect(form.state.errors.quantity).toEqual({ validate: "Must be positive" });
+            expect(form.state.valid.quantity).toBe("Must be positive");
+        });
+
+        scopedIt("writes the default message when validate returns false", async () => {
+            const form = await mountValidatedField(() => false);
+
+            expect(form.state.errors.quantity).toEqual({ validate: "Validation Failed" });
+        });
+
+        scopedIt("writes no validate error when validate returns true", async () => {
+            const form = await mountValidatedField(() => true);
+
+            expect(form.state.errors.quantity?.validate).toBeUndefined();
+            expect(form.state.valid.quantity).toBe(true);
+        });
+    });
+
+    describe("disabled widget (form integration)", () => {
+        scopedIt("marks the field shell disabled while its widget is disabled", async () => {
+            const renderState = reactive({ disabled: true });
+            const wrapper = mount(
+                defineComponent({
+                    setup() {
+                        useForm(reactive({ initialValues: { email: "" } }));
+                        return () =>
+                            h(FormField, { name: "email", label: "Email" }, () =>
+                                h(WidgetTextInput, { disabled: renderState.disabled }),
+                            );
+                    },
+                }),
+            );
+            await flushPromises();
+            expect(wrapper.get('[data-qa="form-field"]').attributes("data-disabled")).toBe("true");
+
+            renderState.disabled = false;
+            await flushPromises();
+            expect(wrapper.get('[data-qa="form-field"]').attributes("data-disabled")).toBeUndefined();
+        });
+    });
 });

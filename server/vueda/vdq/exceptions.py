@@ -1,4 +1,4 @@
-"""Custom exceptions for the VUEDA Delivery Queue."""
+"""Custom exceptions for the VUEDA Dispatch Queue."""
 
 __all__ = ("AnymailTransientError",)
 

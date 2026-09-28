@@ -406,18 +406,18 @@ describe("lib/router/makeCrud.js", () => {
     });
 
     describe("Workflow discovery denial", () => {
-        scopedIt("sends a fresh load of a denied URL to the configured redirect with visible feedback", async () => {
+        scopedIt("opens a CRUD route that model info allows", async () => {
             respond(urls.workflowUserPermittedTransitions, workflowDenied);
             modelAllows("purchaseorder", ["list"], true);
             await startAs({ id: 1 });
 
             await router.push("/blog/purchaseorder/list/");
 
-            expect(router.currentRoute.value.name).toBe("not-found");
-            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+            expect(router.currentRoute.value.path).toBe("/blog/purchaseorder/list/");
+            expect(toastMock.error).not.toHaveBeenCalled();
         });
 
-        scopedIt("denies navigation to a denied URL entered from another route record", async () => {
+        scopedIt("opens a CRUD route entered from another route record", async () => {
             // a detail route and a list route are different route records, so entering the second
             // from the first runs `beforeEnter` the normal way navigation within one record would not
             modelAllows("post", ["update"]);
@@ -429,8 +429,34 @@ describe("lib/router/makeCrud.js", () => {
             modelAllows("purchaseorder", ["list"], true);
             await router.push("/blog/purchaseorder/list/");
 
+            expect(router.currentRoute.value.path).toBe("/blog/purchaseorder/list/");
+        });
+
+        scopedIt("sends a transition route to the configured redirect with visible feedback", async () => {
+            respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            modelAllows("purchaseorder", ["list", "read"], true);
+            await startAs({ id: 1 });
+
+            await router.push("/blog/purchaseorder/approve/1");
+
             expect(router.currentRoute.value.name).toBe("not-found");
             expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+        });
+
+        scopedIt("keeps the denial in the workflow store after admitting a CRUD route", async () => {
+            respond(urls.workflowUserPermittedTransitions, workflowDenied);
+            modelAllows("purchaseorder", ["list"], true);
+            await startAs({ id: 1 });
+            const { WorkflowPermissionDeniedError, storeWorkflow } = await import("@vueda/stores/storeWorkflow.js");
+
+            await router.push("/blog/purchaseorder/list/");
+
+            expect(storeWorkflow(pinia).errors.workflowTransitions["blog.purchaseorder"]).toBeInstanceOf(
+                WorkflowPermissionDeniedError,
+            );
+            await expect(storeWorkflow(pinia).fetchWorkflowTransition("blog", "purchaseorder")).rejects.toBeInstanceOf(
+                WorkflowPermissionDeniedError,
+            );
         });
 
         scopedIt("sends no workflow discovery request for a model without workflow", async () => {

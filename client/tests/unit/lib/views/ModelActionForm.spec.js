@@ -635,6 +635,39 @@ describe("lib/views/ModelActionForm.vue", () => {
             },
         );
 
+        scopedIt(
+            "renders a bulk response's field-keyed message lists as one unkeyed group, as a confirm=True gate sends",
+            () => {
+                actionFormWarnings = { non_field_errors: ["Reissuing voids the original invoices."] };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm({
+                    fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
+                });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Reissuing voids the original invoices.",
+                );
+            },
+        );
+
+        scopedIt("puts a bulk response's field-keyed messages before its per-object groups", () => {
+            actionFormWarnings = {
+                non_field_errors: ["Some orders ship express."],
+                1: { count: ["Order 1001 ships express."] },
+            };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm();
+
+            const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+            expect(groups).toHaveLength(2);
+            expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+            expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain("Some orders ship express.");
+            expect(groups[1].getComponent(WidgetReadOnlyStub).props("foreignKeyObj")).toEqual({ id: 1 });
+        });
+
         scopedIt("forwards the warning-entry slot to every group's FieldWarningsList, adding pk to the scope", () => {
             actionFormWarnings = {
                 1: { count: ["Order 1001 ships express."] },

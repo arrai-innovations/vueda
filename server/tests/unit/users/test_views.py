@@ -17,6 +17,7 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
+from vueda.user.models import GroupChange
 from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
 from vueda.user.views import VuedaForgotPasswordView
@@ -127,6 +128,22 @@ class TestPermissionGroupEditViews:
 
         assert response.status_code == HTTPStatus.OK
         assert not group.permissions.filter(pk=permission.pk).exists()
+
+    def test_delete_of_the_last_permission_keeps_the_group_and_its_members(self, group_editor, plain_user):
+        permission = Permission.objects.get(content_type__app_label="auth", codename="read_group")
+        group = Group.objects.create(name="Editors")
+        group.permissions.add(permission)
+        plain_user.groups.add(group)
+
+        response = self._delete(group_editor, permission, group)
+
+        assert response.status_code == HTTPStatus.OK
+        group.refresh_from_db()
+        assert not group.permissions.exists()
+        assert plain_user.groups.filter(pk=group.pk).exists()
+        assert list(GroupChange.objects.values_list("group_name", "change_type")) == [
+            ("Editors", GroupChange.UNASSOCIATED)
+        ]
 
     def test_delete_denied_without_auth_group_permissions(self, plain_user):
         permission = Permission.objects.get(content_type__app_label="auth", codename="read_group")

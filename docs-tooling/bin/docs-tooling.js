@@ -16,6 +16,7 @@ import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
+import { syncRenderedFiles } from "../js/utils/sync-rendered-files.js";
 import { validateClientSymbols } from "../js/validators/client-symbols.js";
 import { validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
@@ -221,15 +222,6 @@ async function runNormalize(argv) {
         const normalized = normalizer.normalize(payload);
         await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
         await fs.promises.writeFile(outputPath, JSON.stringify(normalized, null, 2));
-    }
-}
-
-async function writeRenderedFiles(outputDir, outputs) {
-    await fs.promises.mkdir(outputDir, { recursive: true });
-    for (const [filename, contents] of outputs.entries()) {
-        const target = path.join(outputDir, filename);
-        await fs.promises.mkdir(path.dirname(target), { recursive: true });
-        await fs.promises.writeFile(target, contents);
     }
 }
 
@@ -448,8 +440,23 @@ async function runRender(argv) {
         if (!skipIndexDirs.has(dir)) {
             addIndexPages(outputs);
         }
-        await writeRenderedFiles(dir, outputs);
     }
+
+    // Only a full render to the default locations knows every page that should exist, so only it
+    // removes stale pages. A partial or redirected render must not delete another source's pages.
+    const fullDefaultRender = requestedSources.length === Object.keys(defaults).length && !argv.output;
+    const reference = path.join(repoRoot, "docs", "reference");
+    const pruneRoots = fullDefaultRender
+        ? [
+              path.join(reference, "api"),
+              path.join(reference, "theming", "tokens"),
+              path.join(reference, "theming", "tokens.md"),
+              path.join(reference, "theming", "keys"),
+              path.join(reference, "theming", "keys.md"),
+          ]
+        : [];
+    const { written, unchanged, removed } = await syncRenderedFiles(combinedByDir, { pruneRoots });
+    console.log(`Rendered reference pages: ${written} written, ${unchanged} unchanged, ${removed} removed.`);
 }
 
 // Mirror VitePress srcExclude (docs/.vitepress/config.mjs): everything under
