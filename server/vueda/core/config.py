@@ -438,6 +438,13 @@ class TomlEnv:
 
 
 def load_toml(path: os.PathLike[str] | str) -> dict[str, Any]:
+    """
+    Return the parsed contents of the TOML file at ``path``, or an empty dict when the file does not
+    exist.
+
+    Settings modules merge ``config.toml`` and ``config.local.toml`` this way before passing the result
+    to ``TomlEnv``.
+    """
     toml_path = os.fspath(path)
     if not os.path.exists(toml_path):
         return {}

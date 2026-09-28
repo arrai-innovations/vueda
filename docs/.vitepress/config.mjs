@@ -1,11 +1,7 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
 import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
 import { glossaryTermPlugin } from "../../docs-tooling/js/utils/glossary-term-plugin.js";
-import {
-    formatApiMemberTitle,
-    memberAnchorFromId,
-    memberNameFromId,
-} from "../../docs-tooling/js/utils/reference-index.js";
+import { apiMemberTitle, memberAnchorFromId } from "../../docs-tooling/js/utils/reference-index.js";
 import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "../../docs-tooling/js/utils/reference-parser.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
@@ -333,11 +329,10 @@ const buildApiIndex = () => {
                     if (!memberId || index.has(memberId)) {
                         continue;
                     }
-                    const memberName = memberNameFromId(memberId);
                     const anchor = memberAnchorFromId(memberId);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                        title: formatApiMemberTitle(title, memberName),
+                        title: apiMemberTitle(title, memberId),
                         filePath,
                     });
                 }

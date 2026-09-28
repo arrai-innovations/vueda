@@ -287,8 +287,26 @@ const camelCaseObject = (obj, skipKeys = []) => {
  */
 export const storeModelInfo = defineStore("modelInfo", {
     state: () => ({
+        /**
+         * Fetched model info, keyed by app and model dot name. Field names and filter names keep the
+         * server's spelling; all other keys are camelCase.
+         *
+         * @type {{[appModelDotName: string]: ModelInfo}}
+         */
         infos: {},
+        /**
+         * The in-flight `fetchModelInfo` requests, keyed by app and model dot name. A request removes
+         * its entry when it settles.
+         *
+         * @type {{[appModelDotName: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>}}
+         */
         promises: {},
+        /**
+         * The error from each failed `fetchModelInfo` request, keyed by app and model dot name. Later
+         * calls for that model reject with this error instead of asking the server again.
+         *
+         * @type {{[appModelDotName: string]: Error}}
+         */
         errors: {},
         /**
          * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
@@ -315,6 +333,21 @@ export const storeModelInfo = defineStore("modelInfo", {
             trimReactiveObject(this.errors, {});
             trimReactiveObject(this.promises, {});
         },
+        /**
+         * Fetches the model info for an app and model, and caches it in `infos`.
+         *
+         * A cached result resolves at once, and a cached error rejects at once. A request already in
+         * flight for the same model is shared. The response keys are converted to camelCase, and `pk`
+         * is set to the name of the primary key field.
+         *
+         * @param {object} args - The model to fetch info for.
+         * @param {string} args.app - Django app label.
+         * @param {string} args.model - Model name.
+         * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise for
+         *  the model info. It rejects with `ModelInfoError` when the request fails, and with
+         *  `AuthScopeInvalidatedError` if the authenticated user changes while it is in flight. It rejects
+         *  with a plain `Error` when `app` or `model` is missing, or the response has no primary key field.
+         */
         fetchModelInfo(args) {
             if (!args.app || !args.model) {
                 return Promise.reject(new Error("storeModelInfo.fetchModelInfo: app and model must be provided"));

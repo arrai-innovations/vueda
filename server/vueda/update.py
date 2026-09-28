@@ -109,11 +109,17 @@ text_wrapper = ColorTextWrapper(width=80)
 
 
 def wrap_text(text):
+    """
+    Wrap ``text`` to the shared text wrapper's width and join the lines.
+    """
     return "\n".join(text_wrapper.wrap(text))
 
 
 @contextmanager
 def temp_terminal_width(width):
+    """
+    Set the shared text wrapper's width to ``width`` for the duration of the ``with`` block.
+    """
     old_width = text_wrapper.width
     text_wrapper.width = width
     try:
@@ -127,6 +133,9 @@ def print_trace(
     message,
     trace,
 ):
+    """
+    Print an error ``message`` and its ``trace`` to ``stderr`` with an "Error:" prefix.
+    """
     error_prefix = f"{error_color('Error')}: "
     print(wrap_text(f"{error_prefix}{message}"), file=stderr)
     with temp_terminal_width(text_wrapper.width - len(error_prefix)):
@@ -579,6 +588,10 @@ def run(
     exit_on_error=True,  # no tests yet but this will be useful for them
     terminal_width=None,
 ):
+    """
+    Run the update steps from ``parsed_args.first_step`` onward, or only that step with ``--only``.
+    On a step failure, exit with its code, or return the code when ``exit_on_error`` is false.
+    """
     if not terminal_width:
         try:
             terminal_size = shutil.get_terminal_size((80, 20))
@@ -607,6 +620,10 @@ def run(
 
 
 def update_for_main(subparsers=None, exit_on_error=True):
+    """
+    Build the ``update`` argument parser, as a subcommand of ``subparsers`` when given.
+    Return ``run`` and the parser; the caller parses the arguments and passes them to ``run``.
+    """
     parser_args = {
         "formatter_class": ColorHelpFormatter,
         "prog": "update",

@@ -42,15 +42,31 @@ const collapseNavLocalStorageKey = "collapseNav";
  */
 export const storeCollapseNav = defineStore("collapseNav", {
     state: () => ({
+        /**
+         * Whether the navigation sidebar is collapsed.
+         *
+         * @type {boolean}
+         */
         isCollapsed: false,
     }),
     actions: {
+        /**
+         * Sets `isCollapsed` from localStorage. With no saved value, collapses the sidebar when the
+         * viewport is at least the `lg` breakpoint.
+         *
+         * @returns {void}
+         */
         init() {
             const storedCollapseNav = localStorage.getItem(collapseNavLocalStorageKey);
             const breakpoint = useBreakpoints(breakpointsVueda);
             this.isCollapsed =
                 storedCollapseNav !== null ? JSON.parse(storedCollapseNav) : breakpoint.isGreaterOrEqual("lg");
         },
+        /**
+         * Flips `isCollapsed` and saves the new value to localStorage.
+         *
+         * @returns {void}
+         */
         toggle() {
             this.isCollapsed = !this.isCollapsed;
             localStorage.setItem(collapseNavLocalStorageKey, JSON.stringify(this.isCollapsed));
