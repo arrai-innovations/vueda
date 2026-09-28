@@ -44,7 +44,7 @@
                     {% endfor %}
                 {% endif %}
             </h1>
-            {% if has_perm('create_workflow') %}
+            {% if has_perm('vueda_workflow.create_workflow') %}
                 <div class="control">
                     {{ add_workflow }}
                 </div>
@@ -72,12 +72,12 @@
                                 <code class="django">.{{ workflow.content_type.model }}</code>&emsp;
                                 <code class="python">{{ model.__name__ }}</code>
                             </h3>
-                            {% if has_perm('delete_workflow') and workflow.pk in delete_workflow %}
+                            {% if has_perm('vueda_workflow.delete_workflow') and workflow.pk in delete_workflow %}
                                 <div class="control sticky-control">
                                     {{ delete_workflow[workflow.pk] }}
                                 </div>
                             {% endif %}
-                            {% if has_perm('update_workflow') %}
+                            {% if has_perm('vueda_workflow.update_workflow') %}
                                 <div class="control sticky-control">
                                     {{ edit_workflow[workflow.pk] }}
                                 </div>
