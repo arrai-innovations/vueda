@@ -1,0 +1,1 @@
+- **`ColumnModelLink` on an expanded foreign key**: the link text is now the related object's `formatted_name`. A list cell passes the expanded object as the column's formatted value, and the adapter rendered that object as `JSON`.

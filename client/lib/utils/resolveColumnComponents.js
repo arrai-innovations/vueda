@@ -52,7 +52,7 @@ function resolveColumnOverride(override, name) {
  * 1. `propComponents[name]` - the `columnComponents` prop on `<ViewList>`.
  * 2. `configComponents[name]` - `modelConfig.config.columnComponents`.
  * 3. type default from `columnMappings`.
- * 4. `ColumnText` fallback.
+ * 4. `ColumnText` fallback, for a type with no mapping entry.
  *
  * The prop entry is picked before the config entry is considered, as in the
  * form override chain. An override that names no component throws, so a
@@ -65,7 +65,7 @@ function resolveColumnOverride(override, name) {
  * @param {{[name:string]: any}} [propComponents] - Inline component overrides by field name.
  * @param {{[name:string]: any}} [configComponents] - Model-config component overrides by field name.
  * @returns {import('vue').Component} The resolved adapter component.
- * @throws {Error} When the picked override names no component.
+ * @throws {Error} When the picked override, or the type mapping's `column`, names no component.
  */
 export function resolveColumnComponent(field, propComponents, configComponents) {
     const name = field?.name;
@@ -79,6 +79,10 @@ export function resolveColumnComponent(field, propComponents, configComponents) 
         if (resolved) {
             return resolved;
         }
+        if (typeof mapping.column === "string") {
+            throw new Error(`No column component named "${mapping.column}" in the type mapping for column "${name}"`);
+        }
+        throw new Error(`No column component returned by the type mapping's function for column "${name}"`);
     }
     return availableColumns.ColumnText;
 }
