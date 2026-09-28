@@ -133,7 +133,7 @@ Each built-in adapter's generated page lists its props. The ones you are most li
 A `ForeignKey` or `OneToOneField` column renders through `ColumnModelLink` with no configuration. It reads the related model from the field's [`appLabel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.appLabel} and [`model`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.model}. Model info sends both for writable and read-only relation fields.
 
 - **Related pk:** a scalar cell value is the pk. An object value uses its `id`, else its `pk`.
-- **Link text:** the `label` prop, else the cell's `formatted` value. For a scalar foreign key, the text is the pk.
+- **Link text:** the `label` prop, else the cell's `formatted` value when it is text or a number. For a scalar foreign key, the text is the pk. For an expanded foreign key, the text is the related object's `formatted_name`, else its `name`, `id`, or `pk`.
 - **No link:** when no related model or no pk resolves, or the value is an array, the cell renders the text without a link.
 
 When the field carries no related model, supply one through `columnProps`:
@@ -179,7 +179,7 @@ mergeColumnMappings({
 });
 ```
 
-An entry's [`column`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.column} names an adapter in `availableColumns`, and [`columnProps`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.columnProps} holds its default props. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.default} applies when `typeModel` is empty. A `column` that names no adapter renders `ColumnText`.
+An entry's [`column`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.column} names an adapter in `availableColumns`, and [`columnProps`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.columnProps} holds its default props. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/columnMappings#ColumnMappingEntry.default} applies when `typeModel` is empty. A `column` that names no adapter shows the column error described in [Troubleshooting](#troubleshooting) on every column of that type, unless an override sets the column's adapter.
 
 ## Write a Column Adapter
 
@@ -219,7 +219,7 @@ Register it through a function in model config, or pass it in the `columnCompone
 
 ## Troubleshooting
 
-**The list shows "There was an error while rendering the list columns."** A `columnComponents` entry names no adapter, or its function returned nothing. The message names the column, such as `No column component named "Nope" for column "status"`. That column's cells render empty, and the other columns render normally. Check the name against `availableColumns`, or pass your own component through a function. The error shows even when a `field(<name>)` slot fills the column. A list you build on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} gets these errors in [`columnErrors`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListListGroup.columnErrors}.
+**The list shows "There was an error while rendering the list columns."** A `columnComponents` entry or a type mapping's `column` names no adapter, or a function returned nothing. The message names the column, such as `No column component named "Nope" for column "status"`, and adds `in the type mapping` when the mapping is the cause. That column's cells render empty, and the other columns render normally. Check the name against `availableColumns`, or pass your own component through a function. The error shows even when a `field(<name>)` slot fills the column. A list you build on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} gets these errors in [`columnErrors`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListListGroup.columnErrors}.
 
 **The override has no effect.** Check that the key matches the field name exactly. A `field(<name>)` slot wins over both override maps, and a `columnComponents` prop entry wins over model config. A `setConfig` call made after the list has built its config does not reach it, so call `setConfig` when the application starts.
 
