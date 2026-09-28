@@ -6,12 +6,8 @@ type: reference
 ---
 
 <script setup>
-import Table from "@vueda/grid/table/Table.vue";
-import { ref } from "vue";
 import { demoResponse } from "../../.vitepress/theme/fixtures/demoApi.js";
 import { customerScenario } from "../../.vitepress/theme/fixtures/showcaseRecords.js";
-
-const copyDiscounts = ref(true);
 
 // One scenario per live demo. Route registration is global and first-match-wins, so demos
 // that need different responses for the same model take different app labels.
@@ -21,10 +17,10 @@ const activateScenario = customerScenario({
     app: "showcaseactivate",
     actions: [{ name: "activate", method: "PATCH" }],
 });
-// Rejects the pre-flight the way a server does when some records cannot take the action:
-// a 400 keyed by primary key. The confirmed request would succeed.
 const historyScenario = customerScenario({ app: "showcasehistory" });
 const emptyHistoryScenario = customerScenario({ app: "showcasehistoryempty", history: [] });
+// Rejects the pre-flight the way a server does when some records cannot take the action:
+// a 400 keyed by primary key. The confirmed request would succeed.
 const billScenario = customerScenario({
     app: "showcasebill",
     actions: [
@@ -44,20 +40,49 @@ const billScenario = customerScenario({
 
 # Action & Workflow Views
 
-Four view-scale layouts that handle model actions, workflow transitions, and audit history. Each builds on {@api vue:component:PageTitle} from the CRUD family. The new piece introduced here is the **tone-tracked action banner**: a full-bleed strip below the title that grounds the action's purpose and risk level before the user reaches the submit button.
+This page shows the action confirmation views and the history view in the default theme: {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewExecuteTransition}, and {@api vue:component:ViewHistoryList}. [CRUD Views](./views-crud.md#viewdestroy) shows `ViewDestroy`, which uses the same action card. [Components](./index.md) describes the rules every component page shares.
 
-Banner tone follows action sentiment: `info` for neutral confirmations, `success` for activations and restorations, `warning` for irreversible non-destructive moves, and `destructive` for permanent deletions (the destroy variant lives in CRUD Views). Skipping the banner leaves users wondering what the action will actually do.
+[Action Contract and Availability](../../core-concepts/action-contract-and-availability.md) describes which actions a view offers and which actions honor a {@term Dry Run}. [Design Transition UX and Redirects](../../guides/transition-ux-and-redirects.md) describes what an action form does on pre-flight, submit, and cancel, and where it goes afterward.
+
+## Action card
+
+Every action view renders its confirmation in {@api vue:component:ModelActionForm}. The card has three parts, from top to bottom:
+
+- The banner: an icon tile, a title, and a one-line description. The title combines the action name and the model's verbose name. The description defaults to "Review the selected records before continuing."
+- The body: the selected-records panel, a prompt panel that asks "Are you sure you want to ...", and any fields the action collects.
+- The actions strip from {@api vue:component:ActionForm}: "Yes, continue", "Cancel, go back", and an optional hint at the right.
+
+The banner is a required part of every action view. It states the action and the records it targets before the user reaches the confirm button, and its tone signals the action's risk.
+
+The [`tone`]{@api vue:component:ModelActionForm:prop:tone} prop sets that risk level. The card carries the value as `data-tone`, and the card edge, banner fill, and banner icon tile change together.
+
+| `tone`           | Meaning                                     | Default for                           | Banner icon      |
+| ---------------- | ------------------------------------------- | ------------------------------------- | ---------------- |
+| `info` (default) | A neutral confirmation                      | `ViewAction`, `ViewExecuteTransition` | Information      |
+| `success`        | Activate or restore                         | `ViewActivate`                        | Check mark       |
+| `warning`        | An irreversible change that deletes nothing | {@api vue:component:ViewDeactivate}   | Warning triangle |
+| `danger`         | A permanent deletion                        | {@api vue:component:ViewDestroy}      | Warning triangle |
+
+At `danger`, the selected-records panel and its chips also take the destructive tint, and the default confirm button takes the destructive button tone. At every other tone, the confirm button keeps the primary tone.
+
+The selected-records panel is headed "Selected" plus the model's verbose name, with an "N of N selected" count. Each record is a chip that ends in its primary key. A view that fetches its records shows each record's {@term Formatted Name} in the chip as a {@api vue:component:LinkModelView} link. A view that does not fetch shows the primary keys only.
+
+Each chip is a {@api vue:component:FormField} named for its record's primary key. {@term Server Feedback} keyed by primary key therefore appears beside the matching chip. {@api theme-key:ActionForm.validation} lists, above the card, any error that no rendered field shows.
+
+The card's states:
+
+- **Pre-flight.** When the view opens, the card sends the action as a dry run. Its server feedback appears on the form without a toast.
+- **Running.** While a request runs, both buttons are disabled and show a spinner.
+- **Server feedback only.** "Yes, continue" stays enabled while only server feedback remains, because the server checks the records again on confirm.
+- **Success.** A success toast appears, and the buttons stay disabled until the next page replaces the view.
+- **Warnings.** A {@term Warning Confirmation} opens {@api vue:component:FormConfirmDialog}. For an action on several records, the dialog groups the warnings by record, each under the record's link.
+- **Failure.** Any other failed confirm shows an error toast.
+
+Theme keys: {@api theme-key:ModelActionForm} for the card and {@api theme-key:ActionForm} for the actions strip and the validation summary. {@api theme-key:ModelActionForm.card}, {@api theme-key:ModelActionForm.banner}, and {@api theme-key:ModelActionForm.bannerIcon} hold the per-tone treatment.
 
 ## ViewAction
 
-The generic action confirmation view: a tone-tracked banner, the records the action targets, a
-prompt panel restating the question, then the actions strip. It is the one action view that does
-not fetch anything. `ViewDestroy` and `ViewActivate` load their records and hand
-`ModelActionForm` a fetch state; `ViewAction` passes the primary keys straight through, which is
-why the rows below read as bare keys.
-
-`ViewAction` also owns a form context of its own, seeded with one entry per primary key. That is
-what gives per-record server messages somewhere to land, as the third demo shows.
+{@api vue:component:ViewAction} is the generic confirmation that {@term Action View Resolution} falls back to for a model action. It puts the action and model names in the page title and a "Go Back" button in the page actions. It passes its [`pk`]{@api vue:component:ViewAction:prop:pk} values to the card without fetching the records, so its chips show primary keys. It sends the action as `PUT` unless [`requestMethod`]{@api vue:component:ModelActionForm:prop:requestMethod} names another method.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -73,18 +98,16 @@ what gives per-record server messages somewhere to land, as the third demo shows
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code>: a neutral border with an 8 % ring, a 6 % info banner fill, and an info-filled icon tile</span>
-    <span>banner text: generated from the action name and the model's verbose name, as on every model action; <code>banner-title</code> and <code>banner-description</code> replace them</span>
-    <span>records: each chip shows the primary key. No fetch means no <code>formatted_name</code>. Pass <code>fetch-state</code> to show names alongside the keys</span>
-    <span>requests: one PUT to the list action url with a <code>{ pks }</code> body, sent twice: the <code>Dry-Run: true</code> pre-flight on mount, then the real request on confirm</span>
+    <span>tone: nothing was passed, so the card carries <code>data-tone="info"</code></span>
+    <span>banner: both lines are generated; <code>bannerTitle</code> and <code>bannerDescription</code> replace them</span>
+    <span>records: four chips showing primary keys, because <code>ViewAction</code> fetches nothing</span>
+    <span>requests: a dry-run pre-flight when the view opens, then the action on confirm</span>
     <span>theme keys: {@api theme-key:ViewAction}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewAction.vue</code></span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-An action with input fills the `extra-fields` slot. The demo below is the real view with that one
-slot supplied by a docs-only wrapper; everything rendered is the framework's own output. Type
-into Reason and submit, then clear it and submit again to see the error appear under the field.
+An action that takes input puts its fields in the [`extra-fields`]{@api vue:component:ModelActionForm:slot:extra-fields} slot, below the prompt panel. For the fields to be validated and sent, the view also takes [`hasInput`]{@api vue:component:ActionForm:prop:hasInput} and [`transformSubmitDataFn`]{@api vue:component:ModelActionForm:prop:transformSubmitDataFn}. The demo below is the real view with the slot filled by a docs-only wrapper. Type into Reason and submit, then clear it and submit again to see the error appear under the field.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -100,17 +123,14 @@ into Reason and submit, then clear it and submit again to see the error appear u
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel at the standard 12 px form gap, so they line up with the field column of a full form</span>
-    <span>fields: ordinary {@api vue:component:FormField} rows, so they inherit the form family's label, help, and error treatment, and their errors, whether from local validation or a server 400, appear under the field rather than in a separate summary</span>
-    <span>input contract: the wrapper passes <code>has-input</code> and <code>transform-submit-data-fn</code> so slotted fields join validation and request-body construction. Use the same props when an action collects extra fields through <code>extra-fields</code></span>
-    <span>single record: the action goes to the detail url (<code>/routes/:app/:model/:pk/duplicate/</code>); several records go to the list url with a <code>{ pks }</code> body</span>
+    <span>slot: {@api theme-key:ModelActionForm.extraFields} stacks the rows below the prompt panel on the form field rhythm, so they line up with the field column of a full form</span>
+    <span>fields: ordinary <code>FormField</code> rows with the form family's label, help, and error treatment; an error from local validation or from the server appears under its field</span>
+    <span>input: the wrapper passes <code>hasInput</code> and <code>transformSubmitDataFn</code>, so the slotted fields join validation and become the request body</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-The dry-run pre-flight is a real request, so it can fail. Here the offline endpoint rejects the
-pre-flight with per-record messages, which is what a server returns when some of the selected
-records cannot take the action.
+The pre-flight is a real request, so it can fail. Here the endpoint rejects the pre-flight with a message for two of the three records, keyed by primary key. That is how a server reports records that cannot take the action.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -127,10 +147,11 @@ records cannot take the action.
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: <code>tone="warning"</code> reaches {@api vue:component:ModelActionForm} as a fall-through attribute and swaps the card edge, banner fill, and icon tile together</span>
-    <span>pre-flight: sent on mount with <code>Dry-Run: true</code>. A 400 becomes a <code>FormValidationError</code> and is routed onto the form context rather than toasted, which is why it lands silently rather than as a failure banner</span>
-    <span>where the messages land: keyed by primary key, so each one appears once, beside the matching record chip. Each chip is a {@api vue:component:FormField} named for its primary key, so {@api theme-key:ActionForm.validation}'s summary above the fields has nothing left to report and stays hidden. It lists only errors no rendered field shows, such as a key that matches no selected record</span>
-    <span>the banner does not react: its text is generated from the action and model names. The pre-flight's findings belong beside the record chips, and in {@api theme-key:ActionForm.validation} for any error no field shows</span>
+    <span>tone: <code>tone="warning"</code> passes through <code>ViewAction</code> to the card and switches the card edge, banner fill, and icon tile together</span>
+    <span>pre-flight: the 400 lands on the form as server feedback, with no toast</span>
+    <span>messages: each appears beside its record's chip, so {@api theme-key:ActionForm.validation} has nothing left to list and stays hidden</span>
+    <span>banner: its text stays generated from the action and model names; the pre-flight result shows beside the chips</span>
+    <span>confirm: "Yes, continue" stays enabled, and the server checks the records again on confirm</span>
     <span>theme keys: {@api theme-key:ActionForm.validation}, {@api theme-key:ModelActionForm} · source: <code>ActionForm.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -138,12 +159,9 @@ records cannot take the action.
 
 ## ViewActivate
 
-The activate view is `ModelActionForm` with `request-method="PATCH"` and `tone="success"`,
-which is what establishes the tone-tracking pattern: **info** for neutral confirmation,
-**success** for activate and restore, **warning** for irreversible non-destructive moves.
+{@api vue:component:ViewActivate} confirms the `activate` action in the `success` tone. It fetches the selected records, so each chip shows the record's formatted name as a link beside its primary key. It sends the action as `PATCH`. The title reads "Activate" plus the model name unless you set the [`title`]{@api vue:component:ViewActivate:prop:title} prop.
 
-The demo below is the live component, mounted through the `ModelDemo` harness against the
-seeded showcase customer model. Confirming it sends a real PATCH to the offline endpoint.
+`ViewDeactivate` shares this body, {@api vue:component:ViewSelectedObjectsAction}, in the `warning` tone. [System Views](./system-views.md#viewdeactivate) describes it.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -160,12 +178,12 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
     toasts
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: <code>tone="success"</code> puts <code>data-tone="success"</code> on the card, which drives every tone-scoped class in one pass: a <code>border-success/50</code> edge with an 8 % success ring, a 6 % success banner fill, and a success-filled 36 px icon tile</span>
-    <span>banner text: both lines are generated. The title is the action name plus the model's verbose name; the description is the same default sentence every action gets. Override them with the <code>banner-title</code> and <code>banner-description</code> props</span>
-    <span>selected records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each record's <code>formatted_name</code> as a {@api vue:component:LinkModelView} link with the primary key as a trailing mono chip</span>
-    <span>prompt: a generated "Are you sure you want to ..." sentence in the left-bordered panel; the <code>confirm-message</code> prop replaces the wording and the slot of the same name replaces the whole panel</span>
-    <span>requests: the same PATCH goes to the detail action url twice, once on mount carrying <code>Dry-Run: true</code> and once on confirm. The server runs both and rolls the dry run back, so a pre-flight validates against real data without persisting</span>
-    <span>PageTitle: supplied here by the docs harness, as an integrator's layout would; the view contributes the title and teleports its "Go Back" button into the title row</span>
+    <span>tone: <code>data-tone="success"</code> switches the card edge, banner fill, and icon tile, and the banner shows the check mark</span>
+    <span>banner text: the generated title and the default description; <code>bannerTitle</code> and <code>bannerDescription</code> replace them</span>
+    <span>selected records: fetched by primary key; each chip is a {@api vue:component:WidgetReadOnly} link with the formatted name, then the primary key</span>
+    <span>prompt: a generated "Are you sure you want to ..." question; <code>confirmMessage</code> replaces the wording, and the <code>confirm-message</code> slot replaces the panel's contents</span>
+    <span>requests: the same <code>PATCH</code> goes out twice, as a dry run when the view opens and as the action on confirm; the server rolls the dry run back</span>
+    <span>PageTitle: supplied here by the docs harness, as an application layout would; the view contributes the title and its "Go Back" button</span>
     <span>theme keys: {@api theme-key:ViewActivate}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewActivate.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -173,40 +191,28 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
 
 ## ViewExecuteTransition
 
-The framework confirmation for a workflow transition code with no project-supplied override.
-Visually it is the `ViewAction` layout above, unchanged: the same tone-tracked banner, the same
-selected-records panel, and the same prompt-then-actions-strip layout, all still `ModelActionForm`
-underneath. There is no dedicated demo below because there is nothing new to look at; see the
-`ViewAction` demos above for the shared visual pattern.
+{@api vue:component:ViewExecuteTransition} confirms a workflow {@term Transition} when the project supplies no view for its code. It renders the `ViewAction` card unchanged, in the `info` tone, so the `ViewAction` demos above show its layout. Like `ViewAction`, it fetches nothing, and its chips show primary keys.
 
-The differences are behavioral, not visual. The action's display name defaults to the matching
-transition's own `name` from the workflow metadata (falling back to a start-cased version of the
-transition code while metadata is still loading), and confirming submits through the workflow
-execute-transition endpoint — carrying `transition_code` — instead of the generic model-action
-endpoint `ViewAction` uses.
+The view differs from `ViewAction` in its copy and its request:
 
-::: warning
-This confirmation does not explain source state, target state, or why a given object is or is not
-eligible for the transition. It confirms the transition's display name and the selected records
-only, the same as any other `ModelActionForm` confirmation. A dry-run rejection still identifies
-the rejected objects by showing each error beside its record chip; it just does not render a
-human-readable eligibility summary alongside them. A richer, transition-aware confirmation
-surface is a distinct, not-yet-built concern.
-:::
+- The page title is the transition's `name` followed by the model name. Until the workflow metadata loads, the title uses the transition code in title case. The prompt uses the same name in lower case.
+- Both the pre-flight and the confirm execute the transition. [Design Transition UX and Redirects](../../guides/transition-ux-and-redirects.md) describes the request.
 
-theme keys: {@api theme-key:ViewExecuteTransition}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: `ViewExecuteTransition.vue`
+The confirmation shows the transition name and the selected records only. A pre-flight rejection shows its message beside the record's chip. To show source and target states or eligibility reasons, supply a project view for the transition code.
+
+Fields in the `extra-fields` slot render and validate, but their values are not sent with the transition.
+
+Theme keys: {@api theme-key:ViewExecuteTransition}, {@api theme-key:ModelActionForm}, and {@api theme-key:ActionForm}.
 
 ## ViewHistoryList
 
-Audit trail for a single object, presented as the actions that produced it. One action groups
-every event it wrote that touches this object, and each event lists its field changes. The first
-row of an action carries its metadata (when, who, kind, action name), the first row of each event
-names the model and event type, and a left stripe ties the rows of one action together. A meta
-strip above the grid toggles between table and card layouts, and a pagination footer follows.
+{@api vue:component:ViewHistoryList} shows the {@term Model History} of one record as the actions that produced it. The page title reads "History of" plus the model's verbose name, and a "Back" button sits in the page actions. Each action groups the events it wrote that touch the record, and each event lists its field changes. A meta strip above the grid switches between table and card layouts, and a {@api vue:component:PaginationFooter} follows the grid.
 
-The demo below is the live component. The actions come from the offline `history_list` endpoint,
-so the grouping, the diff cells, and the pills are the framework's own output. Use the Table and
-Cards buttons to switch layouts.
+In the table layout, each field change is one row. The first row of an action carries the action's When, Who, Kind, and Action cells. The first row of each event carries its Model and Type cells. An action's first row has `data-rev-start`, its other rows have `data-rev-child`, and each event's first row has `data-event-start`. {@api theme-key:ViewHistoryList.row} draws the action stripe from these attributes, so the grouping survives a reskin.
+
+In the card layout, each event is one card. Its changes stack in the Old and New cells, each value labeled with its field name.
+
+The demo below is the live component against an offline history endpoint. Use the Table and Cards buttons to switch layouts.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -222,18 +228,20 @@ Cards buttons to switch layouts.
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>columns: not the model's fields. The history response defines them (when, who, kind, action, model, relation, type, field, old, new) and the view labels them itself. The <code>fields</code> prop picks and orders from that set</span>
-    <span>action grouping: one row per changed field, with <code>data-rev-start</code> on an action's first row, <code>data-rev-child</code> on the rest, and <code>data-event-start</code> on the first row of each event. {@api theme-key:ViewHistoryList} paints the stripe from those attributes, so the grouping survives a re-skin</span>
-    <span>pills: the event types <code>created</code>, <code>updated</code>, and <code>deleted</code> map to a tone and an icon; the action kinds <code>request</code>, <code>task</code>, and <code>command</code> map to a tone. An unknown value of either renders as itself</span>
-    <span>references: a field that points at another row shows that row's current name. A row that no longer exists, or a deleted acting user, renders as the client's own wording rather than a raw id, because the server publishes only the absence</span>
-    <span>dates: an absolute timestamp plus a relative phrase, both from the stored ISO string through luxon</span>
-    <span>layout: the meta strip's Table and Cards buttons pin a layout; left on auto it follows the <code>table-breakpoint</code> prop, so the same view reads as cards on a narrow viewport</span>
+    <span>columns: the history response defines them, and the view labels them; the <code>fields</code> prop picks and orders from <code>recorded_at</code>, <code>actor</code>, <code>kind</code>, <code>label</code>, <code>model</code>, <code>relation</code>, <code>type</code>, <code>field</code>, <code>old</code>, and <code>new</code>; the default leaves out <code>relation</code></span>
+    <span>diff: {@api theme-key:ViewHistoryList.diff} styles old and new values apart by <code>data-side</code>, and an empty side by <code>data-empty</code></span>
+    <span>type pill: <code>created</code>, <code>updated</code>, and <code>deleted</code> each get a tone and an icon; any other type renders as plain text</span>
+    <span>kind pill: neutral, with added emphasis for the kinds VUEDA defines; any kind renders as written</span>
+    <span>no field changes: the Field cell reads "(created)", "(deleted)", or "(no field changes)"</span>
+    <span>references: a field that points at another row shows that row's current name; a row that no longer exists reads "deleted row", and a deleted actor reads "deleted user", each followed by its id when the server sends one</span>
+    <span>dates: an absolute date and time, with a relative phrase below it</span>
+    <span>layout: the Table and Cards buttons pin a layout; until one is pressed, the <code>tableBreakpoint</code> prop picks it</span>
     <span>theme keys: {@api theme-key:ViewHistoryList}, {@api theme-key:ObjectsGrid} · source: <code>ViewHistoryList.vue</code></span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-A record with no history yet gets a dedicated empty state rather than an empty grid.
+A record with no history shows an empty state in place of the meta strip and the grid.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -249,38 +257,37 @@ A record with no history yet gets a dedicated empty state rather than an empty g
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>empty state: replaces the grid and the meta strip, so no layout toggle or column headers are offered for nothing. The <code>empty</code> slot replaces the whole body</span>
-    <span>it waits for loading to settle: while the request is in flight the grid stays up so its skeleton rows render, and the empty state only appears once zero rows are confirmed</span>
-    <span>the pagination footer stays, reading zero of zero</span>
+    <span>empty state: "No history yet" with a short description; the <code>empty</code> slot replaces its contents</span>
+    <span>loading: while the request runs, the grid stays up with its skeleton rows; the empty state appears once zero rows are confirmed</span>
+    <span>pagination: the footer stays</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 ## Customization surface
 
-Every action view is `ModelActionForm` underneath, so the same slots and props reshape all of them:
+`ViewAction`, `ViewActivate`, `ViewDeactivate`, and `ViewExecuteTransition` pass their attributes and slots through to `ModelActionForm`, so these props and slots apply to all of them:
 
-- `banner-title` and `banner-description` replace the generated banner lines; `tone` switches the whole card, banner, and icon tile together.
-- `confirm-message` replaces the prompt wording, and the slot of the same name replaces the panel.
-- `extra-fields` adds action-specific inputs below the prompt.
-- `actions-hint` fills the right side of the actions strip, for a shortcut or an audit note.
-- `confirm-button` replaces the submit button, including its label.
-- `selected-objects` replaces the whole selected-records panel, for a project that wants richer rows than a name and a primary key.
+- [`bannerTitle`]{@api vue:component:ModelActionForm:prop:bannerTitle} and [`bannerDescription`]{@api vue:component:ModelActionForm:prop:bannerDescription} replace the banner lines. The [`action-banner`]{@api vue:component:ModelActionForm:slot:action-banner} slot replaces the whole banner, and [`banner-meta`]{@api vue:component:ModelActionForm:slot:banner-meta} adds a line below the description.
+- [`selected-objects`]{@api vue:component:ModelActionForm:slot:selected-objects} replaces the contents of the selected-records panel, for a project that wants richer rows than a name and a primary key. [`link-item`]{@api vue:component:ModelActionForm:slot:link-item} replaces the link in each chip.
+- [`confirmMessage`]{@api vue:component:ModelActionForm:prop:confirmMessage} replaces the prompt wording, and the [`confirm-message`]{@api vue:component:ModelActionForm:slot:confirm-message} slot replaces the prompt panel's contents.
+- `extra-fields` adds fields below the prompt panel.
+- [`confirmText`]{@api vue:component:ModelActionForm:prop:confirmText} adds a {@api vue:component:TypedConfirmField} and keeps the confirm button disabled until the typed text matches.
+- [`actions-hint`]{@api vue:component:ActionForm:slot:actions-hint} fills the right side of the actions strip, for a shortcut or an audit note. [`confirm-button`]{@api vue:component:ModelActionForm:slot:confirm-button} and [`cancel-button`]{@api vue:component:ActionForm:slot:cancel-button} replace either button, including its label.
+- [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} replaces the list of errors that no field shows. [`warning-entry`]{@api vue:component:ModelActionForm:slot:warning-entry} replaces one field's warnings in the confirmation dialog.
 
-The action banner, selected-objects panel, prompt block, and actions strip each have a theme key: {@api theme-key:ModelActionForm.banner}, {@api theme-key:ModelActionForm.selectedObjects}, {@api theme-key:ModelActionForm.message}, and {@api theme-key:ActionForm.buttons}. Patch a key to change a composition; set a token to change a value everywhere it appears.
+The default slot of `ViewAction` replaces the whole card.
 
-| Surface                | Key tokens                                                                                          |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| Info banner            | `--info` as a 6 % background mix; the border stays `--border`                                       |
-| Success banner         | `--success` as a 6 % background mix, `border-success/20`                                            |
-| Warning banner         | `--warning` as a 6 % background mix, `border-warning/20`                                            |
-| Destructive banner     | `--destructive` via `bg-destructive/[0.06]`, `border-destructive/20` (see CRUD Views)               |
-| Prompt block           | `--primary` (2 px left rule at `border-primary/60`), `--muted` (background tint via `bg-muted/25`)  |
-| Selected-objects panel | `--muted` (`bg-muted/25`), `--border` (hairline), `--radius-vueda-card`                             |
-| Selected-object chip   | `--card` (fill), `--border` (hairline), `--radius-vueda-control`                                    |
-| Actions strip          | `--border` (top hairline), `--muted` (`bg-muted/25`)                                                |
-| Diff old               | `--destructive` as a 7 % background mix and the leading minus glyph; the value stays `--foreground` |
-| Diff new               | `--success` as an 8 % background mix and the leading plus glyph; the value stays `--foreground`     |
-| Revision stripe        | `--primary` via `border-l-2 border-primary` on first cell of each revision group                    |
-| Type pill (updated)    | `--info` via `bg-info/8`, `border-info/25`, `text-info`                                             |
-| Type pill (created)    | `--success` via `bg-success/10`, `border-success/30`, `text-success`                                |
+`ViewHistoryList` takes [`hideMetaStrip`]{@api vue:component:ViewHistoryList:prop:hideMetaStrip} to hide the meta strip. Its [slots]{@api vue:component:ViewHistoryList:slots} replace the meta strip, add filter chips to it, replace the empty state, and replace the cells of the When, Who, Kind, Model, Type, Old, and New columns.
+
+Theme keys by area:
+
+- {@api theme-key:ModelActionForm}: the card, banner, and icon tile per tone ({@api theme-key:ModelActionForm.card}, {@api theme-key:ModelActionForm.banner}, {@api theme-key:ModelActionForm.bannerIcon}), the selected-records panel and chips ({@api theme-key:ModelActionForm.selectedObjects}, {@api theme-key:ModelActionForm.listItem}), the prompt panel ({@api theme-key:ModelActionForm.message}), and the warning groups in the confirmation dialog ({@api theme-key:ModelActionForm.confirmWarningGroup}).
+- {@api theme-key:ActionForm}: the actions strip ({@api theme-key:ActionForm.buttons}) and the validation summary ({@api theme-key:ActionForm.validation}).
+- {@api theme-key:ViewHistoryList}: the action stripe ({@api theme-key:ViewHistoryList.row}), the diff values ({@api theme-key:ViewHistoryList.diff}), the pills ({@api theme-key:ViewHistoryList.typePill}, {@api theme-key:ViewHistoryList.kindPill}), the meta strip ({@api theme-key:ViewHistoryList.meta}), and the empty state ({@api theme-key:ViewHistoryList.empty}).
+- {@api theme-key:ViewAction}, {@api theme-key:ViewActivate}, {@api theme-key:ViewDeactivate}, and {@api theme-key:ViewExecuteTransition}: each view's outer wrapper.
+
+Tokens:
+
+- {@api css-token:info}, {@api css-token:success}, {@api css-token:warning}, and {@api css-token:destructive} color the banner and icon tile of their tone. The `success`, `warning`, and `danger` tones also color the card edge.
+- {@api css-token:primary} draws the prompt panel's rule and the history action stripe.
