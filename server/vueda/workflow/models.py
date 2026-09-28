@@ -710,14 +710,19 @@ class WorkflowModelMethods:
         """
         Returns available transitions for this object.
 
+        Empty when ``user`` does not hold the workflow's configured permissions for this object
+        (see ``has_workflow_permission``), including when the workflow configures none.
+
         The whole pass runs inside one ``cached_workflow_state()`` block, so the object's workflow,
         current state, and state rules are read once rather than once per candidate transition.
         """
         with self.cached_workflow_state():
-            # Resolved first, so a missing definition is reported as one rather than as a denial.
-            workflow = self.workflow
-            if user is not None and not WorkflowPermission.objects.filter(workflow=workflow).exists():
-                raise PermissionDenied(f"No workflow permission(s) defined for {self.get_content_type()!r}")
+            # has_workflow_permission resolves the workflow first, so a missing definition is still
+            # reported as one rather than as a denial. A user without the workflow permissions for this object has nothing to take, which
+            # object-transitions reports as a denial. Here it is an empty result, so a list or detail
+            # response that includes valid_transitions still succeeds for a reader.
+            if not self.has_workflow_permission(user, obj=self):
+                return Transition.objects.none()
             transitions = self.fast_available_transitions()
             return transitions.filter(pk__in=[t.id for t in transitions if self.check_transition_permission(t, user)])
 
@@ -754,13 +759,7 @@ class WorkflowModelMethods:
         and asks each candidate object rather than asking the model class.
         """
         workflow = get_workflow_for_model(cls)
-        workflow_permissions = [
-            ".".join(permission_parts)
-            for permission_parts in workflow.workflow_permissions.values_list(
-                "permission__content_type__app_label", "permission__codename"
-            )
-        ]
-        if user is not None and (not workflow_permissions or not user.has_perms(workflow_permissions)):
+        if not cls.has_workflow_permission(user):
             raise PermissionDenied(
                 f"User {user.get_username()!r} does not have workflow permissions for {cls.get_content_type()!r}"
             )
@@ -788,31 +787,44 @@ class WorkflowModelMethods:
         return transitions.filter(pk__in=permitted_ids)
 
     @classmethod
-    def check_workflow_permission(cls, user: User | None = None, obj: models.Model | None = None) -> bool:
+    def has_workflow_permission(cls, user: User | None = None, obj: models.Model | None = None) -> bool:
         """
         Whether ``user`` holds the workflow's configured permissions.
 
+        The one decision behind ``check_workflow_permission``, ``available_transitions``, and
+        ``available_transitions_for``, so the endpoints and the ``valid_transitions`` field agree.
+
         ``user`` as None means programmatic use; pass Django's AnonymousUser to check an anonymous
         request. ``obj`` scopes the check to one object, so an object permission backend decides
-        the configured workflow permissions the way it decides the target model's own.
+        the configured workflow permissions the way it decides the target model's own. A workflow
+        with no configured permissions denies every user, superusers included.
 
         A state rule is not a substitute for a configured workflow permission. State rules apply
         where a concrete object supplies the state, which is the object permission decision this
         check passes ``obj`` to, not a reason to skip the check.
         """
-        # programmatic use
         if user is None:
             return True
-        workflow = get_workflow_for_model(cls)
+        # An instance reads its workflow through the cached_workflow_state() block it may be in.
+        workflow = obj.workflow if isinstance(obj, cls) else get_workflow_for_model(cls)
         workflow_permissions = [
             ".".join(permission_parts)
             for permission_parts in WorkflowPermission.objects.filter(
                 workflow=workflow,
             ).values_list("permission__content_type__app_label", "permission__codename")
         ]
-        # not even superuser can get a workflow without permissions
-        if workflow_permissions and user.has_perms(workflow_permissions, obj=obj):
+        return bool(workflow_permissions) and user.has_perms(workflow_permissions, obj=obj)
+
+    @classmethod
+    def check_workflow_permission(cls, user: User | None = None, obj: models.Model | None = None) -> bool:
+        """
+        Return True when ``user`` holds the workflow's configured permissions, else raise ``PermissionDenied``.
+
+        See ``has_workflow_permission`` for the decision.
+        """
+        if cls.has_workflow_permission(user, obj=obj):
             return True
+        workflow = get_workflow_for_model(cls)
         raise PermissionDenied(f"User {user.get_username()!r} does not have permission for workflow {workflow.code!r}.")
 
     def check_state_permission(

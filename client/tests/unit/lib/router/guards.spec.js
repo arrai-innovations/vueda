@@ -219,38 +219,61 @@ describe("lib/router/guards.js", () => {
         expect(router.resolve).not.toHaveBeenCalled();
     });
 
-    scopedIt("requireModelInfo redirects with feedback when workflow discovery is denied", async () => {
-        fetchWorkflowTransition.mockRejectedValue(
-            new WorkflowPermissionDeniedError(
-                "Failed to fetch workflow transitions for model",
-                { status: 403 },
-                { detail: "nope" },
-            ),
-        );
-        const router = { resolve: vi.fn((r) => r) };
-        const instance = {};
-        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+    describe("Workflow discovery denial", () => {
+        const denial = (data) =>
+            new WorkflowPermissionDeniedError("Failed to fetch workflow transitions for model", { status: 403 }, data);
 
-        const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+        scopedIt("allows a CRUD action that model info lists", async () => {
+            fetchWorkflowTransition.mockRejectedValue(denial({ detail: "nope" }));
+            fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }, { name: "read" }] });
+            getConfig.mockResolvedValue({});
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
 
-        expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
-        expect(result).toEqual({ name: "nf" });
-        expect(getConfig).not.toHaveBeenCalled();
-    });
+            const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
 
-    scopedIt("requireModelInfo falls back to a generic description when the denial carries none", async () => {
-        fetchWorkflowTransition.mockRejectedValue(
-            new WorkflowPermissionDeniedError("Failed to fetch workflow transitions for model", { status: 403 }),
-        );
-        const router = { resolve: vi.fn((r) => r) };
-        const instance = {};
-        const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+            expect(result).toBe(true);
+            expect(toastMock.error).not.toHaveBeenCalled();
+        });
 
-        await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
+        scopedIt("keeps the model config's routeActions restriction", async () => {
+            fetchWorkflowTransition.mockRejectedValue(denial({ detail: "nope" }));
+            fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }, { name: "read" }] });
+            getConfig.mockResolvedValue({ routeActions: ["list"] });
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "read" }, fullPath: "/a/b/read/1" };
 
-        expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", {
-            description: "You do not have permission to perform this action.",
-            duration: 15000,
+            const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(result).toEqual({ name: "nf" });
+        });
+
+        scopedIt("redirects a transition route with the denial's feedback", async () => {
+            fetchWorkflowTransition.mockRejectedValue(denial({ detail: "nope" }));
+            fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
+            getConfig.mockResolvedValue({});
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "pack_order" }, fullPath: "/a/b/pack_order/1" };
+
+            const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+            expect(result).toEqual({ name: "nf" });
+        });
+
+        scopedIt("falls back to a generic description when the denial carries none", async () => {
+            fetchWorkflowTransition.mockRejectedValue(denial());
+            fetchModelInfo.mockResolvedValue({ actions: [] });
+            getConfig.mockResolvedValue({});
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "pack_order" }, fullPath: "/a/b/pack_order/1" };
+
+            await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", {
+                description: "You do not have permission to perform this action.",
+                duration: 15000,
+            });
         });
     });
 
