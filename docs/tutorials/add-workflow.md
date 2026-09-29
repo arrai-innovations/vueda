@@ -67,7 +67,7 @@ A workflow definition has four parts:
 
 - A {@api py:class:vueda.workflow.models.Workflow} linked to the model's {@term Content Type}. Each model has at most one.
 - {@api py:class:vueda.workflow.models.State} rows, here `draft` and `published`.
-- An {@api py:class:vueda.workflow.models.InitialState}, the state a new object receives on its first save.
+- An {@api py:class:vueda.workflow.models.InitialState}, the state that a new object receives on its first save.
 - {@api py:class:vueda.workflow.models.Transition} rows. Each has a target state and one or more {@api py:class:vueda.workflow.models.TransitionSource} rows naming the states it leaves from.
 
 From `server/`, open a Django shell:
@@ -152,7 +152,7 @@ editors.permissions.add(read_workflow, read_product, update_product)
 get_user_model().objects.get(email="you@example.com").groups.add(editors)
 ```
 
-The transition endpoints also check `vueda_workflow.read_workflow`, so the group grants it. The group also grants the two `inventory` permissions the rows name, so it holds everything this workflow needs.
+The transition endpoints also check `vueda_workflow.read_workflow`, so the group grants it. The group also grants the two `inventory` permissions that the rows name, so it holds everything this workflow needs.
 
 ## Verify the API
 
