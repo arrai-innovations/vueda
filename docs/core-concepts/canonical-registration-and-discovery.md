@@ -27,7 +27,7 @@ Each model has one registration. A second `register` or `register_serializer` ca
 
 Call `register` with both arguments. Called with only a serializer, `register` registers nothing and returns a class decorator for a viewset. Serializer-only registration is `register_serializer`. The `register` docstring describes the decorator form.
 
-A Django [proxy model]{@api ext:django:django.db.models.Options.proxy} gives the same data a second surface, such as one with other permissions or actions. A proxy has its own {@term Content Type} and permission codenames, so it registers in its own right and gets its own model info and system checks. [Expose a Proxy Model as a Separate CRUD Surface](../guides/proxy-models.md) walks through it.
+A Django [proxy model]{@api ext:django:django.db.models.Options.proxy} gives the same data a second surface, such as one with other permissions or actions. A proxy has its own {@term Content Type} and permission codenames, so you register it separately, and it gets its own model info and system checks. [Expose a Proxy Model as a Separate CRUD Surface](../guides/proxy-models.md) walks through it.
 
 ## Viewset Presence and Metadata Completeness
 
