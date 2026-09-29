@@ -173,7 +173,7 @@ page.bindActionZone(actionZone);
 </template>
 ```
 
-Place your display where `PageTitle` would go: above `<RouterView>` under the layout that establishes the context, or in the provider's `top` slot. Every display reads the one context the layout established. You can keep `PageTitle`, replace it, or use each in a different layout.
+Place your display where `PageTitle` would go: above `<RouterView>` under the layout that establishes the context, or in the provider's `top` slot. Every display reads the one context that the layout established. You can keep `PageTitle`, replace it, or use each in a different layout.
 
 ::: tip
 To start closer to the default look, copy the source of `PageTitle` (`@vueda/shell/page-title/PageTitle.vue`) and edit it.
@@ -187,10 +187,10 @@ To change the heading text itself, fill the [`title`]{@api vue:component:PageTit
 
 ## Common pitfalls
 
-**Forgetting to establish the context.** A title contributed by a view goes nowhere unless a no-argument `usePageTitle()` call runs above it. Establish it in your root layout, not inside a view.
+**Forgetting to establish the context.** A title contributed by a view goes nowhere unless a no-argument `usePageTitle()` call runs above it. Establish it in your root layout. Do not establish it inside a view.
 
 **Establishing the context below the display.** The display must be a descendant of the component that calls `usePageTitle()`. Suppose a nested layout that wraps only `<RouterView>` makes the call. `PageTitle` then creates a second, empty context, and the views register into the nested one.
 
-**Passing an object to `usePageTitle`.** The argument must be a function. `usePageTitle({ title: "..." })` registers the object, and the display throws a `TypeError` when it calls it.
+**Passing an object to `usePageTitle`.** The argument must be a function. `usePageTitle({ title: "..." })` registers the object, and the display throws a `TypeError` when it calls the object.
 
-**Omitting the action zone in a custom display.** `PageActions` teleports only after a display calls `bindActionZone`. Without it, the buttons render inline inside each view.
+**Omitting the action zone in a custom display.** `PageActions` teleports only after a display calls `bindActionZone`. Without that call, the buttons render inline inside each view.
