@@ -320,17 +320,96 @@ Ordering follows the same discipline at the value level, not only at the key lev
 
 ## Search Contract Surface
 
-Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search.
+Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search. It also builds a search through a multi-valued relation from its own search queryset, where `SearchFilter` copies the viewset's queryset (see [Search through a multi-valued relation](#search-through-a-multi-valued-relation)).
 
 The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for trigram word similarity, and `V:` for VUEDA-specific ranked search fields.
 
 When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). An explicit `o` (ordering) parameter normally suppresses that ranking, since explicit ordering takes precedence over relevance. The backend reads the raw parameter, so any nonempty `o` suppresses ranking this way — including one that names an invalid term, which fails the whole request with HTTP 400 rather than falling back to relevance or the default ordering.
 
-A search field can reach through a multi-valued relation (a reverse foreign key or a many-to-many), which joins one row per matching related row. The backend keeps those joins inside subqueries and narrows the viewset's queryset to the objects that match, so the list returns each object once. In ranked-search mode an object matches when at least one of its rows reaches `search_threshold`, and it ranks by its best matching row, with the primary key breaking ties. The viewset's queryset keeps its own ordering and annotations. An aggregate on it, such as `Sum` over a relation, counts each object's rows once whatever the search joined, and an explicit `o` sorts the list the same way it sorts the list without a search, with the primary key breaking ties.
-
 When at least one search field uses the `#` prefix, the search backend switches to use trigram similarity. In this mode, the backend combines the search term into a single search term, because that is required for trigram similarity.
 
-When no search fields use the `V:` or `#` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+When no search fields use the `V:`, `#` or `~` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. A search field that reaches through a multi-valued relation still matches against the search queryset, as described in [Search through a multi-valued relation](#search-through-a-multi-valued-relation). The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+
+### Search through a multi-valued relation
+
+A search field can reach through a multi-valued relation (a reverse foreign key or a many-to-many), such as `V:cart_items__product_option__name` on a `Cart`. Joining that relation produces one row per matching related row, so a cart with two matching items would appear twice. The backend keeps those joins inside subqueries instead, and narrows the viewset's queryset to the objects that match. The list returns each object once. This applies to every search prefix, including the standard DRF ones.
+
+In ranked-search mode an object matches when at least one of its rows reaches `search_threshold`, and it ranks by its best matching row, with the primary key breaking ties. An explicit `o` sorts the list the same way it sorts the list without a search, with the primary key breaking ties.
+
+The subqueries are built from the viewset's **search queryset**:
+
+- When the viewset defines `get_search_queryset()`, the search queryset is what that method returns.
+- Otherwise, it is the model's default manager.
+
+The viewset's queryset applies its own ordering, annotations, aggregates and filters outside the subqueries, where they see every related row. So a viewset that lists only carts holding at least three items keeps a cart whose three items include two that match the search:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+```
+
+A filter through the searched relation and the search are independent conditions, as two `filter()` calls on a multi-valued relation are in Django. A viewset queryset filtered by `.filter(cart_items__quantity__gte=24)` keeps a cart holding one item with a quantity of 24 and another item that matches the search.
+
+A search field that follows only foreign keys joins at most one row per object. That search needs no subquery, matches against the viewset's queryset directly, and never reads the search queryset. A search whose fields are all annotations of the viewset's queryset doesn't either.
+
+#### When a viewset needs `get_search_queryset()`
+
+A viewset defines `get_search_queryset()` when its `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation. The model's default manager has no such annotation:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:customer_name", "V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(customer_name=F("customer__user__name"))
+
+    def get_search_queryset(self):
+        return Cart.objects.annotate(customer_name=F("customer__user__name"))
+```
+
+Without `get_search_queryset()`, a search request on this viewset fails with `FieldError: Cannot resolve keyword 'customer_name'`. An annotation the model's default manager already adds, such as the `formatted_name` a `FormattedNameManager` annotates, resolves without it.
+
+A viewset also defines `get_search_queryset()` when the model's default manager hides rows that the viewset lists. Take a default manager that filters out archived widgets, on a viewset that lists them through a second manager:
+
+```python
+class WidgetManager(FormattedNameManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(archived=False)
+
+
+class Widget(VuedaModel):
+    objects = WidgetManager()
+    all_objects = FormattedNameManager()
+
+
+class WidgetViewSet(VuedaViewSet):
+    queryset = Widget.all_objects.all()
+    search_fields = ["V:parts__name"]
+
+    def get_search_queryset(self):
+        return Widget.all_objects.all()
+```
+
+Without `get_search_queryset()`, the search subquery is built from `Widget.objects`, which holds no archived widgets, so a search leaves every archived widget out of the list. The search returns no error, and the `vueda_info.E014` system check doesn't report it.
+
+The rules for the search queryset are:
+
+- **Carry every annotation that `search_fields` name.**
+- **Include every row the viewset lists.** Build it from a manager that hides none of the viewset's rows.
+- **Leave out filters.** The viewset's queryset applies its filters outside the subqueries. Inside them, a filter on an aggregate or a window function gives a different answer over the matching related rows than over all of them, and a filter through the searched relation limits a ranked (`V:`) search to the related rows that pass it.
+- **Return a new queryset, not `self.get_queryset()`.** Returning the viewset's queryset brings its filters back into the subqueries.
+
+#### What the `vueda_info.E014` system check reports
+
+The check reads the search queryset of every registered viewset whose search reaches through a multi-valued relation. It reports two problems:
+
+- A `search_fields` entry that names neither a field of the model nor an annotation of the search queryset. A search request would fail with a `FieldError`.
+- A `get_search_queryset()` that filters on an aggregate or a window function. The search would drop objects that match.
+
+Like the other checks, it stops `runserver`, `migrate` and the other management commands until the viewset is fixed. The model's default manager can always be built outside a request, so the check always reads a viewset without `get_search_queryset()`. A `get_search_queryset()` that reads `self.request` can't be built there, and the check skips that viewset.
 
 ## Filter Choices and Permission Surfaces
 
@@ -372,6 +451,10 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 **Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
 
+**A search leaves out rows the default manager hides.** A viewset that lists rows its model's default manager filters out, such as archived rows listed through a second manager, loses those rows from every search that reaches through a multi-valued relation. The request returns 200, and nothing reports it at startup. Define `get_search_queryset()` returning the wider manager (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
+
+**A search on an annotation fails with `FieldError`.** A viewset whose `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation, fails every search request with `FieldError: Cannot resolve keyword ...` — an unhandled server error. `vueda_info.E014` reports the viewset at startup. Define `get_search_queryset()` with the annotation (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
+
 **Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating `list` view, because the error occurs on a separate endpoint.
 
 **Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
@@ -404,6 +487,7 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 - {@api py:module:vueda.core.filters}
 - {@api py:class:vueda.core.filters.VuedaOrderingFilter}
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
+- {@api py:function:vueda.core.filters.VuedaSearchFilterBackend.get_search_queryset}
 - {@api py:module:vueda.core.ordering}
 - {@api py:function:vueda.core.ordering.ordering_term_field_names}
 - {@api py:function:vueda.core.ordering.queryset_explicit_ordering}
