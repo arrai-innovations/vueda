@@ -69,7 +69,7 @@ class Delivery(VuedaModel):
     formatted_name_lookup_expression = "recipient__name"
 ```
 
-{@api py:class:vueda.core.models.FormattedNameManager}, the default manager, annotates that path as `formatted_name` on every queryset the model builds. Every segment must be a database field, and every relation it crosses must be single-valued: a forward foreign key or a one-to-one. A path can end at another model's `formatted_name` only when that model stores it as a column.
+{@api py:class:vueda.core.models.FormattedNameManager}, the default manager, annotates that path as `formatted_name` on every queryset that the model builds. Every segment must be a database field, and every relation that it crosses must be single-valued: a forward foreign key or a one-to-one. A path can end at another model's `formatted_name` only when that model stores it as a column.
 
 **A Python method.** Set `formatted_name = None` and define `get_formatted_name()`. When the method reads through relations, list them in [`formatted_name_select_related`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_select_related}. Bulk queries then join them, with no extra query per row:
 
@@ -86,15 +86,15 @@ class Cart(VuedaModel):
 
 A method-backed model's serializer also needs a field declaration, which [Define the Serializer](#define-the-serializer) shows.
 
-A choice list takes each label from the first source the related model provides. The order is `get_formatted_name()`, then the column `formatted_name_lookup_expression` names, then the `formatted_name` column. {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} describes the choice endpoint.
+A choice list takes each label from the first source that the related model provides. The order is `get_formatted_name()`, then the column that `formatted_name_lookup_expression` names, then the `formatted_name` column. {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} describes the choice endpoint.
 
-The database can sort a generated field and a lookup expression, but not a method. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#formatted-name-as-an-ordering-and-filter-target) describes ordering and filtering by `formatted_name`, and [Declare List Ordering](./declare-list-ordering.md) gives the steps.
+The database can sort by a generated field or a lookup expression. It cannot sort by a method. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#formatted-name-as-an-ordering-and-filter-target) describes ordering and filtering by `formatted_name`, and [Declare List Ordering](./declare-list-ordering.md) gives the steps.
 
-Run `python manage.py check`. [`check_formatted_name_configuration`]{@api py:function:vueda.info.checks.check_formatted_name_configuration} reports a formatted name that cannot resolve, such as `formatted_name = None` with neither a lookup expression nor a method (`vueda_info.E001`). It checks registered models and the models their expands reach.
+Run `python manage.py check`. [`check_formatted_name_configuration`]{@api py:function:vueda.info.checks.check_formatted_name_configuration} reports a formatted name that cannot resolve, such as `formatted_name = None` with neither a lookup expression nor a method (`vueda_info.E001`). It checks registered models and the models that their expands reach.
 
 ### Replace the Default Manager
 
-This applies only to a model with a lookup expression. Django uses the first manager a model declares as its default, so a model that declares its own `objects` loses the `formatted_name` annotation. Subclass `FormattedNameManager` instead of {@api ext:django:django.db.models.Manager}:
+This applies only to a model with a lookup expression. Django uses the first manager that a model declares as its default, so a model that declares its own `objects` loses the `formatted_name` annotation. Subclass `FormattedNameManager` instead of {@api ext:django:django.db.models.Manager}:
 
 ```python
 from vueda.core.models import FormattedNameManager
@@ -114,7 +114,7 @@ For a manager built with `Manager.from_queryset()`, call `FormattedNameManager.f
 
 ### Django's Built-In Models
 
-VUEDA gives Django's `Group` and `Permission` a lookup expression on `name`, and `ContentType` a method that returns its `app_labeled_name`. They work as expanded relations with no action from you. A third-party model you cannot subclass has no public way to supply a formatted name.
+VUEDA gives Django's `Group` and `Permission` a lookup expression on `name`, and `ContentType` a method that returns its `app_labeled_name`. They work as expanded relations with no action from you. A third-party model that you cannot subclass has no public way to supply a formatted name.
 
 ## Define the Serializer
 
@@ -132,7 +132,7 @@ class WidgetSerializer(VuedaSerializer):
         fields = ["id", "name", "description", "status"] + VuedaSerializer.Meta.fields
 ```
 
-This becomes the model's {@term Canonical Serializer}. Model info lists only the fields in `Meta.fields`, so a model field you leave out does not exist for the client. The base fields are:
+This becomes the model's {@term Canonical Serializer}. Model info lists only the fields in `Meta.fields`, so a model field that you leave out does not exist for the client. The base fields are:
 
 - `formatted_name`, read-only.
 - [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions}, present only when a request's {@term Sparse Fields} name it.
@@ -154,7 +154,7 @@ class CartSerializer(VuedaSerializer):
 
 `VuedaSerializer` already supplies the matching `get_formatted_name(self, obj)`.
 
-A write that sends a field the serializer does not declare fails validation. To let clients load related objects inline, declare them in `Meta.expandable_fields`, as [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md) describes.
+A write that sends a field that the serializer does not declare fails validation. To let clients load related objects inline, declare them in `Meta.expandable_fields`, as [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md) describes.
 
 ## Define the Viewset
 
@@ -178,9 +178,9 @@ This becomes the model's {@term Canonical Viewset}. It serves `list`, `create`, 
 
 Declare the default order in `ordering`, and do not call `order_by()` on the queryset. [Declare List Ordering](./declare-list-ordering.md) explains why.
 
-To offer filters, set `filterset_class` to a {@api py:class:vueda.core.filters.VuedaFilterSet} subclass. The `list` endpoint works without one. Either way, it rejects any query parameter it does not recognize, as [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes.
+To offer filters, set `filterset_class` to a {@api py:class:vueda.core.filters.VuedaFilterSet} subclass. The `list` endpoint works without one. Either way, it rejects any query parameter that it does not recognize, as [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes.
 
-`destroy` deletes one row through `DELETE` on the detail URL, or several through `DELETE` on the list URL with a `{"pks": [...]}` body. A bulk delete deletes nothing unless every key names a row the user may delete. Both forms honor the `Dry-Run: true` header, a {@term Dry Run} that checks the delete and keeps the row. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#dry-run-and-mutation-semantics) describes which requests honor it.
+`destroy` deletes one row through `DELETE` on the detail URL, or several through `DELETE` on the list URL with a `{"pks": [...]}` body. A bulk delete deletes nothing unless every key names a row that the user may delete. Both forms honor the `Dry-Run: true` header, a {@term Dry Run} that checks the delete and keeps the row. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#dry-run-and-mutation-semantics) describes which requests honor it.
 
 Each request runs in one database transaction, as [Request Transactions](../core-concepts/configuration-surface-and-defaults.md#request-transactions) describes.
 
@@ -252,7 +252,7 @@ class MyAppConfig(AppConfig):
 
 Keep the imports inside `ready()`. The serializer and viewset modules import models, which Django cannot load while it is still importing the `apps` module.
 
-{@api py:function:vueda.info.registration.register} is a {@term Canonical Registration} with a viewset, which gives the model its actions, filters, and ordering. A {@term Serializer-Only Registration} has no actions, so the client blocks every route to the model. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md) describes both states.
+Calling {@api py:function:vueda.info.registration.register} with a viewset makes a {@term Canonical Registration}. The viewset gives the model its actions, filters, and ordering. A {@term Serializer-Only Registration} has no actions, so the client blocks every route to the model. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md) describes both states.
 
 ## Wire the Client Routes
 
@@ -305,7 +305,7 @@ group.permissions.add(*Permission.objects.filter(
 get_user_model().objects.get(email="tester@example.com").groups.add(group)
 ```
 
-Test with this user, not a superuser. A superuser passes every check, so it hides missing grants.
+Test with this user, not a superuser. A superuser passes every check, so testing as one hides missing grants.
 
 ## Check the Result
 
@@ -314,7 +314,7 @@ Sign in as the test user and check each piece:
 - {@api rest:endpoint:GET:/vueda.info/model_info/} at `/routes/vueda.info/model_info/` lists `myapp.widget`.
 - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} at `/routes/vueda.info/model_info/myapp/widget/` returns `model_fields`, `model_actions`, `model_filtering`, and `model_ordering`.
 - `GET /routes/myapp/widget/` returns a page of rows.
-- `GET /routes/myapp/widget/<pk>/?f=id,available_actions` returns the actions the user may take on that row.
+- `GET /routes/myapp/widget/<pk>/?f=id,available_actions` returns the actions that the user may take on that row.
 - A `DELETE` with the `Dry-Run: true` header returns `200` and leaves the row in place.
 - `/myapp/widget/list/` in the client shows the list.
 - `/myapp/widget/create/` shows the create form. After a save, it opens the new row's update view.
@@ -331,8 +331,8 @@ Sign in as the test user and check each piece:
 
 **Rows show no label.** A method-backed model's serializer lacks `formatted_name = serializers.SerializerMethodField()`, so `formatted_name` is `null`.
 
-**The `list` endpoint returns `400`.** A request sent a query parameter the endpoint does not accept. The response names the accepted filters.
+**The `list` endpoint returns `400`.** A request sent a query parameter that the endpoint does not accept. The response names the accepted filters.
 
 **Startup fails with `is already registered`.** Two apps register the same model. Each model has one registration, so remove one of the calls.
 
-**A bulk delete reports existing rows as missing.** The bulk delete checks each key after it removes the rows the user may not delete. A key the user cannot delete is reported as not existing.
+**A bulk delete reports existing rows as missing.** The bulk delete checks each key after it excludes the rows that the user may not delete. It reports a key that the user cannot delete as not existing.
