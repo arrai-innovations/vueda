@@ -16,7 +16,7 @@ The guide assumes that you know how to create a Vue 3 application with Pinia and
 Install `@arrai-innovations/vueda` and its peer dependencies:
 
 - `@arrai-innovations/reactive-helpers`
-- `@arrai-innovations/vue-sonner`, VUEDA's maintained fork of `vue-sonner`, which shows toasts
+- `@arrai-innovations/vue-sonner`
 - `@sentry/vue`
 - `@vueuse/core`
 - `lodash-es`
