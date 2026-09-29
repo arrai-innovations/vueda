@@ -90,7 +90,7 @@ This page shows the {@term Visual Contract} of the table primitives:
 {@api vue:component:TableCell}, {@api vue:component:TableCaption},
 {@api vue:component:TableEmpty}, and {@api vue:component:TableRowActions}.
 It ends with a DataTable recipe that composes them. [Components](index.md)
-describes the rules every component page shares.
+describes the rules that every component page shares.
 
 ## Table
 
@@ -100,8 +100,8 @@ card radius, and a {@term Hairline} edge. Rows and sticky header cells scroll
 inside the frame, so they never cover its edge. Wide tables scroll sideways
 inside it.
 
-- **Dividers:** a hairline on each row's cells divides it from the next row,
-  and the header row from the body.
+- **Dividers:** a hairline on each row's cells divides that row from the next
+  row, and divides the header row from the body.
 - **Last row:** the frame edge closes the table below the last body row.
 - **Footer:** `TableFooter` rows take a muted fill and muted text, with a
   divider above the first footer row. Use it for totals and summaries.
@@ -399,7 +399,7 @@ Theme keys: {@api theme-key:TableHead.root} and
 
 `TableEmpty` is an empty-state row. It renders a `TableRow` with one
 `TableCell` that spans {@api vue:component:TableEmpty:prop:colspan}
-columns, and centers its content in a column. You supply the content in the
+columns, and centers its content in a vertical stack. You supply the content in the
 default slot: an icon, a title, a description, and an action.
 
 The {@api vue:component:TableEmpty:prop:variant} prop names the state:
@@ -584,7 +584,7 @@ Theme key: {@api theme-key:TableRowActions}. Current values:
 
 ## DataTable recipe
 
-This recipe composes a data table by hand from the table primitives with a
+This recipe composes a data table by hand from the table primitives. It adds a
 toolbar, a filter chip rail, a selection bar, and a pagination footer. Your
 application holds the sorting, selection, and paging state, for example with
 [TanStack Vue Table](https://tanstack.com/table/latest/docs/framework/vue/vue-table).
@@ -593,7 +593,7 @@ application holds the sorting, selection, and paging state, for example with
   right. Active filters show as removable chips below the toolbar.
 - **Sortable headers:** each sortable `TableHead` sets `aria-sort`. On a
   `data-numeric` header, the element marked `data-slot="sort-icon"` moves
-  before the label, so the column's right edge stays put as the sort changes.
+  before the label, so the column's right edge stays in place as the sort changes.
 - **Selection:** selected rows take the selected-row state. The selection bar
   uses the same primary tint, so it reads as part of the selection.
 - **Row actions:** each row's `TableRowActions` shows for selected rows and on
