@@ -17,7 +17,7 @@ A named operation that a VUEDA viewset exposes. The built-in actions are `list`,
 
 ## Action Availability
 
-Which actions the client offers a user. It draws them from {@term Model Actions}, each object's {@term Available Actions}, {@term Permitted Transitions}, and {@term Valid Transitions}. The client uses these lists for routes and buttons. The server checks each request again when it runs.
+Which actions the client offers a user. It draws them from {@term Model Actions}, each object's {@term Available Actions}, {@term Permitted Transitions}, and {@term Valid Transitions}, and the model config's `routeActions` and `actions` narrow them. The client uses these lists for routes and buttons. The server checks each request again when it runs.
 
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md)
 
@@ -30,14 +30,14 @@ The view an action form opens after its action succeeds or you cancel it. You se
 
 ## Action View Resolution
 
-How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It tries the built-in view registry, then a project view named by convention, then a generic view for the action or transition. A transition code skips the built-in registry.
+How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It renders `ViewActionNotFound` when neither {@term Model Info} nor the {@term Permitted Transitions} list the action. Otherwise it tries the built-in view registry, then a project view named by convention, then a generic view for the action or transition. A transition code skips the built-in registry.
 
 - Names: [`ViewActionRouter`]{@api vue:component:ViewActionRouter}; [`setCrudComponents`]{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}; [`crudComponents`]{@api js:property:@arrai-innovations/vueda/router/routerComponent#crudComponents}; [`ViewAction`]{@api vue:component:ViewAction}; [`ViewExecuteTransition`]{@api vue:component:ViewExecuteTransition}; [`ViewActionNotFound`]{@api vue:component:ViewActionNotFound}
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order)
 
 ## Action-Scoped Expand
 
-A per-action list of the relations a request to that action may {@term Expand}, set on the viewset as `permit_<action>_expands`. An action without one allows every declared expand, except `list`, which allows none until you set `permit_list_expands`. The server rejects a request that expands anything else.
+A per-action list of the relations a request to that action may {@term Expand}, set on the viewset as `permit_<action>_expands`. An action without one allows every declared expand, except `list`, which allows none until you set `permit_list_expands`. On `list`, `retrieve`, `create`, `update`, and `partial_update`, the server rejects a request that expands a relation that the action does not permit.
 
 - Names: `permit_<action>_expands`; [`FlexFieldsMixin`]{@api py:class:vueda.core.viewsets.FlexFieldsMixin}
 - Described in: [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md)
@@ -52,14 +52,14 @@ The client stores whose cached data depends on the signed-in user's permissions:
 
 ## Available Actions
 
-The `available_actions` field on an object payload: the actions the current user may perform on that object. Built-in actions appear when an {@term Object-Scope Check} passes; extra actions appear as `get_allowed_extra_actions` returns them. The server includes the field only when the request asks for it through {@term Sparse Fields} (`f`).
+The `available_actions` field on an object payload: the actions the current user may perform on that object. Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes; extra actions appear when `get_allowed_extra_actions` includes them. The server includes the field only when the request asks for it through {@term Sparse Fields} (`f`).
 
 - Names: [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions}; [`AvailableActionsField`]{@api py:class:vueda.core.serializers.fields.AvailableActionsField}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#object-scope-availability-metadata)
 
 ## Baseline Permission
 
-The decision Django's model permission check makes for a codename without an object, from the user's own and group permissions. It never depends on an object's state or row. It is the first of the {@term Permission Layers}, and later layers can change it for one object.
+The decision that Django's model permission check makes for a codename without an object, from the user's own and group permissions. It never depends on an object's state or row. It is the first of the {@term Permission Layers}, and later layers can change it for one object. Superusers pass before this check runs.
 
 - Names: [`VUEDAPermissionsMixin.has_perm`]{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
 - Described in: [Permission Model](../core-concepts/permission-model.md#permission-authority-layers)
@@ -75,7 +75,7 @@ An {@term Extra Action} declared with `bulk=True`. `VuedaRouter` also mounts it 
 
 ## Cancellable Promise
 
-A promise with a `cancel()` method that aborts its HTTP request. `fetchHelper` and the default {@term CRUD Adapter} functions return one. Promises that store actions return have no `cancel()`.
+A promise with a `cancel()` method that aborts its HTTP request. `fetchHelper` and the default {@term CRUD Adapter} functions return one. Promises returned by store actions have no `cancel()`.
 
 - Names: [`CancellablePromise`]{@api js:type:@arrai-innovations/vueda/utils/fetchSupport#CancellablePromise}; [`MaybeCancellablePromise`]{@api js:type:@arrai-innovations/vueda/utils/fetchSupport#MaybeCancellablePromise}; [`fetchHelper`]{@api js:function:@arrai-innovations/vueda/utils/fetchSupport#fetchHelper}
 - Described in: [Cancellable Network Operations](../core-concepts/cancellable-network-operations.md#cancellation-surface-promise-identity)
@@ -83,7 +83,7 @@ A promise with a `cancel()` method that aborts its HTTP request. `fetchHelper` a
 
 ## Canonical Action Name
 
-The name {@term Model Info} uses for an action, which the client compares when it matches a route's action. The route segment `read` maps to the canonical name `retrieve`, and every other name maps to itself.
+The name that {@term Model Info} uses for an action, which the client compares when it matches a route's action. The route segment `read` maps to the canonical name `retrieve`, and every other name maps to itself.
 
 - Names: [`getActionName`]{@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}; [`viewToActionNameMap`]{@api js:property:@arrai-innovations/vueda/utils/actionMap#viewToActionNameMap}
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#action-name-normalization)
@@ -107,7 +107,7 @@ The serializer registered for a model. Its fields and `Meta.expandable_fields` d
 
 ## Canonical Viewset
 
-The viewset registered with a model's {@term Canonical Serializer}. {@term Model Info} reads the model's actions, filtering, and column totals from it. It also reads the viewset's ordering when it declares one.
+The viewset registered with a model's {@term Canonical Serializer}. {@term Model Info} reads the model's actions, filtering, and column totals from it. It also reads the orderable fields from the viewset's `ordering_fields`, and the default ordering from its `ordering` when it declares one.
 
 - Names: [`canonical_viewset`]{@api py:param:vueda.info.registration.register.canonical_viewset}; [`VuedaViewSet`]{@api py:class:vueda.core.viewsets.VuedaViewSet}
 - Described in: [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md#viewset-presence-and-metadata-completeness)
@@ -115,7 +115,7 @@ The viewset registered with a model's {@term Canonical Serializer}. {@term Model
 
 ## Choice-Backed Field
 
-A field or filter whose {@term Model Info} entry carries `choices`. A list of `{label, value}` pairs with string values is the complete set. The value `true` means the choices come from a queryset, and the client loads them from the server when the field needs them.
+A field or filter whose {@term Model Info} entry sets `choices` to a list or to `true`. A list of `{label, value}` pairs with string values is the complete set. The value `true` means the options are rows of another model or, for a filter, a column's current values, and the client loads them from the server when the field needs them.
 
 - Names: [`FieldInfo.choices`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.choices}; [`FilterInfo.choices`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FilterInfo.choices}; [`model_info_choices`]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}; [`model_info_filter_choices`]{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}; [`useModelChoices`]{@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices}; [`storeModelChoices`]{@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices}
 - Described in: [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups.md)
@@ -125,18 +125,18 @@ A field or filter whose {@term Model Info} entry carries `choices`. A list of `{
 
 What the client shows or enables for a user, such as a visible action button or a route the guard admits. Affordances are client behavior; the server authorizes every request on its own.
 
-- Described in: [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics.md#ui-affordance-filtering)
+- Described in: [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics.md)
 
 ## Column Adapter
 
-The component that renders the cells of one list column, such as `ColumnText` or `ColumnModelLink`. A `field(<name>)` slot replaces it; otherwise VUEDA picks it from the `columnComponents` prop, then the model config's `columnComponents`, then the field type's default.
+The component that renders the cells of one list column, such as `ColumnText` or `ColumnModelLink`. A `field(<name>)` slot replaces it; otherwise VUEDA picks it from the `columnComponents` prop, then the model config's `columnComponents`, then the field type's mapping, and finally `ColumnText`.
 
 - Names: [`resolveColumnComponent`]{@api js:function:@arrai-innovations/vueda/utils/resolveColumnComponents#resolveColumnComponent}; [`columnComponents` prop]{@api vue:component:ViewList:prop:columnComponents}; [`columnComponents` config]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.columnComponents}; [`columnProps`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.columnProps}; [`mergeColumnMappings`]{@api js:function:@arrai-innovations/vueda/utils/columnMappings#mergeColumnMappings}; [`ColumnText`]{@api vue:component:ColumnText}; [`ColumnModelLink`]{@api vue:component:ColumnModelLink}
-- Described in: [Customize List Column Rendering](../guides/customize-list-column-rendering.md#how-default-columns-are-chosen)
+- Described in: [Customize List Column Rendering](../guides/customize-list-column-rendering.md#choose-where-to-override)
 
 ## Column Totals
 
-Per-column sums a `list` response returns in `columnTotals`, computed over every filtered row on all pages. A viewset declares them in `column_totals`, and a request names the ones it wants in the `ct` query parameter.
+Per-column sums that a `list` response returns in `columnTotals`, computed over every row that the filters and {@term Row-Level Permissions} leave, across all pages. Only a paginated response carries them. A viewset declares them in `column_totals`, and a request names the ones it wants in the `ct` query parameter.
 
 - Names: [`column_totals`]{@api py:property:vueda.core.viewsets.ListRowLevelViewSetMixin.column_totals}; [`COLUMN_TOTALS_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#COLUMN_TOTALS_PARAM}; [`model_column_totals`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_column_totals}; [`ModelInfo.columnTotals`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.columnTotals}; [`totalables`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.totalables}
 - Described in: [Expose Aggregates in `list` Responses](../guides/list-column-totals.md)
@@ -159,21 +159,21 @@ An underscore-prefixed {@term Theme Key}, such as `_ButtonBase`, that styles no 
 
 ## Computed Field
 
-A form field that renders read-only in `FormField` and outside the {@term Form Context}. You name computed fields in the model config's `computedFields` list or the form's `computedFields` prop, which replaces the list.
+A form field that always renders in `FormField`, outside the {@term Form Context}. It renders read-only unless `fieldProps` sets `readOnly: false` for it. You name computed fields in the model config's `computedFields` list or the form's `computedFields` prop, which replaces the list.
 
 - Names: [`computedFields` prop]{@api vue:component:FormModel:prop:computedFields}; [`computedFields` config]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.computedFields}
-- Described in: [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md#field-and-widget-resolution)
+- Described in: [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md#exceptions)
 
 ## Content Type
 
-Django's `ContentType` row, which identifies a model by its `app_label` and model name. VUEDA uses content types to identify the model behind model info, permissions, workflows, and queue items.
+Django's `ContentType` row, which identifies a model by its `app_label` and model name. VUEDA uses content types to identify the model behind model info, permissions, and workflows. They also identify the record that a queue item links to.
 
 - Described in: [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md)
 - Upstream: [Django: `ContentType`]{@api ext:django:django.contrib.contenttypes.models.ContentType}
 
 ## CRUD
 
-VUEDA's five permission and action names: `create`, `read`, `update`, `delete`, and `list`. In VUEDA, CRUD always includes `list`. Codenames take the form `<app_label>.<name>_<model_name>`, such as `vueda_vdq.list_queueitem`. Client routes use these names. On the server, `read` covers `retrieve`, `update` also covers `partial_update`, and `delete` covers `destroy`.
+VUEDA's five permission and action names: `create`, `read`, `update`, `delete`, and `list`. VUEDA adds `list` to each model's default permissions unless the model declares its own `default_permissions`. Codenames take the form `<app_label>.<name>_<model_name>`, such as `vueda_vdq.list_queueitem`. Client routes use these names. On the server, `read` covers every `GET` except `list`, `update` also covers `partial_update`, and `delete` covers `destroy`.
 
 - Names: [`BaseModelMeta.default_permissions`]{@api py:property:vueda.core.models.BaseModelMeta.default_permissions}; [`ObjectPermissions.perms_map`]{@api py:property:vueda.core.permissions.ObjectPermissions.perms_map}; [`getActionName`]{@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
 - Described in: [Permission Model](../core-concepts/permission-model.md#crud-codename-and-action-mapping)
@@ -189,7 +189,7 @@ A function that performs one data operation, such as retrieve, update, or delete
 
 ## CRUD Routes
 
-The two client routes that `makeCRUDRoutes` registers for every model and action. The detail route, `/:app/:model/:action/:pk`, targets one object; the list route, `/:app/:model/:action/`, targets a model or the objects in its `pk` query value. Either route may carry a `returnPath` query value, where an action view goes after it finishes.
+The two client routes that `makeCRUDRoutes` registers for every model and action. The detail route, `/:app/:model/:action/:pk`, targets one object; the list route, `/:app/:model/:action/`, targets a model or the objects in its `pk` query value. Either route may carry a `returnPath` query value, where an action view goes after it succeeds or the user cancels it.
 
 - Names: [`makeCRUDRoutes`]{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}; [`getCRUDForTo`]{@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo}; `actionrouter.detailview`; `actionrouter.listview`
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#route-records-and-names)
@@ -209,7 +209,7 @@ A {@term Queue Item} workflow state that ends processing: `cancelled`, `succeede
 
 ## Dry Run
 
-A request mode, set with the `Dry-Run: true` header, that runs a write's checks and logic and then keeps none of its changes. Extra actions declared with VUEDA's `action` decorator and `destroy` honor the header. The other built-in writes ignore it.
+A request mode, set with the `Dry-Run: true` header, that validates a write and keeps none of its database changes. An extra action declared with VUEDA's `action` decorator runs its body, and the server then rolls back the database transaction. Work outside the database still runs. `destroy` runs its checks and deletes nothing. The other built-in writes ignore the header.
 
 - Names: the `Dry-Run` header; `DRY_RUN_HEADER`; [`action`]{@api py:function:vueda.core.decorators.action}; [`dryRun`]{@api js:property:@arrai-innovations/vueda/use/useModelAction#ModelActionRunOptions.dryRun}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#dry-run-and-mutation-semantics)
@@ -217,7 +217,7 @@ A request mode, set with the `Dry-Run: true` header, that runs a write's checks 
 
 ## Expand
 
-A request option that returns a related object inline in place of its primary key. You name relations in the `e` query parameter, choosing from the ones the serializer declares and {@term Model Info} lists. On a write, a relation named in `e` also accepts a nested object, for a {@term Nested Write}.
+A request option that returns a related object inline in place of its primary key. You name relations in the `e` query parameter, choosing from the ones the serializer declares and {@term Model Info} lists. The action's {@term Action-Scoped Expand} list narrows that choice. On a write, a relation named in `e` also accepts a nested object, for a {@term Nested Write}.
 
 - Names: [`EXPAND_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}; `expandable_fields`; [`model_expands`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}; [`ModelInfo.expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.expand}; [`ModelConfig.expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.expand}; [`FlexFieldsWriteableNestedSerializerMixin`]{@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
 - Described in: [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md#parameter-namespace-and-wire-shape)
@@ -262,7 +262,7 @@ The shared form state and methods that `useForm` provides to the fields inside a
 
 ## Form Field
 
-The component that renders one field's label, help text, and error and warning messages around its {@term Widget}. VUEDA picks it from the form's `fieldComponents` prop, then the model config's `fieldComponents`, then the default. The default is `FormField`, or an {@term Inline} for an expanded relation.
+The component that renders one field's label, help text, and error and warning messages around its {@term Widget}. VUEDA picks it from the form's `fieldComponents` prop, then the model config's `fieldComponents`, then the default. The default is `FormField`, or an {@term Inline} for an expanded relation. A {@term Computed Field} always uses `FormField`.
 
 - Names: [`FormField`]{@api vue:component:FormField}; [`fieldComponents` prop]{@api vue:component:FormModel:prop:fieldComponents}; [`ModelConfig.fieldComponents`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldComponents}; [`FIELD_PROPS`]{@api js:property:@arrai-innovations/vueda/use/useField#FIELD_PROPS}; [`availableFields`]{@api js:property:@arrai-innovations/vueda/utils/formLookups#availableFields}
 - Described in: [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md#field-and-widget-resolution)
@@ -272,12 +272,12 @@ The component that renders one field's label, help text, and error and warning m
 The display label each {@term VUEDA Model} exposes as `formatted_name`, which the client shows for related objects and choices. By default it is a stored generated column that copies the model's `name` field. A model can instead supply it through another expression, a lookup path, or a `get_formatted_name()` method.
 
 - Names: [`formatted_name`]{@api py:function:vueda.core.models.FormattedNameBaseModel.formatted_name}; [`formatted_name_lookup_expression`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_lookup_expression}; `get_formatted_name()`
-- Described in: [Create a CRUD Surface](../guides/create-crud-surface.md#the-formatted-name-contract)
+- Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#the-formatted-name-contract)
 - Upstream: [Django: `GeneratedField`]{@api ext:django:django.db.models.GeneratedField}
 
 ## Group Management Page
 
-A page, served only when `DEBUG` is on, where you add groups to permissions and remove them. VUEDA records each change for a {@term Group Permission Migration}. The read-only {@term Permissions and Workflow Overview} is a separate page.
+A page, served only when `DEBUG` is on, where you rename groups and add or remove the permissions each group holds. VUEDA records each change for a {@term Group Permission Migration}.
 
 - Names: [`PermissionOverviewView`]{@api py:class:vueda.user.views.PermissionOverviewView}
 - Described in: [Manage Groups and Generate Group Migrations](../guides/manage-groups.md#group-management-ui)
@@ -295,18 +295,18 @@ A migration that `makegroupmigrations` writes from the changes recorded on the {
 VUEDA's edge line for controls and surfaces. Its width comes from the `--vueda-hairline-width` token, which steps down as screen pixel density rises. The `hairline` utility paints it as an inset shadow, so a four-sided edge adds no layout width.
 
 - Names: [`--vueda-hairline-width`]{@api css-token:vueda-hairline-width}; the `hairline` utility
-- Described in: [Theming and Customization](../core-concepts/theming-and-customization.md)
+- Described in: [Customize VUEDA Appearance](../guides/customize-vueda-appearance.md#common-pitfalls)
 
 ## Icon Registry
 
 The registry that maps icon names, such as `loading` or `check`, to Vue components, grouped by component name. It starts empty. You fill it with `setIcons` or `patchIcons`, for example by installing the Font Awesome Free preset.
 
 - Names: [`setIcons`]{@api js:function:@arrai-innovations/vueda/use/useIcons#setIcons}; [`patchIcons`]{@api js:function:@arrai-innovations/vueda/use/useIcons#patchIcons}; [`useIcons`]{@api js:function:@arrai-innovations/vueda/use/useIcons#useIcons}; [`useIconsOverride`]{@api js:function:@arrai-innovations/vueda/use/useIcons#useIconsOverride}; [`IconRegistry`]{@api js:type:@arrai-innovations/vueda/use/useIcons#IconRegistry}; [`installFontAwesomeFreeIcons`]{@api js:function:@arrai-innovations/vueda/theme/vueda-tailwind/icons/fontAwesomeFree#installFontAwesomeFreeIcons}
-- Described in: [Customize VUEDA Appearance](../guides/customize-vueda-appearance.md)
+- Described in: [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md#register-the-icons)
 
 ## Ignored Field
 
-A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits, and the field's errors do not block submitting. An {@term Inline} ignores each saved row you mark for removal.
+A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits. In an object form, errors on an ignored path do not block submitting. An {@term Inline} ignores each saved row you mark for removal.
 
 - Names: [`FormContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.ignore}; [`FieldContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContext.ignore}; [`submittingValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittingValues}
 - Described in: [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md#ignored-fields-and-submitting-values)
@@ -327,22 +327,22 @@ A constraint on a list that a link or your application code supplies, shown as a
 
 ## Lookup
 
-An abstract model base for reference tables of codes and names, such as statuses or categories. It provides a unique `code`, a `name`, and a {@term Formatted Name}. It is a {@term VUEDA Model} base beside `VuedaModel`.
+An abstract model base for reference tables of codes and names, such as statuses or categories. It provides a unique `code`, a `name`, and a {@term Formatted Name}. It is a {@term VUEDA Model} base.
 
 - Names: [`Lookup`]{@api py:class:vueda.core.models.Lookup}; [`VuedaLookupSerializer`]{@api py:class:vueda.core.serializers.VuedaLookupSerializer}
-- Described in: [Start Building](../tutorials/start-building.md#models)
+- Described in: [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups.md#declare-a-lookup-model)
 - Upstream: [Django: abstract base classes]{@api ext:django:django.db.models.Options.abstract}
 
 ## Model Actions
 
-The `model_actions` list in {@term Model Info}: the actions the model's viewset offers the current user, with no object in view. Built-in actions appear when a {@term Model-Scope Check} passes; extra actions appear as `get_allowed_extra_actions` returns them. The list shapes client routes and buttons, and each endpoint still enforces its own permissions.
+The `model_actions` list in {@term Model Info}: the actions the model's viewset offers the current user, with no object in view. Built-in actions appear when a {@term Model-Scope Check} passes; extra actions appear when `get_allowed_extra_actions` includes them. The list shapes client routes and buttons, and each endpoint still enforces its own permissions.
 
 - Names: `model_actions`; [`get_model_actions`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}; [`ModelInfoAction`]{@api rest:schema:ModelInfoAction}; [`ModelInfo.actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#model-scope-action-metadata)
 
 ## Model API Path
 
-The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The {@term CRUD Routes} are client paths, separate from this server path.
+The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`.
 
 - Names: [`getListUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getListUrl}; [`getDetailUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getDetailUrl}; [`setCustomUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#setCustomUrl}; [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}; `modelList`; `modelDetail`; `modelAction`; `modelDetailAction`
 - Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#router-and-url-wiring)
@@ -357,7 +357,7 @@ The client's settings for a model's views, built from {@term Model Info} and the
 
 ## Model History
 
-The record of inserts, updates, and deletes that VUEDA keeps for each tracked model, stored as pghistory event rows. VUEDA tracks every {@term VUEDA Model} unless its {@term Feature Policy} sets `History.enabled = False`. Event rows are append-only, and VUEDA sets no retention policy.
+The record of inserts, updates, and deletes that VUEDA keeps for each tracked model, stored as pghistory event rows. VUEDA tracks every managed {@term VUEDA Model} unless its {@term Feature Policy} sets `History.enabled = False`. Event rows are append-only, and VUEDA sets no retention policy.
 
 - Names: [`vueda.history`]{@api py:module:vueda.history}; `History.enabled`; `PGHISTORY_APPEND_ONLY`
 - Described in: [Model Feature Policy](../core-concepts/model-feature-policy.md#history-and-workflow)
@@ -372,7 +372,7 @@ The metadata the server publishes for each registered model, in seven sections: 
 
 ## Model-Scope Check
 
-A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object, and {@term Model Actions} runs one for each built-in action.
+A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object, and it runs one for each built-in action to build {@term Model Actions}.
 
 - Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#model-scope-action-metadata)
@@ -402,7 +402,7 @@ A validation error or warning that belongs to the whole form, sent under the `no
 
 ## Object State
 
-The record that stores which workflow state one object is in. VUEDA creates it in the workflow's initial state when you save a {@term Workflow-Enabled Model} object that has none. `backfillworkflowstates` creates any that are missing.
+The record that stores which workflow state one object is in. VUEDA creates it in the workflow's initial state when a save of a {@term Workflow-Enabled Model} object finds none. A raw save, such as a fixture load, creates none. `backfillworkflowstates` creates any that are missing.
 
 - Names: [`ObjectState`]{@api py:class:vueda.workflow.models.ObjectState}; [`workflow_state`]{@api py:property:vueda.workflow.models.WorkflowModelMethods.workflow_state}; [`ensure_object_state`]{@api py:function:vueda.workflow.models.ensure_object_state}; [`backfillworkflowstates`]{@api py:class:vueda.workflow.management.commands.backfillworkflowstates.Command}
 - Described in: [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md#enabling-workflow-on-a-model-with-existing-rows)
@@ -454,22 +454,22 @@ The `pk: true` flag that {@term Model Info} sets on the field whose name matches
 
 ## Public Name
 
-The dotted path a request uses for a field, filter, ordering term, or expand, such as `customer.formatted_name`. VUEDA maps it to the `__`-joined Django path on the server, so a request never names an ORM path.
+The dotted path that a request uses for a field, filter, ordering term, or expand, such as `customer.formatted_name`. For ordering terms and declared filters, the server keeps the `__`-joined Django path internal, so a request names them by public name, never by ORM path.
 
 - Names: [`vueda.core.paths`]{@api py:module:vueda.core.paths}; [`PublicFilterAliasMixin`]{@api py:class:vueda.core.filters.PublicFilterAliasMixin}; [`public_ordering_path_to_orm`]{@api py:function:vueda.core.paths.public_ordering_path_to_orm}; [`orm_filter_path_to_public`]{@api py:function:vueda.core.paths.orm_filter_path_to_public}
-- Described in: [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md)
+- Described in: [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#public-filter-names)
 - Upstream: [django-filter: `FilterSet`]{@api ext:django-filter:django_filters.filterset.FilterSet}
 
 ## Query Parameter Validation
 
-The server's rejection of any query parameter that a `list` or `retrieve` request does not recognize. An unknown key, or an `f` or `e` value the endpoint does not offer, returns a validation error that names it.
+The server's rejection of any query parameter that a `list` or `retrieve` request does not recognize. An unknown key, or an `f` or `e` value that the endpoint does not offer, returns a validation error that names it.
 
 - Names: [`NoExtraFieldsForViewSetMixin`]{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}; [`get_extra_allowed_fields`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.get_extra_allowed_fields}; [`reject_unrecognized_query_params`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.reject_unrecognized_query_params}; [`validate_flex_expand_and_field_param`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
 - Described in: [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary)
 
 ## Queue Item
 
-The database row for one {@term VDQ (VUEDA Dispatch Queue)} message to one receiver. It holds the sender, method (`email` or `sms`), workflow state, and send result. `add_email` creates one queue item per `to`, `cc`, and `bcc` address.
+The database row for one {@term VDQ (VUEDA Dispatch Queue)} message to one receiver. It holds the sender, receiver, method (`email` or `sms`), and send result, and an {@term Object State} holds its workflow state. `add_email` creates one queue item per `to`, `cc`, and `bcc` address.
 
 - Names: [`QueueItem`]{@api py:class:vueda.vdq.models.QueueItem}; [`AnyMailQueueItem`]{@api py:class:vueda.vdq.models.AnyMailQueueItem}; [`SMSQueueItem`]{@api py:class:vueda.vdq.models.SMSQueueItem}; [`add_email`]{@api py:function:vueda.vdq.schedulers.add_email}; [`add_sms`]{@api py:function:vueda.vdq.schedulers.add_sms}; [queue item endpoint]{@api rest:endpoint:GET:/vueda.vdq/queueitem/}; [`DefaultQueueItem`]{@api rest:schema:DefaultQueueItem}
 - Described in: [VDQ and Background Work Model](../core-concepts/vdq-and-background-work.md#persistence-and-workflow-boundary)
@@ -483,7 +483,7 @@ A check that a signed-in user confirmed their identity recently, by password or 
 
 ## Route Admission
 
-The client checks a navigation must pass to open one of the {@term CRUD Routes}, in order: optional sign-in, action allowlist, optional group membership. The allowlist is the user's {@term Model Actions}, narrowed by `routeActions`, plus the user's [permitted transition codes]{@term Permitted Transitions}. A failed check redirects, and the server still authorizes every request on its own.
+The client-side checks that a navigation must pass to open one of the {@term CRUD Routes}, in order: optional sign-in, action allowlist, optional group membership. The allowlist is the user's {@term Model Actions}, narrowed by `routeActions`, plus the user's [permitted transition codes]{@term Permitted Transitions}. A failed check redirects or cancels the navigation, and the server still authorizes every request on its own.
 
 - Names: [`makeCRUDRoutes`]{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes}; [`requireAuth`]{@api js:function:@arrai-innovations/vueda/router/guards#requireAuth}; [`requireModelInfo`]{@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo}; [`requireGroups`]{@api js:function:@arrai-innovations/vueda/router/guards#requireGroups}; [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions}; [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#route-guard-chain)
@@ -497,17 +497,17 @@ A link from one list column's cells to each row's update view, or to its read vi
 
 ## Row-Level Permissions
 
-Project rules, declared in a model's inner `RowLevelPermissions` class, that limit which rows a user may act on. `check_queryset` filters `list`, bulk `destroy`, and the history events a user sees about related rows; `check_instance` joins each object permission check. It is opt-in server enforcement, and {@term Row-Level Workflow Permissions} adds two hooks for workflow models.
+Project rules, declared in a model's inner `RowLevelPermissions` class, that limit which rows a user may act on. `check_queryset` filters `list`, bulk `destroy`, and the history events that a user sees about related rows; `check_instance` joins each object permission check. It is opt-in server enforcement, and {@term Row-Level Workflow Permissions} adds two hooks for workflow models.
 
 - Names: `RowLevelPermissions`; [`BaseRowLevelPermissions`]{@api py:class:vueda.core.permissions.BaseRowLevelPermissions}; [`check_queryset`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}; [`check_instance`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}; [`check_queryset_workflow`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}; [`check_instance_workflow`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}; [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user}
 - Described in: [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering.md#authority-and-boundaries)
 
 ## Row-Level Workflow Permissions
 
-The two row-level hooks that run only for a {@term Workflow-Enabled Model}. `check_instance_workflow` runs last in an object check and can override any earlier decision, a state deny included. `check_queryset_workflow` can narrow a list further but cannot restore rows a {@term State Permission} rule removed.
+The two row-level hooks that run only for a {@term Workflow-Enabled Model}. `check_instance_workflow` runs last in an object check and can override any earlier decision, a state deny included. `check_queryset_workflow` can narrow a list further but cannot restore rows that {@term State Permission} filtering removed.
 
 - Names: [`check_instance_workflow`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}; [`check_queryset_workflow`]{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}; [`state_denied_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_denied_annotation}; [`state_granted_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_granted_annotation}
-- Described in: [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering.md#authority-and-boundaries)
+- Described in: [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering.md#queryset-filtering)
 
 ## Sent Item
 
@@ -539,7 +539,7 @@ The token-level look of VUEDA: color, type, spacing, radius, and density. A re-s
 
 ## Sparse Fields
 
-A request option that narrows a response to named fields. You list fields to keep in `f` and fields to drop in `om`; on a write, both shape only the response. `f` also requests fields a response leaves out by default, such as {@term Available Actions}.
+A request option that narrows a response to named fields. You list fields to keep in `f` and fields to drop in `om`; on a write, both shape only the response. `f` also requests fields that a response leaves out by default, such as {@term Available Actions}.
 
 - Names: [`FIELDS_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}; [`OMIT_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#OMIT_PARAM}; [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}
 - Described in: [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md#parameter-namespace-and-wire-shape)
@@ -547,7 +547,7 @@ A request option that narrows a response to named fields. You list fields to kee
 
 ## State Permission
 
-A rule that grants or denies one permission codename to one group while an object is in one workflow state. On an object check, a grant overrides a {@term Baseline Permission} denial and a deny overrides a grant; when rules conflict, deny wins. List filtering applies the same rules to each row; this is server enforcement.
+A rule that grants or denies one permission codename to one group while an object is in one workflow state. On an object check, a grant overrides a {@term Baseline Permission} denial and a deny overrides a grant; when rules conflict, deny wins. List filtering applies the same rules to each row; this is server enforcement. Superusers pass before state rules run.
 
 - Names: [`StatePermission`]{@api py:class:vueda.workflow.models.StatePermission}; [`check_state_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_state_permission}
 - Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#state-permission-data-model)
@@ -558,7 +558,7 @@ A rule that grants or denies one permission codename to one group while an objec
 One entry in the {@term Theme Registry}, named after the component it styles (`Button`). A {@term Composition Primitive} key has an underscore prefix (`_ButtonBase`). Each theme key holds one or more {@term Theme Slot} entries.
 
 - Names: [theme keys index]{@api theming:keys}; example [`Button`]{@api theme-key:Button}; [`ComponentTheme`]{@api js:type:@arrai-innovations/vueda/use/useTheme#ComponentTheme}
-- Described in: [Theming and Customization](../core-concepts/theming-and-customization.md)
+- Described in: [Theming and Customization](../core-concepts/theming-and-customization.md#family-meta-keys)
 
 ## Theme Override
 
@@ -600,11 +600,11 @@ The two design axes of a `Button`. Tone is the color role (`neutral`, `primary`,
 A workflow operation that moves an object from one of its source states to a target state. Its `code` identifies it in API requests and client routes, and its `name` is display text.
 
 - Names: [`Transition`]{@api py:class:vueda.workflow.models.Transition}; [`Transition` schema]{@api rest:schema:Transition}; [`PATCH execute-transition/{object_id}/`]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/}; [`executeTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition}; `transition_code`
-- Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md)
+- Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#transition-permission-gates)
 
 ## Transition Permission
 
-A row that names one permission a user must hold to execute one transition. The user must hold every permission the rows name, checked against the object so {@term State Permission} rules apply. A transition with no rows denies every user, superusers included; this is server enforcement.
+A row that names one permission a user must hold to execute one transition. The user must hold every permission that the rows name, checked against the object so that {@term State Permission} rules apply. A transition with no rows denies every user, superusers included; this is server enforcement.
 
 - Names: [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission}; [`check_transition_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission}
 - Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#transition-permission-gates)
@@ -619,14 +619,14 @@ A second sign-in step that asks for a one-time code from an authenticator app, S
 
 ## Valid Transitions
 
-The `valid_transitions` field on a workflow model's object payload: the transitions from the object's current state whose {@term Transition Permission} the user holds. The detail view reads it for its transition buttons.
+The `valid_transitions` field on a workflow model's object payload: the transitions from the object's current state that pass the {@term Workflow Permission} and {@term Transition Permission} gates for that object. A source state marked ignored contributes no transitions. The field is empty when the user fails the workflow gate. The detail view reads it for its transition buttons.
 
 - Names: `valid_transitions`; [`AvailableTransitionField`]{@api py:class:vueda.workflow.fields.AvailableTransitionField}; [`available_transitions`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
-- Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#ui-affordance-filtering-layers)
+- Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#which-gate-each-workflow-endpoint-applies)
 
 ## VDQ (VUEDA Dispatch Queue)
 
-VUEDA's Django app for queued outbound email and SMS. Each message to one receiver is a {@term Queue Item} with a workflow state. Celery workers send it, and provider callbacks record the delivery result.
+VUEDA's Django app for queued outbound email and SMS. Each message to one receiver is a {@term Queue Item} with a workflow state. Celery workers send it, and provider callbacks or SMS polling record the delivery result.
 
 - Names: [`vueda.vdq`]{@api py:module:vueda.vdq}
 - Described in: [VDQ and Background Work Model](../core-concepts/vdq-and-background-work.md)
@@ -637,17 +637,17 @@ VUEDA's Django app for queued outbound email and SMS. Each message to one receiv
 The three field lists a {@term Model Config} holds for each view. `displayFields` is what the view shows, `fetchFields` what it requests in `f`, and `submitFields` what a save sends. {@term Model Info} supplies their defaults.
 
 - Names: [`displayFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.displayFields}; [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}; [`submitFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.submitFields}
-- Described in: [Configure `list`/`read`/`create`/`update` Views](../guides/configure-crud-views.md#baseline-config-from-model-info)
+- Described in: [Configure `list`/`read`/`create`/`update` Views](../guides/configure-crud-views.md#choose-each-view-s-field-lists)
 
 ## Visual Contract
 
-What a component page guarantees stays true after a re-skin: how the component's parts compose, and what its states and emphasis levels mean. The current {@term Skin} values come from the theme keys and theme tokens each page links.
+What a component page guarantees stays true after a re-skin: the component's variants, sizes, and states. Each page links the theme keys and theme tokens that set its current values.
 
 - Described in: [Components](../reference/components/index.md)
 
 ## VUEDA Model
 
-A Django model built on `VuedaModel` or `Lookup`, VUEDA's abstract model bases, or on a subclass of either. Only a VUEDA model carries a {@term Formatted Name} and a {@term Feature Policy}.
+A Django model that derives from `FormattedNameBaseModel`, usually through VUEDA's abstract model bases `VuedaModel` and `Lookup`. Only a VUEDA model carries a {@term Formatted Name} and a {@term Feature Policy}.
 
 - Names: [`VuedaModel`]{@api py:class:vueda.core.models.VuedaModel}; [`Lookup`]{@api py:class:vueda.core.models.Lookup}; [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}; [`supports_vueda_feature_policy`]{@api py:function:vueda.core.models.supports_vueda_feature_policy}
 - Described in: [Model Feature Policy](../core-concepts/model-feature-policy.md#which-models-carry-policy)
@@ -662,14 +662,14 @@ The step that holds a write until the user confirms its advisory warnings. The s
 
 ## Widget
 
-The input control inside a {@term Form Field}, such as a text box or a select. VUEDA picks it from the form's `widgetComponents` prop, then the model config's `widgetComponents`, then the default type mapping, which `mergeDefaultFieldMappings` extends. A field that renders read-only uses its type's read-only widget, or `WidgetReadOnly`, and ignores those overrides.
+The input control inside a {@term Form Field}, such as a text box or a select. VUEDA picks it from the form's `widgetComponents` prop, then the model config's `widgetComponents`, then the default type mapping, which `mergeDefaultFieldMappings` extends. A field that renders read-only uses its type's read-only widget and ignores those overrides. When the type has no read-only widget, the field uses `WidgetReadOnly`.
 
 - Names: [`useWidget`]{@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}; [`widgetComponents` prop]{@api vue:component:FormModel:prop:widgetComponents}; [`ModelConfig.widgetComponents`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.widgetComponents}; [`defaultFieldMappings`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#defaultFieldMappings}; [`mergeDefaultFieldMappings`]{@api js:function:@arrai-innovations/vueda/utils/fieldMappings#mergeDefaultFieldMappings}; [`WidgetReadOnly`]{@api vue:component:WidgetReadOnly}; [`WIDGET_PROPS`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS}; [`availableWidgets`]{@api js:property:@arrai-innovations/vueda/utils/formLookups#availableWidgets}
 - Described in: [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md#field-and-widget-resolution)
 
 ## Wire Query Parameters
 
-The short query parameter names VUEDA endpoints read. `f`, `e`, and `om` shape the fields; `s` searches; `o` orders; `p` and `ps` paginate; `ct` requests column totals. Server settings define the names, and the client holds matching constants.
+The short query parameter names that VUEDA endpoints read. `f`, `e`, and `om` shape the fields; `s` searches; `o` orders; `p` and `ps` paginate; `ct` requests column totals. Server settings define the names, and the client holds matching constants.
 
 - Names: [`FIELDS_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}; [`EXPAND_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}; [`OMIT_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#OMIT_PARAM}; [`SEARCH_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#SEARCH_PARAM}; [`ORDERING_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#ORDERING_PARAM}; [`PAGE_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#PAGE_PARAM}; [`PAGE_SIZE_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#PAGE_SIZE_PARAM}; [`COLUMN_TOTALS_PARAM`]{@api js:property:@arrai-innovations/vueda/utils/constants#COLUMN_TOTALS_PARAM}
 - Described in: [Configuration Surface and Defaults](../core-concepts/configuration-surface-and-defaults.md#wire-query-parameter-namespace)
@@ -692,14 +692,14 @@ A Django migration that `makeworkflowmigrations` writes from the workflow change
 
 ## Workflow Overlay
 
-The effect of {@term State Permission} rules on a {@term Workflow-Enabled Model}. Object checks and list filtering grant or deny the same {@term CRUD} codenames by the object's workflow state. {@term Workflow Permission} and {@term Transition Permission} rows are separate gates on transitions. This is server enforcement.
+The effect of {@term State Permission} rules on a {@term Workflow-Enabled Model}. Object checks and list filtering grant or deny {@term CRUD} codenames by the object's workflow state. This is server enforcement.
 
 - Names: [`StatePermission`]{@api py:class:vueda.workflow.models.StatePermission}; [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user}
 - Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#overlay-boundary-and-authority)
 
 ## Workflow Permission
 
-A row that names one permission a user must hold to use a workflow's transitions. The user must hold every permission the rows name, and a workflow with no rows denies every user, superusers included. Groups receive these permissions as ordinary Django group permissions; this is server enforcement.
+A row that names one permission a user must hold to use a workflow's transitions. The user must hold every permission that the rows name, and a workflow with no rows denies every user, superusers included. Groups receive these permissions as ordinary Django group permissions; this is server enforcement.
 
 - Names: [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission}; [`check_workflow_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission}
 - Described in: [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#transition-permission-gates)
@@ -707,7 +707,7 @@ A row that names one permission a user must hold to use a workflow's transitions
 
 ## Workflow-Enabled Model
 
-A {@term VUEDA Model} whose {@term Feature Policy} enables workflow, with `enabled = True` in `class Vueda.Workflow`. It needs a {@term Workflow} definition; without one, every workflow path raises `WorkflowNotConfiguredError`.
+A {@term VUEDA Model} whose {@term Feature Policy} enables workflow, with `enabled = True` in `class Vueda.Workflow`. It needs a {@term Workflow} definition. Without one, saving an object and every workflow request raise `WorkflowNotConfiguredError`, which the API returns as HTTP 500.
 
 - Names: `class Vueda.Workflow`; [`workflow_enabled`]{@api py:function:vueda.core.installed_apps.workflow_enabled}; [`workflow_enabled` (model info)]{@api py:property:vueda.info.serializers.ModelInfoSerializer.workflow_enabled}; [`WorkflowNotConfiguredError`]{@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError}
 - Described in: [Model Feature Policy](../core-concepts/model-feature-policy.md#history-and-workflow)
