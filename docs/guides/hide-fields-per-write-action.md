@@ -32,9 +32,9 @@ The mixin marks each `exclude_create_fields` entry read-only when the view's act
 
 The mixin only adds read-only markings. A field that is read-only through `read_only_fields` or `extra_kwargs` stays read-only for every action. Excluded fields stay in `Meta.fields` and in every response.
 
-The markings go through DRF's `extra_kwargs`, which reach only the fields the serializer builds from the model. A field declared on the serializer class ignores both lists and stays writable. List only generated fields.
+The markings go through DRF's `extra_kwargs`, which reach only the fields that the serializer builds from the model. A field declared on the serializer class ignores both lists and stays writable. List only generated fields.
 
-Exclude only fields the database can leave empty: nullable columns, or columns with a default. A `create` that leaves a required column unset raises {@api ext:django:django.db.IntegrityError} on insert, and the client gets a `500`.
+Exclude only fields that the database can leave empty: nullable columns, or columns with a default. A `create` that leaves a required column unset raises {@api ext:django:django.db.IntegrityError} on insert, and the client gets a `500`.
 
 ## Attach the Serializer to Its Viewset
 
@@ -49,7 +49,7 @@ class TimesheetViewSet(VuedaViewSet):
     serializer_class = TimesheetSerializer
 ```
 
-Registering the pair with {@api py:function:vueda.info.registration.register} works the same way. That is the {@term Canonical Registration} most models use.
+Registering the pair with {@api py:function:vueda.info.registration.register} works the same way. That is the {@term Canonical Registration} that most models use.
 
 Do not reach this serializer any other way. As a declared nested field on another serializer, or as an entry in another serializer's `Meta.expandable_fields`, it is built without a view in context. Schema generation (`manage.py spectacular`) and model info then fail with `KeyError: 'view'`. Put the exclusions on the routed serializer, and nest or expand a serializer without the mixin.
 
@@ -67,7 +67,7 @@ Each error names the serializer and, for `E007` and `E008`, the parent serialize
 
 A request that sends a value for an excluded field still succeeds. DRF skips read-only fields when it reads the body, so no `400` is returned:
 
-- On `create`, the field saves as its model default, for example `None` for a nullable foreign key.
+- On `create`, the new row stores the field's model default, for example `None` for a nullable foreign key.
 - On `update` and `partial_update`, the field keeps its stored value.
 
 To answer with a `400` instead, check the raw body in `validate()` and raise {@api py:class:vueda.core.exceptions.VuedaValidationError}:
@@ -90,7 +90,7 @@ class TimesheetSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
 
 ## Hide the Field in Client Forms (Optional)
 
-The exclusions do not change {@term Model Info}. Model info describes the {@term Canonical Serializer} through its own endpoint's view, whose action matches neither list, so it reports excluded fields as writable. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md#how-model-info-uses-the-registry) describes how model info reads the registered serializer.
+The exclusions do not change {@term Model Info}. Model info describes the {@term Canonical Serializer} through its own endpoint's view, whose action matches neither list, so model info reports excluded fields as writable. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md#how-model-info-uses-the-registry) describes how model info reads the registered serializer.
 
 The default create and update forms therefore render and submit excluded fields, and the server drops the values. To leave a field out of one form, set that view's `displayFields` and `submitFields` with {@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}:
 
