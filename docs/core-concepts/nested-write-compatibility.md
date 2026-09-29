@@ -13,27 +13,27 @@ A {@term Nested Write} saves related objects from the parent's request body in t
 
 The mixin's bases, in order, are [drf-writable-nested: `UniqueFieldsMixin`]{@api ext:drf-writable-nested:drf_writable_nested.UniqueFieldsMixin}, [drf-flex-fields: `FlexFieldsSerializerMixin`]{@api ext:drf-flex-fields:rest_flex_fields.FlexFieldsSerializerMixin}, [drf-writable-nested: `NestedCreateMixin`]{@api ext:drf-writable-nested:drf_writable_nested.NestedCreateMixin}, and [drf-writable-nested: `NestedUpdateMixin`]{@api ext:drf-writable-nested:drf_writable_nested.NestedUpdateMixin}. Any serializer built on `VuedaSerializer` accepts nested writes.
 
-The mixin changes three things in these packages. [`to_internal_value`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value} prepares nested fields before the body is read. [`update`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update} replaces the library's update sequence. The mixin also drops read-only reverse relations from the rows it writes. A create runs the library code unchanged.
+The mixin changes three things in these packages. [`to_internal_value`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value} prepares nested fields before the body is read. [`update`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update} replaces the library's update sequence. The mixin also drops read-only relations, forward and reverse, from the rows that it writes. A create runs the library code unchanged.
 
 Two kinds of relation take part in a nested write. A direct relation is a foreign key or one-to-one field on the parent model. A reverse relation holds rows that point at the parent: child rows with a foreign key to it, many-to-many links, and reverse one-to-one relations.
 
 ## Which Relations Accept Nested Data
 
-A relation accepts a nested object when its serializer field is a nested serializer. The field is either declared that way on the serializer, or the request names the relation in the `e` query parameter. For each name in `e`, `to_internal_value` swaps the primary key field for the relation's nested serializer before it reads the body. [Field and Expand Semantics](./field-and-expand-semantics#sparse-fields-and-expand-on-writes) describes how `f`, `om`, and `e` apply to a write, including the check that rejects an unpermitted `e` name before the body is validated.
+A relation accepts a nested object when its serializer field is a nested serializer. The field is either declared that way on the serializer, or the request includes the relation's name in the `e` query parameter. For each name in `e`, `to_internal_value` swaps the primary key field for the relation's nested serializer before it reads the body. [Field and Expand Semantics](./field-and-expand-semantics#sparse-fields-and-expand-on-writes) describes how `f`, `om`, and `e` apply to a write, including the check that rejects an unpermitted `e` name before the body is validated.
 
 The swap runs only on a serializer that is an instance of the view's serializer class. Query parameters reach only the root serializer. An expanded child receives the expand names below it from its parent, and never reads `e` from the request itself.
 
-DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation the body omits get no `initial_data`.
+DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation that the body omits get no `initial_data`.
 
 ## Read-Only Relations
 
-When the mixin collects relations to write, it drops each one whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. This applies to forward relations (a foreign key or one-to-one on the parent) and to reverse relations. These serializers mark a relation as display only. Data the body sends for such a relation is discarded without an error. The request succeeds and the parent saves, but the related rows do not change, and the parent keeps its stored foreign key.
+When the mixin collects relations to write, it drops each one whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. This applies to forward relations (a foreign key or one-to-one on the parent) and to reverse relations. These serializers mark a relation as display only. The mixin discards the data that the body sends for such a relation, without an error. The request succeeds and the parent saves, but the related rows do not change, and the parent keeps its stored foreign key.
 
 ## Write Order
 
 A create writes rows in this order:
 
-1. Each direct relation in the body is created or updated, so the parent can store its key.
+1. Each direct relation in the body is created or updated, so that the parent can store the related row's key.
 2. The parent row is created.
 3. Each reverse relation row in the body is created or updated, with its foreign key set to the new parent.
 
@@ -42,27 +42,27 @@ An update writes rows in this order:
 1. Unique fields are checked, as [Unique Field Checks](#unique-field-checks) describes.
 2. Each direct relation in the body is created or updated.
 3. The parent row is saved.
-4. Reverse relation rows the body leaves out are removed.
+4. Reverse relation rows that the body leaves out are removed.
 5. Each reverse relation row in the body is updated or created.
 6. The parent is reloaded with {@api ext:django:django.db.models.Model.refresh_from_db}.
 
 A row in the body updates the existing row whose primary key it carries, under `pk` or the model's primary key name. For a reverse foreign key, reverse one-to-one, or generic relation, the server looks for that row only among the parent's own rows. A row whose primary key matches none of them, or that has no primary key, creates a new row. A many-to-many row matches any row of the related model, because a nested many-to-many write links existing rows.
 
-Removal applies only to a reverse relation whose key is in the body. A body that omits the key leaves every row of that relation in place. A `PATCH` that sends the key sends the relation's full set of rows. What removal does depends on the relation:
+Removal applies only to a reverse relation whose key is in the body. A body that omits the key leaves every row of that relation in place. A `PATCH` that sends the key must send the relation's full set of rows. What removal does depends on the relation:
 
 - A many-to-many relation loses its link to the row. The row stays.
 - A foreign key with {@api ext:django:django.db.models.SET_NULL} or `SET_DEFAULT` is set to null or to its default.
 - Any other foreign key has its row deleted. When {@api ext:django:django.db.models.PROTECT} blocks the delete, the response is a `400` with "Cannot delete ... because protected relation exists" under `non_field_errors`.
 
-The update removes rows before it writes the body's rows, which is the reverse of drf-writable-nested's order. The client sends a multipart body when a top-level value is a file ([CRUD Adapter Layer](./crud-adapter-layer#multipart-saves)). For a multipart body, DRF rebuilds the nested row list each time the serializer reads its submitted data. The library records a new row's primary key in one copy of that list, and its removal step reads a fresh copy without it. Run in the library's order, the removal step would delete the rows the request had just created.
+The update removes rows before it writes the body's rows, which is the reverse of drf-writable-nested's order. The client sends a multipart body when a top-level value is a file ([CRUD Adapter Layer](./crud-adapter-layer#multipart-saves)). For a multipart body, DRF rebuilds the nested row list each time the serializer reads its submitted data. The library records a new row's primary key in one copy of that list, and its removal step reads a fresh copy without it. Run in the library's order, the removal step would delete the rows that the request had just created.
 
-After a create or an update, `VuedaSerializer` reads the saved row again when its model records {@term Model History}, so the response carries the row's [`object_revision`]{@api py:property:vueda.core.serializers.VuedaSerializer.object_revision}. A nested row saved by a `VuedaSerializer` child is read again the same way.
+After a create or an update, `VuedaSerializer` reads the saved row again when its model keeps {@term Model History}, so the response carries the row's [`object_revision`]{@api py:property:vueda.core.serializers.VuedaSerializer.object_revision}. A nested row saved by a `VuedaSerializer` child is read again the same way.
 
 Each request runs in one database transaction. A validation error raised partway through either sequence rolls back the rows written before it ([Configuration Surface and Defaults](./configuration-surface-and-defaults#request-transactions)).
 
 ## Save-Time Child Validation
 
-Each nested row is validated twice. The first pass runs inside the parent's `is_valid()`, with the nested serializer field the parent holds. The second pass runs during `save()`. For each row, the library builds a new instance of the child serializer class, validates that row's submitted data, and saves it. The new instance receives only the request context, the matched existing row, and the data. On a `PATCH`, an existing row is validated as a partial update, and a new row is validated in full.
+Each nested row is validated twice. The first pass runs inside the parent's `is_valid()`, with the nested serializer field that the parent holds. The second pass runs during `save()`. For each row, the library builds a new instance of the child serializer class, validates that row's submitted data, and saves it. The new instance receives only the request context, the matched existing row, and the data. On a `PATCH`, an existing row is validated as a partial update, and a new row is validated in full.
 
 The second pass explains two failures that appear after `is_valid()` has passed:
 
