@@ -34,7 +34,7 @@ VUEDA picks each column's default adapter in {@api js:property:@arrai-innovation
 | `JSONField`              | `JSONField`                    | {@api vue:component:ColumnJson}      |                                                            |
 | `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | {@api vue:component:ColumnModelLink} | `{ view: "read" }`                                         |
 
-Every other type renders through {@api vue:component:ColumnText}. That includes many relations and `SlugRelatedField`.
+Every other type renders through {@api vue:component:ColumnText}. That includes to-many relations and `SlugRelatedField`.
 
 The adapters render as follows:
 
@@ -161,7 +161,7 @@ A [`field(<name>)`]{@api vue:component:ViewList:slots} slot on `ViewList` replac
 </template>
 ```
 
-{@api vue:component:ObjectsGrid} renders the slot in both the table cell and the card cell. If you wrap `ViewList` in your own component, forward the slot to it.
+{@api vue:component:ObjectsGrid} renders the slot in both the table cell and the card cell. If you wrap `ViewList` in your own component, forward the slot to `ViewList`.
 
 ## Map a Field Type to an Adapter
 
@@ -219,12 +219,12 @@ Register it through a function in model config, or pass it in the `columnCompone
 
 ## Troubleshooting
 
-**The list shows "There was an error while rendering the list columns."** A `columnComponents` entry or a type mapping's `column` names no adapter, or a function returned nothing. The message names the column, such as `No column component named "Nope" for column "status"`, and adds `in the type mapping` when the mapping is the cause. That column's cells render empty, and the other columns render normally. Check the name against `availableColumns`, or pass your own component through a function. The error shows even when a `field(<name>)` slot fills the column. A list you build on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} gets these errors in [`columnErrors`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListListGroup.columnErrors}.
+**The list shows "There was an error while rendering the list columns."** A `columnComponents` entry or a type mapping's `column` does not name an adapter, or a function returned nothing. The message names the column, such as `No column component named "Nope" for column "status"`, and adds `in the type mapping` when the mapping is the cause. That column's cells render empty, and the other columns render normally. Check the name against `availableColumns`, or pass your own component through a function. The error shows even when a `field(<name>)` slot fills the column. A list you build on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} gets these errors in [`columnErrors`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListListGroup.columnErrors}.
 
-**The override has no effect.** Check that the key matches the field name exactly. A `field(<name>)` slot wins over both override maps, and a `columnComponents` prop entry wins over model config. A `setConfig` call made after the list has built its config does not reach it, so call `setConfig` when the application starts.
+**The override has no effect.** Check that the key matches the field name exactly. A `field(<name>)` slot wins over both override maps, and a `columnComponents` prop entry wins over model config. A `setConfig` call made after the list has built its config does not reach that list, so call `setConfig` when the application starts.
 
 **A foreign key column renders text without a link.** The value is empty or an array, or no related model resolved. Check the field's `app_label` and `model` in the [model info response]{@api rest:schema:ModelInfoField}. Or supply `app` and `model` through `columnProps`.
 
-**A many relation renders as `[2, 1]`.** A many relation's list value is an array of pks, and `ColumnText` renders it as `JSON`. To render linked items, expand the relation so each item carries a label, and write an adapter for it.
+**A to-many relation renders as `[2, 1]`.** A to-many relation's list value is an array of pks, and `ColumnText` renders it as `JSON`. To render linked items, expand the relation so each item carries a label, and write an adapter for it.
 
 **Attributes you did not set appear on your adapter's root element.** Add `defineOptions({ inheritAttrs: false })`.
