@@ -7,7 +7,7 @@ type: how-to
 
 # Build Auth Views
 
-VUEDA ships views for sign-in, {@term Two-Factor Authentication}, password changes and resets, and device setup. This guide routes them, adds the forgot and reset password flow, and builds your own form when a view needs changes. [Auth & MFA Views](../reference/components/auth-and-mfa.md) shows each view's layout.
+VUEDA ships views for sign-in, {@term Two-Factor Authentication}, password changes and resets, and device setup. This guide shows how to route them, add the forgot and reset password flow, and build your own form when a view needs changes. [Auth & MFA Views](../reference/components/auth-and-mfa.md) shows each view's layout.
 
 ## Before You Begin
 
@@ -16,7 +16,7 @@ VUEDA ships views for sign-in, {@term Two-Factor Authentication}, password chang
 
 ## Route the Shipped Views
 
-The library navigates to the route names below, so your router must define each one you use.
+The library navigates to the route names below, so your router must define each one that you use.
 
 | Route name        | What sends the user there                                                                                                    | View                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
@@ -46,7 +46,7 @@ The integrator template's `client/src/router/index.js` defines `welcome`, `sign-
 },
 ```
 
-`ViewReauthenticate.vue` is the view you build in [Build a Re-Authentication View](#build-a-re-authentication-view).
+`ViewReauthenticate.vue` is the view that you build in [Build a Re-Authentication View](#build-a-re-authentication-view).
 
 {@api vue:component:ViewChangePassword}, {@api vue:component:ViewSetupDevice}, and {@api vue:component:ViewRecoveryCodes} act for a signed-in user, so route them at any path behind `requireAuth`. `ViewSetupDevice` takes `app` and `model` props that name the device model.
 
@@ -54,16 +54,16 @@ The integrator template's `client/src/router/index.js` defines `welcome`, `sign-
 
 Add a guard to each route's `beforeEnter`:
 
-- {@api js:function:@arrai-innovations/vueda/router/guards#requireAuth} sends a signed-out user to the route you pass, usually `sign-in`, and records the refused path in the `redirect` query parameter. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#route-guard-chain) describes it and how `makeCRUDRoutes` applies it.
-- {@api js:function:@arrai-innovations/vueda/router/guards#requireUnauth} sends a signed-in user to the route you pass. Use it on the sign-in, two-factor, and password reset routes.
-- {@api js:function:@arrai-innovations/vueda/router/guards#requireRecentAuth} sends a user who has not confirmed their identity recently to the route you pass, usually `reauthenticate`, with the same `redirect` query parameter.
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireAuth} sends a signed-out user to the route that you pass, usually `sign-in`, and records the refused path in the `redirect` query parameter. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#route-guard-chain) describes it and how `makeCRUDRoutes` applies it.
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireUnauth} sends a signed-in user to the route that you pass. Use it on the sign-in, two-factor, and password reset routes.
+- {@api js:function:@arrai-innovations/vueda/router/guards#requireRecentAuth} sends a user who has not confirmed their identity recently to the route that you pass, usually `reauthenticate`, with the same `redirect` query parameter.
 
 These guards change only what the client shows. The server checks sign-in and recent authentication on every request.
 
 ## Add the Forgot and Reset Password Flow
 
 1. Give the forgot password endpoint a working cache. {@api py:class:vueda.user.views.VuedaForgotPasswordView} accepts one request per address per minute and answers `429` to the next. [Configure the Cache and Sessions](configure-cache-and-sessions.md) describes the backends that keep this limit across processes.
-2. Set `FRONTEND_DOMAIN` and `FRONTEND_RESET_URL` (default `/reset-password`) on the server. `FRONTEND_DOMAIN` is the client's origin with its scheme, such as `https://app.example.com`. The emailed link is built from them, with an encoded account id as the last path segment and the reset `token` in the query string.
+2. Set `FRONTEND_DOMAIN` and `FRONTEND_RESET_URL` (default `/reset-password`) on the server. `FRONTEND_DOMAIN` is the client's origin with its scheme, such as `https://app.example.com`. The server builds the emailed link from them, with an encoded account id as the last path segment and the reset `token` in the query string.
 3. Make sure the server can send email. The user adapter named by `VUEDA_USER_ADAPTER` sends the message, and queues it with {@term VDQ (VUEDA Dispatch Queue)} when `vueda.vdq` is installed.
 4. Route `forgot-password` and `reset-password`. `ViewResetPassword` needs `pk` from the path and `token` from the query:
 
@@ -85,7 +85,7 @@ The flow then behaves as follows:
 
 - `ViewForgotPassword` calls [`forgotPassword`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.forgotPassword}. The server answers the same way whether or not an account uses the address, and the view shows "Check Your Email" either way.
 - `ViewResetPassword` checks the link on mount with [`checkResetLinkIsValid`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.checkResetLinkIsValid}. A rejected link replaces the form with a message and a "Request a new link" button.
-- On submit, `ViewResetPassword` calls [`resetPassword`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.resetPassword}. A password the server's validators reject appears as an error on the password field. After a successful reset, the view goes to `signInTo`.
+- On submit, `ViewResetPassword` calls [`resetPassword`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.resetPassword}. A password that the server's validators reject appears as an error on the password field. After a successful reset, the view goes to `signInTo`.
 
 ## Build a Sign-In View
 
@@ -138,7 +138,7 @@ const handleSubmit = ({ formValues }) => {
 Write the fields this way:
 
 - Set every field in `formProps.initialValues`. The form has no server object to start from.
-- Give each {@api vue:component:FormField} the `name` the endpoint expects. `runAction` receives `{ formValues }`, keyed by field name, without {@term Ignored Field} values.
+- Give each {@api vue:component:FormField} the `name` that the endpoint expects. `runAction` receives `{ formValues }`, keyed by field name, without {@term Ignored Field} values.
 - Set [`validation="text"`]{@api vue:component:FormField:prop:validation} to enable `maxLength`, `minLength`, and `patternRegex` on a field.
 - Pass `type` to {@api vue:component:WidgetTextInput} for the native input type, such as `password`.
 - Replace the [`action-bar` slot]{@api vue:component:ActionForm:slots}. The default bar has a confirm and a cancel button, and a sign-in form has nowhere to cancel to.
@@ -147,7 +147,7 @@ The server validates every submit. [`login`]{@api js:method:@arrai-innovations/v
 
 - It resolves when the user is signed in or the server asks for a second factor. `AuthorizingForm` shows no toast for the submit itself, because the redirect announces the sign-in. Pass [`onSubmissionSuccessHandler`]{@api vue:component:AuthorizingForm:prop:onSubmissionSuccessHandler} to run your own code instead; `ViewForgotPassword` does this to show its message.
 - A `400` response becomes {@term Server Feedback}: each error appears on the field with the same `name`, and a {@term Non-Field Error} appears on the form. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) describes the error shapes.
-- Any other failure shows an error toast titled by [`actionErrorSummary`]{@api vue:component:ActionForm:prop:actionErrorSummary}, or "Action Failed" when it is unset.
+- Any other failure shows an error toast titled by [`actionErrorSummary`]{@api vue:component:ActionForm:prop:actionErrorSummary}. When that prop is unset, the title is "Action Failed".
 
 ### Redirect Chain
 
@@ -158,15 +158,15 @@ The server validates every submit. [`login`]{@api js:method:@arrai-innovations/v
 
 With [`requireRecentLogin`]{@api vue:component:AuthorizingForm:prop:requireRecentLogin}, step 2 also waits for [`recentlyLoggedIn`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.recentlyLoggedIn}.
 
-After the navigation completes, a "Signed In" toast appears. When it fails, a "Signed in, but could not open the next page" toast appears, and the console logs `[vueda] Sign-in redirect failed for` with the destination.
+After the navigation completes, a "Signed In" toast appears. When the navigation fails, a "Signed in, but could not open the next page" toast appears, and the console logs `[vueda] Sign-in redirect failed for` with the destination.
 
 Because the chain runs on mount, a signed-in user who opens a view built on `AuthorizingForm` is sent on at once.
 
 ## Route Two-Factor Sign-In
 
-When an account has two-factor authentication, the login endpoint answers `401` and lists the next steps under `data.flows` in the response body. The store sets `pendingFlow` to the step the server marks pending, and `login` resolves. `AuthorizingForm` then navigates to `2fa`. `loggedIn` stays `false` until the server accepts a code.
+When an account has two-factor authentication, the login endpoint answers `401` and lists the next steps under `data.flows` in the response body. The store sets `pendingFlow` to the step that the server marks pending, and `login` resolves. `AuthorizingForm` then navigates to `2fa`. `loggedIn` stays `false` until the server accepts a code.
 
-`ViewTwoFactorAuth` handles every method. The user picks a method, requests a code for SMS or email, and enters it; a recovery code goes through the same form. Route it as `2fa` and use it as it is where you can.
+`ViewTwoFactorAuth` handles every method. The user picks a method, requests a code for SMS or email, and enters it; a recovery code goes through the same form. Route it as `2fa` and use it unchanged where you can.
 
 A custom two-factor view for authenticator app codes submits [`twoFactorAuthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorAuthenticate} and uses {@api vue:component:WidgetOTPInput} for the code:
 
@@ -263,7 +263,7 @@ const handleSubmit = ({ formValues }) => {
 
 ## Build a Form for a Signed-In Operation
 
-Use {@api vue:component:AuthForm} for a form a signed-in user submits, such as a password change. It sends the user to `reauthenticate` when the server asks, as described above. After a successful submit, `ActionForm` shows its success toast, and `AuthForm` navigates to the `returnPath` query value, or else to its [`redirect` prop]{@api vue:component:AuthForm:prop:redirect}. With neither set, the user stays on the page.
+Use {@api vue:component:AuthForm} for a form that a signed-in user submits, such as a password change. It sends the user to `reauthenticate` when the server asks, as described above. After a successful submit, `ActionForm` shows its success toast, and `AuthForm` navigates to the `returnPath` query value. Without that value, it navigates to its [`redirect` prop]{@api vue:component:AuthForm:prop:redirect}. With neither set, the user stays on the page.
 
 ```vue
 <script setup>
@@ -345,7 +345,7 @@ Writing through the `form-object` ref fails, because the form state is readonly.
 - For an account with two-factor authentication, sign-in opens `2fa`, and a valid code completes it.
 - A request that needs a recent sign-in opens `reauthenticate`, and confirming returns to the original page.
 - A forgot password request shows "Check Your Email", and a second request for the same address within a minute is refused.
-- The emailed link opens `reset-password`, and a password the validators reject shows an error on the password field.
+- The emailed link opens `reset-password`, and a password that the validators reject shows an error on the password field.
 - The change-password form shows server errors on its fields, such as "This password is too common."
 
 ## Troubleshooting
@@ -354,7 +354,7 @@ Writing through the `form-object` ref fails, because the form state is readonly.
 
 **Two-factor sign-in is not detected.** Inspect the login response. It must be a `401` with the pending step under `data.flows`. Also check that the router defines `2fa`.
 
-**Form values do not reach the server.** Check that each field's `name` matches the key the endpoint expects.
+**Form values do not reach the server.** Check that each field's `name` matches the key that the endpoint expects.
 
 **The re-authentication view redirects at once.** The user already signed in or confirmed within the reauthentication window, so `recentlyLoggedIn` is `true` on mount. The server accepts the recent sign-in, so no confirmation is needed.
 
