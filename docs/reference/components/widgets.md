@@ -218,9 +218,11 @@ the selection.
 
 {@api vue:component:WidgetTagsInput} enters a list of values as removable tags.
 Its value is an array of strings. An entry is added on Enter, on a comma, on
-paste, and when the input loses focus. With `numeric`, only entries that read as
-numbers are added. A `DecimalInField` filter, such as a list of IDs, renders
-this widget.
+paste, and when the input loses focus. Each entry is trimmed first, so ` 2`
+next to an existing `2` is a duplicate and is not added. With `numeric`, only
+entries that read as numbers are added. A refused entry, such as `1..2`, stays
+in the input and is marked invalid until it is edited. A `DecimalInField` filter,
+such as a list of IDs, renders this widget.
 
 <VuedaDemo>
   <DemoCard title="Numeric entries">
