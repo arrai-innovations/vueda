@@ -7,7 +7,7 @@ status: draft
 
 # Customize Field and Widget Rendering
 
-This guide shows how to replace the component VUEDA renders for a form or filter field, change the props it receives, or write your own. Fields you leave alone keep their defaults.
+This guide shows how to replace the component that VUEDA renders for a form or filter field, change the props that it receives, or write your own. Fields that you leave alone keep their defaults.
 
 [Configuration Precedence](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes how view props, model config, and the defaults combine, and the cases that do not follow that order.
 
@@ -125,7 +125,7 @@ This slot wraps the default widget in extra markup:
 </template>
 ```
 
-`slotProps.slots` holds the other slots you passed to the form, as `[name, renderer]` pairs. Pass them through, as above, when you render the default component yourself. Without the passthrough, your label, help, message, and named widget slots do not reach the component.
+`slotProps.slots` holds the other slots that you passed to the form, as `[name, renderer]` pairs. Pass them through, as above, when you render the default component yourself. Without the passthrough, your label, help, message, and named widget slots do not reach the component.
 
 A slot name must match exactly, including the dotted name and the `filter-` prefix. A misspelled slot name is ignored, and the field renders its default.
 
@@ -133,7 +133,7 @@ A slot name must match exactly, including the dotted name and the `filter-` pref
 
 ## Write a Custom Widget
 
-A widget spreads {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}. It returns a {@api js:interface:@arrai-innovations/vueda/use/useWidget#WidgetContext} that connects the widget to the field around it: the value, touched and focus state, and validation flags.
+A widget spreads {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useWidget#useWidget}. `useWidget` returns a {@api js:interface:@arrai-innovations/vueda/use/useWidget#WidgetContext} that connects the widget to the field around it: the value, touched and focus state, and validation flags.
 
 ```vue
 <script setup>
@@ -175,7 +175,7 @@ Assign the widget through model config, props, or a type mapping. Your own props
 
 ## Write a Custom Field
 
-A field component spreads {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useField#useField}. It registers the field with the form and returns the {@api js:interface:@arrai-innovations/vueda/use/useField#FieldContext} that the widget reads. `FieldRenderer` puts the widget in the field's default slot.
+A field component spreads {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_PROPS}, declares {@api js:property:@arrai-innovations/vueda/use/useField#FIELD_EMITS}, and calls {@api js:function:@arrai-innovations/vueda/use/useField#useField}. `useField` registers the field with the form and returns the {@api js:interface:@arrai-innovations/vueda/use/useField#FieldContext} that the widget reads. `FieldRenderer` puts the widget in the field's default slot.
 
 ```vue
 <script setup>
@@ -200,7 +200,7 @@ const field = useField(props, emit, { showsErrors: () => !props.hidden });
 </template>
 ```
 
-`FieldRenderer` passes `hidden` as `true` for fields inside an inline, which render their widget alone. Declare it, and any other `FormField` prop your field needs, such as `validation` or `orientation`. An undeclared prop falls through as an HTML attribute. The `showsErrors` option tells the form whether this field shows its own errors; a hidden field leaves them to the form-level summary.
+`FieldRenderer` passes `hidden` as `true` for fields inside an inline, which render their widget alone. Declare `hidden`, and any other `FormField` prop that your field needs, such as `validation` or `orientation`. An undeclared prop falls through as an HTML attribute. The `showsErrors` option tells the form whether this field shows its own errors; a hidden field leaves them to the form-level summary.
 
 ## Map a Field Type to a Widget
 
@@ -231,7 +231,7 @@ The outer key is the `typeSerializer`, and the inner key is the `typeModel`. The
 - Server errors for the field appear beside it.
 - Leaving the field marks it touched.
 - In an inline, every row's copy of the field renders and saves.
-- The list view's filter of the same name renders the input you intend.
+- The list view's filter of the same name renders the input that you intend.
 
 ## Troubleshooting
 
@@ -245,4 +245,4 @@ The outer key is the `typeSerializer`, and the inner key is the `typeModel`. The
 
 **A slot override loses your label, help, or message slots.** The slot renders the default component without passing `slotProps.slots` through. Add the passthrough shown in [Replace One Field with a Slot](#replace-one-field-with-a-slot).
 
-**The override works in the update view but not the read view.** The read view renders every field read-only, which uses the read-only widget. Replace the field component, fill the `widget(<name>)` slot, or give the type a `readOnlyWidget`.
+**The override works in the update view but not the read view.** The read view renders every field read-only, and a read-only field uses the read-only widget. Replace the field component, fill the `widget(<name>)` slot, or give the type a `readOnlyWidget`.
