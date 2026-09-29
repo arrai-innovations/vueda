@@ -52,9 +52,23 @@ If the broker enqueue fails (Celery broker connectivity issues, serialization er
 
 ### Worker-level row locking
 
-`send_message` acquires a row lock using `lock_queue_item` (`SELECT ... FOR UPDATE SKIP LOCKED`) before processing. If the row is already locked by another worker or callback, the task silently skips processing; `SKIP LOCKED` returns no row instead of blocking.
+Each step that changes a queue item takes the item's row lock first. The lock orders workers, provider callbacks, and user transitions that change the same item.
 
-Concurrent workers and callbacks can observe "no row" and skip work. Sometimes, follow-on hooks (like `on_retry`) try to update the queue item after the lock is released. They may miss writing fields like `task_id` or `retry_delay` if the timing is unfavourable. This is a known concurrency edge case, not a data corruption risk. The queue item stays in a valid workflow state, though observability metadata may be incomplete.
+These steps wait when another transaction holds the lock:
+
+- `send_message`
+- the `on_retry` and `on_failure` hooks
+- the steps in `send_email` and `send_sms` that record the provider's answer
+
+Each wait lasts at most 5 seconds. On Postgres, VUEDA projects run at REPEATABLE READ. At that level, a transaction that waited for the lock fails with a serialization error if the holder updated the row. VDQ then runs the step again in a new transaction, up to 3 attempts in all. The new transaction reads what the holder committed. If a user cancelled the item in the meantime, the step stops instead of undoing the cancel.
+
+When every attempt fails:
+
+- `send_message` schedules itself again after 10 seconds with a Celery retry, and the item stays `queued`. The retry counts toward the task's retry limit.
+- `send_email` and `send_sms` raise `QueueItemLockError`. The provider has already accepted the message at that point. The failure handler moves the item to `errored` and stores the error in `result`, including the provider ID. Check the provider before retrying such an item, or the recipient gets the message twice.
+- `on_retry` and `on_failure` log the error and leave the item as it is.
+
+The periodic `pull_sms_timeout_only` task does not wait. It skips an item whose row is held and continues with the rest, and the next run handles the skipped item. `pull_sms_status` also skips a held row, because the webhook or the timeout task handles the same item.
 
 ## Provider Dispatch and Asynchronous Reconciliation
 
@@ -70,7 +84,7 @@ Email and SMS dispatch follow a common lifecycle pattern:
 
 5. **Late callbacks are tolerated.** Callbacks that arrive after the queue item has moved to a terminal state (e.g., cancelled) are handled via ignored transition sources; they are accepted without error or state change.
 
-Celery auto-retries transient provider failures (`AnymailTransientError`) for email, using `autoretry_for` with configurable backoff. The `QueueProcessor.on_retry` callback records `task_id` and `retry_delay` on the queue item, then transitions it to `delayed`. Non-transient failures go to the task failure handler, which appends the traceback to `result` and switches to `errored`.
+Celery auto-retries transient provider failures (`AnymailTransientError`) for email, using `autoretry_for` with configurable backoff. The `QueueProcessor.on_retry` callback records `task_id` and `retry_delay` on the queue item. It then moves an item in `sending` to `delayed`. Non-transient failures go to the task failure handler, which appends the traceback to `result` and switches to `errored`.
 
 For SMS, delivery confirmation can be provided via a webhook callback or periodic polling, depending on configuration. When `TWILIO_WEBHOOK_URL` is set, the webhook handles status updates, and the periodic task checks only for timeouts. Without the webhook URL, the periodic task polls Twilio for awaiting messages and updates their states.
 
@@ -100,7 +114,7 @@ The view enforces authentication but does not perform object-level permission ch
 
 **`done_since` anchoring.** The `done_since` field is used as the SMS timeout age basis in Twilio polling, but it is not automatically updated by VDQ workflow transitions. The timeout age is anchored to the value set at row creation or by explicit code paths that update the field. Unexpected drift in `done_since` can move items into timeout handling sooner or later than expected.
 
-**Row-lock contention.** `lock_queue_item` uses `SKIP LOCKED`, so concurrent access does not block, it skips. Workers who cannot acquire the lock silently move on. This prevents deadlocks but means that in high-contention scenarios, some task executions may be silently skipped and must be retried by Celery's retry mechanism or periodic polling.
+**Row-lock contention.** A step that waits for a row lock can occupy its Celery worker for about 15 seconds: three waits of up to 5 seconds. See [Worker-level row locking](#worker-level-row-locking) for what happens when every attempt fails.
 
 ## Relevant Implementation Surface
 
