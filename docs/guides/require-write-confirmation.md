@@ -23,7 +23,7 @@ The server answers an unconfirmed write with `409 Conflict` and a body holding `
 
 Bulk creates and updates, which save through a list serializer, are never gated.
 
-Compute each warning from the submitted input and the current database state. A condition you can find only by writing, such as a protected foreign key or a constraint violation, is an error: raise it as a validation error. [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md) explains why warnings come before the write.
+Compute each warning from the submitted input and the current database state. A condition that you can find only by writing, such as a protected foreign key or a constraint violation, is an error: raise it as a validation error. [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md) explains why warnings come before the write.
 
 ## Warn on Create and Update
 
@@ -120,15 +120,15 @@ class InvoiceViewSet(VuedaViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 ```
 
-- Pass `{field: [messages]}` when the request names one object in its URL, or no object at all.
+- Pass `{field: [messages]}` when the request identifies one object in its URL or identifies no object.
 - Pass `{object_id: {field: [messages]}}`, keyed by `str(pk)`, when a {@term Bulk Action} request goes to the list URL. The client sends a request for one selected object to its detail URL, so a bulk action body checks whether `pk` is set.
 - An empty mapping passes the gate.
 
-A 409 rolls back the request's database transaction, as [Request Transactions](../core-concepts/configuration-surface-and-defaults.md#request-transactions) describes. Work outside the database, such as an email or a call to another service, does not roll back, so call the gate before it. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#warning-confirmation-gating) describes the gate order in actions and how gating relates to a {@term Dry Run}.
+A 409 rolls back the request's database transaction, as [Request Transactions](../core-concepts/configuration-surface-and-defaults.md#request-transactions) describes. Work outside the database, such as an email or a call to another service, does not roll back, so call the gate before that work. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#warning-confirmation-gating) describes the gate order in actions and how gating relates to a {@term Dry Run}.
 
 ## Always Confirm an Action Without Input
 
-For an action that takes no input, declare [`confirm=True`]{@api py:param:vueda.core.decorators.action.confirm} on VUEDA's {@api py:function:vueda.core.decorators.action}. The first unconfirmed request returns 409 before the body runs. Set the message with a `confirm_message` attribute on the action; without one, it is {@api py:property:vueda.core.decorators.DEFAULT_CONFIRM_MESSAGE}:
+For an action that takes no input, declare [`confirm=True`]{@api py:param:vueda.core.decorators.action.confirm} on VUEDA's {@api py:function:vueda.core.decorators.action}. The first unconfirmed request returns 409 before the body runs. Set the message with a `confirm_message` attribute on the action; without one, the message is {@api py:property:vueda.core.decorators.DEFAULT_CONFIRM_MESSAGE}:
 
 ```python
 class InvoiceViewSet(VuedaViewSet):
@@ -143,7 +143,7 @@ A validation error in the body shows only after the user confirms. For an action
 
 ## Confirm Warnings on the Client
 
-1. The stock views need no setup. `ViewCreate` and `ViewUpdate` render a {@api vue:component:FormConfirmDialog} for their form. {@api vue:component:ActionForm} mounts its own dialog. {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewDeactivate}, {@api vue:component:ViewDestroy}, and {@api vue:component:ViewExecuteTransition} build on it through {@api vue:component:ModelActionForm}, as can your own shells.
+1. The stock views need no setup. `ViewCreate` and `ViewUpdate` render a {@api vue:component:FormConfirmDialog} for their form. {@api vue:component:ActionForm} mounts its own dialog. {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewDeactivate}, {@api vue:component:ViewDestroy}, and {@api vue:component:ViewExecuteTransition} build on `ActionForm` through {@api vue:component:ModelActionForm}, as can your own shells.
 
 2. In a custom shell that calls {@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm}, bind a dialog to its [`confirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.confirmation} controller:
 
@@ -233,7 +233,7 @@ A validation error in the body shows only after the user confirms. For an action
 
 - A create or update that returns warnings opens the dialog. Confirming saves; cancelling leaves the form unsaved with the warnings shown.
 - A warned delete, activate, custom action, or transition opens the dialog from `ActionForm`.
-- A bulk request prompts once for the whole batch, writes nothing before you confirm, and applies every object after.
+- A bulk request prompts once for the whole batch, writes nothing before you confirm, and writes every object after you confirm.
 - At the API level, the first request returns 409, and the same request with the digest succeeds:
 
     ```python
