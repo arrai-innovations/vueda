@@ -11,17 +11,7 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 /**
  * The store for the current dark mode state, and persisting it.
  *
- * @typedef {import('pinia').Store<
- *   'darkMode',
- *   {
- *       isDark: boolean,
- *   },
- *   {},
- *   {
- *     init: () => void,
- *     toggle: () => void
- *   }
- * >} DarkModeStore
+ * @typedef {ReturnType<typeof storeDarkMode>} DarkModeStore
  */
 
 /**
@@ -37,8 +27,6 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *   darkMode.init(); // get dark mode from local storage or prefers
  *   darkMode.toggle(); // toggle dark mode
  * ```
- *
- * @returns {DarkModeStore} The store for dark mode.
  */
 export const storeDarkMode = defineStore("darkMode", {
     state: () => ({

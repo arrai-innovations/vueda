@@ -1897,6 +1897,86 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         assert "invalid_field_name" in response.data
         assert "period_start" not in response.data
 
+    def _patch_timesheet(self, api_client, expand, data):
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+        response = api_client.patch(
+            reverse(
+                "timesheet.timesheet-detail",
+                kwargs={"pk": t1.pk},
+                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand},
+            ),
+            data=data,
+            format="json",
+        )
+        return response, t1
+
+    @pytest.mark.parametrize("expand", ["bogus", "supervisor"])
+    def test_partial_update_rejects_an_expand_the_permit_list_leaves_out(self, api_client, monkeypatch, expand):
+        """drf-flex-fields drops an expand the action's permit list leaves out; the write reports it."""
+        monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
+
+        response, t1 = self._patch_timesheet(api_client, expand, {"period_end": "2024-03-01"})
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {
+            expand: [
+                ErrorDetail(
+                    "Invalid expands. Permitted expands are employee. Or use a wildcard to expand all: *, ~all",
+                    code="invalid",
+                )
+            ]
+        }, response.data
+        t1.refresh_from_db()
+        assert t1.period_end == datetime.date(2024, 2, 29)
+
+    def test_partial_update_accepts_a_permitted_expand(self, api_client, monkeypatch):
+        monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
+
+        response, t1 = self._patch_timesheet(api_client, "employee", {"period_end": "2024-03-01"})
+
+        self.assert_response(response, 200)
+        assert response.data["employee"]["id"] == t1.employee_id
+        t1.refresh_from_db()
+        assert t1.period_end == datetime.date(2024, 3, 1)
+
+    def test_partial_update_reports_an_unknown_expand_before_body_errors(self, api_client):
+        """With no permit list, an unknown expand is reported before the body is validated."""
+        response, t1 = self._patch_timesheet(api_client, "bogus", {"employee": 999999})
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert list(errors) == ["bogus"], response.data
+        assert str(errors["bogus"][0]).startswith("Invalid expands. Permitted expands are employee, "), response.data
+        t1.refresh_from_db()
+        assert t1.employee.employee_number == "abcd-1234"
+
+    def test_create_rejects_an_expand_when_the_permit_list_is_empty(self, api_client, monkeypatch):
+        monkeypatch.setattr(TimesheetViewSet, "permit_create_expands", [], raising=False)
+        user = self.users["test_my_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+
+        response = api_client.post(
+            reverse("timesheet.timesheet-list", query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee"}),
+            data={"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"},
+            format="json",
+        )
+
+        self.assert_response(response, 400)
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == {"employee": [ErrorDetail("Invalid expands. No expands are permitted.", code="invalid")]}, (
+            response.data
+        )
+        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
+
 
 class _OrderItemCompositePKResponse(TypedDict):
     pk: str  # JSON-encoded composite key, e.g. '["1", "1"]'

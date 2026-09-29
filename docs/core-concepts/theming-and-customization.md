@@ -7,7 +7,7 @@ status: draft
 
 # Theming and Customization
 
-VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The theme is registered at app startup via {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme}, and consumers customize it through a small set of mechanisms with sharply different reach.
+VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The default setup imports the built-in theme for its registration side effects; consumers customize the registered defaults through the mechanisms below.
 
 Those mechanisms map to four scopes with sharply different reach. The guiding principle: find the smallest scope that covers the change you need.
 
@@ -18,8 +18,8 @@ Customization concerns sort into four scopes, ordered from narrowest to broadest
 | Scope     | Mechanism                                                                                                              | Affects                             |
 | --------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | Instance  | {@api js:function:@arrai-innovations/vueda/use/useTheme#useThemeOverride} (via `themeOverride` prop or provide/inject) | One subtree                         |
-| Component | {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme} on a leaf entry                                 | All instances of that component     |
-| Family    | `setTheme` on a meta key (`_ButtonBase`, etc.)                                                                         | All components that compose from it |
+| Component | {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} on a leaf entry                               | All instances of that component     |
+| Family    | `patchTheme` on a meta key (`_ButtonBase`, etc.)                                                                       | All components that compose from it |
 | Brand     | CSS token override (`--vueda-*`, `--primary`, etc.)                                                                    | Every consumer of the token         |
 
 Each scope up is "broader cross-cut, less component-specific." Instance customizations are local DOM scope; component customizations are one component identity; family customizations are a visual relationship across multiple components; brand customizations are the design language itself.
@@ -40,9 +40,9 @@ Use it when one specific instance, in one specific surface, needs to look differ
 
 The provide/inject behavior is significant: a parent that sets an override propagates it to every descendant `useTheme` call without the intermediate components needing to know. A field that needs its inputs to render without borders can override the Input theme on the field itself; the Input components inside it pick up the override without prop-threading.
 
-## Component: `setTheme` on a leaf entry
+## Component: `patchTheme` on a leaf entry
 
-Calling `setTheme({ Button: { root: { class: 'bg-amber-500' } } })` at app startup reshapes the default theme: every Button rendered anywhere in the app picks up the override as its baseline. Per-instance overrides still merge on top.
+Calling `patchTheme({ Button: { root: { class: 'uppercase tracking-wide' } } })` after the Button defaults have registered adds classes to every Button in the app. Per-instance overrides still merge on top. See [How the theme is registered](#how-the-theme-is-registered) for the required loading order.
 
 Use it to change how one component renders system-wide: a different focus treatment, default size, or data attribute that should be true everywhere the component appears. The change is component-specific; it does not affect anything that merely looks like a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
 
@@ -70,7 +70,7 @@ Meta keys are theme entries with an underscore-prefixed name (`_ButtonBase`, `_B
 }
 ```
 
-Overriding `_ButtonBase` via `setTheme` propagates through every leaf that composes from it: Buttons, calendar day triggers, pagination items, dialog actions, and any other entry that explicitly opts into the family. Overrides for `composes` use replace semantics (declaring a new compose list on an override replaces the default's list entirely), while own `class` values from default and override still combine as in non-composing entries.
+Patching `_ButtonBase` after its defaults have registered propagates through every leaf that composes from it: Buttons, calendar day triggers, pagination items, dialog actions, and any other entry that explicitly opts into the family. Overrides for `composes` use replace semantics (declaring a new compose list on an override replaces the default's list entirely), while own `class` values from default and override still combine as in non-composing entries.
 
 Composition is opt-in. A leaf entry that does not declare `composes` is unaffected by meta-key overrides. This is intentional: family relationships are explicit in the default theme, not implicit by name. A third-party component bundled with a VUEDA-using app does not pick up `_ButtonBase` overrides unless its theme entries opt in.
 
@@ -113,7 +113,7 @@ The merged override theme used in step 1 is the result of merging:
 - Ancestor overrides provided by `useThemeOverride` calls higher in the tree.
 - The component's `themeOverride` config (a per-component contribution defined in the theme entry).
 
-`setTheme` mutates the global default theme that those overrides merge against; it does not participate in the per-instance merge directly. The result is layered customization: brand at the bottom (CSS tokens), defaults next (`setTheme`), provide/inject next (`useThemeOverride`), per-instance at the top.
+`patchTheme` updates the registered defaults that per-instance overrides merge against. `setTheme` replaces those defaults wholesale. The result is layered customization: brand at the bottom (CSS tokens), registered defaults next, provide/inject next (`useThemeOverride`), per-instance at the top.
 
 ## When the answer is a token, not the theme
 
@@ -150,24 +150,32 @@ The four scopes above are about reach: which rendered elements a customization a
 
 Two registration functions back it, both exported from {@api js:module:@arrai-innovations/vueda/use/useTheme} (which re-exports them from the underlying `@vueda/use/themeRegistry.js`):
 
-- `setTheme(theme)` replaces the registry wholesale. This is the global-eager entry point: `setTheme(vuedaTailwind)` installs the entire built-in theme at once.
+- `setTheme(theme)` replaces the registry wholesale, including earlier patches. Use it to install your own complete theme object after the defaults you intend to replace have registered.
 - `patchTheme(partial)` registers entries additively, without disturbing the rest of the registry. It is how each component contributes its own default.
 
 The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
 
 That yields three registration paths an integrator chooses between in `main.js`:
 
-| Path         | Setup                                                    | What registers                          |
-| ------------ | -------------------------------------------------------- | --------------------------------------- |
-| Global-eager | `setTheme(vuedaTailwind)`                                | Every component's default, up front     |
-| Per-family   | `import "@vueda/theme/vueda-tailwind/<family>/index.js"` | One family's defaults                   |
-| Fully-lazy   | nothing                                                  | Each component's default, as it renders |
+| Path            | Setup                                                     | What registers                                                                   |
+| --------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Eager (default) | `import "@vueda/theme/vueda-tailwind/index.js";`          | All built-in defaults when the module loads                                      |
+| Per-family      | `import "@vueda/theme/vueda-tailwind/<family>/index.js";` | That family's defaults and their shared dependencies when the module loads       |
+| Per-component   | No aggregate or family theme import                       | Each imported component's defaults and shared dependencies when its module loads |
 
-Global-eager is the default for new projects and the simplest to reason about: the whole theme is present before anything renders. The fully-lazy path trades that simplicity for bundle size. Because a component imports its own theme module, a route chunk that pulls in only a handful of components drags in only those components' theme entries; components the app never renders contribute nothing to the bundle. The per-family path sits in between: register the families you use and skip the rest.
+The eager import is the default for new projects. It registers all built-in defaults before the body of `main.js` runs, so project `patchTheme` calls there run after registration. No `setTheme` call is needed. The aggregate module's default export is a snapshot of the registry; calling `setTheme(vuedaTailwind)` reinstalls that snapshot and can discard patches made after the import.
 
-All three paths are independent of the CSS token layer. The `@vueda/theme/vueda-tailwind/base.css` import (the design tokens the class strings resolve against) is required regardless of which path you choose; dropping `setTheme` does not drop the tokens.
+For per-family loading, replace the aggregate import with imports of the family modules you need. Apply project patches after those imports have registered the relevant defaults. Components from other families still register their own defaults when their modules load.
 
-When a component renders before its default has been registered (only possible on a deferred path), the resolver reports `loading` and the component's root carries a hide style until the entry arrives, so it does not flash unstyled content. Under the eager side-effect import the theme is registered before the component's setup runs, so this stays dormant.
+For per-component loading, remove both the aggregate theme import and any `setTheme(vuedaTailwind)` call. Components already import their own `*.theme.js` modules. Import the components your app uses, for example `@vueda/controls/button/Button.vue`; unused components' theme modules stay out of the bundle unless another import brings them in. Registration happens when component modules load, including when a lazy route loads, rather than when a component first renders.
+
+::: warning Project patch ordering
+Defaults must register before project patches that customize them. With per-component loading, import the relevant component or theme module before calling `patchTheme`. A patch in `main.js` can otherwise run before a lazy route imports its defaults, and the later registration can overwrite the patch. Removing the aggregate import does not make early global patches reliable; load-order-independent overrides are tracked in [#378](https://github.com/arrai-innovations/vueda/issues/378).
+:::
+
+All three paths require the application stylesheet to import Tailwind and `@vueda/theme/vueda-tailwind/base.css`. Changing JavaScript registration does not replace the CSS setup.
+
+Built-in components import their defaults before their setup runs. If an application explicitly registers an asynchronous theme loader, the resolver reports `loading` while that loader is pending, and themed roots use a hide style until it settles.
 
 ## Relationship to shadcn-vue
 

@@ -139,8 +139,10 @@ def print_trace(
     error_prefix = f"{error_color('Error')}: "
     print(wrap_text(f"{error_prefix}{message}"), file=stderr)
     with temp_terminal_width(text_wrapper.width - len(error_prefix)):
-        for line in wrap_text(trace):
-            print(f"{error_prefix}{line}", file=stderr)
+        # Wrap each line on its own: wrapping the whole trace would join its lines into one paragraph.
+        for trace_line in trace.splitlines():
+            for line in text_wrapper.wrap(trace_line):
+                print(f"{error_prefix}{line}", file=stderr)
 
 
 def ask(

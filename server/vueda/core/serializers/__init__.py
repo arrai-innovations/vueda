@@ -26,6 +26,8 @@ from typing import ClassVar
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
@@ -239,12 +241,62 @@ class FlexFieldsWriteableNestedSerializerMixin(
     def update_or_create_direct_relations(self, attrs, relations):
         return super().update_or_create_direct_relations(attrs, relations)
 
+    def update_or_create_reverse_relations(self, instance, reverse_relations):
+        """
+        Save each reverse relation's rows, matching submitted pks only against the parent's rows.
+
+        drf-writable-nested looks up submitted child pks across the whole child table, then saves
+        each match with its foreign key set to this parent. A pk that belongs to another parent's
+        row would move that row here and update it, although the request was authorized only for
+        this parent. Each relation is saved on its own, so the lookup can be limited to rows that
+        already belong to this parent. A pk outside that set matches no row, and the library saves
+        that entry as a new row, as it does for any unknown pk.
+
+        Many-to-many relations keep the library's lookup, because linking an existing row by pk is
+        what a nested many-to-many write does.
+        """
+        for field_name, relation in reverse_relations.items():
+            self._reverse_relation_lookup = self._get_reverse_relation_lookup(instance, relation[0])
+            try:
+                super().update_or_create_reverse_relations(instance, {field_name: relation})
+            finally:
+                self._reverse_relation_lookup = None
+
+    def _get_reverse_relation_lookup(self, instance, related_field):
+        """Return the filter that selects the rows of ``related_field`` that belong to ``instance``."""
+        if isinstance(related_field, GenericRelation):
+            return self._get_generic_lookup(instance, related_field)
+        if related_field.many_to_many:
+            return None
+        return {related_field.name: instance}
+
+    def _prefetch_related_instances(self, field, related_data):
+        """Fetch the existing rows the submitted pks name, within the parent's rows when a lookup is set."""
+        queryset = field.Meta.model.objects.filter(pk__in=self._extract_related_pks(field, related_data))
+        lookup = getattr(self, "_reverse_relation_lookup", None)
+        if lookup is not None:
+            queryset = queryset.filter(**lookup)
+        return {str(related_instance.pk): related_instance for related_instance in queryset}
+
     def _extract_relations(self, validated_data):
+        # A read-only serializer validates any input, even a missing key, to `{}`, which the
+        # library pops from `validated_data` as a direct relation to save. Keep a model instance
+        # passed to `save()` for a read-only direct relation, so the parent still stores it.
+        readonly_values = {
+            field.source: validated_data[field.source]
+            for field in self._writable_fields
+            if isinstance(field, VuedaReadonlySerializer) and field.source in validated_data
+        }
         relations, reverse_relations = super()._extract_relations(validated_data)
 
-        # Tuple, so we can modify inline, as needed.
+        # Tuples, so we can modify inline, as needed. You cannot create or update a readonly
+        # serializer, so its relation takes no part in the save.
+        for field_name, (field, field_source) in tuple(relations.items()):
+            if isinstance(field, VuedaReadonlySerializer):
+                del relations[field_name]
+                if isinstance(readonly_values.get(field_source), models.Model):
+                    validated_data[field_source] = readonly_values[field_source]
         for field_name, (_related_field, field, _field_source) in tuple(reverse_relations.items()):
-            # You cannot create or update a readonly serializer.
             if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
                 del reverse_relations[field_name]
 

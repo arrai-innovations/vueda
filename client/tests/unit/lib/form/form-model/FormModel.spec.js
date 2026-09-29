@@ -71,6 +71,14 @@ describe("lib/form/form-model/FormModel.vue", () => {
         expect(mockedUseFormModel).toHaveBeenCalledWith(expect.any(Object));
     });
 
+    scopedIt("passes computedFields to useFormModel, undefined when unset", () => {
+        mount(FormModel, { props: { app: "a", model: "m", computedFields: ["score"] } });
+        expect(mockedUseFormModel.mock.calls.at(-1)[0].computedFields).toEqual(["score"]);
+
+        mount(FormModel, { props: { app: "a", model: "m" } });
+        expect(mockedUseFormModel.mock.calls.at(-1)[0].computedFields).toBeUndefined();
+    });
+
     scopedIt("shows spinner when no fields", () => {
         const wrapper = mount(FormModel, { props: { app: "a", model: "m" } });
         expect(wrapper.get('[data-qa="loading-spinner-block"]').exists()).toBe(true);

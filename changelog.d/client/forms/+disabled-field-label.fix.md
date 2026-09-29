@@ -1,0 +1,2 @@
+- **A disabled field's label dims (`FormField`, `useWidget`)**:
+    - The label theme dims a label inside a `Field` marked `data-disabled="true"`, but `FormField` never set that attribute, so a disabled field's label looked enabled. A widget now reports its disabled state to its field, and `FormField` marks its `Field` while the widget is disabled.

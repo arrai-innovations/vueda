@@ -176,6 +176,15 @@ const props = defineProps({
         default: undefined,
         description: "The fields to render in the form, expanded.",
     },
+    /**
+     * Field names to render as computed fields: read-only, in `FormField`, and outside the form context. Replaces the
+     * model config `computedFields` list for this form.
+     */
+    computedFields: {
+        type: Array,
+        default: undefined,
+        description: "Field names to render as computed fields, if not wanting to use the configuration default.",
+    },
     /** Visual variant passed to the theme system to select an alternate form style. */
     variant: {
         type: String,

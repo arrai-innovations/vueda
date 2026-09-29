@@ -88,6 +88,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
  * @property {string[]} [submitFields] - field paths sent in the create/update request body by default
  * @property {string[]} [expand] - field names to expand by default
+ * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
  * @property {ActionPermissionConfig} [actions] - actions to display by default
  * @property {string[]} [filterables] - filters to display in list view
@@ -500,25 +501,6 @@ const mergeDeepProperties = (
 
 /**
  * A store for model configuration.
- *
- * @returns {import('pinia').Store<
- *     'modelConfig',
- *     {
- *         genericConfigs: {[key: string]: ModelConfig},
- *         specificConfigs: {[key: string]: OverridingModelConfig},
- *         builtConfigs: {[key: string]: ModelConfig},
- *         initialized: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>},
- *     },
- *     {
- *         setConfig: (
- *             {app: string, model: string},
- *             genericConfig: OverridingModelConfig=null,
- *             specificConfigs: {[view: string]: OverridingModelConfig}=null
- *         ) => void,
- *         getConfig: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>,
- *     }
- * >}
- *
  */
 export const storeModelConfig = defineStore("modelConfig", {
     state: () => ({

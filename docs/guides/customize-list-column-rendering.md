@@ -93,7 +93,7 @@ modelConfigStore.setConfig(
 
 **Factory function** returns a component dynamically (`() => MyComponent`), for conditional selection.
 
-An unknown string key resolves to nothing and falls through to the next surface (ultimately `ColumnText`), rather than erroring. Pass a direct component reference when you want a missing-component mistake to be obvious.
+The first surface that sets a column wins. If its string key names no registered adapter, or its factory returns nothing, the list shows an error naming the column and the key, and renders that column's cells empty. The other columns render normally.
 
 ## Custom Column Component Contract
 
@@ -203,7 +203,7 @@ After configuring column overrides, verify:
 
 **An override has no effect.** Check the column name matches the field name exactly, and that no higher-precedence surface is also set (a consumer `field(<col>)` slot beats the `columnComponents` prop, which beats model config). Register `setConfig` overrides at bootstrap, before the first CRUD navigation, for the same reason described in the [row-link guide](./link-list-rows-to-detail-views#opt-in-through-model-config).
 
-**A string-keyed adapter is ignored.** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). An unknown key silently falls through to the type default. Pass a direct component reference for a custom adapter.
+**The list shows "No column component named".** The key must match a registered adapter name exactly (`"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, `"ColumnModelLink"`). Pass a direct component reference for a custom adapter.
 
 **Surplus attributes appear on a custom adapter's root element.** Add `defineOptions({ inheritAttrs: false })` and declare only the cell props you consume.
 

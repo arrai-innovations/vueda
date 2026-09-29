@@ -1,4 +1,4 @@
-"""VUEDA Delivery Queue for email and SMS dispatch via Celery."""
+"""VUEDA Dispatch Queue (VDQ): email and SMS delivery through Celery."""
 
 __all__ = ("celery_app",)
 

@@ -278,12 +278,6 @@ const camelCaseObject = (obj, skipKeys = []) => {
 
 /**
  * A store for model information.
- *
- * @returns {import('pinia').Store<{
- *     infos: {[key: string]: ModelInfo},
- *     promises: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>},
- *     fetchModelInfo: FetchModelInfo
- * }>}
  */
 export const storeModelInfo = defineStore("modelInfo", {
     state: () => ({

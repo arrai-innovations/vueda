@@ -261,33 +261,7 @@ const executeTransitionUrl = (result) => {
 };
 
 /**
- * @typedef {import('pinia').Store<
- *     'workflow',
- *     {
- *         objectStates: { [string]: {[key: string]: WorkflowObjectStateEntry} },
- *         objectTransitions: { [string]: {[key: string]: WorkflowObjectTransitionsEntry} },
- *         objectHistories: { [string]: {[key: string]: WorkflowObjectHistoryEntry} },
- *         modelStates: {[key: string]: WorkflowState[]},
- *         workflowTransitions: {[key: string]: WorkflowTransition[]}
- *     },
- *     {},
- *     {
- *         fetchModelStates: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowState[]>,
- *         fetchObjectState: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectStateEntry>,
- *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectTransitionsEntry>,
- *         fetchObjectHistory: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectHistoryEntry>,
- *         executeTransition: (
- *             app: string,
- *             model: string,
- *             objectPk: string | string[],
- *             transition_code: string,
- *             router?: import('vue-router').Router,
- *             stateToRoute?: Record<string, any>,
- *             dryRun?: boolean,
- *             acknowledgeWarnings?: string,
- *         ) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<any>
- *     }
- * >} WorkflowStore
+ * @typedef {ReturnType<typeof storeWorkflow>} WorkflowStore
  */
 
 /**
@@ -321,7 +295,6 @@ const executeTransitionUrl = (result) => {
  *     await workflowStore.fetchObjectHistory(app, model, objectPk);
  *     await workflowStore.executeTransition(app, model, objectPk, transition_code);
  * ```
- * @returns {WorkflowStore} The store for workflow.
  */
 export const storeWorkflow = defineStore("workflow", {
     state: () => {

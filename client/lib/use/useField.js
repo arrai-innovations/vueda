@@ -93,6 +93,7 @@ export function defaultIsRequiredViolation(value) {
  * @property {import('vue').ComputedRef<string[]>} clearServerErrorDependents - The clearServerErrorDependents for the field.
  * @property {import('vue').ComputedRef<string[]>} validationDependencies - The validationDependencies for the field.
  * @property {import('vue').ComputedRef<boolean>} readOnly - Whether the field is read-only.
+ * @property {import('vue').ComputedRef<boolean>} disabled - Whether the field's widget reports itself disabled, through `reportWidgetDisabled`.
  *
  * // *** Validation & Display ***
  * @property {import('vue').ComputedRef<string>} label - The label for the field.
@@ -169,6 +170,7 @@ export function defaultIsRequiredViolation(value) {
  * // *** Dependency Management ***
  * @property {(hook: (dependencyValues: {[path: string]: any}) => void) => string} registerDependencyValues - Registers a field with its dependency paths.
  * @property {(id: string) => void} unregisterDependencyValues - Unregisters a field for dependency tracking.
+ * @property {(disabled: boolean) => void} reportWidgetDisabled - Called by the field's widget with its disabled state, so the field shell can show it.
  */
 
 /**
@@ -345,6 +347,9 @@ export function useField(props, emit, options = {}) {
     }
     /* v8 ignore end */
 
+    // The widget owns the disabled state; it reports it here so the field shell can dim its label.
+    const widgetDisabled = ref(false);
+
     const state = reactive(
         /** @type {FieldContextRawState} */
         {
@@ -355,6 +360,7 @@ export function useField(props, emit, options = {}) {
             clearServerErrorDependents: readonly(toRef(props, "clearServerErrorDependents")),
             validationDependencies: readonly(toRef(props, "validationDependencies")),
             readOnly: readonly(toRef(props, "readOnly")),
+            disabled: computed(() => widgetDisabled.value),
 
             // *** Validation & Display ***
             label: computed(() => (props.label?.length ? props.label : props.name)),
@@ -802,6 +808,10 @@ export function useField(props, emit, options = {}) {
             if (unref(formContext)) {
                 unref(formContext).unregisterDependencyValues(id);
             }
+        },
+
+        reportWidgetDisabled: (disabled) => {
+            widgetDisabled.value = !!disabled;
         },
     };
 

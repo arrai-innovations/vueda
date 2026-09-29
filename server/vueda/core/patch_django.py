@@ -137,3 +137,4 @@ if "change" not in permission_names_mapping and "change" in permission_names_map
 
 if "view" not in permission_names_mapping and "view" in permission_names_mapping.values():
     ObjectPermissions.perms_map["GET"] = ["%(app_label)s.view_%(model_name)s"]
+    ObjectPermissions.perms_map["HEAD"] = ["%(app_label)s.view_%(model_name)s"]

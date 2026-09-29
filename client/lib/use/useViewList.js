@@ -147,7 +147,7 @@ import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, effectScope, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -211,6 +211,7 @@ const VIEW_NAME = "list";
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
  * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
+ * @property {Error[]} columnErrors - Errors from columns whose `columnComponents` override names no component. ViewList shows them and renders no cells for those columns.
  * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
  * @property {object} columnTotals - Map of display column name to that column's total, for the totals this request asked for. Totals are opt-in: the request carries the intersection of the totals the server advertises (`modelConfig.config.totalables`) and the currently visible columns, under `COLUMN_TOTALS_PARAM`, so hiding the last totalled column stops asking for totals at all and this is `{}`. The server computes them during the same list request that returns the rows, and each response replaces this map rather than merging into it, so a total is always as fresh as the rows beside it and can never describe data that has since changed.
  * @property {boolean} loading - Combined loading state (model config + instance list).
@@ -1114,7 +1115,7 @@ export function useViewList(options) {
     );
 
     // A declared total whose name matches no display column at all is the one misconfiguration the
-    // server's `vueda_info.E011` check cannot catch: `column_totals` keys name client columns, and
+    // server's `vueda_info.E013` check cannot catch: `column_totals` keys name client columns, and
     // the server has no idea what those are, since `displayFields` is configured per project and per
     // view. Nothing fails for it — the total is simply never requested and never rendered — so this
     // is the only place it can be said out loud.
@@ -1167,10 +1168,17 @@ export function useViewList(options) {
             configProps: modelConfig.config?.columnProps,
         });
         for (const resolved of Object.values(resolvedColumns)) {
-            resolved.component = markRaw(toRaw(resolved.component));
+            if (resolved.component) {
+                resolved.component = markRaw(toRaw(resolved.component));
+            }
         }
         return resolvedColumns;
     });
+    const columnErrors = computed(() =>
+        Object.values(columnComponents.value)
+            .map((resolved) => resolved.error)
+            .filter(Boolean),
+    );
     // Slot names ViewList injects defaults for; excluded from the generic
     // consumer-slot forward loop so an injected default and a forwarded
     // consumer slot never double-render the same column.
@@ -1202,7 +1210,6 @@ export function useViewList(options) {
     });
 
     const buttonSlotProps = reactive({});
-    const bspEffectScope = effectScope();
     watch(
         [bulkActions, targetlessActions, availableTransitions],
         ([newBulkActions, newTargetlessActions, newTransitions]) => {
@@ -1215,22 +1222,16 @@ export function useViewList(options) {
             );
             for (const addedKey of addedKeys) {
                 const isBulk = bulkActionSet.has(addedKey) || availableTransitionsSet.has(addedKey);
-                bspEffectScope.run(() => {
-                    buttonSlotProps[addedKey] = {
-                        app: appRef,
-                        model: modelRef,
-                        view: addedKey,
-                        label: memoizedStartCase(addedKey),
-                        click: isBulk ? detailActionOnClick(addedKey) : undefined,
-                        selectedObjects: isBulk ? selectedObjects : undefined,
-                        disabled: isBulk ? computed(() => (!addedKey) in availableTransitions.value) : undefined,
-                    };
-                });
+                buttonSlotProps[addedKey] = {
+                    app: appRef,
+                    model: modelRef,
+                    view: addedKey,
+                    label: memoizedStartCase(addedKey),
+                    click: isBulk ? detailActionOnClick(addedKey) : undefined,
+                    selectedObjects: isBulk ? selectedObjects : undefined,
+                };
             }
             for (const removedKey of removedKeys) {
-                if (buttonSlotProps[removedKey].disabled) {
-                    buttonSlotProps[removedKey].disabled.effect?.stop();
-                }
                 delete buttonSlotProps[removedKey];
             }
         },
@@ -1448,6 +1449,7 @@ export function useViewList(options) {
             computedFieldObjects,
             specialSlots,
             columnComponents,
+            columnErrors,
             columnSlots,
             columnTotals,
             loading,

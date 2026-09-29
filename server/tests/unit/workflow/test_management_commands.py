@@ -1429,6 +1429,32 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
     @info_registry_clear_with_appended_apps()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
+    def test_dry_run_creates_no_object_states(self, settings):
+        """A dry run reports the migration it would write and leaves objects without a state as they are."""
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_initial_state": "tests.workflow_initial_state",
+        }
+        append_installed_apps(settings, "tests.workflow_initial_state")
+        ContentType.objects.clear_cache()
+
+        with self.temporary_migration_module(settings, app_label="workflow_initial_state"):
+            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
+
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_initial_state", "--dry-run")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
     def test_workflow_initial_state_changed(self, settings):
         """
         This test validates that when an initial state changes, any objects that haven't been
@@ -1497,13 +1523,18 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             initial_state.save()
 
             # Run makeworkflowmigrations, which should update initial object states, when applicable.
+            existing_migrations = set(Path(migration_dir).glob("*.py"))
             succeeded, results = self.call_command(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
-                "--dry-run",
+                "--import-instead",
             )
             if not succeeded:
                 pytest.fail("".join(results))
+            # Only the state sync matters here. Remove the migration it wrote, so the steps below
+            # generate their own from the same starting point.
+            for written in set(Path(migration_dir).glob("*.py")) - existing_migrations:
+                written.unlink()
 
             assert test_1.object_state.state.code == "fourth"
             assert test_2.object_state.state.code == "second"

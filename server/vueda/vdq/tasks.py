@@ -194,6 +194,9 @@ def check_previously_received_message_sid(self, message_sid, message_status):
             .filter(sms__message_sid=message_sid)
             .first()
         )
-        if qi:
-            SMSQueueItem.objects.select_for_update(of=("self",)).get(queue_item=qi)
-            self.twilio.update_sms_qi(qi, message_status, webhook=True)
+        if qi is None:
+            # The item has not stored this SID yet, or another transaction holds it. Raising lets
+            # autoretry_for try again until timeout_hours pass.
+            raise QueueItem.DoesNotExist(f"No queue item has message SID {message_sid!r}.")
+        SMSQueueItem.objects.select_for_update(of=("self",)).get(queue_item=qi)
+        self.twilio.update_sms_qi(qi, message_status, webhook=True)
