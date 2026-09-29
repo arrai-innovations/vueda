@@ -47,7 +47,7 @@ class OrderLine(VuedaModel):
         default_related_name = "order_lines"
 ```
 
-A composite-key model that leaves history on fails the `vueda_core.E013` system check at startup. The [`History` section]{@api py:property:vueda.history.apps.HISTORY_SECTION} lists its options.
+A composite-key model that leaves history on fails the `vueda_core.E013` system check at startup. The [`History` section]{@api py:property:vueda.history.apps.HISTORY_SECTION} lists the history options.
 
 `OrderLine` has no `name` field, so the default {@term Formatted Name} has no column to copy. The example sets `formatted_name = None` and points [`formatted_name_lookup_expression`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_lookup_expression} at the product's name. [Create a CRUD Surface](./create-crud-surface#the-formatted-name-contract) describes the other ways to supply a formatted name.
 
@@ -75,7 +75,7 @@ class OrderLineSerializer(VuedaSerializer):
 
 ## Define the FilterSet
 
-Build the filterset on {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}. It has no `id` filter, because the model has no `id` field. Declare a filter for each key column you want clients to filter by:
+Build the filterset on {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}. It has no `id` filter, because the model has no `id` field. Declare a filter for each key column that you want clients to filter by:
 
 ```python
 from django_filters import rest_framework
@@ -92,7 +92,7 @@ class OrderLineFilterSet(VuedaCompositePrimaryKeyFilterSet):
         fields = ["quantity"]
 ```
 
-On a {@term Workflow-Enabled Model}, the base still adds the `workflow_state` filter.
+On a {@term Workflow-Enabled Model}, the base filterset still adds the `workflow_state` filter.
 
 ## Define the ViewSet, Routes, and Registration
 
