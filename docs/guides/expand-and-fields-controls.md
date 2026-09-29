@@ -13,7 +13,7 @@ It assumes a working {@term CRUD} surface. If the model is not registered and ro
 
 ## Declare expandable fields
 
-List each relation the client may expand in the serializer's `Meta.expandable_fields`. Merge the parent's entries at the end, so expands that {@api py:class:vueda.core.serializers.VuedaSerializer} declares are kept:
+In the serializer's `Meta.expandable_fields`, list each relation that the client may expand. Merge the parent's entries at the end, so expands that {@api py:class:vueda.core.serializers.VuedaSerializer} declares are kept:
 
 ```python
 from vueda.core.serializers import VuedaSerializer
@@ -77,7 +77,7 @@ class NoteSerializer(VuedaSerializer):
 
 `"*"` in the fields option returns every field of the related object's serializer. Without static field options, declare the bare class: `"content_object": GenericForeignKeySerializer`.
 
-At representation time, `GenericForeignKeySerializer` serializes the related object with the serializer registered for its model. Register every model the relation can point to, with [`register`]{@api py:function:vueda.info.registration.register} or [`register_serializer`]{@api py:function:vueda.info.registration.register_serializer}. An object whose model is not registered expands to `null`. The output always carries `app_label`, `model`, and `formatted_name`.
+At representation time, `GenericForeignKeySerializer` serializes the related object with the serializer registered for its model. Register every model that the relation can point to, with [`register`]{@api py:function:vueda.info.registration.register} or [`register_serializer`]{@api py:function:vueda.info.registration.register_serializer}. An object whose model is not registered expands to `null`. The output always carries `app_label`, `model`, and `formatted_name`.
 
 A generic foreign key expand is read-only. The server does not check `f` entries under it, such as `content_object.name`, because the related model is known only per object.
 
@@ -111,15 +111,15 @@ expandable_fields = {
 }
 ```
 
-Plain names and wildcards apply to every related model. For each object, the serializer keeps the specifiers that name the object's model as plain field names and drops the others.
+Plain names and wildcards apply to every related model. For each object, the serializer turns the specifiers that name the object's model into plain field names and drops the other specifiers.
 
-Field selection stays within the registered serializer's `Meta.fields`. A model field that serializer does not list is never returned, whether a plain name or a specifier requests it.
+Field selection stays within the registered serializer's `Meta.fields`. A model field that the registered serializer does not list is never returned, whether a plain name or a specifier requests it.
 
 ## Permit expands on `list`
 
-A `list` request may expand only the names in the viewset's `permit_list_expands`, which is empty until you set it. The client sends every declared expand on list requests by default. So a model with declared expands fails every list request with a `400` until the two sides match. Each rejected name gets the message `Invalid expands. No expands are permitted.`
+A `list` request may expand only the names in the viewset's `permit_list_expands`, which is empty until you set it. The client sends every declared expand on list requests by default. So every list request for a model with declared expands fails with a `400` until the two sides match. Each rejected name gets the message `Invalid expands. No expands are permitted.`
 
-1. Set `permit_list_expands` on the viewset to the expands the list may use:
+1. Set `permit_list_expands` on the viewset to the expands that the list may use:
 
     ```python
     from vueda.core.viewsets import VuedaViewSet
@@ -148,7 +148,7 @@ A `list` request may expand only the names in the viewset's `permit_list_expands
 
     {@api vue:component:ViewList} sends the resolved [`expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.expand} as `e`. An empty `expand` sends no `e`, so the list expands nothing and needs no permit.
 
-With a permit list set, a request for an expand it does not name gets a `400` whose message lists the permitted expands. The `*` wildcard expands every permitted name.
+With a permit list set, a request for an expand that the permit list does not name gets a `400` whose message lists the permitted expands. The `*` wildcard expands every permitted name.
 
 ## Narrow expands on other actions
 
@@ -174,37 +174,37 @@ class CartViewSet(VuedaViewSet):
     permit_list_expands = ["cart_items", "customer", "customer.user"]
 ```
 
-A dotted path the permit list does not name gets a `400`, even when its first part is permitted. A dotted entry does not permit its first part alone: `e=customer` still needs `"customer"` in the list. An action with no permit list accepts any dotted path that follows declared expands, up to the depth that `MAXIMUM_EXPANSION_DEPTH` sets (4 by default).
+A dotted path that the permit list does not name gets a `400`, even when its first part is permitted. A dotted entry does not permit its first part alone: `e=customer` still needs `"customer"` in the list. An action with no permit list accepts any dotted path that follows declared expands, up to the depth that `MAXIMUM_EXPANSION_DEPTH` sets (4 by default).
 
 ## Select fields of an expanded object
 
-To narrow an expanded object, name its fields in `f` as `<expand>.<field>`, as in `f=id,category.id,category.name`. Include the related primary key if you need it, because VUEDA adds no field you did not name.
+To narrow an expanded object, name its fields in `f` as `<expand>.<field>`, as in `f=id,category.id,category.name`. Include the related primary key if you need it, because VUEDA adds no field that you did not name.
 
-In the client, put the same dotted names in the view's [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}. When `expand` names a relation, [`storeModelConfig`]{@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} adds a [`fieldDetails`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldDetails} entry for each of its sub-fields, keyed like `category.name`. Name those keys in `displayFields` to show sub-field columns.
+In the client, put the same dotted names in the view's [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}. When `expand` names a relation, [`storeModelConfig`]{@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} adds a [`fieldDetails`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldDetails} entry for each of its sub-fields, keyed by the dotted name, such as `category.name`. Name those keys in `displayFields` to show sub-field columns.
 
 An expanded object never carries {@term Available Actions}, and `f=category.available_actions` gets a `400`. Retrieve the related object to read its actions.
 
 ## Check the requests
 
-`list` and `retrieve` requests reject an `f` or `e` name the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. Each entry in these `f` and `e` errors is an object with `message` and `code`. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
+`list` and `retrieve` requests reject an `f` or `e` name that the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. Each entry in these `f` and `e` errors is an object with `message` and `code`. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
 
 Create and update requests do not check `f`. An unknown name there is ignored, and the response carries only the known fields.
 
 Confirm the setup in the browser's network panel:
 
 - The `list` request's `e` holds only names in `permit_list_expands`, and the response holds expanded objects for them.
-- The detail request's `e` holds only names its action permits.
+- The detail request's `e` holds only names that its action permits.
 - Adding an undeclared name to `e` or `f` returns a `400` that names it.
 - A per-view `expand` override changes `e` for that view only.
 
 ## Troubleshooting
 
-**Every `list` request returns `400` with "Invalid expands".** The client's list `expand` names something `permit_list_expands` does not. By default the client sends every declared expand, and the permit list starts empty. Set `permit_list_expands`, narrow the list view's `expand`, or both.
+**Every `list` request returns `400` with "Invalid expands".** The client's list `expand` includes a name that `permit_list_expands` does not. By default the client sends every declared expand, and the permit list starts empty. Set `permit_list_expands`, narrow the list view's `expand`, or both.
 
 **A `400` from `f` or `e` does not reach a form.** A list or detail view that fails its request raises a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}. Only a create, update, or patch `400` becomes a {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}. Fix the view's `expand` or `fetchFields`, or the viewset's permit list.
 
 **Expanded field columns show no values.** `displayFields` names an `expand.subfield` key, but the view's `expand` does not name that relation. Without the expand, the client builds no `fieldDetails` entry for the key, and the server returns the related primary key. Add the relation to `expand`.
 
-**A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. A misspelled or unpermitted `e` name answers a `400` that names it before the body is validated.
+**A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. The server answers a misspelled or unpermitted `e` name with a `400` that names it, before it validates the body.
 
 **A custom detail component has no action availability.** {@api js:function:@arrai-innovations/vueda/use/useDetailView#useDetailView} always adds `available_actions` to `f`, and {@api vue:component:DetailView}, `ViewRead`, and `ViewUpdate` fetch through it. Code that fetches with {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve} directly must add it to `f`.
