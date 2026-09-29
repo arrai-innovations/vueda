@@ -76,7 +76,7 @@ const batchErrors = [
 
 # System Views
 
-This page shows the views VUEDA renders while a route loads, when a route or model action does not exist, and when a user deactivates records. It also shows the display parts those views and the other action views build on. [Components](./index.md) describes the rules every component page shares.
+This page shows the views that VUEDA renders while a route loads, when a route or model action does not exist, and when a user deactivates records. It also shows the display parts that those views and the other action views build on. [Components](./index.md) describes the rules that every component page shares.
 
 ## ViewLoading
 
@@ -112,11 +112,11 @@ Theme keys: {@api theme-key:ViewLoading}.
 - a [DiagnosticStrip](#diagnosticstrip) with the route, followed by any rows in the [`diagnostics`]{@api vue:component:ViewNotFound:prop:diagnostics} prop;
 - Back and Go to home buttons, which the [`actions`]{@api vue:component:ViewNotFound:slot:actions} slot replaces.
 
-{@api js:function:@arrai-innovations/vueda/use/useSuggestRoute#useSuggestRoutes} scores every registered route path against the typed path by string similarity, with each numeric segment read as a primary key. It keeps up to [`suggestionLimit`]{@api vue:component:ViewNotFound:prop:suggestionLimit} routes, five by default, and drops routes that score zero. The list is hidden when no route scores.
+{@api js:function:@arrai-innovations/vueda/use/useSuggestRoute#useSuggestRoutes} scores every registered route path against the typed path by string similarity, with each numeric segment read as a primary key. It keeps up to [`suggestionLimit`]{@api vue:component:ViewNotFound:prop:suggestionLimit} routes, five by default, and drops routes that score zero. The list is hidden when every route scores zero.
 
 The callout compares each typed segment with the same position in the top suggestion. A numeric segment matches a route parameter. With no suggestion, every segment is marked. Go to home opens [`homePath`]{@api vue:component:ViewNotFound:prop:homePath}, `/` by default.
 
-This page has no router, so the demo below composes the same parts the view renders for a mistyped path.
+This page has no router, so the demo below composes the same parts that the view renders for a mistyped path.
 
 Theme keys: {@api theme-key:ViewNotFound}.
 
@@ -160,7 +160,7 @@ Theme keys: {@api theme-key:ViewNotFound}.
 - The suggestion list shows the closest model's actions.
 - The second button is Browse all actions, which opens that model's list route. It is hidden when no model is close.
 
-The suggestions come from the {@term Model Info} the client has already loaded. The view picks the closest app label by string similarity, then the closest model in that app. It lists that model's actions by route name, so `retrieve` appears as `read`. It leaves out `partial_update`, which the `update` route serves. A detail action appears only when the tried route has a primary key, and its link reuses that key. The list is sorted by similarity to the tried action name. The view passes no HTTP verb, so the rows show no verb chip.
+The suggestions come from the {@term Model Info} that the client has already loaded. The view picks the closest app label by string similarity, then the closest model in that app. It lists that model's actions by route name, so `retrieve` appears as `read`. It leaves out `partial_update`, which the `update` route serves. A detail action appears only when the tried route has a primary key, and its link reuses that key. The list is sorted by similarity to the tried action name. The view passes no HTTP verb, so the rows show no verb chip.
 
 This demo composes the same parts for a mistyped action on a model whose actions are `list`, `create`, and `archive`.
 
@@ -204,7 +204,7 @@ Theme keys: {@api theme-key:ViewActionNotFound}.
 
 The confirmation is a {@api vue:component:ModelActionForm}. It lists the selected objects and sends a {@term Dry Run} of the `deactivate` action when it opens. On confirm, it sends the action as a `PATCH` request. If the server answers with warnings, the form asks the user to confirm them ({@term Warning Confirmation}) before it resends. After success or cancel, the form opens the {@term Action Redirect}. The view puts its title in the page title and a Go Back button in the page actions.
 
-Attributes and slots pass through to `ModelActionForm`, so a page that wraps `ViewDeactivate` can change its copy and add a typed confirmation.
+Attributes and slots pass through to `ModelActionForm`, so a page that wraps `ViewDeactivate` can change the form's copy and add a typed confirmation.
 
 Theme keys: {@api theme-key:ViewDeactivate} for the outer wrapper, and {@api theme-key:ModelActionForm} for the card.
 
@@ -300,7 +300,7 @@ Theme keys: {@api theme-key:SystemMessageCard}. {@api theme-key:SystemMessageCar
 
 ## ConsequencesBullets
 
-{@api vue:component:ConsequencesBullets} is a list of what a destructive action will do. {@api vue:component:ViewDestroy} uses it to list the linked records a delete affects. Each row has an optional leading icon, a bold label, and an optional muted description.
+{@api vue:component:ConsequencesBullets} is a list of what a destructive action will do. {@api vue:component:ViewDestroy} uses it to list the linked records that a delete affects. Each row has an optional leading icon, a bold label, and an optional muted description.
 
 A row's `tone` (`default`, `warn`, or `danger`) tints only its icon, through {@api theme-key:ConsequencesBullets.toneWarn} and {@api theme-key:ConsequencesBullets.toneDanger}. The list shows relative severity without overpowering the card around it.
 
@@ -405,7 +405,7 @@ Theme keys: {@api theme-key:TriedUrlCallout}.
 
 {@api vue:component:SuggestionList} is the "Did you mean" list the 404 views show. It takes a head label, an optional monospace source label, and a list of rows. Each row has an icon, a label with an optional second line, a trailing chip, and a chevron. The [`shape`]{@api vue:component:SuggestionList:prop:shape} decides what the chip shows: `route` shows a similarity score, and `action` shows an HTTP verb.
 
-Each row is a `router-link`, so the rows navigate in an application with vue-router. This page has no router, so the rows below render the link a real `RouterLink` would produce and ignore the click.
+Each row is a `router-link`, so the rows navigate in an application with vue-router. This page has no router, so the rows below render the link that a real `RouterLink` would produce and ignore the click.
 
 Theme keys: {@api theme-key:SuggestionList}.
 
@@ -433,9 +433,9 @@ Theme keys: {@api theme-key:SuggestionList}.
 
 ## DiagnosticStrip
 
-{@api vue:component:DiagnosticStrip} is the two-column list of labels and values the 404 views put below their suggestions. An operator can copy the route, request id, or session from it into a ticket. Values render in monospace by default, because they exist to be pasted elsewhere; set [`mono`]{@api vue:component:DiagnosticStrip:prop:mono} to `false` for sentences.
+{@api vue:component:DiagnosticStrip} is the two-column list of labels and values that the 404 views put below their suggestions. An operator can copy the route, request id, or session from it into a ticket. Values render in monospace by default, because they exist to be pasted elsewhere; set [`mono`]{@api vue:component:DiagnosticStrip:prop:mono} to `false` for sentences.
 
-The strip shows only the rows the view passes. It fetches nothing, and it changes nothing on the server.
+The strip shows only the rows that the view passes. It fetches nothing, and it changes nothing on the server.
 
 Theme keys: {@api theme-key:DiagnosticStrip}.
 
@@ -457,11 +457,11 @@ Theme keys: {@api theme-key:DiagnosticStrip}.
 
 ## ErrorDisplay
 
-{@api vue:component:ErrorDisplay} is the error card the view layer renders above a failed surface. {@api vue:component:ActionForm} renders one above its form, so a failed save shows a card without any code in the view. It takes an [`errored`]{@api vue:component:ErrorDisplay:prop:errored} flag and an [`error`]{@api vue:component:ErrorDisplay:prop:error}. It formats an `Error`, a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError} with a response and server detail, an array of several, or a string.
+{@api vue:component:ErrorDisplay} is the error card that the view layer renders above a failed surface. {@api vue:component:ActionForm} renders one above its form, so a failed save shows a card without any code in the view. It takes an [`errored`]{@api vue:component:ErrorDisplay:prop:errored} flag and an [`error`]{@api vue:component:ErrorDisplay:prop:error}. It formats an `Error`, a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError} with a response and server detail, an array of several errors, or a string.
 
 It reports each distinct error to Sentry once. This docs site has no Sentry client, so the demos below report nothing.
 
-A view can hide some errors from the card so another part of the page shows them. [`ignore-form-validation-errors`]{@api vue:component:ErrorDisplay:prop:ignoreFormValidationErrors} hides server validation errors, which belong on the fields. [`ignore-list-filter-errors`]{@api vue:component:ErrorDisplay:prop:ignoreListFilterErrors} hides filter errors, which belong on the filter chip. [`ignore-aborted-requests`]{@api vue:component:ErrorDisplay:prop:ignoreAbortedRequests}, on by default, hides cancelled requests, such as one the user left by navigating away.
+A view can hide some errors from the card so another part of the page shows them. [`ignore-form-validation-errors`]{@api vue:component:ErrorDisplay:prop:ignoreFormValidationErrors} hides server validation errors, which belong on the fields. [`ignore-list-filter-errors`]{@api vue:component:ErrorDisplay:prop:ignoreListFilterErrors} hides filter errors, which belong on the filter chip. [`ignore-aborted-requests`]{@api vue:component:ErrorDisplay:prop:ignoreAbortedRequests}, on by default, hides cancelled requests, such as one that the user left by navigating away.
 
 The card reports a failure that already happened. Dismissing it does not retry or undo the request.
 
