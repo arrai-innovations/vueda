@@ -40,7 +40,6 @@ from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
-from ordered_set import OrderedSet
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
@@ -550,6 +549,11 @@ class VuedaSearchFilterBackend(SearchFilter):
     to indicate that the search term in `search_fields` should use trigram
     similarity comparison, and `~` for word similarity. The similarity threshold can be set on the ViewSet
     as `similarity_threshold`.
+
+    A search field that reaches through a multi-valued relation matches inside a subquery built from
+    the view's search queryset: the queryset its `get_search_queryset()` returns, or the model's
+    default manager when it defines none. A viewset whose `search_fields` name an annotation defines
+    `get_search_queryset()` with that annotation; see `get_search_queryset` below.
     """
 
     customized_lookup_prefixes = {
@@ -579,6 +583,43 @@ class VuedaSearchFilterBackend(SearchFilter):
                 return f"{field_name}__{lookup}"
         return super().construct_search(field_name, queryset)
 
+    def search_field_path(self, search_field):
+        """Return the field path a ``search_fields`` entry searches, without its lookup prefix."""
+        search_field = str(search_field)
+        for prefix in sorted(self.lookup_prefixes, key=len, reverse=True):
+            if search_field.startswith(prefix):
+                return search_field[len(prefix) :]
+        return search_field
+
+    def must_call_distinct(self, queryset, search_fields):
+        """
+        Whether any search field reaches through a multi-valued relation, read by its path.
+
+        DRF's check strips a one-character lookup prefix, which leaves the two-character `V:` prefix
+        in place, so each path is stripped here first.
+        """
+        paths = [self.search_field_path(field) for field in search_fields]
+        return super().must_call_distinct(queryset, paths)
+
+    def get_search_queryset(self, view, queryset):
+        """
+        Return the queryset that a search through a multi-valued relation (a reverse foreign key or a
+        many-to-many) matches against: the view's ``get_search_queryset()`` when the view defines one,
+        and the model's default manager otherwise.
+
+        Such a search matches inside a subquery that holds one row per matching related row, then
+        narrows ``queryset`` to the objects that match. ``queryset`` applies the viewset's filters and
+        aggregates outside the subquery, where they see every related row, so the subquery carries
+        none of them. A view defines ``get_search_queryset()`` when its ``search_fields`` name an
+        annotation that only ``get_queryset()`` adds, or when the default manager hides rows the view
+        lists. It returns the model's queryset with those annotations, every row the view lists and no
+        filters. The ``vueda_info.E014`` system check reports a missing annotation.
+        """
+        get_search_queryset = getattr(view, "get_search_queryset", None)
+        if get_search_queryset is None:
+            return queryset.model._default_manager.all()
+        return get_search_queryset()
+
     def filter_queryset(self, request, queryset, view):
         """
         Combines VUEDA-style ranked search (`V:`-prefixed fields), trigram similar (`#`-prefixed
@@ -592,7 +633,8 @@ class VuedaSearchFilterBackend(SearchFilter):
         5. For deterministic lookups: filter (OR across fields, AND across terms) and boost rank.
         6. Filter on a minimum combined rank and optionally order by it.
         7. When a search field reaches through a multi-valued relation, keep the search's joins inside
-           subqueries, so the queryset the view handed in keeps one row per object (see below).
+           subqueries built from :meth:`get_search_queryset`, so the queryset the view handed in keeps
+           one row per object (see below).
         """
         # gather search fields & terms (DRF semantics)
         search_fields = self.get_search_fields(view, request)
@@ -623,12 +665,19 @@ class VuedaSearchFilterBackend(SearchFilter):
             if lookup not in v_lookups and lookup not in trig_lookups and lookup not in trig_word_lookups
         ]
 
-        if not ranked_fields and not trigram_fields and not trigram_word_fields:
+        mcd = self.must_call_distinct(queryset, search_fields)
+        custom_lookups = bool(ranked_fields or trigram_fields or trigram_word_fields)
+
+        if not custom_lookups and not mcd:
             # no custom lookups, defer to base class behavior for deterministic lookups
             return super().filter_queryset(request, queryset, view)
 
         # The queryset as the view and the ordering backend left it, before the search joins anything.
+        # A search through a multi-valued relation matches against the search queryset inside a
+        # subquery; any other search matches against `base` itself.
         base = queryset
+        if mcd:
+            queryset = self.get_search_queryset(view, base)
         annotations = {}
 
         # ranked search: full-text, trigram and iregex
@@ -663,13 +712,16 @@ class VuedaSearchFilterBackend(SearchFilter):
             conditions = [models.Q(**{lookup: combined_term}) for lookup in trig_lookups + trig_word_lookups]
             queryset = queryset.filter(reduce(operator.or_, conditions))
 
-        # deterministic filtering and artificial rank boost
+        # deterministic filtering
         if det_lookups:
             per_term_groups = [
                 reduce(operator.or_, [models.Q(**{lookup: term}) for lookup in det_lookups]) for term in search_terms
             ]
             queryset = queryset.filter(reduce(operator.and_, per_term_groups))
 
+        # Deterministic lookups boost the rank only in a ranked search. On their own they filter, as in
+        # DRF's `SearchFilter`.
+        if det_lookups and custom_lookups:
             det_scores = [
                 models.Case(
                     models.When(**{lookup: term}, then=models.Value(10)),
@@ -681,18 +733,6 @@ class VuedaSearchFilterBackend(SearchFilter):
             ]
             annotations["deterministic_score"] = reduce(operator.add, det_scores, models.Value(0))
 
-        # strip custom prefixes so model opts.get_field doesn't choke
-        search_fields = list(
-            OrderedSet(search_fields)
-            - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{f}" for f in ranked_fields)
-            - OrderedSet(f"{TRIGRAM_SIMILAR_PREFIX}{f}" for f in trigram_fields)
-            - OrderedSet(f"{TRIGRAM_WORD_SIMILAR_PREFIX}{f}" for f in trigram_word_fields)
-            | OrderedSet(ranked_fields)
-            | OrderedSet(trigram_fields)
-            | OrderedSet(trigram_word_fields)
-        )
-        mcd = self.must_call_distinct(queryset, search_fields)
-
         # Whether the client asked for an ordering, which is what decides between sorting by rank and
         # sorting by the request. Read from the query parameter rather than from the queryset, because
         # a view's own default `ordering` reaches the queryset the same way an explicit request does
@@ -701,9 +741,9 @@ class VuedaSearchFilterBackend(SearchFilter):
         ordering_requested = bool(request.query_params.get(api_settings.ORDERING_PARAM))
 
         # A search field reaching through a multi-valued relation joins one row per matching related
-        # row. Those joins stay inside subqueries, as in DRF's `SearchFilter`, and the result is `base`
-        # narrowed to the objects that match. `base` keeps one row per object, its ordering and its
-        # own aggregates, which a join on the outer query would multiply.
+        # row. Those joins stay inside subqueries built from the search queryset, and the result is
+        # `base` narrowed to the objects that match. `base` keeps one row per object, its ordering, its
+        # own aggregates and its filters, which see every related row.
         if not annotations:
             if mcd:
                 queryset = base.filter(Exists(queryset.filter(pk=OuterRef("pk"))))

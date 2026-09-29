@@ -1,4 +1,5 @@
 from dateutil.relativedelta import relativedelta
+from django.db.models import Count
 from django.db.models import F
 from django.db.models import Sum
 from django.db.models.functions import Lower
@@ -271,6 +272,70 @@ class CartM2MSearchAggregateViewSet(CartM2MSearchOrderingViewSet):
 
     def get_queryset(self):
         return super().get_queryset().annotate(total_quantity=Sum("cart_items__quantity"))
+
+
+class CartM2MSearchAggregateFilterViewSet(CartM2MSearchOrderingViewSet):
+    """Lists only carts holding at least three items, on a viewset whose ranked search reaches through
+    `cart_items`.
+
+    The filter is on an aggregate. The search matches inside a subquery built from `Cart`'s default
+    manager, and this queryset applies the filter outside it, counting all of each cart's items."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+
+
+class CartM2MSearchAggregateUpperBoundViewSet(CartM2MSearchOrderingViewSet):
+    """Lists only carts holding at most two items, on a viewset whose ranked search reaches through
+    `cart_items`.
+
+    A trigram or deterministic search joins `cart_items` once more for its own condition, so a count
+    inside its subquery would count each item once per matching item. This queryset applies the filter
+    outside the subquery, counting each of a cart's items once."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__lte=2)
+
+
+class CartM2MSearchAggregateFilterInSearchQuerysetViewSet(CartM2MSearchAggregateFilterViewSet):
+    """Returns a search queryset that filters on an aggregate, which `vueda_info.E014` reports."""
+
+    def get_search_queryset(self):
+        return my_models.Cart.objects.annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+
+
+class CartSingleValuedSearchAggregateFilterViewSet(CartM2MSearchAggregateFilterViewSet):
+    """Filters on an aggregate, with a search that follows only foreign keys. The search matches
+    against the viewset's queryset itself, without a subquery, so it reads no search queryset."""
+
+    search_fields = ["V:customer__user__name"]
+
+
+class CartM2MSearchAnnotationViewSet(CartM2MSearchOrderingViewSet):
+    """Searches `customer_name`, an annotation only `get_queryset()` adds, alongside a field that
+    reaches through `cart_items`.
+
+    The search matches inside a subquery built from `Cart`'s default manager, which has no
+    `customer_name`, so `vueda_info.E014` reports it and a search request fails with a `FieldError`."""
+
+    search_fields = ["V:customer_name", "V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(customer_name=F("customer__user__name"))
+
+
+class CartM2MSearchAnnotationSearchQuerysetViewSet(CartM2MSearchAnnotationViewSet):
+    """Adds the `customer_name` annotation its search fields name to its search queryset."""
+
+    def get_search_queryset(self):
+        return my_models.Cart.objects.annotate(customer_name=F("customer__user__name"))
+
+
+class CartSearchAnnotationOnlyViewSet(CartM2MSearchAnnotationViewSet):
+    """Searches only the `customer_name` annotation. The search reaches through no multi-valued
+    relation, so it matches against the viewset's queryset itself and reads no search queryset."""
+
+    search_fields = ["V:customer_name"]
 
 
 class CartItemViewSet(VuedaViewSet):

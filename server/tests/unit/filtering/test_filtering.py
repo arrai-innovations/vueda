@@ -1,10 +1,12 @@
 import datetime
 from http import HTTPStatus
+from types import SimpleNamespace
 from typing import ClassVar
 from unittest.mock import MagicMock
 
 import pytest
 from django.conf import settings
+from django.core.exceptions import FieldError
 from django.db import connection
 from django.db.models import Count
 from django.urls import reverse
@@ -903,7 +905,7 @@ class TestMultiValuedSearchPkTieBreaker:
             settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Small Medium Sugar Cinnamon",
             settings.REST_FRAMEWORK["ORDERING_PARAM"]: ordering,
         }
-        view = MagicMock()
+        view = SimpleNamespace()
         view.search_fields = ["V:cart_items__product_option__name"]
         queryset = store_models.Cart.objects.order_by(ordering)
         return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
@@ -931,7 +933,7 @@ class TestMultiValuedSearchPkTieBreaker:
         request.query_params = {"s": "test"}
 
         # Mock view with M2M search field (triggers must_call_distinct=True)
-        view = MagicMock()
+        view = SimpleNamespace()
         view.search_fields = ["V:special_care__field_that_contains_the_name"]
 
         with patch.object(backend, "must_call_distinct", return_value=True):
@@ -963,7 +965,7 @@ class TestSearchKeepsQuerysetAggregates:
             request.query_params[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
             queryset = queryset.order_by(ordering)
 
-        view = MagicMock()
+        view = SimpleNamespace()
         view.search_fields = [search_field]
         return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
 
@@ -1052,6 +1054,163 @@ class TestSearchKeepsQuerysetAggregates:
         assert sorted(result["id"] for result in response.data["results"]) == sorted(
             cart["cart"].pk for cart in test_data.carts.values()
         ), response_body(response)
+
+
+@pytest.mark.django_db
+class TestSearchPrefixKeepsQuerysetFiltersIndependent:
+    """A search through a multi-valued relation and a queryset filter through the same relation are
+    independent conditions, whatever the search field's prefix.
+
+    The queryset keeps carts holding an item with a quantity of at least 24. The second customer's
+    cart holds "Explosive Dynamite" with a quantity of 24 and "Gentle Cinnamon" with a quantity of 6.
+    It has a big item and it has a Cinnamon item, so a search for Cinnamon keeps it, even though no
+    single item is both. The prefix decides how results are ranked, not which objects match.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms"),
+        [
+            pytest.param("cart_items__product_option__name", "Cinnamon", id="deterministic"),
+            pytest.param(f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Gentle Cinnamon", id="trigram"),
+            pytest.param(
+                f"{SEARCH_LOOKUP_PREFIX}cart_items__product_option__name",
+                "Cinnamon",
+                id="ranked",
+            ),
+        ],
+    )
+    def test_search_matches_items_the_queryset_filter_does_not_keep(self, test_data, search_field, terms):
+        request = MagicMock()
+        request.query_params = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        view = SimpleNamespace(search_fields=[search_field])
+        queryset = store_models.Cart.objects.filter(cart_items__quantity__gte=24)
+
+        results = VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+
+@pytest.mark.django_db
+class TestSearchQueryset:
+    """A search through a multi-valued relation matches against the view's search queryset: the one
+    `get_search_queryset()` returns, or the model's default manager.
+
+    The viewset's queryset applies its own filters outside the search subquery, where an item count
+    covers all of a cart's items. The second customer's cart holds three items and the first
+    customer's cart holds two.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def search(viewset, search_field, terms, ordering=None):
+        request = MagicMock()
+        request.query_params = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        view = viewset()
+        queryset = view.get_queryset()
+        if ordering is not None:
+            request.query_params[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
+            queryset = queryset.order_by(ordering)
+        if search_field is not None:
+            view.search_fields = [search_field]
+        return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms", "ordering"),
+        [
+            pytest.param("V:cart_items__product_option__name", "Small Medium Sugar Cinnamon", None, id="ranked"),
+            pytest.param(
+                "V:cart_items__product_option__name", "Small Medium Sugar Cinnamon", "id", id="ranked-ordered"
+            ),
+            pytest.param(
+                f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Sweet Sugar", None, id="trigram"
+            ),
+            pytest.param(
+                f"{TRIGRAM_WORD_SIMILAR_PREFIX}cart_items__product_option__name", "Sweet Sugar", None, id="word-similar"
+            ),
+            pytest.param("cart_items__product_option__name", "Sugar", None, id="deterministic"),
+        ],
+    )
+    def test_aggregate_filter_keeps_matching_objects(self, test_data, search_field, terms, ordering):
+        """`CartM2MSearchAggregateFilterViewSet` lists only carts holding at least three items. Two of
+        the second customer's three items match the ranked search, and a count over those two alone
+        would reject the cart."""
+        results = self.search(store_viewsets.CartM2MSearchAggregateFilterViewSet, search_field, terms, ordering)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms"),
+        [
+            pytest.param(f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Medium Small", id="trigram"),
+            pytest.param("cart_items__product_option__name", "m", id="deterministic"),
+        ],
+    )
+    def test_upper_bound_aggregate_filter_keeps_matching_objects(self, test_data, search_field, terms):
+        """`CartM2MSearchAggregateUpperBoundViewSet` lists only carts holding at most two items. The first
+        customer's cart holds two, "Medium" and "Small", and both match the search.
+
+        A trigram or deterministic search filters through a join of its own on `cart_items`, so a count
+        over the search's rows would count each item once per matching item: four for this cart."""
+        results = self.search(store_viewsets.CartM2MSearchAggregateUpperBoundViewSet, search_field, terms)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_1@domain.invalid"]["cart"].pk]
+
+    @pytest.mark.parametrize(
+        "ordering",
+        [
+            pytest.param(None, id="rank-ordering"),
+            pytest.param("id", id="requested-ordering"),
+        ],
+    )
+    def test_search_subqueries_carry_none_of_the_viewset_aggregates(self, test_data, ordering):
+        """The search subqueries are built from the model's default manager, so the rank subquery that
+        runs once per matching object carries no `GROUP BY` or `HAVING`. Only the outer query groups,
+        for the viewset's item count."""
+        results = self.search(
+            store_viewsets.CartM2MSearchAggregateFilterViewSet,
+            "V:cart_items__product_option__name",
+            "Small Medium Sugar Cinnamon",
+            ordering,
+        )
+
+        sql = str(results.query)
+        assert sql.count("GROUP BY") == 1, sql
+        assert sql.count("HAVING") == 1, sql
+
+    def test_single_valued_search_applies_the_aggregate_filter(self, test_data):
+        """A search that follows only foreign keys matches against the viewset's queryset itself."""
+        results = self.search(
+            store_viewsets.CartSingleValuedSearchAggregateFilterViewSet, "V:customer__user__name", "Test Customer 2"
+        )
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    def test_search_queryset_carries_an_annotation_search_fields_name(self, test_data):
+        """`CartM2MSearchAnnotationSearchQuerysetViewSet` searches the `customer_name` annotation
+        alongside `cart_items`, and its `get_search_queryset()` adds the same annotation."""
+        results = self.search(store_viewsets.CartM2MSearchAnnotationSearchQuerysetViewSet, None, "Cinnamon")
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    def test_annotation_missing_from_the_search_queryset_raises_field_error(self, test_data):
+        """`CartM2MSearchAnnotationViewSet` adds `customer_name` only in `get_queryset()`. The default
+        manager the search subquery is built from has no such annotation."""
+        with pytest.raises(FieldError, match="customer_name"):
+            list(self.search(store_viewsets.CartM2MSearchAnnotationViewSet, None, "Cinnamon"))
+
+    def test_annotation_only_search_matches_against_the_viewset_queryset(self, test_data):
+        """A search on an annotation alone reaches through no multi-valued relation, so it needs no
+        search queryset."""
+        results = self.search(store_viewsets.CartSearchAnnotationOnlyViewSet, None, "Test Customer 2")
+
+        assert test_data.carts["test_customer_2@domain.invalid"]["cart"].pk in [cart.pk for cart in results]
 
 
 @pytest.mark.django_db
