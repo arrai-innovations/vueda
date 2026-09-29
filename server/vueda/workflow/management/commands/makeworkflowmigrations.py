@@ -2312,10 +2312,14 @@ class Command(BaseCommand):
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
 
-        for workflow in models.Workflow.objects.all():
-            model_class = workflow.content_type.model_class()
-            if model_class is not None:
-                manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
+        # The developer fakes the new migration locally, so its state sync never runs here. The
+        # command gives the local objects the states the migration would, unless this is a dry run,
+        # which writes nothing.
+        if not self.dry_run:
+            for workflow in models.Workflow.objects.all():
+                model_class = workflow.content_type.model_class()
+                if model_class is not None:
+                    manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
 
         if not changes_by_app:
             self.stdout.write(self.style.SUCCESS("No workflow changes detected."))

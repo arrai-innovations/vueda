@@ -341,6 +341,27 @@ describe("lib/stores/storeUser.js", () => {
             );
         });
 
+        scopedIt("forgotPassword identifies the reset cooldown and preserves the server detail", async () => {
+            const response = { status: 429, statusText: "Too Many Requests" };
+            const data = { detail: "You must wait before requesting another password reset." };
+            getUrl.mockReturnValue("/forgot/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver(response, data));
+            });
+
+            const store = storeUser();
+            await expect(store.forgotPassword({ email: "reset@domain.invalid" })).rejects.toMatchObject({
+                name: "UserError",
+                message: "Password reset requested too recently: 429 Too Many Requests",
+                response,
+                responseData: data,
+            });
+            expect(store.error.responseData).toEqual(data);
+            expect(store.errored).toBe(true);
+            expect(store.loading).toBe(false);
+        });
+
         scopedIt("changePassword posts payload", async () => {
             const payload = { old_password: "old", new_password1: "new", new_password2: "new" };
             getUrl.mockReturnValue("/change/");

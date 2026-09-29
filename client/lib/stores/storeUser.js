@@ -409,7 +409,12 @@ export const storeUser = defineStore("user", {
                 UserError,
                 undefined,
                 undefined,
-                authErrorResolver,
+                (response, data) => {
+                    if (response.status === 429) {
+                        return new UserError("Password reset requested too recently", response, data);
+                    }
+                    return authErrorResolver(response, data);
+                },
             )
                 .then((responseData) => {
                     return responseData;

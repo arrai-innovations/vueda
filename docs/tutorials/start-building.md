@@ -590,7 +590,7 @@ During local development the client dev server and Django run on different ports
 The scaffolded `client/src/index.css` and `client/src/main.js` already set up the client, so keep both files. `index.css` loads Tailwind, the theme's `base.css` tokens, and the fonts. `main.js` registers the Tailwind theme, the icons, and the {@term CRUD} data adapters. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) for what each call does.
 
 ::: tip
-`setTheme(vuedaTailwind)` registers every component's default theme up front. It is the simplest path and the one this tutorial uses. If you later want to trim the bundle to just the components your app renders, VUEDA also supports per-family and fully-lazy registration; see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
+For per-family or per-component loading and the order required for project patches, see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
 :::
 
 ### Add a Sign-In Route
