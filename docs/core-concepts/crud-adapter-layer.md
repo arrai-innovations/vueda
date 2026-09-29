@@ -9,7 +9,7 @@ status: draft
 
 The list and object composables from reactive-helpers, {@api ext:reactive-helpers:useList} and {@api ext:reactive-helpers:useObject}, send no HTTP requests themselves. Each operation calls a {@term CRUD Adapter} from a registry. VUEDA's adapter modules, {@api js:module:@arrai-innovations/vueda/utils/listCrud} and {@api js:module:@arrai-innovations/vueda/utils/objectCrud}, provide adapters for VUEDA's REST API.
 
-This page describes the registries, what each default adapter sends and accepts, and the contract a replacement adapter meets. The defaults give an application a working data path from the start. A project can replace any adapter, for every instance or for one.
+This page describes the registries, what each default adapter sends and accepts, and the contract that a replacement adapter meets. The defaults give an application a working data path from the start. A project can replace any adapter, for every instance or for one.
 
 ## Registries and Registration
 
@@ -37,7 +37,7 @@ Each adapter receives one object. reactive-helpers documents these objects per s
 - `target`: the merged `args`, with `app` and `model`, and optionally `pk`, `action`, and `resultsKey`.
 - `pkKey`: the name of the model's primary key field.
 - `isCancelled`: a read-only ref that becomes `true` when the instance cancels the run.
-- `setCancelled`: a function the adapter calls to mark its own run cancelled.
+- `setCancelled`: a function that the adapter calls to mark its own run cancelled.
 
 The other keys depend on the slot:
 
@@ -70,7 +70,7 @@ A returned promise that carries a `cancel` method is a {@term Cancellable Promis
 
 ### Single-Page List
 
-`singlePagePaginatedListCrudAdaptor` fetches one page. It requests the model's list URL, or the detail action URL when `target` has both `pk` and `action`. {@api js:function:@arrai-innovations/vueda/utils/listCrud#makeSearchParamsString} turns `params` into the query string. It joins arrays with commas and drops `undefined` values. The {@term Wire Query Parameters} entry lists the parameter names.
+`singlePagePaginatedListCrudAdaptor` fetches one page. It requests the model's list URL. When `target` has both `pk` and `action`, it requests the detail action URL. {@api js:function:@arrai-innovations/vueda/utils/listCrud#makeSearchParamsString} turns `params` into the query string. It joins arrays with commas and drops `undefined` values. The {@term Wire Query Parameters} entry lists the parameter names.
 
 When the page parameter `p` is absent or `1`, the adapter calls `clearObjects()` before it sends the request. A failed or cancelled first-page load therefore leaves the list empty.
 
@@ -99,13 +99,13 @@ Both send the CSRF token. When `dryRun` is set, they send the `Dry-Run: true` he
 | Adapter                                                                                 | Request                                                                                 |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}      | `GET` to the detail URL                                                                 |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}        | `POST` to the list URL, or to the detail action URL when `target` has `pk` and `action` |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}        | `POST` to the list URL; to the detail action URL when `target` has `pk` and `action`    |
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}        | `PUT` to the detail URL for `object[pkKey]`                                             |
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch}         | `PATCH` to the detail URL for `pk`, with `partialObject` as the body                    |
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}        | `DELETE` to the detail URL, with `formData` as a JSON body when passed                  |
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectExecuteAction} | The action name as the detail URL's action segment; `PUT` unless `requestMethod` is set |
 
-Retrieve, create, update, and patch add `params` to the URL only when the fields parameter `f` or the expand parameter `e` has entries. Create, update, and patch send the CSRF token. They choose between a JSON body and a multipart body, as [Multipart Saves](#multipart-saves) describes. All four send the `Acknowledge-Warnings` header when the caller passes a digest. Delete and execute action also send the `Dry-Run` header, as the list adapters do.
+Retrieve, create, update, and patch add `params` to the URL only when the fields parameter `f` or the expand parameter `e` has entries. Create, update, and patch send the CSRF token. They choose between a JSON body and a multipart body, as [Multipart Saves](#multipart-saves) describes. These three send the `Acknowledge-Warnings` header when the caller passes a digest. Delete and execute action send the CSRF token, the `Dry-Run` header, and the `Acknowledge-Warnings` header, as the list adapters do.
 
 `defaultObjectCreate` builds its own cancellable promise from `fetch`, and its `cancel` aborts that request. The all-pages list adapter does the same for its page requests. Every other default adapter uses reactive-helpers' {@api ext:reactive-helpers:cancellableFetch}. Every default adapter sends credentials with the request.
 
@@ -133,7 +133,7 @@ The error classes are {@api js:class:@arrai-innovations/vueda/utils/errors#FormV
 
 The server answers a valid dry-run delete with `200`. The delete adapters accept that status only while `dryRun` is set, because only `204` confirms a real delete. A `204` resolves to `undefined`. Any other success resolves to the decoded response body.
 
-A network failure or an aborted request rejects with the browser's own error, a {@api ext:mdn:TypeError} or a {@api ext:mdn:DOMException}. VUEDA does not wrap it in `FetchError`.
+A network failure or an aborted request rejects with the browser's own error: a {@api ext:mdn:TypeError} or a {@api ext:mdn:DOMException}. VUEDA does not wrap it in `FetchError`.
 
 The list adapters classify errors by the response body. For any non-`200` response, the adapter compares the body's keys with the request's `params`, leaving out `p`, `s`, and `ct`. If the body has a key named after any other request parameter, the error is a `ListFilterError`. Otherwise it is a `FetchError`. A `400` keyed by `o`, `ps`, `e`, `f`, or a filter name is therefore a `ListFilterError`. The list view keeps a `ListFilterError` out of its own error state.
 
@@ -154,7 +154,7 @@ The file check has these limits:
 
 - The check misses a `File` inside an array or a nested object. When no top-level value is a file, the body is JSON and the file becomes `{}`.
 - A top-level `Blob` that is not a `File` switches the body to multipart, but the adapter sends the blob's properties in place of its content.
-- The check uses `instanceof`. A file object from another iframe, or a custom wrapper, fails it and goes out in JSON as `{}`.
+- The check uses `instanceof`. A file object from another iframe and a custom wrapper both fail it and go out in JSON as `{}`.
 
 ## Replacing Adapters
 
