@@ -127,9 +127,13 @@ The value is the duration string a `DurationField` sends and reads, such as
 default; the `showDays`, `showHours`, and `showSeconds` props add the rest. The
 shown units split the value between them, so two days read as 48 hours when days
 are hidden. Clearing a unit while the rest of the value is zero sets the value
-to `null`, and entering `0` keeps a zero duration. Each spinner has
-a visible unit label; clicking it focuses that input. Style the labels through
-the {@api theme-key:WidgetDuration} `unitLabel` slot.
+to `null`, and entering `0` keeps a zero duration. A negative value, such as
+`-1 23:00:00` (Django's form for minus one hour), shows a "Negative" segment with
+a minus sign before the spinners. The spinners show the size of the duration, and
+editing them keeps the value negative. Each spinner has a visible unit label;
+clicking it focuses that input. Style the labels through the
+{@api theme-key:WidgetDuration} `unitLabel` slot, and the negative segment
+through its `sign` and `signSymbol` slots.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">

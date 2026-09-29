@@ -25,6 +25,14 @@ patchTheme({
         innerItem: {
             class: ["flex flex-col flex-grow gap-1"],
         },
+        /** The segment before the spinners that marks a negative duration, stacked like a unit segment. */
+        sign: {
+            class: ["flex flex-col gap-1"],
+        },
+        /** The minus sign under the segment's label, centered in the height the spinners take. */
+        signSymbol: {
+            class: ["flex flex-1 items-center text-base font-medium"],
+        },
         /** The visible unit label above each spinner, associated with that unit's input. */
         unitLabel: {
             class: ["text-xs text-muted-foreground"],

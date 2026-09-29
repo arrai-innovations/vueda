@@ -152,6 +152,17 @@ describe("lib/widgets/WidgetDuration.vue", () => {
             expect(shownValues(wrapper)).toEqual([1, 30]);
         });
 
+        scopedIt("shows the size of a negative duration after a negative sign", () => {
+            const wrapper = mountWithValue("-1 23:00:00", { showHours: true });
+            expect(shownValues(wrapper)).toEqual([1, 0]);
+            expect(wrapper.find("[data-qa='duration-sign']").text()).toBe("Negative−");
+        });
+
+        scopedIt("shows no sign for a positive duration", () => {
+            const wrapper = mountWithValue("01:00:00", { showHours: true });
+            expect(wrapper.find("[data-qa='duration-sign']").exists()).toBe(false);
+        });
+
         scopedIt("shows empty spinners for an empty value", () => {
             const wrapper = mountWithValue(null, { showHours: true });
             expect(shownValues(wrapper)).toEqual([undefined, undefined]);
@@ -176,6 +187,12 @@ describe("lib/widgets/WidgetDuration.vue", () => {
             const wrapper = mountWithValue("00:10:30");
             wrapper.getComponent(ControlNumberFieldStub).vm.$emit("update:modelValue", 20);
             expect(fieldContext.state.value).toBe("00:20:30");
+        });
+
+        scopedIt("keeps a negative duration negative when a unit changes", () => {
+            const wrapper = mountWithValue("-1 23:00:00", { showHours: true });
+            wrapper.findAllComponents(ControlNumberFieldStub)[0].vm.$emit("update:modelValue", 2);
+            expect(fieldContext.state.value).toBe("-1 22:00:00");
         });
 
         scopedIt("writes a number of seconds in seconds mode", () => {

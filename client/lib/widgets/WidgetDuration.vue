@@ -19,7 +19,9 @@ import { computed, inject, ref, useId } from "vue";
  * `seconds` a number of seconds, as `DurationSecondsField` sends and reads it. The shown units
  * split the value between them, so a duration of two days reads as 48 hours when days are hidden.
  * Clearing a unit while the rest of the value is zero sets the value to `null`. Entering `0` keeps a
- * zero duration.
+ * zero duration. A negative value, such as Django's `-1 23:00:00` for minus one hour, shows a
+ * "Negative" segment with a minus sign before the spinners. The spinners show the duration's size,
+ * and editing them keeps the value negative.
  */
 
 defineOptions({
@@ -137,6 +139,10 @@ const focusFirstInput = () => {
             data-qa="widget-duration-inner"
             @click.self="focusFirstInput"
         >
+            <div v-if="unitValues.negative" :class="theme('sign')" data-qa="duration-sign">
+                <span :class="theme('unitLabel')">Negative</span>
+                <span :class="theme('signSymbol')" aria-hidden="true">&minus;</span>
+            </div>
             <div v-if="showDays" :class="theme('innerItem')">
                 <label :for="`${id}-days`" :class="theme('unitLabel')">Days</label>
                 <NumberField
