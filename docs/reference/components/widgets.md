@@ -17,13 +17,13 @@ const duration = ref({ days: 1, hours: 2, minutes: 30, seconds: 0 });
 
 # Form Widgets
 
-A {@term Widget} is the input a generated form renders for one field. This page
+A {@term Widget} is the input that a generated form renders for one field. This page
 shows each widget as {@api vue:component:FormModel} renders it. A widget can
-carry chrome its primitive lacks: a picker trigger, a remove control, a preview,
+carry chrome that its primitive lacks: a picker trigger, a remove control, a preview,
 or a notice in place of an input. The [Inputs](/reference/components/inputs) and
-[Date + Time](/reference/components/datetime) pages show the primitives the
-widgets use. [Components](/reference/components/) describes the skin rules
-every component page shares.
+[Date + Time](/reference/components/datetime) pages show the primitives that
+the widgets use. [Components](/reference/components/) describes the skin rules
+that every component page shares.
 
 Every demo runs against one seeded model with one field per widget. The caption
 under each demo names the field's
@@ -155,8 +155,8 @@ input. The {@api theme-key:WidgetDuration.unitLabel} slot styles the labels.
 ### Read-only durations
 
 Read-only duration fields render with
-{@api vue:component:WidgetDurationReadOnly}, which names the units the value
-holds. A `DurationField` sends `2 08:00:00`, and the read row shows "2 days, 8
+{@api vue:component:WidgetDurationReadOnly}, which names the units that the
+value holds. A `DurationField` sends `2 08:00:00`, and the read row shows "2 days, 8
 hours". A `DurationSecondsField` sends a number of seconds, which the same widget
 reads. Units that hold zero are left out, and a duration of zero names its
 smallest unit ("0 seconds"). An empty value renders the same dash as an empty
@@ -285,8 +285,8 @@ renders an alert that names the field in place of an input, so the field stays
 visible on the form. The alert sits in the field's content column and must not
 look like a control.
 [Map a Field Type to a Widget](/guides/custom-field-widget-rendering#map-a-field-type-to-a-widget)
-describes how to give the type a widget, and the error a field with no mapping
-renders.
+describes how to give the type a widget, and the error that a field with no
+mapping renders.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
