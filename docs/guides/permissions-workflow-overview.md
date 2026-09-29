@@ -30,7 +30,7 @@ The page lists only [registered]{@term Canonical Registration} models. It has th
 - Each app has a section under its app label. Apps are in app label order.
 - Each model has a subsection under its model name, with a **Permissions** list.
 
-Permissions follow {@term CRUD} order: create (or `add`), read (or `view`), update (or `change`), delete, then list. Any other permissions follow, sorted by codename. Each permission row shows its codename, its description, and the groups that hold it as tags.
+Permissions follow {@term CRUD} order: create (or `add`), read (or `view`), update (or `change`), delete, then list. Any other permissions follow, sorted by codename. Each permission row shows its codename, its description, and, as tags, the groups that hold it.
 
 The page header, app headers, and model headers stay visible while you scroll. **Back To Top** returns to the top of the page.
 
@@ -44,10 +44,10 @@ A {@term Workflow-Enabled Model} with a {@term Workflow} definition also has a *
 
 ## Check One User
 
-Pick a user from the list in the page header, which starts on **All users**. The page reloads with a check mark (✓) or a cross (✕) on each row:
+Pick a user from the list in the page header. The list starts on **All users**. The page reloads with a check mark (✓) or a cross (✕) on each row:
 
 - **Groups:** whether the user belongs to the group.
-- **Permissions:** whether the user holds the permission without an object, the {@term Baseline Permission}. Group and direct grants count. An inactive user holds none.
+- **Permissions:** whether the user holds the permission without an object (its {@term Baseline Permission}). Group and direct grants count. An inactive user holds none.
 - **Workflow Access:** whether one of the user's groups holds each workflow permission. The row shows no mark when the workflow has state permission rules, because those depend on the object's state. A workflow with no workflow permissions shows a cross.
 - **Transitions:** whether one of the user's groups holds each transition permission. Direct user grants and state permission rules do not count here. A transition with no transition permissions shows a cross.
 
@@ -55,4 +55,4 @@ Selecting a user leaves the group tags unchanged. Pick **All users** to clear th
 
 ## Print a Report
 
-Use the browser's print command. The printout is black on white and omits the page header, the user list, and **Back To Top**. It starts with the page title and the selected user's name, or "All Users" when you have not picked one.
+Use the browser's print command. The printout is black on white and omits the page header, the user list, and **Back To Top**. It starts with the page title and the selected user's name. When you have not picked a user, it shows "All Users" in place of the name.
