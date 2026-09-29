@@ -10,7 +10,7 @@ Reference pages list facts for lookup: permission codenames, theme keys and toke
 
 ## Core Reference
 
-- [Configuration Surface](configuration.md): Supported settings and integration knobs for server and client.
+- [Server Configuration](configuration.md): Every server setting that VUEDA sets or reads, with its default. The page is generated from `get_defaults`.
 - [Permissions](permissions.md): Permission codenames, the codename each request requires, row-level hook signatures, status codes for refused requests, and permission mapping values.
 - [Theming](theming.md): Links to the generated theme key and CSS token references for the default theme.
 - [Components](components/): The {@term Visual Contract} of each component in the default theme, with links to its theme keys and tokens.
