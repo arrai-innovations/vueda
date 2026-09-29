@@ -28,10 +28,16 @@ const NON_FILTER_PARAMS = [PAGE_PARAM, SEARCH_PARAM, COLUMN_TOTALS_PARAM];
 /**
  * Make a search params string from the given search params object.
  *
+ * An array value is sent as one comma-separated value, the form DRF's ordering, the expand and omit
+ * parameters, and django-filter's CSV-based `in` filters read. A key listed in `repeatedParams` sends
+ * each array element under its own repeated key instead, the form Django's `SelectMultiple` widget
+ * reads, which keeps an element that contains a comma intact.
+ *
  * @param {object} searchParams - The search params object.
+ * @param {string[]} [repeatedParams] - Keys whose array elements are each sent as a repeated key.
  * @returns {string} - The search params string.
  */
-export const makeSearchParamsString = (searchParams) => {
+export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
     const params = deepUnref(searchParams);
     if (!params) {
         return "";
@@ -39,10 +45,11 @@ export const makeSearchParamsString = (searchParams) => {
     const usp = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-            // Filter out undefined values and join array elements into a comma-separated string
-            const filteredValues = value.filter((v) => v !== undefined).join(",");
-            if (filteredValues) {
-                usp.set(key, filteredValues);
+            const definedValues = value.filter((v) => v !== undefined);
+            if (repeatedParams.includes(key)) {
+                definedValues.forEach((v) => usp.append(key, v));
+            } else if (definedValues.length) {
+                usp.set(key, definedValues.join(","));
             }
         } else if (value !== undefined) {
             usp.set(key, value);
@@ -66,6 +73,7 @@ export const makeSearchParamsString = (searchParams) => {
  *  Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of objects
  *  (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {object} args.params - The arguments for the list operation.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -76,6 +84,7 @@ export const makeSearchParamsString = (searchParams) => {
 export function singlePagePaginatedListCrudAdaptor({
     target,
     params,
+    repeatedParams,
     pushObjects,
     clearObjects,
     isCancelled,
@@ -84,7 +93,7 @@ export function singlePagePaginatedListCrudAdaptor({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, pk, action, resultsKey = "results" } = target;
-    const query = makeSearchParamsString(params);
+    const query = makeSearchParamsString(params, repeatedParams);
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
     if (!params?.[PAGE_PARAM] || params?.[PAGE_PARAM] === 1) {
         clearObjects();
@@ -130,6 +139,7 @@ export function singlePagePaginatedListCrudAdaptor({
  * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
  *  objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {{ [p]: number }} args.params - The querystring parameters for the list operation.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -140,6 +150,7 @@ export function singlePagePaginatedListCrudAdaptor({
 export function allPagePaginatedListCrudAdaptor({
     target,
     params,
+    repeatedParams,
     pushObjects,
     clearObjects,
     isCancelled,
@@ -154,7 +165,7 @@ export function allPagePaginatedListCrudAdaptor({
     const running = [];
     const fetchPages = async () => {
         const ourParams = { [PAGE_PARAM]: 1, ...omit(params || {}, PAGE_PARAM) };
-        const firstUrl = `${baseUrl}${makeSearchParamsString(ourParams)}`;
+        const firstUrl = `${baseUrl}${makeSearchParamsString(ourParams, repeatedParams)}`;
 
         const firstResp = await fetch(firstUrl, {
             method: "GET",
@@ -194,7 +205,7 @@ export function allPagePaginatedListCrudAdaptor({
             const laterPageParams = omit(ourParams, COLUMN_TOTALS_PARAM);
             for (let page = 2; page <= totalPages; page++) {
                 laterPageParams[PAGE_PARAM] = page;
-                const nextUrl = `${baseUrl}${makeSearchParamsString(laterPageParams)}`;
+                const nextUrl = `${baseUrl}${makeSearchParamsString(laterPageParams, repeatedParams)}`;
 
                 running.push(
                     limit(async () => {

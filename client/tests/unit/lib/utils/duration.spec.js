@@ -23,14 +23,24 @@ describe("lib/utils/duration.js", () => {
         expect(parseDuration("bad")).toBeNull();
     });
 
-    it("converts a duration object to a padded string", () => {
+    it("converts a duration object to DRF's duration string", () => {
         const str = convertDurationToString({ days: 1, hours: 2, minutes: 3, seconds: 4 });
-        expect(str).toBe("01 02:03:04");
+        expect(str).toBe("1 02:03:04");
     });
 
-    it("defaults missing properties to zero", () => {
+    it("defaults missing properties to zero and omits a zero day count", () => {
         const str = convertDurationToString({ hours: 5 });
-        expect(str).toBe("00 05:00:00");
+        expect(str).toBe("05:00:00");
+    });
+
+    it("carries overflow into the larger units", () => {
+        expect(convertDurationToString({ minutes: 90 })).toBe("01:30:00");
+        expect(convertDurationToString({ hours: 50 })).toBe("2 02:00:00");
+    });
+
+    it("writes a negative duration with the sign on the day count", () => {
+        expect(convertDurationToString({ hours: -1 })).toBe("-1 23:00:00");
+        expect(normalizeDuration(convertDurationToString({ hours: -1 })).totalSeconds).toBe(-3600);
     });
 
     it("round trips through parseDuration", () => {
