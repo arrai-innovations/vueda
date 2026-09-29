@@ -39,7 +39,7 @@ const destroyViewProps = {
 
 # CRUD Views
 
-This page shows the five {@term CRUD} views in the default theme: list, create, read, update, and destroy. It also shows {@api vue:component:PageTitle}, the layout header each view fills. [Components](./index.md) describes the rules every component page shares.
+This page shows the five {@term CRUD} views in the default theme: list, create, read, update, and destroy. It also shows {@api vue:component:PageTitle}, the layout header that each view fills. [Components](./index.md) describes the rules that every component page shares.
 
 ## PageTitle
 
@@ -93,7 +93,7 @@ Theme keys: {@api theme-key:PageTitle}. {@api theme-key:PageTitle.title} sets th
 
 ## Sticky action bars
 
-The create, read, and update views put their submit, action, and transition buttons in a {@api vue:component:StickyBar} that joins the layout's sticky stack below the title. [Sticky Chrome](./sticky-chrome.md) describes the bar and when it reveals, and [Place the Page Title and Page Actions](../../guides/place-page-title-and-actions.md) describes the layout side. The docs harness has no sticky stack, so each bar in the demos renders in place.
+The create, read, and update views put their submit, action, and transition buttons in a {@api vue:component:StickyBar} that joins the layout's sticky stack below the title. [Sticky Chrome](./sticky-chrome.md) describes the bar and when it appears, and [Place the Page Title and Page Actions](../../guides/place-page-title-and-actions.md) describes the layout side. The docs harness has no sticky stack, so each bar in the demos renders in place.
 
 ## ViewList
 
@@ -106,7 +106,7 @@ The create, read, and update views put their submit, action, and transition butt
 - a bulk-actions strip while rows are selected;
 - a pagination footer.
 
-The columns come from the [model config]{@term Model Config}'s `displayFields` (see {@term View Field Lists}). By default that is every field except the pk, hidden fields, and fields the model info leaves out of the list. Each cell renders through a {@term Column Adapter}; [Customize List Column Rendering](../../guides/customize-list-column-rendering.md) lists them. The list saves the reader's page size, sort, filters, and hidden columns in the browser for each app and model; [Configure CRUD Views](../../guides/configure-crud-views.md#list-preferences) describes these list preferences.
+The columns come from the [model config]{@term Model Config}'s `displayFields` (see {@term View Field Lists}). By default that is every field except the pk, hidden fields, and fields that the model info leaves out of the list. Each cell renders through a {@term Column Adapter}; [Customize List Column Rendering](../../guides/customize-list-column-rendering.md) lists them. The list saves the reader's page size, sort, filters, and hidden columns in the browser for each app and model; [Configure CRUD Views](../../guides/configure-crud-views.md#list-preferences) describes these list preferences.
 
 The demo below is the live component against 28 offline records. Every control works.
 
@@ -311,7 +311,7 @@ Some parts of a finished screen are additions to the default views:
 
 - `ViewRead` renders one flat form. Grouping fields into titled sections is a customization.
 - `PageTitle` renders the title text. A status badge beside it goes in the [`title`]{@api vue:component:PageTitle:slot:title} slot.
-- Action and transition button labels are the action name in title case. To change one on `ViewRead`, use the [`action-button`]{@api vue:component:ViewRead:slot:action-button}, [`targetless-action-button`]{@api vue:component:ViewRead:slot:targetless-action-button}, and [`transition-button`]{@api vue:component:ViewRead:slot:transition-button} slot; each replaces one button and receives its label.
+- Action and transition button labels are the action name in title case. To change one on `ViewRead`, use the [`action-button`]{@api vue:component:ViewRead:slot:action-button}, [`targetless-action-button`]{@api vue:component:ViewRead:slot:targetless-action-button}, and [`transition-button`]{@api vue:component:ViewRead:slot:transition-button} slots; each replaces one button and receives its label.
 - `ViewDestroy` passes its slots through to its form. The [`confirm-button`]{@api vue:component:ModelActionForm:slot:confirm-button} and [`cancel-button`]{@api vue:component:ActionForm:slot:cancel-button} slots replace either button.
 
 Theme keys by area:
