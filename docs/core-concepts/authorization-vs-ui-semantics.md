@@ -7,7 +7,7 @@ status: draft
 
 # Authorization vs UI Semantics
 
-VUEDA splits access decisions between the server and the client. The server decides what a user may read and change, and it checks every request. The client decides which routes open and which buttons appear. It bases those choices on action lists the server computed for the current user. This page describes the boundary between the two sides, where each side gets its action lists, and what the user sees when the two disagree.
+VUEDA splits access decisions between the server and the client. The server decides what a user may read and change, and it checks every request. The client decides which routes open and which buttons appear. It bases those choices on action lists that the server computed for the current user. This page describes the boundary between the two sides, where each side gets its action lists, and what the user sees when the two disagree.
 
 ## Server Authorization
 
@@ -22,7 +22,7 @@ The server reports what the current user may do through two action lists. It bui
 - {@term Model Actions}, in {@term Model Info}, come from a {@term Model-Scope Check} with no object. The list differs between users, and it is the same for every object of the model.
 - {@term Available Actions}, on each object payload, come from an object-scope check. Two objects of one model can report different actions for the same user, because row-level rules and workflow state apply per object.
 
-Model info also carries [`model_permissions`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_permissions}, the permission codenames that exist for the model. It lists them whether or not the user holds them. When the model's canonical serializer subclasses {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}, the list holds only the codenames for `list` and `read`. This narrows the metadata only, and the server's checks do not change. Because the list ignores the user, a UI driven by it offers actions the user cannot perform.
+Model info also carries [`model_permissions`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_permissions}, the permission codenames that exist for the model. It lists them whether or not the user holds them. When the model's canonical serializer subclasses {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}, the list holds only the codenames for `list` and `read`. The subclass narrows the metadata only, and the server's checks do not change. Because the list ignores the user, a UI driven by it offers actions the user cannot perform.
 
 The client adds its own inputs, which the server never sees. The model config's [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions} and [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} both default to the model actions' names. You can narrow both lists, and `actions` can also limit an action to named groups of users. These inputs change only what the client shows.
 
@@ -32,7 +32,7 @@ The client adds its own inputs, which the server never sees. The model config's 
 
 ## UI Affordance Filtering
 
-Once a view renders, {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions} filters the model config's `actions` by the user's group memberships. This runs in the client, and the server is not asked. It lets a product show fewer actions to some groups without changing server permissions.
+Once a view renders, {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions} filters the model config's `actions` by the user's group memberships. The filter runs in the client and sends no request to the server. It lets a product show fewer actions to some groups without changing server permissions.
 
 A list view's action and transition buttons come from model-scope lists. A detail view shows an action for its object only when the object's `available_actions` also lists it. There, a workflow state that denies `update` on one object removes that object's update button, because the server left `update` out of its `available_actions`. [Action Contract and Availability](./action-contract-and-availability) describes where each view's action and transition buttons come from.
 
