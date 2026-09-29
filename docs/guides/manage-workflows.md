@@ -65,7 +65,7 @@ The overview shows **Delete Workflow** only when the workflow has no states, tra
 6. Return to the overview and select **Delete Workflow**.
 
 ::: warning
-Django `Permission` rows have no change history. `Group` rows have history only for changes made on the {@term Group Management Page}. Rolling back a workflow migration cannot restore a permission or group deleted outside that page. Keep the permissions and groups a workflow uses until every environment has removed the workflow.
+Django `Permission` rows have no change history. `Group` rows have history only for changes made on the {@term Group Management Page}. Rolling back a workflow migration cannot restore a permission or group deleted outside that page. Keep the permissions and groups that a workflow uses until every environment has removed the workflow.
 :::
 
 ## Generating Workflow Migrations
@@ -80,14 +80,14 @@ Name one or more apps to limit the run to them. With no app label, the command c
 
 ### What the Migration Records
 
-The command reads the history VUEDA records for the workflow models. It skips writes that a workflow migration made, and edits that match a change in an existing workflow migration. The rest go into the new migration in the order they happened, each marked `added`, `changed`, or `deleted`.
+The command reads the history that VUEDA records for the workflow models. It skips writes that a workflow migration made. It also skips edits that match a change in an existing workflow migration. The rest go into the new migration in the order they happened, each marked `added`, `changed`, or `deleted`.
 
-The migration names records by code, app label, and model, since primary keys differ between databases. A workflow is named by its code together with the app label and model it belongs to. When the migration runs, its embedded functions find each record by those names. Run backwards, it applies the changes in reverse order, with `added` and `deleted` swapped.
+The migration identifies each record by code, app label, and model, since primary keys differ between databases. A workflow is named by its code together with the app label and model that it belongs to. When the migration runs, its embedded functions find each record by those names. When the migration runs backwards, it applies the changes in reverse order, with `added` and `deleted` swapped.
 
 The generated file is a standard Django migration with these additions:
 
 - `changed_data`, the list of recorded changes.
-- `history_change_reason`, which marks the history the migration writes.
+- `history_change_reason`, which marks the history that the migration writes.
 - `migration_app_label`, the app whose permissions the migration creates before it applies the changes.
 - Copies of [`forwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow}, [`backwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.backwards_migrate_workflow}, and the functions they call. After applying the changes, they give each object without an object state the workflow's initial state. When the initial state changes, they move object states that nothing has moved since creation.
 - A comment marker that `makeworkflowmigrations` and `updateworkflowmigrations` use to find workflow migrations.
@@ -95,7 +95,7 @@ The generated file is a standard Django migration with these additions:
 ### Command Options
 
 - `--dry-run` runs the same detection and prints the name of each migration it would create, without writing files.
-- `--debug <app_name>.<model>.<workflow_model>`, or `--debug all`, prints the existing migration changes that matched history, those that did not, and the history the new migration adds. `<app_name>` is the app's `AppConfig.name`, and `<workflow_model>` is a workflow model name such as `state`. The list of changes that did not match includes that workflow model's changes for every model in the app.
+- `--debug <app_name>.<model>.<workflow_model>`, or `--debug all`, prints the existing migration changes that matched history, those that did not, and the history that the new migration adds. `<app_name>` is the app's `AppConfig.name`, and `<workflow_model>` is a workflow model name such as `state`. The list of changes that did not match includes that workflow model's changes for every model in the app.
 
 ### Fake the Migration Locally
 
@@ -107,7 +107,7 @@ python manage.py migrate myapp 0005_workflow_migrations_2026_09_28 --fake
 
 Other environments run the migration normally.
 
-`makeworkflowmigrations` treats a faked migration and a migration that ran differently. A faked migration wrote nothing, so the command matches its changes against your hand edits. A migration that ran also recorded its own writes. The command matches its changes only against edits made before it first ran in that environment. So you can roll a faked migration back and apply it again, and an edit made after a migration ran is never mistaken for one of its changes.
+`makeworkflowmigrations` treats a faked migration differently from a migration that ran. A faked migration wrote nothing, so the command matches its changes against your hand edits. A migration that ran also recorded its own writes. The command matches its changes only against edits made before it first ran in that environment. So you can roll a faked migration back and apply it again, and an edit made after a migration ran is never mistaken for one of its changes.
 
 ### Coordinate Changes Between Developers
 
@@ -133,14 +133,14 @@ Review the generated `changed_data` after either change.
 A model that enables `class Vueda.Workflow` needs its workflow before the release that enables it serves traffic. Without one, saving an object and every workflow request fail with `WorkflowNotConfiguredError`. The migration that sets the initial state assigns it to the objects present when it runs, so the order is:
 
 1. In development, enable workflow on the model, create its workflow in the management pages, and run `makeworkflowmigrations`.
-2. Deploy with migrations applied before the new release serves traffic. `migrate` runs VUEDA's [database checks]{@api py:module:vueda.workflow.checks}. `vueda_workflow.W001` warns about an enabled model without a workflow, and `vueda_workflow.W003` about a workflow without an initial state.
+2. Deploy with migrations applied before the new release serves traffic. `migrate` runs VUEDA's [database checks]{@api py:module:vueda.workflow.checks}. `vueda_workflow.W001` warns about an enabled model without a workflow, and `vueda_workflow.W003` warns about a workflow without an initial state.
 3. After the new release serves traffic, run [`backfillworkflowstates`]{@api py:class:vueda.workflow.management.commands.backfillworkflowstates.Command}:
 
     ```console
     python manage.py backfillworkflowstates <app_label>.<ModelName>
     ```
 
-The previous release does not know the model has workflow. Objects it creates between the migration and cutover have no object state. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which the new release would have given them. It only creates missing object states, so running it again changes nothing.
+The previous release does not know that the model has workflow. Objects that it creates between the migration and cutover have no object state. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which the new release would have given them. It only creates missing object states, so running it again changes nothing.
 
 `python manage.py check --database default` reports `vueda_workflow.W002` while any object of an enabled model has no object state. The warning names the model and the command that fixes it.
 
@@ -156,13 +156,13 @@ python manage.py updateworkflowmigrations myapp otherapp
 Always name the apps to update. With no app label, the command rewrites the workflow migrations of every installed app, including VUEDA's own migrations inside the installed package, such as `vueda_vdq`'s. You cannot commit those files, and the rewritten ones fail to apply. See [Migrations the Command Must Not Rewrite](#migrations-the-command-must-not-rewrite).
 :::
 
-`--dry-run` lists the migration files the command would update, without writing them.
+`--dry-run` lists the migration files that the command would update, without writing them.
 
 ### When to Run It
 
 Workflow migrations carry everything they need to run, so you do not need to update them after each VUEDA upgrade. Run the command in these cases:
 
-- The VUEDA release notes say a fix to the embedded functions needs it.
+- The VUEDA release notes say that a fix to the embedded functions needs it.
 - You are squashing migrations.
 - A migration names a workflow by code alone: a workflow reference in its `changed_data` has `code` but no `historical_app_label`. That reference becomes ambiguous once another model takes over the workflow code. The command adds the app label and model that each code meant when the change was recorded. Run it once for your own apps and commit the result.
 
@@ -176,7 +176,7 @@ For each workflow migration in the named apps, the command:
 - Updates stale function names in the `operations` list.
 - Adds the app label and model to each workflow that `changed_data` names by code alone.
 
-It keeps `history_change_reason`, `migration_app_label`, and the rest of the `class Migration` block as written. It also keeps any imports and helper functions you added under other names.
+It keeps `history_change_reason`, `migration_app_label`, and the rest of the `class Migration` block as written. It also keeps any imports and helper functions that you added under other names.
 
 When it adds to `changed_data`, it writes the whole list back in its own layout, so comments and formatting inside the list are lost. The values stay the same. Put notes about a change outside the list.
 
