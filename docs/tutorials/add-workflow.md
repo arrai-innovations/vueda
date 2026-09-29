@@ -9,7 +9,7 @@ type: tutorial
 
 In this tutorial, we add a {@term Workflow} to the `Product` model from [Start Building](start-building.md). A product starts as a draft, and a `publish` transition moves it to published. By the end, the API reports each product's state and executes transitions, and the client shows transition buttons.
 
-We work as the Start Building user, `you@domain.invalid`. Its group grants the `inventory` permissions, and we add a second group for the workflow.
+We work as the Start Building user, `you@example.com`. Its group grants the `inventory` permissions, and we add a second group for the workflow.
 
 ## Wire Up Workflow URLs
 
@@ -149,7 +149,7 @@ for transition in workflow.transitions.all():
 
 editors, _ = Group.objects.get_or_create(name="Product Editors")
 editors.permissions.add(read_workflow, read_product, update_product)
-get_user_model().objects.get(email="you@domain.invalid").groups.add(editors)
+get_user_model().objects.get(email="you@example.com").groups.add(editors)
 ```
 
 The transition endpoints also check `vueda_workflow.read_workflow`, so the group grants it. The group also grants the two `inventory` permissions the rows name, so it holds everything this workflow needs.
@@ -204,7 +204,7 @@ The product is now published, and `unpublish` is the one transition it can take.
 
 ## Verify in the Browser
 
-With the client running, log in as `you@domain.invalid` and reload the page, so the client reads the new permissions. Open the read view of the Starter Kit product. A **Publish** button appears beside the standard {@term CRUD} actions. On the Workflow Kit product, which we published, the button reads **Unpublish**.
+With the client running, log in as `you@example.com` and reload the page, so the client reads the new permissions. Open the read view of the Starter Kit product. A **Publish** button appears beside the standard {@term CRUD} actions. On the Workflow Kit product, which we published, the button reads **Unpublish**.
 
 The list view builds its transition buttons from the model's permitted transitions, and a detail view builds them from the object's {@term Valid Transitions}. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#ui-affordance-filtering-layers) describes where each view's buttons come from.
 
