@@ -78,7 +78,7 @@ const setupDeviceRejects = {
 
 This page shows the seven account views in the default theme: sign in, forgot password, reset password, {@term Two-Factor Authentication}, device setup, change password, and recovery codes. Each view renders inside one of two card layouts, {@api vue:component:AuthorizingForm} or {@api vue:component:AuthForm}. [Build Auth Views](../../guides/build-auth-views.md) describes how the views route, submit, redirect, and report errors. [Components](./index.md) describes the rules every component page shares.
 
-Each demo mounts the real view with its own user store. The store actions the view calls are replaced with offline stand-ins, so submitting shows the real loading, error, and toast states. Toasts from every demo appear in one overlay in the corner of the window, as in an app.
+Each demo mounts the real view with its own user store. The demo replaces the store actions that the view calls with offline stand-ins, so submitting shows the real loading, error, and toast states. Toasts from every demo appear in one overlay in the corner of the window, as in an app.
 
 ## Card layouts
 
@@ -167,7 +167,7 @@ A successful request shows a "Check Your Email" toast. The toast does not say wh
 
 ## ViewResetPassword
 
-{@api vue:component:ViewResetPassword} is the page a password reset email links to. Its route passes the link's [`pk`]{@api vue:component:ViewResetPassword:prop:pk} and [`token`]{@api vue:component:ViewResetPassword:prop:token} as props. The view is an `AuthorizingForm` card with a new password field, a confirmation field, and a full-width "Reset Password" button.
+{@api vue:component:ViewResetPassword} is the page that a password reset email links to. Its route passes the link's [`pk`]{@api vue:component:ViewResetPassword:prop:pk} and [`token`]{@api vue:component:ViewResetPassword:prop:token} as props. The view is an `AuthorizingForm` card with a new password field, a confirmation field, and a full-width "Reset Password" button.
 
 On mount the view asks the server whether the link is valid. The form shows while the check runs. When the server rejects the link, an "Invalid Reset Link" message replaces the card, with a "Request a new link" button and a "Sign in" link. The message renders without the card frame. The [`invalid-message`]{@api vue:component:ViewResetPassword:slot:invalid-message} slot replaces it.
 
@@ -329,7 +329,7 @@ Theme keys: {@api theme-key:ViewRecoveryCodes}.
 
 - Codes panel: {@api theme-key:ViewRecoveryCodes.inner}, {@api theme-key:ViewRecoveryCodes.messageContainer}, {@api theme-key:ViewRecoveryCodes.listContainer}, {@api theme-key:ViewRecoveryCodes.list}, {@api theme-key:ViewRecoveryCodes.listItem}, and {@api theme-key:ViewRecoveryCodes.listItemNum}.
 - Save buttons: {@api theme-key:ViewRecoveryCodes.savingOptionButtons} and {@api theme-key:ViewRecoveryCodes.savingOptionButton}.
-- Action bars: {@api theme-key:ViewRecoveryCodes.actionBar} and {@api theme-key:ViewRecoveryCodes.actionBarTitleTextContainer} with a device, {@api theme-key:ViewRecoveryCodes.emptyActions} without one.
+- Action bars: {@api theme-key:ViewRecoveryCodes.actionBar} and {@api theme-key:ViewRecoveryCodes.actionBarTitleTextContainer} with a device; {@api theme-key:ViewRecoveryCodes.emptyActions} without one.
 
 ## Customization surface
 
