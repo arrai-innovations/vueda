@@ -7,9 +7,9 @@ status: draft
 
 # Handle Form Validation and Server Errors
 
-This guide gets server validation errors into form fields, clears them when the user edits, and blocks submission only on local errors. The stock form views already do all of this: {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate} through {@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm}, and the action views through {@api vue:component:ActionForm}. Follow these steps for a custom form, a custom endpoint, or an error payload the defaults do not render.
+This guide gets server validation errors into form fields, clears them when the user edits, and blocks submission only on local errors. The stock form views already do all of this: {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate} through {@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm}, and the action views through {@api vue:component:ActionForm}. Follow these steps for a custom form, a custom endpoint, or an error payload that the defaults do not render.
 
-[Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md) describes the form state these steps write to. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) describes the response shapes and the client error class each status becomes. To hold a valid write until the user confirms a warning, see [Require Confirmation Before a Write](require-write-confirmation.md).
+[Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md) describes the form state that these steps write to. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) describes the response shapes and the client error class that each status becomes. To hold a valid write until the user confirms a warning, see [Require Confirmation Before a Write](require-write-confirmation.md).
 
 ## Before You Begin
 
@@ -92,14 +92,14 @@ async function submit() {
 }
 ```
 
-1. [`setAllTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.setAllTouched} and `await nextTick()` let the required and `validate` checks run on fields the user never touched.
+1. [`setAllTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.setAllTouched} and `await nextTick()` let the required and `validate` checks run on fields that the user never touched.
 2. Errors under the `server` code do not block, so the user can resubmit and the server checks again. Errors on an {@term Ignored Field} do not block either.
 3. [`submittingValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittingValues} leaves ignored fields out of the payload.
 4. [`handleServerFormValidationError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError} writes the response's errors into the form as {@term Server Feedback}. A `ConfirmationRequiredError` belongs to the confirmation flow in [Require Confirmation Before a Write](require-write-confirmation.md).
 
 ## Clear Related Server Errors on Blur
 
-A field's server errors clear when the field blurs. When one field's value causes a server error on another field, set [`clearServerErrorDependents`]{@api vue:component:FormField:prop:clearServerErrorDependents} on the field the user edits. `$parent` stands for the parent path of the blurred field, so inside an {@term Inline} it names the same row.
+A field's server errors clear when the field blurs. When one field's value causes a server error on another field, set [`clearServerErrorDependents`]{@api vue:component:FormField:prop:clearServerErrorDependents} on the field that the user edits. `$parent` stands for the parent path of the blurred field, so inside an {@term Inline} it names the same row.
 
 Set it in the model config's [`fieldProps`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldProps} with [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}, keyed by field path. The [`fieldProps` prop of `FormModel`]{@api vue:component:FormModel:prop:fieldProps} takes the same map:
 
@@ -156,19 +156,19 @@ import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 - a field rendered with `hidden`
 - a field inside a collapsed inline field set
 - a field whose renderer failed
-- a key the form does not render
+- a key that the form does not render
 
 A form whose errors all render beside their fields shows no summary. Each row names its field by the label shown above the input. When no rendered field reports a label, the row uses the error key.
 
-A custom field component tells the form whether it shows its own errors through the third argument to `useField`. The default is `true`. A component that renders no inline error messages passes [`showsErrors`]{@api js:property:@arrai-innovations/vueda/use/useField#UseFieldOptions.showsErrors}, so its errors move into the summary:
+A custom field component tells the form whether it shows its own errors through the third argument to `useField`. The default is `true`. A component that renders no inline error messages passes a [`showsErrors`]{@api js:property:@arrai-innovations/vueda/use/useField#UseFieldOptions.showsErrors} function that returns `false`, so that its errors move into the summary:
 
 ```js
 const field = useField(props, emit, { showsErrors: () => false });
 ```
 
-A field still counts as showing its errors when a slot override replaces its error rendering. Those slots are [`field(fieldName)errors`]{@api vue:component:FormField:slot:field(fieldName)errors}, `field-errors`, and a field set's [`field-set-level-chores`]{@api vue:component:FieldSetMany:slot:field-set-level-chores}. An override of those slots should render the errors it receives.
+A field still counts as showing its errors when a slot override replaces its error rendering. Those slots are [`field(fieldName)errors`]{@api vue:component:FormField:slot:field(fieldName)errors}, `field-errors`, and a field set's [`field-set-level-chores`]{@api vue:component:FieldSetMany:slot:field-set-level-chores}. An override of those slots should render the errors that it receives.
 
-The [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} slot replaces the summary. It receives `entries` (each `{ field, label, messages }`), `count`, and `title`, covering only the errors the summary would list.
+The [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} slot replaces the summary. It receives `entries` (each `{ field, label, messages }`), `count`, and `title`, covering only the errors that the summary would list.
 
 ### Render Structured Feedback Objects
 
@@ -203,7 +203,7 @@ By default, `FormMessage` renders each key of the object as a `name: value` line
 </form-message>
 ```
 
-Write one branch per object shape your server sends.
+Write one branch per object shape that your server sends.
 
 ## Verify
 
@@ -217,7 +217,7 @@ Write one branch per object shape your server sends.
 
 ## Troubleshooting
 
-**Form feedback is empty after a failed request.** Check the response status. Only a 400 on a write becomes `FormValidationError`. A 403, a 500, or any error on a read becomes `FetchError` or {@api js:class:@arrai-innovations/vueda/utils/errors#ListFilterError}, which never reaches form state. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) lists the class each adapter throws.
+**Form feedback is empty after a failed request.** Check the response status. Only a 400 on a write becomes `FormValidationError`. A 403, a 500, or any error on a read becomes `FetchError` or {@api js:class:@arrai-innovations/vueda/utils/errors#ListFilterError}, which never reaches form state. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md) lists the class that each adapter throws.
 
 **Server errors do not clear after editing a field.** Blur clears them, and a value change alone does not. Check that the field component calls [`FieldContext.blur()`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContext.blur} when its input loses focus.
 
