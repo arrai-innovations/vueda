@@ -15,7 +15,7 @@ This page describes what the server accepts, rejects, and publishes at each step
 
 Model info reads `filterset_class`, `ordering`, and `ordering_fields` from the canonical viewset. A model registered with a serializer only ({@term Serializer-Only Registration}) has an empty `model_filtering` section, because it has no filterset. Its `model_ordering` section still reports the model's own [`Meta.ordering`]{@api ext:django:django.db.models.Options.ordering}.
 
-A serializer field is filterable only when the viewset's filterset declares a filter for it. Sorting follows [DRF: `OrderingFilter`]{@api ext:drf:rest_framework.filters.OrderingFilter}. When the viewset declares no `ordering_fields`, every readable serializer field is sortable under its `source`. A field renamed with `source="name"` sorts as `name`. A field sourced from a Python model property is not sortable, because the database has no column for it. When the viewset declares `ordering_fields`, only the fields it names, plus the default ordering's fields, are sortable.
+A serializer field is filterable only when the viewset's filterset declares a filter for it. Sorting follows [DRF: `OrderingFilter`]{@api ext:drf:rest_framework.filters.OrderingFilter}. When the viewset declares no `ordering_fields`, every readable serializer field is sortable under its `source`. A field renamed with `source="name"` sorts as `name`. A field sourced from a Python model property is not sortable, because the database has no column for it. When the viewset declares `ordering_fields`, only the fields that it names, plus the default ordering's fields, are sortable.
 
 ## Metadata Projection for Ordering and Filtering
 
@@ -23,12 +23,12 @@ A serializer field is filterable only when the viewset's filterset declares a fi
 
 [`model_ordering`]{@api rest:schema:ModelInfoOrdering} has two keys:
 
-- `default` lists the field names the rows are sorted by when a request sends no `o`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
-- `fields` lists every field a request may name in `o`, each with a `name` and a semantic `type`. A field the default ordering names also carries `ascending`.
+- `default` lists the field names that the rows are sorted by when a request sends no `o`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
+- `fields` lists every field that a request may name in `o`, each with a `name` and a semantic `type`. A field that the default ordering names also carries `ascending`.
 
-`fields` follows the viewset's `ordering_fields`. An explicit list reports its entries, and `"__all__"` reports the model's fields and the annotations `get_queryset` adds. With no `ordering_fields`, `fields` reports the serializer's readable fields by `source`. Every field the default ordering reads also appears in `fields`. [`VuedaOrderingFilter`]{@api py:class:vueda.core.filters.VuedaOrderingFilter} accepts an explicit `o` for each of them.
+`fields` follows the viewset's `ordering_fields`. An explicit list reports its entries, and `"__all__"` reports the model's fields and the annotations that `get_queryset` adds. With no `ordering_fields`, `fields` reports the serializer's readable fields by `source`. Every field that the default ordering reads also appears in `fields`. [`VuedaOrderingFilter`]{@api py:class:vueda.core.filters.VuedaOrderingFilter} accepts an explicit `o` for each of them.
 
-Every name in `model_ordering` is the [public name]{@term Public Name} a client sends back in `o`. Django's `"pk"` alias is reported as the field behind it: `id`, or each field of a {@term Composite Primary Key}. The ordering backend accepts both `o=id` and `o=pk`.
+Every name in `model_ordering` is the [public name]{@term Public Name} that a client sends back in `o`. Django's `"pk"` alias is reported as the field behind it: `id`, or each field of a {@term Composite Primary Key}. The ordering backend accepts both `o=id` and `o=pk`.
 
 [`get_model_ordering`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_ordering} documents each rule in full. {@api py:module:vueda.core.ordering} documents how an ordering term is read.
 
@@ -46,7 +46,7 @@ An `ordering_fields` entry that names no field is left out of `fields`, and the 
 
 ### Queryset Annotations
 
-An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`. Its `type` comes from the annotation's `output_field`, or is `alpha` when Django cannot resolve one.
+An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`. Its `type` comes from the annotation's `output_field`. The `type` is `alpha` when Django cannot resolve one.
 
 A default ordering that names an annotation is not reported. `default` is empty for it, and E006 accepts it, so no check warns you. The rows are sorted and `o` on the annotation is accepted. A client cannot show which column sorts the list.
 
@@ -54,19 +54,19 @@ A default ordering is reported when it sorts by a real column. That column can b
 
 ### Database Functions in a Default Ordering
 
-A default ordering term can be any expression `order_by()` accepts. That includes scalar functions such as {@api ext:django:django.db.models.functions.Lower} and {@api ext:django:django.db.models.functions.Coalesce}. VUEDA reads the columns a term uses from Django's expression tree, so any {@api ext:django:django.db.models.Func} subclass works. Window functions need a {@api ext:django:django.db.models.expressions.Window}, as Django requires.
+A default ordering term can be any expression that `order_by()` accepts. That includes scalar functions such as {@api ext:django:django.db.models.functions.Lower} and {@api ext:django:django.db.models.functions.Coalesce}. VUEDA reads the columns that a term uses from Django's expression tree, so any {@api ext:django:django.db.models.Func} subclass works. Window functions need a {@api ext:django:django.db.models.expressions.Window}, as Django requires.
 
 A term that reads one column is reported under that column. Its `type` describes the column, and `ascending` follows the term's direction. `Lower("name").desc()` is reported as `name`, type `alpha`, with `ascending: false`.
 
 A term that reads more than one column leaves `default` empty. Each column still appears in `fields` without `ascending`, so a client can offer each as a sort. A term that reads no column, such as `"?"` or {@api ext:django:django.db.models.functions.Now}, leaves `default` empty. It adds nothing to `fields`. A viewset can list `"?"` in `ordering_fields` to accept `o=?`, and `fields` does not report it.
 
-An explicit `o` sorts by the column itself. `o=name` against a `Lower("name")` default is a case-sensitive sort. The VUEDA client does not send the default ordering back, so a list the reader has not sorted keeps the function.
+An explicit `o` sorts by the column itself. `o=name` against a `Lower("name")` default is a case-sensitive sort. The VUEDA client does not send the default ordering back, so a list that the reader has not sorted keeps the function.
 
 ### `formatted_name` as an ordering and filter target
 
-A model's {@term Formatted Name} is orderable when the database can sort it: a `formatted_name` column, or a path named by `formatted_name_lookup_expression`. Metadata reports either as `formatted_name`, typed from the column the path reaches. [Create a CRUD Surface](../guides/create-crud-surface#the-formatted-name-contract) describes how a model configures its formatted name.
+A model's {@term Formatted Name} is orderable when the database can sort it: a `formatted_name` column, or a path named by `formatted_name_lookup_expression`. Metadata reports either as `formatted_name`, typed from the column that the path reaches. [Create a CRUD Surface](../guides/create-crud-surface#the-formatted-name-contract) describes how a model configures its formatted name.
 
-A `formatted_name` computed by `get_formatted_name()` has no column. It is left out of `fields`, and a default ordering that names it is not reported. The `vueda_info.E005` system check reports ordering declared on one.
+A `formatted_name` computed by `get_formatted_name()` has no column. It is left out of `fields`, and a default ordering that names it is not reported. The `vueda_info.E005` system check reports ordering declared on a computed `formatted_name`.
 
 A model's `Meta.ordering` may name its own lookup-expression `formatted_name` when its default manager is a {@api py:class:vueda.core.models.FormattedNameManager}. Django's `models.E015` skips that one term. A related path such as `customer__formatted_name` in `Meta.ordering` still fails `models.E015`.
 
@@ -98,7 +98,7 @@ A filter whose form field is disabled is left out. A negated filter (`exclude=Tr
 
 - A list of `{label, value}` entries for a static choice set. Values are strings, and the blank placeholder option is left out.
 - `true`, with `app_label`, `model`, and `filterset_name`, for a filter backed by a related model's queryset. The client loads these choices from the filter-choices endpoint.
-- `true`, with the same keys, for a value-derived filter such as [django-filter: `AllValuesFilter`]{@api ext:django-filter:django_filters.filters.AllValuesFilter}. Its options are the values the column holds now, so it is reported this way even when the column is empty.
+- `true`, with the same keys, for a value-derived filter such as [django-filter: `AllValuesFilter`]{@api ext:django-filter:django_filters.filters.AllValuesFilter}. Its options are the values that the column holds now, so it is reported this way even when the column is empty.
 
 ### Public Filter Names
 
@@ -135,7 +135,7 @@ The `vueda_info.E010` system check compares the terms on the `queryset` class at
 - A viewset whose `filter_backends` leaves out the ordering backend. The queryset's order then always wins.
 - A bare `order_by()`, which clears the model's default ordering. [`queryset_explicit_ordering`]{@api py:function:vueda.core.ordering.queryset_explicit_ordering} describes this gap.
 
-The check shows only that a viewset's class-level declarations agree. It does not show the order any request returns.
+The check shows only that a viewset's class-level declarations agree. It does not show the order that any request returns.
 
 ## Nulls Placement for Client-Requested Ordering
 
@@ -153,13 +153,13 @@ A value other than `"first"` or `"last"` is ignored at request time, and the row
 
 ## Query Namespace and Validation Boundary
 
-{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin} rejects any query parameter the endpoint does not recognize. This is {@term Query Parameter Validation}.
+{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin} rejects any query parameter that the endpoint does not recognize. This is {@term Query Parameter Validation}.
 
 A `list` request accepts:
 
 - Each filter's public name, and for a multi-widget filter, each suffixed name such as `distributor.id_min`.
 - `p`, `ps`, `e`, `f`, `om`, `s`, and `o`.
-- `ct`, when the viewset includes {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}, which reads column totals.
+- `ct`, the column totals parameter, when the viewset includes {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}.
 
 A viewset with no `filterset_class` accepts only the second and third groups. A `retrieve` request accepts only `e`, `f`, and `om`.
 
@@ -169,7 +169,7 @@ DRF ignores unknown query parameters by default. [DRF Ecosystem Compatibility Bo
 
 [`remove_invalid_fields`]{@api py:function:vueda.core.filters.VuedaOrderingFilter.remove_invalid_fields} checks every comma-separated `o` term before applying any. If one term is invalid, the request gets a `400` keyed `o`. The message names every invalid term and lists the valid ones. Empty terms, as in `o=name,`, are dropped.
 
-A term is valid when it is the public name of a field in [`get_valid_fields`]{@api py:function:vueda.core.filters.VuedaOrderingFilter.get_valid_fields}. That set holds every declared `ordering_fields` name, each field the default ordering reads, and the fields behind `"pk"`.
+A term is valid when it is the public name of a field in [`get_valid_fields`]{@api py:function:vueda.core.filters.VuedaOrderingFilter.get_valid_fields}. That set holds every declared `ordering_fields` name, each field that the default ordering reads, and the fields behind `"pk"`.
 
 ## Search Contract Surface
 
@@ -193,18 +193,18 @@ A ranked search across a many-valued relation with no `o` can return an object o
 
 ## Filter Choices and Permission Surfaces
 
-Choices for a queryset-backed or value-derived filter change with the data, so model info does not include them. The client loads them from {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}. It loads the first page of 200 ([#381](https://github.com/arrai-innovations/vueda/issues/381)). [`ModelInfoFilterSetChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describes that endpoint.
+Choices for a queryset-backed or value-derived filter change with the data, so model info does not include them. The client loads them from {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}. It requests a page size of 200 and loads only the first page ([#381](https://github.com/arrai-innovations/vueda/issues/381)). [`ModelInfoFilterSetChoicesViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describes that endpoint.
 
 The endpoint returns:
 
-- `404` for a filter name the filterset does not declare. The message lists the valid names.
+- `404` for a filter name that the filterset does not declare. The message lists the valid names.
 - `404` for a model with no viewset, or a viewset with no filterset.
 - `403` when the user lacks the mapped `read` permission on the model. A queryset-backed filter also needs the mapped `list` permission on the related model. Without it, the list works and that filter's dropdown stays empty.
 - `500` with `FieldError` when the related model has no label path. That model has no `formatted_name` column, no `formatted_name_lookup_expression`, and no `get_formatted_name()`.
 
 The `500` case gets no startup report for a model outside `FormattedNameBaseModel`, such as the user model. The `vueda_info.E001` system check covers only a `FormattedNameBaseModel` that sets `formatted_name = None` with neither alternative.
 
-[`check_permissions`]{@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions} checks model-level permissions only. The choices come from all rows of the model, narrowed by the request's other filters. They are not limited to rows the user can list ([#394](https://github.com/arrai-innovations/vueda/issues/394)).
+[`check_permissions`]{@api py:function:vueda.info.viewsets.ModelInfoChoicesBaseViewSet.check_permissions} checks model-level permissions only. The choices come from all rows of the model, narrowed by the request's other filters. They are not limited to rows that the user can list ([#394](https://github.com/arrai-innovations/vueda/issues/394)).
 
 ## Client Normalization and Cache Semantics
 
@@ -216,17 +216,17 @@ The `500` case gets no startup report for a model outside `FormattedNameBaseMode
 
 {@api js:function:@arrai-innovations/vueda/use/useFilterables#useFilterables} merges the config's filterables with a view's overrides. {@api js:module:@arrai-innovations/vueda/use/useViewList} resolves that list once for {@api vue:component:ViewList} and passes it to {@api vue:component:FilterGroup}. {@api js:function:@arrai-innovations/vueda/use/useFilter#useFilter} picks each filter's component and widget. {@api js:module:@arrai-innovations/vueda/use/useFilterForm} converts a filter value to and from its URL form, using the filter's one lookup expression. `useViewList` writes the reader's sort to `o`. {@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices} and {@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices} load filter choices.
 
-The add-filter menu, {@api vue:component:FilterMenu}, offers only filters the client can render an input for. `useViewList`'s [`validFilterables`]{@api js:interface:@arrai-innovations/vueda/use/useViewList#ViewListFilterGroup} keeps a visible filter when its type has value handling and components to mount. The components come from the filter field mapping, or from the view config's `fieldComponents` and `widgetComponents`. A range filter needs both boundary components. A widget that resolves to {@api vue:component:WidgetUnmapped} does not count, because it shows a diagnostic. A filter that fails this check is left out of the menu, and its URL value is not restored. A console warning names the app, model, and filter once per list visit.
+The add-filter menu, {@api vue:component:FilterMenu}, offers only filters that the client can render an input for. `useViewList`'s [`validFilterables`]{@api js:interface:@arrai-innovations/vueda/use/useViewList#ViewListFilterGroup} keeps a visible filter when its type has value handling and components to mount. The components come from the filter field mapping, or from the view config's `fieldComponents` and `widgetComponents`. A range filter needs both boundary components. A widget that resolves to {@api vue:component:WidgetUnmapped} does not count, because it shows a diagnostic. A filter that fails this check is left out of the menu, and its URL value is not restored. A console warning names the app, model, and filter once per list visit.
 
 {@api js:function:@arrai-innovations/vueda/utils/fieldMappings#mergeFilterFieldMapping} registers a custom type's components and value handling together.
 
-A filter marked `hidden`, such as the `id` filter {@api py:class:vueda.core.filters.IdInFilterSet} declares, has no input. Its URL value still reaches the `list` request and shows as a {@term List Scope}, a chip with a clear control. [Open a Scoped List](../guides/scope-a-list.md) describes scopes, the `scopes` prop, and clearing.
+A filter marked `hidden`, such as the `id` filter that {@api py:class:vueda.core.filters.IdInFilterSet} declares, has no input. Its URL value still reaches the `list` request and shows as a {@term List Scope}, a chip with a clear control. [Open a Scoped List](../guides/scope-a-list.md) describes scopes, the `scopes` prop, and clearing.
 
 `storeModelInfo` caches a failed fetch. Later requests for that model reject with the cached error, so its filter and sort controls stay unavailable until the cache clears. [Reactive Data Flow](./reactive-data-flow.md) describes when that happens.
 
 ## Observable Failure Modes
 
-**A field sorts under its source name.** With no `ordering_fields`, a serializer field that renames `Product.name` to `title` sorts as `name`. A request for `o=title` gets a `400`, as does `o` on a property-backed field. Both look sortable in the UI until the `400` message is read.
+**A field sorts under its source name.** With no `ordering_fields`, a serializer field that renames `Product.name` to `title` sorts as `name`. A request for `o=title` gets a `400`, as does `o` on a property-backed field. Both columns look sortable in the UI, and sorting one returns the `400`.
 
 **The sort indicator disagrees with the rows.** A queryset `order_by()` sorts the rows while `default` reports another order, or none. The response is a `200`. The client's sort indicator is wrong, and its reset restores an order the server never applied.
 
