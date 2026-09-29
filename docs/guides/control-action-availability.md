@@ -7,27 +7,27 @@ status: draft
 
 # Control Action Availability in the UI
 
-The client offers each user the actions the server reports for them. {@term Model Actions} drive routes and model-level buttons, and each object's {@term Available Actions} drive that object's buttons. This guide shows how to shape those lists on the server and narrow them in the client. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md) describes the two scopes and where transition buttons come from.
+The client offers each user the actions that the server reports for them. {@term Model Actions} drive routes and model-level buttons, and each object's {@term Available Actions} drive that object's buttons. This guide shows how to shape those lists on the server and narrow them in the client. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md) describes the two scopes and where transition buttons come from.
 
 Every step here changes what the client offers. The server still authorizes each request on its own, as [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics.md) describes.
 
 ## Before You Start
 
 - The model has a viewset in its canonical registration. A model with a {@term Serializer-Only Registration} reports no actions, so none of its routes open. [Canonical Registration and Model Discovery](../core-concepts/canonical-registration-and-discovery.md) describes the difference.
-- The model's routes come from {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} and render {@api vue:component:ViewActionRouter}. `makeCRUDRoutes` runs {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} on each navigation, which is the {@term Route Admission} check. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md) describes the guard and how a route picks its view.
+- The model's routes come from {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} and render {@api vue:component:ViewActionRouter}. `makeCRUDRoutes` runs {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} on each navigation. `requireModelInfo` is the {@term Route Admission} check. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md) describes the guard and how a route picks its view.
 
 ## Grant the Built-in Actions
 
 The built-in actions follow the viewset's permission class, {@api py:class:vueda.core.permissions.ObjectPermissions} by default. You grant them through permissions and rules, with no extra code:
 
-1. Give the user the codename each action's HTTP method maps to, such as `myapp.update_widget` for `update` under the default mapping. [Permissions](../reference/permissions.md#required-codename-per-request) lists the mapping. An action appears in model info's `model_actions` when its {@term Model-Scope Check} passes.
+1. Give the user the codename that each action's HTTP method maps to, such as `myapp.update_widget` for `update` under the default mapping. [Permissions](../reference/permissions.md#required-codename-per-request) lists the mapping. An action appears in model info's `model_actions` when its {@term Model-Scope Check} passes.
 2. Add row-level rules or state permission rules to narrow individual objects. An action that model info lists drops out of an object's `available_actions` when that object's {@term Object-Scope Check} denies it. [Implement Row-Level Permissions](implement-row-level-permissions.md) and [Add Workflow State and Transition Permissions](workflow-state-permissions.md) give the steps.
 
 `create` acts on the model, so it never appears in an object's `available_actions`. [Permission Model](../core-concepts/permission-model.md) describes the order in which these layers apply.
 
 ## Offer Extra Actions per User or Object
 
-Each {@term Extra Action} appears in the lists as {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} returns it. VUEDA calls the method with no `instance` to build `model_actions`, and once per object with `instance` set to build that object's `available_actions`. The default offers every extra action and shows `history-list` only to users who can read the object.
+Each {@term Extra Action} appears in the lists when {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} returns it. VUEDA calls the method with no `instance` to build `model_actions`, and once per object with `instance` set to build that object's `available_actions`. The default offers every extra action and shows `history-list` only to users who can read the object.
 
 Override the method and start from the default set, so `history-list` keeps its read check:
 
@@ -60,16 +60,16 @@ A custom view that fetches objects itself must add `available_actions` to its `f
 
 ## Narrow What the Client Offers
 
-Two model config keys narrow the server's lists in the client. Neither can add an action the server does not report.
+Two model config keys narrow the server's lists in the client. Neither can add an action that the server does not report.
 
-- [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} closes the routes of model actions it leaves out. Transition routes still open.
+- [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} closes the routes of model actions that it leaves out. Transition routes still open.
 - [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions} hides action buttons, per view and optionally per group. An action it hides still opens by URL, so close its route with `routeActions` as well.
 
-[Choose Actions and Routes](configure-crud-views.md#choose-actions-and-routes) gives the steps and the forms each key takes.
+[Choose Actions and Routes](configure-crud-views.md#choose-actions-and-routes) gives the steps and the forms that each key takes.
 
 ## Let Users Reach Workflow Transitions
 
-For a {@term Workflow-Enabled Model}, the user's {@term Permitted Transitions} add their transition codes to the actions a route can name. A permitted code opens {@api vue:component:ViewExecuteTransition} unless you add a view for it by the naming convention in [View Component Resolution Order](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order).
+For a {@term Workflow-Enabled Model}, the user's {@term Permitted Transitions} add their transition codes to the actions that a route can name. A permitted code opens {@api vue:component:ViewExecuteTransition} unless you add a view for it by the naming convention in [View Component Resolution Order](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order).
 
 1. Give the user the workflow's workflow permissions and the transition's permission. [Add Workflow State and Transition Permissions](workflow-state-permissions.md) gives the steps.
 2. Leave transition buttons to the views. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md) describes which list each view reads them from.
@@ -78,10 +78,10 @@ When the server answers the permitted transitions request with `403`, transition
 
 ## Verify the Result
 
-Sign in as a user with each set of permissions you configured, then check:
+Sign in as a user with each set of permissions that you configured, then check:
 
 1. On a model without state rules, [model info]{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} omits `create` for a user without `myapp.create_widget`.
-2. Request an object that a state or row-level rule denies `update`, with `available_actions` in `f`. Its `available_actions` omits `update`, and model info still lists it.
+2. Request an object for which a state or row-level rule denies `update`, with `available_actions` in `f`. Its `available_actions` omits `update`, and model info still lists it.
 3. The detail views of two such objects show different action buttons.
 4. A route for an action outside `routeActions` shows "Action Not Found" and redirects to the `actionRedirect` passed to `makeCRUDRoutes`.
 5. A permitted transition code in the URL opens the transition view, and an unpermitted code shows "Action Not Found".
