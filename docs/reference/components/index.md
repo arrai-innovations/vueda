@@ -7,10 +7,27 @@ type: index
 
 # Components
 
-Visual reference for vueda's default theme. Each kit groups related components
-and shows their variants, sizes, and states as the visual contract a re-skin
-must preserve. Token surface and theme keys are linked from each page so a
-designer can move from the visual to the override surface in one click.
+These pages show the {@term Visual Contract} of each component in the default
+theme: its variants, sizes, and states. Each page links the theme keys and
+tokens that set its current values.
+[Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md) gives
+the steps for overriding them.
+
+The rules below apply to every component page. A re-skin changes the
+{@term Skin} and keeps each demo readable as the same control. A change that
+breaks a demo changes the design language. Values such as colors, sizes, and
+durations live in [theme tokens]{@term Theme Token}, and class compositions and
+state recipes live in [theme keys]{@term Theme Key}.
+
+Buttons, toggles, single-line inputs, select triggers, date and time fields, and
+pagination items share one control height scale:
+{@api css-token:vueda-control-height} and its
+[`-sm`]{@api css-token:vueda-control-height-sm} and
+[`-lg`]{@api css-token:vueda-control-height-lg} steps. Other controls, such as
+switches, checkboxes, and navigation menu triggers, set their own sizes. Focus
+rings take their width and offset from {@api css-token:vueda-focus-ring-width}
+and {@api css-token:vueda-focus-ring-offset}. The Switch track draws its own
+outline.
 
 ## Controls
 
