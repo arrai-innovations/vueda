@@ -12,7 +12,7 @@ Reference pages list facts for lookup: permission codenames, theme keys and toke
 
 - [Configuration Surface](configuration.md): Supported settings and integration knobs for server and client.
 - [Permissions](permissions.md): Permission codenames, the codename each request requires, row-level hook signatures, status codes for refused requests, and permission mapping values.
-- [Theming](theming.md): The theme keys and CSS tokens of the default theme, and how to choose between the two.
+- [Theming](theming.md): Links to the generated theme key and CSS token references for the default theme.
 - [Components](components/): The {@term Visual Contract} of each component in the default theme, with links to its theme keys and tokens.
 - [Glossary](glossary.md): Definitions of the VUEDA terms used across the guides, concepts, and generated API docs.
 - [Changelog](changelog/): Integrator-facing changes, with one page for each package.
