@@ -7,7 +7,7 @@ status: draft
 
 # Implement Row-Level Permissions
 
-This guide adds {@term Row-Level Permissions} to a model, so each user sees and changes only the rows your rules allow. It ends with the tests that confirm the rules. [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering) describes where each hook runs and why the two scopes are separate.
+This guide adds {@term Row-Level Permissions} to a model, so each user sees and changes only the rows that your rules allow. It ends with the tests that confirm the rules. [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering) describes where each hook runs and why the two scopes are separate.
 
 ## Before You Begin
 
@@ -58,7 +58,7 @@ Return a {@api ext:django:django.db.models.Q} to filter the rows, `False` for no
 
 ## Step 2: Check Single Objects with `check_instance`
 
-`check_queryset` does not affect retrieve, update, or delete of a single object. Without an instance hook, a user can open a row by pk that `list` hides. Add {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance} with the same rule:
+`check_queryset` does not affect retrieve, update, or delete of a single object. Without an instance hook, a user can open, by pk, a row that `list` hides. Add {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance} with the same rule:
 
 ```python
 class RowLevelPermissions(BaseRowLevelPermissions):
@@ -101,7 +101,7 @@ class RowLevelPermissions(BaseRowLevelPermissions):
         return None  # keep the earlier decision
 ```
 
-{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow} runs after the state rules remove denied rows. It can narrow the rows further but cannot restore rows the state rules removed. It receives the names of two boolean annotations on the queryset, [`state_denied_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_denied_annotation} and [`state_granted_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_granted_annotation}. Use them in the `Q` you return.
+{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow} runs after the state rules remove denied rows. It can narrow the rows further but cannot restore rows that the state rules removed. It receives the names of two boolean annotations on the queryset, [`state_denied_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_denied_annotation} and [`state_granted_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_granted_annotation}. Use them in the `Q` you return.
 
 {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow} runs last in an object check. It receives the state rules' result in [`grant_or_deny`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow.grant_or_deny} (`True`, `False`, or `None`). A non-`None` return is the final decision, even over a state deny. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) describes how state rules decide.
 
