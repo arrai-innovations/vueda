@@ -172,3 +172,48 @@ Set `view.cls._ignore_model_permissions = True` on `@api_view` functions whose p
 ### `conditional_*` wrappers are required
 
 All decorators and helpers from `drf_spectacular.utils` must go through the `conditional_*` wrappers in `vueda/core/open_api.py`. Importing `drf_spectacular.utils` directly at module scope breaks production installs that omit the dev dependency. The wrapper list (see `vueda/core/open_api.py.__all__`) covers `extend_schema`, `extend_schema_view`, `extend_schema_field`, `extend_schema_serializer`, `inline_serializer`, `OpenApiExample`, `OpenApiParameter`, `OpenApiRequest`, `OpenApiResponse`, `OpenApiCallback`, `OpenApiWebhook`, and `OpenApiTypes`.
+
+## Server configuration
+
+`py/dump_configuration.py` reads Python syntax trees without importing the server or loading project secrets. Its inventory covers env-adapter calls in `get_defaults` and `get_production_defaults`, settings declarations in their returned dictionaries, and Django settings reads under `server/vueda/`, including migrations.
+
+The `configuration` source runs through extract, normalize, and render. It writes `configuration.json` and `configuration.canonical.json` under `.generated/`, then renders `docs/reference/configuration.md`. Edit source and metadata, not the generated page.
+
+### Authored metadata
+
+`docs-tooling/configuration.json` has three maps keyed by exact config or setting names:
+
+- `config`: every env-adapter key needs a `description` and a nonempty `settings` array of Django setting paths. Use dotted paths for nested settings, such as `DATABASES.default`. Conditional reads also need `when`, a plain-language explanation of when the key applies.
+- `settings`: every discovered Django settings read needs a `description`, or a `configKey` pointing to a documented input that supplies it. An entry can have both when the Django setting needs its own explanation. Entries for additional factory outputs, such as `MAILERS`, are allowed when the extractor finds their declarations.
+- `djangoExemptions`: a setting used with unchanged Django meaning can have a written exemption reason instead of a settings entry. An exemption never covers an env-adapter key. Review the meaning of exemptions when changing a read site.
+
+For example:
+
+```json
+{
+    "config": {
+        "DATABASE_URL": {
+            "description": "Database connection URL.",
+            "settings": ["DATABASES.default"]
+        }
+    },
+    "settings": {
+        "DATABASES": { "configKey": "DATABASE_URL" }
+    },
+    "djangoExemptions": {
+        "MIGRATION_MODULES": "Django migration module overrides retain their Django meaning."
+    }
+}
+```
+
+The example illustrates the shape; the real metadata must cover the entire inventory. Normalization rejects undocumented reads, empty descriptions or reasons, stale entries, unknown setting mappings, and conflicting exemptions. Add or update metadata in the same change as a new read. Effects and conditions require review even when the key list does not change.
+
+### Extraction contract
+
+Env reads use a literal string key in `env(...)` or `env.<accessor>(...)`. Both positional and keyword defaults work. The `enum` accessor has its enum class before its optional positional default. The extractor preserves default expressions as text: JSON null means no default, while the string `None` means an explicit Python None default. Expressions are never evaluated.
+
+Factory declarations include literal dictionaries and dictionary unpacking, `return_dict[...]` assignments, additions, and `return_dict.update({...})`. Records preserve the factory function, source location, and surrounding `if` or `try` branch conditions. The page shows these declarations and overrides in source order, not as an evaluated final settings object. Describe derived values and optional-package behavior in metadata.
+
+Settings discovery recognizes `from django.conf import settings`, including import aliases, and reads through attributes, `getattr`, or `hasattr`. It ignores strings, comments, writes, and non-setting attributes such as `configured`. Literal names are required for `getattr` and `hasattr`; dynamic names fail extraction. New access patterns or factory assembly patterns need extractor support and tests before adoption.
+
+Raw records separate `config` reads (name, accessor, default, function, conditions, source), `definitions` (name, path, expression, operation, function, conditions, source), and settings `reads` (name, access, fallback, source). The normalizer groups them by name and joins authored metadata. Local fallbacks remain attached to their read sites and never replace factory defaults.

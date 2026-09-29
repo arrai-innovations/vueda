@@ -30,6 +30,7 @@ docs/.vitepress/.temp/
 docs/.vitepress/config.mjs.timestamp-*
 docs/api/
 docs/reference/api/
+docs/reference/configuration.md
 docs/reference/theming/tokens/
 docs/reference/theming/tokens.md
 docs/reference/theming/keys/

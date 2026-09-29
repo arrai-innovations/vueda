@@ -11,7 +11,7 @@ A VUEDA project is configured in three places: the Django settings that {@api py
 
 ## Server Settings from `get_defaults`
 
-`get_defaults(env)` reads values through an env adapter and returns a dict of Django settings. The adapter is any object with the methods of the {@api py:class:vueda.core.default_settings.EnvLike} protocol. VUEDA ships {@api py:class:vueda.core.config.TomlEnv}, which reads a mapping built by {@api py:function:vueda.core.config.load_toml} and checks the process environment first. A project's settings module applies the result with `locals().update(get_defaults(env))` and overrides individual keys after that line. VUEDA has no settings reference page yet ([#382](https://github.com/arrai-innovations/vueda/issues/382)), so the `get_defaults` source is the complete list of keys it sets.
+`get_defaults(env)` reads values through an env adapter and returns a dict of Django settings. The adapter is any object with the methods of the {@api py:class:vueda.core.default_settings.EnvLike} protocol. VUEDA ships {@api py:class:vueda.core.config.TomlEnv}, which reads a mapping built by {@api py:function:vueda.core.config.load_toml} and checks the process environment first. A project's settings module applies the result with `locals().update(get_defaults(env))` and overrides individual keys after that line. The [server configuration reference](../reference/configuration) lists every key that it sets, with its default. It also lists the settings that VUEDA code reads beyond them, with their local fallbacks.
 
 ### Required keys
 
