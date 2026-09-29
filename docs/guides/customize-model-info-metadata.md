@@ -15,7 +15,7 @@ The hooks work on the server's wire keys, such as `type_serializer` and `read_on
 
 A [`SerializerMethodField`]{@api ext:drf:rest_framework.fields.SerializerMethodField} has no model column and no fixed field class to inspect. Its generated entry always has `type_serializer: "SerializerMethodField"`, `type_db` and `type_model` set to `null`, `read_only: true`, and `required: false`.
 
-Override the hook when you want the entry to name the type that `get_<field>()` returns.
+Override `get_field_model_info` when you want the entry to name the type that `get_<field>()` returns.
 
 The same applies to a field whose `source` names a [`@property`]{@api ext:python:property} or an annotated value instead of a model field. Its `type_db` and `type_model` are `null`, and the [`vueda_info.W001`]{@api py:function:vueda.info.checks.check_field_source_resolution} system check warns about it ([Failure Modes and Recovery](../core-concepts/server-client-metadata-contract.md#failure-modes-and-recovery) gives the full rule). Filling in `type_db` or `type_model` through the hook also clears that warning. The hook never clears a warning about a model's `<field>_lookup_expression`; fix the expression instead.
 
@@ -73,7 +73,7 @@ class SubmissionSerializer(VuedaSerializer):
 
 The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels only when it shows the field read-only. They do not change serializer validation, model choices, or the editable widget.
 
-If you also override `get_field_model_info`, call `super()` in it, or the labels are not applied.
+If you also override `get_field_model_info`, call `super()` in it. Otherwise the base implementation does not apply the labels.
 
 ## Correct an Expand Descriptor
 
@@ -138,4 +138,4 @@ class PlainSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializer
         return fields
 ```
 
-Keep the mixin first. `FlexFieldsSerializerMixin` serves the `e` query parameter and resolves serializers named by a dotted string in `expandable_fields`. Without it, `model_expands` lists expands the endpoint cannot return. VUEDA's workflow [`StateSerializer`]{@api py:class:vueda.workflow.serializers.StateSerializer} uses the same three bases.
+Keep the mixin first. `FlexFieldsSerializerMixin` serves the `e` query parameter and resolves serializers named by a dotted string in `expandable_fields`. Without it, `model_expands` lists expands that the endpoint cannot return. VUEDA's workflow [`StateSerializer`]{@api py:class:vueda.workflow.serializers.StateSerializer} uses the same three bases.
