@@ -1,0 +1,3 @@
+- **`HEAD` requires the same permission as `GET` on model viewsets**:
+    - `ObjectPermissions` required no permission for `HEAD`, so a user without `list` or `read` got `200` for `HEAD` on a list or detail route and `404` for a missing pk, where `GET` answered `403`. The status revealed which rows exist. `HEAD` now requires `list` on a list route and `read` on a detail route, the same as `GET`, including the renamed `view` codename when `PERMISSION_NAMES_MAPPING` maps to Django's names.
+      _Clients that send `HEAD` requests, such as uptime monitors, need the user they authenticate as to hold the same permission a `GET` would need._

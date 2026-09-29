@@ -467,6 +467,12 @@ onMounted(() => {
 
         <slot name="additional-errors" />
         <error-display :error="list.error" :errored="list.errored" @dismiss-error="list.dismissError" />
+        <error-display
+            :error="list.columnErrors"
+            :errored="list.columnErrors.length > 0"
+            data-qa="view-list-column-error"
+            while-text="rendering the list columns"
+        />
         <!-- todo: filters/search -->
         <!-- todo: hide/show columns -->
         <!-- todo: filters return here? @submit=filterList -->
@@ -522,6 +528,8 @@ onMounted(() => {
                  resolved adapter. Covers both table and card layouts because
                  ObjectsGrid maps `field(<col>)` into both cell types. -->
             <template v-for="(resolved, name) in list.columnComponents" :key="name" #[`field(${name})`]="slotProps">
+                <!-- A column whose override failed resolves to a null component, which renders
+                     nothing; the column error display above names it. -->
                 <slot :name="`field(${name})`" v-bind="slotProps">
                     <link-model-view
                         v-if="detailLinkView(name, resolved, slotProps)"
