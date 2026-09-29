@@ -7,169 +7,142 @@ type: how-to
 
 # Local HTTPS Development
 
-By default, the scaffolded project runs over plain HTTP on `localhost`. That is sufficient for most feature development, but VUEDA's production defaults set `SESSION_COOKIE_SECURE = True` and `CSRF_COOKIE_SECURE = True`, and the scaffolded `settings/local.py` overrides both to `False` to compensate. If you want your local environment to match production security behavior (secure cookies, HTTPS-only), this guide walks through setting that up.
+VUEDA's default settings set {@api ext:django:setting:SESSION_COOKIE_SECURE} and {@api ext:django:setting:CSRF_COOKIE_SECURE} to `True`, so browsers send those cookies only over HTTPS. The scaffolded `server/config/settings/local.py` sets both to `False` so the project runs over plain HTTP. This guide serves both local servers over HTTPS and removes those two overrides, so local cookies behave as they do in production. Production keeps the same secure cookie defaults; this guide covers only the local development servers.
 
-This guide uses [mkcert](https://github.com/FiloSottile/mkcert) to issue a locally trusted certificate for `localhost`. No changes to the project's committed code are required; everything lives in gitignored local files.
-
-## Prerequisites
-
-- [mkcert](https://github.com/FiloSottile/mkcert) installed on your development machine
-
-    On Debian/Ubuntu: `sudo apt install mkcert`
-
-    On Fedora: `sudo dnf install mkcert`
-
-    On macOS: `brew install mkcert`
-
-    On Windows (via Chocolatey): `choco install mkcert`
+The steps use [mkcert](https://github.com/FiloSottile/mkcert) to issue a certificate that your browser trusts. Install it by following its README.
 
 ## Install the Local CA
 
-mkcert creates a local certificate authority (CA) the first time you run:
+Create mkcert's local certificate authority (CA) and add it to your system trust store:
 
 ```console
 mkcert -install
 ```
 
-This adds the CA to your system trust store. On Linux this updates `/etc/ssl/certs`; on macOS it updates the system Keychain.
-
-### WSL2 and Windows browsers
-
-The Linux system trust store is not shared with Windows-side browsers (Firefox, Chrome, Edge). You need to install the CA root certificate on the Windows side as well.
-
-Copy the CA certificate to somewhere accessible from Windows:
+If you develop in WSL2 and browse from Windows, the Windows browsers do not read the Linux trust store. Import the CA file into the Windows certificate store. If you use Firefox, import it into Firefox's own store. This command prints the folder that holds the CA file, `rootCA.pem`:
 
 ```console
-cp "$(mkcert -CAROOT)/rootCA.pem" /mnt/c/Users/YourName/Downloads/
+mkcert -CAROOT
 ```
-
-Then import it into your browser:
-
-- **Firefox**: Settings > Privacy & Security > Certificates > View Certificates > Authorities > Import. Select `rootCA.pem` and check "Trust this CA to identify websites."
-- **Chrome / Edge**: Windows searches the Windows certificate store automatically. Run `certmgr.msc`, navigate to Trusted Root Certification Authorities > Certificates, right-click > All Tasks > Import, and import `rootCA.pem`.
 
 ## Generate a Certificate
 
-From your project root, generate a certificate for `localhost`:
+The certificate must name the host that you open in the browser. That host is the `bind_ip` you chose when scaffolding, which defaults to `localhost`. From the project root, run:
 
 ```console
 mkcert -cert-file server/localhost.pem -key-file server/localhost-key.pem localhost 127.0.0.1 ::1
 ```
 
-This writes `server/localhost.pem` and `server/localhost-key.pem`. Add both to your project's `.gitignore`:
+If your `bind_ip` is not one of these names, add it to the end of the command.
+
+The project's `.gitignore` does not cover these files. Add them:
 
 ```
 server/localhost.pem
 server/localhost-key.pem
 ```
 
-## Configure the Django Server
+## Configure gunicorn
 
-The scaffolded project includes `server/gunicorn.conf.py.example`. Copy it and fill in the certificate paths:
+Both templates include `server/gunicorn.conf.py.example`. Copy it:
 
 ```console
 cp server/gunicorn.conf.py.example server/gunicorn.conf.py
 ```
 
-Edit `server/gunicorn.conf.py`:
+In `server/gunicorn.conf.py`, uncomment `certfile` and `keyfile` and set the paths:
 
 ```python
 certfile = "localhost.pem"
 keyfile  = "localhost-key.pem"
 ```
 
-Paths are relative to the working directory gunicorn is started from (`server/`). `gunicorn.conf.py` is already gitignored.
+gunicorn resolves these paths from `server/`, where it runs, and reads `gunicorn.conf.py` from that folder on startup. `server/gunicorn.conf.py` is already gitignored.
 
-gunicorn picks this file up automatically; no extra flags or Justfile changes are needed. `just serve-server` (DX template) and the manual gunicorn command from the start-building guide both pick it up as-is.
+## Configure Vite
 
-## Configure the Vite Dev Server
-
-Edit `client/vite.config.js` to add a `server.https` block:
+In `client/vite.config.js`, merge a `server.https` block into the result of {@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig}. Merging keeps the `server.fs.allow` list that `vuedaViteConfig` returns when VUEDA is linked from a source checkout. The added lines are the `fs` import, `mergeConfig`, and the `server` block:
 
 ```js
 import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import fs from "fs";
-import { defineConfig } from "vite";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig, mergeConfig } from "vite";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
     plugins: [vue(), tailwindcss()],
-    ...vuedaViteConfig(),
-    server: {
-        https: {
-            cert: fs.readFileSync("../server/localhost.pem"),
-            key: fs.readFileSync("../server/localhost-key.pem"),
+    ...mergeConfig(
+        vuedaViteConfig({
+            extraAliases: {
+                // The action router uses this alias to discover views in src/views.
+                "@": path.resolve(__dirname, "src"),
+            },
+        }),
+        {
+            server: {
+                https: {
+                    cert: fs.readFileSync("../server/localhost.pem"),
+                    key: fs.readFileSync("../server/localhost-key.pem"),
+                },
+            },
         },
-    },
+    ),
 });
 ```
 
-The path `../server/` is relative to `client/`, where Vite runs.
+Vite runs from `client/`, so `../server/` points at the certificate files.
 
-## Update Server Configuration
+The client needs no other change. The {@api js:module:@arrai-innovations/vueda/utils/connectionHostname} module takes the protocol and host from the page's own address, so a page served over HTTPS calls the server over `https` and opens WebSockets over `wss`. It takes the server's port from `VITE_DJANGO_CONNECTION_PORT` in `client/.env.development`.
 
-### `config.local.toml`
+## Update `config.local.toml`
 
-Change the local values that reference the client origin from `http://` to `https://`:
+In `server/config.local.toml`, change the three origin values from `http://` to `https://`. With the default `bind_ip` and client port, they read:
 
 ```toml
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 FRONTEND_DOMAIN = "https://localhost:5173"
 CSRF_TRUSTED_ORIGINS = ["https://localhost:5173"]
 CORS_ALLOWED_ORIGINS = ["https://localhost:5173"]
 ```
 
-Replace `5173` with your actual client port if you chose a different one during scaffolding.
+`FRONTEND_DOMAIN` is the client's full origin, including the scheme. The server builds the links in account emails, such as the password reset email, from this value exactly as written.
 
-### `settings/local.py`
-
-The scaffolded `local.py` leaves host and origin values to TOML. It does disable the secure cookie flags for plain HTTP local development; remove those overrides so the production defaults apply:
-
-```python
-from config.settings.base import *
-
-CSRF_COOKIE_NAME = "your-project-csrf-token"
-
-# SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are intentionally not overridden
-# here. The production defaults (True) apply, which requires HTTPS end-to-end.
-
-from vueda.core import patch_django  # noqa: F401
-```
-
-Again, replace `5173` with your actual client port.
-
-## Verify
-
-Start both servers:
-
-```console
-# DX template
-just serve
-
-# Minimal template (two terminals)
-cd server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
-cd client && pnpm dev
-```
-
-Check the Django server is responding over HTTPS:
-
-```console
-curl -i https://localhost:8000/routes/vueda.user/who-is/
-```
-
-Then open `https://localhost:5173` in your browser. The connection should be trusted and the padlock should show.
-
-## How the Client Handles Protocol Automatically
-
-VUEDA's `connectionHostname` utility derives the backend URL from `window.location.protocol`. When the Vite dev server is on HTTPS, the client automatically sends requests to `https://localhost:8000` rather than `http://`. There is no client-side configuration to change when switching between HTTP and HTTPS local setups.
-
-## Note on `ALLOWED_HOSTS`
-
-If you use a custom local hostname instead of `localhost` (for example, a hosts-file alias like `myproject.local`), add it to `ALLOWED_HOSTS` in `config.toml`:
+If you open the app under another hostname, such as a hosts-file alias like `myproject.local`, use that hostname in all three values. Add it to {@api ext:django:setting:ALLOWED_HOSTS} in the same file, and include it in the certificate:
 
 ```toml
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "myproject.local"]
 ```
 
-Update the three CORS/CSRF/FRONTEND values to match that hostname as well.
+## Remove the Cookie Overrides
+
+In `server/config/settings/local.py`, delete these two lines and leave the rest of the file as it is:
+
+```python
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+```
+
+The file's `CSRF_COOKIE_SAMESITE = "Lax"` and `SESSION_COOKIE_SAMESITE = "Lax"` lines stay.
+
+## Verify
+
+Start both servers. With the DX template, run `just serve`. With the minimal template, run each in its own terminal:
+
+```console
+cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+cd client && pnpm dev
+```
+
+Check the server over HTTPS:
+
+```console
+curl -i https://localhost:8000/routes/vueda.user/who-is/
+```
+
+The [who-is endpoint]{@api rest:endpoint:GET:/vueda.user/who-is/} answers `200` without a certificate error. When no user is signed in, the body is an empty JSON object.
+
+Then open `https://localhost:5173`. The browser loads the app without a certificate warning.
