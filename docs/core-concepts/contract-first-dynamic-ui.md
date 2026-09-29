@@ -9,21 +9,21 @@ status: draft
 
 VUEDA's client ships without knowledge of your models: which exist, what fields they have, or which actions they offer. It builds routes, forms, field and widget components, and action views at runtime from the server's metadata, called {@term Model Info}. It reads that metadata through {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}.
 
-This page explains how the client turns that metadata into a default UI, and how you customize the parts that need it. It describes configuration precedence, with its exceptions, and field and widget resolution in full. [Server-Client Metadata Contract](./server-client-metadata-contract) describes what the metadata contains, and [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) describes how a model gets metadata.
+This page explains how the client turns that metadata into a default UI, and how you customize the parts that need it. It describes configuration precedence (with its exceptions) and field and widget resolution in full. [Server-Client Metadata Contract](./server-client-metadata-contract) describes what the metadata contains, and [Canonical Registration and Model Discovery](./canonical-registration-and-discovery) describes how a model gets metadata.
 
 ## The Default UI and Customization
 
 A model registered with a serializer and a viewset gets a complete {@term CRUD} surface with no client code. When a field changes on the server, the form changes with it. When the server stops offering an action, its route goes away.
 
-The default UI is a starting point. A view that needs tweaking, or does not fit its conventions, takes overrides: for a field, for a widget, or for the whole view. Everything an override leaves alone still follows the metadata. [Configuration Precedence](#configuration-precedence) describes how overrides combine with the defaults.
+The default UI is a starting point. A view that needs tweaking, or does not fit the default conventions, takes overrides: for a field, for a widget, or for the whole view. Everything an override leaves alone still follows the metadata. [Configuration Precedence](#configuration-precedence) describes how overrides combine with the defaults.
 
 Model info is the only source the client uses for a model's shape: its fields, [expands]{@term Expand}, filters, ordering, and [model-level actions]{@term Model Actions}. A user's actions can also come from the [workflow]{@term Workflow} and from [each object's own availability]{@term Available Actions}. [Action Contract and Availability](./action-contract-and-availability) describes where each action comes from. When the client does something unexpected, start with the metadata it received.
 
-Registration decides what the client can build. A [registered]{@term Canonical Registration} model gets metadata, routes, forms, and permission gating. A model or endpoint outside registration gets none of these, and the client cannot add an action the server does not offer.
+Registration decides what the client can build. A [registered]{@term Canonical Registration} model gets metadata, routes, forms, and permission gating. A model or endpoint outside registration gets none of these, and the client cannot add an action that the server does not offer.
 
 ## Where the Metadata Comes From
 
-The server derives model info from the model, [serializer]{@term Canonical Serializer}, [viewset]{@term Canonical Viewset}, and filterset definitions. These are the same definitions the server enforces. A field that is read-only in the serializer arrives read-only, and an action the viewset does not implement does not appear.
+The server derives model info from the model, [serializer]{@term Canonical Serializer}, [viewset]{@term Canonical Viewset}, and filterset definitions. These are the same definitions that the server enforces. A field that is read-only in the serializer arrives read-only, and an action that the viewset does not implement does not appear.
 
 ## Client Derivation Layer
 
@@ -31,7 +31,7 @@ The client renames model info's keys when it stores them; [Server-Client Metadat
 
 ### Route Availability
 
-Every model shares the same {@term CRUD Routes}. {@term Route Admission} opens a route only for an action the server lists for the user or one of the user's [permitted transitions]{@term Permitted Transitions}. [Routing and View Resolution Model](./routing-and-view-resolution-model) describes the guard chain and what happens when a guard rejects a route.
+Every model shares the same {@term CRUD Routes}. {@term Route Admission} opens a route only for one of the user's [permitted transitions]{@term Permitted Transitions} or an action that the server lists for the user. [Routing and View Resolution Model](./routing-and-view-resolution-model) describes the guard chain and what happens when a guard rejects a route.
 
 ### Action View Resolution
 
@@ -45,17 +45,17 @@ The default field component is {@api vue:component:FormField} for every field ty
 
 The default widget comes from [type mapping tables]{@api js:module:@arrai-innovations/vueda/utils/fieldMappings} keyed on the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}. When `typeModel` is empty, the entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.default} for that serializer type applies. [Choice fields]{@term Choice-Backed Field} and many-valued fields have their own tables, checked before the base table. [`typeDb`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeDb} only selects props for a [`GeneratedField`]{@api ext:django:django.db.models.GeneratedField}. {@api js:function:@arrai-innovations/vueda/utils/fieldMappings#mergeDefaultFieldMappings} adds or replaces entries in the base table at runtime.
 
-A read-only field takes its type's read-only widget, or {@api vue:component:WidgetReadOnly} when the type has none. An editable field whose type has no mapping has no widget. That field renders an error in place of its input, and the rest of the form still renders. [Custom Field and Widget Rendering](../guides/custom-field-widget-rendering) describes that fallback and the steps to add a mapping.
+A read-only field takes its type's read-only widget. When the type has none, it takes {@api vue:component:WidgetReadOnly}. An editable field whose type has no mapping has no widget. That field renders an error in place of its input, and the rest of the form still renders. [Custom Field and Widget Rendering](../guides/custom-field-widget-rendering) describes that fallback and the steps to add a mapping.
 
 ### Form Generation
 
 The form builder turns each field's metadata into a field component, a widget component, props for each, and choice-loading behaviour. Fields with static choices get their options inline in the metadata. Fields marked `choices: true` load their options from the server: a relation's widget searches the related model's list endpoint, and a slug relation's widget fetches from the [choices endpoint]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/} when it holds a value or first gets focus. [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups) lists where each kind of field loads its options.
 
-The client flattens expanded relations into [dotted field names]{@term Field Path} (`expandName.fieldName`). An override for a nested field uses the same keys as one for a base field. Composables and symbol-based provide and inject share [form state]{@term Form Context}: values, errors, touched state, and modification tracking. Nested field sets join the same form without passing props down.
+The client flattens expanded relations into [dotted field names]{@term Field Path} (`expandName.fieldName`). An override for a nested field uses the same keys as one for a base field. Composables and symbol-based `provide` and `inject` share [form state]{@term Form Context}: values, errors, touched state, and modification tracking. Nested field sets join the same form without passing props down.
 
 ## Configuration Precedence
 
-The client can reshape what it derives through two layers above the server's defaults. {@term Model Config} is a Pinia store, {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}, filled with [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}. It has a generic layer for all views of a model and a view layer keyed by view name (`list`, `create`, `update`, `read`, and others). For the same key, the view layer wins over the generic layer. Component props are the props a view or form receives from the template that renders it. [Reactive Data Flow](./reactive-data-flow) describes how the store builds and caches each view's config.
+Through two layers above the server's defaults, the client can reshape what it derives. {@term Model Config} is a Pinia store, {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}, filled with [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig}. It has a generic layer for all views of a model and a view layer keyed by view name (`list`, `create`, `update`, `read`, and others). For the same key, the view layer wins over the generic layer. Component props are the props that a view or form receives from the template that renders it. [Reactive Data Flow](./reactive-data-flow) describes how the store builds and caches each view's config.
 
 ### The Rule
 
@@ -66,7 +66,7 @@ For fields and widgets, precedence is: **component props > model config > server
 - **Field lists** ([`fields`]{@api vue:component:FormModel:prop:fields}, {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.expand}, [`computedFields`]{@api vue:component:FormModel:prop:computedFields}): a component prop replaces the model config list whole.
 - **Field metadata** ({@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.fieldDetails}): entries merge over the server's field entries, per property, in the same order.
 
-The resolver sets a few props after every layer, so no layer can set them. On the widget these are [`readOnly`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS} and the choice source (`options`, or the endpoint coordinates for `choices: true`). On the field they are [`name`]{@api vue:component:FormField:prop:name} and [`readOnly`]{@api vue:component:FormField:prop:readOnly}.
+The resolver sets a few props after every layer, so no layer can override them. On the widget these are [`readOnly`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS} and the choice source (`options`, or the endpoint coordinates for `choices: true`). On the field they are [`name`]{@api vue:component:FormField:prop:name} and [`readOnly`]{@api vue:component:FormField:prop:readOnly}.
 
 ### Exceptions
 
@@ -84,19 +84,19 @@ List columns resolve through their own chain, described in [Customize List Colum
 
 Overrides change only what the client renders. Field props can replace `required`, `label`, or `readOnly` for the UI, and `fieldDetails` can replace any property of a field's metadata. The server applies its own validation and read-only rules on every write, whatever the form sent.
 
-Overrides cannot add actions. The route guard admits only actions the server lists and workflow transition codes, so an action name that only model config knows gets no route and no view. [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.routeActions} can only narrow the server's list. Hiding an action in the client does not remove its endpoint; [Authorization vs UI Semantics](./authorization-vs-ui-semantics) describes that boundary.
+Overrides cannot add actions. The route guard admits only workflow transition codes and actions that the server lists, so an action name that only model config knows gets no route and no view. [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.routeActions} can only narrow the server's list. Hiding an action in the client does not remove its endpoint; [Authorization vs UI Semantics](./authorization-vs-ui-semantics) describes that boundary.
 
 ## Resolution Determinism
 
 The same metadata, configuration, and registered mappings always produce the same UI. The type mapping tables and the view registry are module-level state, so `mergeDefaultFieldMappings` and `setCrudComponents` change the result for every model at once. Precedence has fixed layers, the resolver applies the three exceptions the same way in every form, and view resolution ends at exactly one component.
 
-This is what makes a UI problem traceable. Debugging it means inspecting the metadata the client received and the configuration it applied.
+This is what makes a UI problem traceable. Debugging it means inspecting the metadata that the client received and the configuration it applied.
 
 ## Failure Modes
 
-**Client code names a field the server no longer sends.** A configured field list that names a field missing from the metadata throws `Unknown field ... specified` when the form builds. Project overrides and custom views reintroduce this risk whenever they reference contract details by name.
+**Client code names a field that the server no longer sends.** A configured field list that names a field missing from the metadata throws `Unknown field ... specified` when the form builds. Project overrides and custom views reintroduce this risk whenever they reference contract details by name.
 
-**Premature overrides hide defaults.** The default mapping is often correct. An override added before understanding the default adds maintenance and becomes one more variable when something breaks.
+**Premature overrides hide defaults.** The default mapping is often correct. An override added before you understand the default adds maintenance and becomes one more variable when something breaks.
 
 **Client-side restriction mistaken for server-side removal.** Removing an action from `routeActions` hides it in the client, but the endpoint still accepts requests from any user the server permits.
 
