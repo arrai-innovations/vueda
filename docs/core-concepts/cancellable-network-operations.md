@@ -45,7 +45,7 @@ Aborting is synchronous. If the response has not arrived, `fetch` rejects. If th
 
 The `isCancelled` check covers that gap. A list instance passes each run an `isCancelled` ref ({@api ext:reactive-helpers:ListArgsRaw} lists the adapter arguments). When the instance cancels a run, it sets the ref to `true` first and then calls the adapter's `cancel`. {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor} reads the body, checks the ref, and returns without writing pagination or rows if the run was cancelled. The all-pages adapter checks the ref before each write. An adapter can also call `setCancelled` to mark its own run cancelled.
 
-Aborting saves network and server work when it arrives in time. The check stops the stale write in every case where the instance knows the run was cancelled.
+Aborting saves network and server work when the abort arrives in time. The check stops the stale write in every case where the instance knows the run was cancelled.
 
 A cancelled run rejects, and the instance does not treat that rejection as an error. It stores no error for a run it cancelled, and a cancelled list run resolves to `false`.
 
@@ -68,13 +68,13 @@ When {@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModel
 
 {@api js:function:@arrai-innovations/vueda/use/useLookupContext#useLookupContext} lets several components share one request for the same object. Its `requestObject` groups requests by app, model, fields, and expand. It waits 250 ms after the latest request (at most 1 s) and then fetches all requested pks for a group in one request. Each component receives its own cancellable promise.
 
-Cancelling a component's promise removes that component from the shared request. The shared request is aborted only when no component still waits on any pk in its group. One component's disposal therefore does not abort a request that another component needs.
+Cancelling a component's promise removes that component from the shared request. The context aborts the shared request only when no component still waits on any pk in its group. One component's disposal therefore does not abort a request that another component needs.
 
 A cancelled component promise never settles. It neither resolves nor rejects, so code awaiting it stops at the `await`.
 
-The context keeps each resolved object for its own lifetime. A later request for the same object gets a resolved promise with no `cancel`, and no request is sent.
+The context keeps each resolved object for the context's lifetime. A later request for the same object gets a resolved promise with no `cancel`, and no request is sent.
 
-The context logs a console warning in three cases: `cancel` runs after its records for that object are gone, `cancel` runs twice on one promise, or the last component cancels before the shared request has started. These warnings point to a component that cancels after its request has finished or been torn down.
+The context logs a console warning in three cases: `cancel` runs after the context's records for that object are gone, `cancel` runs twice on one promise, or the last component cancels before the shared request has started. These warnings point to a component that cancels after its request has finished or been torn down.
 
 {@api js:function:@arrai-innovations/vueda/use/useResolvedLookupObject#useResolvedLookupObject} resolves one object through the lookup context. It cancels its request when the app, model, or pk becomes empty, and when its scope is disposed. It logs a failed cancel as a console warning and does not throw. Issue [#385](https://github.com/arrai-innovations/vueda/issues/385) tracks two current behaviors:
 
