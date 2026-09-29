@@ -22,7 +22,7 @@ The client reads the marker when it normalizes model info. [Server-Client Metada
 The client never tells the server which field is the primary key. It uses the name from model info wherever it needs an object's identifier:
 
 - The default field lists that `storeModelConfig` builds leave out the pk field.
-- The built-in views pass the name as `pkKey` to the {@term CRUD Adapter} functions. The create, detail, and update views also add the pk field to the fields they request.
+- The built-in views pass the name as `pkKey` to the {@term CRUD Adapter} functions. The create, detail, and update views also add the pk field to the fields that they request.
 - [`defaultObjectUpdate`]{@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate} reads the object's pk from [`pkKey`]{@api js:param:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate:args.pkKey}, which defaults to `"id"`. Code that calls it directly for a model with another pk name, and omits `pkKey`, sends `undefined` as the pk segment.
 
 ## Identifier Transport
@@ -41,7 +41,7 @@ The ordering parameter `o` accepts `pk` as an alias for the fields behind the pr
 
 ## Choice Identifier Value Semantics
 
-Every choice value VUEDA sends is a string. The rule covers the inline `choices` lists in `model_fields` and `model_filtering`. It also covers the responses of the {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/} and {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/} endpoints. For a related model, the value is the related row's pk. For a `SlugRelatedField`, it is the value of the slug field. Integer, UUID, and other column types all arrive as JSON strings.
+Every choice value that VUEDA sends is a string. The rule covers the inline `choices` lists in `model_fields` and `model_filtering`. It also covers the responses of the {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/} and {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/} endpoints. For a related model, the value is the related row's pk. For a `SlugRelatedField`, it is the value of the slug field. Integer, UUID, and other column types all arrive as JSON strings.
 
 Filter choices omit empty values, because clearing a filter means leaving its query parameter out. Field choices keep a blank entry when the field declares one, so a form can offer it.
 
