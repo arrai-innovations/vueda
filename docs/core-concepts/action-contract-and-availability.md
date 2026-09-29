@@ -29,7 +29,7 @@ Model info reads the same `detail` and `bulk` attributes from each action, so it
 
 {@term Model Actions} answer whether the user might perform an action on some object of the model. The {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} endpoint builds the list in {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}. The list differs between users.
 
-Each built-in action the viewset implements appears when a {@term Model-Scope Check} passes. {@api py:function:vueda.core.permissions.check_action_permission} runs that check through the viewset's own permission classes, with no object and the HTTP method of the action under test.
+Each built-in action that the viewset implements appears when a {@term Model-Scope Check} passes. {@api py:function:vueda.core.permissions.check_action_permission} runs that check through the viewset's own permission classes, with no object and the HTTP method of the action under test.
 
 Extra actions appear as {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} returns them. On `VuedaViewSet`, the default returns every extra action and offers `history-list` only to users who may read. {@api py:function:vueda.core.viewsets.VuedaReadOnlyViewSet.get_allowed_extra_actions} returns every extra action. Extra actions get no other check in this list.
 
@@ -43,7 +43,7 @@ Each entry carries the action's name, HTTP methods, `detail` and `bulk` flags, a
 
 {@term Available Actions} answer whether the user can perform an action on one object in its current state. The {@api py:class:vueda.core.serializers.fields.AvailableActionsField} computes the [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions} field for each serialized object.
 
-Each built-in action the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes for that object. The check includes `list`. It runs the viewset's object permission check, so {@term Row-Level Permissions}, {@term State Permission} rules, and any override of that check apply. Extra actions appear as `get_allowed_extra_actions(request, instance=instance)` returns them, so an override can decide per object.
+Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes for that object. The check includes `list`. It runs the viewset's object permission check, so {@term Row-Level Permissions}, {@term State Permission} rules, and any override of that check apply. Extra actions appear as `get_allowed_extra_actions(request, instance=instance)` returns them, so an override can decide per object.
 
 The server includes the field only when the request names it through {@term Sparse Fields} (`f`). An expanded object never carries it, and the server rejects a request that names it on an expanded object with `400`. The client asks for it on detail fetches, and on list fetches when the model config sets [`detailLinkField`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.detailLinkField}.
 
@@ -51,9 +51,9 @@ The two scopes can differ for the same user. A user may hold the model-level per
 
 ## UI Affordance Filtering Layers
 
-{@term Route Admission} opens a route when its action is in the model actions, narrowed by [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions}, or is one of the user's {@term Permitted Transitions}. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#failure-modes) describes the guard, what a refused route shows, and which view component renders.
+{@term Route Admission} opens a route when its action is in the model actions after [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} narrows them. It also opens a route whose action is one of the user's {@term Permitted Transitions}. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#failure-modes) describes the guard, what a refused route shows, and which view component renders.
 
-Buttons pass through the model config's [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions} first. It defaults to the model actions' names. {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions} keeps every name in an array, or, for an object, the names whose value is `true` or lists one of the user's groups. A button also needs the action's entry in model info. This filter runs in the client and changes only what the client shows.
+Buttons pass through the model config's [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions} first. It defaults to the model actions' names. When `actions` is an array, {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions} keeps every name in it. When `actions` is an object, it keeps the names whose value is `true` or lists one of the user's groups. A button also needs the action's entry in model info. This filter runs in the client and changes only what the client shows.
 
 Each view then picks its buttons from these sources:
 
@@ -64,7 +64,7 @@ Each view then picks its buttons from these sources:
 
 An update view whose object's `available_actions` leaves out `update` shows an "Editing unavailable" notice in place of the form. {@api vue:component:ViewUpdate} renders it through its [`update-unavailable`]{@api vue:component:ViewUpdate:slot:update-unavailable} slot.
 
-When the permitted transitions request answers `403`, the list view shows no transition buttons, and transition routes for that model redirect with a "Permission Denied" toast. The client keeps that failure until its caches clear, which [Reactive Data Flow](./reactive-data-flow.md#when-caches-clear) describes.
+When the permitted transitions request answers `403`, the list view shows no transition buttons, and transition routes for that model redirect with a "Permission Denied" toast. The client keeps that failure until its caches clear. [Reactive Data Flow](./reactive-data-flow.md#when-caches-clear) describes when that happens.
 
 ## Dry-Run and Mutation Semantics
 
@@ -79,17 +79,17 @@ For an extra action, the decorator sets `request.dry_run` to `True` and runs the
 
 A dry-run `destroy` runs `destroy_validation` and the warning gate, then answers `200` with an empty body and deletes nothing. A committed `destroy` answers `204`. A validation failure answers `400` in either mode.
 
-{@api vue:component:ModelActionForm} sends a dry run as a pre-flight once it has target objects, unless its [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} prop is `false`. A `400` from the pre-flight shows as field errors on the form. Any other failure, including a `409`, is dropped without a prompt. A successful pre-flight shows no toast, fires no redirect, and leaves the workflow store's cached object state unchanged.
+{@api vue:component:ModelActionForm} sends a dry run as a pre-flight once it has target objects, unless its [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} prop is `false`. A `400` from the pre-flight shows as field errors on the form. The form drops any other failure, including a `409`, without a prompt. A successful pre-flight shows no toast, fires no redirect, and leaves the workflow store's cached object state unchanged.
 
 ## Warning Confirmation Gating
 
 Actions take part in {@term Warning Confirmation}. [Error and Validation Contract](./error-and-validation-contract.md#warning-confirmation-semantics) describes the `409` body and the client error classes.
 
-`@action(confirm=True)` gates every request whose method is not `GET`, `HEAD`, or `OPTIONS`. The gate runs before the body, so an unacknowledged request returns `409` and the body does not run. The message comes from a `confirm_message` attribute set on the action function, or {@api py:property:vueda.core.decorators.DEFAULT_CONFIRM_MESSAGE} when it is unset.
+`@action(confirm=True)` gates every request whose method is not `GET`, `HEAD`, or `OPTIONS`. The gate runs before the body, so an unacknowledged request returns `409` and the body does not run. The message comes from a `confirm_message` attribute that is set on the action function. When that attribute is unset, the message is {@api py:property:vueda.core.decorators.DEFAULT_CONFIRM_MESSAGE}.
 
-The gate also runs before the dry-run check, so a dry run of a `confirm=True` action returns `409` too. Its pre-flight in `ModelActionForm` therefore never reaches the body and reports no validation errors. This suits actions without input, which have nothing to validate.
+The gate also runs before the dry-run check, so a dry run of a `confirm=True` action returns `409` too. The pre-flight that `ModelActionForm` sends for such an action therefore never reaches the body and reports no validation errors. This suits actions without input, which have nothing to validate.
 
-An action that takes input calls {@api py:function:vueda.core.exceptions.gate_warnings} inside the body. It calls it after `serializer.is_valid(raise_exception=True)` and before the write, so a `400` comes before the `409`. `destroy` follows the same order: `destroy_validation`, then the gate, then the dry-run return. [Require Confirmation Before a Write](../guides/require-write-confirmation.md) gives the steps for each kind of write.
+An action that takes input calls {@api py:function:vueda.core.exceptions.gate_warnings} inside the body. The action calls it after `serializer.is_valid(raise_exception=True)` and before the write, so a `400` comes before the `409`. `destroy` follows the same order: `destroy_validation`, then the gate, then the dry-run return. [Require Confirmation Before a Write](../guides/require-write-confirmation.md) gives the steps for each kind of write.
 
 ## Failure Surface and Drift Patterns
 
