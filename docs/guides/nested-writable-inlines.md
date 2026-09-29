@@ -54,7 +54,7 @@ The rest of this guide uses `expandable_fields`.
 
 ## Name Each Nested Relation in `e`
 
-Add every relation the body sends as an object to the `e` query parameter. A relation named in {@term Expand} accepts an object, or a list of objects with `"many": True`. A relation left out of `e` accepts a primary key:
+Add every relation that the body sends as an object to the `e` query parameter. A relation named in {@term Expand} accepts an object. With `"many": True`, it accepts a list of objects. A relation left out of `e` accepts a primary key:
 
 ```text
 POST /routes/shop/order/?e=items
@@ -162,7 +162,7 @@ The Delete button on an unsaved row is a {@api vue:component:Button} with a tras
 - **Layout or extra classes on Delete:** override the [theme slot]{@term Theme Slot} {@api theme-key:FieldSetStackedInlineRow.destroyButton} or {@api theme-key:FieldSetTabularInline.destroyButton}. Singular stacked inlines use the stacked row's slot.
 - **Button appearance:** override {@api theme-key:Button.root} or its composition primitives. A {@term Theme Override} on the inline applies to that inline and its descendants, so it also changes Create and the other buttons inside it.
 - **The trash icon:** pass an [`iconOverride`]{@api js:property:@arrai-innovations/vueda/use/useIcons#ICON_OVERRIDE_PROPS} with a `typeDeleted` entry under `FieldSetStackedInlineRow` or `FieldSetTabularInline`. A `typeDeleted` entry under `Default` changes the icon for every component without its own entry.
-- **Button props or content:** fill the `destroy-button` slot ([stacked]{@api vue:component:FieldSetStackedInlineRow:slot:destroy-button}, [tabular]{@api vue:component:FieldSetTabularInline:slot:destroy-button}). Bind the slot's `onClick` handler to your button so it still removes the row. Theme overrides change classes only, never component props.
+- **Button props or content:** fill the `destroy-button` slot ([stacked]{@api vue:component:FieldSetStackedInlineRow:slot:destroy-button}, [tabular]{@api vue:component:FieldSetTabularInline:slot:destroy-button}). Bind the slot's `onClick` handler to your button so that the button still removes the row. Theme overrides change classes only, never component props.
 
 ## Show Nested Errors on Inline Fields
 
@@ -174,7 +174,7 @@ A nested validation error arrives under the relation and the row's index:
 }
 ```
 
-The client keys it by the full {@term Field Path}, here `items[1].quantity`, which matches the inline field for that row. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md#non-field-and-nested-path-semantics) lists the key each body shape produces.
+The client keys it by the full {@term Field Path}, here `items[1].quantity`, which matches the inline field for that row. [Error and Validation Contract](../core-concepts/error-and-validation-contract.md#non-field-and-nested-path-semantics) lists the key that each body shape produces.
 
 To clear a sibling field's server error when the user leaves a row field, follow [Clear Related Server Errors on Blur](./form-validation-and-errors.md#clear-related-server-errors-on-blur). [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md#object-form-submission) describes how a failed save scrolls to the first error.
 
@@ -198,10 +198,10 @@ To clear a sibling field's server error when the user leaves a row field, follow
 
 **Nested children are not created or updated.** The relation uses `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`, so the server discards its data. Use a writable serializer.
 
-**Children disappear after an update.** The body sent the relation's key without them. Send every child you keep, with its primary key, or leave the key out.
+**Children disappear after an update.** The body sent the relation's key without them. Send every child that you keep, with its primary key, or leave the key out.
 
 **`Cannot delete ... because protected relation exists`.** A `PROTECT` foreign key points at a child missing from the list. Send that child, or remove the protecting rows first.
 
 **Inline values arrive as strings, or a file in a row arrives empty.** A file on the parent sends the save as multipart, which carries values only one level deep. The client does not detect a file inside a row. [CRUD Adapter Layer](../core-concepts/crud-adapter-layer.md#multipart-saves) lists what each shape becomes.
 
-**A nested error does not show on its field.** The error's key must equal the field's path, such as `items[1].quantity`. Compare the path the inline renders with the key in the response.
+**A nested error does not show on its field.** The error's key must equal the field's path, such as `items[1].quantity`. Compare the path that the inline renders with the key in the response.
