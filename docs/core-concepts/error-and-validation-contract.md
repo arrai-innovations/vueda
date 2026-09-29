@@ -7,7 +7,7 @@ status: draft
 
 # Error and Validation Contract
 
-This page describes the error bodies VUEDA's server sends and the client error classes that parse them. It covers the `400` validation body, the `409` body of {@term Warning Confirmation}, and the class each {@term CRUD Adapter} throws for each status. [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle.md) describes how a form stores these errors and runs the confirmation. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors.md) and [Require Confirmation Before a Write](../guides/require-write-confirmation.md) give the steps.
+This page describes the error bodies that VUEDA's server sends and the client error classes that parse them. It covers the `400` validation body, the `409` body of {@term Warning Confirmation}, and the class that each {@term CRUD Adapter} throws for each status. [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle.md) describes how a form stores these errors and runs the confirmation. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors.md) and [Require Confirmation Before a Write](../guides/require-write-confirmation.md) give the steps.
 
 ```mermaid
 flowchart TD
@@ -42,7 +42,7 @@ A write adapter reads the status first. A `400` carries validation feedback, and
 
 ## Wire Error Shapes and Status Branches
 
-The generated REST pages do not declare the validation `400` body or the `409` confirmation body ([#376](https://github.com/arrai-innovations/vueda/issues/376), [#145](https://github.com/arrai-innovations/vueda/issues/145)). Some of their error examples do not match what the server sends ([#238](https://github.com/arrai-innovations/vueda/issues/238)). This section describes the bodies the server sends.
+The generated REST pages do not declare the validation `400` body or the `409` confirmation body ([#376](https://github.com/arrai-innovations/vueda/issues/376), [#145](https://github.com/arrai-innovations/vueda/issues/145)). Some of their error examples do not match what the server sends ([#238](https://github.com/arrai-innovations/vueda/issues/238)). This section describes the bodies that the server sends.
 
 ### The validation shape
 
@@ -68,7 +68,7 @@ On `list` and `retrieve`, the server rejects unknown query parameters, as [Filte
 
 ### Other error statuses
 
-A `403` or `404` from a VUEDA view carries `{"detail": "..."}` plus `serverStack`. These statuses never carry validation feedback. For example, the choices endpoints answer `404` for an unknown model, field, or filter, and `403` when permission is denied, as {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} and {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describe. The client raises a {@api js:class:@arrai-innovations/vueda/stores/storeModelChoices#ModelChoicesError} for these, which never enters form state.
+A `403` or `404` from a VUEDA view carries `{"detail": "..."}` plus `serverStack`. These statuses never carry validation feedback. For example, the choices endpoints answer `404` for an unknown model, field, or filter, and `403` when permission is denied, as {@api py:class:vueda.info.viewsets.ModelInfoChoicesViewSet} and {@api py:class:vueda.info.viewsets.ModelInfoFilterSetChoicesViewSet} describe. The client raises a {@api js:class:@arrai-innovations/vueda/stores/storeModelChoices#ModelChoicesError} for these statuses. That error never enters form state.
 
 ## Non-Field and Nested Path Semantics
 
@@ -128,7 +128,7 @@ Each default adapter maps a failed response to an error class:
 | {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}                                                                                                                                                                  | `FetchError`                                                                          | `FetchError`                                               | `FetchError`                                                                                                                      |
 | {@api js:function:@arrai-innovations/vueda/utils/listCrud#singlePagePaginatedListCrudAdaptor}, {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor}                                                           | {@api js:class:@arrai-innovations/vueda/utils/errors#ListFilterError} or `FetchError` | as `400`                                                   | as `400`                                                                                                                          |
 
-The list adapters raise `ListFilterError` when the error body has a key named after a query parameter the request sent, and `FetchError` otherwise. [CRUD Adapter Layer](./crud-adapter-layer.md#status-codes) lists the parameters this check leaves out. In `storeUser`, the reset-link check is the one call whose `400` is not form feedback: it raises {@api js:class:@arrai-innovations/vueda/stores/storeUser#InvalidResetPasswordLinkError}.
+The list adapters raise `ListFilterError` when the error body has a key named after a query parameter that the request sent, and `FetchError` otherwise. [CRUD Adapter Layer](./crud-adapter-layer.md#status-codes) lists the parameters that this check leaves out. In `storeUser`, the reset-link check is the one call whose `400` is not form feedback: it raises {@api js:class:@arrai-innovations/vueda/stores/storeUser#InvalidResetPasswordLinkError}.
 
 `FormValidationError` and `ConfirmationRequiredError` both extend {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}. That class carries two maps keyed by field path: [`errors`]{@api js:property:@arrai-innovations/vueda/utils/errors#ServerFeedbackError.errors} for blocking feedback and [`messages`]{@api js:property:@arrai-innovations/vueda/utils/errors#ServerFeedbackError.messages} for warnings. `FormValidationError` fills only `errors`, and `ConfirmationRequiredError` fills only `messages`. [`handleServerFormValidationError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError} writes both maps into the {@term Form Context} as {@term Server Feedback}.
 
@@ -136,7 +136,7 @@ Form code branches on the class first. A `ConfirmationRequiredError` with a `dig
 
 ## Observable Failure Signatures
 
-**A key no component shows.** A `detail` key, a pk key, or a path that matches no rendered field has no field to show it. {@api vue:component:ActionForm} lists these errors in its validation summary. The object form views, {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate}, have no such summary, so the reader sees only the save failure toast.
+**A key that no component shows.** A `detail` key, a pk key, or a path that matches no rendered field has no field to show it. {@api vue:component:ActionForm} lists these errors in its validation summary. The object form views, {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate}, have no such summary, so the user sees only the save failure toast.
 
 **Non-object bodies.** `FormValidationError` spreads the body into an object. A string body becomes one entry per character, keyed `0`, `1`, and so on, and an array body becomes one entry per item. VUEDA's handler always sends an object, so these bodies come from a proxy or a non-VUEDA view.
 
