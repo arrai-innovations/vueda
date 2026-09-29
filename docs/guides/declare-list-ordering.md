@@ -7,7 +7,7 @@ status: draft
 
 # Declare List Ordering
 
-This guide sets a `list` endpoint's default order so that {@term Model Info} reports it to clients. It also covers nulls placement for sorts a client requests, and ordering or filtering by a related model's `formatted_name`. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md) describes the rules these steps rely on.
+This guide sets a `list` endpoint's default order so that {@term Model Info} reports it to clients. It also covers nulls placement for sorts that a client requests, and ordering or filtering by a related model's `formatted_name`. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md) describes the rules that these steps rely on.
 
 ## Declare the Default Order
 
@@ -20,9 +20,9 @@ class QueueItemViewSet(VuedaViewSet):
     ordering = ["-queued"]
 ```
 
-A model's `Meta.ordering` also works, and applies to every queryset the model builds. Declare the order on the viewset when you want [`nulls_ordering`](#place-nulls-in-requested-sorts) to apply to the default.
+A model's `Meta.ordering` also works, and applies to every queryset that the model builds. Declare the order on the viewset when you want [`nulls_ordering`](#place-nulls-in-requested-sorts) to apply to the default.
 
-Do not call `order_by()` on the `queryset` attribute or inside `get_queryset`. Model info reads the declarations, so an ordering applied in code sorts the rows without being reported. Keep `get_queryset` for filtering, `select_related`, and annotations.
+Do not call `order_by()` on the `queryset` attribute or inside `get_queryset`. Model info reads the declarations, so an ordering applied in code sorts the rows, but model info does not report it. Keep `get_queryset` for filtering, `select_related`, and annotations.
 
 Run the system checks:
 
@@ -36,7 +36,7 @@ python manage.py check
 - **No default ordering is declared.** Declare the queryset's order as the viewset's `ordering`.
 - **The viewset's `ordering` disagrees.** Remove the `order_by()`, or make the two agree. The viewset's `ordering` is the one applied.
 
-`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation `get_queryset` adds.
+`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds.
 
 `vueda_info.E005` reports ordering on a `formatted_name` that `get_formatted_name()` computes. Set `formatted_name_lookup_expression` on that model, or order by another field.
 
@@ -58,11 +58,11 @@ class InvoiceViewSet(VuedaViewSet):
 
 Write each key as a `__`-joined path, the same way as in `ordering`. Write `ordering` terms as strings for the placement to apply to them. A term such as `F("due_date").asc(nulls_first=True)` states its own placement for the default only, and an explicit `o=due_date` loses it.
 
-`vueda_info.E007` reports a value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip.
+`vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip.
 
 ## Make a Function or Annotation Default Visible
 
-A default ordering on a multi-column function, such as `Concat("first_name", "last_name")`, or on an annotation sorts the rows without being reported. To report it, sort by a real column.
+A default ordering on a multi-column function, such as `Concat("first_name", "last_name")`, or on an annotation sorts the rows, but model info does not report it. To have model info report the order, sort by a real column.
 
 When the sort is field by field, declare separate terms:
 
@@ -97,7 +97,7 @@ class CustomerData(models.Model):
 
 Create the view in a migration. The owning model can then order by `data__formatted_name`, or set `formatted_name_lookup_expression = "data__formatted_name"` and order by `formatted_name`.
 
-When the sort only needs to work, keep the annotation and also list it in `ordering_fields`. Clients can then offer it as an explicit sort, although `default` stays empty.
+When the sort only needs to work, keep the annotation and also list it in `ordering_fields`. Clients can then offer it as an explicit sort, although `model_ordering.default` stays empty.
 
 ## Order and Filter by a Related `formatted_name`
 
@@ -141,6 +141,6 @@ class CartFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
 
 ## Check the Result
 
-Run `python manage.py check` and fix any `vueda_info.E005`, `E006`, `E007`, or `E010` it reports.
+Run `python manage.py check` and fix any `vueda_info.E005`, `E006`, `E007`, or `E010` that it reports.
 
-Then request the model's {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} entry. `model_ordering.default` should list your default ordering's fields, and `model_ordering.fields` should list each field a client may sort by.
+Then request the model's {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} entry. `model_ordering.default` should list your default ordering's fields, and `model_ordering.fields` should list each field that a client may sort by.
