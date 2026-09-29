@@ -89,7 +89,7 @@ and {@api css-token:vueda-field-radius}.
 
 {@api vue:component:Label} is the text paired with a control. It holds text
 alone or text with an icon. A label dims under a `group` ancestor with
-`data-disabled="true"`, or after a disabled control marked `peer`.
+`data-disabled="true"`. It also dims after a disabled control marked `peer`.
 {@api theme-key:Label.root} lists these arrangements. Inside a
 {@api vue:component:FormField}, the label dims while the field's widget is
 disabled, as [Field shell](./forms#field-shell) describes.
@@ -706,8 +706,8 @@ Theme keys: {@api theme-key:InputOTP},
 {@api vue:component:Slider} is a track with one or more draggable thumbs. Its
 [`modelValue`]{@api vue:component:Slider:prop:modelValue} is an **array** of
 numbers, and each entry renders one thumb, so one component covers a single
-value and a range. The filled range runs from the track start to a single
-thumb, or between two thumbs.
+value and a range. With one thumb, the filled range runs from the track
+start to the thumb. With two thumbs, it runs between them.
 
 [`step`]{@api vue:component:Slider:prop:step} quantizes the value, and
 [`minStepsBetweenThumbs`]{@api vue:component:Slider:prop:minStepsBetweenThumbs}
@@ -879,7 +879,7 @@ Theme keys: {@api theme-key:InputGroup}, {@api theme-key:InputGroupAddon},
 file" trigger and emits the chosen {@api ext:mdn:File} through
 [`modelValue`]{@api vue:component:FileUpload:prop:modelValue}.
 [`accept`]{@api vue:component:FileUpload:prop:accept} (default `*`) filters
-what the picker offers; a dropped file is not checked against it.
+what the picker offers; the component does not check a dropped file against it.
 [`maxFileSize`]{@api vue:component:FileUpload:prop:maxFileSize} (bytes,
 default 1,000,000) drops a larger file without emitting.
 [`dropzone`]{@api vue:component:FileUpload:prop:dropzone} adds a drop target
