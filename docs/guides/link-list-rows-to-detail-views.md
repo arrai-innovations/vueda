@@ -30,11 +30,11 @@ You need a working CRUD surface ([Create a CRUD Surface](./create-crud-surface))
     }
     ```
 
-    Each [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} call replaces the levels it names, so pass `null` for a level you leave alone. [Register Overrides with `setConfig`](./configure-crud-views#register-overrides-with-setconfig) describes when to call it.
+    Each [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} call replaces the levels that it names, so pass `null` for a level that you leave alone. [Register Overrides with `setConfig`](./configure-crud-views#register-overrides-with-setconfig) describes when to call it.
 
     `detailLinkField` defaults to `null`, which turns row links off. Set it to `null` in a `list` override to turn off a model-wide value.
 
-3. Keep the linked field in the list request. The list fetches the columns it displays unless you set [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}. If you set `fetchFields`, include the linked field.
+3. Keep the linked field in the list request. The list fetches the columns that it displays unless you set [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}. If you set `fetchFields`, include the linked field.
 
 4. Check that the model's serializer includes {@term Available Actions}. {@api py:class:vueda.core.serializers.VuedaSerializer} declares the `available_actions` field. When `detailLinkField` is set, the list adds `available_actions` and the primary key to its requested fields. It does this even when the [`listFields`]{@api vue:component:ViewList:prop:listFields} prop replaces the fetch list. Neither field becomes a visible column.
 
@@ -60,11 +60,11 @@ The link controls navigation in the UI only. Route guards and server permissions
 - {@api vue:component:ColumnDuration}
 - {@api vue:component:ColumnJson}
 
-The check uses the adapter the column resolves to, so a `columnComponents` override that names one of these adapters keeps the link. Other adapters render without a row link:
+The check uses the adapter that the column resolves to, so a `columnComponents` override that names one of these adapters keeps the link. Other adapters render without a row link:
 
 - {@api vue:component:ColumnModelLink} already links to the related record and keeps that target.
 - A custom adapter may contain links, buttons, or other controls, so VUEDA leaves its navigation alone. Use a field slot (next section) to link custom content.
-- A column whose override names no component renders no cells, and the list shows an error for that column. [Customize List Column Rendering](./customize-list-column-rendering) describes the override chain.
+- A column whose override does not name a component renders no cells, and the list shows an error for that column. [Customize List Column Rendering](./customize-list-column-rendering) describes the override chain.
 
 A `field(<name>)` slot on the configured column replaces the automatic link. Remove the slot to use the row link.
 
@@ -112,5 +112,5 @@ Without `detailLinkField`, the list does not request `available_actions`. Add it
 ## Verify the Result
 
 - Open the list as a user with a mix of editable, read-only, and unavailable rows. Confirm update links, read links, and plain values on the matching rows.
-- In the browser's network panel, confirm the list request's fields include the primary key, the displayed columns, and `available_actions`. Confirm no extra column appears.
+- In the browser's network panel, confirm that the list request's fields include the primary key, the displayed columns, and `available_actions`. Confirm that no extra column appears.
 - Check both table and card layouts, keyboard activation, and a modified click on the linked value.
