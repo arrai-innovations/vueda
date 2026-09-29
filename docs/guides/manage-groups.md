@@ -13,7 +13,7 @@ A group's permissions feed each member's {@term Baseline Permission}. To audit w
 
 ## Before You Begin
 
-- The server runs with {@api ext:django:setting:DEBUG} on. The group management page and the URLs it saves through exist only in debug mode.
+- The server runs with {@api ext:django:setting:DEBUG} on. The group management page and the URLs that it saves through exist only in debug mode.
 - `vueda.user` is in {@api ext:django:setting:INSTALLED_APPS}. [`get_defaults`]{@api py:function:vueda.core.default_settings.get_defaults} includes it.
 - The project includes the [`vueda.user` URLs]{@api py:module:vueda.user.urls} under `routes/`, as the template app does. The page's script sends its save and remove requests to paths under `/routes/`.
 - Your account holds these permissions, directly or through a group:
@@ -21,7 +21,7 @@ A group's permissions feed each member's {@term Baseline Permission}. To audit w
     - `auth.create_group` and `auth.update_group` to add or rename a group.
     - `auth.delete_permission` to remove a permission from a group.
 
-Grant these permissions outside the page, for example in `python manage.py shell`. You need `auth.list_permission` before you can open the page, and the page hides the other three.
+Grant these permissions outside the page, for example in `python manage.py shell`. You need `auth.list_permission` before you can open the page, and the page hides the other three permissions.
 
 ## Group Management UI
 
@@ -47,7 +47,7 @@ When no group has that name, VUEDA creates the group, adds the permission, and r
 
 ### Rename a Group
 
-1. Find any permission the group holds.
+1. Find any permission that the group holds.
 2. Edit the group name, then select **Save**.
 
 VUEDA renames the group and keeps its permissions and members. The page shows the new name on every row for that group. VUEDA records a `changed` change with the old and new names, so the migration can run forward and backward.
@@ -75,7 +75,7 @@ The group management page has no action that deletes a group; [#423](https://git
 
     The command writes the migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations_2026_04_21`. When there is nothing new to write, it prints `No group changes detected.`
 
-2. Fake the migration in your own database, which already has the changes. The command prints a note that says so.
+2. Fake the migration in your own database, which already has the changes. The command prints a note that tells you to fake it.
 
     ```console
     python manage.py migrate myapp 0005_group_permission_migrations_2026_04_21 --fake
@@ -91,7 +91,7 @@ python manage.py makegroupmigrations --dry-run
 
 ### Which Changes a Migration Includes
 
-VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makegroupmigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order they were recorded.
+VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makegroupmigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
 
 A change names its group by name and its permission by codename, app label, and model name. It holds no primary keys, because keys differ between databases.
 
@@ -117,7 +117,7 @@ Each group migration carries its own copy of the code that applies these changes
 
 A group migration is a standard Django migration. `makegroupmigrations` adds:
 
-- `changed_data`, the list of changes the migration applies.
+- `changed_data`, the list of changes that the migration applies.
 - Copies of [`migrate_step`]{@api py:function:vueda.user.management.commands.makegroupmigrations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.management.commands.makegroupmigrations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
 - A comment near the top that marks the file as a group migration. VUEDA's group migration commands find group migrations by this comment, so keep it.
 
@@ -137,7 +137,7 @@ A group migration runs without updates, because it carries its own copy of the c
 python manage.py updategroupmigrations
 ```
 
-Add `--dry-run` to list the files the command would update without writing them.
+Add `--dry-run` to list the files that the command would update without writing them.
 
 ```console
 python manage.py updategroupmigrations --dry-run
@@ -145,10 +145,10 @@ python manage.py updategroupmigrations --dry-run
 
 The command finds group migrations in every installed app by their marker comment. In each file it:
 
-- Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any the file lacks.
-- Updates the import lines it recognizes, and leaves other imports in place.
+- Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any that the file lacks.
+- Updates the import lines that it recognizes, and leaves other imports in place.
 - Keeps `changed_data` and the `Migration` class. In the class's `operations` list, it renames references to functions that earlier releases named differently.
 
 Code outside the copied functions stays as it is. The command overwrites edits inside a copied function the next time it runs. To add behavior to a group migration, write a separate function and add it to the `operations` list.
 
-An environment that already applied a migration does not run it again. An update affects only environments that have not applied the migration, and rollbacks. Running the command when nothing has changed rewrites the same code.
+An environment that already applied a migration does not run it again. An update affects only rollbacks and environments that have not applied the migration. Running the command when nothing has changed rewrites the same code.
