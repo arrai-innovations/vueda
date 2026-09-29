@@ -9,7 +9,7 @@ status: draft
 
 A VUEDA form keeps its values, validation feedback, and interaction state in one {@term Form Context}. {@api js:function:@arrai-innovations/vueda/use/useForm#useForm} creates it, and each field calls {@api js:function:@arrai-innovations/vueda/use/useField#useField} to read and write it at the field's {@term Field Path}. This page describes that shared state, how local validation and {@term Server Feedback} enter it, and when a form may submit.
 
-[Error and Validation Contract](./error-and-validation-contract) describes the response bodies the server sends and the client error classes built from them. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) gives the steps for wiring validation into a form.
+[Error and Validation Contract](./error-and-validation-contract) describes the response bodies that the server sends and the client error classes built from them. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) gives the steps for wiring validation into a form.
 
 ## Form and Field Contexts
 
@@ -31,7 +31,7 @@ When the `initialValues` passed to `useForm` changes, the form resets. The reset
 
 Warnings sit in their own map so that they never block a submit: the client's pre-submit checks read only `errors`. {@term Warning Confirmation} relies on this.
 
-**Touched, focused, and submitted.** [`touched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.touched} maps each blurred field path to `true`. [`anyTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyTouched} reports whether any field is touched. [`focused`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.focused} holds the focused field's path, or `null`. [`submitted`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submitted} becomes `true` when [`setAllTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.setAllTouched} runs at submit, and a reset clears it.
+**Touched, focused, and submitted.** [`touched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.touched} maps each blurred field path to `true`. [`anyTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyTouched} reports whether any field is touched. [`focused`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.focused} holds the focused field's path. It is `null` when no field has focus. [`submitted`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submitted} becomes `true` when [`setAllTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.setAllTouched} runs at submit, and a reset clears it.
 
 **Aggregates from fields.** Mounted fields register hooks that feed three computed maps keyed by field path: [`modified`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.modified}, [`required`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.required}, and [`valid`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.valid}. [`anyModified`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyModified} is `true` when any field is modified. [`labels`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.labels} and [`showsErrors`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.showsErrors} also come from field hooks. The `ActionForm` validation summary reads them.
 
@@ -70,7 +70,7 @@ The default required rule, {@api js:function:@arrai-innovations/vueda/use/useFie
 
 The `validate` code comes from the [`validate`]{@api vue:component:FormField:prop:validate} prop. Once the field is touched, VUEDA calls it with the value and the dependency values. A return of `true` means valid, and a string is the error message. Any other return writes the message "Validation Failed". The watcher does not run at setup. It runs on the first change to the result, so a partly initialized field does not flag itself.
 
-A fresh form therefore shows no local errors. At submit, the form calls `setAllTouched()` and waits one Vue tick so the watchers run. It then reads `anyError`.
+A fresh form therefore shows no local errors. At submit, the form calls `setAllTouched()` and waits one Vue tick so that the watchers run. It then reads `anyError`.
 
 The `server` code is reserved for server feedback. [`updateError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateError} and [`updateMessage`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateMessage} throw when given it, on the form context and on a field context:
 
@@ -109,7 +109,7 @@ An ignored field is never required and never counts as modified. `useObjectForm`
 {@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm} submits create and update forms. Its [`submit()`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.submit} runs a fixed sequence:
 
 1. Set [`loading`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.loading}, which views use to disable the submit button.
-2. Call `setAllTouched()` and wait one tick so local validation runs.
+2. Call `setAllTouched()` and wait one tick so that local validation runs.
 3. If `anyModified` is `false`, call `onSubmitNotAnyModified`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitNotAnyModified}, shows a "No Changes Detected" toast and stops.
 4. If `anyError` is `true`, call `onSubmitAnyError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitAnyError}, drops errors on ignored paths and removes the `server` code from the rest. If any error remains, it shows a "Pre-save Validation Failed" toast, scrolls to the first error, and stops. If only `server` codes remain, the submit continues.
 5. Send `submittingValues` to create or update. With the [`submitFields`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawProps.submitFields} prop, only those paths are sent.
@@ -117,11 +117,11 @@ An ignored field is never required and never counts as modified. `useObjectForm`
 7. On any other failure, call `onSubmissionError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}, ingests a `ServerFeedbackError`, shows a "Save Validation Failed" toast, and scrolls to the first error. For any other error it returns `false`, and the error becomes the form's [`state.error`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.error}.
 8. On success, call `onSubmissionSuccess`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionSuccess}, shows a success toast and follows [`redirectAfter`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawProps.redirectAfter}.
 
-The four hooks named above are properties of the object `useObjectForm` returns, and so is [`onSubmissionWarningsRequireConfirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.onSubmissionWarningsRequireConfirmation}. Replacing one hook leaves the rest of the sequence in place.
+The four hooks named above are properties of the object that `useObjectForm` returns, and so is [`onSubmissionWarningsRequireConfirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.onSubmissionWarningsRequireConfirmation}. Replacing one hook leaves the rest of the sequence in place.
 
-Server errors do not block a resubmit. After a failed save, the user edits and blurs a field, which clears that field's `server` code. `server` codes on fields the user has not revisited remain. The next submit still goes to the server, which validates again. A non-field server error has no field to blur, so without this rule it would block the form until a reset.
+Server errors do not block a resubmit. After a failed save, the user edits and blurs a field, which clears that field's `server` code. `server` codes remain on fields that the user has not revisited. The next submit still goes to the server, which validates again. A non-field server error has no field to blur, so without this rule it would block the form until a reset.
 
-Both default hooks scroll to [`firstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.firstErrorField}. {@api js:function:@arrai-innovations/vueda/use/useViewCreate#useViewCreate} and {@api js:function:@arrai-innovations/vueda/use/useViewUpdate#useViewUpdate} compute it with [`getFirstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.getFirstErrorField} over the fields they display. A custom shell passes its own `firstErrorField` in the props it gives `useObjectForm`.
+Both default hooks scroll to [`firstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.firstErrorField}. {@api js:function:@arrai-innovations/vueda/use/useViewCreate#useViewCreate} and {@api js:function:@arrai-innovations/vueda/use/useViewUpdate#useViewUpdate} compute it with [`getFirstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.getFirstErrorField} over the fields that they display. A custom shell passes its own `firstErrorField` in the props that it gives `useObjectForm`.
 
 `getFirstErrorField` checks `non_field_errors` first, so a form-level error wins. For an array field it checks item paths such as `items[0]`. For a display path such as `items.quantity`, it checks `items[0].quantity`, `items[1].quantity`, and so on. The scroll target is an anchor named after the path. Each rendered field has one, and `FormMessage` with `type="error"` has one named `non_field_errors`.
 
@@ -129,7 +129,7 @@ Both default hooks scroll to [`firstErrorField`]{@api js:property:@arrai-innovat
 
 {@api js:function:@arrai-innovations/vueda/use/useActionForm#useActionForm} runs the submit for {@api vue:component:ActionForm}. It differs from the object form sequence in four ways:
 
-- Its pre-submit checks run only when the [`hasInput`]{@api vue:component:ActionForm:prop:hasInput} prop is `true`. With `hasInput`, it waits one tick and stops with "No Changes Detected" when nothing is modified, unless [`requireModified`]{@api vue:component:ActionForm:prop:requireModified} is `false`. It stops with a "Submission Blocked" toast when a non-`server` error exists. `hasInput` defaults to `false`, and no view VUEDA ships sets it. Those views send the first submit without local checks.
+- Its pre-submit checks run only when the [`hasInput`]{@api vue:component:ActionForm:prop:hasInput} prop is `true`. With `hasInput`, it waits one tick and stops with "No Changes Detected" when nothing is modified, unless [`requireModified`]{@api vue:component:ActionForm:prop:requireModified} is `false`. It stops with a "Submission Blocked" toast when a non-`server` error exists. `hasInput` defaults to `false`, and no view that VUEDA ships sets it. Those views send the first submit without local checks.
 - [`confirmDisabled`]{@api js:property:@arrai-innovations/vueda/use/useActionForm#ActionFormContext.confirmDisabled} disables the submit button while the action loads or while any field has a non-`server` error. The count includes errors on ignored paths. Local errors that appear after the first submit therefore disable the button even without `hasInput`.
 - A `ServerFeedbackError` is ingested with no toast. This includes a `400` from the automatic {@term Dry Run}.
 - Any other failure calls the [`onSubmissionErrorHandler`]{@api vue:component:ActionForm:prop:onSubmissionErrorHandler} prop when given. If there is no handler, or it returns `false`, the form records the error. It then shows an error toast titled by [`actionErrorSummary`]{@api vue:component:ActionForm:prop:actionErrorSummary}.
@@ -148,7 +148,7 @@ The [write confirmation guide](../guides/require-write-confirmation) shows how t
 
 A create or update can fail with a `ConfirmationRequiredError` that carries a digest. `useObjectForm` then calls `onSubmissionWarningsRequireConfirmation`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionWarningsRequireConfirmation}, does three things in order:
 
-1. It clears the `server` code from the fields the previous prompt warned about, so a changed warning set leaves no stale warnings.
+1. It clears the `server` code from the fields that the previous prompt warned about, so a changed warning set leaves no stale warnings.
 2. It ingests the new warnings into `messages`, so the fields show them behind the dialog.
 3. It opens the [`confirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.confirmation} controller and waits for the user.
 
@@ -187,7 +187,7 @@ A server error entry can be an object. [Error and Validation Contract](./error-a
 - an error on a field whose renderer failed
 - an error on a path that no rendered field uses
 
-Each entry takes its name from `labels`, or from the path when no field registered a label.
+Each entry takes its name from `labels`. When no field registered a label, the entry takes its name from the path.
 
 ## Observable Failure Signatures
 
