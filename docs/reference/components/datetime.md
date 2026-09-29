@@ -209,7 +209,7 @@ and end pair in one shell. Its
 {@api vue:component:DateRangeFieldInput}, passing `part` and
 [`type`]{@api vue:component:DateRangeFieldInput:prop:type} (`"start"` or
 `"end"`). The component renders no separator between the two halves, so add
-your own markup, such as a `<span>`. The shell and segments follow DateField.
+your own markup, such as a `<span>`. The shell and segments match DateField.
 
 Theme keys: {@api theme-key:DateRangeField},
 {@api theme-key:DateRangeFieldInput}.
@@ -293,7 +293,7 @@ Theme keys: {@api theme-key:DateRangeField},
 [`hourCycle`]{@api vue:component:TimeField:prop:hourCycle} set to `12` adds an
 AM/PM segment. The slot matches DateField: `{ segments }` is a flat array,
 rendered with {@api vue:component:TimeFieldInput}. The shell and segments
-follow DateField.
+match DateField.
 
 Theme keys: {@api theme-key:TimeField}, {@api theme-key:TimeFieldInput}.
 
@@ -456,7 +456,7 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
 from start to end form one continuous {@api css-token:accent} strip, painted
 on each {@api vue:component:RangeCalendarCell} so the strip rounds only at its
 outer ends. The two endpoint days fill with {@api css-token:primary}. Other
-day states follow Calendar.
+day states match Calendar.
 
 Theme keys: {@api theme-key:RangeCalendar},
 {@api theme-key:RangeCalendarCell}, {@api theme-key:RangeCalendarCellTrigger}.
