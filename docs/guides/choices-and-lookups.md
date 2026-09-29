@@ -15,11 +15,11 @@ A {@term Choice-Backed Field} carries `choices` in its {@term Model Info} entry.
 
 1. Declare the options on the server.
     - For a fixed set, give the model field Django's [`choices`]{@api ext:django:django.db.models.Field.choices}. For a filter, use a [`ChoiceFilter`]{@api ext:django-filter:django_filters.filters.ChoiceFilter}.
-    - For another model's rows, add a [`ForeignKey`]{@api ext:django:django.db.models.ForeignKey} or [`ManyToManyField`]{@api ext:django:django.db.models.ManyToManyField} to that model. For a filter, use a [`ModelChoiceFilter`]{@api ext:django-filter:django_filters.filters.ModelChoiceFilter}. To offer the values a column already holds, use an [`AllValuesFilter`]{@api ext:django-filter:django_filters.filters.AllValuesFilter}.
+    - For another model's rows, add a [`ForeignKey`]{@api ext:django:django.db.models.ForeignKey} or [`ManyToManyField`]{@api ext:django:django.db.models.ManyToManyField} to that model. For a filter, use a [`ModelChoiceFilter`]{@api ext:django-filter:django_filters.filters.ModelChoiceFilter}. To offer the values that a column already holds, use an [`AllValuesFilter`]{@api ext:django-filter:django_filters.filters.AllValuesFilter}.
 
 2. Give the related model a label. Each option shows the related row's {@term Formatted Name}. [Create a CRUD Surface](./create-crud-surface.md#the-formatted-name-contract) describes how to set it.
 
-3. Make the options reachable. Where the default UI loads options depends on how you declare the field:
+3. Make the options reachable. The source that the default UI loads options from depends on how you declare the field:
 
     | Model info `choices` | Declared as                                                                                                                              | Default UI loads options from                                                                                                                                   |
     | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ A {@term Choice-Backed Field} carries `choices` in its {@term Model Info} entry.
 
 ## Build a Widget That Loads Choices
 
-The default widgets cover most choice-backed fields. Write a custom widget when a field needs a presentation they do not offer. The widget below shows the options as radio buttons.
+The default widgets cover most choice-backed fields. Write a custom widget when a field needs a presentation that they do not offer. The widget below shows the options as radio buttons.
 
 1. Write the widget. For a field whose `choices` is `true`, the form passes the widget `fieldApp`, `fieldModel`, and `fieldName`, which name the source model and the field. [`useModelChoices`]{@api js:function:@arrai-innovations/vueda/use/useModelChoices#useModelChoices} loads the options from the field choices endpoint:
 
@@ -100,7 +100,7 @@ The default widgets cover most choice-backed fields. Write a custom widget when 
     );
     ```
 
-    [Customize Field and Widget Rendering](./custom-field-widget-rendering.md) describes the other ways to assign a widget, and the widget contract.
+    [Customize Field and Widget Rendering](./custom-field-widget-rendering.md) describes the widget contract and the other ways to assign a widget.
 
 3. Check the result. Open the create view and focus the field. The browser sends one request to `/routes/vueda.info/model_info_choices/<app_label>/<model>/<field>/`.
 
@@ -108,7 +108,7 @@ The client asks for one page of 200 options per field. Issue [#381](https://gith
 
 ## Declare a Lookup Model
 
-[`Lookup`]{@api py:class:vueda.core.models.Lookup} is an abstract base for tables of codes and names, such as order states. It subclasses [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}, the base it shares with `VuedaModel`. It adds a unique `code`, a `name`, and a `formatted_name` column that copies `name`.
+[`Lookup`]{@api py:class:vueda.core.models.Lookup} is an abstract base for tables of codes and names, such as order states. It subclasses [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}, the base that it shares with `VuedaModel`. It adds a unique `code`, a `name`, and a `formatted_name` column that copies `name`.
 
 1. Declare the model, and point a relation at it:
 
