@@ -7,7 +7,7 @@ status: draft
 
 # Permissions
 
-This page lists the permission codenames VUEDA checks and the codename each request requires. It also lists the {@term Row-Level Permissions} hook signatures, the status code for each refused request, and the supported {@term Permission Mapping} values. [Permission Model](../core-concepts/permission-model) describes the {@term Permission Layers} and why each refusal takes the form it does. Every check on this page is server enforcement. [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics) describes how the client's visible actions relate to it.
+This page lists the permission codenames that VUEDA checks and the codename that each request requires. It also lists the {@term Row-Level Permissions} hook signatures, the status code for each refused request, and the supported {@term Permission Mapping} values. [Permission Model](../core-concepts/permission-model) describes the {@term Permission Layers} and why each refusal takes the form it does. Every check on this page is server enforcement. [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics) describes how the client's visible actions relate to server enforcement.
 
 ## Codenames
 
@@ -50,7 +50,7 @@ Endpoints that name their model in the URL use [`DynamicObjectPermissions`]{@api
 
 The [field choices]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/} and [filter choices]{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/} endpoints check the `read` codename on the model. When the options are another model's rows, they also check the `list` codename on that model. Both resolve through the mapping on each check.
 
-Workflow endpoints also check `vueda_workflow.read_workflow`, except object state and `permitted_transitions`. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) lists the gates each workflow endpoint applies.
+Workflow endpoints also check `vueda_workflow.read_workflow`, except object state and `permitted_transitions`. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) lists the gates that each workflow endpoint applies.
 
 ## Row-Level Hooks
 
@@ -91,11 +91,11 @@ Under the default mapping, the two `perm_type` values agree. They differ when th
 | `False` | Returns an empty queryset. From `check_queryset`, the state filter and `check_queryset_workflow` do not run. | Denies, replacing the decision of the earlier layers. |
 | `None`  | Leaves the queryset unchanged.                                                                               | Keeps the decision of the earlier layers.             |
 
-A `check_instance_workflow` result is final, a state deny included. `check_queryset_workflow` can only remove rows, so it cannot restore a row the state filter removed.
+A `check_instance_workflow` result is final, a state deny included. `check_queryset_workflow` can only remove rows, so it cannot restore a row that the state filter removed.
 
 ## Status Codes
 
-The status code a refused request returns depends on the check that refused it. [Permission Model](../core-concepts/permission-model#why-refused-requests-fail-differently) describes why.
+The status code that a refused request returns depends on the check that refused it. [Permission Model](../core-concepts/permission-model#why-refused-requests-fail-differently) describes why.
 
 | Request                                                                                                                | Refusal                                                                                                                                                                                            | Status | Response                                                                                                               |
 | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
