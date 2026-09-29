@@ -84,11 +84,13 @@ const NULL_BOOLEAN_CHOICES = [
     { label: "No", value: "false" },
 ];
 const SERVER_CHOICES = { choices: true, appLabel: "catalog", model: "distributor" };
+const FILTER_NAME = "f";
 
 /**
  * One non-hidden filter per non-range type the client maps. `inputs` are what the reader enters
  * into the widget's control, in order. `value` is what the widget then writes to the filter field:
- * the same value the request parameter carries.
+ * the same value the request parameter carries. `query` is the query string the list request sends
+ * for that value, when it differs from the value sent as one parameter.
  */
 const CASES = [
     { typeFilter: "CharField", widget: "WidgetTextInput", inputs: [["Input", "widgets"]], value: "widgets" },
@@ -122,6 +124,7 @@ const CASES = [
         widget: "WidgetCombobox",
         inputs: [["Combobox", ["new", "used"]]],
         value: ["new", "used"],
+        query: "?f=new&f=used",
         widgetProps: { multiple: true, optionLabel: "label", options: FIXED_CHOICES },
     },
     {
@@ -132,12 +135,17 @@ const CASES = [
         value: "1",
         widgetProps: { type: "select", isFilter: true, fieldName: "f" },
     },
-    ...["ModelChoiceInField", "ModelMultipleChoiceInField", "ModelMultipleChoiceField"].map((typeFilter) => ({
+    ...[
+        ["ModelChoiceInField", "?f=1%2C2"],
+        ["ModelMultipleChoiceInField", "?f=1%2C2"],
+        ["ModelMultipleChoiceField", "?f=1&f=2"],
+    ].map(([typeFilter, query]) => ({
         typeFilter,
         details: SERVER_CHOICES,
         widget: "WidgetModel",
         inputs: [["WidgetCombobox", ["1", "2"]]],
         value: ["1", "2"],
+        query,
         widgetProps: { type: "multiSelect", isFilter: true, fieldName: "f" },
     })),
     {
@@ -152,8 +160,9 @@ const CASES = [
         typeFilter: "AllValuesMultipleChoiceField",
         details: SERVER_CHOICES,
         widget: "WidgetModel",
-        inputs: [["WidgetCombobox", ["Acme", "Globex"]]],
-        value: ["Acme", "Globex"],
+        inputs: [["WidgetCombobox", ["Acme, Inc.", "Globex"]]],
+        value: ["Acme, Inc.", "Globex"],
+        query: "?f=Acme%2C+Inc.&f=Globex",
         widgetProps: { type: "multiSelect", isFilter: true, fieldName: "f" },
     },
     {
@@ -220,9 +229,16 @@ const CASES = [
         widget: "WidgetTagsInput",
         inputs: [["TagsInput", ["1", "2.5"]]],
         value: ["1", "2.5"],
+        query: "?f=1%2C2.5",
         widgetProps: { numeric: true },
     },
-].map((testCase) => ({ label: testCase.typeFilter, details: {}, widgetProps: {}, ...testCase }));
+].map((testCase) => ({
+    label: testCase.typeFilter,
+    details: {},
+    widgetProps: {},
+    query: `?${new URLSearchParams({ [FILTER_NAME]: testCase.value })}`,
+    ...testCase,
+}));
 
 /**
  * Mapped types whose input does not yet apply and restore a value, and the behavior still missing.
@@ -232,8 +248,6 @@ const PENDING_TYPES = {
     BooleanField:
         "applies a toggle's true or false value, which the filter form treats as empty, and restores it from its URL string",
 };
-
-const FILTER_NAME = "f";
 
 /**
  * @param {typeof CASES[number]} testCase
@@ -260,7 +274,7 @@ const makeFieldContext = () => ({
 });
 
 describe("lib/**/*Filter*", () => {
-    let FilterFieldForm, useFilter, filterModule, fieldMappings, availableFields, availableWidgets;
+    let FilterFieldForm, useFilter, filterModule, fieldMappings, listCrud, availableFields, availableWidgets;
 
     beforeEach(async () => {
         formState.submittingValues = {};
@@ -268,6 +282,7 @@ describe("lib/**/*Filter*", () => {
         useFilter = (await import("@vueda/use/useFilter.js")).useFilter;
         filterModule = await import("@vueda/use/useFilterForm.js");
         fieldMappings = await import("@vueda/utils/fieldMappings.js");
+        listCrud = await import("@vueda/utils/listCrud.js");
         ({ availableFields, availableWidgets } = await import("@vueda/utils/formLookups.js"));
     });
 
@@ -375,6 +390,15 @@ describe("lib/**/*Filter*", () => {
             const addedFilters = applyThroughForm(testCase, await enterThroughWidget(testCase));
 
             expect(filterModule.filtersToParams(addedFilters.value)).toEqual({ [FILTER_NAME]: testCase.value });
+        });
+
+        scopedIt.each(CASES)("$label sends its value in the list request query string", (testCase) => {
+            const [applied] = applyThroughForm(testCase, testCase.value).value;
+            const repeatedParams = filterModule.getRepeatedFilterParams({ [FILTER_NAME]: filterDetailsOf(testCase) });
+
+            const query = listCrud.makeSearchParamsString(filterModule.filtersToParams([applied]), repeatedParams);
+
+            expect(query).toBe(testCase.query);
         });
 
         scopedIt.each(CASES)("$label restores from the URL it wrote", (testCase) => {

@@ -115,7 +115,12 @@ import { assignReactiveObject, keyDiff, loadingCombine, union, useList } from "@
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { storeListPreference } from "@vueda/stores/storeListPreference.js";
 import { getMissingFilterInputSupport } from "@vueda/use/useFilter.js";
-import { buildFilterFromQuery, filtersToParams, getFilterParams } from "@vueda/use/useFilterForm.js";
+import {
+    buildFilterFromQuery,
+    filtersToParams,
+    getFilterParams,
+    getRepeatedFilterParams,
+} from "@vueda/use/useFilterForm.js";
 import { useFilterables } from "@vueda/use/useFilterables.js";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
@@ -848,13 +853,18 @@ export function useViewList(options) {
         relatedObjectsRules: toRef(options, "relatedObjectsRules"),
         calculatedObjectsRules: toRef(options, "calculatedObjectsRules"),
     });
+    // Filter keys the list request sends as repeated keys, whether the value comes from a visible
+    // filter, a URL scope, or `params`.
+    const repeatedFilterParams = computed(() => getRepeatedFilterParams(filterablesState.filterableDetails));
     const instanceList = useList({
         props: instanceListProps,
         handlers: {
-            list: (...args) =>
-                computedShowAllPages.value
-                    ? allPagePaginatedListCrudAdaptor(...args)
-                    : singlePagePaginatedListCrudAdaptor(...args),
+            list: (args) => {
+                const listArgs = { ...args, repeatedParams: repeatedFilterParams.value };
+                return computedShowAllPages.value
+                    ? allPagePaginatedListCrudAdaptor(listArgs)
+                    : singlePagePaginatedListCrudAdaptor(listArgs);
+            },
         },
     });
 

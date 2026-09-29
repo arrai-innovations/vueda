@@ -48,6 +48,12 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     return { ...actual, useList: mockedUseList };
 });
 
+const mockedSinglePageAdaptor = vi.fn();
+vi.mock("@vueda/utils/listCrud.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/listCrud.js");
+    return { ...actual, singlePagePaginatedListCrudAdaptor: mockedSinglePageAdaptor };
+});
+
 vi.mock("@vueda/router/getCrud.js", () => ({
     getCRUDForTo: vi.fn(async () => ({})),
 }));
@@ -2315,6 +2321,26 @@ describe("lib/views/ViewList.vue", () => {
             const readout = wrapper.find('[data-qa="view-list-selection-count"]');
             expect(readout.exists()).toBe(true);
             expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
+
+    describe("List request", () => {
+        scopedIt("sends every multiple-choice filter key as a repeated key", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "tags", "codes"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                tags: { typeFilter: "MultipleChoiceField", label: "Tags" },
+                codes: { typeFilter: "ModelChoiceInField", label: "Codes" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const listArgs = { params: { tags: ["a", "b"] } };
+            mockedUseList.mock.calls.at(-1)[0].handlers.list(listArgs);
+
+            expect(mockedSinglePageAdaptor).toHaveBeenCalledWith({ ...listArgs, repeatedParams: ["tags"] });
             wrapper.unmount();
         });
     });

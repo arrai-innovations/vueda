@@ -348,7 +348,7 @@ The client fetches model-info once per `app.model` key and caches the result in 
 
 `storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for `list` requests. Filter configuration is consumed by `useFilterables`, which merges the cached `modelInfo.filtering` entries with any caller-supplied overrides into a resolved filterable field list and per-field details; `useViewList` is the sole owner of this resolution for `ViewList`, passing the result down as plain props rather than letting `FilterGroup` recompute it. `useFilter` and `useFilterForm` then build the filter UI from that already-resolved list: `useFilter` resolves each field's component and widget, and `useFilterForm` translates a field's value to and from its URL query-parameter representation. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
 
-The add-filter menu offers only the filters the client can render an editable input for. `useViewList`'s `validFilterables` keeps a visible filter when its type has value handling (`FilterFieldMappings` in `utils/fieldMappings`) and the components to mount it (`filterFieldMapping`, or the view config's per-field `fieldComponents`/`widgetComponents` overrides); a range also needs both boundary components. A widget that resolves to `WidgetUnmapped` does not count, because it shows a diagnostic instead of an input. A visible filter that fails this check is left out of the menu, its URL value is not restored as an applied filter, and a console warning naming the app, model, and filter reports the missing pieces once per list visit. `mergeFilterFieldMapping` registers a custom type's components and its `initialValue`/`array`/`range` value handling together. [Filter Input Types](#filter-input-types) lists the built-in types and explains custom ones.
+The add-filter menu offers only the filters the client can render an editable input for. `useViewList`'s `validFilterables` keeps a visible filter when its type has value handling (`FilterFieldMappings` in `utils/fieldMappings`) and the components to mount it (`filterFieldMapping`, or the view config's per-field `fieldComponents`/`widgetComponents` overrides); a range also needs both boundary components. A widget that resolves to `WidgetUnmapped` does not count, because it shows a diagnostic instead of an input. A visible filter that fails this check is left out of the menu, its URL value is not restored as an applied filter, and a console warning naming the app, model, and filter reports the missing pieces once per list visit. `mergeFilterFieldMapping` registers a custom type's components and its `initialValue`/`array`/`repeatedKey`/`range` value handling together. [Filter Input Types](#filter-input-types) lists the built-in types and explains custom ones.
 
 A filter field whose metadata marks it `hidden` (a `HiddenInput` widget on the server, as `IdInFilterSet` declares for `id`) has no editable form control: `useViewList`'s `validFilterables` excludes it whatever its type, so it never appears in the add-filter menu or among the editable filter chips, and it needs no input mapping. Its value still reaches the `list` request. `useViewList` reads it directly from the mounted URL and carries it into `listState.params` from the first request onward, alongside whatever visible filters, sort, and search the reader controls through the UI. Editing, adding, or clearing a visible filter, changing the sort, or searching all leave a hidden filter's value in place, in both the URL and the request.
 
@@ -362,7 +362,7 @@ The default filter UI uses only the first lookup expression (`lookupExprs[0]`) f
 
 Each filter's metadata reports a `typeFilter`, which names the filter's type. For most filters, it is the Django form field class that the django-filter filter builds. `AllValuesFilter` and `AllValuesMultipleFilter` report `AllValuesChoiceField` and `AllValuesMultipleChoiceField`. They build the same form fields as the static choice filters, but their choices are the values stored in a column, which the client fetches. The client chooses the filter's input and value shape from its type. Two tables in `utils/fieldMappings` describe each type, and both list the same types:
 
-- `FilterFieldMappings` holds value handling: the empty value the filter form starts from, whether the value is a list (`array: true`), and whether the filter is a range (`range: true`).
+- `FilterFieldMappings` holds value handling: the empty value the filter form starts from, whether the value is a list (`array: true`), whether the list request repeats the query key for each value (`repeatedKey: true`), and whether the filter is a range (`range: true`).
 - `filterFieldMapping` holds the components: the field component and widget, or for a range, the field set and the component and widget for each boundary.
 
 ### Built-in types
@@ -388,7 +388,12 @@ Each filter's metadata reports a `typeFilter`, which names the filter's type. Fo
 | `DateRangeField`                                                               | Two `WidgetDateField` boundaries                            | One key per suffix                   |
 | `DateTimeRangeField`                                                           | Two `WidgetDateField` boundaries with minute granularity    | One key per suffix                   |
 
-A list value repeats its query key once per value, such as `?condition=new&condition=used`. A range writes one `<filter>_<suffix>` key per boundary, using the two suffixes in its metadata.
+In the page URL, a list value repeats its query key once per value, such as `?condition=new&condition=used`. A range writes one `<filter>_<suffix>` key per boundary, using the two suffixes in its metadata.
+
+The list request sends a list value in the form the filter's Django widget reads:
+
+- `MultipleChoiceField`, `ModelMultipleChoiceField`, and `AllValuesMultipleChoiceField` set `repeatedKey: true`, so the request repeats the key once per value, such as `?condition=new&condition=used`. Their `SelectMultiple` widget reads each repeated key as one value, so a stored value that contains a comma, such as `Acme, Inc.`, arrives intact.
+- `ModelChoiceInField`, `ModelMultipleChoiceInField`, and `DecimalInField` send one comma-separated value, such as `?price.in=1,2.5`. Their django-filter CSV widget splits that value and reads only one key.
 
 `ChoiceField`, `TypedChoiceField`, and `MultipleChoiceField` filters show the choices their metadata lists. The `ModelChoiceField`, `ModelMultipleChoiceField`, `ModelChoiceInField`, `ModelMultipleChoiceInField`, `AllValuesChoiceField`, and `AllValuesMultipleChoiceField` types report `choices: true`, and `WidgetModel` fetches their choices from the filter choices endpoint once the input is focused or already holds a value.
 
@@ -398,7 +403,7 @@ A visible filter whose type is missing from either table, such as a `UUIDField` 
 
 ### Custom filter types
 
-`mergeFilterFieldMapping` registers a custom type, or adjusts a built-in one. Each entry's `initialValue`, `array`, and `range` keys go to value handling. Its other keys go to the components.
+`mergeFilterFieldMapping` registers a custom type, or adjusts a built-in one. Each entry's `initialValue`, `array`, `repeatedKey`, and `range` keys go to value handling. Its other keys go to the components.
 
 ```js
 import WidgetColor from "./WidgetColor.vue";
@@ -417,7 +422,7 @@ mergeFilterFieldMapping({
 A type needs both halves. Without value handling, the filter form cannot build an empty or URL-restored value. Without components, it has nothing to render. Either gap leaves the type out of the menu. A widget that resolves to `WidgetUnmapped` counts as a missing component, because it renders a diagnostic instead of an input.
 
 - The widget's value is what the request parameter carries: a string, or an array of strings for a type with `array: true`.
-- A list type sets `array: true` and `initialValue: []`. A single URL value then restores as a one-entry list.
+- A list type sets `array: true` and `initialValue: []`. A single URL value then restores as a one-entry list. A list type whose Django widget reads repeated keys, such as `SelectMultiple`, also sets `repeatedKey: true`. Without it, the list request sends the values as one comma-separated value.
 - A range type sets `range: true` and an `initialValue` object, and provides `component: "FieldSetRange"`, `boundaryComponent`, and `boundaryWidget`. The filter's metadata supplies the two suffixes.
 - In these entries, `fieldProps: { hidden: true }` makes `FormField` render the widget without its own label row, because the filter form already shows the filter's label. This setting does not hide the filter.
 

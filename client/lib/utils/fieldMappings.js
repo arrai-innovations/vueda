@@ -788,20 +788,23 @@ export function mergeDefaultFieldMappings(customMappings) {
 }
 
 /**
- * How a filter type's value behaves in the filter form and the URL.
+ * How a filter type's value behaves in the filter form, the URL, and the list request.
  *
  * @typedef {object} FilterValueMapping
  * @property {any} [initialValue] - The empty value the filter form starts from.
  * @property {boolean} [array] - Whether the filter carries a list of values.
  * @property {boolean} [range] - Whether the filter is a range rendered as two boundary inputs.
+ * @property {boolean} [repeatedKey] - Whether the list request sends each of the filter's values under its
+ *  own repeated query key, as Django's `SelectMultiple` widget reads them. Without it, an array value is
+ *  sent as one comma-separated value, as django-filter's CSV-based `in` filters read it.
  */
 
 /**
  * Per-filter-type value configuration: the empty/initial value a filter field
- * starts from, and whether it is a range (suffix pair) or an array filter. The
- * live filter form (`useFilterField`) and URL→filter restoration
- * (`buildFilterFromQuery`) both read it, so query values coerce the same way in
- * each. {@link filterFieldMapping} holds the components for the same types. A
+ * starts from, whether it is a range (suffix pair) or an array filter, and how
+ * the list request encodes an array value. The live filter form
+ * (`useFilterField`) and URL→filter restoration (`buildFilterFromQuery`) both
+ * read it, so query values coerce the same way in each. {@link filterFieldMapping} holds the components for the same types. A
  * custom filter type registers its entry here through
  * {@link mergeFilterFieldMapping}, alongside its components.
  *
@@ -877,10 +880,12 @@ export const FilterFieldMappings = {
     ModelMultipleChoiceField: {
         initialValue: [],
         array: true,
+        repeatedKey: true,
     },
     MultipleChoiceField: {
         initialValue: [],
         array: true,
+        repeatedKey: true,
     },
     AllValuesChoiceField: {
         initialValue: null,
@@ -888,6 +893,7 @@ export const FilterFieldMappings = {
     AllValuesMultipleChoiceField: {
         initialValue: [],
         array: true,
+        repeatedKey: true,
     },
     TimeField: {
         initialValue: null,
@@ -907,12 +913,12 @@ export const FilterFieldMappings = {
  * @typedef {FieldMappingEntry & FilterValueMapping} FilterFieldMappingInput
  */
 
-const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range"];
+const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range", "repeatedKey"];
 
 /**
  * Register custom filter types, or adjust existing ones, for filter forms. Each
  * entry's components merge into {@link filterFieldMapping}; its `initialValue`,
- * `array`, and `range` keys merge into the value table
+ * `array`, `range`, and `repeatedKey` keys merge into the value table
  * ({@link FilterFieldMappings}). A filter type needs both to be
  * offered in a list's filter menu: the value table tells the form what an empty
  * or URL-restored value looks like, and the component table tells it what to

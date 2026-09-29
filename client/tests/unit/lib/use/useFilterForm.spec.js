@@ -50,13 +50,19 @@ describe("lib/use/useFilterForm.js", () => {
 });
 
 describe("lib/use/useFilterForm.js · query helpers", () => {
-    let getFilterParams, getFilterQueryValue, buildFilterFromQuery, filtersToParams, isRangeFilter;
+    let getFilterParams,
+        getFilterQueryValue,
+        buildFilterFromQuery,
+        filtersToParams,
+        getRepeatedFilterParams,
+        isRangeFilter;
     beforeEach(async () => {
         const mod = await import("@vueda/use/useFilterForm.js");
         getFilterParams = mod.getFilterParams;
         getFilterQueryValue = mod.getFilterQueryValue;
         buildFilterFromQuery = mod.buildFilterFromQuery;
         filtersToParams = mod.filtersToParams;
+        getRepeatedFilterParams = mod.getRepeatedFilterParams;
         isRangeFilter = mod.isRangeFilter;
     });
     afterEach(() => {
@@ -77,6 +83,19 @@ describe("lib/use/useFilterForm.js · query helpers", () => {
             "created_min",
             "created_max",
         ]);
+    });
+
+    scopedIt("getRepeatedFilterParams returns the keys of filters whose type repeats its key", () => {
+        expect(
+            getRepeatedFilterParams({
+                tags: { typeFilter: "MultipleChoiceField" },
+                owners: { typeFilter: "ModelMultipleChoiceField" },
+                distributor: { typeFilter: "AllValuesMultipleChoiceField" },
+                codes: { typeFilter: "ModelChoiceInField" },
+                name: { typeFilter: "CharField" },
+                custom: { typeFilter: "UnmappedField" },
+            }),
+        ).toEqual(["tags", "owners", "distributor"]);
     });
 
     scopedIt("getFilterQueryValue reads suffix keys into an object", () => {
