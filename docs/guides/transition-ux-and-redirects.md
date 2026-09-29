@@ -7,15 +7,15 @@ status: draft
 
 # Design Transition UX and Redirects
 
-This guide shows how an action form runs a workflow {@term Transition}, and how to choose the view an action form opens after a submit or cancel. The redirect rules apply to every view built on {@api vue:component:ModelActionForm}, including destroy, extra actions, and transitions.
+This guide shows how an action form runs a workflow {@term Transition}, and how to choose the view that an action form opens after a submit or cancel. The redirect rules apply to every view built on {@api vue:component:ModelActionForm}, including destroy, extra actions, and transitions.
 
 ## How a Transition Route Reaches Its Form
 
-A transition route carries the transition's `code` as its action segment. {@term Route Admission} accepts it when the code is one of the user's {@term Permitted Transitions}. {@api vue:component:ViewActionRouter} then renders a project view named for the code, or else {@api vue:component:ViewExecuteTransition}. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full resolution order.
+A transition route carries the transition's `code` as its action segment. {@term Route Admission} accepts it when the code is one of the user's {@term Permitted Transitions}. {@api vue:component:ViewActionRouter} then renders a project view named for the code. When no such view exists, it renders {@api vue:component:ViewExecuteTransition}. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full resolution order.
 
 `ViewExecuteTransition` wraps `ModelActionForm` and replaces its [`run-action`]{@api vue:component:ActionForm:prop:runAction} with a call to {@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition}. A transition therefore gets the same pre-flight, submit, cancel, and redirect behavior as any other action form. [Action & Workflow Views](../reference/components/action-workflow.md#viewexecutetransition) describes what its confirmation shows.
 
-The view uses the transition's `name` for the page title and the confirmation prompt. Routing and execution use only the `code`, which the view passes to `executeTransition` unchanged. When you change a transition's `code`, also rename any project view named for it (`ViewAction<Code>.vue` or `ViewAction<App><Model><Code>.vue`) and update any route links your application builds with it.
+The view uses the transition's `name` for the page title and the confirmation prompt. Routing and execution use only the `code`, which the view passes to `executeTransition` unchanged. When you change a transition's `code`, also rename any project view named for it (`ViewAction<Code>.vue` or `ViewAction<App><Model><Code>.vue`) and update any route links that your application builds with it.
 
 ## What an Action Form Does on Pre-Flight, Submit, and Cancel
 
@@ -45,7 +45,7 @@ The built `default` is `"update"` when {@term Model Info} lists `update`, else `
 To change the redirects for a model:
 
 1. Call [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} with `actionRedirects` in the generic config, the second argument. Action forms read the generic layer only.
-2. Key each entry by the route action: an extra action's name, a transition code, or `destroy`. Add `default` for the actions you do not list. Your entries merge with the built ones key by key.
+2. Key each entry by the route action: an extra action's name, a transition code, or `destroy`. Add `default` for the actions that you do not list. Your entries merge with the built ones key by key.
 3. Use route segments as values, such as `"list"`, `"read"`, `"update"`, or another action's name. The detail view's segment is `read`. The {@term Canonical Action Name} `retrieve` opens the generic action view.
 
 ```js
@@ -82,7 +82,7 @@ Generic bulk model actions send their keys as `pks`. Client code that calls the 
 
 1. It checks that the user can read the object.
 2. It checks the workflow and transition permissions, and that the transition leaves the object's current state. An unknown `transition_code` also fails here, with `400`.
-3. It gates the write on the model's [`get_transition_warnings`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}, returning `409` until the user acknowledges them. [Require Confirmation Before a Write](./require-write-confirmation.md#warn-on-a-workflow-transition) shows how to add warnings.
+3. It gates the write on the model's [`get_transition_warnings`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}, returning `409` until the user acknowledges the warnings. [Require Confirmation Before a Write](./require-write-confirmation.md#warn-on-a-workflow-transition) shows how to add warnings.
 4. Outside a dry run, it locks the row with {@api ext:django:django.db.models.query.QuerySet.select_for_update} and `skip_locked=True`. When another request holds the lock, it returns `400` with "This object cannot be updated right now. Please try again."
 5. It repeats the object and transition checks on the locked row, writes the new state, and calls [`on_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition}.
 
