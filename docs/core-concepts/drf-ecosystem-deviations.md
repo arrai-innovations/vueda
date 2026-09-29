@@ -25,10 +25,10 @@ A viewset that sets its own `filter_backends` replaces this list. [Filtering and
 
 ## Unknown Input Returns 400
 
-DRF ignores query parameters a view does not read and request body keys a serializer does not declare. VUEDA answers both with a `400` validation error that names the valid choices:
+DRF ignores query parameters that a view does not read and request body keys that a serializer does not declare. VUEDA answers both with a `400` validation error that names the valid choices:
 
 - {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}, part of {@api py:class:vueda.core.viewsets.VuedaViewSet} and {@api py:class:vueda.core.viewsets.VuedaReadOnlyViewSet}, rejects any query key that `list` or `retrieve` does not accept. It also rejects `f` and `e` values that name no field or expand. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) describes these [validation rules]{@term Query Parameter Validation}.
-- {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}, part of {@api py:class:vueda.core.serializers.VuedaSerializer}, rejects top-level body keys the serializer does not declare. It checks only the view's own serializer class, so keys inside a nested payload are not checked. [Error and Validation Contract](./error-and-validation-contract) describes the error body.
+- {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}, part of {@api py:class:vueda.core.serializers.VuedaSerializer}, rejects top-level body keys that the serializer does not declare. It checks only the view's own serializer class, so keys inside a nested payload are not checked. [Error and Validation Contract](./error-and-validation-contract) describes the error body.
 
 A typo or a stale client gets an error that names the valid keys. An integration that adds its own query parameters or body keys fails until the viewset or serializer declares them.
 
@@ -37,8 +37,8 @@ A typo or a stale client gets an error that names the valid keys. An integration
 VUEDA's defaults change these responses and the accepted credentials:
 
 - **List pagination.** {@api py:class:vueda.core.pagination.VUEDAPageNumberPagination} returns `results`, `columnTotals`, `perPage`, `totalPages`, and `totalRecords`. DRF's {@api ext:drf:rest_framework.pagination.PageNumberPagination} returns `count`, `next`, `previous`, and `results`. [Expose Aggregates in `list` Responses](../guides/list-column-totals) describes `columnTotals`.
-- **Error bodies.** {@api py:function:vueda.core.exceptions.debug_stack_exception_handler} moves a list of errors under `non_field_errors`, and returns a JSON `500` for exceptions DRF does not handle. It adds `serverStack` to every error body, except the `409` of {@term Warning Confirmation}. [Error and Validation Contract](./error-and-validation-contract) describes these shapes.
-- **Durations.** {@api py:class:vueda.core.renderers.VuedaJSONRenderer} renders a `timedelta` that reaches it as a number of seconds, where DRF renders a string. This affects values that bypass serializer fields, such as a duration column total. A serializer `DurationField` still returns its string form.
+- **Error bodies.** {@api py:function:vueda.core.exceptions.debug_stack_exception_handler} moves a list of errors under `non_field_errors`, and returns a JSON `500` for exceptions that DRF does not handle. It adds `serverStack` to every error body, except the `409` of {@term Warning Confirmation}. [Error and Validation Contract](./error-and-validation-contract) describes these shapes.
+- **Durations.** When a `timedelta` reaches {@api py:class:vueda.core.renderers.VuedaJSONRenderer}, the renderer writes it as a number of seconds. DRF's renderer writes a string. This affects values that bypass serializer fields, such as a duration column total. A serializer `DurationField` still returns its string form.
 - **Authentication.** DRF's {@api ext:drf:rest_framework.authentication.SessionAuthentication} is the only authentication class. A client sends the session cookie, and writes also need the CSRF token.
 
 ## Registration Gates Model Info
