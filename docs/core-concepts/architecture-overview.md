@@ -17,7 +17,7 @@ The server has four responsibility layers. Each layer builds on the ones below i
 
 ### Domain infrastructure
 
-`vueda.core` defines the base classes a domain module builds on: {@api py:class:vueda.core.models.VuedaModel}, {@api py:class:vueda.core.serializers.VuedaSerializer}, and {@api py:class:vueda.core.viewsets.VuedaViewSet}. A module that extends them gets VUEDA's request handling without further setup. {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin} rejects unknown fields in a write, and {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin} rejects unknown query parameters. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) describes the rejection rules.
+`vueda.core` defines the base classes that a domain module builds on: {@api py:class:vueda.core.models.VuedaModel}, {@api py:class:vueda.core.serializers.VuedaSerializer}, and {@api py:class:vueda.core.viewsets.VuedaViewSet}. A module that extends them gets VUEDA's request handling without further setup. {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin} rejects unknown fields in a write, and {@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin} rejects unknown query parameters. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics) describes the rejection rules.
 
 `VuedaViewSet` also filters `list` results by row-level permissions, allows only declared [expands]{@term Expand}, and adds bulk delete with a [dry run]{@term Dry Run}. VUEDA's validation code raises {@api py:class:vueda.core.exceptions.VuedaValidationError}, whose payload the client maps onto form fields. [Field and Expand Semantics](./field-and-expand-semantics), [Row-Level Permission Filtering](./row-level-permission-filtering), and [Error and Validation Contract](./error-and-validation-contract) describe each behavior. [DRF Ecosystem Compatibility Boundaries](./drf-ecosystem-deviations) lists where these defaults depart from plain DRF.
 
@@ -72,9 +72,9 @@ Composables turn each field's metadata into a form model. Every field renders as
 
 ### Data operations
 
-The list and object composables from reactive-helpers send no requests themselves. Each operation calls a {@term CRUD Adapter}, and VUEDA's adapters speak its REST API. A generated project registers them at startup, and you can replace any adapter for every instance or for one. [CRUD Adapter Layer](./crud-adapter-layer) describes the registries, what each adapter sends, and the contract a replacement meets.
+The list and object composables from reactive-helpers send no requests themselves. Each operation calls a {@term CRUD Adapter}, and VUEDA's adapters send requests to its REST API. A generated project registers them at startup, and you can replace any adapter for every instance or for one. [CRUD Adapter Layer](./crud-adapter-layer) describes the registries, what each adapter sends, and the contract that a replacement meets.
 
-The adapters return a {@term Cancellable Promise}. The list and object instances cancel a running request when its parameters change or its component goes away, and a cancelled run records no error. Store requests carry no `cancel()`. [Cancellable Network Operations](./cancellable-network-operations) describes what a cancel aborts and what it only ignores.
+The adapters return a {@term Cancellable Promise}. The list and object instances cancel a running request when its parameters change or its component goes away, and a cancelled run does not record an error. Store requests carry no `cancel()`. [Cancellable Network Operations](./cancellable-network-operations) describes what a cancel aborts and what it only ignores.
 
 ### Rendering
 
@@ -90,7 +90,7 @@ The browser client reaches the server only through its REST endpoints. It has no
 
 ## Architectural Dependencies
 
-Every VUEDA deployment needs PostgreSQL and a shared cache. A broker and message providers depend on the apps and features a project uses.
+Every VUEDA deployment needs PostgreSQL and a shared cache. Whether a deployment needs a broker and message providers depends on the apps and features that the project uses.
 
 **PostgreSQL** is the only supported database. History records changes through PostgreSQL triggers (pgtrigger and pghistory), and list search uses full-text search and trigram similarity. VUEDA also relies on array fields, range fields, GIN indexes, and generated columns.
 
@@ -98,7 +98,7 @@ Every VUEDA deployment needs PostgreSQL and a shared cache. A broker and message
 
 **A message broker**, such as RabbitMQ or Redis, is needed when `vueda.vdq` is installed. It carries VDQ's tasks from the web process to the worker. {@api py:function:vueda.vdq.schedulers.schedule_queue_item} publishes each task after the transaction commits. When the publish fails, the queue item moves to `errored` with the exception in its `result`.
 
-**Email and SMS providers** are needed only when the application sends messages. Email goes through the Django mail backend the project configures, such as an Anymail backend, and SMS goes through Twilio.
+**Email and SMS providers** are needed only when the application sends messages. Email goes through the Django mail backend that the project configures, such as an Anymail backend, and SMS goes through Twilio.
 
 ## Convention Over Configuration
 
