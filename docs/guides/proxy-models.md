@@ -87,7 +87,7 @@ class DistributorProxySerializer(VuedaSerializer):
 
 ## Defining the FilterSet
 
-Subclass [`VuedaFilterSet`]{@api py:class:vueda.core.filters.VuedaFilterSet}, which adds a hidden `id` filter. Declare the field filters the proxy needs:
+Subclass [`VuedaFilterSet`]{@api py:class:vueda.core.filters.VuedaFilterSet}, which adds a hidden `id` filter. Declare the field filters that the proxy needs:
 
 ```python
 from django_filters import rest_framework
@@ -133,7 +133,7 @@ class DistributorProxyViewSet(VuedaViewSet):
         return super().get_allowed_extra_actions(request, instance=instance)
 ```
 
-`DistributorProxy.objects.all()` returns every row of the shared table. To expose a subset of rows, filter `queryset`, for example `DistributorProxy.objects.filter(name__startswith="North")`, or override [`get_queryset()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} and call `super()`.
+`DistributorProxy.objects.all()` returns every row of the shared table. To expose a subset of rows, filter `queryset` (for example, `DistributorProxy.objects.filter(name__startswith="North")`) or override [`get_queryset()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} and call `super()`.
 
 The [`get_allowed_extra_actions()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} override is optional. It gives the proxy different extra actions from the concrete model's viewset. Here, members of the `Customer` group get none. VUEDA also calls it with `request=None` when it builds metadata without a request, so check for `None` before you read `request.user`.
 
