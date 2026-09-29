@@ -7,7 +7,7 @@ status: draft
 
 # Add Workflow State and Transition Permissions
 
-Use this guide to control who can take each {@term Transition} of a {@term Workflow}, and to grant or deny {@term CRUD} permissions by an object's workflow state. You add {@term Workflow Permission}, {@term Transition Permission}, and {@term State Permission} rows, give groups the permissions those rows name, and then check the results with users from those groups.
+Use this guide to control who can take each {@term Transition} of a {@term Workflow}, and to grant or deny {@term CRUD} permissions by an object's workflow state. You add {@term Workflow Permission}, {@term Transition Permission}, and {@term State Permission} rows, give groups the permissions that those rows name, and then check the results with users from those groups.
 
 [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes how the server evaluates these rows.
 
@@ -57,9 +57,9 @@ reviewers, _ = Group.objects.get_or_create(name="Widget Reviewers")
 
 ## Gate the Workflow
 
-A workflow or transition gate passes only when it has at least one row and the user holds every permission its rows name. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes both gates.
+A workflow or transition gate passes only when it has at least one row and the user holds every permission that its rows name. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes both gates.
 
-1. Add a [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission} row for each permission a user needs to use the workflow at all:
+1. Add a [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission} row for each permission that a user needs to use the workflow at all:
 
     ```python
     WorkflowPermission.objects.create(workflow=workflow, permission=read_widget)
@@ -74,7 +74,7 @@ A workflow or transition gate passes only when it has at least one row and the u
 
 ## Gate Each Transition
 
-1. Add a [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission} row for each permission a user needs to take the transition:
+1. Add a [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission} row for each permission that a user needs to take the transition:
 
     ```python
     TransitionPermission.objects.create(transition=workflow.transitions.get(code="submit"), permission=update_widget)
@@ -83,11 +83,11 @@ A workflow or transition gate passes only when it has at least one row and the u
 
 2. Leave a transition without rows when only your code should take it. No user can take it, and code applies it with [`fast_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_transition}, which skips permission checks.
 
-The transition check runs against the object, so state rules on the permissions it names apply.
+The transition check runs against the object, so state rules apply to the permissions that the transition's rows name.
 
 ## Grant or Deny Permissions by State
 
-Add a [`StatePermission`]{@api py:class:vueda.workflow.models.StatePermission} row for each permission a group gains or loses in one state. `grant_or_deny=True` grants and `False` denies. The permission's content type selects the model. A grant can give a permission the group's baseline lacks, and a deny can remove one it has. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes how rules combine.
+Add a [`StatePermission`]{@api py:class:vueda.workflow.models.StatePermission} row for each permission that a group gains or loses in one state. `grant_or_deny=True` grants and `False` denies. The permission's content type selects the model. A grant can give a permission that the group's baseline lacks, and a deny can remove one it has. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md) describes how rules combine.
 
 This example lets reviewers edit a widget under review, and stops editors from editing a published one:
 
@@ -135,11 +135,11 @@ Then send the same updates through the model's API. The reviewer lacks the basel
 Sign in as each test user and call the workflow endpoints for `myapp/widget`:
 
 1. [`GET permitted_transitions/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/} lists the transitions whose permissions the user holds. The check has no object, so state rules do not apply. Expect `submit` for an editor and `approve` for a reviewer. A user without the workflow's permissions gets `403`.
-2. [`GET object-transitions/{object_id}/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/} lists the transitions the user can take from the object's current state. Expect `submit` for an editor on a draft widget, and an empty list for an editor on a widget under review.
+2. [`GET object-transitions/{object_id}/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/} lists the transitions that the user can take from the object's current state. Expect `submit` for an editor on a draft widget, and an empty list for an editor on a widget under review.
 3. The object payload's {@term Valid Transitions} field lists the same transitions as `object-transitions`. It is empty for a user without the workflow's permissions.
 4. [`GET object-state/{object_id}/`]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/} and [workflow state history]{@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/} need only `read` on the object. Check that a user with `myapp.read_widget` and no workflow permissions reads both.
 5. [`PATCH execute-transition/{object_id}/`]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/} with `{"transition_code": "submit"}` moves a draft widget to `review` for an editor. The response has `new_state` and `new_transitions`.
-6. Check the refusals. Each of these answers `400` with a validation error: a missing or unknown `transition_code`, a transition that does not leave the current state, a user without the workflow or transition permissions, and a row another request has locked. A user who cannot read the object gets `403`. The [bulk form]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/} with `object_ids` answers `404` for an object the user cannot read. When any object fails, it applies no transition.
+6. Check the refusals. Each of these answers `400` with a validation error: a missing or unknown `transition_code`, a transition that does not leave the current state, a user without the workflow or transition permissions, and a row that another request has locked. A user who cannot read the object gets `403`. The [bulk form]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/} with `object_ids` answers `404` for an object the user cannot read. When any object fails, the endpoint applies no transition.
 
 [Permissions](../reference/permissions.md#status-codes) lists these status codes with the others.
 
