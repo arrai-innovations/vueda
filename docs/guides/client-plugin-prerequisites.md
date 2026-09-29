@@ -7,108 +7,126 @@ type: how-to
 
 # Client Plugin Prerequisites
 
-This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The setup imports the built-in theme to register component styling classes and calls {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUD} data path used by built-in views.
+This guide sets up the client files that VUEDA's built-in views, components, and stores need. It covers the dependencies, the Vite config, the stylesheet, the theme, the icons, the {@term CRUD} adapters, and the toaster. The copier templates generate all of these files. Use this guide to set up a client without a template, or to learn what each generated call does.
 
-The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base tokens, see [Customize VUEDA Appearance](customize-vueda-appearance).
+The guide assumes that you know how to create a Vue 3 application with Pinia and Vue Router. [Start Building](../tutorials/start-building.md) walks through a generated project.
 
-## Goal and Preconditions
+## Install the Dependencies
 
-The objective is a `main.js` that registers all required plugins and setup functions so that VUEDA's built-in views, components, and stores function correctly.
+Install `@arrai-innovations/vueda` and its peer dependencies:
 
-Before you begin:
+- `@arrai-innovations/reactive-helpers`
+- `@arrai-innovations/vue-sonner`, VUEDA's maintained fork of `vue-sonner`, which shows toasts
+- `@sentry/vue`
+- `@vueuse/core`
+- `lodash-es`
+- `luxon`
+- `pinia`
+- `vue`
+- `vue-draggable-next`
+- `vue-router`
 
-The project must install `@arrai-innovations/vue-sonner`, our maintained fork of `vue-sonner`. It is a peer dependency of `@arrai-innovations/vueda` and backs the toast surface. VUEDA's control and widget components are first-party (built on Reka UI, which VUEDA bundles), so there is no third-party component-library peer dependency to install. Pinia and Vue Router must also be installed; they are assumed throughout but are not VUEDA-specific.
+The three Font Awesome packages are optional peers: `@fortawesome/fontawesome-svg-core`, `@fortawesome/free-solid-svg-icons`, and `@fortawesome/vue-fontawesome`. Install them to use the Font Awesome icons in [Register the Icons](#register-the-icons). The version ranges are in the `peerDependencies` field of VUEDA's `package.json`.
 
-If you are using the built-in `vueda-tailwind` theme (recommended), you also need `tailwindcss` and `@tailwindcss/vite` installed as dev dependencies, and the Vite plugin registered in `vite.config.js`. Tailwindcss is a build tool, not a runtime peer dependency of VUEDA.
+The built-in `vueda-tailwind` theme needs `tailwindcss` and `@tailwindcss/vite` as dev dependencies, next to `vite` and `@vitejs/plugin-vue`.
 
-## Registration Order
+## Configure Vite
 
-Plugin registration follows a specific order. Some steps have dependencies on earlier steps; others are order-independent but grouped by concern for clarity.
-
-```javascript
-import TheApp from "./TheApp.vue";
-import { getRouter } from "./router/index.js";
-import "@vueda/theme/vueda-tailwind/index.js";
-import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
-import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
-import { createPinia } from "pinia";
-import { createApp } from "vue";
-
-// 1. CRUD adapters (the theme import above registers defaults before app creation)
-setupDefaultListCrud();
-setupDefaultObjectCrud();
-
-// 2. App and core plugins
-const app = createApp(TheApp);
-const pinia = createPinia();
-const router = getRouter(app, pinia);
-
-app.use(pinia);
-app.use(router);
-
-// 3. Mount
-app.mount("#the-app");
-```
-
-VUEDA's controls, widgets, tooltips, and confirmation dialogs are first-party components, so there are no third-party UI plugins, services, or directives to register here. The toast surface is mounted as a component in your root template rather than registered as a plugin; see [Toast Notifications](#toast-notifications) below.
-
-The sections below explain each registration step.
-
-## Theme
-
-Importing `@vueda/theme/vueda-tailwind/index.js` registers all built-in component defaults; no `setTheme` call is needed. For alternative loading paths and when to apply project patches, see [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered).
-
-VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports patches through `patchTheme()` and per-component `themeOverride` props. For an explanation of the available customization scopes, see [Theming and Customization](../core-concepts/theming-and-customization); for concrete recipes, see [Customize VUEDA Appearance](customize-vueda-appearance).
-
-Using the `vueda-tailwind` theme requires Tailwind CSS to be set up in your project so those utility classes generate CSS. Install `tailwindcss` and `@tailwindcss/vite` as dev dependencies and add the plugin to your `vite.config.js`:
+Add the Tailwind plugin, and spread the result of {@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig} into `vite.config.js`:
 
 ```javascript
+import { vuedaViteConfig } from "@arrai-innovations/vueda/lib/vite.js";
 import tailwindcss from "@tailwindcss/vite";
+import vue from "@vitejs/plugin-vue";
+import path from "path";
+import { fileURLToPath } from "url";
+import { defineConfig } from "vite";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
     plugins: [vue(), tailwindcss()],
-    // ...
+    ...vuedaViteConfig({
+        extraAliases: {
+            "@": path.resolve(__dirname, "src"),
+        },
+    }),
 });
 ```
 
-The theme also requires a set of CSS custom properties that the class strings reference: semantic color tokens (`--foreground`, `--background`, `--primary`, `--muted`, `--sidebar` and related variants), VUEDA-specific dimensional tokens (`--vueda-control-height`, `--vueda-control-radius`, `--vueda-cal-day`, `--vueda-sidebar-width`, etc.), shadow tokens (`--vueda-shadow-popover`, `--vueda-shadow-overlay`), and motion tokens (`--vueda-duration-interaction`, `--vueda-ease-interaction`). The full set with default values is shipped at `@vueda/theme/vueda-tailwind/base.css`. Import it once in your project's main CSS file:
+`vuedaViteConfig` defines the `@vueda` alias, which points at VUEDA's `lib` directory. Every VUEDA import on this page uses that alias. The function also makes VUEDA and its peer dependencies resolve to one copy each.
+
+The `@` alias in [`extraAliases`]{@api js:param:@arrai-innovations/vueda/vite#vuedaViteConfig:options.extraAliases} points at your `src` directory. {@api vue:component:ViewActionRouter} uses it to find the project views in `src/views` that follow its naming convention. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) describes that convention. Without the alias, the built-in views and the generic action views still work.
+
+When VUEDA is linked from a local checkout, `vuedaViteConfig` returns a `server.fs.allow` list. If your config declares its own `server` block, combine the two configs with Vite's `mergeConfig`. A `server` key that follows the spread result replaces the whole `server` object, including that list.
+
+## Import the Stylesheet
+
+Import Tailwind and the theme's `base.css` in your application stylesheet. Load that stylesheet from `index.html` or `main.js`:
 
 ```css
 @import "tailwindcss";
 @import "@vueda/theme/vueda-tailwind/base.css";
 ```
 
-`base.css` is the brand-customization surface. Override individual tokens after the import to re-skin the app; see [Customize VUEDA Appearance](customize-vueda-appearance#re-skin-via-tokens) for the full recipe. The default values land VUEDA in a near-monochrome cool-neutral palette with dense control sizing; consumers who want a different look should override tokens rather than fork `base.css`.
+`base.css` defines the {@term Theme Token} values that the theme classes read. It also tells Tailwind to scan VUEDA's `lib` directory, so Tailwind generates the classes that the theme uses. [Customize VUEDA Appearance](customize-vueda-appearance.md#re-skin-via-tokens) describes how to override the tokens.
 
-`base.css` names its fonts, IBM Plex Sans and JetBrains Mono, but does not load them. Load those families yourself or point the font tokens at fonts your app already loads; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
+`base.css` names the fonts IBM Plex Sans and JetBrains Mono, but it does not load them. Load those families, or point the font tokens at fonts that your application already loads. [Load or replace the fonts](customize-vueda-appearance.md#load-or-replace-the-fonts) gives both options.
 
-The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes, and either supply your own equivalent token definitions or rewrite the class strings to not depend on the VUEDA tokens.
+## Write `main.js`
 
-When installing your own theme object, call `setTheme` after the built-in defaults you intend to replace have registered and before those components render. It replaces the whole registry, including any earlier patches.
+The following `main.js` registers the theme, the icons, and the CRUD adapters before it creates the app:
 
-**What depends on it:** Themed components resolve their slot classes from the registry. Built-in components import their own theme modules, so they receive defaults even without the aggregate import or a `setTheme` call.
+```javascript
+import TheApp from "./TheApp.vue";
+import { getRouter } from "./router/index.js";
+import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { installFontAwesomeFreeIcons } from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
+import "@vueda/theme/vueda-tailwind/index.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
+import { createPinia } from "pinia";
+import { createApp } from "vue";
 
-**What fails without CSS:** Registered class names have no styling effect unless the corresponding CSS is generated and loaded. Keep Tailwind and `base.css` in the application stylesheet.
+faConfig.autoAddCss = false;
+installFontAwesomeFreeIcons();
 
-## CRUD Adapters
+setupDefaultListCrud();
+setupDefaultObjectCrud();
 
-`setupDefaultListCrud()` and `setupDefaultObjectCrud()` register the HTTP adapter functions that VUEDA's composables use for every data operation (list, retrieve, create, update, patch, delete, bulk delete).
+const app = createApp(TheApp);
+const pinia = createPinia();
+const router = getRouter(app, pinia);
 
-These must be called **before** any VUEDA store or composable attempts a data fetch. Calling them before `createApp` satisfies this requirement.
+app.use(pinia);
+app.use(router);
+app.mount("#the-app");
+```
 
-**What depends on them:** Every list view (`ViewList`, filtering, pagination), every detail view (`ViewRead`, `ViewCreate`, `ViewUpdate`, `ViewDestroy`), and any composable that calls the {@term CRUD} layer.
+`getRouter` is your application's router factory. The templates generate one in `src/router/index.js`. `#the-app` is the mount element in `index.html`.
 
-**What fails without them:** Data operations silently return no results. Lists appear empty, forms do not load data, and save operations have no effect. There is no runtime error; the CRUD layer has no adapter to call, so it produces no output.
+### Register the Theme
 
-## Controls and Widgets
+The import of `@vueda/theme/vueda-tailwind/index.js` registers the default classes of every built-in component in the {@term Theme Registry}. No function call is needed. [How the theme is registered](../core-concepts/theming-and-customization.md#how-the-theme-is-registered) describes the per-family and per-component alternatives, and when to apply project patches.
 
-VUEDA's controls and widgets (`Button`, `WidgetSelectDropdown`, `WidgetDateField`, `WidgetTextInput`, `WidgetCombobox`, `WidgetCheckbox`, `WidgetRadioGroup`, `WidgetRangeSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: these components import their defaults and resolve classes from the theme registry. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
+### Register the Icons
+
+The {@term Icon Registry} starts empty. A component renders no icon for a name that has no entry, so fill the registry before the app mounts.
+
+{@api js:function:@arrai-innovations/vueda/theme/vueda-tailwind/icons/fontAwesomeFree#installFontAwesomeFreeIcons} passes a Font Awesome Free registry to {@api js:function:@arrai-innovations/vueda/use/useIcons#setIcons}. That registry covers the icon names that the default components use. The example imports the Font Awesome stylesheet and turns off `autoAddCss`, so that Font Awesome does not insert the same styles again at runtime.
+
+To use another icon library, call `setIcons` with your own registry. The generated templates call `setIcons` with a list of Font Awesome entries.
+
+### Register the CRUD Adapters
+
+{@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} register VUEDA's REST [CRUD adapters]{@term CRUD Adapter}. Built-in list views, detail views, and forms send every data request through them.
+
+Call both before the app creates any list or object instance, because each instance copies the adapters when it is created. Without them, every data request rejects with `Crud method "<name>" is not implemented.` [CRUD Adapter Layer](../core-concepts/crud-adapter-layer.md) describes the adapter slots and how to replace one.
 
 ## Toast Notifications
 
-Toast notifications are backed by `@arrai-innovations/vue-sonner`. Import `toast` from that package name, not from upstream `vue-sonner`, so your application code and VUEDA's toaster share the same module instance. No plugin registration is needed; `toast` is a plain module import that works anywhere (components, composables, stores, route guards).
-
-**Setup:** Mount the `Sonner` toaster once in your root component (e.g. `TheApp.vue`):
+Mount the {@api vue:component:Sonner} toaster once in your root component:
 
 ```vue
 <script setup>
@@ -121,69 +139,38 @@ import Sonner from "@vueda/feedback/toast/Sonner.vue";
 </template>
 ```
 
-**Usage:**
+Built-in forms, route guards, and auth views report results through toasts. When no toaster is mounted, the user sees none of those messages, and no error is raised. [Build Auth Views](build-auth-views.md) lists the messages that the auth views show.
+
+To show your own toasts, import `toast` from `@arrai-innovations/vue-sonner`. Your code and the toaster then share one module:
 
 ```javascript
 import { toast } from "@arrai-innovations/vue-sonner";
 
 toast.success("Saved successfully");
-toast.error("Something went wrong", { description: "Details here", duration: 15000 });
-toast.warning("Please check your input");
-toast.info("No changes detected");
 ```
 
-**What depends on it:** `ActionForm` displays success, error, and warning toasts after form submissions, including for `ViewExecuteTransition`'s workflow-transition submissions, which run through the same `ActionForm` shell. `AuthorizingForm` shows a redirect confirmation toast. `useObjectForm` default handlers show toasts for "No Changes Detected", "Pre-save Validation Failed", and "Save Validation Failed" scenarios. `ClickToCopyText` and the MFA setup views also use toast notifications.
+## Components With No Setup
 
-**What fails without it:** If the `Sonner` toaster is not mounted, `toast(...)` calls silently do nothing (no error is thrown, but no notification appears).
+Controls, widgets, tooltips, and confirmation dialogs need no plugin or directive. Forms render their own {@api vue:component:FormConfirmDialog}. Tooltips need a {@api vue:component:TooltipProvider} above them, and {@api vue:component:SidebarProvider} provides one for the built-in shell. Wrap components that you render outside that shell in a `TooltipProvider`.
 
-## Confirmation Dialogs
+## Check the Setup
 
-Confirmation is built into VUEDA's forms; there is no global service to register. Forms that can prompt for confirmation (for example, `ActionForm` and the object-form flows) render their own `FormConfirmDialog` and drive it through the per-form controller returned by `useConfirmationController`. When a submission returns warnings that require confirmation, the form opens its dialog and resolves once the user responds.
+After the app starts:
 
-**What depends on it:** `ActionForm` and the destroy and update flows prompt for confirmation when an action is configured to require it or when the server returns confirm-then-save warnings (HTTP 409).
-
-**What fails without it:** Nothing to register, so nothing fails at setup time. If you build a fully custom submit surface that bypasses the built-in dialog, the controller fails closed: it logs a console warning and treats the submission as cancelled rather than leaving it pending. Render `<FormConfirmDialog :controller="..." />` (or register a custom consumer via `confirmation.register()`) so the submission can be confirmed.
-
-## Tooltips
-
-Tooltips are first-party components built on Reka UI, not a registered directive. The shell layer (for example, `SidebarProvider`) wraps the relevant subtree in a `TooltipProvider`, and components render the `Tooltip` component where hover explanations are needed. There is no `v-tooltip` directive to register and nothing to install.
-
-**What depends on it:** Field help text, icon labels, and abbreviated content render tooltips for hover explanations.
-
-**What fails without it:** Nothing to register. Tooltips appear wherever a `TooltipProvider` is present in the component tree above them, which the built-in shell components provide.
-
-## Verification Checklist
-
-After completing the registration sequence, verify the following:
-
-- A list view loads data and renders rows with correct styling.
-- Submitting a form displays a success toast notification.
-- A form with invalid data displays inline validation errors and a warning toast.
-- Hovering over a field with help text shows a tooltip.
-- A destructive action (e.g., delete) shows a confirmation dialog before proceeding.
+- A list view loads rows, and its controls are styled.
+- A checked checkbox shows its check mark icon.
+- Saving a form shows a success toast.
 
 ## Troubleshooting
 
-**Toast notifications not appearing.** The `Sonner` toaster is not mounted in the root component. Add `<Sonner />` to `TheApp.vue`.
+**Components render as unstyled HTML.** The class names are registered, but no CSS was generated for them. Check that the application loads its stylesheet, and that the stylesheet imports Tailwind and `base.css`. Check that `vite.config.js` registers the Tailwind plugin. If elements lack their slot classes, a later `setTheme` call may have replaced the registry with an incomplete theme.
 
-**Components render as unstyled HTML.** Built-in components register their own defaults; omitting `setTheme` does not leave them unstyled. Verify that the application loads its stylesheet, that it imports Tailwind and `@vueda/theme/vueda-tailwind/base.css`, and that the Tailwind Vite plugin generates CSS for the theme classes. If slot classes are missing from the element, check whether a later `setTheme` call replaced the registry with an incomplete theme.
+**Components show no icons.** The icon registry has no entry for those names. Call `installFontAwesomeFreeIcons()` or `setIcons` in `main.js`, and check that your registry covers the names that the components use.
 
-**Text renders in a system font, and headers wrap where the component reference does not.** The page loads no face with the family name in {@api css-token:vueda-font-sans} or {@api css-token:vueda-font-mono}, so the browser used a fallback. Load the default fonts or override the stacks; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
+**Text renders in a system font.** The page loads no font with the family name in {@api css-token:vueda-font-sans} or {@api css-token:vueda-font-mono}, so the browser uses a fallback. Load the default fonts or override the font tokens.
 
-**Lists load but show no data.** CRUD adapters are not registered. Verify that `setupDefaultListCrud()` and `setupDefaultObjectCrud()` are called before app creation. Check the network tab; if no HTTP requests are made for list data, the adapter layer has no implementation.
+**Lists and forms load no data.** Each data request fails with `Crud method "<name>" is not implemented.` Call `setupDefaultListCrud()` and `setupDefaultObjectCrud()` in `main.js` before `createApp`.
 
-**Tooltips do not appear on hover.** No `TooltipProvider` is present above the component in the tree. The built-in shell components provide one; if you render tooltip-bearing components outside that shell, wrap them in a `TooltipProvider`.
+**Toasts do not appear.** The root component does not mount `<Sonner />`, or your code imports `toast` from upstream `vue-sonner`. Mount the toaster, and import `toast` from `@arrai-innovations/vue-sonner`.
 
-**Confirmation dialog does not appear for an action.** The action is not configured to require confirmation, or a fully custom submit surface bypasses the built-in `FormConfirmDialog`. Verify the action's configuration requires confirmation, and that any custom form renders `FormConfirmDialog` (or registers a consumer on the confirmation controller).
-
-## Relevant Implementation Surface
-
-- JavaScript:
-    - {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme}
-    - {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme}
-    - {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud}
-    - {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud}
-- Vue.js Components:
-    - {@api vue:component:ActionForm}
-    - {@api vue:component:AuthorizingForm}
-    - {@api vue:component:AuthForm}
+**A project view in `src/views` is not used.** Vite has no `@` alias for your `src` directory. Add it to `extraAliases` in `vite.config.js`.
