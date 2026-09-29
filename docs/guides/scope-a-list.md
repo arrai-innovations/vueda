@@ -7,7 +7,7 @@ status: draft
 
 # Open a Scoped List
 
-A {@term List Scope} narrows a list to records that a link or your application code chose, such as the purchase orders one action just created. {@api vue:component:ViewList} shows each active scope as a labeled chip in the constraints band, next to the filter and sort chips. A clearable chip has a clear control that returns the reader to the unscoped list.
+A {@term List Scope} narrows a list to records that a link or your application code chose, such as the purchase orders that one action just created. {@api vue:component:ViewList} shows each active scope as a labeled chip in the constraints band, next to the filter and sort chips. A clearable chip has a clear control that returns the user to the unscoped list.
 
 A scope comes from one of two sources:
 
@@ -71,7 +71,7 @@ await router.push(
 );
 ```
 
-`ViewList` sends the value with every list request. When the reader changes visible filters, the sort, or the search term, the value stays in the URL and in the request. Navigation that changes the value returns the list to page 1. Examples are a link to another batch or the browser's back button.
+`ViewList` sends the value with every list request. When the user changes visible filters, the sort, or the search term, the value stays in the URL and in the request. Navigation that changes the value returns the list to page 1. Examples are a link to another batch or the browser's back button.
 
 Scope chips appear once the list's model metadata has loaded, because their labels and keys come from that metadata. The first list request waits for the same metadata, so the chips and the scoped rows arrive together.
 
@@ -99,7 +99,7 @@ You can also set `filterableDetails` in the model config for the list view, like
 
 ### Clear a URL Scope
 
-When the reader clears the chip, `ViewList` removes every query key the filter owns from the URL. That includes suffixed keys such as `created_after` and `created_before`. The list refetches without the value and returns to page 1. Visible filters, the sort, the search term, other scopes, and other query parameters stay in place. A URL scope always has a clear control.
+When the user clears the chip, `ViewList` removes every query key that the filter owns from the URL. That includes suffixed keys such as `created_after` and `created_before`. The list refetches without the value and returns to page 1. Visible filters, the sort, the search term, other scopes, and other query parameters stay in place. A URL scope always has a clear control.
 
 ## Declare a Scope Backed by `params`
 
@@ -130,10 +130,10 @@ const clearScope = ({ name }) => {
 
 `scopes` is keyed by `params` key. Each entry accepts:
 
-- [`label`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeDeclaration.label}: the chip text. Without it, the chip uses the filter's label with the value, or with a value count when there are several values. For a key that is not in the resolved filterables, the chip uses the key itself with the value.
+- [`label`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeDeclaration.label}: the chip text. Without it, the chip uses the filter's label with the value. When there are several values, the chip uses the label with a value count. For a key that is not in the resolved filterables, the chip uses the key itself with the value.
 - [`clearable`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeDeclaration.clearable}: whether the chip has a clear control. Defaults to `true`.
 
-The chip for a declared scope appears while `params` has a value for its key. When the key names a filter with suffixes, the scope owns the suffixed keys too, such as `created_after` and `created_before` for `created`. The chip appears while any of them has a value. Only declared keys become scopes. Every other `params` key stays a plain request parameter, including a key that names a hidden filter.
+The chip for a declared scope appears while `params` has a value for its key. When the key is the name of a filter with suffixes, the scope owns the suffixed keys too, such as `created_after` and `created_before` for `created`. The chip appears while any of them has a value. Only declared keys become scopes. Every other `params` key stays a plain request parameter, including a key that names a hidden filter.
 
 ### When `params` Carries a Filter
 
@@ -147,7 +147,7 @@ When your code removes the filter's keys from `params`, the filter behaves as us
 
 ### Show a Fixed Constraint
 
-Set `clearable: false` for a constraint the reader must not remove, such as a list embedded on a record's page. The chip describes the constraint and has no clear control:
+Set `clearable: false` for a constraint that the user must not remove, such as the parent record of a list embedded on that record's page. The chip describes the constraint and has no clear control:
 
 ```html
 <view-list
@@ -160,11 +160,11 @@ Set `clearable: false` for a constraint the reader must not remove, such as a li
 
 ### Respond to `clear-scope`
 
-`ViewList` does not change `params`, because your code supplies it. When the reader clears a declared scope, `ViewList` emits [`clear-scope`]{@api vue:component:ViewList:event:clear-scope} with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in the handler. The updated prop removes the value from the request and the chip from the constraints band, and the list returns to page 1.
+`ViewList` does not change `params`, because your code supplies it. When the user clears a declared scope, `ViewList` emits [`clear-scope`]{@api vue:component:ViewList:event:clear-scope} with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in the handler. The updated prop removes the value from the request and the chip from the constraints band, and the list returns to page 1.
 
 Any change to the content of `params` returns the list to page 1. Passing an equal `params` object again keeps the current page. If the handler leaves `params` unchanged, the scope stays applied and its chip stays visible.
 
-Once `params` no longer carries the key, the add-filter menu offers a filter with that name again. If the URL still has a value for that filter, the value applies. So clearing the scope does not always return the reader to the unscoped list.
+Once `params` no longer carries the key, the add-filter menu offers a filter with that name again. If the URL still has a value for that filter, the value applies. So clearing the scope does not always return the user to the unscoped list.
 
 ## Clear Scopes Together
 
@@ -210,7 +210,7 @@ To render the chips:
 
 1. Put `ScopeGroup` in the [`scopes`]{@api vue:component:ConstraintsBar:slot:scopes} slot of {@api vue:component:ConstraintsBar}.
 2. Pass [`scopesActive`]{@api vue:component:ConstraintsBar:prop:scopesActive} so the band opens.
-3. Handle the `ScopeGroup` [`clear`]{@api vue:component:ScopeGroup:event:clear} event. It carries an array of the scopes the reader asked to clear: one from a chip, or every clearable scope from Clear scopes.
+3. Handle the `ScopeGroup` [`clear`]{@api vue:component:ScopeGroup:event:clear} event. It carries an array of the scopes that the user asked to clear: one from a chip, or every clearable scope from Clear scopes.
 4. Pass the names of the `"url"` scopes to `scope.clearUrlScopes`, and remove the keys of the `"params"` scopes from the shell's own `params`.
 
 `ScopeGroup` hides the clear control on a scope whose `clearable` is false.
@@ -221,7 +221,7 @@ Your application may already render its own scope banner in the [`before-list`]{
 
 ## Scopes and Access
 
-A scope narrows the list request, and clearing it broadens the request. The server's permissions and row-level filtering decide which records the reader receives, with or without a scope. Do not use a scope to hide records a reader must not see. [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics) describes where the server enforces access.
+A scope narrows the list request, and clearing it broadens the request. The server's permissions and row-level filtering decide which records the user receives, with or without a scope. Do not use a scope to hide records that a user must not see. [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics) describes where the server enforces access.
 
 ## Related
 
