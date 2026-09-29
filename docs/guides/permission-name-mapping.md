@@ -7,7 +7,7 @@ status: draft
 
 # Map Django and VUEDA Permission Names
 
-This guide sets the {@term Permission Mapping}, places the import that applies it, and checks that the generated codenames match the ones the server checks. [Permission Name Patch](../core-concepts/configuration-surface-and-defaults#permission-name-patch) describes what the import changes in Django.
+This guide sets the {@term Permission Mapping}, places the import that applies it, and checks that the generated codenames match the ones that the server checks. [Permission Name Patch](../core-concepts/configuration-surface-and-defaults#permission-name-patch) describes what the import changes in Django.
 
 Settle the mapping before the project's first `migrate`. Migration writes one {@api ext:django:django.contrib.auth.models.Permission} row per codename, and a later mapping change does not rename those rows.
 
@@ -43,7 +43,7 @@ Under Django's names, every `GET` on a viewset requires the `view_` codename, fo
     from vueda.core import patch_django  # noqa: F401
     ```
 
-    The template has only `local.py`. Add the same import to every other leaf module you create, such as production or test settings. VUEDA does not import `patch_django` for you.
+    The template has only `local.py`. Add the same import to every other leaf module that you create, such as production or test settings. VUEDA does not import `patch_django` for you.
 
 3. Run `python manage.py migrate`.
 
