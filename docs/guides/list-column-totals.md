@@ -30,11 +30,11 @@ class InvoiceViewSet(VuedaViewSet):
     }
 ```
 
-Name each total after the display column that renders it. The name is what a client requests and the key the total comes back under; the path stays on the server. A serializer field `price` with `source="product_option.price"` renders in a column named `price`, so its total is `{"price": "product_option__price"}`.
+Name each total after the display column that renders it. The name is what a client requests, and it is the key that the response returns the total under; the path stays on the server. A serializer field `price` with `source="product_option.price"` renders in a column named `price`, so its total is `{"price": "product_option__price"}`.
 
 Each path must follow two rules:
 
-- It ends on a column the database can `SUM`: a numeric field or a `DurationField`.
+- It ends on a column that the database can `SUM`: a numeric field or a `DurationField`.
 - It reaches only through forward foreign keys and one-to-one relations. A reverse foreign key, a many-to-many, or a `GenericRelation` adds a row per related object, which inflates every total in the same query.
 
 The `ListRowLevelViewSetMixin` reference explains both rules. A total is a plain `SUM` of the stored values, so it adds values in different units or currencies as they are. [#336](https://github.com/arrai-innovations/vueda/issues/336) tracks refusing mixed-currency aggregates.
@@ -62,10 +62,10 @@ When the value could be a column, store it in a {@api ext:django:django.db.model
 Run `python manage.py check`. The `vueda_info.E013` error names the viewset, the total, and the problem. It reports:
 
 - a `column_totals` that is not a mapping;
-- a name that is empty, contains a comma, is a wildcard value (`*` or `~all`), or is one Django refuses as a column alias;
+- a name that is empty, contains a comma, is a wildcard value (`*` or `~all`), or is one that Django refuses as a column alias;
 - a path that names no model field and no annotation of the viewset's queryset;
 - a path through a relation that can match more than one row;
-- a path that ends on a relation, or on a column `SUM` cannot add.
+- a path that ends on a relation, or on a column that `SUM` cannot add.
 
 When `get_queryset` reads `self.request`, the check cannot build the queryset. It then checks the names only and skips the path rules.
 
@@ -88,7 +88,7 @@ GET /routes/billing/invoice/?ct=subtotal,product_price
 - Repeating the parameter (`?ct=subtotal&ct=product_price`) means the same as a comma-separated value.
 - A wildcard value, `*` or `~all`, requests every declared total.
 - Empty values and duplicates are dropped, so `?ct=` alone requests nothing.
-- A name the viewset does not declare returns a `400` that lists the valid totals, even when a wildcard is also sent.
+- A name that the viewset does not declare returns a `400` that lists the valid totals, even when a wildcard is also sent.
 - `retrieve` rejects `ct`, and a total name is never a valid {@term Sparse Fields} `f` value.
 
 A request that names no totals gets `columnTotals: {}` and runs no aggregation query. Each requested total adds one `SUM`.
@@ -112,7 +112,7 @@ The paginated response carries the requested totals beside the rows:
 
 Every requested name is present, and every value is a number. A filter that matches no rows totals `0`. A `DurationField` total is a number of seconds, as {@api py:class:vueda.core.renderers.VuedaJSONRenderer} encodes it. VUEDA's default settings make it the default renderer.
 
-The server computes totals in the request that returns them and never caches them. A client that builds its own requests names every total it wants on each request, and replaces its totals with each response.
+The server computes totals in the request that returns them and never caches them. When a client builds its own requests, it names every total that it wants on each request and replaces its totals with each response.
 
 Declaring `column_totals` also documents `ct` on the viewset's `list` operation in the generated OpenAPI schema, with that viewset's total names. [`get_override_parameters`]{@api py:function:vueda.core.open_api.VuedaBaseAutoSchema.get_override_parameters} describes the parameter.
 
@@ -138,7 +138,7 @@ The section does not name the query parameter. The server reads it from the `COL
 
 {@api vue:component:ViewList} renders declared totals with no client configuration. {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} requests the advertised totals whose names match a visible display column. Hiding the last totalled column stops the request for totals.
 
-The footer is a table row, so card layout requests no totals. [ObjectsGrid](../reference/components/objectsgrid.md) describes when the grid switches to table layout at its `tableBreakpoint`. A list shell that calls `useViewList` directly passes it the same [`tableBreakpoint`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListOptions.tableBreakpoint} it gives `ObjectsGrid`.
+The footer is a table row, so card layout requests no totals. [ObjectsGrid](../reference/components/objectsgrid.md) describes when the grid switches to table layout at its `tableBreakpoint`. A list shell that calls `useViewList` directly passes it the same [`tableBreakpoint`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListOptions.tableBreakpoint} that it gives `ObjectsGrid`.
 
 In all-pages mode, {@api js:function:@arrai-innovations/vueda/utils/listCrud#allPagePaginatedListCrudAdaptor} requests totals on the first page only, since every page carries the same totals.
 
@@ -177,7 +177,7 @@ The [`row-after-objects`]{@api vue:component:ViewList:slot:row-after-objects} sl
 </view-list>
 ```
 
-The slot receives only the totals that `useViewList` requested. `useViewList` rewrites the `ct` parameter whenever the visible columns or the layout change. To show the total of a column the list does not display, add that column to `displayFields`, or fetch the total with a request of your own.
+The slot receives only the totals that `useViewList` requested. `useViewList` rewrites the `ct` parameter whenever the visible columns or the layout change. To show the total of a column that the list does not display, add that column to `displayFields`, or fetch the total with a request of your own.
 
 ## Check the Result
 
@@ -198,7 +198,7 @@ The slot receives only the totals that `useViewList` requested. `useViewList` re
 
 **A declared total never appears.** Its name matches no display column, so the client never requests it. `useViewList` logs a `console.error` naming the total. Rename the total to match its column, or add the column to `displayFields`.
 
-**A `400` lists the valid totals.** The request named a total the viewset does not declare. Total names are the keys of `column_totals`; the ORM paths are not valid names.
+**A `400` lists the valid totals.** The request named a total that the viewset does not declare. Total names are the keys of `column_totals`; the ORM paths are not valid names.
 
 **Every list request is a `400`, or totals are never computed, after renaming `COLUMN_TOTALS_PARAM`.** The client still sends `ct`. A viewset that rejects unknown query parameters answers `400`, and one that ignores them computes no totals. Change the client constant to match the setting.
 
