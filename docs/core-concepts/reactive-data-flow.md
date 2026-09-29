@@ -15,7 +15,7 @@ This page describes how each store keys its cache, what it caches (failures incl
 
 **Stores** hold one cache per Pinia instance, shared by every component and route. Store actions fetch from the server, reshape the response, and write the result into keyed reactive maps. When two components need the same model info, both read one store entry, and the server sees one request. [`storeModelInfo`]{@api js:function:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo} renames the model info keys before it stores them. [Server-Client Metadata Contract](./server-client-metadata-contract.md#client-normalization) describes the client key casing.
 
-**Composables** connect one component to the stores. Each composable watches its inputs (usually `app`, `model`, and sometimes `view`) and calls the store action when they change. It exposes `loading`, `error`, and a handle into the store's data. Its watches run only while {@api js:function:@arrai-innovations/vueda/use/useIsActive#useIsActive} reports the component as active. That ref starts `false`, turns `true` on {@api ext:vue:onMounted} and {@api ext:vue:onActivated}, and turns `false` on {@api ext:vue:onDeactivated}. So a component that [`<KeepAlive>`]{@api ext:vue:KeepAlive} has deactivated fetches nothing for route parameters it no longer shows.
+**Composables** connect one component to the stores. Each composable watches its inputs (usually `app`, `model`, and sometimes `view`) and calls the store action when they change. It exposes `loading`, `error`, and a handle into the store's data. Its watches run only while {@api js:function:@arrai-innovations/vueda/use/useIsActive#useIsActive} reports the component as active. That ref starts `false`, turns `true` on {@api ext:vue:onMounted} and {@api ext:vue:onActivated}, and turns `false` on {@api ext:vue:onDeactivated}. So a component that [`<KeepAlive>`]{@api ext:vue:KeepAlive} has deactivated fetches nothing for route parameters that it no longer shows.
 
 **Router guards** run outside any component. {@api js:function:@arrai-innovations/vueda/router/guards#waitForModelStoreLoad} calls the store actions and awaits them as plain promises. A composable called outside component setup registers lifecycle hooks with no component to attach to. A development build logs a Vue warning for each hook, and nothing throws. The composable's `isActive` never turns `true`, so it never fetches. [`useModelConfig`]{@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig} also creates an effect scope, and outside a component nothing stops it. [Routing and View Resolution Model](./routing-and-view-resolution-model.md) describes the guard chain.
 
@@ -28,7 +28,7 @@ A cache key decides which callers share an entry. The stores build keys from the
 - **Per field.** [`storeModelChoices`]{@api js:function:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices} keeps one choice list per field inside the model's entry. Filter choices use a separate map and separate requests.
 - **`app.model-<view>`.** [`storeModelConfig`]{@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} keeps one built config per view, keyed by the view's action name. Examples are `myapp.widget-list`, `myapp.widget-update`, and `myapp.widget-retrieve` for the `read` view. A config built with no view uses `myapp.widget`.
 
-The route guard builds only the no-view config. The destination view builds its own config when it mounts. It uses the model info the guard already cached, so that build sends no request.
+The route guard builds only the no-view config. The destination view builds its own config when it mounts. It uses the model info that the guard already cached, so that build sends no request.
 
 ## What Each Store Caches
 
@@ -57,7 +57,7 @@ A missing {@term Pk Marker} is one of these cached failures. After renaming the 
 
 The workflow store caches failures the same way. It keeps them per model for permitted transitions and states, and per object for object state, transitions, and history. A `403` from the permitted transitions request is cached as a [`WorkflowPermissionDeniedError`]{@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#failure-modes) describes what the user sees then.
 
-`storeModelConfig` keeps a failed build as the running build for its key. Every later `getConfig` for that key returns the same rejection. A build fails when model info fails, which leaves one cached failure in each store. It also fails when the merged `submitFields` names a field flattened from an expand.
+`storeModelConfig` keeps a failed build as the running build for its key. Every later `getConfig` for that key returns the same rejection. A build fails when model info fails, which leaves one cached failure in each store. It also fails when the merged `submitFields` includes a field flattened from an expand.
 
 `storeModelChoices` caches no failures. The next fetch for that field sends a new request.
 
@@ -71,10 +71,10 @@ Three events empty the caches of all four stores: a change of signed-in user, a 
 
 Every path that can change who is signed in ends in [`fetchCurrentUser`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.fetchCurrentUser} on {@api js:function:@arrai-innovations/vueda/stores/storeUser#storeUser}. These paths are sign-in, sign-out, reauthentication, two-factor authentication, and the first load. The action compares the user id in the response with the previous one. The first response after a page load sets the id and counts as no change. Any later change counts, including a change to signed out. Reauthentication and two-factor device changes keep the same id, so they clear nothing.
 
-On a change, the user store increments [`identityGeneration`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.identityGeneration} and calls {@api js:function:@arrai-innovations/vueda/stores/authScope#clearAuthScopedStores}. That function calls `clearAuthScoped()` on each of the four stores the application has used. It skips stores the application never created. Each store then:
+On a change, the user store increments [`identityGeneration`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.identityGeneration} and calls {@api js:function:@arrai-innovations/vueda/stores/authScope#clearAuthScopedStores}. That function calls `clearAuthScoped()` on each of the four stores that the application has used. It skips stores that the application never created. Each store then:
 
 - deletes its cached results, cached failures, and in-flight entries;
-- deletes keys in place, keeping the containers, so the handles composables hold still point at the live container;
+- deletes keys in place, keeping the containers, so the handles that composables hold still point at the live container;
 - increments its own generation counter.
 
 `storeModelConfig` keeps the overrides that [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} stored, because they come from your code. It cancels each running build before it drops the built configs. `storeModelChoices` also drops lists that [`setChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.setChoices} or [`setFilterChoices`]{@api js:method:@arrai-innovations/vueda/stores/storeModelChoices#storeModelChoices.setFilterChoices} seeded.
@@ -89,7 +89,7 @@ Consumers react to `identityGeneration`:
 
 Between the clear and the new result, a model info or config handle reads `undefined`, because its key is gone. Framework code that reads `config.formProps`, `config.actions`, or `config.actionRedirects` then throws a `TypeError`. Issue [#286](https://github.com/arrai-innovations/vueda/issues/286) tracks keeping the default shape in place.
 
-The refetch also runs when the change is a sign-out. With no session, the server answers `403`. Model info and workflow cache those failures until the next user change. Issue [#284](https://github.com/arrai-innovations/vueda/issues/284) tracks skipping these requests while nobody is signed in.
+The refetch also runs when the change is a sign-out. With no session, the server answers `403`. `storeModelInfo` and `storeWorkflow` cache those failures until the next user change. Issue [#284](https://github.com/arrai-innovations/vueda/issues/284) tracks skipping these requests while nobody is signed in.
 
 ### Store Reset
 
@@ -108,7 +108,7 @@ Two actions clear part of one store:
 
 ## Model Config Lifecycle
 
-`getConfig({app, model, view})` returns the built config for its key, or the build already running for it. Otherwise it starts a build:
+`getConfig({app, model, view})` returns the built config for its key. If there is none, it returns the build already running for that key. Otherwise it starts a build:
 
 1. It copies the stored overrides for the model and the view.
 2. It awaits `fetchModelInfo` for the model.
@@ -117,9 +117,9 @@ Two actions clear part of one store:
 
 `setConfig({app, model}, genericConfig, specificConfigs)` stores the overrides and files a `read` override under `retrieve`. It then clears this model's entries: keys equal to `app.model` or starting with `app.model-`. It cancels and removes each unfinished build, and removes each failed build, so the next `getConfig` builds again. It deletes every built config for the model. `setConfig` builds nothing; the next `getConfig` for each key starts a new build.
 
-Cancelling a build removes it from the running builds. The model info request it awaits keeps running, and model info caches its result as usual. Issue [#178](https://github.com/arrai-innovations/vueda/issues/178) tracks aborting that request.
+Cancelling a build removes it from the running builds. The model info request that it awaits keeps running, and model info caches its result as usual. Issue [#178](https://github.com/arrai-innovations/vueda/issues/178) tracks aborting that request.
 
-A build that `setConfig` replaced still resolves for its own caller, with the overrides it copied when it started. It caches nothing and leaves the replacement build's entry alone. A build replaced by a change of user rejects with `AuthScopeInvalidatedError`.
+A build that `setConfig` replaced still resolves for its own caller, with the overrides that it copied when it started. It caches nothing and leaves the replacement build's entry alone. A build replaced by a change of user rejects with `AuthScopeInvalidatedError`.
 
 `useModelConfig` starts its [`config`]{@api js:property:@arrai-innovations/vueda/use/useModelConfig#ModelConfigRawState.config} with a default shape of empty field lists and detail maps. After a build succeeds, `config` becomes a {@api ext:vue:toRef} handle into [`builtConfigs`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.builtConfigs}. `setConfig` deletes that key, and the composable does not watch overrides. So `config` reads `undefined` until `app`, `model`, `view`, or the signed-in user changes. The composable's `error` shows its own build failure or the model info failure from its `useModelInfo`.
 
