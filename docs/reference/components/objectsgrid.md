@@ -71,7 +71,7 @@ Both layouts render `div` elements with ARIA table, row, and cell roles.
 - **Surface:** the root ({@api theme-key:ObjectsGrid.root}) carries the card fill in both layouts. In table layout it also carries the radius and {@term Hairline} edge that close the last row. A wide table scrolls sideways inside the root.
 - **Embedded grids:** an ancestor marked `data-flush` removes the root's radius and edge, so the parent draws the only frame. `FieldSetTabularInline` works this way. `ViewList` removes them through its own {@api theme-key:ViewList.objectsGrid} key, so its strips above and below frame the grid.
 - **Header:** header cells ({@api theme-key:ObjectsGrid.headerCell}, with content from {@api theme-key:ObjectsGridTableHeader}) show the field label and are display-only. Sorting uses the {@api vue:component:SortControl} menu and the active sort chips outside the grid.
-- **Dividers:** a hairline on each row's cells divides it from the next row, and the header band from the first data row. The root edge closes the grid below the last row. {@api theme-key:ObjectsGrid.table} fills the root.
+- **Dividers:** a hairline on each row's cells divides that row from the next one. The same hairline divides the header band from the first data row. The root edge closes the grid below the last row. {@api theme-key:ObjectsGrid.table} fills the root.
 - **Row height:** body cells ({@api theme-key:ObjectsGridBodyCell.root}) set row height from the [`density`]{@api vue:component:ObjectsGrid:prop:density} prop: `default`, `compact`, or `condensed`, each tighter than the last. A table cell treats that height as a minimum, so a row holding a chip or an avatar renders taller.
 - **Numbers:** the grid renders numbers with tabular figures. A field descriptor with `numeric: true` right-aligns its header and cells.
 
@@ -150,7 +150,7 @@ The demo uses `tableBreakpoint="inf"` so the cards show at every practical viewp
 
 - **Hover and press:** the row takes an accent tint.
 - **`selected`:** a low primary tint and a primary rail on the leading edge, so a selected row stays distinct from a hovered one.
-- **`marked-destroy`:** a destructive tint and a strikethrough on every field except the `item-action-bar` column, so its undo control stays readable. `FieldSetTabularInline` sets it on rows the user marks for removal.
+- **`marked-destroy`:** a destructive tint and a strikethrough on every field except the `item-action-bar` column, so its undo control stays readable. `FieldSetTabularInline` sets it on rows that the user marks for removal.
 
 {@api theme-key:ObjectsGrid.rowActions} provides classes for row controls that a consumer places in a cell. The container stays hidden at rest and shows when the pointer is over the row, the row holds focus, or the row is selected. Its `action` class styles compact icon buttons. Apply both classes in your cell content.
 
