@@ -43,8 +43,9 @@ re-skin keeps these parts distinct:
 - **Page items:** {@api vue:component:PaginationItem} renders one numbered page
   as a button. Inactive pages gain a fill and edge on hover. The current
   page keeps a foreground-colored edge at rest, so it stands apart from the
-  navigation buttons. Its `size` prop takes the same tiers as
-  {@api vue:component:Button}.
+  navigation buttons. Its `size` prop takes `sm`, `default`, `lg`, `icon-sm`,
+  `icon`, or `icon-lg`, the size tiers of {@api vue:component:Button}, and
+  defaults to `icon`.
 - **Navigation buttons:** {@api vue:component:PaginationFirst},
   {@api vue:component:PaginationPrevious}, {@api vue:component:PaginationNext},
   and {@api vue:component:PaginationLast} are icon-only outline squares on the
@@ -188,7 +189,7 @@ It fills a `PaginationBar` with two groups:
 On a narrow viewport the groups wrap and center, with the read-out and selector
 above the navigation cluster.
 
-The **All** entry, last in the default options, loads every page. It hides the
+The **All** entry, last in the default options, loads every page. Choosing it hides the
 navigation cluster, and the read-out changes to "All N results".
 [List Preferences](../../guides/configure-crud-views.md#list-preferences)
 describes how a list saves the chosen page size.
