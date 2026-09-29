@@ -130,7 +130,7 @@ An action that takes input puts its fields in the [`extra-fields`]{@api vue:comp
 </VuedaDemo>
 </ClientOnly>
 
-The pre-flight is a real request, so it can fail. Here the endpoint rejects the pre-flight with a message for two of the three records, keyed by primary key. That is how a server reports records that cannot take the action.
+The pre-flight is a real request, so it can fail. Here the endpoint rejects the pre-flight with a message for two of the three records. The response keys each message by primary key, which is how a server reports records that cannot take the action.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -161,7 +161,7 @@ The pre-flight is a real request, so it can fail. Here the endpoint rejects the 
 
 {@api vue:component:ViewActivate} confirms the `activate` action in the `success` tone. It fetches the selected records, so each chip shows the record's formatted name as a link beside its primary key. It sends the action as `PATCH`. The title reads "Activate" plus the model name unless you set the [`title`]{@api vue:component:ViewActivate:prop:title} prop.
 
-`ViewDeactivate` shares this body, {@api vue:component:ViewSelectedObjectsAction}, in the `warning` tone. [System Views](./system-views.md#viewdeactivate) describes it.
+`ViewDeactivate` shares this body ({@api vue:component:ViewSelectedObjectsAction}) in the `warning` tone. [System Views](./system-views.md#viewdeactivate) describes `ViewDeactivate`.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
