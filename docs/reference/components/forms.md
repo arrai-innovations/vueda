@@ -161,7 +161,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
 
 The [`messages`]{@api vue:component:FieldMessage:prop:messages} prop takes strings, arrays of strings, or objects with a `message` property. `FieldMessage` drops duplicates. One message renders as text; several render as a list. With no messages, nothing renders.
 
-`FormField` renders the field's errors, then its warnings, each through a `FieldMessage`. The control carries its own state line. `aria-invalid="true"` on the input marks the line invalid, and `data-warning="true"` marks it as a warning; an invalid state outranks a warning. [Inputs](./inputs.md) shows the focus, disabled, and read-only states of the input shell. The valid and loading cards below are compositions: `FormField` renders no valid or pending indicator.
+`FormField` renders the field's errors, then its warnings, each through a `FieldMessage`. The control carries its own bottom edge line. `aria-invalid="true"` on the input marks the edge line invalid, and `data-warning="true"` marks it as a warning; an invalid state outranks a warning. [Inputs](./inputs.md) shows the focus, disabled, and read-only states of the input shell. The valid and loading cards below are compositions: `FormField` renders no valid or pending indicator.
 
 Two `FormField` props remove parts of the shell:
 
@@ -644,7 +644,7 @@ Theme keys: {@api theme-key:AuthorizingForm}, {@api theme-key:AuthForm}.
 `ActionForm` renders an action's confirmation form in the page flow. From top to bottom it shows:
 
 1. An error display for failed fetches and failed action runs.
-2. The form-scope feedback block: a `FormMessage` for non-field errors, a validation summary, and a `FormMessage` with `type="message"` for non-field warnings. The summary lists field errors that no rendered field shows, such as errors on `hidden` fields. The [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} slot replaces it.
+2. The form-scope feedback block: a `FormMessage` for non-field errors, a validation summary, and a `FormMessage` with `type="message"` for non-field warnings. The summary lists field errors that no rendered field shows, such as errors on `hidden` fields. The [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} slot replaces the summary.
 3. The form body, from the [`action-form-inner`]{@api vue:component:ActionForm:slot:action-form-inner} slot.
 4. The action bar with the confirm and cancel buttons, from the [`action-bar`]{@api vue:component:ActionForm:slot:action-bar} slot.
 
