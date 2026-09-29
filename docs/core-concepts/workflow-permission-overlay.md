@@ -7,7 +7,7 @@ status: draft
 
 # Workflow as a Permission Overlay
 
-On a {@term Workflow-Enabled Model}, an object's current workflow state can change a permission decision. {@term State Permission} rules grant or deny the model's ordinary {@term CRUD} codenames per state. {@term Workflow Permission} and {@term Transition Permission} rows gate who may execute a {@term Transition}. This page describes how VUEDA evaluates state rules, which requests defer to them, the transition gates, and the gates each workflow endpoint applies. [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions) gives the configuration steps.
+On a {@term Workflow-Enabled Model}, an object's current workflow state can change a permission decision. {@term State Permission} rules grant or deny the model's ordinary {@term CRUD} codenames per state. {@term Workflow Permission} and {@term Transition Permission} rows gate who may execute a {@term Transition}. This page describes how VUEDA evaluates state rules, which requests defer to them, the transition gates, and the gates that each workflow endpoint applies. [Add Workflow State and Transition Permissions](../guides/workflow-state-permissions) gives the configuration steps.
 
 ## Overlay Boundary and Authority
 
@@ -49,7 +49,7 @@ A state deny, a grant for another codename or model, or a grant to another group
 These actions reach a later decision:
 
 - **Object actions.** Retrieve, update, partial update, and destroy ([`object_permission_actions`]{@api py:property:vueda.core.permissions.ObjectPermissions.object_permission_actions}) reach DRF's object check, where state rules apply.
-- **Custom actions that declare it.** A custom action belongs in the viewset's [`workflow_object_permission_actions`]{@api py:property:vueda.core.viewsets.VuedaViewSet.workflow_object_permission_actions} only when it always fetches its object through `get_object()`. A detail route alone does not guarantee that. [`history_list`]{@api py:function:vueda.core.viewsets.VuedaViewSet.history_list} is in the set by default, and `VuedaViewSet` adds it to any set a subclass declares.
+- **Custom actions that declare it.** A custom action belongs in the viewset's [`workflow_object_permission_actions`]{@api py:property:vueda.core.viewsets.VuedaViewSet.workflow_object_permission_actions} only when it always fetches its object through `get_object()`. A detail route alone does not guarantee that. [`history_list`]{@api py:function:vueda.core.viewsets.VuedaViewSet.history_list} is in the set by default, and `VuedaViewSet` adds it to any set that a subclass declares.
 - **List.** [`ListRowLevelViewSetMixin`]{@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin} filters rows by state, even when the model defines no `RowLevelPermissions`.
 
 [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user} evaluates the same rules for each row. A user with baseline `list` permission keeps every row without a matching deny. A user admitted by a state grant keeps only rows with a matching grant and no matching deny. [Row-Level Permission Filtering](./row-level-permission-filtering) describes where this pass runs among the other row filters.
@@ -66,21 +66,21 @@ After deferral, the object check or the row filter decides. A model viewset answ
 
 Executing a transition passes three gates, in this order.
 
-**Workflow gate.** The workflow has at least one [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission} row, and the user holds every permission those rows name. A row names a permission, not a group. Groups receive the permission through ordinary Django group permissions. [`check_workflow_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission} makes this check.
+**Workflow gate.** The workflow has at least one [`WorkflowPermission`]{@api py:class:vueda.workflow.models.WorkflowPermission} row, and the user holds every permission that those rows name. A row names a permission and does not name a group. Groups receive the permission through ordinary Django group permissions. [`check_workflow_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_workflow_permission} makes this check.
 
-**Transition gate.** The transition has at least one [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission} row, and the user holds every permission those rows name. [`check_transition_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission} makes this check.
+**Transition gate.** The transition has at least one [`TransitionPermission`]{@api py:class:vueda.workflow.models.TransitionPermission} row, and the user holds every permission that those rows name. [`check_transition_permission`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.check_transition_permission} makes this check.
 
-**Source state.** [`allow_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.allow_transition} passes when the object's current state is one of the transition's source states. A model can override it to add conditions. A string it returns becomes the error message.
+**Source state.** [`allow_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.allow_transition} passes when the object's current state is one of the transition's source states. A model can override it to add conditions. A string that it returns becomes the error message.
 
 A workflow or transition with no permission rows denies every user. Server code can still apply such a transition as a {@term Fast Transition}, which skips the permission gates.
 
-On object endpoints and during execution, both permission gates pass the object to [`has_perms`]{@api ext:django:django.contrib.auth.models.PermissionsMixin.has_perms}. State rules and row-level hooks therefore apply to them. When the transition permission belongs to the workflow's model, a state rule on its codename allows or blocks the transition per state.
+On object endpoints and during execution, both permission gates pass the object to [`has_perms`]{@api ext:django:django.contrib.auth.models.PermissionsMixin.has_perms}. State rules and row-level hooks therefore apply to both gates. When the transition permission belongs to the workflow's model, a state rule on its codename allows or blocks the transition per state.
 
 Execution checks the object's read permission and all three gates again after taking the object's row lock. A state change between the two checks therefore cannot bypass them. A bulk request that fails for any object applies no transition.
 
 ## Which Gate Each Workflow Endpoint Applies
 
-`vueda_workflow.read_workflow` admits a caller to workflow definitions and transition operations. It grants no access to object data. The target model's own `read_*` permission controls an object's current state and workflow state history. Every object-specific transition operation also requires it.
+`vueda_workflow.read_workflow` admits a caller to workflow definitions and transition operations. It grants no access to object data. The target model's own `read_*` permission controls an object's current state and workflow state history. Every object-specific transition operation also requires that permission.
 
 | Endpoint                                                                                                                                                                                                                                   | Target-model gate                      | Global workflow gate           | Workflow and transition gates                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- | ------------------------------ | --------------------------------------------------------------------------- |
@@ -100,11 +100,11 @@ Every object-level `read_*` check applies state rules, and a matching state gran
 2. A model that does not enable `class Vueda.Workflow` returns `200` with `[]`. An enabled model without a workflow definition raises {@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError}.
 3. The user needs `vueda_workflow.read_workflow`.
 4. The workflow gate runs at model scope.
-5. The response lists each transition that has permission rows whose permissions the user holds at model scope. Each entry carries `code` and `name`, sorted by name.
+5. The response lists each transition that has permission rows whose permissions the user holds at model scope. Each entry carries `code` and `name`. The list is sorted by name.
 
 These checks pass no object, so state rules never count, and the list ignores every object's current state. {@term Route Admission} adds these codes to the client's route allowlist, which [Routing and View Resolution Model](./routing-and-view-resolution-model#metadata-and-allowlist-inputs) describes. A route can therefore open for a transition that the target object cannot take from its current state. Execution then refuses it.
 
-An object's {@term Valid Transitions} and the `new_transitions` in an execute response check both permission gates against the object and filter by source state. They are empty when the user fails the workflow gate for that object; object transitions answers `403` in that case. None of these lists runs an `allow_transition` override, and execution does.
+An object's {@term Valid Transitions} and the `new_transitions` in an execute response check both permission gates against the object and filter by source state. They are empty when the user fails the workflow gate for that object; the object transitions endpoint answers `403` in that case. None of these lists runs an `allow_transition` override. Execution runs it.
 
 ## Failure Surfaces and Symptom Signatures
 
@@ -112,7 +112,7 @@ An object's {@term Valid Transitions} and the `new_transitions` in an execute re
 
 **A transition never appears for any user.** The transition has no `TransitionPermission` rows.
 
-**`permitted_transitions` returns `403`.** The user lacks `read_*` on the target model or `vueda_workflow.read_workflow`. Otherwise the workflow gate failed: the workflow has no `WorkflowPermission` rows, or the user lacks a permission they name. The client keeps this `403` until its caches clear, which [Reactive Data Flow](./reactive-data-flow#when-caches-clear) describes.
+**`permitted_transitions` returns `403`.** The user lacks `read_*` on the target model or `vueda_workflow.read_workflow`. Otherwise the workflow gate failed: the workflow has no `WorkflowPermission` rows, or the user lacks a permission that those rows name. The client keeps this `403` until its caches clear, which [Reactive Data Flow](./reactive-data-flow#when-caches-clear) describes.
 
 **The workflow list returns `200`, and an object's state or history returns `403`.** `vueda_workflow.read_workflow` admits the caller to definitions only. Object state and workflow state history follow the object's own `read_*` permission.
 
