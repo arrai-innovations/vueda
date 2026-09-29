@@ -355,7 +355,9 @@ In documentation, the following rules should be applied:
 [diction-md](https://www.npmjs.com/package/@arrai-innovations/diction-md) checks the prose of authored pages. It skips code blocks, inline code, tables, and frontmatter.
 
 - Errors fail the check. With the default rules, only em dashes and en dashes are errors.
-- Warnings are advisory: long sentences and paragraphs, passive voice, reading grade, marketing words, inflated wording, empty framing, and idioms. Rewrite flagged text when the rewrite reads better.
+- Warnings are advisory: long sentences and paragraphs, passive voice, reading grade, marketing words, inflated wording, empty framing, and idioms. Rewrite flagged text when the rewrite reads better. Never meet a length or grade target by deleting connecting words such as "that", "it", or "the"; split the sentence instead.
+
+The checks cannot tell whether a sentence parses. The "Documentation Language Guardrails" in the root `AGENTS.md` cover the patterns they miss: a missing "that", a fallback attached with a comma and "or", and an item described as like another item.
 
 The pre-commit hook runs `diction-md --strict` on staged authored pages, so a staged page with a dash fails the commit. The hook skips generated pages, the changelog pages that the release build writes, `docs/temp/`, and `README.md` and `AGENTS.md` files. CI does not run the check yet. It will once the authored pages have no errors.
 
