@@ -6,7 +6,7 @@
  * completed during Phase 3 or future aggregator wiring without returning to
  * index.js.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

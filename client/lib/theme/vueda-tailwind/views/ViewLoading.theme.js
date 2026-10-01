@@ -3,7 +3,7 @@
  *
  * Per-component theme registration for ViewLoading.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /** ViewLoading displays a compact status without a card or placeholder layout. */

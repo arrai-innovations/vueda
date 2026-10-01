@@ -24,6 +24,7 @@ const { captured } = vi.hoisted(() => ({ captured: [] }));
 vi.mock("@vueda/use/themeRegistry.js", () => ({
     patchTheme: (partial) => captured.push(partial),
     setTheme: () => {},
+    setClassMerger: () => {},
     getTheme: () => ({}),
     mergeTheme: (...themes) => themes[0],
     defaultTheme: { value: {} },

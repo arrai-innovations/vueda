@@ -103,7 +103,16 @@ At render time, a `useTheme` call for a given component slot resolves classes in
 1. Walk `composes` references (recursively) through the merged override theme. For each referenced slot, the default and override classes are appended.
 2. Append the slot's own default class.
 3. Append the slot's own override class.
-4. Pass the resulting list to `combineClasses`, which produces a single class string.
+4. Combine the class values with `combineClasses`, applying explicit `false` removals.
+5. Pass the active class string through the registered class merger, if the theme provides one.
+
+The built-in `vueda-tailwind` theme registers a Tailwind-aware class merger. Later conflicting utilities replace earlier ones within the same variant: a `theme-override` with `bg-amber-500` removes the default `bg-secondary`, while `hover:bg-secondary` remains unless the override also supplies a hover background. Utilities for different properties, including VUEDA's `text-heading` and `text-foreground`, stay together. Explicit `false` keys still remove the named classes before conflict resolution.
+
+This rule applies to `patchTheme`, merged theme objects, and `theme-override`. A component's plain `class` prop is added after theme resolution, so it adds classes without removing conflicting theme classes. Use `theme-override` to replace a theme utility.
+
+Other themes can register their own `(classes: string) => string` function with `setClassMerger`, exported from `@vueda/use/themeRegistry.js` and `@vueda/use/useTheme.js`. Core has no Tailwind dependency; importing only core or another theme does not bundle the Tailwind merger. Built-in components import their Tailwind defaults, so replacing their theme data with `setTheme` does not remove those imports from the bundle.
+
+With no registered merger, class combining keeps its existing behavior. `setClassMerger(null)` restores that behavior; `setTheme` changes theme data without changing the merger. Register a theme's merger before its defaults and project patches, since merging a patch can discard conflicting classes.
 
 The resulting string contains Tailwind utilities. Those utilities resolve their values from the active CSS tokens. So a consumer who overrides `--primary` does not need any JavaScript change; the existing class strings (`bg-primary`, `text-primary`) automatically reflect the new value.
 
@@ -153,7 +162,7 @@ Two registration functions back it, both exported from {@api js:module:@arrai-in
 - `setTheme(theme)` replaces the registry wholesale, including earlier patches. Use it to install your own complete theme object after the defaults you intend to replace have registered.
 - `patchTheme(partial)` registers entries additively, without disturbing the rest of the registry. It is how each component contributes its own default.
 
-The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
+The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module imports the Tailwind theme registry, which installs its class merger, then calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
 
 That yields three registration paths an integrator chooses between in `main.js`:
 

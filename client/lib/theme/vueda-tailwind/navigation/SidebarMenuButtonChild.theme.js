@@ -5,7 +5,7 @@
  * SidebarMenuButtonChild.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -55,7 +55,7 @@ patchTheme({
                 {
                     "h-8": !size || size === "default",
                     "h-7 text-xs": size === "sm",
-                    "h-12 group-data-[collapsible=icon]:p-0!": size === "lg",
+                    "h-12": size === "lg",
                 },
             ],
         }),

@@ -5,7 +5,7 @@
  * WidgetCombobox.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire widgets family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -29,7 +29,7 @@ patchTheme({
                 // Layout, shape, and type.
                 "flex w-full h-vueda-control items-center justify-between gap-2",
                 "rounded-vueda-field bg-field px-vueda-control-px text-sm",
-                "whitespace-nowrap shadow-vueda-control transition-shadow",
+                "whitespace-nowrap transition-shadow",
                 // Disabled: an inert slab, not a faded field. See README section 7.6.
                 "disabled:pointer-events-none disabled:cursor-not-allowed",
                 "disabled:!bg-disabled disabled:!text-disabled-foreground disabled:!hairline-border",

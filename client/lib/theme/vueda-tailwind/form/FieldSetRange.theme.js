@@ -5,7 +5,7 @@
  * FieldSetRange.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -40,16 +40,16 @@ patchTheme({
         /** Compact uppercase range title. */
         title: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },
         /** Compact uppercase fallback label for the range group. See also: {@api theme-key:FieldSetRange.title}. */
         label: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },
