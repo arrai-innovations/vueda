@@ -87,7 +87,6 @@ jobs:
                 enum: [brightgreen, red]
         executor: base
         resource_class: small
-        circleci_ip_ranges: true
         steps:
             - utils/add_ssh_config
             - utils/make_status_shield:
@@ -248,7 +247,7 @@ workflows:
                           only: /.*/
                       tags:
                           only: /^server-v.*/
-            - pytest/pytest_fixed_ip:
+            - pytest/pytest:
                   name: server-pytest-django61-py314
                   executor: python314-pg
                   context: arrai-global
@@ -274,7 +273,7 @@ workflows:
                           only: main
                       tags:
                           only: /^server-v.*/
-            - pytest/pytest_fixed_ip:
+            - pytest/pytest:
                   name: server-pytest-django61-py314-no-badge
                   executor: python314-pg
                   context: arrai-global
@@ -367,7 +366,7 @@ workflows:
 
     server-lint:
         jobs:
-            - lintinator/lint_python_fixed_ip:
+            - lintinator/lint_python:
                   name: server-lint
                   context: arrai-global
                   executor: lintinator/python311
@@ -433,7 +432,7 @@ workflows:
 
     server-audit:
         jobs:
-            - pysentry/pysentry_ip:
+            - pysentry/pysentry:
                   name: server-pysentry
                   context: arrai-global
                   executor: python311-base
