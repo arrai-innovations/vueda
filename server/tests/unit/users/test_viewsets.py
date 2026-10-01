@@ -63,8 +63,10 @@ def test_setup_totp_return_unauthenticated_when_not_recently_logged_in(api_clien
 
 @pytest.mark.django_db
 def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
+    regenerate_calls = []
+
     def fake_secret(regenerate=False):
-        assert regenerate
+        regenerate_calls.append(regenerate)
         return "dummy-secret"
 
     adapter_calls = []
@@ -86,6 +88,8 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
 
     assert response.status_code == HTTPStatus.OK, response_body(response)
+    # A user with no authenticator yet gets a newly generated secret.
+    assert regenerate_calls == [True]
     session = api_client.session
     assert session[TOTPDeviceViewSet.TOTP_SESSION_KEY] == {"method": "totp"}
     assert response.data["meta"]["totp_secret"] == "dummy-secret"
@@ -99,8 +103,10 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
 def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
+    regenerate_calls = []
+
     def fake_secret(regenerate=False):
-        assert regenerate
+        regenerate_calls.append(regenerate)
         return "dummy-secret"
 
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", fake_secret)
@@ -111,6 +117,7 @@ def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
 
     assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
     assert response.data["destination"][0] == "Email address is required for email method."
+    assert regenerate_calls == [True]
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
