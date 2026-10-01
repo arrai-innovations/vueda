@@ -152,19 +152,29 @@ The previous release does not know the model has workflow. Objects it creates af
 
 ## Updating Existing Workflow Migrations
 
-When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your app's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. Name each of your own apps:
+When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your project's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. With no app label, it updates every app in your project's source tree:
+
+```console
+python manage.py updateworkflowmigrations
+```
+
+Name apps to update only those:
 
 ```console
 python manage.py updateworkflowmigrations myapp otherapp
 ```
 
-::: warning
-Always name your own apps to update. With no app label, the command scans every installed app, including VUEDA's own migrations inside the installed package. It skips incompatible migrations but can still rewrite compatible package files that you cannot commit in your project. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
-:::
+### Which Apps a Run Covers
+
+The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside the Python environment's package directory (`site-packages`). VUEDA's own `vueda_vdq` is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the originals back.
+
+A run with no app label ignores those apps: it does not read their migrations or mention them in its output. Naming one is an error. The command reports that it will not update installed packages, names the app, and exits with status 2 before it reads any migration, as it does for an app label that does not exist.
+
+An app installed in editable mode, such as a uv workspace member, keeps its files in its source tree. It counts as part of your project and is updated.
 
 ### What the Command Updates
 
-`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
+`updateworkflowmigrations` scans the apps you name, or every app in your project's source tree when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
 
 - Replaces the import block with the current imports from `makeworkflowmigrations.py`.
 - Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
