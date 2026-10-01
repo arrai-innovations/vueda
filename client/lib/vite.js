@@ -11,6 +11,8 @@ import { searchForWorkspaceRoot } from "vite";
 
 const VUEDA_PACKAGE = "@arrai-innovations/vueda";
 const REACTIVE_HELPERS_PACKAGE = "@arrai-innovations/reactive-helpers";
+const EXCLUDE_DEPENDENCIES_EXCEPT_ACTION_ROUTER =
+    /\/node_modules\/(?!(?:.*\/)?@arrai-innovations\/vueda\/lib\/views\/ViewActionRouter\.vue$)/;
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
@@ -40,9 +42,9 @@ const readVuedaPackageVersion = () => {
  * Determine how a dependency is wired into the consuming project.
  *
  * pnpm symlinks everything, so "is it a symlink" tells us nothing. The reliable discriminator is where the
- * symlink's realpath lands: a registry/workspace install always resolves into a `node_modules` tree (e.g.
- * `<root>/node_modules/.pnpm/vue@x/node_modules/vue`), while a `pnpm link` / `file:` dependency resolves to a
- * source checkout that has no `node_modules` segment (e.g. `/home/me/code/vueda/client`).
+ * symlink's realpath lands: registry installs and some `file:` installs resolve into a `node_modules` tree
+ * (e.g. `<root>/node_modules/.pnpm/vue@x/node_modules/vue`), while a direct checkout link resolves to a
+ * source checkout without a `node_modules` segment (e.g. `/home/me/code/vueda/client`).
  *
  * @param {string} packageName - The package to inspect (e.g. `@arrai-innovations/vueda`).
  * @param {string} root - The consuming project root that owns the `node_modules` to inspect.
@@ -73,8 +75,8 @@ const classifyDependency = (packageName, root) => {
 /**
  * Resolve the realpath of a linked package's source checkout.
  *
- * A `pnpm link` / `file:` dependency lives outside the consuming project's tree (e.g.
- * `/home/me/code/vueda/client`), so Vite's dev server refuses to serve its files unless that path is on
+ * A direct checkout link lives outside the consuming project's tree (e.g. `/home/me/code/vueda/client`),
+ * so Vite's dev server refuses to serve its files unless that path is on
  * `server.fs.allow`. The path must be the realpath (`fs.allow` is matched against the resolved file, not the
  * `node_modules` symlink). Returns null for absent or registry-installed packages, which need no allow-list
  * entry because they resolve inside `node_modules`.
@@ -119,15 +121,15 @@ const collectPeerDependencies = (packageJsonPaths) => {
 
 /**
  * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, `resolve.dedupe`, and
- * (optionally) `optimizeDeps` and `server.fs.allow`. Spread the result into your Vite `defineConfig` or merge
- * it with `mergeConfig`.
+ * (optionally) `optimizeDeps`, `server.fs.allow`, and action-view import transforms. Spread the result into
+ * your Vite `defineConfig` or merge it with `mergeConfig`.
  *
  * The fragment guarantees a single copy of VUEDA, reactive-helpers, and their shared peer dependencies by
  * listing them in `resolve.dedupe`, which forces every bare import (from any importer, including a linked
  * package's own internal imports) to resolve from this project's root. This works regardless of whether the
  * packages are installed or linked, and regardless of pnpm's symlinked/hoisted store layout.
  *
- * When vueda is linked (`pnpm link` / `file:`) its source lives outside the consuming project, which Vite's
+ * When vueda resolves to an external checkout, its source lives outside the consuming project, which Vite's
  * dev server will not serve unless the path is on `server.fs.allow`. In that case the fragment returns a
  * `server.fs.allow` listing the workspace root plus the linked vueda source realpath. The list mirrors Vite's
  * default (the workspace root) so it is safe to spread; but if you also declare your own `server` block,
@@ -142,6 +144,7 @@ const collectPeerDependencies = (packageJsonPaths) => {
  * @param {string[]} [options.excludeFromDedupe] - Peer dependency names to leave out of `resolve.dedupe`.
  * @param {string[]} [options.extraDedupe] - Additional package names to add to `resolve.dedupe`.
  * @param {object} [options.extraAliases] - Additional aliases to include.
+ *   Pass `@` pointing to the consumer's `src` directory to discover convention-named action views.
  * @param {boolean} [options.manageLinkedOptimizeDeps] - Manage dep pre-bundling for linked packages: pre-bundle
  *   linked reactive-helpers (single instance) and keep linked VUEDA as source. Defaults to true.
  * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides (merged with the computed include/exclude).
@@ -254,6 +257,18 @@ export const vuedaViteConfig = (options = {}) => {
 
     return {
         define,
+        // Vite excludes node_modules from variable-import transforms. Include only VUEDA's action router
+        // when the consumer supplies the @ alias its imports use. Without that alias, keep the default
+        // exclusion so applications using built-in views or explicit registration still build.
+        ...(Object.hasOwn(extraAliases, "@")
+            ? {
+                  build: {
+                      dynamicImportVarsOptions: {
+                          exclude: [EXCLUDE_DEPENDENCIES_EXCEPT_ACTION_ROUTER],
+                      },
+                  },
+              }
+            : {}),
         resolve: {
             alias,
             ...(dedupe.length ? { dedupe } : {}),

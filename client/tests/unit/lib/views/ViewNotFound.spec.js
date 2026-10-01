@@ -152,6 +152,24 @@ describe("lib/views/ViewNotFound.vue", () => {
                 { text: "/42", bad: false },
             ]);
         });
+
+        scopedIt("marks segments past the end of the best match bad", () => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/crm/customers/42/extra" } },
+                push: pushSpy,
+                back: backSpy,
+            });
+            mockedUseSuggestRoutes.mockReturnValue(
+                ref([{ matchedPath: "/crm/customers/:pk", score: 0.8, route: { name: "x", params: {} } }]),
+            );
+            const wrapper = mount(ViewNotFound);
+            expect(wrapper.findComponent(TriedUrlCalloutStub).props("segments")).toEqual([
+                { text: "/crm", bad: false },
+                { text: "/customers", bad: false },
+                { text: "/42", bad: false },
+                { text: "/extra", bad: true },
+            ]);
+        });
     });
 
     describe("Suggestion list", () => {

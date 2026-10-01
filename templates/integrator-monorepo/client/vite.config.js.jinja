@@ -11,8 +11,8 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   ...vuedaViteConfig({
     extraAliases: {
+      // The action router uses this alias to discover views in src/views.
       "@": path.resolve(__dirname, "src"),
     },
   }),
 });
-

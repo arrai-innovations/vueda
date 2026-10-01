@@ -134,12 +134,6 @@ docs-normalize:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js normalize
 
 docs-render:
-  rm -rf {{justfile_directory()}}/docs/reference/api
-  rm -rf {{justfile_directory()}}/docs/reference/theming/tokens
-  rm -f {{justfile_directory()}}/docs/reference/theming/tokens.md
-  rm -rf {{justfile_directory()}}/docs/reference/theming/keys
-  rm -f {{justfile_directory()}}/docs/reference/theming/keys.md
-  mkdir -p {{justfile_directory()}}/docs/reference/api
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render
 
 docs-api:
@@ -154,6 +148,13 @@ docs:
 docs-validate:
   just docs-api
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
+
+# Like docs-validate, but unknown API ids and glossary terms are warnings.
+# For draft branches that link symbols before the generators produce them.
+# CI and the production site build stay strict.
+docs-validate-draft:
+  just docs-api
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate --warn-unknown
 
 docs-build:
   just docs-api

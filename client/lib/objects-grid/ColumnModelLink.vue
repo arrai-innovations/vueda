@@ -28,9 +28,12 @@ const props = defineProps({
         type: [String, Number, Object, Array],
         default: undefined,
     },
-    /** Server-formatted display string for the cell; preferred label source. */
+    /**
+     * The cell's display value; the label when it is a string or number. A list cell passes the
+     * raw value here when the field does not name a formatted path, so an expanded object is skipped.
+     */
     formatted: {
-        type: [String, Number],
+        type: [String, Number, Object, Array],
         default: "",
     },
     /** The column's field descriptor; read for the related model's `appLabel`/`model`. */
@@ -87,8 +90,9 @@ const labelText = computed(() => {
     if (props.label != null && props.label !== "") {
         return props.label;
     }
-    if (props.formatted != null && props.formatted !== "") {
-        return props.formatted;
+    const formatted = props.formatted;
+    if ((typeof formatted === "string" && formatted !== "") || typeof formatted === "number") {
+        return formatted;
     }
     const value = props.value;
     if (value && typeof value === "object" && !Array.isArray(value)) {

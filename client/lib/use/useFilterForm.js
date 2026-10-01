@@ -107,6 +107,19 @@ export function getFilterParams(filterName, filterDetails) {
 }
 
 /**
+ * The query keys whose array values the list request sends as repeated keys: the keys of every
+ * filter whose type sets `repeatedKey` in {@link FilterFieldMappings}.
+ *
+ * @param {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Filter configuration by filter name.
+ * @returns {string[]} The repeated query keys.
+ */
+export function getRepeatedFilterParams(filterableDetails) {
+    return Object.entries(filterableDetails || {})
+        .filter(([, details]) => FilterFieldMappings[details?.typeFilter]?.repeatedKey)
+        .flatMap(([filterName, details]) => [getFilterParams(filterName, details)].flat());
+}
+
+/**
  * Read a filter's active value out of a URL query object, in the shape the
  * filter form submits: a `{ [suffix]: value }` object for suffix/range filters,
  * or the bare param value otherwise. Only present (non-empty) suffix keys are

@@ -1,0 +1,2 @@
+- **Ignored array items**:
+    - Ignoring one item of an array field no longer drops the array's other `0`, `""`, `false`, and `null` items from the submitted values.

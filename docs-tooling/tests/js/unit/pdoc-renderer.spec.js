@@ -68,7 +68,7 @@ const makePayload = () => ({
             fullname: "vueda.example.Helper.__str__",
             modulename: "vueda.example",
             qualname: "Helper.__str__",
-            docstring: "Return the helper's display name.",
+            docstring: "Return the helper's display name. @public",
             is_public: true,
             signature_details: {
                 parameters: [{ name: "self", annotation: null, default: null }],
@@ -84,7 +84,7 @@ const makePayload = () => ({
             modulename: "vueda.example",
             qualname: "Helper.__module__",
             docstring: "",
-            is_public: true,
+            is_public: false,
             source_file: "/srv/vueda/example.py",
             source_lines: { start: 7, end: 7 },
         },
@@ -131,6 +131,41 @@ describe("renderPdocBundle with submodules", () => {
         expect(pkgPage).toBeDefined();
         expect(pkgPage).toContain("## Submodules");
         expect(pkgPage).toContain("sub");
+    });
+});
+
+describe("renderPdocBundle with a private submodule", () => {
+    it("parent module page does not link a submodule that has no page", () => {
+        const payload = {
+            module_names: ["pkg", "pkg.__main__"],
+            docs: [
+                {
+                    kind: "module",
+                    name: "pkg",
+                    fullname: "pkg",
+                    modulename: "pkg",
+                    qualname: "",
+                    docstring: "Top-level package.",
+                    members: [],
+                    submodules: [],
+                    is_public: true,
+                },
+                {
+                    kind: "module",
+                    name: "__main__",
+                    fullname: "pkg.__main__",
+                    modulename: "pkg.__main__",
+                    qualname: "",
+                    docstring: "Entry point.",
+                    members: [],
+                    submodules: [],
+                    is_public: false,
+                },
+            ],
+        };
+        const outputs = renderPdocBundle(new PdocNormalizer().normalize(payload));
+        expect(outputs.has("py/pkg.__main__.md")).toBe(false);
+        expect(outputs.get("py/pkg.md")).not.toContain("__main__");
     });
 });
 
@@ -218,10 +253,46 @@ describe("renderPdocBundle with class members", () => {
         expect(classPage).toMatch(/## `bare_method` \{#bare_method\}/);
     });
 
-    it("class page includes documented dunders", () => {
+    it("class page includes a dunder the dump marks public, without the marker", () => {
         const outputs = buildOutputs();
         const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
         expect(classPage).toContain("__str__");
+        expect(classPage).toContain("Return the helper's display name.");
+        expect(classPage).not.toContain("@public");
+        expect(classPage).not.toContain("__module__");
+    });
+
+    it("class page shows a public constructor's signature without self", () => {
+        const normalizer = new PdocNormalizer();
+        const payload = makePayload();
+        payload.docs[1].members.push("vueda.example.Helper.__init__");
+        payload.docs.push({
+            kind: "function",
+            name: "__init__",
+            fullname: "vueda.example.Helper.__init__",
+            modulename: "vueda.example",
+            qualname: "Helper.__init__",
+            docstring: "",
+            is_public: true,
+            signature_details: {
+                parameters: [
+                    { name: "self", annotation: null, default: null },
+                    { name: "prefer_env", annotation: "bool", default: "False" },
+                ],
+                return_annotation: null,
+            },
+            signature_without_self_details: {
+                parameters: [{ name: "prefer_env", annotation: "bool", default: "False" }],
+                return_annotation: null,
+            },
+        });
+        const outputs = renderPdocBundle(normalizer.normalize(payload));
+        const classPage = [...outputs.entries()].find(([k]) => k.endsWith("Helper.md"))?.[1];
+        expect(classPage).toContain("`__init__(prefer_env)`");
+        expect(classPage).toContain(
+            '| <span id="--init---param-prefer_env">prefer_env</span> | `bool` | no | `False` |  |',
+        );
+        expect(classPage).toContain("py:param:vueda.example.Helper.__init__.prefer_env");
     });
 
     it("hyphenates a dunder member's anchor, which markdown would otherwise emphasise", () => {

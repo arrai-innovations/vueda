@@ -38,14 +38,18 @@ class InfoConfig(AppConfig):
 
         from vueda.info.checks import check_column_totals_configuration
         from vueda.info.checks import check_field_source_resolution
+        from vueda.info.checks import check_filter_query_param_configuration
         from vueda.info.checks import check_formatted_name_configuration
         from vueda.info.checks import check_ordering_configuration
+        from vueda.info.checks import check_search_queryset_configuration
 
         # Add a default ordering to content types, to remove a warning.
         ContentType._meta.ordering = ["app_label", "model"]
         register(check_formatted_name_configuration)
         register(check_ordering_configuration)
+        register(check_filter_query_param_configuration)
         register(check_column_totals_configuration)
+        register(check_search_queryset_configuration)
         register(check_field_source_resolution)
 
         # Patch Django built-in models with formatted_name support so they integrate

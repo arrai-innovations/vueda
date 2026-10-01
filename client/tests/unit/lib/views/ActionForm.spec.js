@@ -764,7 +764,7 @@ describe("lib/views/ActionForm.vue", () => {
         scopedIt("disables only the confirm slot while the form has errors", async () => {
             const seen = { confirm: [], cancel: [] };
             mountActionForm({
-                formContext: { state: { anyError: true } },
+                formContext: { state: { anyError: true, errors: { name: { required: "This field is required." } } } },
                 slots: {
                     "confirm-button": ({ disabled }) => {
                         seen.confirm.push(disabled);

@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -17,7 +17,7 @@ patchTheme({
         root: {
             class: [
                 // Input shell and type.
-                "flex h-vueda-control w-full rounded-vueda-field field-line bg-field hover:bg-field-hover font-mono tabular-nums text-sm text-center shadow-vueda-control transition-shadow",
+                "flex h-vueda-control w-full rounded-vueda-field field-line bg-field hover:bg-field-hover font-mono tabular-nums text-sm text-center transition-shadow",
 
                 // Placeholder, focus, and invalid states.
                 "placeholder:text-muted-foreground focus-visible:hairline-ring focus-visible:focus-ring-shadow",

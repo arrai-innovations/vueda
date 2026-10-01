@@ -201,7 +201,7 @@ watch([() => props.app, () => props.model, () => props.pk], () => {
     });
 });
 const titleStr = computed(() => {
-    return `History of ${modelConfig.info?.verbose_name}`;
+    return `History of ${modelConfig.info?.verboseName}`;
 });
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 

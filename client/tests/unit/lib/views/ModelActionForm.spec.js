@@ -228,6 +228,7 @@ function mountModelActionForm(options = {}) {
             enableDryRun: options.enableDryRun,
             confirmText: options.confirmText,
             instanceList: options.instanceList,
+            tone: options.tone,
         },
         slots: options.slots,
         global: {
@@ -255,6 +256,18 @@ describe("lib/views/ModelActionForm.vue", () => {
     });
 
     describe("Rendering", () => {
+        scopedIt("gives the default confirm button the primary tone", () => {
+            const { wrapper } = mountModelActionForm();
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("data-tone")).toBe("primary");
+        });
+
+        scopedIt("gives the default confirm button the destructive tone for a danger form", () => {
+            const { wrapper } = mountModelActionForm({ tone: "danger" });
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("data-tone")).toBe("destructive");
+        });
+
         scopedIt("renders selected objects and confirm message", () => {
             const { wrapper } = mountModelActionForm();
             const items = wrapper.findAll('[data-qa="action-form-list-item"]');
@@ -621,6 +634,39 @@ describe("lib/views/ModelActionForm.vue", () => {
                 );
             },
         );
+
+        scopedIt(
+            "renders a bulk response's field-keyed message lists as one unkeyed group, as a confirm=True gate sends",
+            () => {
+                actionFormWarnings = { non_field_errors: ["Reissuing voids the original invoices."] };
+                actionFormBulk = true;
+                const { wrapper } = mountModelActionForm({
+                    fetchState: { objectsInOrder: [{ id: 1 }, { id: 2 }] },
+                });
+
+                const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+                expect(groups).toHaveLength(1);
+                expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+                expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain(
+                    "Reissuing voids the original invoices.",
+                );
+            },
+        );
+
+        scopedIt("puts a bulk response's field-keyed messages before its per-object groups", () => {
+            actionFormWarnings = {
+                non_field_errors: ["Some orders ship express."],
+                1: { count: ["Order 1001 ships express."] },
+            };
+            actionFormBulk = true;
+            const { wrapper } = mountModelActionForm();
+
+            const groups = wrapper.findAll('[data-qa="model-action-form-confirm-warning-group"]');
+            expect(groups).toHaveLength(2);
+            expect(groups[0].find('[data-qa="widget-read-only"]').exists()).toBe(false);
+            expect(groups[0].get('[data-qa="field-warnings-list-stub"]').text()).toContain("Some orders ship express.");
+            expect(groups[1].getComponent(WidgetReadOnlyStub).props("foreignKeyObj")).toEqual({ id: 1 });
+        });
 
         scopedIt("forwards the warning-entry slot to every group's FieldWarningsList, adding pk to the scope", () => {
             actionFormWarnings = {

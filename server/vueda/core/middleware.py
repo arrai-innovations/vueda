@@ -15,6 +15,11 @@ from channels.sessions import SessionMiddleware
 
 
 def update_sentry_user(user):
+    """
+    Set the Sentry user for the current scope from ``user``, or clear it when ``user`` is ``None``.
+
+    An anonymous user sends only the automatic IP address; a saved user also sends its pk and email.
+    """
     if user is None:
         sentry_sdk.set_user(None)
     else:

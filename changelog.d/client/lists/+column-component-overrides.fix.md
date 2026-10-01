@@ -1,0 +1,3 @@
+- **`columnComponents` overrides (`ViewList`, model config)**:
+    - A `() => component` override now renders its component. The list passed the function to the cell uncalled, so the cell rendered `[object Object]`. The form override chain already called it.
+    - An override that names no component is now reported. An unknown string key, or a factory that returns nothing, used to fall back to the type default without a message. The list now shows an error naming the column and the key, and renders that column's cells empty; the other columns still render. As in the form override chain, a `columnComponents` prop entry is used before a model config entry for the same field.

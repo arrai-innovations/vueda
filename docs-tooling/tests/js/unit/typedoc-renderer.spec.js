@@ -607,7 +607,10 @@ describe("renderTypeDocBundle with reflected object parameters", () => {
         const page = outputs.get("js/actions/functions/runAction.md");
         expect(page).toBeDefined();
         expect(page).toContain("#### options Properties");
-        expect(page).toContain("| dryRun | `boolean` |");
+        expect(page).toContain('| <span id="param-options-dryRun">dryRun</span> | `boolean` |');
+        expect(page).toContain('| <span id="param-options">options</span> |');
+        expect(page).toMatch(/member_ids: \[[^\]]*"js:param:[^"]*#runAction:options"/);
+        expect(page).toMatch(/member_ids: \[[^\]]*"js:param:[^"]*#runAction:options\.dryRun"/);
         expect(page).toContain("Validate without writing.");
     });
 });

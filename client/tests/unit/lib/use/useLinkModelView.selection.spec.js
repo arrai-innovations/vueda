@@ -4,14 +4,10 @@ import flushPromises from "flush-promises";
 import { reactive } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 
-const { fetchModelInfo, routerState } = vi.hoisted(() => ({
-    fetchModelInfo: vi.fn(),
+const { routerState } = vi.hoisted(() => ({
     routerState: {},
 }));
 
-vi.mock("@vueda/stores/storeModelInfo.js", () => ({
-    storeModelInfo: () => ({ fetchModelInfo }),
-}));
 vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: () => ({ config: { actionDetails: { bulk: { bulk: true } } } }),
 }));
@@ -25,14 +21,13 @@ vi.mock("vue-router", async (importOriginal) => ({
 
 describe("lib/use/useLinkModelView.js", () => {
     beforeEach(() => {
-        fetchModelInfo.mockReset().mockResolvedValue({ actions: [{ name: "bulk", detail: false }] });
         routerState.router = createRouter({
             history: createMemoryHistory(),
             routes: [{ path: "/:app/:model/:action", name: "actionrouter.listview", component: {} }],
         });
     });
 
-    describe("bulk selection with asynchronous route metadata", () => {
+    describe("bulk selection", () => {
         scopedIt.each(["bulk", "approve"])("updates %s links as the selection changes", async (view) => {
             const props = reactive({ app: "catalog", model: "item", view, pk: ["20"] });
             const { href, navigate, actionDisabled } = useLinkModelView(props);
@@ -59,24 +54,6 @@ describe("lib/use/useLinkModelView.js", () => {
             await flushPromises();
             expect(selectedPKs()).toBe("91");
             expect(actionDisabled.value).toBe(false);
-        });
-
-        scopedIt("keeps the latest selection when older metadata resolves last", async () => {
-            const pending = [];
-            fetchModelInfo.mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
-            const props = reactive({ app: "catalog", model: "item", view: "bulk", pk: ["20"] });
-            const { href } = useLinkModelView(props);
-            await flushPromises();
-            props.pk.push("73");
-            await flushPromises();
-            expect(pending).toHaveLength(2);
-
-            pending[1]({ actions: [] });
-            await flushPromises();
-            expect(routerState.router.resolve(href.value).query.pk).toBe("20,73");
-            pending[0]({ actions: [] });
-            await flushPromises();
-            expect(routerState.router.resolve(href.value).query.pk).toBe("20,73");
         });
     });
 });

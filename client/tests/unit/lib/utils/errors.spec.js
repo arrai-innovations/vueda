@@ -64,6 +64,27 @@ describe("lib/utils/errors.js", () => {
             expect(error.errors).toEqual({ "3.warnings": ["This field is required."] });
         });
 
+        it("keeps the field name for a field-keyed error given as a single string", () => {
+            const error = new FormValidationError(
+                { name: "Ensure this field has no more than 5 characters." },
+                new Response(),
+            );
+
+            expect(error.errors).toEqual({ name: ["Ensure this field has no more than 5 characters."] });
+        });
+
+        it("keeps a top-level detail message under detail", () => {
+            const error = new FormValidationError({ detail: "JSON parse error - Expecting value" }, new Response());
+
+            expect(error.errors).toEqual({ detail: ["JSON parse error - Expecting value"] });
+        });
+
+        it("keys a nested list entry by its full path without the trailing index", () => {
+            const error = new FormValidationError({ items: [{ qty: ["Must be positive."] }] }, new Response());
+
+            expect(error.errors).toEqual({ "items[0].qty": ["Must be positive."] });
+        });
+
         it("always leaves messages empty; advisory warnings are ConfirmationRequiredError's concern", () => {
             const error = new FormValidationError(
                 { name: ["Invalid."], non_field_errors: ["Bad request."] },

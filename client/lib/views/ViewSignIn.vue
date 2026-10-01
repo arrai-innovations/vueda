@@ -15,13 +15,22 @@ import { computed, reactive, useSlots } from "vue";
  *
  * Integrators can use this view as-is, adjust copy and behaviour through props
  * (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, theme
- * overrides, all forwarded to AuthorizingForm), or replace individual pieces through
- * the `field(email)`, `widget(email)`, `field(password)`, `widget(password)`, and
- * `action-bar` slots. Any other AuthorizingForm or ActionForm slot is forwarded through.
+ * overrides, all forwarded to AuthorizingForm), show a "Forgot password?" link with
+ * `forgotPasswordTo`, or replace individual pieces through the `field(email)`,
+ * `widget(email)`, `field(password)`, `widget(password)`, `action-bar`, and `suffix` slots.
+ * Any other AuthorizingForm or ActionForm slot is forwarded through.
  *
  * @vueda-slot-forward AuthorizingForm
  */
 defineOptions({});
+
+const props = defineProps({
+    /** Route location for a "Forgot password?" link below the form. No link shows without it. */
+    forgotPasswordTo: {
+        type: [String, Object],
+        default: undefined,
+    },
+});
 
 const formProps = reactive({
     initialValues: {
@@ -44,17 +53,11 @@ const handleSubmit = ({ formValues }) => {
     });
 };
 
-// Success messaging and routing for sign-in are owned by useSignInFlow (via
-// AuthorizingForm): it shows the "Signed In" toast and redirects once the user is
-// authenticated. Replace ActionForm's default success handler with a no-op so it does
-// not also fire a generic "Action Succeeded" toast, leaving a single success source.
-const onSubmissionSuccess = () => {};
-
 // Slots ViewSignIn renders with its own defaults; excluded from the generic forward
 // loop so an explicit default and a forwarded consumer slot never define the same slot
 // twice on the AuthorizingForm.
 const slots = useSlots();
-const HANDLED_SLOTS = new Set(["action-form-inner", "action-bar"]);
+const HANDLED_SLOTS = new Set(["action-form-inner", "action-bar", "suffix"]);
 const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDLED_SLOTS.has(name)));
 </script>
 <template>
@@ -64,7 +67,6 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
         sub-title="Enter your email and password below to login to your account"
         :form-props="formProps"
         action-error-summary="Sign In Failed"
-        :on-submission-success-handler="onSubmissionSuccess"
         @form-object="emit('form-object', $event)"
         @form-context="emit('form-context', $event)"
     >
@@ -107,6 +109,16 @@ const forwardedSlots = computed(() => Object.keys(slots).filter((name) => !HANDL
                     <Button type="submit" tone="primary" class="w-full" :disabled="actionBarProps.loading">
                         <LoadingSpinnerInline v-if="actionBarProps.loading" />
                         Sign In
+                    </Button>
+                </div>
+            </slot>
+        </template>
+        <template #suffix>
+            <!-- Content below the form card; defaults to the "Forgot password?" link when `forgotPasswordTo` is set. -->
+            <slot name="suffix" :forgot-password-to="props.forgotPasswordTo">
+                <div v-if="props.forgotPasswordTo" class="flex justify-center py-2">
+                    <Button as-child emphasis="link" size="sm">
+                        <router-link :to="props.forgotPasswordTo">Forgot password?</router-link>
                     </Button>
                 </div>
             </slot>

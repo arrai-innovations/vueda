@@ -48,6 +48,12 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
     return { ...actual, useList: mockedUseList };
 });
 
+const mockedSinglePageAdaptor = vi.fn();
+vi.mock("@vueda/utils/listCrud.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/listCrud.js");
+    return { ...actual, singlePagePaginatedListCrudAdaptor: mockedSinglePageAdaptor };
+});
+
 vi.mock("@vueda/router/getCrud.js", () => ({
     getCRUDForTo: vi.fn(async () => ({})),
 }));
@@ -1526,43 +1532,53 @@ describe("lib/views/ViewList.vue", () => {
         );
 
         scopedIt("omits a visible filter whose type has value handling but no input component", async () => {
+            const { mergeFilterFieldMapping, FilterFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            mergeFilterFieldMapping({ SwatchField: { initialValue: null } });
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.filterables = ["category", "published"];
+            modelConfig.config.filterables = ["category", "swatch"];
             modelConfig.config.filterableDetails = {
                 category: { typeFilter: "ChoiceField", label: "Category" },
-                published: { typeFilter: "DateField", label: "Published" },
+                swatch: { typeFilter: "SwatchField", label: "Swatch" },
             };
-            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
-            await vue.nextTick();
+            try {
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
 
-            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
-            expect(warn).toHaveBeenCalledTimes(1);
-            expect(warn.mock.calls[0][0]).toContain('Filter "published" on app.model');
-            expect(warn.mock.calls[0][0]).toContain('a field component for filter type "DateField"');
-            expect(warn.mock.calls[0][0]).toContain('a widget for filter type "DateField"');
-
-            warn.mockRestore();
-            wrapper.unmount();
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+                expect(warn).toHaveBeenCalledTimes(1);
+                expect(warn.mock.calls[0][0]).toContain('Filter "swatch" on app.model');
+                expect(warn.mock.calls[0][0]).toContain('a field component for filter type "SwatchField"');
+                expect(warn.mock.calls[0][0]).toContain('a widget for filter type "SwatchField"');
+                wrapper.unmount();
+            } finally {
+                warn.mockRestore();
+                delete FilterFieldMappings.SwatchField;
+            }
         });
 
         scopedIt("offers a visible filter whose view config overrides supply the input components", async () => {
+            const { mergeFilterFieldMapping, FilterFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            mergeFilterFieldMapping({ SwatchField: { initialValue: null } });
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
             mockedInject.mockReturnValueOnce({});
-            modelConfig.config.filterables = ["published"];
-            modelConfig.config.filterableDetails = { published: { typeFilter: "DateField", label: "Published" } };
-            modelConfig.config.fieldComponents = { published: "FormField" };
-            modelConfig.config.widgetComponents = { published: "WidgetDateField" };
-            route.query = { published: "2024-01-01" };
-            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
-            await vue.nextTick();
+            modelConfig.config.filterables = ["swatch"];
+            modelConfig.config.filterableDetails = { swatch: { typeFilter: "SwatchField", label: "Swatch" } };
+            modelConfig.config.fieldComponents = { swatch: "FormField" };
+            modelConfig.config.widgetComponents = { swatch: "WidgetTextInput" };
+            route.query = { swatch: "teal" };
+            try {
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
 
-            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["published"]);
-            expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "published", value: "2024-01-01" });
-            expect(warn).not.toHaveBeenCalled();
-
-            warn.mockRestore();
-            wrapper.unmount();
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["swatch"]);
+                expect(wrapper.vm.filter.state.addedFilters[0]).toMatchObject({ field: "swatch", value: "teal" });
+                expect(warn).not.toHaveBeenCalled();
+                wrapper.unmount();
+            } finally {
+                warn.mockRestore();
+                delete FilterFieldMappings.SwatchField;
+            }
         });
 
         scopedIt.each([
@@ -1645,6 +1661,28 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.vm.filter.state.addedFilters.push({ field: "category", param: "category", value: "widgets" });
             await vue.nextTick();
             expect(wrapper.vm.list.listState.params).toMatchObject({ id: "1,2", category: "widgets" });
+
+            warn.mockRestore();
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps a hidden filter out of the menu when its type has an input mapping", async () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            mockedInject.mockReturnValueOnce({});
+            route.params = { action: "list" };
+            modelConfig.config.filterables = ["category", "id"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                id: { typeFilter: "DecimalInField", hidden: true, label: "Id Is In", lookupExprs: ["in"] },
+            };
+            route.query = { id: ["1", "2"] };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual(["category"]);
+            expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+            expect(wrapper.vm.list.listState.params.id).toEqual(["1", "2"]);
+            expect(warn).not.toHaveBeenCalled();
 
             warn.mockRestore();
             wrapper.unmount();
@@ -2253,6 +2291,40 @@ describe("lib/views/ViewList.vue", () => {
             expect(cell.find('[data-qa="config-column"]').exists()).toBe(false);
             wrapper.unmount();
         });
+
+        scopedIt("reports a columnComponents override that names no component", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": "ColumnNope" } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(true);
+            expect(columnError.vm.$attrs["while-text"]).toBe("rendering the list columns");
+            expect(columnError.vm.$attrs.error.map((error) => error.message)).toEqual([
+                'No column component named "ColumnNope" for column "field.name"',
+            ]);
+            const cell = wrapper.find('[data-column="field.name"]');
+            expect(cell.exists()).toBe(true);
+            expect(cell.text()).toBe("");
+            wrapper.unmount();
+        });
+
+        scopedIt("shows no column error when every override resolves", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, {
+                props: { app: "app", model: "model", columnComponents: { "field.name": CustomColumn } },
+            });
+            await vue.nextTick();
+            const columnError = wrapper
+                .findAllComponents(ErrorDisplayStub)
+                .find((stub) => stub.attributes("data-qa") === "view-list-column-error");
+            expect(columnError.vm.$attrs.errored).toBe(false);
+            expect(columnError.vm.$attrs.error).toEqual([]);
+            wrapper.unmount();
+        });
     });
 
     describe("Bulk selection read-out", () => {
@@ -2283,6 +2355,26 @@ describe("lib/views/ViewList.vue", () => {
             const readout = wrapper.find('[data-qa="view-list-selection-count"]');
             expect(readout.exists()).toBe(true);
             expect(readout.text()).toContain("1 selected");
+            wrapper.unmount();
+        });
+    });
+
+    describe("List request", () => {
+        scopedIt("sends every multiple-choice filter key as a repeated key", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "tags", "codes"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                tags: { typeFilter: "MultipleChoiceField", label: "Tags" },
+                codes: { typeFilter: "ModelChoiceInField", label: "Codes" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+
+            const listArgs = { params: { tags: ["a", "b"] } };
+            mockedUseList.mock.calls.at(-1)[0].handlers.list(listArgs);
+
+            expect(mockedSinglePageAdaptor).toHaveBeenCalledWith({ ...listArgs, repeatedParams: ["tags"] });
             wrapper.unmount();
         });
     });

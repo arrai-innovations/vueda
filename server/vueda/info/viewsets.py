@@ -147,10 +147,12 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
             If the choices are a foreign key on the filter, then we check 'read' on the current model
             and 'list' on the related model.
 
-        If choices_permissions is None:
-            The field carries choices but is neither a model field nor a relation, so there is no
-            model to check against. An unknown field name never reaches this check, because
-            resolve_choices raises Http404 for it first.
+        For serializer-only fields (neither a model field nor a model relation):
+            We check 'read' on the current model, and for a related field also 'list' on the model
+            of the field's queryset.
+
+        An unknown field name never reaches this check, because resolve_choices raises Http404 for
+        it first.
         """
         self.resolve_choices()
 
@@ -259,6 +261,10 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         if "read" in settings.PERMISSION_NAMES_MAPPING:
             permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
 
+        permission_list_name = "list"
+        if "list" in settings.PERMISSION_NAMES_MAPPING:
+            permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
+
         # If we add field level permissions at some point, then we will want to check them here.
         if self.choices_field in field_info.fields_and_pk:
             model_class = serializer.Meta.model
@@ -272,10 +278,25 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             meta = model_class._meta
             self.choices_permissions = (
                 f"{meta.app_label}.{permission_read_name}_{meta.model_name}",
-                f"{related_field_info.related_model._meta.app_label}.list"
+                f"{related_field_info.related_model._meta.app_label}.{permission_list_name}"
                 f"_{related_field_info.related_model._meta.model_name}",
             )
             self.choices_queryset_model = related_field_info.related_model._meta.model
+
+        else:
+            # A serializer-only field: no model field or relation backs it, but the choices still
+            # belong to this model's serializer, so they get the same floor as a model field. A
+            # related one also reads its queryset's rows, so it needs 'list' on that model too.
+            model_class = serializer.Meta.model
+            meta = model_class._meta
+            permissions = [f"{meta.app_label}.{permission_read_name}_{meta.model_name}"]
+            field = self.choices_field_instance
+            related_queryset = getattr(getattr(field, "child_relation", field), "queryset", None)
+            if related_queryset is not None:
+                related_meta = related_queryset.model._meta
+                permissions.append(f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}")
+            self.choices_permissions = tuple(permissions)
+            self.choices_queryset_model = related_queryset.model if related_queryset is not None else model_class
 
     def get_queryset(self):
         """
@@ -300,6 +321,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                             "value": str(instance.pk),
                         }
                     )
+                choices.sort(key=operator.itemgetter("label"))
 
             else:
                 formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
@@ -324,6 +346,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                                 "value": str(getattr(instance, key_field)),
                             }
                         )
+                    choices.sort(key=operator.itemgetter("label"))
 
                 else:
                     formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
@@ -346,6 +369,7 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                                 "value": str(instance.pk),
                             }
                         )
+                    choices.sort(key=operator.itemgetter("label"))
 
                 else:
                     formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
@@ -432,7 +456,13 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         model_class = serializer.Meta.model
         meta = model_class._meta
         viewset = self.canonical["viewset"]
-        filterset_class = viewset.filterset_class
+        # A serializer-only registration has no viewset, and a viewset need not declare a filterset;
+        # either way the model has no filters to offer choices for.
+        filterset_class = getattr(viewset, "filterset_class", None)
+        if filterset_class is None:
+            raise Http404(
+                f"Invalid filter '{self.choices_field}'. {meta.app_label}.{meta.model_name} has no filterset."
+            )
         filterset_instance = filterset_class(
             queryset=model_class.objects.all(), data=self.request.query_params.copy(), request=self.request
         )

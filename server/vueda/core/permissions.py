@@ -136,6 +136,11 @@ def check_action_permission(viewset, request, instance, action) -> bool:
     return permitted
 
 
+def _read_permission(action) -> str:
+    """Return the codename template a read of ``action`` requires: list for ``list``, read otherwise."""
+    return f"%(app_label)s.{'list' if action == 'list' else 'read'}_%(model_name)s"
+
+
 class ObjectPermissions(DjangoObjectPermissions):
     """
     Extends DjangoObjectPermissions to support state permissions and CRUDL naming conventions.
@@ -144,9 +149,9 @@ class ObjectPermissions(DjangoObjectPermissions):
     """
 
     perms_map = {
-        "GET": [lambda action: f"%(app_label)s.{'list' if action == 'list' else 'read'}_%(model_name)s"],
+        "GET": [_read_permission],
         "OPTIONS": [],
-        "HEAD": [],
+        "HEAD": [_read_permission],
         "POST": ["%(app_label)s.create_%(model_name)s"],
         "PUT": ["%(app_label)s.update_%(model_name)s"],
         "PATCH": ["%(app_label)s.update_%(model_name)s"],
@@ -443,7 +448,11 @@ def filter_rows_for_user(queryset, user, perm_type="list"):
             _state_granted=state_granted,
         )
 
-        if user.has_perm(perm):
+        # A superuser's has_perm skips state rules for a single object, so the list skips them too.
+        # The annotations stay for check_queryset_workflow, which decides for itself.
+        if user.is_superuser:
+            pass
+        elif user.has_perm(perm):
             queryset = queryset.filter(_state_denied=False)
         else:
             queryset = queryset.filter(_state_denied=False, _state_granted=True)

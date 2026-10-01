@@ -48,6 +48,18 @@ const OverrideCodeStub = defineComponent({
         return () => h("div", { "data-qa": "override-code" });
     },
 });
+const ModelActionStub = defineComponent({
+    name: "ModelActionStub",
+    setup() {
+        return () => h("div", { "data-qa": "model-action" });
+    },
+});
+const ActionOnlyStub = defineComponent({
+    name: "ActionOnlyStub",
+    setup() {
+        return () => h("div", { "data-qa": "action-only" });
+    },
+});
 
 vi.mock("@vueda/views/ViewLoading.vue", () => ({ default: LoadingStub }));
 vi.mock("@vueda/views/ViewAction.vue", () => ({ default: ActionStub }));
@@ -83,6 +95,12 @@ vi.mock("@/views/ViewActionABVoid.vue", () => {
     throw new Error("no override");
 });
 vi.mock("@/views/ViewActionVoid.vue", () => ({ default: OverrideCodeStub }));
+vi.mock("@/views/ViewActionABPublish.vue", () => ({ default: ModelActionStub }));
+vi.mock("@/views/ViewActionABArchive.vue", () => {
+    throw new Error("no override");
+});
+vi.mock("@/views/ViewActionArchive.vue", () => ({ default: ActionOnlyStub }));
+vi.mock("@/views/ViewActionABList.vue", () => ({ default: ModelActionStub }));
 
 const modelConfig = reactive({
     loading: false,
@@ -210,6 +228,24 @@ describe("lib/views/ViewActionRouter.vue", () => {
     });
 
     describe("Action resolution", () => {
+        scopedIt("uses a model-specific view for an ordinary action", async () => {
+            modelConfig.info = { actions: [{ name: "publish" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "publish" } });
+            await vi.waitFor(() => expect(wrapper.findComponent(ModelActionStub).exists()).toBe(true));
+        });
+
+        scopedIt("uses an action-only view when the model-specific view is absent", async () => {
+            modelConfig.info = { actions: [{ name: "archive" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "archive" } });
+            await vi.waitFor(() => expect(wrapper.findComponent(ActionOnlyStub).exists()).toBe(true));
+        });
+
+        scopedIt("falls back to ViewAction when no convention-named view exists", async () => {
+            modelConfig.info = { actions: [{ name: "approve" }] };
+            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "approve" } });
+            await vi.waitFor(() => expect(wrapper.findComponent(ActionStub).exists()).toBe(true));
+        });
+
         scopedIt("resolves a recognized transition code to ViewExecuteTransition", async () => {
             workflow.transitions = [{ code: "approve", name: "Approve" }];
             const wrapper = mount(ViewActionRouter, {
@@ -304,6 +340,7 @@ describe("lib/views/ViewActionRouter.vue", () => {
             await flushPromises();
             expect(crudComponents.list).toHaveBeenCalledWith({ app: "a", model: "b", action: "list", pk: "" });
             expect(wrapper.find('[data-qa="crud"]').exists()).toBe(true);
+            expect(wrapper.findComponent(ModelActionStub).exists()).toBe(false);
         });
     });
 });

@@ -7,6 +7,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -211,8 +212,8 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
         # ModelInfoChoicesViewSet.get_queryset previously closed over PERMISSION_NAMES_MAPPING at
         # import (vueda/info/viewsets.py), so overriding "read" left choices_permissions pinned to
         # "read_product" regardless of what the override requested. "tangible_type" is a relation
-        # field, so it also requires "list_tangibletype" on the related model -- that requirement
-        # is hardcoded in get_queryset, not settings-driven, so both users need it unconditionally.
+        # field, so it also requires "list_tangibletype" on the related model. This test overrides
+        # "read" only, so both users need that list permission unconditionally.
         product_content_type = ContentType.objects.get_for_model(store_models.Product)
         tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
         list_tangible_type_permission = Permission.objects.get(
@@ -256,6 +257,43 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
         # check once the override maps "read" to "mutated_read".
         assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
         assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
+
+    def test_related_choices_map_the_list_permission_name(self, settings, api_client):
+        # A relation field's choices also require list permission on the related model. That name
+        # goes through PERMISSION_NAMES_MAPPING, as the filter-choices endpoint's does.
+        product_content_type = ContentType.objects.get_for_model(store_models.Product)
+        tangible_type_content_type = ContentType.objects.get_for_model(store_models.TangibleType)
+        read_product_permission, _ = Permission.objects.get_or_create(
+            content_type=product_content_type, codename="read_product", defaults={"name": "Can read product"}
+        )
+        default_list_permission = Permission.objects.get(
+            content_type=tangible_type_content_type, codename="list_tangibletype"
+        )
+        mapped_list_permission, _ = Permission.objects.get_or_create(
+            content_type=tangible_type_content_type,
+            codename="mutated_list_tangibletype",
+            defaults={"name": "Can mutated list tangible type"},
+        )
+        default_lister = get_user_model().objects.create_user(
+            email="choices-default-lister@domain.invalid", name="Choices Default Lister", password="password"
+        )
+        default_lister.user_permissions.add(read_product_permission, default_list_permission)
+        mapped_lister = get_user_model().objects.create_user(
+            email="choices-mapped-lister@domain.invalid", name="Choices Mapped Lister", password="password"
+        )
+        mapped_lister.user_permissions.add(read_product_permission, mapped_list_permission)
+
+        register_model("store", "product")
+        choices_url = reverse("info.model_info_choices-list", args=("store", "product", "tangible_type"))
+        settings.PERMISSION_NAMES_MAPPING = {"list": "mutated_list"}
+
+        api_client.force_authenticate(default_lister)
+        default_response = api_client.get(choices_url, format="json")
+        api_client.force_authenticate(mapped_lister)
+        mapped_response = api_client.get(choices_url, format="json")
+
+        assert default_response.status_code == HTTPStatus.FORBIDDEN, response_body(default_response)
+        assert mapped_response.status_code == HTTPStatus.OK, response_body(mapped_response)
 
     @pytest.mark.parametrize(
         "app_label, model_name, field_name, expected_choices",
@@ -660,3 +698,138 @@ def test_field_choices_query_count_does_not_grow_with_row_count_for_the_child_re
         assert len(set(counts.values())) == 1, f"field choices query count grows with row count: {counts}"
     finally:
         info.registration.get_empty_registry()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("serializer_class", "viewset_class", "url_args"),
+    [
+        pytest.param(
+            store_serializers.CartItemCartBaseManagerSerializer,
+            store_viewsets.CartItemCartBaseManagerViewSet,
+            ("store", "cartitem", "cart"),
+            id="plain_queryset_branch",
+        ),
+        pytest.param(
+            store_serializers.CartItemCartSlugBaseManagerSerializer,
+            store_viewsets.CartItemCartSlugBaseManagerViewSet,
+            ("store", "cartitem", "cart"),
+            id="slug_field_branch",
+        ),
+        pytest.param(
+            store_serializers.CustomerCartsBaseManagerSerializer,
+            store_viewsets.CustomerCartsBaseManagerViewSet,
+            ("store", "customer", "carts"),
+            id="child_relation_branch",
+        ),
+    ],
+)
+def test_field_choices_from_get_formatted_name_are_sorted_by_label(
+    api_client, serializer_class, viewset_class, url_args
+):
+    """Choices whose labels come from ``get_formatted_name()`` are sorted by label, as the
+    ``F()``-annotated branches and the filter-choices endpoint already are. The carts are created in
+    reverse label order, so primary-key order and label order disagree."""
+    info.registration.get_empty_registry()
+    try:
+        info.register(serializer_class, viewset_class)
+
+        test_data = BaseManagerChoiceTestData()
+        api_client.force_authenticate(user=test_data.users["test_super_user@domain.invalid"])
+
+        for letter in ("c", "b", "a"):
+            user = get_user_model().objects.create(
+                email=f"{letter}-cart-owner@domain.invalid", name=f"Cart Owner {letter}", is_active=True
+            )
+            store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+
+        response = api_client.get(reverse("info.model_info_choices-list", args=url_args), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["label"] for result in response.data["results"]] == [
+            "a-cart-owner@domain.invalid",
+            "b-cart-owner@domain.invalid",
+            "c-cart-owner@domain.invalid",
+        ]
+    finally:
+        info.registration.get_empty_registry()
+
+
+class _DistributorSerializerOnlyChoicesSerializer(store_serializers.DistributorSerializer):
+    """Declares a choice field and a related field that map to no model field or relation."""
+
+    priority = serializers.ChoiceField(choices=[("low", "Low"), ("high", "High")], write_only=True, required=False)
+    related_product = serializers.PrimaryKeyRelatedField(
+        queryset=store_models.Product.objects.all(), write_only=True, required=False
+    )
+
+    class Meta(store_serializers.DistributorSerializer.Meta):
+        fields = [*store_serializers.DistributorSerializer.Meta.fields, "priority", "related_product"]
+
+
+@pytest.mark.django_db
+class TestSerializerOnlyFieldChoicesPermissions:
+    """A field with no model field or relation behind it still needs ``read`` on the serializer's
+    model, and a related one also needs ``list`` on its queryset's model."""
+
+    @pytest.fixture(autouse=True)
+    def registration(self):
+        info.registration.get_empty_registry()
+        info.register(_DistributorSerializerOnlyChoicesSerializer, store_viewsets.DistributorViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @staticmethod
+    def user_with(*codenames):
+        user = get_user_model().objects.create_user(
+            email=f"choices-{'-'.join(codenames) or 'none'}@domain.invalid", name="Choices User", password="testpass"
+        )
+        user.user_permissions.add(*Permission.objects.filter(content_type__app_label="store", codename__in=codenames))
+        return get_user_model().objects.get(pk=user.pk)
+
+    @staticmethod
+    def get(api_client, field):
+        return api_client.get(reverse("info.model_info_choices-list", args=("store", "distributor", field)))
+
+    @pytest.mark.parametrize("field", ["priority", "related_product"])
+    def test_anonymous_is_refused(self, api_client, field):
+        response = self.get(api_client, field)
+
+        assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}, response_body(response)
+
+    @pytest.mark.parametrize("field", ["priority", "related_product"])
+    def test_without_read_on_the_model_is_refused(self, api_client, field):
+        api_client.force_authenticate(user=self.user_with("list_product"))
+
+        response = self.get(api_client, field)
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_static_choices_need_only_read(self, api_client):
+        api_client.force_authenticate(user=self.user_with("read_distributor"))
+
+        response = self.get(api_client, "priority")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert {result["value"] for result in response.data["results"]} == {"low", "high"}
+
+    def test_related_choices_also_need_list_on_the_related_model(self, api_client):
+        api_client.force_authenticate(user=self.user_with("read_distributor"))
+
+        response = self.get(api_client, "related_product")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_related_choices_with_read_and_list(self, api_client):
+        store_models.Product.objects.create(
+            name="Choices Product",
+            distributor=store_models.Distributor.objects.create(name="Choices Distributor"),
+            order_between=[1, 2],
+            tangible_type=store_models.TangibleType.objects.create(name="Choices Type"),
+        )
+        api_client.force_authenticate(user=self.user_with("read_distributor", "list_product"))
+
+        response = self.get(api_client, "related_product")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "Choices Product" in {result["label"] for result in response.data["results"]}

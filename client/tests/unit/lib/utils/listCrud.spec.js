@@ -54,6 +54,12 @@ describe("lib/utils/listCrud.js", () => {
         expect(result).toBe("?a=1&b=2%2C3");
     });
 
+    scopedIt("makeSearchParamsString repeats the keys it is given for array values", () => {
+        const { makeSearchParamsString } = listCrud;
+        const result = makeSearchParamsString({ a: ["x, y", undefined, "z"], b: ["2", "3"], c: [] }, ["a", "c"]);
+        expect(result).toBe("?a=x%2C+y&a=z&b=2%2C3");
+    });
+
     scopedIt("singlePagePaginatedListCrudAdaptor fetches one page", async () => {
         const { singlePagePaginatedListCrudAdaptor } = listCrud;
         const target = { app: "blog", model: "post", resultsKey: "items" };

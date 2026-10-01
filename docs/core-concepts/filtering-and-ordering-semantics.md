@@ -116,6 +116,24 @@ A derived name may end in a lookup expression rather than a relation segment, an
 
 A multi-widget filter's own suffix keeps a different separator instead, rather than extending the dot grammar further: a `RangeFilter` declared `distributor__id` derives the public name `distributor.id` the same way any other `__`-joined declared name does, then is reachable as `distributor.id_min`/`distributor.id_max` — never `distributor.id.min` — while `distributor__id__in`, a `NumberArrayFilter` declared the same way, derives `distributor.id.in` and needs no suffix at all, since an array filter's values arrive as one comma-separated (or repeated) parameter rather than one parameter per bound. The underscore carries meaning, rather than being cosmetic: the client's own filter-value handling recovers which suffix a wire key carries by splitting it on `_`, which only works because the suffix separator differs from the path separator — a dot-joined suffix would be exactly as ambiguous as a lookup expression is above.
 
+The `vueda_info.E012` system check reports filters that accept the same public query parameter. For example, both filters below accept `distributor.id_min`:
+
+```python
+class ProductFilterSet(VuedaFilterSet):
+    distributor__id = filters.RangeFilter(field_name="distributor__id")
+    distributor__id_min = filters.NumberFilter(field_name="distributor__id", lookup_expr="gte")
+```
+
+Remove the second filter when the range filter already provides the needed lower bound. If both filters are needed, give the second one a distinct name:
+
+```python
+class ProductFilterSet(VuedaFilterSet):
+    distributor__id = filters.RangeFilter(field_name="distributor__id")
+    distributor__id_gte = filters.NumberFilter(field_name="distributor__id", lookup_expr="gte")
+```
+
+The second filter now accepts `distributor.id_gte`. The check also catches names generated from `Meta.fields`, including a related field whose name ends in `_min` and collides with a range filter's lower-bound key.
+
 ## Queryset Ordering
 
 An `order_by()` on a viewset's `queryset` attribute is a real ordering that no declaration describes. DRF's `OrderingFilter` reads a view's `ordering` attribute and nothing else, so with none declared it applies no ordering at all and hands the queryset back as it found it — ordering included. The list arrives sorted the way the queryset asked, while `model_ordering.default` reports the viewset's `ordering` or the model's `Meta.ordering`, neither of which had any part in it.
@@ -265,7 +283,7 @@ class ContactViewSet(VuedaViewSet):
 
 The fields a term reads are what both layers work from, and one term can read any number of them.
 
-`VuedaOrderingFilter` makes each of those fields a valid explicit `?o=` target, on the same reasoning as the section above. What such a request sorts by is the column itself, not the function over it — `?o=name` against a `Lower("name")` default gives a plain case-sensitive sort. This is the same divergence an explicit request already has with a default that carries a nulls placement, and `nulls_ordering` is the analogous escape hatch for that one. It takes an explicit request to reach it: the VUEDA client shows a default it was told about without sending it back, so a list the reader has not sorted keeps the function. One path does not keep it. A search reaching through a multi-valued relation deduplicates with a `DISTINCT ON`, which a function over a column cannot pair with, so such a list arrives in relevance order instead (see [Observable Failure Modes](#observable-failure-modes)).
+`VuedaOrderingFilter` makes each of those fields a valid explicit `?o=` target, on the same reasoning as the section above. What such a request sorts by is the column itself, not the function over it — `?o=name` against a `Lower("name")` default gives a plain case-sensitive sort. This is the same divergence an explicit request already has with a default that carries a nulls placement, and `nulls_ordering` is the analogous escape hatch for that one. It takes an explicit request to reach it: the VUEDA client shows a default it was told about without sending it back, so a list the reader has not sorted keeps the function.
 
 `model_ordering` reports a term that reads exactly one column under that column's name, with `ascending` taken from the term's direction: `Lower("name").desc()` is reported as `{"name": "name", "type": "alpha", "ascending": false}`. The `type` describes the column the client orders by, not the value the function returns, so `Length("name")` reports `name` as `alpha` rather than `numeric`.
 
@@ -302,15 +320,96 @@ Ordering follows the same discipline at the value level, not only at the key lev
 
 ## Search Contract Surface
 
-Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search.
+Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search. It also builds a search through a multi-valued relation from its own search queryset, where `SearchFilter` copies the viewset's queryset (see [Search through a multi-valued relation](#search-through-a-multi-valued-relation)).
 
 The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for trigram word similarity, and `V:` for VUEDA-specific ranked search fields.
 
-When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). An explicit `o` (ordering) parameter normally suppresses that ranking, since explicit ordering takes precedence over relevance. The backend reads the raw parameter, so any nonempty `o` suppresses ranking this way — including one that names an invalid term, which fails the whole request with HTTP 400 rather than falling back to relevance or the default ordering. Ranking wins anyway on one path: a search that deduplicates through a `DISTINCT ON` needs every ordering term to pair with a distinct column, and returns to `-combined_rank` when one cannot (see [Observable Failure Modes](#observable-failure-modes)). Duplicate results will be removed from ranked results.
+When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). An explicit `o` (ordering) parameter normally suppresses that ranking, since explicit ordering takes precedence over relevance. The backend reads the raw parameter, so any nonempty `o` suppresses ranking this way — including one that names an invalid term, which fails the whole request with HTTP 400 rather than falling back to relevance or the default ordering.
 
 When at least one search field uses the `#` prefix, the search backend switches to use trigram similarity. In this mode, the backend combines the search term into a single search term, because that is required for trigram similarity.
 
-When no search fields use the `V:` or `#` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+When no search fields use the `V:`, `#` or `~` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. A search field that reaches through a multi-valued relation still matches against the search queryset, as described in [Search through a multi-valued relation](#search-through-a-multi-valued-relation). The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+
+### Search through a multi-valued relation
+
+A search field can reach through a multi-valued relation (a reverse foreign key or a many-to-many), such as `V:cart_items__product_option__name` on a `Cart`. Joining that relation produces one row per matching related row, so a cart with two matching items would appear twice. The backend keeps those joins inside subqueries instead, and narrows the viewset's queryset to the objects that match. The list returns each object once. This applies to every search prefix, including the standard DRF ones.
+
+In ranked-search mode an object matches when at least one of its rows reaches `search_threshold`, and it ranks by its best matching row, with the primary key breaking ties. An explicit `o` sorts the list the same way it sorts the list without a search, with the primary key breaking ties.
+
+The subqueries are built from the viewset's **search queryset**:
+
+- When the viewset defines `get_search_queryset()`, the search queryset is what that method returns.
+- Otherwise, it is the model's default manager.
+
+The viewset's queryset applies its own ordering, annotations, aggregates and filters outside the subqueries, where they see every related row. So a viewset that lists only carts holding at least three items keeps a cart whose three items include two that match the search:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+```
+
+A filter through the searched relation and the search are independent conditions, as two `filter()` calls on a multi-valued relation are in Django. A viewset queryset filtered by `.filter(cart_items__quantity__gte=24)` keeps a cart holding one item with a quantity of 24 and another item that matches the search.
+
+A search field that follows only foreign keys joins at most one row per object. That search needs no subquery, matches against the viewset's queryset directly, and never reads the search queryset. A search whose fields are all annotations of the viewset's queryset doesn't either.
+
+#### When a viewset needs `get_search_queryset()`
+
+A viewset defines `get_search_queryset()` when its `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation. The model's default manager has no such annotation:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:customer_name", "V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(customer_name=F("customer__user__name"))
+
+    def get_search_queryset(self):
+        return Cart.objects.annotate(customer_name=F("customer__user__name"))
+```
+
+Without `get_search_queryset()`, a search request on this viewset fails with `FieldError: Cannot resolve keyword 'customer_name'`. An annotation the model's default manager already adds, such as the `formatted_name` a `FormattedNameManager` annotates, resolves without it.
+
+A viewset also defines `get_search_queryset()` when the model's default manager hides rows that the viewset lists. Take a default manager that filters out archived widgets, on a viewset that lists them through a second manager:
+
+```python
+class WidgetManager(FormattedNameManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(archived=False)
+
+
+class Widget(VuedaModel):
+    objects = WidgetManager()
+    all_objects = FormattedNameManager()
+
+
+class WidgetViewSet(VuedaViewSet):
+    queryset = Widget.all_objects.all()
+    search_fields = ["V:parts__name"]
+
+    def get_search_queryset(self):
+        return Widget.all_objects.all()
+```
+
+Without `get_search_queryset()`, the search subquery is built from `Widget.objects`, which holds no archived widgets, so a search leaves every archived widget out of the list. The search returns no error, and the `vueda_info.E014` system check doesn't report it.
+
+The rules for the search queryset are:
+
+- **Carry every annotation that `search_fields` name.**
+- **Include every row the viewset lists.** Build it from a manager that hides none of the viewset's rows.
+- **Leave out filters.** The viewset's queryset applies its filters outside the subqueries. Inside them, a filter on an aggregate or a window function gives a different answer over the matching related rows than over all of them, and a filter through the searched relation limits a ranked (`V:`) search to the related rows that pass it.
+- **Return a new queryset, not `self.get_queryset()`.** Returning the viewset's queryset brings its filters back into the subqueries.
+
+#### What the `vueda_info.E014` system check reports
+
+The check reads the search queryset of every registered viewset whose search reaches through a multi-valued relation. It reports two problems:
+
+- A `search_fields` entry that names neither a field of the model nor an annotation of the search queryset. A search request would fail with a `FieldError`.
+- A `get_search_queryset()` that filters on an aggregate or a window function. The search would drop objects that match.
+
+Like the other checks, it stops `runserver`, `migrate` and the other management commands until the viewset is fixed. The model's default manager can always be built outside a request, so the check always reads a viewset without `get_search_queryset()`. A `get_search_queryset()` that reads `self.request` can't be built there, and the check skips that viewset.
 
 ## Filter Choices and Permission Surfaces
 
@@ -330,7 +429,7 @@ The client fetches model-info once per `app.model` key and caches the result in 
 
 `storeModelConfig` derives sortable field names from `modelInfo.ordering` and maps them to the `o` query parameter for `list` requests. Filter configuration is consumed by `useFilterables`, which merges the cached `modelInfo.filtering` entries with any caller-supplied overrides into a resolved filterable field list and per-field details; `useViewList` is the sole owner of this resolution for `ViewList`, passing the result down as plain props rather than letting `FilterGroup` recompute it. `useFilter` and `useFilterForm` then build the filter UI from that already-resolved list: `useFilter` resolves each field's component and widget, and `useFilterForm` translates a field's value to and from its URL query-parameter representation. Choice population for filters uses `storeModelChoices` and `useModelChoices`, which fetch dynamic choices as needed.
 
-The add-filter menu offers only the filters the client can render an editable input for. `useViewList`'s `validFilterables` keeps a visible filter when its type has value handling (`FilterFieldMappings` in `utils/fieldMappings`) and the components to mount it (`filterFieldMapping`, or the view config's per-field `fieldComponents`/`widgetComponents` overrides); a range also needs both boundary components. A widget that resolves to `WidgetUnmapped` does not count, because it shows a diagnostic instead of an input. A visible filter that fails this check is left out of the menu, its URL value is not restored as an applied filter, and a console warning naming the app, model, and filter reports the missing pieces once per list visit. `mergeFilterFieldMapping` registers a custom type's components and its `initialValue`/`array`/`range` value handling together.
+The add-filter menu offers only the filters the client can render an editable input for. `useViewList`'s `validFilterables` keeps a visible filter when its type has value handling (`FilterFieldMappings` in `utils/fieldMappings`) and the components to mount it (`filterFieldMapping`, or the view config's per-field `fieldComponents`/`widgetComponents` overrides); a range also needs both boundary components. A widget that resolves to `WidgetUnmapped` does not count, because it shows a diagnostic instead of an input. A visible filter that fails this check is left out of the menu, its URL value is not restored as an applied filter, and a console warning naming the app, model, and filter reports the missing pieces once per list visit. `mergeFilterFieldMapping` registers a custom type's components and its `initialValue`/`array`/`repeatedKey`/`range` value handling together. [Filter Input Types](#filter-input-types) lists the built-in types and explains custom ones.
 
 A filter field whose metadata marks it `hidden` (a `HiddenInput` widget on the server, as `IdInFilterSet` declares for `id`) has no editable form control: `useViewList`'s `validFilterables` excludes it whatever its type, so it never appears in the add-filter menu or among the editable filter chips, and it needs no input mapping. Its value still reaches the `list` request. `useViewList` reads it directly from the mounted URL and carries it into `listState.params` from the first request onward, alongside whatever visible filters, sort, and search the reader controls through the UI. Editing, adding, or clearing a visible filter, changing the sort, or searching all leave a hidden filter's value in place, in both the URL and the request.
 
@@ -339,6 +438,78 @@ While a hidden filter has a URL value, `ViewList` shows it as a **scope**: a lab
 Cached model-info errors are sticky. A failed model-info fetch for a given `app.model` key rejects immediately on subsequent attempts without re-fetching. This means that a transient server error during initial model-info load can render the model's filter and sort controls permanently unavailable until the store is reset or the page is reloaded.
 
 The default filter UI uses only the first lookup expression (`lookupExprs[0]`) from each filter's metadata. Multi-lookup-expression selectors are not emitted by default. If a filter declares multiple lookup expressions (for example, `exact` and `icontains`), only the first is wired into the default filter component. A custom filter UI is needed to expose multiple lookup expressions for a single field.
+
+## Filter Input Types
+
+Each filter's metadata reports a `typeFilter`, which names the filter's type. For most filters, it is the Django form field class that the django-filter filter builds. `AllValuesFilter` and `AllValuesMultipleFilter` report `AllValuesChoiceField` and `AllValuesMultipleChoiceField`. They build the same form fields as the static choice filters, but their choices are the values stored in a column, which the client fetches. The client chooses the filter's input and value shape from its type. Two tables in `utils/fieldMappings` describe each type, and both list the same types:
+
+- `FilterFieldMappings` holds value handling: the empty value the filter form starts from, whether the value is a list (`array: true`), whether the list request repeats the query key for each value (`repeatedKey: true`), and whether the filter is a range (`range: true`).
+- `filterFieldMapping` holds the components: the field component and widget, or for a range, the field set and the component and widget for each boundary.
+
+### Built-in types
+
+| `typeFilter`                                                                   | Input                                                       | URL value                            |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------ |
+| `CharField`                                                                    | `WidgetTextInput`                                           | The text                             |
+| `BooleanField`                                                                 | `WidgetToggle`                                              | `true` or `false`                    |
+| `NullBooleanField`                                                             | `WidgetSelectDropdown` with the metadata's choices          | The chosen value                     |
+| `ChoiceField`, `TypedChoiceField`                                              | `WidgetSelectDropdown` with the metadata's choices          | The chosen value                     |
+| `ModelChoiceField`                                                             | `WidgetModel`, single select                                | The chosen primary key               |
+| `MultipleChoiceField`                                                          | `WidgetCombobox`, multi-select, with the metadata's choices | One value per choice                 |
+| `ModelChoiceInField`, `ModelMultipleChoiceInField`, `ModelMultipleChoiceField` | `WidgetModel`, multi-select                                 | One primary key per choice           |
+| `AllValuesChoiceField`                                                         | `WidgetModel`, single select                                | The chosen stored value              |
+| `AllValuesMultipleChoiceField`                                                 | `WidgetModel`, multi-select                                 | One stored value per choice          |
+| `DateField`                                                                    | `WidgetDateField`                                           | `YYYY-MM-DD`                         |
+| `DateTimeField`, `IsoDateTimeField`                                            | `WidgetDateField` with minute granularity                   | `YYYY-MM-DDTHH:MM:SS`                |
+| `TimeField`                                                                    | `WidgetTimeField`                                           | `HH:MM:SS`                           |
+| `DurationField`                                                                | `WidgetDuration` with days, hours, and minutes              | `[D ]HH:MM:SS`, such as `1 02:30:00` |
+| `DecimalField`, `PositiveDecimalField`, `FloatField`                           | `WidgetNumberInput`                                         | The number                           |
+| `DecimalInField`                                                               | `WidgetTagsInput`, numbers only                             | One number per entry                 |
+| `RangeField`                                                                   | Two `WidgetNumberInput` boundaries                          | One key per suffix                   |
+| `DateRangeField`                                                               | Two `WidgetDateField` boundaries                            | One key per suffix                   |
+| `DateTimeRangeField`                                                           | Two `WidgetDateField` boundaries with minute granularity    | One key per suffix                   |
+
+In the page URL, a list value repeats its query key once per value, such as `?condition=new&condition=used`. A range writes one `<filter>_<suffix>` key per boundary, using the two suffixes in its metadata.
+
+The list request sends a list value in the form the filter's Django widget reads:
+
+- `MultipleChoiceField`, `ModelMultipleChoiceField`, and `AllValuesMultipleChoiceField` set `repeatedKey: true`, so the request repeats the key once per value, such as `?condition=new&condition=used`. Their `SelectMultiple` widget reads each repeated key as one value, so a stored value that contains a comma, such as `Acme, Inc.`, arrives intact.
+- `ModelChoiceInField`, `ModelMultipleChoiceInField`, and `DecimalInField` send one comma-separated value, such as `?price.in=1,2.5`. Their django-filter CSV widget splits that value and reads only one key.
+
+`ChoiceField`, `TypedChoiceField`, and `MultipleChoiceField` filters show the choices their metadata lists. The `ModelChoiceField`, `ModelMultipleChoiceField`, `ModelChoiceInField`, `ModelMultipleChoiceInField`, `AllValuesChoiceField`, and `AllValuesMultipleChoiceField` types report `choices: true`, and `WidgetModel` fetches their choices from the filter choices endpoint once the input is focused or already holds a value.
+
+### Unsupported visible types
+
+A visible filter whose type is missing from either table, such as a `UUIDField` filter, is not offered in the add-filter menu, and its URL value is not restored. A console warning names the missing pieces. To offer the filter, register its type as described below, or give the filter `fieldComponents`/`widgetComponents` overrides in the list view config. A filter intended only for programmatic use can instead be declared hidden on the server.
+
+### Custom filter types
+
+`mergeFilterFieldMapping` registers a custom type, or adjusts a built-in one. Each entry's `initialValue`, `array`, `repeatedKey`, and `range` keys go to value handling. Its other keys go to the components.
+
+```js
+import WidgetColor from "./WidgetColor.vue";
+import { mergeFilterFieldMapping } from "@vueda/utils/fieldMappings.js";
+
+mergeFilterFieldMapping({
+    ColorField: {
+        component: "FormField",
+        fieldProps: { hidden: true },
+        widget: WidgetColor,
+        initialValue: null,
+    },
+});
+```
+
+A type needs both halves. Without value handling, the filter form cannot build an empty or URL-restored value. Without components, it has nothing to render. Either gap leaves the type out of the menu. A widget that resolves to `WidgetUnmapped` counts as a missing component, because it renders a diagnostic instead of an input.
+
+- The widget's value is what the request parameter carries: a string, or an array of strings for a type with `array: true`.
+- A list type sets `array: true` and `initialValue: []`. A single URL value then restores as a one-entry list. A list type whose Django widget reads repeated keys, such as `SelectMultiple`, also sets `repeatedKey: true`. Without it, the list request sends the values as one comma-separated value.
+- A range type sets `range: true` and an `initialValue` object, and provides `component: "FieldSetRange"`, `boundaryComponent`, and `boundaryWidget`. The filter's metadata supplies the two suffixes.
+- In these entries, `fieldProps: { hidden: true }` makes `FormField` render the widget without its own label row, because the filter form already shows the filter's label. This setting does not hide the filter.
+
+### Hidden filters
+
+Whether a filter is hidden is separate from whether its type is supported. A filter that its metadata marks `hidden` never renders an input, even when its type has a mapping. Its URL value reaches the `list` request without a mapping. See the hidden-filter behavior under [Client Normalization and Cache Semantics](#client-normalization-and-cache-semantics).
 
 ## Composite Primary Key Filtering
 
@@ -351,6 +522,10 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 **Unknown query parameter returns 400.** A typo in a `list` query key, or a stale client sending a filter key that no longer exists in the filterset, produces an HTTP 400 with the message `"Invalid query parameter. Valid filters are ..."`. The error response includes the valid filter set, which aids diagnosis.
 
 **Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
+
+**A search leaves out rows the default manager hides.** A viewset that lists rows its model's default manager filters out, such as archived rows listed through a second manager, loses those rows from every search that reaches through a multi-valued relation. The request returns 200, and nothing reports it at startup. Define `get_search_queryset()` returning the wider manager (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
+
+**A search on an annotation fails with `FieldError`.** A viewset whose `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation, fails every search request with `FieldError: Cannot resolve keyword ...` — an unhandled server error. `vueda_info.E014` reports the viewset at startup. Define `get_search_queryset()` with the annotation (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
 
 **Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating `list` view, because the error occurs on a separate endpoint.
 
@@ -370,19 +545,6 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 **A multi-column ordering expression shows no default sort in the client.** A default `ordering` term that reads more than one column — `Concat("first_name", "last_name")` — sorts the rows correctly but is left out of `model_ordering.default`, because no single field name stands for the sort it performs. No system check reports this: the configuration is valid, and the only symptom is a client that shows no sort indicator and offers no sort control for a list that is in fact sorted. If the sort is meant to be visible to clients, declare it as separate terms or annotate the expression in `get_queryset` and order by the annotation's name.
 
-**A deduplicating search falls back to relevance order for an ordering it cannot pair.** When a `V:`-prefixed or `#`-prefixed search reaches through a multi-valued relation, `VuedaSearchFilterBackend` deduplicates with a `DISTINCT ON`, and PostgreSQL requires those expressions to match the leftmost `ORDER BY` expressions. `distinct()` accepts only field paths, while `order_by()` accepts any expression. So each ordering term has to compile to a bare column that both sides of the query reach the same way. Four shapes do not:
-
-- **A term reading more than one column**, such as `Concat("first_name", "last_name")`, and a term reading none at all, such as `"?"`. Neither has a single column to pair with.
-- **A term reading one column without being that column**, such as `Lower("name")`. Its distinct column compiles to `name` while the ordering compiles to `LOWER("name")`.
-- **A plain relation name whose related model declares its own `Meta.ordering`**, such as `customer` where `Customer` orders by `["user__name"]`. Django replaces the term with that ordering over the joined table, while the distinct column trims the join back to the local foreign key.
-- **A `"pk"` alias on a composite primary key**, which stands for several columns where the pairing allows one.
-
-The rows then come back ranked by relevance rather than in the requested order. The response is correct and returns 200; only the order differs from the same request without a search term.
-
-How each shape gets here differs, which is what decides whether a client can trigger it during a search. A function over a column, and a term reading more than one, only ever come from the viewset's own default `ordering` — a `?o=` value is always a plain field name and carries neither — and default ordering never gets to compete with the `DISTINCT ON` pairing during a search: the backend applies `-combined_rank` outright whenever the raw `o` parameter is empty or absent, and a nonempty one that fails validation now rejects the whole request with HTTP 400 rather than falling back to the default ordering while the search still treats the request as explicitly ordered. What reaches the pairing failure instead is a _valid_ explicit `?o=` that Django itself expands past what was requested: a relation name (`?o=customer`, offered whenever `ordering_fields = "__all__"` advertises it in `model_ordering.fields`) that Django replaces with the related model's own `Meta.ordering`, or a `"pk"` alias on a composite primary key, which already stands for more than one column.
-
-Everything else pairs and is unaffected: a concrete field, a path through relations, a queryset annotation, the `"pk"` alias on an ordinary primary key, and a relation whose related model declares no ordering.
-
 ## Relevant Implementation Surface
 
 - {@api rest:endpoint:GET:/vueda.info/model_info/}
@@ -397,6 +559,7 @@ Everything else pairs and is unaffected: a concrete field, a path through relati
 - {@api py:module:vueda.core.filters}
 - {@api py:class:vueda.core.filters.VuedaOrderingFilter}
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
+- {@api py:function:vueda.core.filters.VuedaSearchFilterBackend.get_search_queryset}
 - {@api py:module:vueda.core.ordering}
 - {@api py:function:vueda.core.ordering.ordering_term_field_names}
 - {@api py:function:vueda.core.ordering.queryset_explicit_ordering}

@@ -8,13 +8,20 @@ import "@vueda/theme/vueda-tailwind/widgets/WidgetDuration.theme.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { convertDurationToString, normalizeDuration } from "@vueda/utils/duration.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject, reactive, ref, useId } from "vue";
+import { computed, inject, ref, useId } from "vue";
 
 /**
  * A duration input widget that renders separate numeric spinners for days, hours, minutes, and
- * seconds. Each time unit can be shown or hidden independently via props; the combined value is
- * stored as an object with the corresponding numeric fields.
+ * seconds. Each time unit can be shown or hidden independently via props. The value is DRF's
+ * duration string (`[D ]HH:MM:SS`), as a Django `DurationField` sends and reads it, or with
+ * `seconds` a number of seconds, as `DurationSecondsField` sends and reads it. The shown units
+ * split the value between them, so a duration of two days reads as 48 hours when days are hidden.
+ * Clearing a unit while the rest of the value is zero sets the value to `null`. Entering `0` keeps a
+ * zero duration. A negative value, such as Django's `-1 23:00:00` for minus one hour, shows a
+ * "Negative" segment with a minus sign before the spinners. The spinners show the duration's size,
+ * and editing them keeps the value negative.
  */
 
 defineOptions({
@@ -42,6 +49,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /** When true, the value is a number of seconds instead of a duration string. */
+    seconds: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const emit = defineEmits([...WIDGET_EMITS]);
@@ -51,44 +63,56 @@ const id = useId();
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetDuration", props, widgetContext.state);
 
-const valueDay = computed(() => {
-    return widgetContext.state.combinedValue?.days;
-});
-const valueHour = computed(() => {
-    return widgetContext.state.combinedValue?.hours;
-});
-const valueMinute = computed(() => {
-    return widgetContext.state.combinedValue?.minutes;
-});
-const valueSecond = computed(() => {
-    return widgetContext.state.combinedValue?.seconds;
+const UNIT_SECONDS = { days: 86400, hours: 3600, minutes: 60, seconds: 1 };
+
+/** The shown unit names, largest first. */
+const shownUnits = computed(() =>
+    [
+        props.showDays && "days",
+        props.showHours && "hours",
+        props.showMinutes && "minutes",
+        props.showSeconds && "seconds",
+    ].filter(Boolean),
+);
+
+/**
+ * The value split across the shown units, largest first. `remainder` holds the seconds below the
+ * smallest shown unit, so editing one unit keeps the part of the value no spinner shows.
+ */
+const unitValues = computed(() => {
+    const normalized = normalizeDuration(widgetContext.state.combinedValue);
+    const result = { days: undefined, hours: undefined, minutes: undefined, seconds: undefined, remainder: 0 };
+    if (!normalized) {
+        return { ...result, negative: false };
+    }
+    let remaining = Math.trunc(Math.abs(normalized.totalSeconds));
+    for (const unit of shownUnits.value) {
+        result[unit] = Math.floor(remaining / UNIT_SECONDS[unit]);
+        remaining %= UNIT_SECONDS[unit];
+    }
+    return { ...result, remainder: remaining, negative: normalized.negative };
 });
 
-const durationObject = reactive({
-    days: valueDay.value,
-    hours: valueHour.value,
-    minutes: valueMinute.value,
-    seconds: valueSecond.value,
-});
-
-const updateDay = (newValue) => {
-    durationObject.days = newValue;
-    widgetContext.state.combinedValue = durationObject;
+/**
+ * @param {"days"|"hours"|"minutes"|"seconds"} unit
+ * @param {number|null|undefined} newValue
+ */
+const updateUnit = (unit, newValue) => {
+    const next = { ...unitValues.value, [unit]: Number.isFinite(newValue) ? newValue : undefined };
+    const magnitude = shownUnits.value.reduce(
+        (total, name) => total + (next[name] ?? 0) * UNIT_SECONDS[name],
+        next.remainder,
+    );
+    if (next[unit] === undefined && magnitude === 0) {
+        widgetContext.state.combinedValue = null;
+        return;
+    }
+    const totalSeconds = next.negative ? -magnitude : magnitude;
+    widgetContext.state.combinedValue = props.seconds
+        ? totalSeconds
+        : convertDurationToString({ seconds: totalSeconds });
 };
 
-const updateHour = (newValue) => {
-    durationObject.hours = newValue;
-    widgetContext.state.combinedValue = durationObject;
-};
-
-const updateMinute = (newValue) => {
-    durationObject.minutes = newValue;
-    widgetContext.state.combinedValue = durationObject;
-};
-const updateSecond = (newValue) => {
-    durationObject.seconds = newValue;
-    widgetContext.state.combinedValue = durationObject;
-};
 const daysInput = ref(null);
 const hoursInput = ref(null);
 const minutesInput = ref(null);
@@ -115,16 +139,20 @@ const focusFirstInput = () => {
             data-qa="widget-duration-inner"
             @click.self="focusFirstInput"
         >
+            <div v-if="unitValues.negative" :class="theme('sign')" data-qa="duration-sign">
+                <span :class="theme('unitLabel')">Negative</span>
+                <span :class="theme('signSymbol')" aria-hidden="true">&minus;</span>
+            </div>
             <div v-if="showDays" :class="theme('innerItem')">
                 <label :for="`${id}-days`" :class="theme('unitLabel')">Days</label>
                 <NumberField
                     :id="`${id}-days`"
                     ref="daysInput"
-                    :model-value="valueDay"
+                    :model-value="unitValues.days"
                     :min="0"
                     :max="365"
                     :disabled="widgetContext.state.disabled"
-                    @update:model-value="updateDay"
+                    @update:model-value="updateUnit('days', $event)"
                 >
                     <NumberFieldContent>
                         <NumberFieldDecrement />
@@ -143,10 +171,10 @@ const focusFirstInput = () => {
                 <NumberField
                     :id="`${id}-hours`"
                     ref="hoursInput"
-                    :model-value="valueHour"
+                    :model-value="unitValues.hours"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
-                    @update:model-value="updateHour"
+                    @update:model-value="updateUnit('hours', $event)"
                 >
                     <NumberFieldContent>
                         <NumberFieldDecrement />
@@ -165,10 +193,10 @@ const focusFirstInput = () => {
                 <NumberField
                     :id="`${id}-minutes`"
                     ref="minutesInput"
-                    :model-value="valueMinute"
+                    :model-value="unitValues.minutes"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
-                    @update:model-value="updateMinute"
+                    @update:model-value="updateUnit('minutes', $event)"
                 >
                     <NumberFieldContent>
                         <NumberFieldDecrement />
@@ -187,10 +215,10 @@ const focusFirstInput = () => {
                 <NumberField
                     :id="`${id}-seconds`"
                     ref="secondsInput"
-                    :model-value="valueSecond"
+                    :model-value="unitValues.seconds"
                     :min="0"
                     :disabled="widgetContext.state.disabled"
-                    @update:model-value="updateSecond"
+                    @update:model-value="updateUnit('seconds', $event)"
                 >
                     <NumberFieldContent>
                         <NumberFieldDecrement />

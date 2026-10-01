@@ -73,6 +73,9 @@ export const availableWidgets = {
     WidgetNumberInput: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetNumberInput.vue")).default),
     ),
+    WidgetOTPInput: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetOTPInput.vue")).default),
+    ),
     WidgetRadioGroup: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRadioGroup.vue")).default),
     ),
@@ -96,6 +99,9 @@ export const availableWidgets = {
     ),
     WidgetRangeSlider: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRangeSlider.vue")).default),
+    ),
+    WidgetTagsInput: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTagsInput.vue")).default),
     ),
     WidgetTextInput: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextInput.vue")).default),

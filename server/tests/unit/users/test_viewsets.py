@@ -117,7 +117,8 @@ def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
 
     assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
     assert response.data["destination"][0] == "Email address is required for email method."
-    assert regenerate_calls == [True]
+    # Validation fails before any secret is generated.
+    assert regenerate_calls == []
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))

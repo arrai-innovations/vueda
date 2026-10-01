@@ -24,6 +24,7 @@ from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
+from django.core.validators import EMPTY_VALUES
 from django.core.validators import StepValueValidator
 from django.db import connection
 from django.utils.functional import cached_property
@@ -47,6 +48,7 @@ from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
@@ -454,7 +456,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         model_name = meta.model_name
 
         action_data = []
-        for action in ("list", "retrieve", "create", "update", "partial_update", "destroy"):
+        for action in implemented_builtin_actions(viewset):
             if user is not None and not check_action_permission(called_viewset, request, None, action):
                 continue
 
@@ -565,7 +567,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         rather than a parameter at a time.
 
         A viewset with no ``column_totals``, or one whose declaration isn't a mapping, reports no
-        fields -- the same thing its ``list`` action offers. ``vueda_info.E011`` reports the
+        fields -- the same thing its ``list`` action offers. ``vueda_info.E013`` reports the
         misconfigured declaration itself.
 
         Read from the ``column_totals`` attribute rather than through
@@ -1102,6 +1104,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return choices, None
 
+    def get_model_filtering_type(self, filter_name, filter_obj, field):
+        # Report value-derived filters by their own type, so the client maps them to an input that
+        # fetches the column's stored values.
+        if isinstance(filter_obj, AllValuesMultipleFilter):
+            return "AllValuesMultipleChoiceField"
+        if isinstance(filter_obj, AllValuesFilter):
+            return "AllValuesChoiceField"
+        return self.get_model_fields_serializer_field_type(filter_name, field, True)
+
     def get_model_filtering_choices(self, filterset, filter_obj, field, widget):
         if isinstance(filter_obj, (AllValuesFilter, AllValuesMultipleFilter)):
             # These filters build their choices from the values currently stored in the column, so the
@@ -1124,20 +1135,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "filterset_name": filterset.__class__.__name__,
             }
 
-        if isinstance(choices, ChoiceIterator):
-            choices = [{"label": label, "value": value} for (value, label) in choices]
-            # Convert choices to be {label:label,value:value}.
-            # if choices are list of tuples
-        if choices and isinstance(choices[0], tuple):
-            choices_list = []
-            for value, label in choices:
-                choices_list.append(
-                    {
-                        "label": label,
-                        "value": str(value),  # Convert ints to strings.
-                    }
-                )
-            return choices_list, None
+        if isinstance(choices, ChoiceIterator) or (choices and isinstance(choices[0], tuple)):
+            # Match the filter choices endpoint: values as strings, since a filter value arrives as a
+            # query string, and no empty option, since "no filter" is the absence of the parameter.
+            return [
+                {"label": str(label), "value": str(value)} for value, label in choices if value not in EMPTY_VALUES
+            ], None
 
         return choices, None
 
@@ -1290,7 +1293,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             for filter_name, filter_obj in filterset.filters.items():
                 field = filter_obj.field
 
-                if filter_obj.exclude or field.disabled:
+                # A disabled form field accepts no input. A negated filter (`exclude=True`) is an
+                # ordinary filter the list endpoint accepts, so it is reported like any other.
+                if field.disabled:
                     continue
 
                 widget = field.widget
@@ -1316,7 +1321,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
                 field_type_db = self.get_model_fields_db_field_type(filter_name, model_field, True)
                 field_type_model = self.get_model_fields_model_field_type(filter_name, model_field, True)
-                field_type_filter = self.get_model_fields_serializer_field_type(filter_name, field, True)
+                field_type_filter = self.get_model_filtering_type(filter_name, filter_obj, field)
 
                 filtering_data[filter_name] = {
                     "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,
@@ -2829,7 +2834,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 "required": False,
                                                 "type_db": "CharField",
                                                 "type_model": "CharField",
-                                                "type_filter": "MultipleChoiceField",
+                                                "type_filter": "AllValuesMultipleChoiceField",
                                                 "choices": True,
                                                 "app_label": "store",
                                                 "model": "cart",
@@ -2853,7 +2858,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                                 "required": False,
                                                 "type_db": "IntegerField",
                                                 "type_model": "IntegerField",
-                                                "type_filter": "MultipleChoiceField",
+                                                "type_filter": "AllValuesMultipleChoiceField",
                                                 "choices": True,
                                                 "app_label": "store",
                                                 "model": "cart",

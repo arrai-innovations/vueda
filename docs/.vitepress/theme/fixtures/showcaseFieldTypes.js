@@ -44,8 +44,6 @@ export const fieldTypesModelInfo = {
     model: SHOWCASE_FIELD_TYPES.model,
     verboseName: "Field type",
     verboseNamePlural: "Field types",
-    verbose_name: "Field type",
-    verbose_name_plural: "Field types",
     pk: "id",
     fields: {
         id: {

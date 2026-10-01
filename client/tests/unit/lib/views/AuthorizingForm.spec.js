@@ -4,7 +4,7 @@ import { defineComponent, h } from "vue";
 
 const ActionFormStub = defineComponent({
     name: "ActionFormStub",
-    props: ["runAction"],
+    props: ["runAction", "onSubmissionSuccessHandler"],
     setup(props, { slots, attrs }) {
         return () => h("div", { "data-qa": "action-form", ...attrs }, slots.default ? slots.default({}) : null);
     },
@@ -45,6 +45,35 @@ describe("lib/views/AuthorizingForm.vue", () => {
         const wrapper = mountAuthorizingForm();
         expect(wrapper.find('[data-qa="authorizing-form-header"]').text()).toBe("Welcome");
         expect(wrapper.find('[data-qa="action-form"]').exists()).toBe(true);
+    });
+
+    describe("Success messaging", () => {
+        scopedIt("replaces ActionForm's generic success toast, since useSignInFlow announces the sign-in", () => {
+            const wrapper = mountAuthorizingForm();
+            const handler = wrapper.findComponent(ActionFormStub).props("onSubmissionSuccessHandler");
+            expect(typeof handler).toBe("function");
+            expect(handler()).toBeUndefined();
+        });
+
+        scopedIt("passes a caller's success handler bound in a template through as that one function", () => {
+            // A template binding keeps the kebab-case key, which Vue would merge with the default's
+            // own `on*` binding into an array.
+            const Parent = defineComponent({
+                setup: () => () => h(AuthorizingForm, { "on-submission-success-handler": () => "caller" }),
+            });
+            const wrapper = mount(Parent);
+            const handler = wrapper.findComponent(ActionFormStub).props("onSubmissionSuccessHandler");
+            expect(Array.isArray(handler)).toBe(false);
+            expect(handler()).toBe("caller");
+        });
+
+        scopedIt("passes a caller's own success handler through", () => {
+            const onSubmissionSuccessHandler = vi.fn();
+            const wrapper = mount(AuthorizingForm, { attrs: { onSubmissionSuccessHandler } });
+            expect(wrapper.findComponent(ActionFormStub).props("onSubmissionSuccessHandler")).toBe(
+                onSubmissionSuccessHandler,
+            );
+        });
     });
 
     scopedIt("renders invalid message slot when not permitted", () => {

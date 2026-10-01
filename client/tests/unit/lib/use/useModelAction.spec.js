@@ -106,6 +106,28 @@ describe("lib/use/useModelAction.js", () => {
         expect(fromPk.state.bulk.value).toBe(false);
     });
 
+    describe("Model naming", () => {
+        scopedIt("names the model by its verbose name when the slug differs", async () => {
+            modelConfig.info = { verboseName: "purchase order", verboseNamePlural: "purchase orders" };
+
+            const single = await withSetup(() =>
+                useModelAction(reactive({ app: "catalog", model: "purchaseorder", action: "destroy", pk: "9" })),
+            );
+            expect(single.state.modelVerboseName.value).toBe("purchase order");
+            expect(single.state.confirmMessage.value).toBe(
+                "Are you sure you want to destroy the selected purchase order?",
+            );
+
+            const bulk = await withSetup(() =>
+                useModelAction(reactive({ app: "catalog", model: "purchaseorder", action: "destroy", pk: ["4", "7"] })),
+            );
+            expect(bulk.state.modelVerboseName.value).toBe("purchase orders");
+            expect(bulk.state.confirmMessage.value).toBe(
+                "Are you sure you want to destroy the selected purchase orders?",
+            );
+        });
+    });
+
     describe("Transport instances", () => {
         scopedIt("creates a transport-only list when the caller supplies none", async () => {
             await withSetup(() => useModelAction(reactive({ app: "app", model: "person", action: "archive" })));
@@ -349,6 +371,43 @@ describe("lib/use/useModelAction.js", () => {
             expect(routerPush).toHaveBeenLastCalledWith({
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: "app", model: "person", action: "list" },
+            });
+        });
+
+        scopedIt("sends a successful single destroy to the list, since its row no longer exists", async () => {
+            mocks.routeQuery = {};
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: LIST_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "list" },
+            });
+        });
+
+        scopedIt("returns a cancelled destroy to the default detail view", async () => {
+            mocks.routeQuery = {};
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("cancel");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "detail", pk: "9" },
+            });
+        });
+
+        scopedIt("follows an explicit destroy redirect after a successful destroy", async () => {
+            mocks.routeQuery = {};
+            modelConfig.config = { actionRedirects: { default: "detail", destroy: () => "archived" } };
+            const destroyAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+            await destroyAction.redirectTo("success");
+            expect(routerPush).toHaveBeenLastCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { app: "app", model: "person", action: "archived", pk: "9" },
             });
         });
 

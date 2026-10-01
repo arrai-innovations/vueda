@@ -1,0 +1,2 @@
+- **`setConfig` view config keyed `read`**:
+    - A view-specific config passed to `storeModelConfig.setConfig` under `read` now applies to the read view. The read view looks its config up as `retrieve`, so a `read` key was stored and never used.

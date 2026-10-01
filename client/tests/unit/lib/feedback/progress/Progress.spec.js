@@ -39,6 +39,12 @@ describe("lib/feedback/progress/Progress.vue", () => {
             expect(indicator.attributes("style")).toContain("translateX(-100%)");
         });
 
+        scopedIt("scales the indicator transform by max", () => {
+            const wrapper = mount(Progress, { props: { modelValue: 50, max: 200 } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(indicator.attributes("style")).toContain("translateX(-75%)");
+        });
+
         scopedIt("sets indicator transform to 0% when modelValue equals max", () => {
             const wrapper = mount(Progress, { props: { modelValue: 100, max: 100 } });
             const indicator = wrapper.find("[data-slot='progress-indicator']");
@@ -103,16 +109,30 @@ describe("lib/feedback/progress/Progress.vue", () => {
     });
 
     describe("indeterminate state", () => {
-        scopedIt("omits the inline transform style when max is undefined", () => {
-            const wrapper = mount(Progress, { props: { max: undefined } });
+        scopedIt("is indeterminate when modelValue is omitted", () => {
+            const wrapper = mount(Progress);
             const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.attributes("data-state")).toBe("indeterminate");
             expect(indicator.attributes("style")).toBeUndefined();
         });
 
-        scopedIt("retains the inline transform style when max is defined", () => {
-            const wrapper = mount(Progress, { props: { modelValue: 50, max: 100 } });
+        scopedIt("is indeterminate when modelValue is null, even with max set", () => {
+            const wrapper = mount(Progress, { props: { modelValue: null, max: 200 } });
             const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.attributes("data-state")).toBe("indeterminate");
+            expect(indicator.attributes("style")).toBeUndefined();
+        });
+
+        scopedIt("is determinate when modelValue is set and max is omitted", () => {
+            const wrapper = mount(Progress, { props: { modelValue: 50 } });
+            const indicator = wrapper.find("[data-slot='progress-indicator']");
+            expect(wrapper.attributes("data-state")).toBe("loading");
             expect(indicator.attributes("style")).toContain("translateX(-50%)");
+        });
+
+        scopedIt("is determinate at a modelValue of 0", () => {
+            const wrapper = mount(Progress, { props: { modelValue: 0 } });
+            expect(wrapper.attributes("data-state")).toBe("loading");
         });
 
         scopedIt("ships indeterminate animation classes on the indicator", () => {

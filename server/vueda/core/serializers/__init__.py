@@ -21,16 +21,28 @@ __all__ = (
 import copy
 import inspect
 from collections.abc import Mapping
+from contextlib import contextmanager
+from functools import partial
 from typing import ClassVar
 
 import drf_writable_nested
 import rest_flex_fields.serializers as flex_serializers
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import models
+from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
+from django.http import Http404
 from rest_flex_fields import split_levels
 from rest_framework import serializers
+from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields.serializers import FileField as VuedaFileField
@@ -45,6 +57,7 @@ from vueda.history.revision import REVISION_ANNOTATION
 from vueda.history.revision import ObjectRevisionField
 from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
+from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
 
 
@@ -146,6 +159,11 @@ class FlexFieldsWriteableNestedSerializerMixin(
     This is a utility mixin making a single class that makes serializers flex & nested writable.
     """
 
+    @transaction.atomic
+    def save(self, **kwargs):
+        """Roll back the whole nested write if any related mutation is denied or invalid."""
+        return super().save(**kwargs)
+
     def apply_flex_fields(self, fields, flex_options):
         expand_fields, _next_expand_fields = split_levels(flex_options["expand"])
         sparse_fields, next_sparse_fields = split_levels(flex_options["fields"])
@@ -216,7 +234,110 @@ class FlexFieldsWriteableNestedSerializerMixin(
         for field_name, field in self.fields.items():
             if isinstance(field, serializers.BaseSerializer) and field_name in initial_data:
                 field.initial_data = initial_data[field_name]
-        return super().to_internal_value(data)
+        with self._validate_nested_links():
+            return super().to_internal_value(data)
+
+    @contextmanager
+    def _validate_nested_links(self):
+        """Let pk-only shared relations validate as links, including in POST and PUT bodies.
+
+        A link needs no child create fields. Adapt each nested serializer's validation for
+        this call only, leaving DRF's field, list, and parent validators in place. Mutations
+        still run the original nested validation. This also works with plain DRF children.
+        """
+        restored = []
+        try:
+            for field in self._writable_fields:
+                try:
+                    relation, direct = self._get_related_field(field)
+                except FieldDoesNotExist:
+                    continue
+                if not direct and not relation.many_to_many:
+                    continue
+                child = field.child if isinstance(field, serializers.ListSerializer) else field
+                if not isinstance(child, serializers.ModelSerializer) or isinstance(child, VuedaReadonlySerializer):
+                    continue
+                original_attribute = child.__dict__.get("run_validation", serializers.empty)
+                restored.append((child, original_attribute))
+                child.run_validation = partial(self._validate_nested_link, child, child.run_validation)
+            yield
+        finally:
+            for child, original in restored:
+                if original is serializers.empty:
+                    child.__dict__.pop("run_validation", None)
+                else:
+                    child.run_validation = original
+
+    def _validate_nested_link(self, field, validate, data=serializers.empty):
+        if self._is_nested_link(field, data):
+            self._resolve_nested_instance(field, data)
+            return {}
+        return validate(data)
+
+    @staticmethod
+    def _is_nested_link(field, data):
+        pk_names = {"pk", field.Meta.model._meta.pk.attname}
+        return isinstance(data, Mapping) and bool(data) and set(data) <= pk_names
+
+    @staticmethod
+    def _resolve_nested_instance(field, data):
+        model = field.Meta.model
+        pk_name = model._meta.pk.attname
+        if "pk" not in data and pk_name not in data:
+            return None
+        pk = data.get("pk", data.get(pk_name))
+        try:
+            instance = model._default_manager.filter(pk=model._meta.pk.to_python(pk)).first()
+        except (DjangoValidationError, ValueError, TypeError):
+            instance = None
+        if instance is None:
+            raise serializers.ValidationError({pk_name: [f"Object with pk={pk} does not exist."]})
+        return instance
+
+    def _check_nested_write_permission(self, field, instance, data):
+        """Check the related model's canonical viewset as its own create or update action."""
+        model = field.Meta.model
+        request = self.context.get("request")
+        try:
+            registered = get_registration(ContentType.objects.get_for_model(model, for_concrete_model=False).pk)
+        except KeyError:
+            registered = None
+        view_class = registered["viewset"] if registered else None
+        action = "update" if instance is not None else "create"
+        if request is None or view_class is None or not callable(getattr(view_class, action, None)):
+            raise serializers.ValidationError([f"Cannot establish {action} permission for {model._meta.label}."])
+
+        # Keep authentication and application request attributes, but make action-dependent
+        # permission selection and checks see the related operation and its submitted data.
+        related_request = copy.copy(request)
+        related_request.method = "PUT" if instance is not None else "POST"
+        related_request._full_data = data
+        view = view_class()
+        view.request = related_request
+        view.action = action
+        view.detail = instance is not None
+        view.args = ()
+        view.kwargs = (
+            {view.lookup_url_kwarg or view.lookup_field: getattr(instance, view.lookup_field)} if instance else {}
+        )
+        view.format_kwarg = None
+        try:
+            view.check_permissions(related_request)
+            if instance is not None:
+                # get_object applies the canonical view's queryset restrictions and calls
+                # its object-permission hook, just as a direct update would.
+                view.get_object()
+        except (PermissionDenied, NotAuthenticated, DjangoPermissionDenied, Http404) as exc:
+            raise serializers.ValidationError([f"You do not have permission to {action} {model._meta.label}."]) from exc
+
+    def _save_nested_shared_row(self, field, data, save_kwargs):
+        instance = self._resolve_nested_instance(field, data)
+        if self._is_nested_link(field, data) and not save_kwargs:
+            return instance
+        self._check_nested_write_permission(field, instance, data)
+        serializer = self._get_serializer_for_field(field, instance=instance, data=data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.save(**save_kwargs)
 
     def _expand_fields_for_write(self, fields, flex_options):
         """
@@ -237,20 +358,101 @@ class FlexFieldsWriteableNestedSerializerMixin(
                 fields[name] = self._make_expanded_field_serializer(name, next_expand_fields, {}, {})
 
     def update_or_create_direct_relations(self, attrs, relations):
-        return super().update_or_create_direct_relations(attrs, relations)
+        """Link existing rows directly; authorize each nested create or update before saving."""
+        for field_name, (field, field_source) in relations.items():
+            try:
+                attrs[field_source] = self._save_nested_shared_row(
+                    field, self.get_initial()[field_name], self._get_save_kwargs(field_name)
+                )
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({field_name: exc.detail}) from exc
+
+    def update_or_create_reverse_relations(self, instance, reverse_relations):
+        """
+        Save each reverse relation's rows, matching submitted pks only against the parent's rows.
+
+        drf-writable-nested looks up submitted child pks across the whole child table, then saves
+        each match with its foreign key set to this parent. A pk that belongs to another parent's
+        row would move that row here and update it, although the request was authorized only for
+        this parent. Each relation is saved on its own, so the lookup can be limited to rows that
+        already belong to this parent. A pk outside that set matches no row, and the library saves
+        that entry as a new row, as it does for any unknown pk.
+
+        Many-to-many entries may link shared rows by pk. Changes to those rows require the
+        related model's permissions, while parent-owned reverse children keep their matching rules.
+        """
+        for field_name, relation in reverse_relations.items():
+            if relation[0].many_to_many:
+                self._save_nested_many_to_many(instance, field_name, relation)
+                continue
+            self._reverse_relation_lookup = self._get_reverse_relation_lookup(instance, relation[0])
+            try:
+                super().update_or_create_reverse_relations(instance, {field_name: relation})
+            finally:
+                self._reverse_relation_lookup = None
+
+    def _save_nested_many_to_many(self, instance, field_name, relation):
+        _related_field, field, field_source = relation
+        data = self.get_initial().get(field_name)
+        if data is None:
+            return
+        instances, errors = [], []
+        for entry in data:
+            try:
+                related = self._save_nested_shared_row(field, entry, self._get_save_kwargs(field_name))
+                entry["pk"] = related.pk
+                instances.append(related)
+                errors.append({})
+            except serializers.ValidationError as exc:
+                errors.append(exc.detail)
+        if any(errors):
+            raise serializers.ValidationError({field_name: errors})
+        getattr(instance, field_source).add(*instances)
+
+    def _get_reverse_relation_lookup(self, instance, related_field):
+        """Return the filter that selects the rows of ``related_field`` that belong to ``instance``."""
+        if isinstance(related_field, GenericRelation):
+            return self._get_generic_lookup(instance, related_field)
+        if related_field.many_to_many:
+            return None
+        return {related_field.name: instance}
+
+    def _prefetch_related_instances(self, field, related_data):
+        """Fetch the existing rows the submitted pks name, within the parent's rows when a lookup is set."""
+        queryset = field.Meta.model.objects.filter(pk__in=self._extract_related_pks(field, related_data))
+        lookup = getattr(self, "_reverse_relation_lookup", None)
+        if lookup is not None:
+            queryset = queryset.filter(**lookup)
+        return {str(related_instance.pk): related_instance for related_instance in queryset}
 
     def _extract_relations(self, validated_data):
+        # A read-only serializer validates any input, even a missing key, to `{}`, which the
+        # library pops from `validated_data` as a direct relation to save. Keep a model instance
+        # passed to `save()` for a read-only direct relation, so the parent still stores it.
+        readonly_values = {
+            field.source: validated_data[field.source]
+            for field in self._writable_fields
+            if isinstance(field, VuedaReadonlySerializer) and field.source in validated_data
+        }
         relations, reverse_relations = super()._extract_relations(validated_data)
 
-        # Tuple, so we can modify inline, as needed.
+        # Tuples, so we can modify inline, as needed. You cannot create or update a readonly
+        # serializer, so its relation takes no part in the save.
+        for field_name, (field, field_source) in tuple(relations.items()):
+            if isinstance(field, VuedaReadonlySerializer):
+                del relations[field_name]
+                if isinstance(readonly_values.get(field_source), models.Model):
+                    validated_data[field_source] = readonly_values[field_source]
         for field_name, (_related_field, field, _field_source) in tuple(reverse_relations.items()):
-            # You cannot create or update a readonly serializer.
             if isinstance(field, (VuedaReadonlySerializer, VuedaReadonlyListSerializer)):
                 del reverse_relations[field_name]
 
         return relations, reverse_relations
 
     def update(self, instance, validated_data):
+        # UniqueFieldsMixin moves unique checks from field validation to create/update, and the
+        # super() call below skips its update, so run the check here before anything is written.
+        self._validate_unique_fields(validated_data)
         relations, reverse_relations = self._extract_relations(validated_data)
 
         # Create or update direct relations (foreign key, one-to-one)
@@ -273,8 +475,12 @@ class FlexFieldsWriteableNestedSerializerMixin(
 
 class ExcludeFieldsSerializerMixin:
     """
-    Fields hidden or added by this Mixin are not shown in OPTIONS responses.
-    https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
+    Make fields read-only for one kind of write, named in the serializer's ``Meta``.
+
+    ``Meta.exclude_create_fields`` lists fields a ``create`` request cannot set, and
+    ``Meta.exclude_update_fields`` lists fields an ``update`` or ``partial_update`` request cannot set.
+    The fields stay in responses. Fields made read-only this way still show as writable in OPTIONS
+    responses: https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
     """
 
     def get_extra_kwargs(self):
@@ -384,7 +590,7 @@ class VuedaExpandableFieldsSerializerMixin:
                 if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name, field in tuple(fields.items()):
-                        if field_name == "pk":  # Always keep the pk.
+                        if field_name == field_meta.pk.name:  # Always keep the pk.
                             continue
                         if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
                             del fields[field_name]

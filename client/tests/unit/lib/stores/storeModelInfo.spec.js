@@ -99,10 +99,50 @@ describe("lib/stores/storeModelInfo.js", () => {
         expect(params.get("f").split(",")).toContain("model_column_totals");
         expect(params.get("e").split(",")).toContain("model_column_totals");
 
-        // `column_totals` is the only multi-word section name, so it is renamed rather than left
-        // snake_case next to `ordering` and `filtering`.
         expect(result.columnTotals).toEqual({ fields: ["hours", "product_price"] });
-        expect(result.column_totals).toBeUndefined();
+    });
+
+    scopedIt("camelCases every top-level key of a server response", async () => {
+        const args = { app: "catalog", model: "purchaseorder" };
+        fetchHelper.mockResolvedValue({
+            app_label: "catalog",
+            model: "purchaseorder",
+            verbose_name: "purchase order",
+            verbose_name_plural: "purchase orders",
+            workflow_enabled: true,
+            model_fields: { id: { pk: true, type_db: "AutoField" } },
+            model_actions: [],
+            model_expands: [],
+            model_ordering: { default: [], fields: [] },
+            model_filtering: {},
+            model_column_totals: { fields: [] },
+            model_permissions: [],
+        });
+
+        const result = await store.fetchModelInfo(args);
+
+        expect(Object.keys(result).sort()).toEqual(
+            [
+                "actions",
+                "appLabel",
+                "columnTotals",
+                "expand",
+                "fields",
+                "filtering",
+                "model",
+                "ordering",
+                "permissions",
+                "pk",
+                "verboseName",
+                "verboseNamePlural",
+                "workflowEnabled",
+            ].sort(),
+        );
+        expect(result.appLabel).toBe("catalog");
+        expect(result.verboseName).toBe("purchase order");
+        expect(result.verboseNamePlural).toBe("purchase orders");
+        expect(result.workflowEnabled).toBe(true);
+        expect(result.columnTotals).toEqual({ fields: [] });
     });
 
     scopedIt("camelCases expand descriptor root keys while preserving f field-name keys", async () => {

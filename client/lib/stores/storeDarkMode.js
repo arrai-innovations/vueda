@@ -11,17 +11,7 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 /**
  * The store for the current dark mode state, and persisting it.
  *
- * @typedef {import('pinia').Store<
- *   'darkMode',
- *   {
- *       isDark: boolean,
- *   },
- *   {},
- *   {
- *     init: () => void,
- *     toggle: () => void
- *   }
- * >} DarkModeStore
+ * @typedef {ReturnType<typeof storeDarkMode>} DarkModeStore
  */
 
 /**
@@ -37,18 +27,32 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  *   darkMode.init(); // get dark mode from local storage or prefers
  *   darkMode.toggle(); // toggle dark mode
  * ```
- *
- * @returns {DarkModeStore} The store for dark mode.
  */
 export const storeDarkMode = defineStore("darkMode", {
     state: () => ({
+        /**
+         * Whether dark mode is on.
+         *
+         * @type {boolean}
+         */
         isDark: false,
     }),
     actions: {
+        /**
+         * Sets `isDark` from localStorage. With no saved value, follows the browser's
+         * `prefers-color-scheme: dark` setting.
+         *
+         * @returns {void}
+         */
         init() {
             const storedDarkMode = localStorage.getItem(darkModeLocalStorageKey);
             this.isDark = storedDarkMode !== null ? JSON.parse(storedDarkMode) : prefers();
         },
+        /**
+         * Flips `isDark` and saves the new value to localStorage.
+         *
+         * @returns {void}
+         */
         toggle() {
             this.isDark = !this.isDark;
             localStorage.setItem(darkModeLocalStorageKey, JSON.stringify(this.isDark));

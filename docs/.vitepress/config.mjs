@@ -1,16 +1,8 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
 import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
-import {
-    formatApiMemberTitle,
-    memberAnchorFromId,
-    memberNameFromId,
-} from "../../docs-tooling/js/utils/reference-index.js";
-import {
-    normalizeTerm,
-    parseFrontmatter,
-    parseTermRef,
-    stripInlineMarkdown,
-} from "../../docs-tooling/js/utils/reference-parser.js";
+import { glossaryTermPlugin } from "../../docs-tooling/js/utils/glossary-term-plugin.js";
+import { apiMemberTitle, memberAnchorFromId } from "../../docs-tooling/js/utils/reference-index.js";
+import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "../../docs-tooling/js/utils/reference-parser.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
@@ -337,11 +329,10 @@ const buildApiIndex = () => {
                     if (!memberId || index.has(memberId)) {
                         continue;
                     }
-                    const memberName = memberNameFromId(memberId);
                     const anchor = memberAnchorFromId(memberId);
                     index.set(memberId, {
                         href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                        title: formatApiMemberTitle(title, memberName),
+                        title: apiMemberTitle(title, memberId),
                         filePath,
                     });
                 }
@@ -349,53 +340,19 @@ const buildApiIndex = () => {
         }
     }
     setTimingMetric("apiIndex.files", fileCount);
+    // Upstream documentation ids, which the docs-tooling external extractor writes as a flat map.
+    const externalIdsFile = path.join(docsRoot, "..", "docs-tooling", ".generated", "external-ids.json");
+    if (fs.existsSync(externalIdsFile)) {
+        for (const [id, entry] of Object.entries(JSON.parse(fs.readFileSync(externalIdsFile, "utf-8")))) {
+            index.set(id, { href: entry.href, title: entry.title, external: true });
+        }
+    }
     setTimingMetric("apiIndex.ids", index.size);
     return index;
 };
 
 const apiIndex = timeSync("config:api-index", buildApiIndex);
 const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
-
-const escapeAttr = (value) =>
-    value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const glossaryTermPlugin = (md, options = {}) => {
-    const resolve = options.resolve;
-    const strict = options.strict !== false;
-
-    md.inline.ruler.before("emphasis", "vueda-term-link", (state, silent) => {
-        const { pos } = state;
-        if (state.src.charCodeAt(pos) !== 0x7b) {
-            return false;
-        }
-        const parsed = parseTermRef(state.src, pos);
-        if (!parsed) {
-            return false;
-        }
-        if (silent) {
-            return true;
-        }
-
-        const { raw, rawTerm, length } = parsed;
-        const entry = resolve ? resolve(rawTerm) : null;
-        if (!entry) {
-            const hint = state.env?.relativePath || state.env?.path || "unknown file";
-            const message = `Unknown glossary term "${rawTerm}" in ${hint}`;
-            if (strict) {
-                throw new Error(message);
-            }
-            const token = state.push("text", "", 0);
-            token.content = raw;
-            state.pos += length;
-            return true;
-        }
-
-        const token = state.push("html_inline", "", 0);
-        token.content = `<GlossaryTerm term="${escapeAttr(entry.term)}" href="${escapeAttr(entry.href)}" />`;
-        state.pos += length;
-        return true;
-    });
-};
 
 const instrumentMarkdownTiming = (md) => {
     if (!docsTiming) {

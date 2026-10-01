@@ -5,7 +5,7 @@
  * TableBody.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire grid family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -14,7 +14,7 @@ patchTheme({
      */
     TableBody: {
         /**
-         * The `<tbody>` section wrapper. It removes the last row's divider from that row's cells so the enclosing {@api theme-key:Table.container} edge remains the closing edge instead of doubling the table bottom.
+         * The `<tbody>` section wrapper. It removes the last row's divider from that row's cells so the enclosing {@api theme-key:Table.frame} edge remains the closing edge instead of doubling the table bottom.
          */
         root: {
             class: "[&>tr:last-child>*]:border-b-0",

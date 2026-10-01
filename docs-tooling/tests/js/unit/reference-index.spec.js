@@ -1,4 +1,5 @@
 import {
+    apiMemberTitle,
     cssTokenAnchor,
     formatApiMemberTitle,
     memberAnchorFromId,
@@ -16,6 +17,10 @@ describe("memberNameFromId", () => {
     it("returns the slot name for a theme-key slot", () => {
         expect(memberNameFromId("theme-key:StickyBar.root")).toBe("root");
     });
+
+    it("returns the custom-property name for a css token", () => {
+        expect(memberNameFromId("css-token:vueda-gap-sm")).toBe("--vueda-gap-sm");
+    });
 });
 
 describe("formatApiMemberTitle", () => {
@@ -29,6 +34,37 @@ describe("formatApiMemberTitle", () => {
 });
 
 describe("memberAnchorFromId", () => {
+    it("anchors a JS parameter and a key of an object parameter", () => {
+        expect(
+            memberAnchorFromId(
+                "js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect",
+            ),
+        ).toBe("param-params-actionRedirect");
+        expect(
+            memberAnchorFromId(
+                "js:param:@arrai-innovations/vueda/stores/storeTheme#storeTheme.registerComponent:componentName",
+            ),
+        ).toBe("param-componentName");
+    });
+
+    it("anchors Vue props, slots, slot bindings, and events", () => {
+        expect(memberAnchorFromId("vue:component:ObjectsGrid:prop:fieldClasses")).toBe("prop-fieldClasses");
+        expect(memberAnchorFromId("vue:component:ObjectsGrid:slot:cell")).toBe("slot-cell");
+        expect(memberAnchorFromId("vue:component:ObjectsGrid:slot:cell.rowIndex")).toBe("slot-cell-param-rowIndex");
+        expect(memberAnchorFromId("vue:component:Calendar:event:update:modelValue")).toBe("event-update-modelValue");
+    });
+
+    it("anchors a Python parameter under its function's member anchor", () => {
+        expect(memberAnchorFromId("py:param:vueda.core.config.TomlEnv.__init__.prefer_env")).toBe(
+            "--init---param-prefer_env",
+        );
+        expect(memberAnchorFromId("py:param:vueda.core.config.load_toml.path")).toBe("load_toml-param-path");
+    });
+
+    it("names a Python parameter with its function", () => {
+        expect(memberNameFromId("py:param:vueda.core.config.TomlEnv.__init__.prefer_env")).toBe("__init__.prefer_env");
+    });
+
     it("returns no anchor for a component-level theme key", () => {
         expect(memberAnchorFromId("theme-key:StickyBar")).toBe("");
     });
@@ -93,5 +129,37 @@ describe("cssTokenAnchor", () => {
 
     it("accepts a name that already lacks the prefix", () => {
         expect(cssTokenAnchor("vueda-control-height")).toBe("css-token-vueda-control-height");
+    });
+});
+
+describe("apiMemberTitle", () => {
+    it("titles a css token by its custom-property name alone", () => {
+        expect(apiMemberTitle("Base tokens", "css-token:vueda-hairline-width")).toBe("--vueda-hairline-width");
+    });
+
+    it("prefixes other members with the page title", () => {
+        expect(apiMemberTitle("StickyBar", "theme-key:StickyBar.root")).toBe("StickyBar.root");
+    });
+
+    it("titles a Vue member by its component, whatever page lists it", () => {
+        expect(apiMemberTitle("ObjectsGrid Slots", "vue:component:ObjectsGrid:slot:cell.rowIndex")).toBe(
+            "ObjectsGrid.cell.rowIndex",
+        );
+        expect(apiMemberTitle("Calendar Events", "vue:component:Calendar:event:update:modelValue")).toBe(
+            "Calendar.update:modelValue",
+        );
+    });
+
+    it("titles a JS parameter by its function page and path", () => {
+        expect(
+            apiMemberTitle(
+                "makeCRUDRoutes",
+                "js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect",
+            ),
+        ).toBe("makeCRUDRoutes.params.actionRedirect");
+    });
+
+    it("titles any other member by its page", () => {
+        expect(apiMemberTitle("TomlEnv", "py:function:vueda.core.config.TomlEnv.bool")).toBe("TomlEnv.bool");
     });
 });

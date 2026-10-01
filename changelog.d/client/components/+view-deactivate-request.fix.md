@@ -1,0 +1,2 @@
+- **`ViewDeactivate` request**:
+    - Confirming deactivation now sends the request. The view built its URL with the wrong arguments, so every confirm showed a `TypeError` message and nothing reached the server. One object now goes to its detail `deactivate` URL, and an array of pks goes to the list `deactivate` URL as `pks`.
