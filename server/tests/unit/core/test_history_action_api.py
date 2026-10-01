@@ -441,7 +441,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             )
         return customer, cart, order
 
-    def get_history_as_expecting_ok(self, client, email, customer):
+    def get_history_for_user_expecting_ok(self, client, email, customer):
         client.force_authenticate(user=get_user_model().objects.get(email=email))
         response = client.get(reverse("store.customer-history-list", kwargs={"pk": customer.pk}))
         self.assert_response(response, HTTPStatus.OK)
@@ -453,7 +453,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
 
     def test_a_reader_of_every_model_sees_every_event(self, api_client, written):
         customer, _, _ = written
-        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_for_user_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert data["totalRecords"] == 2, "the onboarding action plus the context-less create"  # noqa: PLR2004
         assert self.models_seen(data) == [
@@ -468,7 +468,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             cart.reserved_until = "12:00"
             cart.save()
 
-        data = self.get_history_as_expecting_ok(api_client, "customer_only@domain.invalid", customer)
+        data = self.get_history_for_user_expecting_ok(api_client, "customer_only@domain.invalid", customer)
 
         assert self.models_seen(data) == [("store.Customer", "created")]
         assert data["totalRecords"] == 1, "a group whose only events are hidden does not count"
@@ -483,7 +483,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
             grant_or_deny=False,
         )
 
-        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_for_user_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert ("store.CustomerOrder", "created") not in self.models_seen(data)
         assert ("store.Cart", "created") in self.models_seen(data), "the deny reaches only the order"
@@ -494,7 +494,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
         with audited_action("cart.abandon", kind="command"):
             cart.delete()
 
-        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_for_user_expecting_ok(api_client, "full_reader@domain.invalid", customer)
         abandon = next(group for group in data["results"] if group["label"] == "cart.abandon")
 
         assert self.models_seen(data).count(("store.Cart", "created")) == 1
@@ -507,7 +507,7 @@ class TestHistoryVisibility(BaseTestAssertResponseMixin, BaseTestUserMixin, Base
         with audited_action("order.void", kind="command"):
             order.delete()
 
-        data = self.get_history_as_expecting_ok(api_client, "full_reader@domain.invalid", customer)
+        data = self.get_history_for_user_expecting_ok(api_client, "full_reader@domain.invalid", customer)
 
         assert "store.CustomerOrder" not in {model for model, _ in self.models_seen(data)}
         assert "order.void" not in [group["label"] for group in data["results"]], (

@@ -69,8 +69,8 @@ def test_allow_transition_not_gated_by_workflow_code(sender, receiver):
 
 @pytest.mark.django_db
 def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sms_sender, sms_receiver):
-    queued_email_with_detail = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    queued_sms = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
+    email_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    sms_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
 
     email_calls = []
     sms_calls = []
@@ -82,18 +82,18 @@ def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sm
         sms_calls.append(True)
 
     monkeypatch.setattr(
-        queued_email_with_detail,
+        email_item,
         "delete_email_attachments",
-        MethodType(record_email_cleanup, queued_email_with_detail),
+        MethodType(record_email_cleanup, email_item),
     )
     monkeypatch.setattr(
-        queued_sms,
+        sms_item,
         "delete_email_attachments",
-        MethodType(record_sms_cleanup, queued_sms),
+        MethodType(record_sms_cleanup, sms_item),
     )
 
-    queued_email_with_detail.delete_files()
-    queued_sms.delete_files()
+    email_item.delete_files()
+    sms_item.delete_files()
 
     assert email_calls == [True]
     assert sms_calls == []
