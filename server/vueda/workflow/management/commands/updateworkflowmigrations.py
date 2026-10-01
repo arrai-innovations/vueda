@@ -5,6 +5,7 @@ import datetime
 import importlib.util
 import os
 import sys
+import sysconfig
 from pprint import pformat
 
 from django.apps import apps as django_apps
@@ -37,6 +38,19 @@ REQUIRED_WORKFLOW_MIGRATION = (
 # The keys naming the app and model a workflow was written for, which a change records alongside a
 # workflow's code so that a code two content types have held resolves to the right one.
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
+
+# The directories packages are installed into. A migration under one of them belongs to a package, so
+# the project cannot commit a rewrite of it, and reinstalling the package puts the original back. An
+# editable install leaves its files in their source tree, so it is not under any of these.
+INSTALLED_PACKAGE_PATHS = tuple(
+    os.path.normcase(os.path.realpath(path)) for path in {sysconfig.get_path("purelib"), sysconfig.get_path("platlib")}
+)
+
+
+def is_installed_package_path(path):
+    """Return whether a path is inside a directory packages are installed into."""
+    path = os.path.normcase(os.path.realpath(path))
+    return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 
 
 def describe_unreadable_changes(changed_data):
@@ -207,8 +221,9 @@ OPERATION_FUNCTION_RENAMES = {
 
 class Command(BaseCommand):
     help = (
-        "Scan all installed apps for workflow migrations created by makeworkflowmigrations and rewrite "
-        "their import and function sections with the current implementations from makeworkflowmigrations.py. "
+        "Scan the named apps, or every app when none is named, for workflow migrations created by "
+        "makeworkflowmigrations and rewrite their import and function sections with the current implementations "
+        "from makeworkflowmigrations.py. Apps installed as packages are never updated. "
         "The history_change_reason and migration_app_label variables are preserved unchanged, and changed_data "
         "keeps every change it records, gaining only the app and model naming each workflow it refers to by code. "
         "The class Migration block is also preserved, with stale operation function names updated to their "
@@ -241,6 +256,10 @@ class Command(BaseCommand):
 
             migrations_path = get_migrations_path(app_config)
             if migrations_path is None or not os.path.isdir(migrations_path):
+                continue
+
+            # Only the project's own apps are updated. A named package app is rejected in handle().
+            if is_installed_package_path(migrations_path):
                 continue
 
             for filename in sorted(os.listdir(migrations_path)):
@@ -436,9 +455,18 @@ class Command(BaseCommand):
         has_bad_labels = False
         for app_label in app_labels:
             try:
-                django_apps.get_app_config(app_label)
+                app_config = django_apps.get_app_config(app_label)
             except LookupError as err:
                 self.stderr.write(str(err))
+                has_bad_labels = True
+                continue
+
+            migrations_path = get_migrations_path(app_config)
+            if migrations_path is not None and is_installed_package_path(migrations_path):
+                self.stderr.write(
+                    f"App '{app_label}' is part of an installed package at {migrations_path}. "
+                    "updateworkflowmigrations will not update installed packages."
+                )
                 has_bad_labels = True
         if has_bad_labels:
             sys.exit(2)
