@@ -25,6 +25,7 @@ client/types
 
 # generated docs outputs
 docs/reference/api
+docs/reference/configuration.md
 docs/reference/theming/keys
 docs/reference/theming/keys.md
 docs/reference/theming/tokens
