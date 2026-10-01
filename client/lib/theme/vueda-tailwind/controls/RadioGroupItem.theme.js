@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -17,7 +17,7 @@ patchTheme({
         root: {
             class: [
                 // Surface and shape.
-                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full shadow-vueda-control transition-shadow",
+                "text-primary dark:bg-input/30 hairline aspect-square size-6 shrink-0 rounded-full transition-shadow",
 
                 // Dark-mode rest edge, parity with Checkbox: --border-strong so the ring
                 // clears the row-hover accent band that opaque --input sinks into.

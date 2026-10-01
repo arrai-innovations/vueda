@@ -46,7 +46,8 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
  * @property {import('vue').ComputedRef<boolean>} anyModified - Whether any field has been modified.
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} required - Tracks required fields.
- * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} valid - Tracks field validity.
+ * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} valid - Tracks field validity: `true`
+ *  when every hook for the path passes, otherwise the first failing hook's result (a message or `false`).
  *
  * // *** Ignored Fields & Reset Behavior ***
  * @property {{[path: string]: string}} ignored - Fields ignored in validation/submission.
@@ -738,7 +739,10 @@ export function useForm(props) {
     const hasInitialized = ref(false);
     const modifiedHookRegistry = useReactiveHookRegistry();
     const requiredHookRegistry = useReactiveHookRegistry();
-    const validationHookRegistry = useReactiveHookRegistry();
+    // Aggregates to the first hook result that is not `true` (a field's message, or `false`), so a
+    // path reports why it is invalid rather than whether any hook returned a truthy value. A
+    // message string is truthy, so the default some-of-values aggregation would report it as valid.
+    const validationHookRegistry = useReactiveHookRegistry((values) => values.find((value) => value !== true) ?? true);
     // Aggregates to the last-registered surviving hook for a path (rather than the default
     // some-of-booleans aggregation), so a field being replaced under the same path is labelled by
     // whichever instance registered most recently, not left labelless by the outgoing instance's

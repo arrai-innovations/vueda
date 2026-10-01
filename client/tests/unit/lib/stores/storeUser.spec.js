@@ -341,6 +341,27 @@ describe("lib/stores/storeUser.js", () => {
             );
         });
 
+        scopedIt("forgotPassword identifies the reset cooldown and preserves the server detail", async () => {
+            const response = { status: 429, statusText: "Too Many Requests" };
+            const data = { detail: "You must wait before requesting another password reset." };
+            getUrl.mockReturnValue("/forgot/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver(response, data));
+            });
+
+            const store = storeUser();
+            await expect(store.forgotPassword({ email: "reset@domain.invalid" })).rejects.toMatchObject({
+                name: "UserError",
+                message: "Password reset requested too recently: 429 Too Many Requests",
+                response,
+                responseData: data,
+            });
+            expect(store.error.responseData).toEqual(data);
+            expect(store.errored).toBe(true);
+            expect(store.loading).toBe(false);
+        });
+
         scopedIt("changePassword posts payload", async () => {
             const payload = { old_password: "old", new_password1: "new", new_password2: "new" };
             getUrl.mockReturnValue("/change/");
@@ -451,6 +472,22 @@ describe("lib/stores/storeUser.js", () => {
             );
             expect(store.error).toBeInstanceOf(InvalidResetPasswordLinkError);
             expect(store.errored).toBe(true);
+        });
+
+        scopedIt("checkResetLinkIsValid builds the invalid link error from a 400 response", async () => {
+            const { InvalidResetPasswordLinkError } = await vi.importActual("@vueda/stores/storeUser.js");
+            getUrl.mockReturnValue("/reset/{pk}/{token}/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver({ status: 400, statusText: "Bad Request" }, { detail: "invalid" }));
+            });
+
+            const store = storeUser();
+            const error = await store.checkResetLinkIsValid({ pk: "1", token: "t" }).catch((caught) => caught);
+            expect(error).toBeInstanceOf(InvalidResetPasswordLinkError);
+            expect(error.message).toBe("Invalid password reset link: 400 Bad Request");
+            expect(error.response.status).toBe(400);
+            expect(error.responseData).toEqual({ detail: "invalid" });
         });
 
         scopedIt("checkResetLinkIsValid returns data on success", async () => {

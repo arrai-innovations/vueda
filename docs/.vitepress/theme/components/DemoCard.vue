@@ -10,7 +10,7 @@ defineProps({
         <header v-if="title" class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {{ title
             }}<template v-if="description">
-                <span class="font-normal normal-case">{{ description }}</span></template
+                <span class="ml-1.5 font-normal normal-case">{{ description }}</span></template
             >
         </header>
         <slot />

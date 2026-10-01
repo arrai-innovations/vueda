@@ -121,6 +121,10 @@ def add_abstract_email(
     reply_to: Sequence[BaseReceiver] | None = None,
     attachments: dict[str, dict[str, typing.Any]] | Sequence[AbstractQueueItemAttachment] | None = None,
 ):
+    """
+    Create one email queue item per recipient across ``to``, ``cc``, and ``bcc``, without scheduling them for
+    sending. Raises ``ValueError`` if the sender or any recipient has no email address.
+    """
     validate_email_role(sender)
     queue_items = []
     if cc is None:
@@ -157,6 +161,10 @@ def add_email(
     reply_to: Sequence[BaseReceiver] | None = None,
     attachments: dict[str, dict[str, typing.Any]] | Sequence[AnyMailQueueItemAttachment] | None = None,
 ):
+    """
+    Create one email queue item per recipient across ``to``, ``cc``, and ``bcc``, and schedule sending after
+    the transaction commits. Returns the created queue items.
+    """
     qis = add_abstract_email(
         sender,
         to,
@@ -177,6 +185,10 @@ def add_email(
 
 @atomic
 def add_sms(sender, receiver, body):
+    """
+    Create an SMS queue item and schedule sending after the transaction commits. Raises ``ValueError`` if
+    either role has no cell phone number.
+    """
     validate_sms_role(sender)
     validate_sms_role(receiver)
     qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="sms")

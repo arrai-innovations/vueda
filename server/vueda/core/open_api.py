@@ -45,6 +45,11 @@ from vueda.core.models import BaseModelMeta
 
 # Decorators
 def conditional_extend_schema_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema``, or returns the decorated
+    function unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema
@@ -62,6 +67,11 @@ def conditional_extend_schema_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_field_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_field``, or returns the decorated
+    function unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_field
@@ -79,6 +89,11 @@ def conditional_extend_schema_field_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_serializer_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_serializer``, or returns the
+    decorated class unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_serializer
@@ -96,6 +111,11 @@ def conditional_extend_schema_serializer_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_view_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_view``, or returns the decorated
+    view unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_view
@@ -114,6 +134,10 @@ def conditional_extend_schema_view_decorator(*args, **kwargs):
 
 # Functions
 def conditional_extend_schema_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema`` decorator built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema
     except ImportError:
@@ -123,6 +147,10 @@ def conditional_extend_schema_func(*args, **kwargs):
 
 
 def conditional_extend_schema_field_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_field`` decorator built from the arguments, or ``None``
+    when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_field
     except ImportError:
@@ -132,6 +160,10 @@ def conditional_extend_schema_field_func(*args, **kwargs):
 
 
 def conditional_extend_schema_serializer_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_serializer`` decorator built from the arguments, or
+    ``None`` when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_serializer
     except ImportError:
@@ -141,6 +173,10 @@ def conditional_extend_schema_serializer_func(*args, **kwargs):
 
 
 def conditional_extend_schema_view_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_view`` decorator built from the arguments, or ``None`` when
+    drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_view
     except ImportError:
@@ -150,6 +186,10 @@ def conditional_extend_schema_view_func(*args, **kwargs):
 
 
 def conditional_open_api_example(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiExample`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiExample
     except ImportError:
@@ -159,6 +199,10 @@ def conditional_open_api_example(*args, **kwargs):
 
 
 def conditional_open_api_parameter(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiParameter`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiParameter
     except ImportError:
@@ -168,6 +212,10 @@ def conditional_open_api_parameter(*args, **kwargs):
 
 
 def conditional_open_api_response(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiResponse`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiResponse
     except ImportError:
@@ -177,6 +225,10 @@ def conditional_open_api_response(*args, **kwargs):
 
 
 def conditional_open_api_request(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiRequest`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiRequest
     except ImportError:
@@ -186,6 +238,10 @@ def conditional_open_api_request(*args, **kwargs):
 
 
 def conditional_open_api_callback(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiCallback`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiCallback
     except ImportError:
@@ -195,6 +251,10 @@ def conditional_open_api_callback(*args, **kwargs):
 
 
 def conditional_open_api_webhook(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiWebhook`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiWebhook
     except ImportError:
@@ -209,6 +269,10 @@ class AlwaysGetNone:
 
 
 def conditional_open_api_types():
+    """
+    Return drf-spectacular's ``OpenApiTypes`` enum, or an ``AlwaysGetNone`` object whose attributes are
+    all ``None`` when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiTypes
     except ImportError:
@@ -218,6 +282,10 @@ def conditional_open_api_types():
 
 
 def conditional_inline_serializer(*args, **kwargs):
+    """
+    Return a serializer built by drf-spectacular's ``inline_serializer``, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import inline_serializer
     except ImportError:
@@ -604,6 +672,12 @@ def route_path(path):
 
 
 def get_components_by_ref(components, ref_strings):
+    """
+    Return a deep copy of each component schema in ``components`` named by ``ref_strings``, keyed by ref
+    string.
+
+    Each ref string ends in ``/<component type>/<component name>``, as in ``#/components/schemas/Cart``.
+    """
     results = {}
 
     for ref_string in ref_strings:
@@ -617,6 +691,10 @@ def get_components_by_ref(components, ref_strings):
 
 
 def recursive_replace_refs(data, refs_schema):
+    """
+    Replace each ``$ref`` in ``data`` that names a schema in ``refs_schema`` with that schema's keys, in
+    place, descending into nested dicts but not lists.
+    """
     for key, value in tuple(data.items()):
         if key == "$ref" and value in refs_schema:
             schema = refs_schema[value]
@@ -629,6 +707,12 @@ def recursive_replace_refs(data, refs_schema):
 
 
 def replace_refs_with_schema(components, data, component_ref_strings):
+    """
+    Inline the component schemas named by ``component_ref_strings`` wherever ``data`` refers to them by
+    ``$ref``, editing ``data`` in place.
+
+    Refs between those components are inlined first, so the copied schemas are self-contained.
+    """
     refs_schema = get_components_by_ref(components, component_ref_strings)
 
     for item in refs_schema.values():

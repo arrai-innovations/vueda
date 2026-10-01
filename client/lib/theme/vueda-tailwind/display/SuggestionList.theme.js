@@ -5,7 +5,7 @@
  * SuggestionList.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire display family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -32,7 +32,7 @@ patchTheme({
         list: {
             class: [
                 "rounded-vueda-card hairline hairline-border overflow-hidden",
-                "divide-y-[var(--vueda-hairline-width)] divide-border",
+                "divide-y-[length:var(--vueda-hairline-width)] divide-border",
                 "list-none m-0 p-0",
             ],
         },

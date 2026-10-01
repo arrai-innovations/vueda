@@ -379,3 +379,32 @@ describe("renderVueDocgenBundle — component index page", () => {
         expect(index).toContain('source: "vue-docgen"');
     });
 });
+
+describe("renderVueDocgenBundle — member anchors", () => {
+    it("anchors each prop and lists its id on the component page", () => {
+        const page = buildOutputs(sparsePayload).get("vue/Foo.md");
+        expect(page).toContain('| <span id="prop-bar">bar</span> |');
+        expect(page).toContain("vue:component:Foo:prop:bar");
+    });
+
+    it("anchors an inline slot, its bindings, and lists their ids on the component page", () => {
+        const page = buildOutputs(sparsePayload).get("vue/Foo.md");
+        expect(page).toContain("### `default` {#slot-default}");
+        expect(page).toContain('| <span id="slot-default-param-value">value</span> |');
+        expect(page).toContain("vue:component:Foo:slot:default");
+        expect(page).toContain("vue:component:Foo:slot:default.value");
+    });
+
+    it("lists slot and event ids on their own pages when those pages exist", () => {
+        const outputs = buildOutputs(richPayload);
+        const component = outputs.get("vue/Bar.md");
+        const slots = outputs.get("vue/Bar/slots.md");
+        const events = outputs.get("vue/Bar/events.md");
+        expect(slots).toContain("## `header` {#slot-header}");
+        expect(slots).toContain("vue:component:Bar:slot:header");
+        expect(events).toContain("## `click` {#event-click}");
+        expect(events).toContain("vue:component:Bar:event:click");
+        expect(component).not.toContain("vue:component:Bar:slot:header");
+        expect(component).not.toContain("vue:component:Bar:event:click");
+    });
+});

@@ -9,7 +9,7 @@ status: draft
 
 VUEDA's runtime behaviour depends on configuration surfaces that span the server and client. Server defaults assemble Django settings, framework configuration, and VUEDA-specific values into a single dict. An env-adapter contract governs how required keys are read and validated at startup. Wire-level query parameter names form a shared namespace that both server and client must agree on. On the client side, model configuration defaults are derived from server-emitted metadata, and a small set of Vite environment variables governs CSRF and connection behaviour.
 
-This page explains each configuration surface, the authority boundaries between them, and the failure modes that emerge when configuration is missing, mistyped, or out of sync. This is not a catalogue of every setting or a how-to for overriding defaults: the authoritative list of default settings is the source code of `get_defaults` and `get_production_defaults`, and the API reference documents individual functions and modules. For the client-side store that consumes model-info to build config objects, see [Reactive Data Flow](./reactive-data-flow). For how query parameters interact with filtering and ordering, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the permission codename vocabulary, see [Permission Model](./permission-model).
+This page explains each configuration surface, the authority boundaries between them, and the failure modes that emerge when configuration is missing, mistyped, or out of sync. This is not a catalogue of every setting or a how-to for overriding defaults: the [server configuration reference](../reference/configuration) lists config keys, defaults, conditional requirements, and Django settings read by VUEDA. The API reference documents individual functions and modules. For the client-side store that consumes model-info to build config objects, see [Reactive Data Flow](./reactive-data-flow). For how query parameters interact with filtering and ordering, see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics). For the permission codename vocabulary, see [Permission Model](./permission-model).
 
 ## Configuration Authority Boundaries
 
@@ -25,7 +25,7 @@ The client config layer derives model-specific UI configuration from server-emit
 
 ## Server Settings Assembly Surface
 
-`get_defaults(env)` accepts an env-adapter object and returns a dict containing all settings that VUEDA runtime code assumes. The function is organized around concern groups.
+`get_defaults(env)` accepts an env-adapter object and returns a baseline settings dict. Some features read additional settings supplied by the project; the [server configuration reference](../reference/configuration) includes those reads and their local fallbacks. The function is organized around concern groups.
 
 Required keys are read from the env adapter without a default value, so the adapter must provide them or raise an exception. These include cryptographic identity keys (`SECRET_KEY`), persistence backends (`DATABASE_URL`, `DATABASE_BACKUP_DIR`), frontend integration surfaces (`ALLOWED_HOSTS`, `FRONTEND_DOMAIN`, `FRONTEND_LOGIN_URL`), cross-origin trust configuration (`CSRF_TRUSTED_ORIGINS`, `CORS_ALLOWED_ORIGINS`), authentication identity (`AUTH_USER_MODEL`), and project identity (`TIME_ZONE`, `SITE_NAME`, `SUPPORT_EMAIL`). The distinction between required and optional is intentional: required keys represent values that have no safe default and must be provided by the project deployer.
 

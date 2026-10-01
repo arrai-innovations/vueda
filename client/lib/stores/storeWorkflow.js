@@ -261,33 +261,7 @@ const executeTransitionUrl = (result) => {
 };
 
 /**
- * @typedef {import('pinia').Store<
- *     'workflow',
- *     {
- *         objectStates: { [string]: {[key: string]: WorkflowObjectStateEntry} },
- *         objectTransitions: { [string]: {[key: string]: WorkflowObjectTransitionsEntry} },
- *         objectHistories: { [string]: {[key: string]: WorkflowObjectHistoryEntry} },
- *         modelStates: {[key: string]: WorkflowState[]},
- *         workflowTransitions: {[key: string]: WorkflowTransition[]}
- *     },
- *     {},
- *     {
- *         fetchModelStates: (app: string, model: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowState[]>,
- *         fetchObjectState: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectStateEntry>,
- *         fetchObjectTransitions: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectTransitionsEntry>,
- *         fetchObjectHistory: (app: string, model: string, objectPk: string) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<WorkflowObjectHistoryEntry>,
- *         executeTransition: (
- *             app: string,
- *             model: string,
- *             objectPk: string | string[],
- *             transition_code: string,
- *             router?: import('vue-router').Router,
- *             stateToRoute?: Record<string, any>,
- *             dryRun?: boolean,
- *             acknowledgeWarnings?: string,
- *         ) => import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<any>
- *     }
- * >} WorkflowStore
+ * @typedef {ReturnType<typeof storeWorkflow>} WorkflowStore
  */
 
 /**
@@ -321,7 +295,6 @@ const executeTransitionUrl = (result) => {
  *     await workflowStore.fetchObjectHistory(app, model, objectPk);
  *     await workflowStore.executeTransition(app, model, objectPk, transition_code);
  * ```
- * @returns {WorkflowStore} The store for workflow.
  */
 export const storeWorkflow = defineStore("workflow", {
     state: () => {
@@ -334,12 +307,71 @@ export const storeWorkflow = defineStore("workflow", {
         });
 
         return {
+            /**
+             * The error from each failed fetch, in one bucket per cache. Later calls for the same key
+             * reject with this error instead of asking the server again.
+             *
+             * @type {{
+             *     objectStates: {[appModelDotName: string]: {[objectPk: string]: Error}},
+             *     objectTransitions: {[appModelDotName: string]: {[objectPk: string]: Error}},
+             *     objectHistories: {[appModelDotName: string]: {[objectPk: string]: Error}},
+             *     modelStates: {[appModelDotName: string]: Error},
+             *     workflowTransitions: {[appModelDotName: string]: Error},
+             * }}
+             */
             errors: createErrorPromiseStructure(),
+            /**
+             * The in-flight fetches, in one bucket per cache. Each object bucket is keyed by app and model
+             * dot name, then by object primary key. Each model bucket is keyed by app and model dot name. A
+             * fetch removes its entry when it settles.
+             *
+             * @type {{
+             *     objectStates: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
+             *     objectTransitions: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
+             *     objectHistories: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
+             *     modelStates: {[appModelDotName: string]: Promise<WorkflowState[]|undefined>},
+             *     workflowTransitions: {[appModelDotName: string]: Promise<WorkflowTransition[]|undefined>},
+             * }}
+             */
             promises: createErrorPromiseStructure(),
+            /**
+             * The current workflow state of each fetched object, keyed by app and model dot name, then by
+             * object primary key. Each entry is the server's object-state response.
+             *
+             * @type {{[appModelDotName: string]: {[objectPk: string]: {state: WorkflowState}}}}
+             */
             objectStates: {},
+            /**
+             * The transitions the authenticated user may run on each fetched object, keyed by app and
+             * model dot name, then by object primary key.
+             *
+             * @type {{[appModelDotName: string]: {[objectPk: string]: WorkflowTransition[]}}}
+             */
             objectTransitions: {},
+            /**
+             * The recorded workflow states of each fetched object, oldest first, keyed by app and model
+             * dot name, then by object primary key.
+             *
+             * @type {{[appModelDotName: string]: {[objectPk: string]: Array<{
+             *     id: string,
+             *     state: string|null,
+             *     recorded_at: string,
+             *     actor: number|null,
+             * }>}}}
+             */
             objectHistories: {},
+            /**
+             * The possible workflow states of each fetched model, keyed by app and model dot name.
+             *
+             * @type {{[appModelDotName: string]: WorkflowState[]}}
+             */
             modelStates: {},
+            /**
+             * The transitions the authenticated user is permitted to run on each fetched model, keyed by
+             * app and model dot name. The server does not check any particular object for this list.
+             *
+             * @type {{[appModelDotName: string]: WorkflowTransition[]}}
+             */
             workflowTransitions: {},
             /**
              * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
@@ -375,6 +407,20 @@ export const storeWorkflow = defineStore("workflow", {
                 trimReactiveObject(this.promises[bucket], {});
             }
         },
+        /**
+         * Fetches the transitions the authenticated user is permitted to run on a model and caches them
+         * in `workflowTransitions`.
+         *
+         * A cached list resolves at once, and a cached error rejects at once. A request already in flight
+         * for the same model is shared. The list is empty when workflow is off or the model does not
+         * enable it.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @returns {Promise<WorkflowTransition[]|undefined>} A promise for the permitted transitions, or
+         *  `undefined` when the server sends an empty response. It rejects with
+         *  `WorkflowPermissionDeniedError` on a 403, and with `WorkflowError` for other failures.
+         */
         fetchWorkflowTransition(app, model) {
             if (!app || !model) {
                 return Promise.reject(
@@ -457,6 +503,18 @@ export const storeWorkflow = defineStore("workflow", {
             /** @type {Promise<WorkflowTransition[]>} */
             return this.promises.workflowTransitions[key];
         },
+        /**
+         * Fetches the possible workflow states of a model and caches them in `modelStates`.
+         *
+         * A cached list resolves at once, and a cached error rejects at once. A request already in flight
+         * for the same model is shared. The list is empty when workflow is off or the model does not
+         * enable it.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @returns {Promise<WorkflowState[]|undefined>} A promise for the states, or `undefined` when the
+         *  server sends an empty response. It rejects with `WorkflowError` when the request fails.
+         */
         fetchModelStates(app, model) {
             if (!app || !model) {
                 return Promise.reject(new Error("storeWorkflow.fetchModelStates: app and model must be provided"));
@@ -516,6 +574,20 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.modelStates[key];
         },
+        /**
+         * Fetches the current workflow state of one object and caches it in `objectStates`.
+         *
+         * A cached state resolves at once, and a cached error rejects at once. A request already in flight
+         * for the same object is shared.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} objectPk - The object's primary key.
+         * @returns {Promise<{state: WorkflowState}|Array|undefined>} The cached entry when one exists. A new
+         *  fetch resolves to `undefined` after it caches the state. It resolves to an empty array when
+         *  workflow is off or the model does not enable it. It rejects with `WorkflowError` when the
+         *  request fails.
+         */
         fetchObjectState(app, model, objectPk) {
             if (!app || !model || !objectPk) {
                 return Promise.reject(
@@ -580,6 +652,20 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectStates[key][objectPk];
         },
+        /**
+         * Fetches the transitions the authenticated user may run on one object and caches them in
+         * `objectTransitions`.
+         *
+         * A cached list resolves at once, and a cached error rejects at once. A request already in flight
+         * for the same object is shared.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} objectPk - The object's primary key.
+         * @returns {Promise<WorkflowTransition[]|undefined>} The cached list when one exists. A new fetch
+         *  resolves to `undefined` after it caches the list. It resolves to an empty array when workflow
+         *  is off or the model does not enable it. It rejects with `WorkflowError` when the request fails.
+         */
         fetchObjectTransitions(app, model, objectPk) {
             if (!app || !model || !objectPk) {
                 return Promise.reject(
@@ -650,6 +736,20 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectTransitions[key][objectPk];
         },
+        /**
+         * Fetches the recorded workflow states of one object and caches them in `objectHistories`.
+         *
+         * A cached history resolves at once, and a cached error rejects at once. A request already in
+         * flight for the same object is shared.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} objectPk - The object's primary key.
+         * @returns {Promise<object[]|undefined>} The cached history when one exists, in the shape
+         *  `objectHistories` holds. A new fetch resolves to `undefined` after it caches the history. It
+         *  resolves to an empty array when workflow is off or the model does not enable it. It rejects
+         *  with `WorkflowError` when the request fails.
+         */
         fetchObjectHistory(app, model, objectPk) {
             if (!app || !model || !objectPk) {
                 return Promise.reject(
@@ -719,6 +819,31 @@ export const storeWorkflow = defineStore("workflow", {
             }
             return this.promises.objectHistories[key][objectPk];
         },
+        /**
+         * Runs a workflow transition on one object or on several objects in one request.
+         *
+         * After a single-object run that is not a dry run, the cached state and transitions for that
+         * object are updated from the response. When `router` and `stateToRoute` are given and the new
+         * state code is a key of `stateToRoute`, the router then navigates to that route.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string|string[]} objectPk - The object's primary key, or an array of keys for a bulk run.
+         * @param {string} transitionCode - The code of the transition to run.
+         * @param {import('vue-router').Router} [router] - The router to navigate with after the run.
+         * @param {{[stateCode: string]: import('vue-router').RouteLocationRaw}} [stateToRoute] - The route
+         *  to navigate to for each new state code.
+         * @param {boolean} [dryRun=false] - Whether the server validates the transition and rolls it back.
+         * @param {string} [acknowledgeWarnings] - The warning digest the user acknowledged, sent in the
+         *  `Acknowledge-Warnings` header.
+         * @returns {Promise<
+         *     {new_state: WorkflowState, new_transitions: WorkflowTransition[]}|
+         *     {[objectPk: string]: {new_state: WorkflowState, new_transitions: WorkflowTransition[]}}|
+         *     Array
+         * >} A promise for the server response. A bulk run resolves to one result per primary key. It
+         *  resolves to an empty array when workflow is off. It rejects with `FormValidationError` on a
+         *  400, `ConfirmationRequiredError` on a 409, and `WorkflowError` for other failures.
+         */
         executeTransition(
             app,
             model,
@@ -791,6 +916,14 @@ export const storeWorkflow = defineStore("workflow", {
 
             return returningPromise;
         },
+        /**
+         * Replaces the per-model containers for object transitions, their promises, and their errors with
+         * empty objects.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @returns {void}
+         */
         initializeObjectTransitions(app, model) {
             const key = getAppModelDotName({ app, model });
             this.objectTransitions[key] = {};

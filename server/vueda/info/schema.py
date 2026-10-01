@@ -169,7 +169,12 @@ class ModelInfoFilterSerializer(serializers.Serializer):
     label = serializers.CharField(help_text="Displayed name of the filter.")
     type_db = serializers.CharField(allow_null=True)
     type_model = serializers.CharField(allow_null=True)
-    type_filter = serializers.CharField(help_text="The form field class of the django-filter filter.")
+    type_filter = serializers.CharField(
+        help_text=(
+            "The filter input type. Usually the django-filter form field class; value-derived filters use "
+            "AllValuesChoiceField or AllValuesMultipleChoiceField."
+        )
+    )
     lookup_exprs = serializers.ListField(child=serializers.CharField())
     required = serializers.BooleanField()
     hidden = serializers.BooleanField(help_text="Whether the filter's widget is hidden.")
@@ -648,7 +653,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "required": False,
                     "type_db": "CharField",
                     "type_model": "CharField",
-                    "type_filter": "MultipleChoiceField",
+                    "type_filter": "AllValuesMultipleChoiceField",
                     "choices": True,
                     "app_label": "store",
                     "model": "cart",
@@ -671,7 +676,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "required": False,
                     "type_db": "IntegerField",
                     "type_model": "IntegerField",
-                    "type_filter": "MultipleChoiceField",
+                    "type_filter": "AllValuesMultipleChoiceField",
                     "choices": True,
                     "app_label": "store",
                     "model": "cart",

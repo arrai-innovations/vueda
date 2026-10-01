@@ -46,7 +46,8 @@ jobs:
                 default: true
         executor: node-lts
         resource_class: medium+
-        circleci_ip_ranges: true
+        # Only the badge run uploads to the docs host, which needs IP ranges.
+        circleci_ip_ranges: <<parameters.create_badges>>
         steps:
             - checkout
             - utils/add_ssh_config

@@ -1119,6 +1119,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return choices, None
 
+    def get_model_filtering_type(self, filter_name, filter_obj, field):
+        # Report value-derived filters by their own type, so the client maps them to an input that
+        # fetches the column's stored values.
+        if isinstance(filter_obj, AllValuesMultipleFilter):
+            return "AllValuesMultipleChoiceField"
+        if isinstance(filter_obj, AllValuesFilter):
+            return "AllValuesChoiceField"
+        return self.get_model_fields_serializer_field_type(filter_name, field, True)
+
     def get_model_filtering_choices(self, filterset, filter_obj, field, widget):
         if isinstance(filter_obj, (AllValuesFilter, AllValuesMultipleFilter)):
             # These filters build their choices from the values currently stored in the column, so the
@@ -1328,7 +1337,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
                 field_type_db = self.get_model_fields_db_field_type(filter_name, model_field, True)
                 field_type_model = self.get_model_fields_model_field_type(filter_name, model_field, True)
-                field_type_filter = self.get_model_fields_serializer_field_type(filter_name, field, True)
+                field_type_filter = self.get_model_filtering_type(filter_name, filter_obj, field)
 
                 filtering_data[filter_name] = {
                     "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,

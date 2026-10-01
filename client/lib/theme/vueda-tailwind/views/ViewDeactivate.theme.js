@@ -5,25 +5,17 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire views family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * ViewDeactivate presents the account or object deactivation flow in a
-     * centered message-card layout with submit error feedback.
+     * ViewDeactivate is the outer theme entry for deactivation flows that share the
+     * generic view-action structure.
      */
     ViewDeactivate: {
-        /** Centering wrapper around the embedded warning-toned {@api theme-key:SystemMessageCard}. The card chassis is fixed-width, so a flex parent is required for it to sit in the middle of the viewport; mirrors {@api theme-key:ViewLoading.root} and the other system-view roots so deactivation reads as a sibling of the missing-route and slow-load surfaces. */
+        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and the deactivate-flow {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also renders a centred `LoadingSpinnerBlock` while {@api theme-key:ModelActionForm}'s model config loads; that fallback inherits its own block recipe and is not themed here. */
         root: {
-            class: ["flex min-h-full items-center justify-center p-8"],
-        },
-        /** Default suspension-explanation paragraph rendered inside the card body when the `message` slot is not overridden. 13 px / muted-foreground so the copy reads as supporting prose beside the destructive button. Consumer overrides take precedence; the {@api theme-key:ConsequencesBullets} list below covers structured per-impact rows. */
-        message: {
-            class: ["text-[13px] leading-[1.5] text-muted-foreground"],
-        },
-        /** Submit-error paragraph shown when the deactivate PATCH fails. 12 px / destructive so the error reads as a tone-flipped sibling of the muted message above, without escalating to a full validation alert recipe (the view holds its own retry rather than blocking via {@api theme-key:ActionForm.validation}). */
-        error: {
-            class: ["text-[12px] text-destructive leading-[1.5]"],
+            class: [],
         },
     },
 });

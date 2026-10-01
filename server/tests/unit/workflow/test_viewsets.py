@@ -402,20 +402,53 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             response, "/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/", "get"
         )
 
-    def test_object_detail_returns_named_valid_transitions(self, api_client, workflow_reader, customer_order):
-        api_client.force_authenticate(workflow_reader)
-
-        response = api_client.get(
+    def _get_valid_transitions(self, api_client, customer_order):
+        return api_client.get(
             reverse("store.customerorder-detail", kwargs={"pk": customer_order.pk}),
             data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "valid_transitions"},
             format="json",
         )
 
+    def test_object_detail_returns_named_valid_transitions(self, api_client, workflow_user, customer_order):
+        api_client.force_authenticate(workflow_user)
+
+        response = self._get_valid_transitions(api_client, customer_order)
+
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["valid_transitions"] == [
+            {"code": "cancel_order", "name": "Cancel Order"},
             {"code": "hold_order", "name": "Hold Order"},
             {"code": "pack_order", "name": "Pack Order"},
         ]
+
+    def test_object_detail_offers_no_transitions_the_object_transitions_endpoint_refuses(
+        self, api_client, workflow_reader, customer_order
+    ):
+        # The reader holds the transitions' own permissions but not every configured workflow
+        # permission, so object-transitions refuses them and valid_transitions must agree.
+        api_client.force_authenticate(workflow_reader)
+
+        response = self._get_valid_transitions(api_client, customer_order)
+        object_transitions = api_client.get(
+            reverse(
+                "workflow.workflow-object-transitions",
+                kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+            ),
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["valid_transitions"] == []
+        assert object_transitions.status_code == status.HTTP_403_FORBIDDEN, response_body(object_transitions)
+
+    def test_object_detail_succeeds_when_workflow_has_no_permissions(self, api_client, workflow_user, customer_order):
+        WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+        api_client.force_authenticate(workflow_user)
+
+        response = self._get_valid_transitions(api_client, customer_order)
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["valid_transitions"] == []
 
     def test_execute_transition_dry_run_detail_skips_lock_and_state_change(
         self, api_client, workflow_user, customer_order

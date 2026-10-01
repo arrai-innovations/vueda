@@ -5,7 +5,7 @@
  * Item.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire shell family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -16,12 +16,8 @@ patchTheme({
          * The row-like item wrapper. It carries the default, outline, and muted variants, size spacing, anchor hover behavior, and focus treatment.
          */
         root: ({ variant, size }) => {
-            const variantClass =
-                variant === "outline"
-                    ? "border-border"
-                    : variant === "muted"
-                      ? "bg-muted/50 text-foreground"
-                      : "bg-transparent";
+            // Default and outline items share the transparent base border.
+            const variantClass = variant === "muted" ? "bg-muted/50 text-foreground" : "bg-transparent";
             const sizeClass = size === "sm" ? "py-3 px-4 gap-2.5" : "p-4 gap-4";
             return {
                 class: [

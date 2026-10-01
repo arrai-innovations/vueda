@@ -259,11 +259,24 @@ class TestWorkflowModelMethods(BaseTestGroupMixin, BaseTestUserMixin):
         object_state.refresh_from_db()
         assert object_state.state == shipped_state
 
-    def test_available_transitions_requires_workflow_permissions(self, customer_order, workflow_user):
+    def test_available_transitions_is_empty_when_workflow_has_no_permissions(self, customer_order, workflow_user):
         WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
 
-        with pytest.raises(DRFPermissionDenied):
-            customer_order.available_transitions(user=workflow_user)
+        assert not customer_order.available_transitions(user=workflow_user).exists()
+
+    def test_available_transitions_is_empty_without_the_workflow_permissions(self, customer_order, unauthorized_user):
+        # The transitions leaving the order's state carry permissions the user could hold on
+        # their own, but object-transitions refuses a user without the workflow's permissions,
+        # so valid_transitions must not offer them either.
+        assert customer_order.fast_available_transitions().exists()
+        assert not customer_order.has_workflow_permission(unauthorized_user, obj=customer_order)
+
+        assert not customer_order.available_transitions(user=unauthorized_user).exists()
+
+    def test_available_transitions_for_programmatic_use_ignores_workflow_permissions(self, customer_order):
+        WorkflowPermission.objects.filter(workflow__content_type=customer_order.get_content_type()).delete()
+
+        assert set(customer_order.available_transitions()) == set(customer_order.fast_available_transitions())
 
     def test_allow_transition_requires_workflow_permissions(self, customer_order, workflow_user):
         cancel_transition = Transition.objects.get(workflow=customer_order.workflow, code="cancel_order")

@@ -45,15 +45,20 @@ def old_helper() -> None:
 
 The rendered page set is filtered by two layers:
 
-1. pdoc's own visibility rules:
-    - Members whose names start with a single underscore are hidden.
-    - Dunder methods (`__foo__`) are only rendered when they have a docstring.
+1. pdoc's own visibility rules, which the extractor applies as its `is_public` field:
+    - Names that start with an underscore are hidden, dunders included. A docstring inherited from a base class does not change this.
+    - `__init__` is shown when it has a docstring or takes arguments besides `self`. Its signature omits `self`.
+    - `@public` anywhere in a docstring shows a member that would otherwise be hidden, and `@private` hides one. The page omits the marker.
     - A module-level `__all__` narrows the public surface to exactly the names it lists. Use it on every module whose top-level namespace would otherwise expose helpers, re-imports, or framework boilerplate.
 2. A "documented or structural" rule applied on top:
     - Modules and classes are always rendered (their member tables are useful even when the module or class itself has no docstring).
     - Every other kind (function, method, property, variable) is only rendered when it has a docstring. Listing an undocumented helper or constant in `__all__` exposes it for import but does not create a docs page; add a one-line docstring when you want it to appear.
 
-This split is intentional: `__all__` is the import contract, and the docs filter answers a different question -- "did the author write something to read?" The constants and helpers that legitimately belong in `__all__` for re-export ergonomics do not need to clutter the rendered output unless they are documented.
+This split is intentional. `__all__` is the import contract, and the docs filter answers a different question: "did the author write something to read?" A constant listed in `__all__` for re-export stays off the rendered pages until someone documents it.
+
+Functions are the exception. Ruff's `D103` rule fails on a public function without a docstring, and `D100` and `D104` on a module or package without one. The rules apply to `server/vueda/` outside migrations (see the root `ruff.toml`). Ruff treats a name as public when `__all__` lists it, or, in a module without `__all__`, when it has no leading underscore. Authored pages link public functions, and a function without a docstring has no page to link.
+
+A decorator that returns an object instead of a function, such as Celery's `shared_task`, would otherwise make pdoc record the name as a variable. The extractor documents it as the function the object keeps in `__wrapped__`, including a method bound by `bind=True`. Put the docstring on the decorated function.
 
 Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hide an entire submodule by omitting it from a package `__init__.py`. To exclude a module from docs, prefix its filename with an underscore or move it under a private subpackage.
 
@@ -61,10 +66,12 @@ Submodule discovery walks the filesystem and ignores `__all__`, so you cannot hi
 
 - Each module renders to a single `py/<dotted-module>.md` page. Submodules and classes appear as link lists; functions, methods, and properties on the module are inlined as `## <name>` sections on the module page itself, with anchor IDs that match `{@api py:<kind>:<fullname>}`.
 - Each class renders to its own `py/<dotted-module>/<Class>.md` page, with members inlined the same way.
+- Each parameter a caller passes has an ID, `py:param:<function fullname>.<name>`, which links to its row in the function's parameter table. `self` and `cls` have none. For example, `{@api py:param:vueda.core.config.TomlEnv.__init__.prefer_env}`.
+- The table's types come from the annotations as written, and its defaults from their `repr`. A default that is a sentinel object shows the module-level name bound to it, such as `_MISSING`.
 
 ### Private helpers
 
-Module-private helpers (single leading underscore) and dunders without docstrings are excluded from the rendered output. Type-annotate them anyway for IDE inference; the annotations are not duplicated into the rendered page.
+Rendered pages leave out module-private helpers (single leading underscore) and dunders, unless a docstring marks them `@public`. Type-annotate them anyway for IDE inference; the annotations are not duplicated into the rendered page.
 
 ## OpenAPI schema (drf-spectacular)
 
@@ -165,3 +172,48 @@ Set `view.cls._ignore_model_permissions = True` on `@api_view` functions whose p
 ### `conditional_*` wrappers are required
 
 All decorators and helpers from `drf_spectacular.utils` must go through the `conditional_*` wrappers in `vueda/core/open_api.py`. Importing `drf_spectacular.utils` directly at module scope breaks production installs that omit the dev dependency. The wrapper list (see `vueda/core/open_api.py.__all__`) covers `extend_schema`, `extend_schema_view`, `extend_schema_field`, `extend_schema_serializer`, `inline_serializer`, `OpenApiExample`, `OpenApiParameter`, `OpenApiRequest`, `OpenApiResponse`, `OpenApiCallback`, `OpenApiWebhook`, and `OpenApiTypes`.
+
+## Server configuration
+
+`py/dump_configuration.py` reads Python syntax trees without importing the server or loading project secrets. Its inventory covers env-adapter calls in `get_defaults` and `get_production_defaults`, settings declarations in their returned dictionaries, and Django settings reads under `server/vueda/`, including migrations.
+
+The `configuration` source runs through extract, normalize, and render. It writes `configuration.json` and `configuration.canonical.json` under `.generated/`, then renders `docs/reference/configuration.md`. Edit source and metadata, not the generated page.
+
+### Authored metadata
+
+`docs-tooling/configuration.json` has three maps keyed by exact config or setting names:
+
+- `config`: every env-adapter key needs a `description` and a nonempty `settings` array of Django setting paths. Use dotted paths for nested settings, such as `DATABASES.default`. Conditional reads also need `when`, a plain-language explanation of when the key applies.
+- `settings`: every discovered Django settings read needs a `description`, or a `configKey` pointing to a documented input that supplies it. An entry can have both when the Django setting needs its own explanation. Entries for additional factory outputs, such as `MAILERS`, are allowed when the extractor finds their declarations.
+- `djangoExemptions`: a setting used with unchanged Django meaning can have a written exemption reason instead of a settings entry. An exemption never covers an env-adapter key. Review the meaning of exemptions when changing a read site.
+
+For example:
+
+```json
+{
+    "config": {
+        "DATABASE_URL": {
+            "description": "Database connection URL.",
+            "settings": ["DATABASES.default"]
+        }
+    },
+    "settings": {
+        "DATABASES": { "configKey": "DATABASE_URL" }
+    },
+    "djangoExemptions": {
+        "MIGRATION_MODULES": "Django migration module overrides retain their Django meaning."
+    }
+}
+```
+
+The example illustrates the shape; the real metadata must cover the entire inventory. Normalization rejects undocumented reads, empty descriptions or reasons, stale entries, unknown setting mappings, and conflicting exemptions. Add or update metadata in the same change as a new read. Effects and conditions require review even when the key list does not change.
+
+### Extraction contract
+
+Env reads use a literal string key in `env(...)` or `env.<accessor>(...)`. Both positional and keyword defaults work. The `enum` accessor has its enum class before its optional positional default. The extractor preserves default expressions as text: JSON null means no default, while the string `None` means an explicit Python None default. Expressions are never evaluated.
+
+Factory declarations include literal dictionaries and dictionary unpacking, `return_dict[...]` assignments, additions, and `return_dict.update({...})`. Records preserve the factory function, source location, and surrounding `if` or `try` branch conditions. The page shows these declarations and overrides in source order, not as an evaluated final settings object. Describe derived values and optional-package behavior in metadata.
+
+Settings discovery recognizes `from django.conf import settings`, including import aliases, and reads through attributes, `getattr`, or `hasattr`. It ignores strings, comments, writes, and non-setting attributes such as `configured`. Literal names are required for `getattr` and `hasattr`; dynamic names fail extraction. New access patterns or factory assembly patterns need extractor support and tests before adoption.
+
+Raw records separate `config` reads (name, accessor, default, function, conditions, source), `definitions` (name, path, expression, operation, function, conditions, source), and settings `reads` (name, access, fallback, source). The normalizer groups them by name and joins authored metadata. Local fallbacks remain attached to their read sites and never replace factory defaults.

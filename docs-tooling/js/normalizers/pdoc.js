@@ -31,6 +31,8 @@ function typeRefFromAnnotation(annotation) {
     return { name: String(annotation) };
 }
 
+const VARIADIC_KINDS = new Set(["VAR_POSITIONAL", "VAR_KEYWORD"]);
+
 function signatureFromDetails(details, name) {
     if (!details) {
         return undefined;
@@ -40,8 +42,9 @@ function signatureFromDetails(details, name) {
             name: param.name,
             description: undefined,
             type: typeRefFromAnnotation(param.annotation),
-            optional: false,
-            default: param.default === null || param.default === undefined ? undefined : String(param.default),
+            // A parameter is optional when it has a default or collects extra arguments (`*args`, `**kwargs`).
+            optional: param.default != null || VARIADIC_KINDS.has(param.kind),
+            default: param.default == null ? undefined : String(param.default),
         }),
     );
     return compact({
@@ -50,6 +53,9 @@ function signatureFromDetails(details, name) {
         returns: typeRefFromAnnotation(details.return_annotation),
     });
 }
+
+// pdoc's visibility markers; the dump has already applied them to `is_public`.
+const VISIBILITY_MARKER_RE = /[ \t]*@(?:public|private)\b/g;
 
 export class PdocNormalizer extends Normalizer {
     normalize(payload) {
@@ -70,11 +76,13 @@ export class PdocNormalizer extends Normalizer {
             const kind = KIND_MAP[doc.kind] || "type";
             const id = nodeId(kind, doc.fullname);
             const signatures = [];
-            const signature = signatureFromDetails(doc.signature_details, doc.name);
+            // A constructor's page signature omits `self`, which callers never pass.
+            const details = doc.name === "__init__" ? doc.signature_without_self_details : doc.signature_details;
+            const signature = signatureFromDetails(details, doc.name);
             if (signature) {
                 signatures.push(signature);
             }
-            const parsedDocstring = extractDeprecatedTagFromText(doc.docstring);
+            const parsedDocstring = extractDeprecatedTagFromText(doc.docstring?.replace(VISIBILITY_MARKER_RE, ""));
 
             const node = compact({
                 id,

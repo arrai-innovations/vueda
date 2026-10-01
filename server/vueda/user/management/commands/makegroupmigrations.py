@@ -80,6 +80,12 @@ def migrate_step(
     historical_permission_content_type_model_name,
     historical_permission_name,
 ):
+    """Apply one recorded group change to the database, using the historical ``groups``, ``permissions``, and
+    ``content_types`` models passed in.
+
+    Add, associate, and change steps create or rename the group and grant it the permission; unassociate and
+    delete steps revoke it. Generated group migrations copy this function into their own source.
+    """
     group = groups.objects.filter(name=group_name).first()
     group_old = groups.objects.filter(name=group_name_old).first() if group_name_old else None
     permission = permissions.objects.filter(
@@ -116,20 +122,31 @@ def migrate_step(
             permission.group_set.add(group)
 
         case GroupChangeTypes.UNASSOCIATED.value | GroupChangeTypes.DELETED.value:
+            # Removing a permission never deletes the group, so its user memberships survive.
+            # `deleted` was recorded when a group's last permission was removed, and replays the same
+            # way as `unassociated`.
             if permission is not None and group is not None:
                 permission.group_set.remove(group)
-
-            if change_type == GroupChangeTypes.DELETED.value and not group.permissions.exists():
-                group.delete()
 
 
 # Migration-only entry point; its existence makes the underlying function testable.
 def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    """Apply a copy of the migration module's ``changed_data`` through ``forwards_migrate_groups``.
+
+    Every generated group migration copies this function into its source and runs it as its forward ``RunPython``
+    operation.
+    """
     # Copied changed_data, so tests can migrate forwards and backwards.
     forwards_migrate_groups(apps, copy.deepcopy(changed_data))  # noqa: F821
 
 
 def forwards_migrate_groups(apps, changed_items):
+    """Apply each change in ``changed_items`` in order, and record a ``GroupChange`` row for any change not already
+    stored.
+
+    Generated group migrations copy this function into their source, or import it when made with
+    ``--import-instead``.
+    """
     content_types = apps.get_model("contenttypes", "ContentType")
     group_changes = apps.get_model("vueda_user", "GroupChange")
     groups = apps.get_model("auth", "Group")
@@ -164,11 +181,21 @@ def forwards_migrate_groups(apps, changed_items):
 
 # Migration-only entry point; its existence makes the underlying function testable.
 def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover
+    """Reverse a copy of the migration module's ``changed_data`` through ``backwards_migrate_groups``.
+
+    Every generated group migration copies this function into its source and runs it as its reverse ``RunPython``
+    operation.
+    """
     # Copied changed_data, so tests can migrate forwards and backwards.
     backwards_migrate_groups(apps, copy.deepcopy(changed_data))  # noqa: F821
 
 
 def backwards_migrate_groups(apps, changed_items):
+    """Undo each change in ``changed_items`` in reverse order by applying its opposite change.
+
+    It does not remove the ``GroupChange`` rows that ``forwards_migrate_groups`` recorded. Generated group
+    migrations copy this function into their source, or import it when made with ``--import-instead``.
+    """
     content_types = apps.get_model("contenttypes", "ContentType")
     groups = apps.get_model("auth", "Group")
     permissions = apps.get_model("auth", "Permission")
@@ -185,7 +212,8 @@ def backwards_migrate_groups(apps, changed_items):
         # Reverse everything
         match change_type:
             case GroupChangeTypes.ADDED.value:
-                change_type = GroupChangeTypes.DELETED.value
+                # Undo the permission grant and keep the group, which may have gained members since.
+                change_type = GroupChangeTypes.UNASSOCIATED.value
             case GroupChangeTypes.ASSOCIATED.value:
                 change_type = GroupChangeTypes.UNASSOCIATED.value
             case GroupChangeTypes.CHANGED.value:
@@ -212,6 +240,11 @@ def backwards_migrate_groups(apps, changed_items):
 
 
 def make_sure_permissions_exist(apps, schema_editor):
+    """Create any missing permissions for every installed app, so later group steps can find them.
+
+    Generated group migrations run this as their first ``RunPython`` operation. They copy it into their source, or
+    import it when made with ``--import-instead``.
+    """
     # We need to make sure all permissions exist, since the permissions could be for any app.
     for app in django_apps.get_app_configs():
         create_permissions(app, interactive=False)

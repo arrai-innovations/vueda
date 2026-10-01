@@ -159,12 +159,12 @@ python manage.py updateworkflowmigrations myapp otherapp
 ```
 
 ::: warning
-Always name the apps to update. With no app label, the command rewrites the workflow migrations of every installed app, including VUEDA's own migrations inside the installed package, such as `vueda_vdq`'s. You cannot commit those files, and the rewritten ones fail to apply. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
+Always name your own apps to update. With no app label, the command scans every installed app, including VUEDA's own migrations inside the installed package. It skips incompatible migrations but can still rewrite compatible package files that you cannot commit in your project. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
 :::
 
 ### What the Command Updates
 
-`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
+`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
 
 - Replaces the import block with the current imports from `makeworkflowmigrations.py`.
 - Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
@@ -175,7 +175,7 @@ A migration written before workflow references carried the app and model names e
 
 Working out what a code meant when a change was recorded means ordering the dates that migrations record against each other, and every date a generated migration records carries a time zone. A date without one reached the file by hand, so the command reports the file and reads that date as UTC, which is what the generated dates hold. The date in the file is left exactly as it was written.
 
-If the command cannot read a migration's `changed_data` — the file has a syntax error, has been altered so that it no longer runs on its own, or holds a change without the `model_name`, `history_date`, or `changes` the command reads — it skips that file, reports it and the change at fault, updates the migrations it can read, and finishes with a failure. A skipped file is left exactly as it was, imports and functions included, because a file the command cannot read is one it cannot update safely. Fix the file by hand, then run the command again.
+If the command cannot read a migration's `changed_data`, it skips that file and reports the fault. Examples include a syntax error, a file that no longer imports on its own, or a change missing `model_name`, `history_date`, or `changes`. It continues updating files whose changes and dependencies it can read, then exits with status 1. If a broken file prevents Django from loading the migration graph, dependency checks fail too. A skipped file stays exactly as it was, including its imports and functions. Fix the reported fault, then run the command again.
 
 The following are preserved exactly as written in each migration file:
 
@@ -193,7 +193,7 @@ That said, any changes you make inside the listed functions themselves are overw
 
 `--dry-run`
 
-Shows which migration files would be updated without writing any changes to disk.
+Shows which migration files would be updated without writing any changes to disk. It runs the same compatibility checks as a normal update, reports skipped files separately, and exits with status 1 if any file cannot be updated.
 
 ```console
 python manage.py updateworkflowmigrations myapp --dry-run
@@ -205,19 +205,17 @@ Workflow migrations are self-contained: they carry everything they need to run, 
 
 If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updateworkflowmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command on migrations that already carry the current implementations changes nothing about how they behave, as long as none of them is one the command must not rewrite.
 
-Run it once for your own apps, and commit the rewritten files, for migrations generated before workflow references carried the app and model. Those migrations name each workflow by code alone, which is enough until a different model takes a workflow code over — after that, a change naming a workflow by code cannot say which workflow it meant. Migrations that have already been applied elsewhere can be updated safely: the change data describes the same workflow records either way, so a migration that has run produces the same result if it runs again.
+Run it once for your own apps, and commit the rewritten files, for migrations generated before workflow references carried the app and model. Those migrations name each workflow by code alone, which cannot distinguish workflows when a different model takes a code over. Compatible migrations can receive those identities even if another environment has already applied them. Skipped migrations still need review, as described below.
 
 ### Migrations the Command Must Not Rewrite
 
-The command replaces a migration's embedded functions with the current ones but keeps its dependencies as they were. The current functions use workflow models that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. A migration whose `vueda_workflow` dependency is earlier than that one, which is any workflow migration generated with VUEDA v3.0.0a0 or earlier, stops applying once rewritten:
+The current functions require the event models and triggers from `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more`. The command checks for that migration in the dependency graph, including indirect dependencies and replacement migrations that include it. The installed database's migration status does not affect the decision: the rewritten file must also apply on a fresh database.
 
-```text
-LookupError: App 'vueda_workflow' doesn't have a 'ObjectStateEvent' model.
-```
+If that prerequisite is missing, the command names the file and the required migration, leaves the whole file unchanged, and counts it as a failure. It continues updating compatible files and exits with status 1. This applies to both copied functions and migrations generated with `--import-instead`; skipping an import-form migration does not freeze the functions it imports from VUEDA.
 
-After running the command, check the `vueda_workflow` entry in each rewritten file's `dependencies`, and restore from version control any file that depends on an earlier migration. A restored migration keeps naming its workflow by code alone. [#298](https://github.com/arrai-innovations/vueda/issues/298) tracks making the rewrite safe for these migrations.
+Keep a skipped migration's existing functions. Review its historical schema and ordering before changing its dependencies: raising a dependency can create a cycle or require a schema the recorded changes do not match. If its workflow references still name only a code, add `historical_app_label` and `historical_model` to those references using the workflow's recorded identity, while keeping the functions compatible with that migration's schema. Test the result on a fresh database. If an earlier version of the command already broke a migration, restore that file from version control first; the compatibility check does not repair a previous rewrite.
 
-VUEDA's own workflow migrations, such as `vueda_vdq`'s, are among them, which is one more reason to always name your apps.
+VUEDA ships the identities in its own `vueda_vdq` workflow migrations, together with their original functions and dependencies. They remain too early to rewrite with the current functions. In particular, `vueda_vdq` migration `0005` must run before workflow `0006`, so making it depend on workflow `0008` would create a cycle.
 
 ### Before Committing the Rewritten Files
 

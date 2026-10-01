@@ -122,6 +122,10 @@ const onPerPageChange = (value) => {
 // treats a `false` class value as a removal) so the navigation cluster sizes to its content and sits
 // beside the read-out instead of claiming its own row.
 const paginatorThemeOverride = { Pagination: { root: { class: { "w-full": false } } } };
+
+// The same removal lets the page-size select size to its options. A plain `w-auto` class would lose
+// to the theme's `w-full`, and a select with a percentage width shrinks to its padding in a narrow row.
+const pageSizeSelectThemeOverride = { NativeSelect: { root: { class: { "w-full": false } } } };
 </script>
 
 <template>
@@ -156,7 +160,7 @@ const paginatorThemeOverride = { Pagination: { root: { class: { "w-full": false 
                     <label :class="theme('rowsPerPage')">
                         Rows per page
                         <NativeSelect
-                            class="w-auto"
+                            :theme-override="pageSizeSelectThemeOverride"
                             :model-value="String(perPage)"
                             aria-label="Rows per page"
                             @update:model-value="onPerPageChange"

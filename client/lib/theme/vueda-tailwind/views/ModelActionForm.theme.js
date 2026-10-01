@@ -6,7 +6,7 @@
  * component's theme entry, not the entire views family.
  */
 import "./_ActionBannerPrimitives.theme.js";
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

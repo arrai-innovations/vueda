@@ -152,6 +152,13 @@ HISTORY_SECTION = register_feature_section(
         contribute_order=100,
     )
 )
+"""The ``History`` section of ``class Vueda``, which controls change history for a model.
+
+Its options are ``enabled`` (default ``True``) to record insert, update, and delete events,
+``exclude_fields`` (default empty) to leave fields out of the recorded events, and ``reason``
+(default empty), a note on why the model has this policy that VUEDA does not read. A composite
+primary key needs ``enabled = False``.
+"""
 
 
 class HistoryConfig(AppConfig):

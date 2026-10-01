@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -13,11 +13,11 @@ patchTheme({
      * joined to its neighbouring controls.
      */
     ButtonGroupText: {
-        /** The static-label chip used to join readable copy ("of", "to", a unit suffix) into a {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, hairline edge, `shadow-vueda-control`) but sits on `--muted` so it does not read as pressable; padding picks 16px to match the default button's `px-vueda-control-px` baseline. */
+        /** The static-label chip used to join readable copy ("of", "to", a unit suffix) into a {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, hairline edge) but sits on `--muted` so it does not read as pressable; padding picks 16px to match the default button's `px-vueda-control-px` baseline. */
         root: {
             class: [
                 // Surface, layout, and type.
-                "bg-muted text-muted-foreground flex items-center gap-2 rounded-vueda-control hairline hairline-border px-4 text-sm font-medium shadow-vueda-control",
+                "bg-muted text-muted-foreground flex items-center gap-2 rounded-vueda-control hairline hairline-border px-4 text-sm font-medium",
 
                 // Icon elements.
                 "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
