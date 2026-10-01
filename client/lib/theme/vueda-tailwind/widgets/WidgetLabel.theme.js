@@ -39,7 +39,6 @@ patchTheme({
                     "leading-[2.3958125rem]": true,
                     "text-neutral-900/60 dark:text-white/60": true,
                     "!text-amber-600 dark:!text-amber-500": warning,
-                    "!text-maroon-600 dark:!text-maroon-500": invalid,
                 };
             },
         },

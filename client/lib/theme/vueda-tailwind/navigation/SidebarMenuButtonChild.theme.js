@@ -55,7 +55,7 @@ patchTheme({
                 {
                     "h-8": !size || size === "default",
                     "h-7 text-xs": size === "sm",
-                    "h-12 group-data-[collapsible=icon]:p-0!": size === "lg",
+                    "h-12": size === "lg",
                 },
             ],
         }),

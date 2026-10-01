@@ -25,7 +25,7 @@ patchTheme({
         root: {
             class: [
                 "overflow-hidden rounded-vueda-control hairline bg-transparent",
-                "shadow-vueda-control transition-shadow",
+                "transition-shadow",
                 "focus-within:hairline-ring focus-within:focus-ring-shadow",
                 "data-[invalid=true]:hairline-destructive data-[invalid=true]:focus-within:focus-ring-shadow-destructive",
                 "data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50",

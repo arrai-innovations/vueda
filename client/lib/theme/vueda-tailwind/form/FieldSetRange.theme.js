@@ -40,16 +40,16 @@ patchTheme({
         /** Compact uppercase range title. */
         title: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },
         /** Compact uppercase fallback label for the range group. See also: {@api theme-key:FieldSetRange.title}. */
         label: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },

@@ -29,8 +29,8 @@ patchTheme({
         /** Compact uppercase fieldset label. */
         label: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },

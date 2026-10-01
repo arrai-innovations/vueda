@@ -32,7 +32,7 @@ patchTheme({
         list: {
             class: [
                 "rounded-vueda-card hairline hairline-border overflow-hidden",
-                "divide-y-[var(--vueda-hairline-width)] divide-border",
+                "divide-y-[length:var(--vueda-hairline-width)] divide-border",
                 "list-none m-0 p-0",
             ],
         },
