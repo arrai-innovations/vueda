@@ -25,7 +25,7 @@ Expand and field controls start at the serializer and viewset. The serializer de
 
 ### Declaring expandable fields on the serializer
 
-Define `expandable_fields` in the serializer's `Meta` class. Each entry maps a field name to a tuple of `(SerializerClass, options_dict)`. The options dict can specify sparse fields for the nested serializer, `many: True` for reverse relations, and other `rest_flex_fields` options:
+Define `expandable_fields` in the serializer's `Meta` class. Each entry maps a field name to a tuple of `(SerializerClass, options_dict)`. The options dict can specify sparse fields for the nested serializer, `many: True` for reverse relations, and other `rest_flex_fields2` options:
 
 ```python
 from vueda.core.serializers import VuedaSerializer
@@ -62,7 +62,7 @@ expandable_fields = {
 }
 ```
 
-A bare class, when the expansion needs no `rest_flex_fields` options:
+A bare class, when the expansion needs no `rest_flex_fields2` options:
 
 ```python
 expandable_fields = {
@@ -84,7 +84,7 @@ It must be a tuple, not a list:
 ```python
 expandable_fields = {
     "category": (CategorySerializer, {}),  # correct
-    "tags": [TagSerializer, {}],  # wrong -- rest_flex_fields does not accept lists here
+    "tags": [TagSerializer, {}],  # wrong -- rest_flex_fields2 does not accept lists here
 }
 ```
 
@@ -106,7 +106,7 @@ class NoteSerializer(VuedaSerializer):
         expandable_fields = {
             "content_object": (
                 GenericForeignKeySerializer,
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"]},
+                {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["*"]},
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
@@ -146,8 +146,8 @@ class NoteSerializer(VuedaSerializer):
             "content_object": (
                 GenericForeignKeySerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"],
-                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["*"],
+                    settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: [
                         # Omit description only when the related object is a Distributor.
                         "_store__distributor__description",
                         # Omit these fields only when the related object is a PackingBox.
@@ -165,7 +165,7 @@ class NoteSerializer(VuedaSerializer):
 Model-targeted specifiers and plain field names can be mixed in the same list. Plain names and wildcards apply to every related model; model-targeted specifiers apply only to the model they name:
 
 ```python
-settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: [
     "available_actions",                    # removed from every related model
     "_store__distributor__description",     # removed only from Distributor
 ]

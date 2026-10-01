@@ -405,7 +405,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
     def _get_valid_transitions(self, api_client, customer_order):
         return api_client.get(
             reverse("store.customerorder-detail", kwargs={"pk": customer_order.pk}),
-            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "valid_transitions"},
+            data={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "valid_transitions"},
             format="json",
         )
 

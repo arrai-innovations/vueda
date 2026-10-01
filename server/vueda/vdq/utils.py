@@ -9,7 +9,6 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 from contextlib import contextmanager
 from logging import getLogger
-from typing import TypeVar
 
 from django.db import OperationalError
 from django.db import connection
@@ -21,8 +20,6 @@ from vueda.vdq.models import QueueItem
 
 
 log = getLogger(__name__)
-
-T = TypeVar("T")
 
 # How long one attempt waits for a row lock. The transactions that lock queue items are short.
 LOCK_TIMEOUT = "5s"
@@ -45,7 +42,7 @@ def lock_queue_item(pk, skip_locked=True) -> AbstractContextManager[QueueItem | 
         yield qi
 
 
-def with_locked_queue_item(pk, operation: Callable[[QueueItem | None], T]) -> T:
+def with_locked_queue_item[T](pk, operation: Callable[[QueueItem | None], T]) -> T:
     """
     Run ``operation`` on the locked queue item in its own transaction, and return its result.
 

@@ -11,7 +11,7 @@ __all__ = (
 )
 
 from django.conf import settings
-from rest_flex_fields.serializers import FlexFieldsSerializerMixin
+from rest_flex_fields2.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers as drf_serializers
 
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
@@ -92,7 +92,7 @@ class WorkflowSerializer(
         match operation_id:
             case "vueda.workflow_workflows_list":
                 for index, existing_parameter in reversed(tuple(enumerate(parameters))):
-                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS["EXPAND_PARAM"]):
+                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]):
                         parameters.pop(index)
 
             case (
@@ -101,7 +101,7 @@ class WorkflowSerializer(
                 | "vueda.workflow_workflows_execute_transition"
             ):
                 for index, existing_parameter in reversed(tuple(enumerate(parameters))):
-                    if existing_parameter["name"] in (settings.REST_FLEX_FIELDS["EXPAND_PARAM"],):
+                    if existing_parameter["name"] in (settings.REST_FLEX_FIELDS2["EXPAND_PARAM"],):
                         parameters.pop(index)
 
         return parameters

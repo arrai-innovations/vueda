@@ -15,7 +15,7 @@ from vueda.core.installed_apps import is_installed
 
 # Needed, so we don't have to hard code the expand param in a match case.
 class ExpandParam:
-    setting = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
+    setting = settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]
 
 
 def preprocessing_hooks(endpoints):
@@ -132,7 +132,7 @@ def postprocess_schema_components(result, generator, **kwargs):  # noqa C901
 
                     method["parameters"] = [
                         {
-                            "name": settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+                            "name": settings.REST_FLEX_FIELDS2["EXPAND_PARAM"],
                             "required": False,
                             "in": "query",
                             "description": (

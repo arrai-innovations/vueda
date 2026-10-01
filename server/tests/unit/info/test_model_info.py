@@ -338,10 +338,10 @@ class BaseModelInfoDetail(BaseModelInfo):
                         f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {{keys}}'
                     )
                     for key, value in model_expand.items():
-                        if key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
+                        if key == settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]:
                             self.check_model_fields(
                                 value,
-                                expected_model_expand[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]],
+                                expected_model_expand[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]],
                                 app_label,
                                 model_name,
                                 f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}"',
@@ -462,7 +462,7 @@ class BaseModelInfoDetail(BaseModelInfo):
                 ),
             ),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: EXPANDED_FIELDS},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: EXPANDED_FIELDS},
         )
 
         expected_actions_key = self.expected_actions_key
@@ -574,7 +574,7 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
         response = client.get(
             reverse("info.model_info-detail", args=("store", "distributor")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
         return response.data["model_actions"]
@@ -639,7 +639,7 @@ class TestModelActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
         response = api_client.get(
             reverse("info.model_info-detail", args=("store", "customerdata")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -710,7 +710,7 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
         response = client.get(
             reverse("info.model_info-detail", args=("store", "customerorder")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
         return response.data["model_actions"]
@@ -797,7 +797,7 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
         response = client.get(
             reverse("info.model_info-detail", args=("store", "distributor")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
         return {action["name"] for action in response.data["model_actions"]}
@@ -842,7 +842,7 @@ class TestModelColumnTotalsSection(BaseModelInfo):
         response = authenticated_client.get(
             reverse("info.model_info-detail", args=("store", "cartitem")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_column_totals"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_column_totals"},
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
         return response.data["model_column_totals"], response

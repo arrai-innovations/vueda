@@ -37,7 +37,7 @@ TOO_DEEP_EXPAND = "customer.customer.customer.customer.customer.customer"
 # comes from a different stage of `list()`, so which one a response carries says which stage ran.
 COMBINED_INVALID_PARAMS = {
     "unexpected": "1",
-    django_settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: TOO_DEEP_EXPAND,
+    django_settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: TOO_DEEP_EXPAND,
 }
 
 

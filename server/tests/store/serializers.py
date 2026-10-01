@@ -31,7 +31,7 @@ class CustomerSerializer(VuedaSerializer):
             "user": (
                 UserSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "email",
                         "name",
@@ -52,7 +52,7 @@ class CustomerSerializer(VuedaSerializer):
             match expandable_field["name"]:
                 case "dict_data":
                     expandable_field["read_only"] = True
-                    expandable_field[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = {
+                    expandable_field[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]] = {
                         "name": {
                             "label": "Name",
                             "type_db": None,
@@ -189,7 +189,7 @@ class ProductOptionSerializer(VuedaSerializer):
             "option_type": (
                 OptionTypeSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "code",
                         "name",
@@ -199,7 +199,7 @@ class ProductOptionSerializer(VuedaSerializer):
             "product": (
                 ProductSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "distributor",
                         "name",
@@ -230,7 +230,7 @@ class CartSerializer(VuedaSerializer):
             "customer": (
                 CustomerSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "user",
                     ],
@@ -240,7 +240,7 @@ class CartSerializer(VuedaSerializer):
                 "tests.store.serializers.CartItemSerializer",
                 {
                     "many": True,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product_option",
                         "quantity",
@@ -266,7 +266,7 @@ class CartItemSerializer(VuedaSerializer):
             "cart": (
                 CartSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "customer",
                     ],
@@ -275,7 +275,7 @@ class CartItemSerializer(VuedaSerializer):
             "product_option": (
                 ProductOptionSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product",
                         "option_type",
@@ -400,7 +400,7 @@ class OrderItemSerializer(VuedaSerializer):
             "customer_order": (
                 "tests.store.serializers.CustomerOrderSerializer",
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "order_number",
                         "when",
@@ -412,7 +412,7 @@ class OrderItemSerializer(VuedaSerializer):
             "product_option": (
                 ProductOptionSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product",
                         "option_type",
@@ -444,7 +444,7 @@ class CustomerOrderSerializer(VuedaSerializer):
             "customer": (
                 CustomerSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "user",
                     ],
@@ -453,7 +453,7 @@ class CustomerOrderSerializer(VuedaSerializer):
             "order_state": (
                 OrderStateSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "code",
                         "name",
@@ -464,7 +464,7 @@ class CustomerOrderSerializer(VuedaSerializer):
                 OrderItemSerializer,
                 {
                     "many": True,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product_option",
                         "quantity",
@@ -509,7 +509,7 @@ class InventoryRecordSerializer(VuedaSerializer):
             "product_option": (
                 ProductOptionSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product",
                         "option_type",
@@ -524,7 +524,7 @@ class InventoryRecordSerializer(VuedaSerializer):
             "reason": (
                 InventoryRecordReasonSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "name",
                         "code",
@@ -535,7 +535,7 @@ class InventoryRecordSerializer(VuedaSerializer):
             "added_inventory_record": (
                 "tests.store.serializers.InventoryRecordSerializer",
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "product",
                         "when",
@@ -554,7 +554,7 @@ class InventoryRecordSerializer(VuedaSerializer):
             "order_item": (
                 OrderItemSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "order",
                         "product_option",
@@ -641,7 +641,7 @@ class OrderCompositePKSerializer(VuedaSerializer):
                 "tests.store.serializers.OrderItemCompositePKSerializer",
                 {
                     "many": True,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "pk",
                         "order",
                         "product",
@@ -675,7 +675,7 @@ class OrderItemCompositePKSerializer(VuedaSerializer):
             "order": (
                 OrderCompositePKSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "order_number",
                         "order_date",
@@ -685,7 +685,7 @@ class OrderItemCompositePKSerializer(VuedaSerializer):
             "product": (
                 ProductCompositePKSerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         "id",
                         "name",
                     ],
@@ -735,7 +735,7 @@ class NoteSerializer(VuedaSerializer):
             "content_object": (
                 GenericForeignKeySerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: [
                         # Model targetted specifiers.
                         "_store__distributor__*",
                         "_store__product__description",
@@ -744,7 +744,7 @@ class NoteSerializer(VuedaSerializer):
                         # quantity isn't defined on ProductSerializer, so adding it here won't cause it to be returned.
                         "_store__product__quantity",
                     ],
-                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: [
                         "_store__distributor__description",
                     ],
                 },
@@ -769,8 +769,8 @@ class NoteStaticOmitSerializer(VuedaSerializer):
             "content_object": (
                 GenericForeignKeySerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["id", "name"],
-                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: ["available_actions"],
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["id", "name"],
+                    settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: ["available_actions"],
                 },
             ),
         }
