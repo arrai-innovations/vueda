@@ -70,7 +70,7 @@ def append_installed_apps(settings, *apps_to_append):
     settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, *apps_to_append]
 
 
-def expect_one_migration_generated_today(migration_dir, name):
+def find_one_migration_generated_today_or_fail(migration_dir, name):
     """Assert one migration in ``migration_dir`` is named ``<name>_<today>.py``, and return its file name.
 
     ``name`` may leave out the number prefix, such as ``group_permission_migrations``. The commands name

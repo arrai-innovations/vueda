@@ -12,7 +12,7 @@ from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import clear_info_registry_before_test
-from tests.utils import expect_one_migration_generated_today
+from tests.utils import find_one_migration_generated_today_or_fail
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
@@ -25,7 +25,7 @@ class BaseAddedGroup:
 
         results_set = frozenset([line.strip() for line in results if line.strip()])
         assert "Creating empty migration for group permission changes." in results_set
-        migration_name = expect_one_migration_generated_today(migration_dir, "group_permission_migrations")
+        migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
         assert any(migration_name in r for r in results_set)
 
         # GroupAddedWorkers should not exist before running the generated migration.
@@ -115,7 +115,8 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
 
             # Verify that the noqa comments are gone.
             migration_filepath = os.path.join(
-                migration_dir, expect_one_migration_generated_today(migration_dir, "0003_group_permission_migrations")
+                migration_dir,
+                find_one_migration_generated_today_or_fail(migration_dir, "0003_group_permission_migrations"),
             )
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -205,7 +206,7 @@ class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand)
 
             results_set = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for group permission changes." in results_set
-            migration_name = expect_one_migration_generated_today(migration_dir, "group_permission_migrations")
+            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
             assert any(migration_name in r for r in results_set)
 
             # Run the generated migration forwards.
@@ -290,7 +291,7 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
 
             results_set = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for group permission changes." in results_set
-            migration_name = expect_one_migration_generated_today(migration_dir, "group_permission_migrations")
+            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
             assert any(migration_name in r for r in results_set)
 
             # Run the generated migration forwards.
