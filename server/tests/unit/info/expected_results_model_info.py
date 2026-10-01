@@ -1021,7 +1021,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "type_db": "IntegerField",
                     "type_model": "IntegerField",
-                    "type_filter": "MultipleChoiceField",
+                    "type_filter": "AllValuesMultipleChoiceField",
                 },
                 "product_name": {
                     "app_label": "store",
@@ -1042,7 +1042,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "type_db": "CharField",
                     "type_model": "CharField",
-                    "type_filter": "MultipleChoiceField",
+                    "type_filter": "AllValuesMultipleChoiceField",
                 },
                 "reserved_delivery_time": {
                     "choices": False,
@@ -2197,7 +2197,7 @@ EXPECTED_RESULTS = [
                     "required": False,
                     "type_db": "CharField",
                     "type_model": "CharField",
-                    "type_filter": "MultipleChoiceField",
+                    "type_filter": "AllValuesMultipleChoiceField",
                 },
                 "last_ordered": {
                     "choices": False,

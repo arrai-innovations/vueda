@@ -19,13 +19,41 @@ changed_data = [
         "changes": {
             "fail_with_silent": True,
             "id": {
-                "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "cancelled",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "succeed",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "succeed", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "cancelled",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "succeed",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 11, 21, 21, 38, 30, 480733, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 11, 21, 21, 38, 30, 480733, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },
@@ -33,13 +61,41 @@ changed_data = [
         "changes": {
             "fail_with_silent": True,
             "id": {
-                "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
-                "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+                "source_id": {
+                    "code": "cancelled",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
+                "transition_id": {
+                    "code": "error",
+                    "workflow_id": {
+                        "code": "queueitem",
+                        "historical_app_label": "vueda_vdq",
+                        "historical_model": "queueitem",
+                    },
+                },
             },
-            "source_id": {"code": "cancelled", "workflow_id": {"code": "queueitem"}},
-            "transition_id": {"code": "error", "workflow_id": {"code": "queueitem"}},
+            "source_id": {
+                "code": "cancelled",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
+            "transition_id": {
+                "code": "error",
+                "workflow_id": {
+                    "code": "queueitem",
+                    "historical_app_label": "vueda_vdq",
+                    "historical_model": "queueitem",
+                },
+            },
         },
-        "history_date": datetime.datetime(2025, 11, 21, 21, 38, 43, 433594, tzinfo=datetime.UTC),
+        "history_date": datetime.datetime(2025, 11, 21, 21, 38, 43, 433594, tzinfo=datetime.timezone.utc),
         "history_type": "added",
         "model_name": "transitionsource",
     },

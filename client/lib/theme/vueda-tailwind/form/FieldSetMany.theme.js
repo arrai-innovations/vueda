@@ -5,7 +5,7 @@
  * FieldSetMany.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -29,8 +29,8 @@ patchTheme({
         /** Compact uppercase fieldset label. */
         label: {
             class: [
-                "leading-none",
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",
+                "leading-none",
                 "text-muted-foreground",
             ],
         },

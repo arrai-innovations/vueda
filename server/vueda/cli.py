@@ -30,6 +30,10 @@ error_color = partial(color, fg="#ff0000", style="bold")  # error red
 
 
 def getch():
+    """
+    Read one character from stdin in raw terminal mode.
+    Raise ``KeyboardInterrupt`` on Ctrl-C or Escape and ``EOFError`` on Ctrl-D.
+    """
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:

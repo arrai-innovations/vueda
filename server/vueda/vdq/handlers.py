@@ -25,8 +25,10 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from vueda.vdq.exceptions import AnymailTransientError
+from vueda.vdq.exceptions import QueueItemLockError
 from vueda.vdq.models import QueueItem
 from vueda.vdq.utils import lock_queue_item
+from vueda.vdq.utils import with_locked_queue_item
 
 
 logger = logging.getLogger(__name__)
@@ -102,18 +104,26 @@ def send_email(qi) -> None:
         else:
             raise e
 
-    with lock_queue_item(qi.pk) as locked:
+    anymail_status = email.anymail_status
+
+    def record_send(locked):
         if not locked:
             return
-        anymail_status = email.anymail_status
         detail.message_id = anymail_status.message_id
-        detail.save()
+        detail.save(update_fields=["message_id"])
         if anymail_status.status & {"sent", "queued"}:
-            qi.fast_transition("await")
+            locked.fast_transition("await")
         else:
-            qi.result = f"Anymail status: {anymail_status.status}"
-            qi.save(update_fields=["result"])
-            qi.fast_transition("error")
+            locked.result = f"Anymail status: {anymail_status.status}"
+            locked.save(update_fields=["result"])
+            locked.fast_transition("error")
+
+    try:
+        with_locked_queue_item(qi.pk, record_send)
+    except QueueItemLockError as exc:
+        raise QueueItemLockError(
+            f"{exc} The ESP accepted the email with message ID {anymail_status.message_id!r}."
+        ) from exc
 
 
 class TwilioQueueItemHandler:
@@ -154,25 +164,34 @@ class TwilioQueueItemHandler:
                 media_url=qi.sms.media_url,
                 **kwargs,
             )
-            with lock_queue_item(qi.pk) as locked:
-                if not locked:
-                    return
-                err = f"\n{message.error_code} - {message.error_message}" if message.error_code else ""
-                qi.result = f"{message.status}{err}"
-                qi.sms.message_sid = message.sid
-                qi.sms.save()
-                qi.save()
-                qi.fast_transition("await")
         except TwilioRestException as e:
-            with lock_queue_item(qi.pk) as locked:
+            result = f"An error occurred while sending an SMS message through twilio.\n{e.__class__.__name__} : {e.msg}"
+
+            def record_rejection(locked):
                 if not locked:
                     return
-                qi.fast_transition("error")
-                qi.result = (
-                    f"An error occurred while sending an SMS message through twilio.\n{e.__class__.__name__} : {e.msg}"
-                )
-                qi.save(update_fields=["result"])
-                logger.exception("There was an error while sending sms for QueueItem %s", qi.pk)
+                locked.fast_transition("error")
+                locked.result = result
+                locked.save(update_fields=["result"])
+
+            with_locked_queue_item(qi.pk, record_rejection)
+            logger.exception("There was an error while sending sms for QueueItem %s", qi.pk)
+            return
+
+        def record_send(locked):
+            if not locked:
+                return
+            err = f"\n{message.error_code} - {message.error_message}" if message.error_code else ""
+            locked.result = f"{message.status}{err}"
+            locked.save(update_fields=["result"])
+            qi.sms.message_sid = message.sid
+            qi.sms.save(update_fields=["message_sid"])
+            locked.fast_transition("await")
+
+        try:
+            with_locked_queue_item(qi.pk, record_send)
+        except QueueItemLockError as exc:
+            raise QueueItemLockError(f"{exc} Twilio accepted the SMS with message SID {message.sid!r}.") from exc
 
     def pull_sms_status(self, qi) -> None:
         """Poll Twilio for messages sent since the queue item's date and update their status."""
@@ -217,15 +236,16 @@ class TwilioQueueItemHandler:
             except TwilioRestException:
                 logger.exception("There was an error getting sms messages for syncing status (for timeout).")
                 with lock_queue_item(item.pk) as locked:
-                    if not locked and item.workflow_state.code == "awaiting":
-                        return
-                    timeout_queue_item(item, timeout_hours)
+                    # A held row is being updated elsewhere; the next run sees the result.
+                    if not locked or locked.workflow_state.code != "awaiting":
+                        continue
+                    timeout_queue_item(locked, timeout_hours)
             else:
                 # one last shot at seeing what the status is in twilio, cause maybe the webhook is delayed.
                 with lock_queue_item(item.pk) as locked:
-                    if not locked and item.workflow_state.code == "awaiting":
-                        return
-                    self.update_sms_qi(item, message.status, message=message)
+                    if not locked or locked.workflow_state.code != "awaiting":
+                        continue
+                    self.update_sms_qi(locked, message.status, message=message)
 
     def update_sms_qi(self, queue_item, message_status, message=None, webhook=False, error_code="") -> None:
         """

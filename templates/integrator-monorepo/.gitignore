@@ -6,3 +6,7 @@ node_modules
 .idea
 # local gunicorn overrides (machine-specific paths, e.g. TLS cert/key)
 server/gunicorn.conf.py
+# local settings (secret key, database credentials)
+server/config.local.toml
+# local TLS certificate and key
+server/*.pem

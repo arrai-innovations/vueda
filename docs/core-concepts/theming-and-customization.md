@@ -103,13 +103,22 @@ At render time, a `useTheme` call resolves each component slot in this order:
 1. Choose the `composes` list from the highest layer that defines it: base theme, project override, then scoped overrides. An empty list removes composition.
 2. Walk those references recursively. Each referenced slot resolves with the same layers.
 3. Append the slot's own base classes, then its project classes, then its scoped classes.
-4. Pass the class values to `combineClasses`, which preserves explicit `false` removals until Vue renders the result.
+4. Combine the class values with `combineClasses`, applying explicit `false` removals.
+5. Pass the active class string through the registered class merger, if the theme provides one.
+
+The built-in `vueda-tailwind` theme registers a Tailwind-aware class merger. Later conflicting utilities replace earlier ones within the same variant: a `theme-override` with `bg-amber-500` removes the default `bg-secondary`, while `hover:bg-secondary` remains unless the override also supplies a hover background. Utilities for different properties, including VUEDA's `text-heading` and `text-foreground`, stay together. Explicit `false` keys still remove the named classes before conflict resolution.
+
+This rule applies to `patchTheme`, `overrideTheme`, merged theme objects, and `theme-override`. A component's plain `class` prop is added after theme resolution, so it adds classes without removing conflicting theme classes. Use `theme-override` to replace a theme utility.
+
+Other themes can register their own `(classes: string) => string` function with `setClassMerger`, exported from `@vueda/use/themeRegistry.js` and `@vueda/use/useTheme.js`. Core has no Tailwind dependency; importing only core or another theme does not bundle the Tailwind merger. Built-in components import their Tailwind defaults, so replacing their theme data with `setTheme` does not remove those imports from the bundle.
+
+With no registered merger, class combining keeps its existing behavior. `setClassMerger(null)` restores that behavior; `setTheme` changes theme data without changing the merger. Register a theme's merger before its defaults and project patches, since merging a patch can discard conflicting classes.
 
 Scoped overrides merge the component's embedded `themeOverride` configuration, ancestor overrides from `useThemeOverride`, and the local `themeOverride` prop, in that order. Embedded configuration can come from both the base theme and project overrides. Changes to either update mounted consumers and their descendants.
 
 Precedence applies within each component and slot. A project override on `_ButtonBase.root` still resolves before Button's own default classes because the primitive appears in Button's compose list. Project overrides on `Button.root` follow Button's own defaults.
 
-Class order does not by itself resolve conflicts between different CSS utilities. Without a class merger, use explicit `false` keys to remove conflicting defaults. Framework-specific conflict resolution is tracked in [#377](https://github.com/arrai-innovations/vueda/issues/377).
+Without a class merger, use explicit `false` keys to remove conflicting defaults.
 
 The resulting classes reference the active CSS tokens. Changing `--primary`, for example, changes the value used by `bg-primary` and `text-primary` without a JavaScript theme change.
 
@@ -154,7 +163,7 @@ The theme APIs are exported from {@api js:module:@arrai-innovations/vueda/use/us
 - {@api js:function:@arrai-innovations/vueda/use/themeRegistry#clearThemeOverrides} removes all project overrides without changing the base. Mounted consumers update when overrides change or clear.
 - `getTheme()` returns a cloned base snapshot, excluding project overrides. Calling `setTheme({})` clears only the base; tests that use project overrides must also call `clearThemeOverrides()` to reset them.
 
-The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
+The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module imports the Tailwind theme registry, which installs its class merger, then calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
 
 That yields three registration paths an integrator chooses between in `main.js`:
 

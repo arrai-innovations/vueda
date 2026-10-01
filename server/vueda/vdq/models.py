@@ -158,6 +158,10 @@ class QueueItem(VuedaModel):
 
 
 def validate_mimetype(value: str):
+    """
+    Raise ``ValidationError`` unless ``value`` has the form ``type/subtype`` with both parts present. The
+    initial vdq migration references this validator.
+    """
     if not value or "/" not in value:
         raise ValidationError("Mimetype must be in the format 'type/subtype'.")
     main, _, sub = value.partition("/")

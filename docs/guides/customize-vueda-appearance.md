@@ -42,7 +42,7 @@ const amberOverride = {
 </script>
 ```
 
-The override stays scoped to this Button. Other Buttons elsewhere in the app render with their default theme.
+With `vueda-tailwind`, `theme-override` replaces conflicting theme utilities while a plain `class` prop only adds classes; see [How the layers interact](../core-concepts/theming-and-customization#how-the-layers-interact). The override stays scoped to this Button. Other Buttons elsewhere in the app render with their default theme.
 
 The `themeOverride` mechanism propagates through provide/inject. Setting an override on a parent component affects every descendant `useTheme` call within its subtree, without intermediate components needing to thread props:
 
@@ -79,7 +79,7 @@ overrideTheme({
 });
 ```
 
-`overrideTheme` combines project classes with existing Button classes. Later project calls combine classes and replace explicit compose lists. `setTheme` replaces the base theme while preserving project overrides; `clearThemeOverrides()` removes all project overrides while preserving the base. See [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered) for snapshot behavior, resets, and migration from `patchTheme`.
+`overrideTheme` combines project classes with existing Button classes; the Tailwind merger replaces conflicting utilities and preserves the other classes. Later project calls combine classes and replace explicit compose lists. `setTheme` replaces the base theme while preserving project overrides; `clearThemeOverrides()` removes all project overrides while preserving the base. See [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered) for snapshot behavior, resets, and migration from `patchTheme`.
 
 Per-instance overrides still merge on top, so specific instances stay customizable. Patching a leaf entry does not reach components that merely look like it (calendar day cells, pagination items); restyle the family for those.
 

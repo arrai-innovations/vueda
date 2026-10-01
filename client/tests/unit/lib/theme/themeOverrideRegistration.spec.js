@@ -19,6 +19,36 @@ async function freshRegistry() {
 
 describe("lib/theme/vueda-tailwind/*.js", () => {
     describe("Project overrides across registration paths", () => {
+        scopedIt.each(Object.keys(loaders))("%s preserves Tailwind override precedence", async (path) => {
+            for (const projectFirst of [true, false]) {
+                const api = await freshRegistry();
+                const overrides = { Button: { root: { class: "bg-amber-500" } } };
+                if (projectFirst) {
+                    api.overrideTheme(overrides);
+                }
+                await loaders[path]();
+                if (!projectFirst) {
+                    api.overrideTheme(overrides);
+                }
+                const props = reactive({ themeOverride: {} });
+                const theme = api.useTheme("Button", props, context);
+                const classes = () => normalizeClass(theme("root")).split(/\s+/);
+                expect(classes()).toContain("bg-amber-500");
+                expect(classes()).not.toContain("bg-secondary");
+
+                api.setTheme({ Button: { root: { class: "bg-primary h-8" } } });
+                expect(classes()).toEqual(["h-8", "bg-amber-500"]);
+                api.overrideTheme({ Button: { root: { class: "bg-red-500" } } });
+                expect(classes()).toEqual(["h-8", "bg-red-500"]);
+                props.themeOverride = { Button: { root: { class: "bg-blue-500" } } };
+                expect(classes()).toEqual(["h-8", "bg-blue-500"]);
+                props.themeOverride = {};
+                api.clearThemeOverrides();
+                expect(classes()).toEqual(["bg-primary", "h-8"]);
+                theme.es.stop();
+            }
+        });
+
         scopedIt.each(Object.keys(loaders))("%s resolves identically in both registration orders", async (path) => {
             const results = [];
             for (const projectFirst of [true, false]) {

@@ -5,7 +5,7 @@
  * TypedConfirmField.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire form family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -39,7 +39,7 @@ patchTheme({
                 "rounded-vueda-control hairline bg-background",
                 "font-mono text-[12.5px] font-medium leading-none text-foreground",
                 "placeholder:text-muted-foreground placeholder:font-normal",
-                "shadow-vueda-control transition-shadow",
+                "transition-shadow",
                 "focus-visible:hairline-ring focus-visible:focus-ring-shadow focus-visible:outline-none",
             ],
         },

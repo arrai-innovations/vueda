@@ -22,6 +22,7 @@ __all__ = (
 import datetime
 import warnings
 import weakref
+from collections.abc import Iterable
 from functools import cache
 
 import pghistory
@@ -58,6 +59,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
@@ -1140,9 +1142,11 @@ class NoExtraFieldsForViewSetMixin:
 
 class FlexFieldsMixin(DefaultFlexFieldsMixin):
     """
-    Mixin for DRF ViewSets to add 'permitted_expands' in serializer context based on
-    the current action. It utilizes 'permit_{action}_expands' attributes of the ViewSet
-    to determine expandable fields for each action (e.g., list, retrieve).
+    Mixin for DRF ViewSets to add ``permitted_expands`` in serializer context based on
+    the current action. Set ``permit_<action>_expands`` on the viewset, such as
+    ``permit_retrieve_expands``, to list the fields that action may expand. An action without one
+    allows every expandable field, except ``list``: ``permit_list_expands`` defaults to an empty list,
+    so a list request expands nothing until the viewset names fields.
 
     This replaces `rest_flex_fields.FlexFieldsMixin` and `rest_flex_fields.FlexFieldsModelViewSet` usage.
     """
@@ -1159,7 +1163,11 @@ class FlexFieldsMixin(DefaultFlexFieldsMixin):
 
 class PerActionSerializerMixin:
     """
-    A ViewSet mixin that allows you to specify different serializers for different actions.
+    A ViewSet mixin that picks the serializer class per action.
+
+    Set ``<action>_serializer_class`` on the viewset, such as ``update_serializer_class`` or
+    ``partial_update_serializer_class``, to serialize that action with its own class. An action
+    without one uses ``serializer_class``.
     """
 
     def get_serializer_class(self):
@@ -1277,6 +1285,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    NestedMultipartMixin,
     WarningConfirmationMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
@@ -1298,6 +1307,15 @@ class VuedaViewSet(
     """
 
     detail_args = ["pk"]
+
+    nulls_ordering: dict[str, str] | None = None
+    """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.
+
+    ``VuedaOrderingFilter`` reads it. Keys are ``__``-joined field paths, as in ``ordering``.
+    """
+
+    nulls_ordering_flip: str | Iterable[str] | None = None
+    """Field names in ``nulls_ordering`` whose placement flips when the field is sorted descending."""
 
     # `history_list` (below) fetches its object unconditionally, so it can defer a model-scope
     # denial to a matching workflow-state grant, the same way `retrieve` does -- see
@@ -1546,6 +1564,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    NestedMultipartMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
     ListRowLevelViewSetMixin,
@@ -1558,6 +1577,15 @@ class VuedaReadOnlyViewSet(
     """
 
     detail_args = ["pk"]
+
+    nulls_ordering: dict[str, str] | None = None
+    """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.
+
+    ``VuedaOrderingFilter`` reads it. Keys are ``__``-joined field paths, as in ``ordering``.
+    """
+
+    nulls_ordering_flip: str | Iterable[str] | None = None
+    """Field names in ``nulls_ordering`` whose placement flips when the field is sorted descending."""
 
     def get_allowed_extra_actions(self, request, *, instance=None):
         """

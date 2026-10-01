@@ -216,6 +216,10 @@ class DefaultUserAdapter:
 
 
 def get_adapter() -> DefaultUserAdapter:
+    """Return a new instance of the user adapter class named by the ``VUEDA_USER_ADAPTER`` setting.
+
+    VUEDA uses it to send welcome, forgot password, and TOTP code messages by email or SMS.
+    """
     adapter_class_path = settings.VUEDA_USER_ADAPTER
     adapter_class = import_string(adapter_class_path)
     return adapter_class()

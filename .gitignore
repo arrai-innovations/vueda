@@ -30,6 +30,7 @@ docs/.vitepress/.temp/
 docs/.vitepress/config.mjs.timestamp-*
 docs/api/
 docs/reference/api/
+docs/reference/configuration.md
 docs/reference/theming/tokens/
 docs/reference/theming/tokens.md
 docs/reference/theming/keys/
@@ -41,4 +42,5 @@ docs/public/api/rest.html
 docs/.generated/
 # docs-tooling generated outputs
 docs-tooling/.generated/
+docs-tooling/.cache/
 docs/temp/

@@ -8,11 +8,13 @@ type: reference
 <script setup>
 import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import WidgetDuration from "@vueda/widgets/WidgetDuration.vue";
+import WidgetTagsInput from "@vueda/widgets/WidgetTagsInput.vue";
 import WidgetTimeRangeField from "@vueda/widgets/WidgetTimeRangeField.vue";
 import { ref } from "vue";
 import { SHOWCASE_FIELD_TYPES } from "../../.vitepress/theme/fixtures/showcaseFieldTypes.js";
 
-const duration = ref({ days: 1, hours: 2, minutes: 30, seconds: 0 });
+const duration = ref("1 02:30:00");
+const distributorIds = ref(["12", "40"]);
 </script>
 
 # Form Widgets
@@ -118,11 +120,20 @@ nothing beside it.
 
 ## Duration
 
-A duration is stored as one value and entered through one spinner per time unit,
-rather than as an interval string. The widget shows minutes only by default; the
-`showDays`, `showHours`, and `showSeconds` props add the rest. Each spinner has
-a visible unit label; clicking it focuses that input. Style the labels through
-the {@api theme-key:WidgetDuration} `unitLabel` slot.
+A duration is stored as one value and entered through one spinner per time unit.
+The value is the duration string a `DurationField` sends and reads, such as
+`1 02:30:00`. With `seconds`, the value is a number of seconds instead, as a
+`DurationSecondsField` sends and reads it. The widget shows minutes only by
+default; the `showDays`, `showHours`, and `showSeconds` props add the rest. The
+shown units split the value between them, so two days read as 48 hours when days
+are hidden. Clearing a unit while the rest of the value is zero sets the value
+to `null`, and entering `0` keeps a zero duration. A negative value, such as
+`-1 23:00:00` (Django's form for minus one hour), shows a "Negative" segment with
+a minus sign before the spinners. The spinners show the size of the duration, and
+editing them keeps the value negative. Each spinner has a visible unit label;
+clicking it focuses that input. Style the labels through the
+{@api theme-key:WidgetDuration} `unitLabel` slot, and the negative segment
+through its `sign` and `signSymbol` slots.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -133,7 +144,7 @@ the {@api theme-key:WidgetDuration} `unitLabel` slot.
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>Lead time: <code>DurationField</code> / <code>DurationField</code> selects {@api vue:component:WidgetDuration}</span>
-    <span>a <code>DurationSecondsField</code> serializer selects the same widget with <code>unit: "minutes"</code></span>
+    <span>a <code>DurationSecondsField</code> serializer selects the same widget with <code>seconds: true</code></span>
     <span>one spinner here, because only <code>showMinutes</code> defaults to true</span>
     <span>theme key: {@api theme-key:WidgetDuration}</span>
   </footer>
@@ -144,6 +155,7 @@ the {@api theme-key:WidgetDuration} `unitLabel` slot.
   <DemoCard title="All duration units">
     <WidgetDuration v-model="duration" show-days show-hours show-seconds />
     <template #footer>
+      <span>value: <code>{{ JSON.stringify(duration) }}</code></span>
       <span>Each enabled unit has its own label and input; segments wrap when space is limited.</span>
     </template>
   </DemoCard>
@@ -205,6 +217,26 @@ the selection.
   </footer>
 </VuedaDemo>
 </ClientOnly>
+
+## Lists of values
+
+{@api vue:component:WidgetTagsInput} enters a list of values as removable tags.
+Its value is an array of strings. An entry is added on Enter, on a comma, on
+paste, and when the input loses focus. Each entry is trimmed first, so ` 2`
+next to an existing `2` is a duplicate and is not added. With `numeric`, only
+entries that read as numbers are added. A refused entry, such as `1..2`, stays
+in the input and is marked invalid until it is edited. A `DecimalInField` filter,
+such as a list of IDs, renders this widget.
+
+<VuedaDemo>
+  <DemoCard title="Numeric entries">
+    <WidgetTagsInput v-model="distributorIds" numeric placeholder="Add an ID" />
+    <template #footer>
+      <span>value: <code>{{ JSON.stringify(distributorIds) }}</code></span>
+      <span>theme keys: {@api theme-key:TagsInput}, {@api theme-key:TagsInputItem}, {@api theme-key:TagsInputInput}</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
 
 ## Structured data
 

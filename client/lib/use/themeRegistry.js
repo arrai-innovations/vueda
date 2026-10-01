@@ -1,7 +1,8 @@
 /**
  * @module use/themeRegistry
  * @description Stores base theme data and project overrides separately, with
- * registration, override, and theme-merge APIs.
+ * registration, override, and theme-merge APIs, plus a CSS-framework-independent
+ * class merger configured by `setClassMerger`.
  *
  * Split out of `useTheme.js` so per-component `*.theme.js` modules can register
  * their entries through a module that test specs do not mock. Specs mock the
@@ -15,7 +16,7 @@ import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import isFunction from "lodash-es/isFunction.js";
 import mergeWith from "lodash-es/mergeWith.js";
-import { shallowRef } from "vue";
+import { normalizeClass, shallowRef } from "vue";
 
 /**
  * Reactive holder for the registered theme. `setTheme` / `patchTheme` reassign
@@ -33,6 +34,50 @@ export const defaultTheme = shallowRef({});
  */
 export const projectTheme = shallowRef({});
 
+/** @type {import('vue').ShallowRef<((classes: string) => string)|null>} */
+const classMerger = shallowRef(null);
+
+/**
+ * Register the active theme's CSS conflict rules. Pass null to restore plain
+ * class combining. Theme data and the merger are configured independently.
+ *
+ * @param {((classes: string) => string)|null} merger - Receives active classes after false-key removals.
+ * @returns {void}
+ */
+export function setClassMerger(merger) {
+    classMerger.value = merger;
+}
+
+/**
+ * Combine class values, then apply the active theme's conflict rules.
+ * Keep false keys in intermediate objects so removals survive theme layering
+ * and can still remove classes supplied by composed slots at resolution time.
+ *
+ * @param {...import('@vueda/use/useTheme.js').CombinedClassesArgument} classes - Ordered class layers.
+ * @returns {string|{ [classname: string]: boolean }} - Combined classes with explicit removals preserved.
+ */
+export function combineThemeClasses(...classes) {
+    const combined = combineClasses(...classes);
+    const merger = classMerger.value;
+    if (!merger) {
+        return combined;
+    }
+    if (typeof combined === "string") {
+        return merger(combined);
+    }
+
+    // Object keys retain their first insertion position. Read each layer in
+    // order so an override can reintroduce an earlier class after a conflict.
+    const ordered = classes
+        .map((layer) => normalizeClass(combineClasses(layer)))
+        .join(" ")
+        .split(/\s+/)
+        .filter((token) => combined[token])
+        .join(" ");
+    const removals = Object.fromEntries(Object.entries(combined).filter(([, active]) => !active));
+    return combineClasses(removals, merger(ordered));
+}
+
 const mergeWithCb = (objValue, srcValue, key) => {
     const isObjFunction = isFunction(objValue);
     const isSrcFunction = isFunction(srcValue);
@@ -41,9 +86,12 @@ const mergeWithCb = (objValue, srcValue, key) => {
     if (isClassKey) {
         if (isFunctionInvolved) {
             return (args) =>
-                combineClasses(isObjFunction ? objValue(args) : objValue, isSrcFunction ? srcValue(args) : srcValue);
+                combineThemeClasses(
+                    isObjFunction ? objValue(args) : objValue,
+                    isSrcFunction ? srcValue(args) : srcValue,
+                );
         }
-        return combineClasses(objValue, srcValue);
+        return combineThemeClasses(objValue, srcValue);
     }
     // `composes` uses replace semantics: an override that defines its own
     // compose list wins entirely. Without this special-case, lodash would

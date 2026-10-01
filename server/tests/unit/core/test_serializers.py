@@ -14,6 +14,7 @@ from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.employee.models import Employee
+from tests.employee.serializers import EmployeeSerializer
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
@@ -27,6 +28,7 @@ from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import VuedaReadonlyListSerializer
 from vueda.core.serializers.fields import AvailableActionsField
+from vueda.core.viewsets import VuedaViewSet
 from vueda.core.viewsets import get_recursive_expands_and_fields
 
 
@@ -251,6 +253,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
     groups_to_create: ClassVar[dict] = {
         "Timesheet Updater": [
             ("timesheet", "Timesheet", "update"),
+            ("employee", "Employee", "update"),
         ]
     }
 
@@ -505,7 +508,19 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         else:
             pytest.fail("Serializer is valid when it should not be")
 
-    def test_flex_fields_with_valid_expand_param(self, employee, valid_timesheet_data):
+    def test_flex_fields_with_valid_expand_param(self, employee, valid_timesheet_data, monkeypatch):
+        class EmployeeViewSet(VuedaViewSet):
+            queryset = Employee.objects.all()
+            serializer_class = EmployeeSerializer
+
+        monkeypatch.setitem(
+            info.registration._registry,
+            "employee.employee",
+            {
+                "serializer": EmployeeSerializer,
+                "viewset": EmployeeViewSet,
+            },
+        )
         put_data = {
             "employee": {"id": employee.pk, "user": employee.user.pk, "employee_number": "abcd-12345"},
             "period_start": "2024-02-16",
@@ -513,7 +528,9 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         }
 
         context = {
-            "request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT")
+            "request": FakeRequest(
+                {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT", user=employee.user
+            )
         }
 
         t = Timesheet.objects.create(

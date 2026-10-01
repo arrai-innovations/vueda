@@ -19,6 +19,13 @@ class ExpandParam:
 
 
 def preprocessing_hooks(endpoints):
+    """
+    Return the drf-spectacular ``endpoints`` without the ``/routes/tests/`` endpoints, and with each
+    workflow ``execute_transition`` route split in two.
+
+    The split gives OpenAPI a bulk path and a single-object path with a required ``object_id``. Runtime
+    routing is unchanged.
+    """
     filtered_endpoints = []
     for path, path_regex, method, callback in endpoints:
         if path.startswith("/routes/tests/"):
@@ -45,6 +52,13 @@ def preprocessing_hooks(endpoints):
 
 # We can't register cart in app.ready, because it hits the db with a content type query.
 def register_cart_with_model_info(endpoints):
+    """
+    Register the test store's ``CartSerializer`` with ``vueda.info`` when ``tests.store`` is installed,
+    and return ``endpoints`` unchanged.
+
+    It runs as a schema preprocessing hook because registering in ``AppConfig.ready`` would query the
+    database.
+    """
     if not is_installed("tests.store"):
         return endpoints
 
@@ -59,6 +73,13 @@ def register_cart_with_model_info(endpoints):
 
 # Since this is only used to create the schema, keep the complexity of 30, because it looks nicer as a single function.
 def postprocess_schema_components(result, generator, **kwargs):  # noqa C901
+    """
+    Add examples, descriptions, and defaults to the generated schema components, and set summaries and
+    descriptions on VUEDA operations.
+
+    It also removes the expand query parameter from workflow object operations and renames the
+    single-object transition operation. It edits and returns ``result``.
+    """
     for component_key, component in result["components"].items():
         match component_key:
             case "schemas":

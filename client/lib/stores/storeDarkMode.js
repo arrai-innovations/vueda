@@ -30,13 +30,29 @@ const prefers = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
  */
 export const storeDarkMode = defineStore("darkMode", {
     state: () => ({
+        /**
+         * Whether dark mode is on.
+         *
+         * @type {boolean}
+         */
         isDark: false,
     }),
     actions: {
+        /**
+         * Sets `isDark` from localStorage. With no saved value, follows the browser's
+         * `prefers-color-scheme: dark` setting.
+         *
+         * @returns {void}
+         */
         init() {
             const storedDarkMode = localStorage.getItem(darkModeLocalStorageKey);
             this.isDark = storedDarkMode !== null ? JSON.parse(storedDarkMode) : prefers();
         },
+        /**
+         * Flips `isDark` and saves the new value to localStorage.
+         *
+         * @returns {void}
+         */
         toggle() {
             this.isDark = !this.isDark;
             localStorage.setItem(darkModeLocalStorageKey, JSON.stringify(this.isDark));

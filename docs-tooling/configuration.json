@@ -1,0 +1,389 @@
+{
+    "config": {
+        "ACCOUNT_REAUTHENTICATION_TIMEOUT": {
+            "description": "Time in seconds during which django-allauth considers a recent authentication valid for reauthentication checks.",
+            "settings": ["ACCOUNT_REAUTHENTICATION_TIMEOUT"]
+        },
+        "ALLAUTH_ACCOUNT_ADAPTER": {
+            "description": "Class path assigned to ACCOUNT_ADAPTER for django-allauth account behavior.",
+            "settings": ["ACCOUNT_ADAPTER"]
+        },
+        "ALLAUTH_HEADLESS_ADAPTER": {
+            "description": "Class path assigned to HEADLESS_ADAPTER for django-allauth headless behavior.",
+            "settings": ["HEADLESS_ADAPTER"]
+        },
+        "ALLAUTH_MFA_ADAPTER": {
+            "description": "Class path assigned to MFA_ADAPTER for django-allauth multi-factor authentication behavior.",
+            "settings": ["MFA_ADAPTER"]
+        },
+        "ALLOWED_HOSTS": {
+            "description": "Hostnames that Django accepts in incoming requests. Use hostnames without URL schemes or ports.",
+            "settings": ["ALLOWED_HOSTS"]
+        },
+        "ANYMAIL_MAILGUN_API_KEY": {
+            "description": "API credential for sending email through Mailgun.",
+            "settings": ["ANYMAIL_MAILGUN_API_KEY"],
+            "when": "When EMAIL_BACKEND selects anymail.backends.mailgun.EmailBackend."
+        },
+        "ANYMAIL_MAILGUN_API_URL": {
+            "description": "Mailgun API base URL used by the email backend.",
+            "settings": ["ANYMAIL_MAILGUN_API_URL"],
+            "when": "When EMAIL_BACKEND selects anymail.backends.mailgun.EmailBackend."
+        },
+        "ANYMAIL_MAILGUN_SENDER_DOMAIN": {
+            "description": "Mailgun sending domain for outgoing email.",
+            "settings": ["ANYMAIL_MAILGUN_SENDER_DOMAIN"],
+            "when": "When EMAIL_BACKEND selects anymail.backends.mailgun.EmailBackend."
+        },
+        "ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY": {
+            "description": "Signing key for validating Mailgun webhook payloads.",
+            "settings": ["ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY"],
+            "when": "When EMAIL_BACKEND selects anymail.backends.mailgun.EmailBackend."
+        },
+        "ANYMAIL_WEBHOOK_SECRET": {
+            "description": "Shared secret used by django-anymail webhook authentication.",
+            "settings": ["ANYMAIL_WEBHOOK_SECRET"],
+            "when": "When EMAIL_BACKEND selects anymail.backends.mailgun.EmailBackend."
+        },
+        "AUTH_USER_MODEL": {
+            "description": "Django user model label used by VUEDA model relationships and migration generation.",
+            "settings": ["AUTH_USER_MODEL"]
+        },
+        "CACHE_URL": {
+            "description": "Cache connection URL parsed into CACHES.default. Required because the factory stores sessions in this cache. Use a shared cache for multiple worker processes; a Redis URL also needs the redis extra.",
+            "settings": ["CACHES.default"]
+        },
+        "CELERY_BROKER_URL": {
+            "description": "Broker URL for Celery task delivery, including the VDQ dispatch queue.",
+            "settings": ["CELERY_BROKER_URL"]
+        },
+        "CORS_ALLOWED_ORIGINS": {
+            "description": "Origins allowed by the configured CORS middleware for HTTP and ASGI requests.",
+            "settings": ["CORS_ALLOWED_ORIGINS"]
+        },
+        "CSRF_TRUSTED_ORIGINS": {
+            "description": "Origins Django trusts for CSRF origin checks. Include each origin’s URL scheme.",
+            "settings": ["CSRF_TRUSTED_ORIGINS"]
+        },
+        "DATABASE_BACKUP_DIR": {
+            "description": "Directory where the VUEDA update command writes a PostgreSQL backup before applying migrations.",
+            "settings": ["DATABASE_BACKUP_DIR"]
+        },
+        "DATABASE_URL": {
+            "description": "Database connection URL parsed into DATABASES.default. The factory enables atomic requests, disables persistent connections, and selects repeatable-read isolation for supported PostgreSQL backends.",
+            "settings": ["DATABASES.default"]
+        },
+        "DEBUG": {
+            "description": "Enables Django debug mode and VUEDA debug routes and exception details. Also lowers the CORS preflight cache lifetime to 600 seconds.",
+            "settings": ["DEBUG"]
+        },
+        "DJANGO_APPS": {
+            "description": "Django applications included in the assembled INSTALLED_APPS list.",
+            "settings": ["DJANGO_APPS"]
+        },
+        "EMAIL_BACKEND": {
+            "description": "Email backend class path. The console backend prints messages during development. With use_mailers=True, the factory places this value in MAILERS.default.BACKEND; otherwise it sets EMAIL_BACKEND. Selecting the Mailgun backend also reads the ANYMAIL_MAILGUN_* keys and ANYMAIL_WEBHOOK_SECRET.",
+            "settings": ["EMAIL_BACKEND", "MAILERS.default.BACKEND"]
+        },
+        "EMAIL_SUBJECT_PREFIX": {
+            "description": "Prefix for account email subjects. When empty, the user adapter uses SITE_NAME in square brackets.",
+            "settings": ["EMAIL_SUBJECT_PREFIX"]
+        },
+        "FRONTEND_DOMAIN": {
+            "description": "Frontend origin prepended to login and password-reset paths in account emails.",
+            "settings": ["FRONTEND_DOMAIN"]
+        },
+        "FRONTEND_LOGIN_URL": {
+            "description": "Frontend login path used in account emails, appended to FRONTEND_DOMAIN.",
+            "settings": ["FRONTEND_LOGIN_URL"]
+        },
+        "FRONTEND_RESET_URL": {
+            "description": "Frontend password-reset path used to build the reset link with its token and user identifier.",
+            "settings": ["FRONTEND_RESET_URL"]
+        },
+        "LANGUAGE_CODE": {
+            "description": "Default language code used by Django.",
+            "settings": ["LANGUAGE_CODE"]
+        },
+        "LOCAL_APPS": {
+            "description": "Project applications appended to INSTALLED_APPS. VUEDA also uses this list to group models in the permissions overview.",
+            "settings": ["LOCAL_APPS"]
+        },
+        "LOGS_FOLDER": {
+            "description": "Directory containing django.log for the rotating file handler declared in LOGGING. The root logger uses only the console handler by default.",
+            "settings": ["LOGGING.handlers.file.filename"]
+        },
+        "MEDIA_ROOT": {
+            "description": "Filesystem directory for uploaded media.",
+            "settings": ["MEDIA_ROOT"]
+        },
+        "MEDIA_URL": {
+            "description": "URL prefix for uploaded media.",
+            "settings": ["MEDIA_URL"]
+        },
+        "NO_REPLY_EMAIL": {
+            "description": "Sender address for user account email and the SYSTEM sender record used by VDQ.",
+            "settings": ["NO_REPLY_EMAIL"]
+        },
+        "PACKAGE_MANAGER": {
+            "description": "Returned package-manager preference (auto, uv, or pipenv). The current update command detects the manager from project files and executable availability; it does not read this setting.",
+            "settings": ["PACKAGE_MANAGER"]
+        },
+        "SECRET_KEY": {
+            "description": "Django signing secret. Supply a private value for each project environment.",
+            "settings": ["SECRET_KEY"]
+        },
+        "SECURE_CONTENT_TYPE_NOSNIFF": {
+            "description": "Controls the nosniff response header from Django security middleware.",
+            "settings": ["SECURE_CONTENT_TYPE_NOSNIFF"]
+        },
+        "SECURE_CROSS_ORIGIN_OPENER_POLICY": {
+            "description": "Cross-origin opener policy for Django security middleware. An empty string becomes None and disables the header.",
+            "settings": ["SECURE_CROSS_ORIGIN_OPENER_POLICY"]
+        },
+        "SECURE_HSTS_SECONDS": {
+            "description": "Lifetime in seconds advertised by the HTTP Strict Transport Security header.",
+            "settings": ["SECURE_HSTS_SECONDS"]
+        },
+        "SECURE_REFERRER_POLICY": {
+            "description": "Referrer policy for Django security middleware. An empty string becomes None and disables the header.",
+            "settings": ["SECURE_REFERRER_POLICY"]
+        },
+        "SENTRY_DSN": {
+            "description": "Sentry destination supplied by the production defaults for project error-reporting setup.",
+            "settings": ["SENTRY_DSN"]
+        },
+        "SENTRY_ENVIRONMENT": {
+            "description": "Environment name supplied by the production defaults for Sentry events.",
+            "settings": ["SENTRY_ENVIRONMENT"]
+        },
+        "SENTRY_LOG_LEVEL": {
+            "description": "Logging threshold supplied by the production defaults. logging.INFO is the Python INFO logging level.",
+            "settings": ["SENTRY_LOG_LEVEL"]
+        },
+        "SENTRY_TRACES_SAMPLE_RATE": {
+            "description": "Trace sampling rate supplied by the production defaults for Sentry.",
+            "settings": ["SENTRY_TRACES_SAMPLE_RATE"]
+        },
+        "SITE_ID": {
+            "description": "Django sites framework identifier for this installation.",
+            "settings": ["SITE_ID"]
+        },
+        "SITE_NAME": {
+            "description": "Site name in account email templates and the fallback email subject prefix.",
+            "settings": ["SITE_NAME"]
+        },
+        "STATICFILES_DIRS": {
+            "description": "Additional directories searched for static files.",
+            "settings": ["STATICFILES_DIRS"]
+        },
+        "STATIC_ROOT": {
+            "description": "Destination directory for collected static files.",
+            "settings": ["STATIC_ROOT"]
+        },
+        "STATIC_URL": {
+            "description": "URL prefix for static files.",
+            "settings": ["STATIC_URL"]
+        },
+        "SUPPORT_EMAIL": {
+            "description": "Support address inserted into account email context.",
+            "settings": ["SUPPORT_EMAIL"]
+        },
+        "TEST_POSTGRES_DB": {
+            "description": "PostgreSQL connection string supplied as TEST_POSTGRES_DB for project test setup.",
+            "settings": ["TEST_POSTGRES_DB"]
+        },
+        "THIRD_PARTY_APPS": {
+            "description": "Third-party applications included in INSTALLED_APPS. The factory appends pgtrigger and pghistory, plus drf_spectacular when importable.",
+            "settings": ["THIRD_PARTY_APPS"]
+        },
+        "TIME_ZONE": {
+            "description": "Default time zone used by Django. The factory also enables time-zone-aware datetimes.",
+            "settings": ["TIME_ZONE"]
+        },
+        "TWILIO_ACCOUNT_SID": {
+            "description": "Twilio account identifier. VDQ initializes its Twilio client and status polling only when this value is nonempty and the Twilio package is available.",
+            "settings": ["TWILIO_ACCOUNT_SID"]
+        },
+        "TWILIO_AUTH_TOKEN": {
+            "description": "Twilio credential used to send SMS messages and validate incoming webhook signatures.",
+            "settings": ["TWILIO_AUTH_TOKEN"]
+        },
+        "TWILIO_CALLER_ID": {
+            "description": "Sender phone number for user account SMS messages and the SYSTEM sender record.",
+            "settings": ["TWILIO_CALLER_ID"]
+        },
+        "VUEDA_APPS": {
+            "description": "VUEDA applications included in INSTALLED_APPS. The factory requires vueda.history because the shipped migrations depend on it. Including vueda.workflow also adds its OpenAPI tag when drf_spectacular is available.",
+            "settings": ["VUEDA_APPS"]
+        },
+        "VUEDA_USER_ADAPTER": {
+            "description": "Class path for the user adapter that implements VUEDA account operations.",
+            "settings": ["VUEDA_USER_ADAPTER"]
+        }
+    },
+    "settings": {
+        "AUTH_USER_MODEL": {
+            "configKey": "AUTH_USER_MODEL"
+        },
+        "CACHES": {
+            "configKey": "CACHE_URL",
+            "description": "VUEDA checks that the cache selected for sessions can be shared between production workers."
+        },
+        "COLUMN_TOTALS_PARAM": {
+            "description": "Query parameter selecting named column totals for list requests. The client has a matching constant that must change with this setting."
+        },
+        "CORS_ALLOWED_ORIGINS": {
+            "configKey": "CORS_ALLOWED_ORIGINS"
+        },
+        "CORS_ALLOW_CREDENTIALS": {
+            "description": "Allows credentials in cross-origin requests accepted by the CORS middleware."
+        },
+        "CORS_ALLOW_HEADERS": {
+            "description": "Request headers allowed by the CORS middleware, including VUEDA’s dry-run and acknowledge-warnings headers."
+        },
+        "CORS_ALLOW_METHODS": {
+            "description": "HTTP methods allowed by the CORS middleware."
+        },
+        "CORS_EXPOSE_HEADERS": {
+            "description": "Response headers readable by cross-origin browser clients. The factory exposes content-disposition."
+        },
+        "CORS_PREFLIGHT_MAX_AGE": {
+            "description": "Lifetime in seconds of cached CORS preflight results. DEBUG reduces the factory value from 86400 to 600."
+        },
+        "DATABASES": {
+            "configKey": "DATABASE_URL",
+            "description": "The update command reads the default database connection to create backups."
+        },
+        "DATABASE_BACKUP_DIR": {
+            "configKey": "DATABASE_BACKUP_DIR"
+        },
+        "DEBUG": {
+            "configKey": "DEBUG"
+        },
+        "EMAIL_BACKEND": {
+            "configKey": "EMAIL_BACKEND"
+        },
+        "EMAIL_SUBJECT_PREFIX": {
+            "configKey": "EMAIL_SUBJECT_PREFIX"
+        },
+        "EMAIL_TIMEOUT": {
+            "description": "Email timeout in seconds supplied when use_mailers=False."
+        },
+        "FRONTEND_DOMAIN": {
+            "configKey": "FRONTEND_DOMAIN"
+        },
+        "FRONTEND_LOGIN_URL": {
+            "configKey": "FRONTEND_LOGIN_URL"
+        },
+        "FRONTEND_RESET_URL": {
+            "configKey": "FRONTEND_RESET_URL"
+        },
+        "INSTALLED_APPS": {
+            "description": "Assembled from DJANGO_APPS, VUEDA_APPS, THIRD_PARTY_APPS, and LOCAL_APPS. VUEDA uses it to detect optional application behavior."
+        },
+        "IN_TESTS": {
+            "description": "Treat exception handling as a test environment even when DEBUG is false. Includes diagnostic tracebacks in responses and suppresses Sentry capture of ValidationError exceptions."
+        },
+        "LOCAL_APPS": {
+            "configKey": "LOCAL_APPS"
+        },
+        "MAILERS": {
+            "configKey": "EMAIL_BACKEND",
+            "description": "With use_mailers=True, the factory creates the default mailer and its timeout option. This requires Django 6.1 or later; earlier versions raise ImproperlyConfigured."
+        },
+        "MAX_PAGE_SIZE": {
+            "description": "Maximum requested page size. VUEDA also uses it when computing pagination metadata and documenting page-size defaults."
+        },
+        "MIDDLEWARE": {
+            "description": "Default Django, CORS, allauth, and VUEDA history middleware. The factory inserts VuedaHistoryMiddleware immediately after AuthenticationMiddleware to record the actor and request. History checks validate its presence and order. User decorators also check for CSRF middleware."
+        },
+        "NO_REPLY_EMAIL": {
+            "configKey": "NO_REPLY_EMAIL"
+        },
+        "PAGE_QUERY_PARAM": {
+            "description": "Query parameter for the requested page. Server schemas and request validation use this name. A change requires a matching client constant change."
+        },
+        "PAGE_SIZE_QUERY_PARAM": {
+            "description": "Query parameter for the requested page size. Server schemas and request validation use this name. A change requires a matching client constant change."
+        },
+        "PERMISSION_NAMES_MAPPING": {
+            "description": "Maps Django permission verbs to VUEDA CRUDL verbs (create, read, update, delete, and list). The factory remaps add, change, and view. Runtime authorization and metadata read this mapping. Set it before importing vueda.core.patch_django; changing it does not rename existing permission rows."
+        },
+        "PGHISTORY_APPEND_ONLY": {
+            "description": "Requires tracked event rows to remain immutable. The factory sets this to True to match the trigger operations in shipped migrations."
+        },
+        "PGHISTORY_CREATED_AT_FUNCTION": {
+            "description": "Uses clock_timestamp() so each event records its write time, rather than the transaction start time. This matches the trigger operations in shipped migrations."
+        },
+        "QUEUE_ITEM_SERIALIZER": {
+            "description": "Serializer class object for queued items, selected at module import time. Supply the class itself, not a dotted import string."
+        },
+        "REST_AUTH": {
+            "description": "Authentication serializer defaults. The who-is endpoint imports USER_DETAILS_SERIALIZER, with vueda.user.serializers.WhoIsSerializer as its fallback when the dictionary omits that key."
+        },
+        "REST_FLEX_FIELDS": {
+            "description": "Names of the expand, selected-field, and omitted-field query parameters, plus the maximum expansion depth. VUEDA reads these for serialization, request validation, metadata, and OpenAPI. Query names must agree with the client."
+        },
+        "REST_FRAMEWORK": {
+            "description": "VUEDA defaults for DRF renderers, authentication, pagination, filtering, permissions, throttling, and exception handling. VUEDA reads PAGE_SIZE, SEARCH_PARAM, and ORDERING_PARAM directly. Query names must agree with the client. When drf_spectacular imports successfully, the factory adds DEFAULT_SCHEMA_CLASS."
+        },
+        "SEND_QUEUE_VIEWSET": {
+            "description": "Viewset class object for queued items, selected at module import time. Supply the class itself, not a dotted import string."
+        },
+        "SENT_ITEM_SERIALIZER": {
+            "description": "Serializer class object for sent items, selected at module import time. Supply the class itself, not a dotted import string."
+        },
+        "SENT_ITEM_VIEWSET": {
+            "description": "Viewset class object for sent items, selected at module import time. Supply the class itself, not a dotted import string."
+        },
+        "SESSION_CACHE_ALIAS": {
+            "description": "Cache alias inspected by VUEDA’s production session-cache check. The local fallback is default, matching Django’s session cache alias."
+        },
+        "SESSION_ENGINE": {
+            "description": "The factory selects cache-backed sessions. Production checks reject a process-local session cache."
+        },
+        "SITE_NAME": {
+            "configKey": "SITE_NAME"
+        },
+        "SPECTACULAR_SETTINGS": {
+            "description": "OpenAPI title, tags, schema options, and hooks supplied only when drf_spectacular imports successfully. Tags depend on the selected VUEDA_APPS."
+        },
+        "SUPPORT_EMAIL": {
+            "configKey": "SUPPORT_EMAIL"
+        },
+        "TWILIO_ACCOUNT_SID": {
+            "configKey": "TWILIO_ACCOUNT_SID"
+        },
+        "TWILIO_AUTH_TOKEN": {
+            "configKey": "TWILIO_AUTH_TOKEN"
+        },
+        "TWILIO_CALLER_ID": {
+            "configKey": "TWILIO_CALLER_ID"
+        },
+        "TWILIO_WEBHOOK_URL": {
+            "description": "Twilio SMS status callback URL. A truthy URL enables webhook-based status updates with timeout polling; a false value selects status polling. Configure the URL when using Twilio callbacks."
+        },
+        "VDQ_MAX_FILES_AGE_IN_SECONDS": {
+            "description": "A value of zero deletes queue attachment files when an item reaches a done state. The current read site does nothing for None or positive values; this setting alone does not schedule age-based cleanup."
+        },
+        "VDQ_TWILIO_SMS_TIMEOUT_HOURS": {
+            "description": "Time in hours before awaiting SMS messages time out. Also determines the retry count of the unknown-message check task. The task class reads it at import time."
+        },
+        "VDQ_URL": {
+            "description": "VDQ URL prefix used to build attachment download URLs. Supply it when serializing queue attachments; neither get_defaults nor the read site supplies a fallback."
+        },
+        "VUEDA_USER_ADAPTER": {
+            "configKey": "VUEDA_USER_ADAPTER"
+        },
+        "VUEDA_VDQ_RECEIVER_MODEL": {
+            "description": "Swapper model label for the VDQ receiver. Swapper supplies vueda_vdq.Receiver when no override exists; VUEDA migration files read the setting directly. Choose the replacement model before creating project migrations."
+        },
+        "VUEDA_VDQ_SENDER_MODEL": {
+            "description": "Swapper model label for the VDQ sender. Swapper supplies vueda_vdq.Sender when no override exists; VUEDA migration files read the setting directly. Choose the replacement model before creating project migrations."
+        }
+    },
+    "djangoExemptions": {
+        "MIGRATION_MODULES": "Django migration module overrides retain their Django meaning in migration discovery and generation."
+    }
+}

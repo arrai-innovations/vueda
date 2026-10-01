@@ -45,6 +45,11 @@ from vueda.core.models import BaseModelMeta
 
 # Decorators
 def conditional_extend_schema_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema``, or returns the decorated
+    function unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema
@@ -62,6 +67,11 @@ def conditional_extend_schema_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_field_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_field``, or returns the decorated
+    function unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_field
@@ -79,6 +89,11 @@ def conditional_extend_schema_field_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_serializer_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_serializer``, or returns the
+    decorated class unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_serializer
@@ -96,6 +111,11 @@ def conditional_extend_schema_serializer_decorator(*args, **kwargs):
 
 
 def conditional_extend_schema_view_decorator(*args, **kwargs):
+    """
+    Return a decorator that applies drf-spectacular's ``extend_schema_view``, or returns the decorated
+    view unchanged when drf-spectacular is not installed.
+    """
+
     def wrapper(func):
         try:
             from drf_spectacular.utils import extend_schema_view
@@ -114,6 +134,10 @@ def conditional_extend_schema_view_decorator(*args, **kwargs):
 
 # Functions
 def conditional_extend_schema_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema`` decorator built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema
     except ImportError:
@@ -123,6 +147,10 @@ def conditional_extend_schema_func(*args, **kwargs):
 
 
 def conditional_extend_schema_field_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_field`` decorator built from the arguments, or ``None``
+    when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_field
     except ImportError:
@@ -132,6 +160,10 @@ def conditional_extend_schema_field_func(*args, **kwargs):
 
 
 def conditional_extend_schema_serializer_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_serializer`` decorator built from the arguments, or
+    ``None`` when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_serializer
     except ImportError:
@@ -141,6 +173,10 @@ def conditional_extend_schema_serializer_func(*args, **kwargs):
 
 
 def conditional_extend_schema_view_func(*args, **kwargs):
+    """
+    Return drf-spectacular's ``extend_schema_view`` decorator built from the arguments, or ``None`` when
+    drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import extend_schema_view
     except ImportError:
@@ -150,6 +186,10 @@ def conditional_extend_schema_view_func(*args, **kwargs):
 
 
 def conditional_open_api_example(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiExample`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiExample
     except ImportError:
@@ -159,6 +199,10 @@ def conditional_open_api_example(*args, **kwargs):
 
 
 def conditional_open_api_parameter(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiParameter`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiParameter
     except ImportError:
@@ -168,6 +212,10 @@ def conditional_open_api_parameter(*args, **kwargs):
 
 
 def conditional_open_api_response(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiResponse`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiResponse
     except ImportError:
@@ -177,6 +225,10 @@ def conditional_open_api_response(*args, **kwargs):
 
 
 def conditional_open_api_request(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiRequest`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiRequest
     except ImportError:
@@ -186,6 +238,10 @@ def conditional_open_api_request(*args, **kwargs):
 
 
 def conditional_open_api_callback(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiCallback`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiCallback
     except ImportError:
@@ -195,6 +251,10 @@ def conditional_open_api_callback(*args, **kwargs):
 
 
 def conditional_open_api_webhook(*args, **kwargs):
+    """
+    Return a drf-spectacular ``OpenApiWebhook`` built from the arguments, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiWebhook
     except ImportError:
@@ -209,6 +269,10 @@ class AlwaysGetNone:
 
 
 def conditional_open_api_types():
+    """
+    Return drf-spectacular's ``OpenApiTypes`` enum, or an ``AlwaysGetNone`` object whose attributes are
+    all ``None`` when drf-spectacular is not installed.
+    """
     try:
         from drf_spectacular.utils import OpenApiTypes
     except ImportError:
@@ -218,6 +282,10 @@ def conditional_open_api_types():
 
 
 def conditional_inline_serializer(*args, **kwargs):
+    """
+    Return a serializer built by drf-spectacular's ``inline_serializer``, or ``None`` when drf-spectacular
+    is not installed.
+    """
     try:
         from drf_spectacular.utils import inline_serializer
     except ImportError:
@@ -260,17 +328,17 @@ class VuedaBaseAutoSchema:
         Add a description and example for each of the path parameters.
         """
         # Workflow doesn't have an 'object_id' field, so use a model during api docs generation that has it.
-        match self.path:
+        match route_path(self.path):
             case (
-                "/routes/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/"
-                | "/routes/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/"
-                | "/routes/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/"
+                "/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/"
+                | "/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/"
+                | "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/"
             ):
                 self.view.queryset_model = OpenApiDocsGenerationObjectIdModel
 
         parameters = super()._resolve_path_parameters(variables)
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
             for parameter in parameters:
                 match (parameter["name"], parameter["in"]):
                     case ("app_label", "path"):
@@ -300,7 +368,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._get_pagination_parameters()
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
             for parameter in parameters:
                 match parameter["name"]:
                     case settings.PAGE_QUERY_PARAM:
@@ -321,7 +389,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._get_filter_parameters()
 
-        if self.path.startswith(r"/routes/vueda.info/") or self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith(("/vueda.info/", "/vueda.workflow/")):
 
             class MatchFilterParameters:
                 SEARCH_PARAM = settings.REST_FRAMEWORK["SEARCH_PARAM"]
@@ -415,7 +483,7 @@ class VuedaBaseAutoSchema:
         """
         parameters = super()._process_override_parameters(direction=direction)
 
-        if self.path.startswith(r"/routes/vueda.workflow/"):
+        if route_path(self.path).startswith("/vueda.workflow/"):
             for parameter_key, parameter in parameters.items():
                 match parameter_key:
                     case ("object_id", "path"):
@@ -475,6 +543,8 @@ try:
     from drf_spectacular.plumbing import ComponentRegistry
     from drf_spectacular.plumbing import ResolvedComponent
     from drf_spectacular.plumbing import build_serializer_context
+    from drf_spectacular.plumbing import force_instance
+    from drf_spectacular.plumbing import safe_ref
     from drf_spectacular.utils import Direction
     from drf_spectacular.utils import _SchemaType
     from drf_spectacular.utils import _SerializerType
@@ -522,6 +592,50 @@ else:
 
             return parameters
 
+        def _map_basic_serializer(self, serializer, direction):
+            schema = super()._map_basic_serializer(serializer, direction)
+            if direction == "response":
+                self._add_expandable_fields(force_instance(serializer), schema)
+            return schema
+
+        def _add_expandable_fields(self, serializer, schema):
+            """
+            Add each ``Meta.expandable_fields`` entry that has no declared field as an optional property.
+
+            drf-spectacular reads only declared fields, and flex-fields adds an expandable field only when a
+            request names it in the expand parameter. A ``SerializerMethodField`` entry takes its type from the
+            method, through ``extend_schema_field`` or its return annotation. A serializer entry references that
+            serializer's component, as a list when its options set ``many``.
+
+            An entry that shares its name with a declared field replaces that field's value when expanded, such
+            as a primary key becoming the related object. The declared field documents the unexpanded value, and
+            this leaves it as it is.
+            """
+            expandable_fields = getattr(getattr(serializer, "Meta", None), "expandable_fields", None) or {}
+            properties = schema.setdefault("properties", {})
+            expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
+            for name, definition in expandable_fields.items():
+                if name in properties:
+                    continue
+                field_class, options = definition if isinstance(definition, tuple) else (definition, {})
+                if isinstance(field_class, str):
+                    field_class = serializer._get_serializer_class_from_lazy_string(field_class)
+                if not isinstance(field_class, type):
+                    continue
+                if issubclass(field_class, serializers.SerializerMethodField):
+                    field = field_class()
+                elif issubclass(field_class, serializers.BaseSerializer):
+                    field = field_class(many=options.get("many", False), read_only=True)
+                else:
+                    continue
+                field.bind(name, serializer)
+                field_schema = self._map_serializer_field(field, "response")
+                if field_schema is None:
+                    continue
+                field_schema = safe_ref(field_schema)
+                field_schema.setdefault("description", f"Present when the `{expand_param}` query parameter names it.")
+                properties[name] = field_schema
+
         def resolve_serializer(
             self, serializer: _SerializerType, direction: Direction, bypass_extensions=False
         ) -> ResolvedComponent:
@@ -546,7 +660,24 @@ else:
             return resolved_serializer
 
 
+def route_path(path):
+    """
+    Return ``path`` from its VUEDA app segment on, such as ``/vueda.info/model_info/``.
+
+    Schema customizations match on this form, so they apply under whatever prefix the project mounts
+    the API at (``/routes/`` by convention, nothing in the docs build).
+    """
+    index = path.find("/vueda.")
+    return path[index:] if index != -1 else path
+
+
 def get_components_by_ref(components, ref_strings):
+    """
+    Return a deep copy of each component schema in ``components`` named by ``ref_strings``, keyed by ref
+    string.
+
+    Each ref string ends in ``/<component type>/<component name>``, as in ``#/components/schemas/Cart``.
+    """
     results = {}
 
     for ref_string in ref_strings:
@@ -560,6 +691,10 @@ def get_components_by_ref(components, ref_strings):
 
 
 def recursive_replace_refs(data, refs_schema):
+    """
+    Replace each ``$ref`` in ``data`` that names a schema in ``refs_schema`` with that schema's keys, in
+    place, descending into nested dicts but not lists.
+    """
     for key, value in tuple(data.items()):
         if key == "$ref" and value in refs_schema:
             schema = refs_schema[value]
@@ -572,6 +707,12 @@ def recursive_replace_refs(data, refs_schema):
 
 
 def replace_refs_with_schema(components, data, component_ref_strings):
+    """
+    Inline the component schemas named by ``component_ref_strings`` wherever ``data`` refers to them by
+    ``$ref``, editing ``data`` in place.
+
+    Refs between those components are inlined first, so the copied schemas are self-contained.
+    """
     refs_schema = get_components_by_ref(components, component_ref_strings)
 
     for item in refs_schema.values():

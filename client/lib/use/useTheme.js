@@ -9,16 +9,17 @@
  * every leaf that composes from it. Override semantics for `composes` are replace (override list wins
  * entirely); own `class` values still combine default + override as in non-composing entries.
  */
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import {
     clearThemeOverrides,
+    combineThemeClasses,
     defaultTheme,
     getTheme,
     mergeTheme,
     overrideTheme,
     patchTheme,
     projectTheme,
+    setClassMerger,
     setTheme,
 } from "@vueda/use/themeRegistry.js";
 import { ThemeOverrideSymbol } from "@vueda/utils/symbols.js";
@@ -27,10 +28,10 @@ import isFunction from "lodash-es/isFunction.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, ref, toRef, unref } from "vue";
 
 // Re-export the theme registry's public API so the `@vueda/use/useTheme.js`
-// import path stays stable for existing callers. New `*.theme.js` modules
-// should import `patchTheme` from `@vueda/use/themeRegistry.js` directly so the
+// import path stays stable for existing callers. Theme modules register through
+// themeRegistry (the built-in Tailwind theme uses its own registry adapter), so
 // eager registration survives specs that mock this composable.
-export { clearThemeOverrides, getTheme, mergeTheme, overrideTheme, patchTheme, setTheme };
+export { clearThemeOverrides, getTheme, mergeTheme, overrideTheme, patchTheme, setClassMerger, setTheme };
 
 /**
  * Vue component props definition for components that accept a theme override prop.
@@ -416,7 +417,7 @@ export function useTheme(componentName, props, context, keyFn) {
                     const mergedOverride = unref(themeOverride);
                     const syncResult = resolveSlotClassesSync(componentName, key, mergedOverride, calcContext);
                     if (syncResult !== LOADER_PENDING) {
-                        return combineClasses(...syncResult);
+                        return combineThemeClasses(...syncResult);
                     }
                     // Probe already fires the component-level loader; avoid a
                     // second invocation through the async fallback's loader-
@@ -440,7 +441,7 @@ export function useTheme(componentName, props, context, keyFn) {
                                     innerOverride,
                                     innerContext,
                                 );
-                                return combineClasses(...classes);
+                                return combineThemeClasses(...classes);
                             },
                             "",
                             {

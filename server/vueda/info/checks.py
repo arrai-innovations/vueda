@@ -1,3 +1,5 @@
+"""System checks for the model, serializer, and viewset configuration that model info metadata reads."""
+
 import re
 import warnings
 from collections.abc import Iterable
@@ -7,6 +9,7 @@ from django.contrib.admin.utils import get_fields_from_path
 from django.core.checks import Error
 from django.core.checks import Warning as CheckWarning
 from django.core.exceptions import FieldDoesNotExist
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.query import Query
 from rest_flex_fields import WILDCARD_VALUES
 
@@ -17,6 +20,7 @@ from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.formatted_name import path_multiplies_rows
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.ordering import NULLS_PLACEMENTS
+from vueda.core.ordering import PK_ALIAS
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
@@ -457,6 +461,7 @@ def _validate_ordering_declarations(model, viewset):
 
 
 def check_formatted_name_configuration(app_configs, **kwargs):
+    """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve (``vueda_info.E001`` to ``E005``, ``E008``, ``E009``, ``E011``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
@@ -747,6 +752,7 @@ def _validate_queryset_ordering(model, viewset):
 
 
 def check_ordering_configuration(app_configs, **kwargs):
+    """Report viewset and model ordering that model info cannot describe (``vueda_info.E006``, ``E007``, ``E010``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
@@ -799,6 +805,131 @@ def check_filter_query_param_configuration(app_configs, **kwargs):
                     id="vueda_info.E012",
                 )
             )
+
+    return errors
+
+
+def _filters_across_rows(queryset):
+    """
+    Whether a queryset filters on a value computed across rows: an aggregate, which Django compiles
+    to ``HAVING``, or a window function, which it compiles to ``QUALIFY``. Such a filter depends on
+    which rows the query holds, so it gives a different answer inside a search subquery that holds
+    only the matching related rows.
+    """
+    where = queryset.query.where
+    return where.contains_aggregate or where.contains_over_clause
+
+
+def _names_nothing_on(search_queryset, path):
+    """Whether a search path starts with a name that is neither a field of the model nor an annotation
+    of the search queryset."""
+    name = path.split(LOOKUP_SEP)[0]
+    if name == PK_ALIAS or name in search_queryset.query.annotations:
+        return False
+    try:
+        search_queryset.model._meta.get_field(name)
+    except FieldDoesNotExist:
+        return True
+    return False
+
+
+def _search_queryset_source(viewset, model, from_hook):
+    return f"{viewset.__name__}.get_search_queryset()" if from_hook else f"{model.__name__}'s default manager"
+
+
+def _unresolved_search_field_error(viewset, model, path, from_hook):
+    name = viewset.__name__
+    source = _search_queryset_source(viewset, model, from_hook)
+    message = (
+        f"{name}.search_fields names '{path}', which is neither a field of {model.__name__} nor an annotation "
+        f"of {source}. {name}.search_fields reach through a multi-valued relation (a reverse foreign key or a "
+        f"many-to-many), so the search matches inside a subquery built from {source}, and a search request "
+        "fails with a FieldError."
+    )
+    if from_hook:
+        hint = f"Add the '{path}' annotation to {name}.get_search_queryset()."
+    else:
+        hint = (
+            f"If '{path}' names an annotation {name}.get_queryset() adds, define {name}.get_search_queryset() "
+            f"returning a {model.__name__} queryset with the same annotation and no filters."
+        )
+    return Error(message, hint=hint, obj=viewset, id="vueda_info.E014")
+
+
+def _search_queryset_filter_error(viewset):
+    name = viewset.__name__
+    message = (
+        f"{name}.get_search_queryset() filters on an aggregate or a window function, and {name}.search_fields "
+        "reach through a multi-valued relation (a reverse foreign key or a many-to-many). The search matches "
+        "inside a subquery that holds only the matching related rows, where that filter gives a different "
+        "answer, so the search drops objects that match."
+    )
+    hint = (
+        "Remove that filter from get_search_queryset(). The viewset's queryset applies its filters outside the "
+        "subquery, where they see every related row."
+    )
+    return Error(message, hint=hint, obj=viewset, id="vueda_info.E014")
+
+
+def _validate_search_queryset(model, viewset):
+    """
+    Report a viewset whose search through a multi-valued relation can't match against its search
+    queryset. See ``VuedaSearchFilterBackend.get_search_queryset``.
+
+    The search queryset is what ``get_search_queryset()`` returns when the viewset defines one, and
+    the model's default manager otherwise. The check reports two problems with it:
+
+    - A ``search_fields`` entry that names neither a model field nor an annotation of the search
+      queryset, typically an annotation only the viewset's ``get_queryset()`` adds. A search request
+      fails with a ``FieldError`` on it.
+    - A ``get_search_queryset()`` that filters on an aggregate or a window function, which drops
+      objects that match.
+
+    A ``get_search_queryset()`` that can't be built outside a request, such as one that reads
+    ``self.request``, is skipped, and so is a relation path that names no field.
+    """
+    from vueda.core.filters import VuedaSearchFilterBackend
+
+    search_fields = getattr(viewset, "search_fields", None)
+    backend_class = next(
+        (backend for backend in viewset.filter_backends if issubclass(backend, VuedaSearchFilterBackend)), None
+    )
+    if not search_fields or backend_class is None:
+        return []
+
+    try:
+        view = viewset()
+        get_search_queryset = getattr(view, "get_search_queryset", None)
+        from_hook = get_search_queryset is not None
+        search_queryset = get_search_queryset() if from_hook else model._default_manager.all()
+
+        backend = backend_class()
+        paths = [backend.search_field_path(field) for field in search_fields]
+        unresolved = [path for path in paths if _names_nothing_on(search_queryset, path)]
+        multi_valued = backend.must_call_distinct(search_queryset, [path for path in paths if path not in unresolved])
+    except Exception:
+        # A queryset or a field path that can't be resolved here is unknown to this check, not its business.
+        return []
+
+    # A search that follows only foreign keys matches against the viewset's queryset itself, where the
+    # viewset's own annotations resolve, so only a multi-valued search reads the search queryset.
+    if not multi_valued:
+        return []
+
+    errors = [_unresolved_search_field_error(viewset, model, path, from_hook) for path in unresolved]
+    if from_hook and _filters_across_rows(search_queryset):
+        errors.append(_search_queryset_filter_error(viewset))
+    return errors
+
+
+def check_search_queryset_configuration(app_configs, **kwargs):
+    """Report viewsets whose multi-valued search cannot run against the search queryset (``vueda_info.E014``)."""
+    from vueda.info.registration import get_all_registrations
+
+    errors = []
+    for registration in get_all_registrations().values():
+        model = registration["serializer"].Meta.model
+        errors.extend(_validate_search_queryset(model, registration["viewset"]))
 
     return errors
 
@@ -1108,6 +1239,7 @@ def _validate_column_totals(model, viewset):
 
 
 def check_column_totals_configuration(app_configs, **kwargs):
+    """Report viewsets whose ``column_totals`` declaration or total names are invalid (``vueda_info.E013``, ``W002``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
@@ -1219,6 +1351,7 @@ def _validate_field_source_resolution(serializer_class, model):
 
 
 def check_field_source_resolution(app_configs, **kwargs):
+    """Warn about serializer fields whose ``source`` model info cannot resolve to a model field (``vueda_info.W001``)."""
     from vueda.info.registration import get_all_registrations
 
     warnings = []

@@ -1,3 +1,5 @@
+"""Models and permission codenames that the user and group management views hide or treat specially."""
+
 CUD_CODENAMES = (
     "create_",
     "update_",

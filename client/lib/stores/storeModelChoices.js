@@ -61,9 +61,33 @@ const clearNestedContainer = (container) => {
  */
 export const storeModelChoices = defineStore("modelChoices", {
     state: () => ({
+        /**
+         * Choice lists for model fields, keyed by app and model dot name, then by field name. A fetched
+         * list is the server's paginated response, with `{label, value}` items in `results`.
+         *
+         * @type {{[appModelDotName: string]: {[fieldName: string]: object}}}
+         */
         choices: {},
+        /**
+         * Choice lists for filters, keyed by app and model dot name, then by filter name. A fetched list
+         * is the server's paginated response, with `{label, value}` items in `results`.
+         *
+         * @type {{[appModelDotName: string]: {[filterName: string]: object}}}
+         */
         filterChoices: {},
+        /**
+         * The in-flight `fetchChoices` requests, keyed by app and model dot name, then by field name. A
+         * request removes its entry when it settles.
+         *
+         * @type {{[appModelDotName: string]: {[fieldName: string]: Promise<object>}}}
+         */
         promises: {},
+        /**
+         * The in-flight `fetchFilterChoices` requests, keyed by app and model dot name, then by filter
+         * name. A request removes its entry when it settles.
+         *
+         * @type {{[appModelDotName: string]: {[filterName: string]: Promise<object>}}}
+         */
         filterPromises: {},
         /**
          * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
@@ -95,6 +119,16 @@ export const storeModelChoices = defineStore("modelChoices", {
             clearNestedContainer(this.promises);
             clearNestedContainer(this.filterPromises);
         },
+        /**
+         * Stores a choice list for a model field without fetching it.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} field - Field name.
+         * @param {object} choices - The choice list: a paginated response object with `{label, value}`
+         *     items in `results`.
+         * @returns {void}
+         */
         setChoices(app, model, field, choices) {
             const key = getAppModelDotName({ app, model });
             if (!this.choices[key]) {
@@ -102,6 +136,16 @@ export const storeModelChoices = defineStore("modelChoices", {
             }
             this.choices[key][field] = choices;
         },
+        /**
+         * Stores a choice list for a filter without fetching it.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} field - Filter name.
+         * @param {object} choices - The choice list: a paginated response object with `{label, value}`
+         *     items in `results`.
+         * @returns {void}
+         */
         setFilterChoices(app, model, field, choices) {
             const key = getAppModelDotName({ app, model });
             if (!this.filterChoices[key]) {
@@ -109,6 +153,19 @@ export const storeModelChoices = defineStore("modelChoices", {
             }
             this.filterChoices[key][field] = choices;
         },
+        /**
+         * Fetches the choice list for a filter and stores it in `filterChoices`.
+         *
+         * A request already in flight for the same filter is shared. A stored list does not stop a new
+         * request.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} field - Filter name, sent to the server as given.
+         * @returns {Promise<object>} A promise for the server's paginated choice list. It rejects with
+         *  `ModelChoicesError` when the request fails, and with `AuthScopeInvalidatedError` if the
+         *  authenticated user changes while it is in flight.
+         */
         async fetchFilterChoices(app, model, field) {
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
@@ -147,6 +204,19 @@ export const storeModelChoices = defineStore("modelChoices", {
                 }
             }
         },
+        /**
+         * Fetches the choice list for a model field and stores it in `choices`.
+         *
+         * A request already in flight for the same field is shared. A stored list does not stop a new
+         * request.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {string} field - Field name, converted to snake_case for the request.
+         * @returns {Promise<object>} A promise for the server's paginated choice list. It rejects with
+         *  `ModelChoicesError` when the request fails, and with `AuthScopeInvalidatedError` if the
+         *  authenticated user changes while it is in flight.
+         */
         async fetchChoices(app, model, field) {
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
@@ -188,6 +258,15 @@ export const storeModelChoices = defineStore("modelChoices", {
                 }
             }
         },
+        /**
+         * Creates the empty per-model container in `choices`, or in `filterChoices` for a filter, if it
+         * does not exist yet.
+         *
+         * @param {string} app - Django app label.
+         * @param {string} model - Model name.
+         * @param {boolean} [isFilter=false] - Whether to create the container in `filterChoices`.
+         * @returns {void}
+         */
         initializeChoice(app, model, isFilter = false) {
             const key = getAppModelDotName({ app, model });
             if (!this.choices[key] && !isFilter) {

@@ -101,7 +101,6 @@ jobs:
     docs-validate:
         executor: python311-node
         resource_class: medium
-        circleci_ip_ranges: true
         steps:
             - checkout
             - run:
