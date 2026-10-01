@@ -64,7 +64,9 @@ class TestResponseBody:
             assert stream.tell() == 0
             assert not stream.closed
         finally:
-            response.close()
+            # Closing the response would send request_finished, whose close_old_connections handler
+            # touches the database this test has no access to.
+            stream.close()
 
     def test_describes_a_streaming_response_without_advancing_it(self):
         chunks_read = []
@@ -73,11 +75,13 @@ class TestResponseBody:
             chunks_read.append("first")
             yield b"first"
 
-        response = StreamingHttpResponse(chunks(), status=HTTPStatus.ACCEPTED, content_type="text/csv")
+        generator = chunks()
+        response = StreamingHttpResponse(generator, status=HTTPStatus.ACCEPTED, content_type="text/csv")
         try:
             assert response_body(response) == (
                 "<StreamingHttpResponse status_code=202 content_type='text/csv', streaming content not read>"
             )
             assert chunks_read == []
         finally:
-            response.close()
+            # See the FileResponse test above for why this closes the generator, not the response.
+            generator.close()
