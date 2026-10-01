@@ -241,10 +241,7 @@ def register_model(app_label, model_name):
     Register the model under test and nothing else.
 
     The detail response for a model is built from that model's own registration, so registering the
-    rest is work every parametrized case would pay for and no case would use. A proxy model needed
-    its concrete model registered too, because the history expands resolved their canonical
-    serializer through the content type, which resolves a proxy to the model it proxies. Those
-    expands went with django-simple-history.
+    rest is work every parametrized case would pay for and no case would use.
     """
     info.registration.get_empty_registry()
 
@@ -289,7 +286,7 @@ class BaseModelInfo:
     user_email: ClassVar[str]
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def empty_registry_after_test(self):
         """Leave an empty registry behind, whichever module runs next."""
         yield
         info.registration.get_empty_registry()
@@ -514,6 +511,17 @@ class TestModelInfoSerializerCustomer(BaseModelInfoDetail):
     expected_actions_key = "expected_actions_customer"
 
 
+def get_model_action_names_expecting_ok(client, app_label, model_name):
+    """Request a model's info with ``model_actions`` expanded, assert a 200, and return the action names."""
+    response = client.get(
+        reverse("info.model_info-detail", args=(app_label, model_name)),
+        format="json",
+        data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+    )
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    return {action["name"] for action in response.data["model_actions"]}
+
+
 @pytest.mark.django_db
 class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixin):
     """
@@ -559,42 +567,28 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_distributor(self):
+        """Register the distributor model for each test, and leave an empty registry behind."""
         register_model("store", "distributor")
         yield
         info.registration.get_empty_registry()
 
-    @pytest.fixture
-    def distributor(self):
-        return store_serializers.DistributorSerializer.Meta.model.objects.create(
-            name="Widget Co.", description="Fine widgets."
-        )
-
-    def model_actions(self, client):
-        response = client.get(
-            reverse("info.model_info-detail", args=("store", "distributor")),
-            format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
-        )
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        return response.data["model_actions"]
-
-    def test_no_permission_reports_no_actions_at_all(self, api_client, distributor):
+    def test_no_permission_reports_no_actions_at_all(self, api_client):
         api_client.force_authenticate(user=self.users["no_permission@domain.invalid"])
 
-        assert self.model_actions(api_client) == []
+        assert get_model_action_names_expecting_ok(api_client, "store", "distributor") == set()
 
-    def test_list_permission_alone_does_not_grant_history_access(self, api_client, distributor):
+    def test_list_permission_alone_does_not_grant_history_access(self, api_client):
         api_client.force_authenticate(user=self.users["lister@domain.invalid"])
 
-        names = {action["name"] for action in self.model_actions(api_client)}
+        names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert "history-list" not in names
 
-    def test_read_permission_grants_history_access(self, api_client, distributor):
+    def test_read_permission_grants_history_access(self, api_client):
         api_client.force_authenticate(user=self.users["reader@domain.invalid"])
 
-        names = {action["name"] for action in self.model_actions(api_client)}
+        names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert "history-list" in names
 
@@ -701,19 +695,11 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_customer_order(self):
+        """Register the customerorder model for each test, and leave an empty registry behind."""
         register_model("store", "customerorder")
         yield
         info.registration.get_empty_registry()
-
-    def model_actions(self, client):
-        response = client.get(
-            reverse("info.model_info-detail", args=("store", "customerorder")),
-            format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
-        )
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        return response.data["model_actions"]
 
     def test_a_state_grant_settles_a_model_level_denial_in_metadata(self, api_client):
         """
@@ -729,7 +715,7 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
             grant_or_deny=True,
         )
 
-        names = {action["name"] for action in self.model_actions(api_client)}
+        names = get_model_action_names_expecting_ok(api_client, "store", "customerorder")
 
         assert "history-list" in names
         assert "retrieve" in names, (
@@ -788,24 +774,16 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
     }
 
     @pytest.fixture(autouse=True)
-    def registry(self):
+    def register_distributor(self):
+        """Register the distributor model for each test, and leave an empty registry behind."""
         register_model("store", "distributor")
         yield
         info.registration.get_empty_registry()
 
-    def model_actions(self, client):
-        response = client.get(
-            reverse("info.model_info-detail", args=("store", "distributor")),
-            format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
-        )
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        return {action["name"] for action in response.data["model_actions"]}
-
     def test_list_permission_alone_does_not_grant_retrieve(self, api_client):
         api_client.force_authenticate(user=self.users["lister@domain.invalid"])
 
-        names = self.model_actions(api_client)
+        names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert "list" in names
         assert "retrieve" not in names
@@ -813,7 +791,7 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
     def test_read_permission_alone_does_not_grant_list(self, api_client):
         api_client.force_authenticate(user=self.users["reader@domain.invalid"])
 
-        names = self.model_actions(api_client)
+        names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert "retrieve" in names
         assert "list" not in names
@@ -821,7 +799,7 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
     def test_both_permissions_keep_both_entries(self, api_client):
         api_client.force_authenticate(user=self.users["both@domain.invalid"])
 
-        names = self.model_actions(api_client)
+        names = get_model_action_names_expecting_ok(api_client, "store", "distributor")
 
         assert {"list", "retrieve"}.issubset(names)
 
@@ -838,7 +816,7 @@ class TestModelColumnTotalsSection(BaseModelInfo):
     test_data_class = CustomerTestData
     user_email = "test_customer_1@domain.invalid"
 
-    def get_section(self, authenticated_client):
+    def get_column_totals_section_expecting_ok(self, authenticated_client):
         response = authenticated_client.get(
             reverse("info.model_info-detail", args=("store", "cartitem")),
             format="json",
@@ -854,7 +832,7 @@ class TestModelColumnTotalsSection(BaseModelInfo):
         settings.COLUMN_TOTALS_PARAM = "totals"
         register_model("store", "cartitem")
 
-        section, response = self.get_section(authenticated_client)
+        section, response = self.get_column_totals_section_expecting_ok(authenticated_client)
 
         assert section == {"fields": ["quantity", "product_price"]}, response_body(response)
 
@@ -863,7 +841,7 @@ class TestModelColumnTotalsSection(BaseModelInfo):
         is what a flag on each `model_fields` entry could not have reported."""
         register_model("store", "cartitem")
 
-        section, response = self.get_section(authenticated_client)
+        section, response = self.get_column_totals_section_expecting_ok(authenticated_client)
 
         assert "product_price" in section["fields"], response_body(response)
         assert "product_price" not in store_serializers.CartItemSerializer().fields

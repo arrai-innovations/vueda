@@ -144,30 +144,10 @@ class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
             ("contenttypes", "ContentType", "read"),
-            ("erring", "MoSoVoWo", "read"),
-            ("erring", "MoSoVoWx", "read"),
-            ("erring", "MoSoVxWo", "read"),
-            ("erring", "MoSoVxWx", "read"),
-            ("erring", "MoSoVzWo", "read"),
-            ("erring", "MoSoVzWx", "read"),
-            ("erring", "MoSxVoWo", "read"),
-            ("erring", "MoSxVoWx", "read"),
-            ("erring", "MoSxVxWo", "read"),
-            ("erring", "MoSxVxWx", "read"),
-            ("erring", "MoSxVzWo", "read"),
-            ("erring", "MoSxVzWx", "read"),
-            ("erring", "MxSoVoWo", "read"),
-            ("erring", "MxSoVoWx", "read"),
-            ("erring", "MxSoVxWo", "read"),
-            ("erring", "MxSoVxWx", "read"),
-            ("erring", "MxSoVzWo", "read"),
-            ("erring", "MxSoVzWx", "read"),
-            ("erring", "MxSxVoWo", "read"),
-            ("erring", "MxSxVoWx", "read"),
-            ("erring", "MxSxVxWo", "read"),
-            ("erring", "MxSxVxWx", "read"),
-            ("erring", "MxSxVzWo", "read"),
-            ("erring", "MxSxVzWx", "read"),
+            ("erring", "EnabledWithWorkflow", "read"),
+            ("erring", "EnabledWithoutWorkflow", "read"),
+            ("erring", "NotEnabledWithWorkflow", "read"),
+            ("erring", "NotEnabledWithoutWorkflow", "read"),
         ]
     }
 
@@ -191,99 +171,44 @@ class TestModelInfoWorkflowConfigurationErrs:
 
     def setup_registry(self):
         info.registration.get_empty_registry()
-        info.register(err_serializers.MoSoVoWoSerializer, err_viewsets.MoSoVoWoViewSet)
-        info.register(err_serializers.MxSoVoWoSerializer, err_viewsets.MxSoVoWoViewSet)
-        info.register(err_serializers.MoSxVoWoSerializer, err_viewsets.MoSxVoWoViewSet)
-        info.register(err_serializers.MxSxVoWoSerializer, err_viewsets.MxSxVoWoViewSet)
-        info.register(err_serializers.MoSoVxWoSerializer, err_viewsets.MoSoVxWoViewSet)
-        info.register(err_serializers.MxSoVxWoSerializer, err_viewsets.MxSoVxWoViewSet)
-        info.register(err_serializers.MoSxVxWoSerializer, err_viewsets.MoSxVxWoViewSet)
-        info.register(err_serializers.MxSxVxWoSerializer, err_viewsets.MxSxVxWoViewSet)
-        info.register_serializer(err_serializers.MoSoVzWoSerializer)
-        info.register_serializer(err_serializers.MxSoVzWoSerializer)
-        info.register_serializer(err_serializers.MoSxVzWoSerializer)
-        info.register_serializer(err_serializers.MxSxVzWoSerializer)
-        info.register(err_serializers.MoSoVoWxSerializer, err_viewsets.MoSoVoWxViewSet)
-        info.register(err_serializers.MxSoVoWxSerializer, err_viewsets.MxSoVoWxViewSet)
-        info.register(err_serializers.MoSxVoWxSerializer, err_viewsets.MoSxVoWxViewSet)
-        info.register(err_serializers.MxSxVoWxSerializer, err_viewsets.MxSxVoWxViewSet)
-        info.register(err_serializers.MoSoVxWxSerializer, err_viewsets.MoSoVxWxViewSet)
-        info.register(err_serializers.MxSoVxWxSerializer, err_viewsets.MxSoVxWxViewSet)
-        info.register(err_serializers.MoSxVxWxSerializer, err_viewsets.MoSxVxWxViewSet)
-        info.register(err_serializers.MxSxVxWxSerializer, err_viewsets.MxSxVxWxViewSet)
-        info.register_serializer(err_serializers.MoSoVzWxSerializer)
-        info.register_serializer(err_serializers.MxSoVzWxSerializer)
-        info.register_serializer(err_serializers.MoSxVzWxSerializer)
-        info.register_serializer(err_serializers.MxSxVzWxSerializer)
+        info.register_serializer(err_serializers.EnabledWithWorkflowSerializer)
+        info.register_serializer(err_serializers.EnabledWithoutWorkflowSerializer)
+        info.register_serializer(err_serializers.NotEnabledWithWorkflowSerializer)
+        info.register_serializer(err_serializers.NotEnabledWithoutWorkflowSerializer)
 
     @pytest.mark.parametrize(
-        ("model", "will_err", "expected_error"),
+        ("model", "will_err"),
         [
-            # Only a model that enables workflow and has no workflow definition is misconfigured. A workflow
-            # row alone does not opt a model in, and the serializer and viewset no longer take part.
-            (
-                model,
-                model.__name__.startswith("Mo") and model.__name__.endswith("Wx"),
-                frozenset(WorkflowNotConfiguredError(model).args)
-                if model.__name__.startswith("Mo") and model.__name__.endswith("Wx")
-                else RESULT_KEYS,
-            )
-            for model in (
-                getattr(err_models, f"{m}{s}{v}{w}")
-                for m in ("Mo", "Mx")
-                for s in ("So", "Sx")
-                for v in ("Vo", "Vx", "Vz")
-                for w in ("Wo", "Wx")
-            )
+            # Only a model that enables workflow and has no workflow definition is misconfigured. A
+            # workflow row alone does not opt a model in.
+            (err_models.EnabledWithWorkflow, False),
+            (err_models.EnabledWithoutWorkflow, True),
+            (err_models.NotEnabledWithWorkflow, False),
+            (err_models.NotEnabledWithoutWorkflow, False),
         ],
     )
-    def test_workflow_configuration(self, model, will_err, expected_error, test_data, api_client):
+    def test_workflow_configuration(self, model, will_err, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        with use_test_router(
-            IncludeAppInRouteNameRouter,
-            "erring/",
-            (
-                ("mo_so_vo_wo", err_viewsets.MoSoVoWoViewSet),
-                ("mx_so_vo_wo", err_viewsets.MxSoVoWoViewSet),
-                ("mo_sx_vo_wo", err_viewsets.MoSxVoWoViewSet),
-                ("mx_sx_vo_wo", err_viewsets.MxSxVoWoViewSet),
-                ("mo_so_vx_wo", err_viewsets.MoSoVxWoViewSet),
-                ("mx_so_vx_wo", err_viewsets.MxSoVxWoViewSet),
-                ("mo_sx_vx_wo", err_viewsets.MoSxVxWoViewSet),
-                ("mx_sx_vx_wo", err_viewsets.MxSxVxWoViewSet),
-                ("mo_so_vo_wx", err_viewsets.MoSoVoWxViewSet),
-                ("mx_so_vo_wx", err_viewsets.MxSoVoWxViewSet),
-                ("mo_sx_vo_wx", err_viewsets.MoSxVoWxViewSet),
-                ("mx_sx_vo_wx", err_viewsets.MxSxVoWxViewSet),
-                ("mo_so_vx_wx", err_viewsets.MoSoVxWxViewSet),
-                ("mx_so_vx_wx", err_viewsets.MxSoVxWxViewSet),
-                ("mo_sx_vx_wx", err_viewsets.MoSxVxWxViewSet),
-                ("mx_sx_vx_wx", err_viewsets.MxSxVxWxViewSet),
-            ),
-        ):
-            self.setup_registry()
-            response = api_client.get(
-                reverse(
-                    "info.model_info-detail",
-                    args=(
-                        "erring",
-                        model._meta.model_name,
-                    ),
+        self.setup_registry()
+        response = api_client.get(
+            reverse(
+                "info.model_info-detail",
+                args=(
+                    "erring",
+                    model._meta.model_name,
                 ),
-            )
+            ),
+        )
 
         if will_err:
-            data = response.json()
             assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
-            assert expected_error == frozenset(response.data["detail"])
+            assert frozenset(WorkflowNotConfiguredError(model).args) == frozenset(response.data["detail"])
 
         else:
-            data = response.json()
             assert response.status_code == HTTPStatus.OK, response_body(response)
-            # In this case the expected error is actually the results.
-            assert expected_error == frozenset(data)
+            assert RESULT_KEYS == frozenset(response.json())
 
 
 class VuedaFormattedNameTestData(BaseTestUserMixin, BaseTestGroupMixin):

@@ -3,10 +3,10 @@ import datetime
 import importlib.util
 import io
 import os
-import time
 from collections import Counter
 from pathlib import Path
 from pprint import pformat
+from typing import ClassVar
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -18,7 +18,8 @@ from django.db.migrations.recorder import MigrationRecorder
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
-from tests.utils import info_registry_clear_with_appended_apps
+from tests.utils import clear_info_registry_before_test
+from tests.utils import find_one_migration_generated_today_or_fail
 from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
@@ -42,23 +43,16 @@ def convert_data_to_list_of_dicts_without_id_fields(queryset):
     return data
 
 
-def strip_database_creation_and_deletion_from_stderr(stderr, db_name):
-    stderr = stderr.replace(f"Creating test database for alias 'default' ('{db_name}')...\n", "")
-    stderr = stderr.replace(f"Destroying test database for alias 'default' ('{db_name}')...\n", "")
-    return stderr
-
-
 class BaseAddedWorkflow:
-    def continue_added_workflow_test(self, migration_dir, results):
+    def assert_added_workflow_migration_round_trips(self, migration_dir, results):
         # Reload 0003, because we rewrote it after it would have imported it.
         assert results, "No results were captured when makeworkflowmigrations was called."
         self.reload_module(results, migration_dir)
 
         # The migration writes through the workflow triggers, so it has to depend on the migration
         # that installs them. Depending on the newest vueda_workflow migration is what guarantees it.
-        migration_filepath = os.path.join(
-            migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
-        )
+        migration_name = find_one_migration_generated_today_or_fail(migration_dir, "0003_workflow_migrations")
+        migration_filepath = os.path.join(migration_dir, migration_name)
         with open(migration_filepath, encoding="utf-8") as f:
             generated_migration = f.read()
         workflow_migrations = Path(workflow_module.__file__).parent / "migrations"
@@ -67,13 +61,10 @@ class BaseAddedWorkflow:
 
         results = frozenset([line.strip() for line in results if line.strip()])
         assert "Creating empty migration for workflow changes." in results
-        assert (
-            f"Modified migration '0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-            f"to migrate workflow for workflow_added." in results
-        )
+        assert f"Modified migration '{migration_name}' to migrate workflow for workflow_added." in results
 
         # Roll back 0002.
-        succeeded, results = self.call_command("migrate", "workflow_added", "0001")
+        succeeded, results = self.call_command_capturing_output("migrate", "workflow_added", "0001")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -86,7 +77,7 @@ class BaseAddedWorkflow:
         assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 1
 
         # Fake 0002, so we can run 0003 instead.
-        succeeded, results = self.call_command("migrate", "workflow_added", "0002", "--fake")
+        succeeded, results = self.call_command_capturing_output("migrate", "workflow_added", "0002", "--fake")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -94,7 +85,7 @@ class BaseAddedWorkflow:
         assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
 
         # Run migration 0003 forwards.
-        succeeded, results = self.call_command("migrate", "workflow_added", "0003")
+        succeeded, results = self.call_command_capturing_output("migrate", "workflow_added", "0003")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -193,7 +184,8 @@ class BaseAddedWorkflow:
             },
         ]
 
-        # Converting the data uses id, so it is stripped from the data.
+        # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+        # comparison leaves them out.
         data = convert_data_to_list_of_dicts_without_id_fields(
             models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
         )
@@ -257,7 +249,7 @@ class BaseAddedWorkflow:
         ]
 
         # Run migration 0003 backwards
-        succeeded, results = self.call_command("migrate", "workflow_added", "0002")
+        succeeded, results = self.call_command_capturing_output("migrate", "workflow_added", "0002")
         if not succeeded:
             pytest.fail("".join(results), pytrace=False)
 
@@ -292,7 +284,7 @@ class BaseAddedWorkflow:
 
 
 class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_no_app_label_specified(self, settings):
@@ -307,7 +299,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
             assert MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_added")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -316,7 +308,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
                 MigrationRecorder.Migration.objects.filter(app__in=("workflow_added",)).count() == 2  # noqa: PLR2004
             )
 
-            succeeded, results = self.call_command("makeworkflowmigrations")
+            succeeded, results = self.call_command_capturing_output("makeworkflowmigrations")
             if not succeeded:
                 pytest.fail("".join(results), pytrace=False)
 
@@ -326,11 +318,11 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_bad_app_label(self):
+    def test_makeworkflowmigrations_rejects_unknown_app_label(self):
         with pytest.raises(SystemExit):
-            self.call_command("makeworkflowmigrations", "app_that_does_not_exist")
+            self.call_command_capturing_output("makeworkflowmigrations", "app_that_does_not_exist")
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_comment_removed(self, settings):
@@ -346,18 +338,18 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
         with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_added")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Create the generated migration 0003.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added")
+            succeeded, results = self.call_command_capturing_output("makeworkflowmigrations", "workflow_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Verify that the noqa comments are gone.
             migration_filepath = os.path.join(
-                migration_dir, f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+                migration_dir, find_one_migration_generated_today_or_fail(migration_dir, "0003_workflow_migrations")
             )
 
             with open(migration_filepath, encoding="utf-8") as f:
@@ -373,12 +365,12 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
             )
             assert "    make_sure_permissions_exist(migration_app_label)\n" in migration_content
 
-            self.continue_added_workflow_test(migration_dir, results)
+            self.assert_added_workflow_migration_round_trips(migration_dir, results)
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_dry_run_no_changes(self):
-        succeeded, results = self.call_command("makeworkflowmigrations", "--dry-run")
+        succeeded, results = self.call_command_capturing_output("makeworkflowmigrations", "--dry-run")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -386,7 +378,7 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
 
 class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_added(self, settings):
@@ -401,7 +393,7 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
             assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_added")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_added")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -409,15 +401,17 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
             assert MigrationRecorder.Migration.objects.filter(app="workflow_added").count() == 2  # noqa: PLR2004
 
             # Create the generated migration 0003.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added", "--import-instead")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_added", "--import-instead"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
-            self.continue_added_workflow_test(migration_dir, results)
+            self.assert_added_workflow_migration_round_trips(migration_dir, results)
 
 
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_changed(self, settings):
@@ -432,7 +426,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_changed")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_changed")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -440,7 +434,9 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             assert MigrationRecorder.Migration.objects.filter(app="workflow_changed").count() == 4  # noqa: PLR2004
 
             # Create the generated migration 0005.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_changed", "--import-instead")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_changed", "--import-instead"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -450,13 +446,11 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 
             results = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0005_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_changed." in results
-            )
+            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "0005_workflow_migrations")
+            assert f"Modified migration '{migration_name}' to migrate workflow for workflow_changed." in results
 
             # Roll back 0004.
-            succeeded, results = self.call_command("migrate", "workflow_changed", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_changed", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -609,12 +603,12 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             # Fake 0004, so we can run 0005 instead.
-            succeeded, results = self.call_command("migrate", "workflow_changed", "0004", "--fake")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_changed", "0004", "--fake")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Run migration 0005 forwards.
-            succeeded, results = self.call_command("migrate", "workflow_changed", "0005")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_changed", "0005")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -705,7 +699,8 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
                 },
             ]
 
-            # Converting the data uses id, so it is stripped from the data.
+            # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+            # comparison leaves them out.
             data = convert_data_to_list_of_dicts_without_id_fields(
                 models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
             )
@@ -769,7 +764,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
             ]
 
             # Run migration 0005 backwards
-            succeeded, results = self.call_command("migrate", "workflow_changed", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_changed", "0004")
             if not succeeded:
                 pytest.fail("".join(results), pytrace=False)
 
@@ -821,7 +816,7 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 
 
 class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_deleted(self, settings):
@@ -836,7 +831,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_deleted")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_deleted")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -844,7 +839,9 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             assert MigrationRecorder.Migration.objects.filter(app="workflow_deleted").count() == 4  # noqa: PLR2004
 
             # Create the generated migration 0005.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_deleted", "--import-instead")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_deleted", "--import-instead"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -854,13 +851,11 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
 
             results = frozenset([line.strip() for line in results if line.strip()])
             assert "Creating empty migration for workflow changes." in results
-            assert (
-                f"Modified migration '0005_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py' "
-                f"to migrate workflow for workflow_deleted." in results
-            )
+            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "0005_workflow_migrations")
+            assert f"Modified migration '{migration_name}' to migrate workflow for workflow_deleted." in results
 
             # Roll back 0004.
-            succeeded, results = self.call_command("migrate", "workflow_deleted", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_deleted", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1013,7 +1008,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             ]
 
             # Fake 0004, so we can run 0005 instead.
-            succeeded, results = self.call_command("migrate", "workflow_deleted", "0004", "--fake")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_deleted", "0004", "--fake")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1022,7 +1017,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             )
 
             # Run migration 0005 forwards.
-            succeeded, results = self.call_command("migrate", "workflow_deleted", "0005")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_deleted", "0005")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1056,7 +1051,7 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             )
 
             # Run migration 0005 backwards
-            succeeded, results = self.call_command("migrate", "workflow_deleted", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_deleted", "0004")
             if not succeeded:
                 pytest.fail("".join(results), pytrace=False)
 
@@ -1092,7 +1087,8 @@ class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallComma
             )
             assert data == orig_data_state_permission
 
-            # Converting the data uses id, so it is stripped from the data.
+            # Ids differ between the rows an edit wrote and the rows a migration writes, so the
+            # comparison leaves them out.
             data = convert_data_to_list_of_dicts_without_id_fields(
                 models.Transition.objects.filter(workflow_id=workflow_pk).values("id", "code", "name", "target__code")
             )
@@ -1115,13 +1111,15 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
     def get_unmatched_events_by_label(self, unmatched_history_data):
         """Group the codes of the events no migration captured, by what each event recorded.
 
-        Grouping used to be by date, because the fixture wrote its own. A real write is stamped with
-        the moment it happened, so every event in one test shares a date and only the event type
-        separates them.
+        Every write is stamped with the moment it happened, so the events in one test share a date,
+        and only the event type separates them.
         """
         events_by_label = {}
         for record in unmatched_history_data:
-            events_by_label.setdefault(record["pgh_label"], set()).add(record["code"])
+            label = record["pgh_label"]
+            if label not in events_by_label:
+                events_by_label[label] = set()
+            events_by_label[label].add(record["code"])
 
         return events_by_label
 
@@ -1139,7 +1137,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         return grouped_results
 
     @staticmethod
-    def _handle_ast_data(ast_data):
+    def parse_debug_history_literal(ast_data):
         for remove_word in (
             "tzinfo=",
             "datetime",
@@ -1152,11 +1150,11 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
         try:
             ast_data = ast.literal_eval(ast_data)
         except Exception:
-            raise Exception(ast_data)
+            pytest.fail(f"unparseable debug history line: {ast_data}")
 
         return ast_data
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_duplicates(self, settings):
@@ -1176,7 +1174,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_duplicates")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_duplicates")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1184,7 +1182,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 3  # noqa: PLR2004
 
             # Create the generated migration 0004.
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations",
                 "workflow_duplicates",
                 "--import-instead",
@@ -1242,10 +1240,10 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
                                     # Make sure the history pk is in the change and history data.
                                     assert f"'matches_history': {history_pk}" in change_data
                                     assert f"'pgh_id': {history_pk}" in history_data
-                                    # The two dates no longer agree, and should not. A change in a
-                                    # migration file carries the date the edit was recorded under
-                                    # the old backend; an event carries the moment the write really
-                                    # happened, which for these fixtures is when the test ran.
+                                    # The two dates differ, and should. A change in a migration
+                                    # file carries the date its edit was recorded when the migration
+                                    # was generated; an event carries the moment the write happened,
+                                    # which for these fixtures is when the test ran.
                                     assert "datetime." in change_data
                                     assert "datetime." in history_data
 
@@ -1269,12 +1267,12 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
                                 beginning_index = line.find("[")
                                 ending_index = line.find("]")
                                 ast_data = line[beginning_index + 1 : ending_index]
-                                ast_data = self._handle_ast_data(ast_data)
+                                ast_data = self.parse_debug_history_literal(ast_data)
                                 unmatched_history_data.append(ast_data)
 
                             previous_line = line
 
-            # Nothing matches by value any more. Every change 0002 carries was applied by 0002
+            # Nothing matches by value. Every change 0002 carries was applied by 0002
             # itself, and a generated migration's own writes are dropped by the action they record
             # before matching runs at all.
             assert num_changes_matching_history_records == {"num": 0, "sub_nums": []}
@@ -1295,11 +1293,11 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             )
 
             # Roll back 0003.
-            succeeded, results = self.call_command("migrate", "workflow_duplicates", "0002")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_duplicates", "0002")
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # We should have run migration 0001 to 0003 now.
+            # We should have run migration 0001 and 0002 now.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_duplicates").count() == 2  # noqa: PLR2004
 
             assert not models.State.objects.filter(code="add_1").exists(), (
@@ -1307,12 +1305,12 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             )
 
             # Fake 0003, so we can run 0004 instead.
-            succeeded, results = self.call_command("migrate", "workflow_duplicates", "0003", "--fake")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_duplicates", "0003", "--fake")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Run migration 0004 forwards.
-            succeeded, results = self.call_command("migrate", "workflow_duplicates", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_duplicates", "0004")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1330,7 +1328,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
             assert state_codes == {"not_used_by_test"}
 
             # Run migration 0004 backwards
-            succeeded, results = self.call_command("migrate", "workflow_duplicates", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_duplicates", "0003")
             if not succeeded:
                 pytest.fail("".join(results), pytrace=False)
 
@@ -1344,7 +1342,7 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
 
 class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_object_states_created(self, settings):
@@ -1369,18 +1367,18 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
             # Migrate forwards to 0003.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # We should have run migration 0001 to 0003.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa: PLR2004
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
 
             # Create the generated migration 0004.
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
                 "--import-instead",
@@ -1389,26 +1387,27 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0004, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
             assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
                 "first"
             }
 
             # Roll back to 0001.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0001")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Migrate to 0002.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0002")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0002")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Fake 0003.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003", "--fake")
+            succeeded, results = self.call_command_capturing_output(
+                "migrate", "workflow_initial_state", "0003", "--fake"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1416,17 +1415,17 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             assert models.ObjectState.objects.count() == 0
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state")
             if not succeeded:
                 pytest.fail("".join(results))
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
             assert set(models.ObjectState.objects.filter(workflow=workflow).values_list("state__code", flat=True)) == {
                 "first"
             }
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_dry_run_creates_no_object_states(self, settings):
@@ -1439,27 +1438,30 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
         ContentType.objects.clear_cache()
 
         with self.temporary_migration_module(settings, app_label="workflow_initial_state"):
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
 
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_initial_state", "--dry-run")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_initial_state", "--dry-run"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_initial_state_changed(self, settings):
         """
         This test validates that when an initial state changes, any objects that haven't been
         modified from the previous initial state will be transitioned to the new initial state.
-        Some objects have been moved into different states, to verify that
+        Some objects have been moved into different states, to verify that those objects stay in
+        the states they were moved to.
         """
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -1478,12 +1480,12 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 0
 
             # Migrate forwards to 0003.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # We should have run migration 0001 to 0003.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa: PLR2004
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
             assert models.ObjectState.objects.filter(workflow=workflow).count() == 0
@@ -1506,7 +1508,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.create_object_state()
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             # test_1 remains in the original object state
             test_2.update_object_state(state_second)
@@ -1515,7 +1517,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_fourth)
             test_5.update_object_state(state_first)
 
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             # Change the initial state to fourth.
             initial_state = workflow.initial_state
@@ -1524,7 +1526,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
             # Run makeworkflowmigrations, which should update initial object states, when applicable.
             existing_migrations = set(Path(migration_dir).glob("*.py"))
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
                 "--import-instead",
@@ -1551,20 +1553,20 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             initial_state.save()
 
             # Roll back to 0001.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0001")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Migrate forwards to 0003.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0003")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # We should have run migration 0001 to 0003.
-            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa PLR2004
+            assert MigrationRecorder.Migration.objects.filter(app="workflow_initial_state").count() == 3  # noqa: PLR2004
 
             # Create the generated migration 0004.
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
                 "--import-instead",
@@ -1573,7 +1575,6 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0004, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
             state_fourth = models.State.objects.get(code="fourth")
@@ -1592,10 +1593,8 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 "first"
             }
 
-            time.sleep(0.1)
-
             # Create the generated migration 0005.
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations",
                 "workflow_initial_state",
                 "--import-instead",
@@ -1604,34 +1603,35 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
                 pytest.fail("".join(results))
 
             # Reload 0005, because we rewrote it after it would have imported it.
-            # assert results, "No results were captured when makeworkflowmigrations was called."
             self.reload_module(results, migration_dir)
 
             # Clean up the object states, so we can start fresh.
             models.ObjectState.objects.filter(workflow=workflow).delete()
 
             # Roll back to 0001.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0001")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0001")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Migrate to 0002.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0002")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0002")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Fake 0003.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0003", "--fake")
+            succeeded, results = self.call_command_capturing_output(
+                "migrate", "workflow_initial_state", "0003", "--fake"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Migrate to 0004.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state", "0004")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state", "0004")
             if not succeeded:
                 pytest.fail("".join(results))
 
             workflow = models.Workflow.objects.get(code="initial_state_workflow_test")
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             state_first = models.State.objects.get(code="first")
             state_second = models.State.objects.get(code="second")
@@ -1651,15 +1651,16 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
             test_5.update_object_state(state_fourth)
             test_5.update_object_state(state_first)
 
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             # Migrate forwards.
-            succeeded, results = self.call_command("migrate", "workflow_initial_state")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_initial_state")
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # The historical counts should stay the same, since we should have updated test_1 to the new initial state.
-            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa PLR2004
+            # The object state count stays the same, because test_1 was moved to the new initial state
+            # rather than given a second object state.
+            assert models.ObjectState.objects.filter(workflow=workflow).count() == 5  # noqa: PLR2004
 
             assert test_1.object_state.state.code == "fourth"
             assert test_2.object_state.state.code == "second"
@@ -1669,7 +1670,7 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
 
 class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallCommand):
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating(self, settings):
@@ -1770,7 +1771,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
 
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -1894,7 +1895,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
         return module.changed_data
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_direct_runpython_import(self, settings):
@@ -1998,7 +1999,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
 
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2087,7 +2088,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_no_changes(self, settings):
@@ -2129,7 +2130,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
             assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
 
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2162,7 +2163,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             assert "def backwards_migrate_workflow_through_imports(apps, schema_editor):" in migration_content
             assert "def make_sure_permissions_exist_through_imports(apps, schema_editor):" in migration_content
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_keeps_changed_data_with_nothing_to_add(self, settings):
@@ -2176,7 +2177,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             migration_filepath = os.path.join(migration_dir, "0004_workflow_migrations_2026_07_01.py")
 
             # The first run gives every workflow reference the app and model it can find.
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2192,7 +2193,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 f.write(migration_content)
 
             # Nothing is left to add, so the second run writes the list back exactly as it found it.
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2200,7 +2201,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 assert f.read() == migration_content
 
     @pytest.mark.parametrize("missing_key", ["history_date", "model_name", "changes"])
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_changed_data_missing_a_key(self, settings, missing_key):
@@ -2224,7 +2225,9 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 broken_content = f.read()
 
             with pytest.raises(SystemExit):
-                self.call_command("updateworkflowmigrations", "workflow_updating", stdout=out, stderr=err)
+                self.call_command_capturing_output(
+                    "updateworkflowmigrations", "workflow_updating", stdout=out, stderr=err
+                )
 
             err.seek(0)
             errors = err.read()
@@ -2247,7 +2250,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(other_filepath, encoding="utf-8") as f:
                 assert "def forwards_migrate_workflow_through_imports(apps, schema_editor):" in f.read()
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_naive_history_dates(self, settings):
@@ -2270,7 +2273,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             with open(migration_filepath, "w", encoding="utf-8") as f:
                 f.write(migration_content.replace(", tzinfo=datetime.timezone.utc)", ")"))
 
-            succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating")
+            succeeded, results = self.call_command_capturing_output("updateworkflowmigrations", "workflow_updating")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2293,7 +2296,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
             # The date itself is left as it was written.
             assert all(changed_item["history_date"].tzinfo is None for changed_item in changed_data)
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_bad_migrations(self, settings):
@@ -2307,7 +2310,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
         with self.temporary_migration_module(settings, app_label="workflow_updating_bad_migrations") as migration_dir:
             with pytest.raises(SystemExit):
-                self.call_command(
+                self.call_command_capturing_output(
                     "updateworkflowmigrations", "workflow_updating_bad_migrations", stdout=out, stderr=err
                 )
 
@@ -2328,7 +2331,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
             assert "Failed updating 2 workflow migration(s).\n" in results
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_updating_no_migrations(self, settings):
@@ -2337,7 +2340,9 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         }
         append_installed_apps(settings, "tests.workflow_updating_no_migrations")
 
-        succeeded, results = self.call_command("updateworkflowmigrations", "workflow_updating_no_migrations")
+        succeeded, results = self.call_command_capturing_output(
+            "updateworkflowmigrations", "workflow_updating_no_migrations"
+        )
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -2345,11 +2350,11 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
-    def test_workflow_bad_app_label(self):
+    def test_updateworkflowmigrations_rejects_unknown_app_label(self):
         err = io.StringIO()
 
         with pytest.raises(SystemExit):
-            self.call_command("updateworkflowmigrations", "app_that_does_not_exist", stderr=err)
+            self.call_command_capturing_output("updateworkflowmigrations", "app_that_does_not_exist", stderr=err)
 
         err.seek(0)
         results = err.read()
@@ -2357,7 +2362,28 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
         assert "No installed app with label 'app_that_does_not_exist'.\n" in results
 
 
-class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallCommand):
+class GeneratesWorkflowMigrations:
+    """For tests that generate workflow migrations for their own app, named by ``workflow_app_label``."""
+
+    workflow_app_label: ClassVar[str]
+
+    def generate_workflow_migration_or_fail(self, migration_dir):
+        """Generate the next workflow migration, failing the test if that fails, and return its module."""
+        succeeded, results = self.call_command_capturing_output(
+            "makeworkflowmigrations", self.workflow_app_label, "--import-instead"
+        )
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        assert results, "No results were captured when makeworkflowmigrations was called."
+
+        module = self.reload_module(results, migration_dir)
+        assert module is not None, "".join(results)
+
+        return module
+
+
+class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand):
     """A state and the transition that names it, removed and added again under the same code.
 
     Each round of changes is written through the models with no action context, the way a person's
@@ -2381,6 +2407,8 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
     of the earlier rounds' writes, so that a write going missing fails as loudly as one appearing
     twice.
     """
+
+    workflow_app_label = "workflow_reused_codes"
 
     WORKFLOW_CODE = "reused_codes_workflow"
     STATE_CODE = "reused_state"
@@ -2482,12 +2510,12 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         return [f"{prefix}={value}"]
 
     @classmethod
-    def describe(cls, entries):
+    def entries_as_lines(cls, entries):
         """Render ``(model, kind, id)`` entries one readable line each."""
         return [f"{model} {kind} " + " ".join(cls.flatten_id(identity)) for model, kind, identity in entries]
 
     @classmethod
-    def describe_changes(cls, changed_data):
+    def changes_as_lines(cls, changed_data):
         """Reduce a generated migration's changes to the model, the kind of write, and the row named.
 
         A change carries its own field values, which say what the write did rather than which row it
@@ -2495,13 +2523,13 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         ``id`` block is the data the command uses to find the row again, so that is what a change is
         recognised by here, and a field the write changed appears in it as a before-and-after pair.
         """
-        return cls.describe(
+        return cls.entries_as_lines(
             (changed_item["model_name"], changed_item["history_type"], changed_item["changes"]["id"])
             for changed_item in changed_data
         )
 
     @classmethod
-    def check_changes(cls, label, migration, expected_entries, previous_migration=None):
+    def find_change_mismatches(cls, label, migration, expected_entries, previous_migration=None):
         """Return how a generated migration differs from the round it should describe.
 
         Problems are collected rather than asserted so that one run reports every migration it
@@ -2510,8 +2538,8 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         """
         problems = []
 
-        found = cls.describe_changes(migration.changed_data)
-        expected = cls.describe(expected_entries)
+        found = cls.changes_as_lines(migration.changed_data)
+        expected = cls.entries_as_lines(expected_entries)
 
         missing = list((Counter(expected) - Counter(found)).elements())
         unexpected = list((Counter(found) - Counter(expected)).elements())
@@ -2541,13 +2569,11 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
     def expected_round_that_deletes(cls):
         """A round that adds the state and the transition, modifies it, and removes both again.
 
-        Every write the round makes belongs here, permissions and source rows included. The command
-        currently reaches a generated migration with only some of them, because
-        ``_get_historical_queryset_for_model`` selects each model's events by joining through the
-        live related row and falls back to selecting by recorded ids only when that finds nothing at
-        all. One live row keeps the query non-empty, so the events of rows this round deleted are
-        dropped before matching begins. Asserting the whole list is what makes that visible, and
-        keeps a fix from trading missing old writes for missing new ones.
+        Every write the round makes belongs here, permissions and source rows included, including
+        those of the rows the round deleted. ``_get_historical_queryset_for_model`` selects each
+        model's events by the ids the events recorded, not through the live related row, so a
+        deleted row's events still reach the migration. Asserting the whole list keeps a write going
+        missing as visible as one appearing twice.
         """
         return [
             ("state", "added", cls.state_id(cls.STATE_CODE)),
@@ -2638,24 +2664,11 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         models.StatePermission.objects.get(state=state).delete()
         state.delete()
 
-    def rename_transition(self, workflow, round_name):
+    def change_transition_name(self, workflow, round_name):
         """Change the transition in the round that created it, so each round modifies it as well."""
         transition = models.Transition.objects.get(workflow=workflow, code=self.TRANSITION_CODE)
         transition.name = f"{self.TRANSITION_NAME} ({round_name})"
         transition.save()
-
-    def make_workflow_migration(self, migration_dir):
-        """Generate the next workflow migration and return the module holding its changes."""
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_reused_codes", "--import-instead")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        assert results, "No results were captured when makeworkflowmigrations was called."
-
-        module = self.reload_module(results, migration_dir)
-        assert module is not None, "".join(results)
-
-        return module
 
     def assert_no_workflow_changes(self, migration_dir, failure):
         """Fail when a run finds changes to generate, showing the changes it would have generated.
@@ -2663,7 +2676,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         A dry run first, because it writes no file. Only a run that finds changes generates the
         migration, so the failure can say what those changes were.
         """
-        succeeded, results = self.call_command(
+        succeeded, results = self.call_command_capturing_output(
             "makeworkflowmigrations", "workflow_reused_codes", "--import-instead", "--dry-run"
         )
         if not succeeded:
@@ -2672,12 +2685,12 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         if "No workflow changes detected." in "".join(results):
             return
 
-        module = self.make_workflow_migration(migration_dir)
+        module = self.generate_workflow_migration_or_fail(migration_dir)
         pytest.fail(f"{failure}:\n{pformat(module.changed_data)}", pytrace=False)
 
-    def fake_migration(self, target):
+    def fake_migration_or_fail(self, target):
         """Record migrations up to a target without running them, the way the command instructs."""
-        succeeded, results = self.call_command("migrate", "workflow_reused_codes", target, "--fake")
+        succeeded, results = self.call_command_capturing_output("migrate", "workflow_reused_codes", target, "--fake")
         if not succeeded:
             pytest.fail("".join(results))
 
@@ -2692,7 +2705,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         "handle_transition_source",
     )
 
-    def record_applied_changes(self, monkeypatch):
+    def install_applied_change_recorder(self, monkeypatch):
         """Return a list that a running migration appends to as it applies each change.
 
         A migration that raises says nothing about which of its changes it had reached; the
@@ -2706,7 +2719,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
 
         def recorded(original):
             def handler(apps, changed_item, change_reason, *, reversing=False):
-                applied.append(self.describe_changes([changed_item])[0])
+                applied.append(self.changes_as_lines([changed_item])[0])
                 return original(apps, changed_item, change_reason, reversing=reversing)
 
             return handler
@@ -2717,7 +2730,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
         return applied
 
     @staticmethod
-    def migrate_reporting_applied_change(call, label, applied):
+    def migrate_or_fail_naming_applied_change(call, label, applied):
         """Run one migration, naming the change it was applying if it raises."""
         applied.clear()
         try:
@@ -2809,7 +2822,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             ),
         }
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_reused_codes(self, settings, monkeypatch):
@@ -2823,7 +2836,7 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             # No migrations should have run yet.
             assert MigrationRecorder.Migration.objects.filter(app="workflow_reused_codes").count() == 0
 
-            succeeded, results = self.call_command("migrate", "workflow_reused_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_reused_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2840,15 +2853,15 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             # Round one: added, modified, and removed again. Each round's workflow is kept as it
             # stands when the round ends, so replaying the round's migration can be held to it.
             self.add_state_and_transition(workflow, permission, group)
-            self.rename_transition(workflow, "One")
+            self.change_transition_name(workflow, "One")
             self.delete_state_and_transition(workflow)
             snapshots = [self.snapshot_workflow()]
 
-            first_migration = self.make_workflow_migration(migration_dir)
+            first_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # The workflow 0002 created has no generated migration of its own yet, so this one
             # captures that as well, ahead of round one's own writes.
-            problems = self.check_changes(
+            problems = self.find_change_mismatches(
                 "0003",
                 first_migration,
                 [*self.expected_base_workflow_changes(), *self.expected_round_that_deletes()],
@@ -2870,34 +2883,34 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
 
             # Round two: the same codes added, modified, and removed again.
             self.add_state_and_transition(workflow, permission, group)
-            self.rename_transition(workflow, "Two")
+            self.change_transition_name(workflow, "Two")
             self.delete_state_and_transition(workflow)
             snapshots.append(self.snapshot_workflow())
 
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Round one is already captured by 0003, whose changes name rows that no longer exist and
             # whose codes now belong to round two's rows as well. Only round two belongs here, and
             # round two's writes are the only ones recorded after 0003's last.
-            problems += self.check_changes(
+            problems += self.find_change_mismatches(
                 "0004", second_migration, self.expected_round_that_deletes(), previous_migration=first_migration
             )
 
             # Round three: the same codes added and modified, then the state renamed and kept.
             self.add_state_and_transition(workflow, permission, group)
-            self.rename_transition(workflow, "Three")
+            self.change_transition_name(workflow, "Three")
             state = models.State.objects.get(workflow=workflow, code=self.STATE_CODE)
             state.code = self.RENAMED_STATE_CODE
             state.name = self.RENAMED_STATE_NAME
             state.save()
             snapshots.append(self.snapshot_workflow())
 
-            third_migration = self.make_workflow_migration(migration_dir)
+            third_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Three rows have now been added under the state's code and three under the
             # transition's. Both earlier rounds are captured by a migration, so only round three
             # belongs here.
-            problems += self.check_changes(
+            problems += self.find_change_mismatches(
                 "0005", third_migration, self.expected_round_that_renames(), previous_migration=second_migration
             )
 
@@ -2919,13 +2932,13 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             )
             snapshots.append(self.snapshot_workflow())
 
-            fourth_migration = self.make_workflow_migration(migration_dir)
+            fourth_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Four rows have now been added under the state's code and four under the transition's,
             # and the three earlier rounds are each captured by a migration. Matching 0005's changes
             # is what reaches a reused code through ``state_id`` and ``transition_id``, on the
             # permission and source rows that only a round keeping its rows can carry.
-            problems += self.check_changes(
+            problems += self.find_change_mismatches(
                 "0006",
                 fourth_migration,
                 self.expected_round_that_takes_over_codes(),
@@ -2946,9 +2959,9 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             # 0002's SQL records its deletes the way history records a person's edit, and 0001
             # recreates the group under a new id, which the rounds' permission writes no longer name.
             # Either would read as an edit no migration captures.
-            self.fake_migration("0006")
+            self.fake_migration_or_fail("0006")
 
-            succeeded, results = self.call_command("migrate", "workflow_reused_codes", "0002")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_reused_codes", "0002")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -2958,13 +2971,16 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             # Replay one round at a time, holding each against the workflow that round left behind.
             # A run that only checks the rows at the end would pass while an earlier migration put
             # the workflow somewhere it never was, so long as a later one happened to correct it.
-            applied = self.record_applied_changes(monkeypatch)
+            applied = self.install_applied_change_recorder(monkeypatch)
 
             for round_number, snapshot in enumerate(snapshots, start=1):
+                # 0001 and 0002 come before the rounds, so round N's migration is 000(N + 2).
                 migration_name = f"000{round_number + 2}"
 
-                self.migrate_reporting_applied_change(
-                    lambda name=migration_name: self.call_command("migrate", "workflow_reused_codes", name),
+                self.migrate_or_fail_naming_applied_change(
+                    lambda name=migration_name: self.call_command_capturing_output(
+                        "migrate", "workflow_reused_codes", name
+                    ),
                     migration_name,
                     applied,
                 )
@@ -2993,8 +3009,8 @@ class TestManagementCommandWorkflowReusedCodes(BaseTestMigrations, BaseTestCallC
             for round_number in range(len(snapshots), 0, -1):
                 migration_name = f"000{round_number + 2}"
 
-                self.migrate_reporting_applied_change(
-                    lambda number=round_number: self.call_command(
+                self.migrate_or_fail_naming_applied_change(
+                    lambda number=round_number: self.call_command_capturing_output(
                         "migrate", "workflow_reused_codes", f"000{number + 1}"
                     ),
                     f"reversing {migration_name}",
@@ -3042,7 +3058,7 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
     SHARED_STATE_CODE = "shared_code"
     SHARED_STATE_NAME = "Shared Code"
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_received_codes(self, settings):
@@ -3055,7 +3071,7 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
         with self.temporary_migration_module(settings, app_label="workflow_received_codes") as migration_dir:
             # Apply the received migration rather than faking it, which is what everyone but its
             # author does. The workflow is written by the migration, under the action it opens.
-            succeeded, results = self.call_command("migrate", "workflow_received_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_received_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
@@ -3074,7 +3090,7 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
             # code. Its event is the only one in the workflow that is not a migration's.
             models.State.objects.create(workflow=workflow, code=self.SHARED_STATE_CODE, name=self.SHARED_STATE_NAME)
 
-            succeeded, results = self.call_command(
+            succeeded, results = self.call_command_capturing_output(
                 "makeworkflowmigrations", "workflow_received_codes", "--import-instead"
             )
             if not succeeded:
@@ -3108,7 +3124,7 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
             ]
 
 
-class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCommand):
+class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand):
     """A workflow code given up by one model and taken over by another.
 
     A workflow code is unique among live workflows, not over time: delete a workflow and another
@@ -3116,6 +3132,8 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
     change belongs to, and which workflow its rows hang off, has to survive a code that two content
     types have held.
     """
+
+    workflow_app_label = "workflow_moved_codes"
 
     WORKFLOW_CODE = "moved_workflow"
     WORKFLOW_NAME = "Moved Workflow"
@@ -3159,24 +3177,14 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
         models.State.objects.filter(workflow=workflow).delete()
         workflow.delete()
 
-    def make_workflow_migration(self, migration_dir):
-        succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        module = self.reload_module(results, migration_dir)
-        assert module is not None, "".join(results)
-
-        return module
-
     @staticmethod
-    def describe(changed_data):
+    def change_identities(changed_data):
         return [
             (changed_item["model_name"], changed_item["history_type"], changed_item["changes"]["id"])
             for changed_item in changed_data
         ]
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_moved_codes(self, settings):
@@ -3187,15 +3195,15 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
         append_installed_apps(settings, "tests.workflow_moved_codes")
 
         with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # The code belongs to the first model, and a migration captures that.
             moved_from = self.make_workflow_for("workflowmovedfrom")
-            first_migration = self.make_workflow_migration(migration_dir)
+            first_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
-            assert self.describe(first_migration.changed_data) == [
+            assert self.change_identities(first_migration.changed_data) == [
                 ("workflow", "added", self.workflow_id("workflowmovedfrom")),
                 ("state", "added", self.state_id("workflowmovedfrom")),
                 ("initialstate", "added", self.initial_state_id("workflowmovedfrom")),
@@ -3205,12 +3213,12 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
             self.remove_workflow(moved_from)
             self.make_workflow_for("workflowmovedto")
 
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
             # Only the handover belongs here. Deciding which content type a change belongs to reads
             # the workflow its rows hang off, and both workflows answer to the same code, so a change
             # from 0002 must not be read as the second model's, nor its rows as the first model's.
-            assert self.describe(second_migration.changed_data) == [
+            assert self.change_identities(second_migration.changed_data) == [
                 ("initialstate", "deleted", self.initial_state_id("workflowmovedfrom")),
                 ("state", "deleted", self.state_id("workflowmovedfrom")),
                 ("workflow", "deleted", self.workflow_id("workflowmovedfrom")),
@@ -3219,7 +3227,7 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
                 ("initialstate", "added", self.initial_state_id("workflowmovedto")),
             ]
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_renamed_code_then_new_transition(self, settings):
@@ -3230,13 +3238,13 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
         append_installed_apps(settings, "tests.workflow_moved_codes")
 
         with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
             workflow = self.make_workflow_for("workflowmovedfrom")
             state = models.State.objects.get(workflow=workflow, code="state_1")
-            self.make_workflow_migration(migration_dir)
+            self.generate_workflow_migration_or_fail(migration_dir)
 
             # The workflow is renamed, then a transition is added to the state it already had. The
             # state's own last event predates the rename, so it was recorded under the old code.
@@ -3249,9 +3257,9 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
                 "historical_app_label": "workflow_moved_codes",
                 "historical_model": "workflowmovedfrom",
             }
-            second_migration = self.make_workflow_migration(migration_dir)
+            second_migration = self.generate_workflow_migration_or_fail(migration_dir)
 
-            assert self.describe(second_migration.changed_data) == [
+            assert self.change_identities(second_migration.changed_data) == [
                 (
                     "workflow",
                     "changed",
@@ -3267,13 +3275,15 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
             # The transition names its target state under the new workflow code. Matching has to
             # read the state's workflow as it stood when the transition was recorded, not when the
             # state was, or the transition is taken for an edit no migration has captured yet.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_moved_codes", "--import-instead"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 
             assert "No workflow changes detected." in "".join(results), "".join(results)
 
-    @info_registry_clear_with_appended_apps()
+    @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_workflow_faked_migration_rolled_back_and_reapplied(self, settings):
@@ -3284,31 +3294,33 @@ class TestManagementCommandWorkflowMovedCodes(BaseTestMigrations, BaseTestCallCo
         append_installed_apps(settings, "tests.workflow_moved_codes")
 
         with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # The author's edits, captured by 0002 and faked, because they are already here.
             self.make_workflow_for("workflowmovedfrom")
-            self.make_workflow_migration(migration_dir)
+            self.generate_workflow_migration_or_fail(migration_dir)
 
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes", "--fake")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes", "--fake")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # Rolling back runs 0002 backwards for real, and reapplying runs it forwards, so its own
             # writes now sit beside the edits it was generated from.
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes", "0001")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes", "0001")
             if not succeeded:
                 pytest.fail("".join(results))
 
-            succeeded, results = self.call_command("migrate", "workflow_moved_codes")
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
             if not succeeded:
                 pytest.fail("".join(results))
 
             # That 0002 ran here does not mean the edits it was generated from are missing, so they
             # are still captured by it, and nothing is left for a new migration.
-            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_moved_codes", "--import-instead")
+            succeeded, results = self.call_command_capturing_output(
+                "makeworkflowmigrations", "workflow_moved_codes", "--import-instead"
+            )
             if not succeeded:
                 pytest.fail("".join(results))
 

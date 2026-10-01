@@ -31,9 +31,9 @@ class TestQueueItemWorkflowTransitions:
         return api_client
 
     @pytest.fixture
-    def delayed_queue_item(self, queue_item_email):
-        queue_item_email.fast_transition("delay")
-        return queue_item_email
+    def delayed_queue_item(self, sending_email_without_detail):
+        sending_email_without_detail.fast_transition("delay")
+        return sending_email_without_detail
 
     def test_cancel_queueitem_with_dry_run(self, authenticated_client, delayed_queue_item):
         detail_url = reverse(

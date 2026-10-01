@@ -42,7 +42,6 @@ class TestRegistration:
         assert len(_registry) == 1
         for registered_item in _registry.values():
             assert registered_item["viewset"] == ProductViewSet
-            # A default serializer is created if one isn't defined, but it won't have the model on it.
             assert registered_item["serializer"] == ProductSerializer
 
     def test_register_improperly(self):

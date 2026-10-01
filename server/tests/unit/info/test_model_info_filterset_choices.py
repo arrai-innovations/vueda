@@ -278,6 +278,35 @@ class BaseModelInfoFilterSetChoices:
         api_client.force_authenticate(user=test_data.users[self.user_email])
         return api_client
 
+    @staticmethod
+    def assert_choice_value_contract(response_data, expected_choices, context):
+        """
+        Filter-choice responses always include a serialized `value` field.
+        The serializer contract is CharField, so runtime values are expected as strings.
+        """
+        response_values_by_label = {result["label"]: result["value"] for result in response_data["results"]}
+        for expected_choice in expected_choices:
+            label = expected_choice["label"]
+            msg = f"{context} -> label={label!r}"
+            assert label in response_values_by_label, msg
+
+            response_value = response_values_by_label[label]
+            assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
+
+            if "value" in expected_choice:
+                assert response_value == expected_choice["value"], (
+                    f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
+                )
+
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesPermissionNamesMapping(BaseModelInfoFilterSetChoices):
+    """The choices endpoint checks permissions named by PERMISSION_NAMES_MAPPING as it stands per request.
+
+    The test creates its own users with the permissions it needs, so it needs neither the admin nor the
+    customer test data, and runs once rather than once per subclass.
+    """
+
     def test_filter_choices_reads_permission_names_mapping_at_call_time(self, settings, api_client):
         # ModelInfoFilterSetChoicesViewSet.get_queryset previously closed over
         # PERMISSION_NAMES_MAPPING at import (vueda/info/viewsets.py), so overriding "read"/"list"
@@ -336,26 +365,6 @@ class BaseModelInfoFilterSetChoices:
         # longer satisfy the check once the override maps "read"/"list" to mutated names.
         assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
         assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
-
-    @staticmethod
-    def assert_choice_value_contract(response_data, expected_choices, context):
-        """
-        Filter-choice responses always include a serialized `value` field.
-        The serializer contract is CharField, so runtime values are expected as strings.
-        """
-        response_values_by_label = {result["label"]: result["value"] for result in response_data["results"]}
-        for expected_choice in expected_choices:
-            label = expected_choice["label"]
-            msg = f"{context} -> label={label!r}"
-            assert label in response_values_by_label, msg
-
-            response_value = response_values_by_label[label]
-            assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
-
-            if "value" in expected_choice:
-                assert response_value == expected_choice["value"], (
-                    f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
-                )
 
 
 @pytest.mark.django_db
@@ -604,7 +613,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         )
 
     def test_distributor_choices_filtered_by_quantity_of_ten(self, authenticated_client):
-        """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
+        """quantity=10 narrows the distributor choices to T-Shirt Corp. and Vibrant Looks Inc."""
         register_model("store", "product")
 
         response = authenticated_client.get(
@@ -616,7 +625,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
-            f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
+            f"Expected distributor choices narrowed to T-Shirt Corp. and Vibrant Looks Inc., got: {result_labels}"
         )
 
     def test_special_care_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
@@ -639,10 +648,10 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
-    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, authenticated_client):
+    def test_tangible_type_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
         """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
 
-        All cookie products are Physical; Digital is not used by any product, so it should be absent.
+        Every cookie product is Physical, so Digital, which only non-cookie products use, is absent.
         """
         register_model("store", "product")
 
