@@ -59,7 +59,7 @@ export const storeListPreference = defineStore("listPreference", {
          *
          * @param {ListPreferenceState} state - The store state.
          * @returns {(args: ListPreferenceArgs) => ListPreferenceEntry} A function that returns the
-         *     saved entry, or an empty object when none is saved.
+         *     saved entry. The entry is an empty object when none is saved.
          */
         getPreferences: (state) => (args) => {
             const key = getAppModelDotName(args);
@@ -70,8 +70,8 @@ export const storeListPreference = defineStore("listPreference", {
          * Returns a function that gives a copy of the hidden column names for one app and model.
          *
          * @param {ListPreferenceState} state - The store state.
-         * @returns {(args: ListPreferenceArgs) => string[]} A function that returns the hidden
-         *     column names, or an empty array when none are saved.
+         * @returns {(args: ListPreferenceArgs) => string[]} A function that returns an array
+         *     of the saved hidden column names. The array is empty when none are saved.
          */
         getHiddenColumns: (state) => (args) => {
             const key = getAppModelDotName(args);
@@ -86,7 +86,7 @@ export const storeListPreference = defineStore("listPreference", {
          *
          * @param {ListPreferenceState} state - The store state.
          * @returns {(args: ListPreferenceArgs) => {[param: string]: unknown}} A function that returns
-         *     the filters keyed by query parameter name, or an empty object when none are saved.
+         *     the saved filters keyed by query parameter name. The object is empty when none are saved.
          */
         getFilters: (state) => (args) => {
             const key = getAppModelDotName(args);
@@ -99,7 +99,7 @@ export const storeListPreference = defineStore("listPreference", {
          *
          * @param {ListPreferenceState} state - The store state.
          * @returns {(args: ListPreferenceArgs) => (string[] | null)} A function that returns the
-         *     sort fields, or null when no sorting is saved.
+         *     saved sort fields. The function returns null when no sorting is saved.
          */
         getSorting: (state) => (args) => {
             const key = getAppModelDotName(args);
@@ -112,7 +112,7 @@ export const storeListPreference = defineStore("listPreference", {
          *
          * @param {ListPreferenceState} state - The store state.
          * @returns {(args: ListPreferenceArgs) => (number | string | null)} A function that returns
-         *     the row count or `"all"`, or null when no value is saved.
+         *     the saved row count or `"all"`. The function returns null when no value is saved.
          */
         getPerPage: (state) => (args) => {
             const key = getAppModelDotName(args);

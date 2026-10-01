@@ -72,7 +72,8 @@ def _default_text(value: Any, namespace: dict[str, Any] | None = None) -> str | 
     """Return a parameter default as its ``repr``, or None when the parameter has no default.
 
     A repr that carries a memory address, such as a sentinel ``object()``, changes on every run.
-    Such a default shows as the module-level name bound to it, or as its repr without the address.
+    Such a default shows as the module-level name bound to it. When no module-level name is bound to
+    it, the default shows as its repr without the address.
     """
     if value is inspect.Parameter.empty:
         return None
@@ -91,7 +92,9 @@ def _default_text(value: Any, namespace: dict[str, Any] | None = None) -> str | 
 
 
 def _unevaluated_signature(obj: Any) -> inspect.Signature | None:
-    """Return the signature of ``obj`` with its annotations as written, or None.
+    """Return the signature of ``obj`` with its annotations as written.
+
+    Return None when ``inspect.signature`` cannot read a signature from ``obj``.
 
     pdoc resolves annotations in the class namespace, so in a class that defines a method named
     ``bool`` or ``str``, the annotation ``bool`` resolves to that method.

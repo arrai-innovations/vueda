@@ -135,7 +135,8 @@ export const storeUser = defineStore("user", {
          */
         loading: false,
         /**
-         * The error from the last failed request, or `null` when the last request succeeded or was cleared.
+         * The error from the last failed request. The value is `null` when the last request succeeded or
+         * was cleared.
          *
          * @type {Error|null}
          */

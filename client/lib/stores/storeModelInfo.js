@@ -340,7 +340,8 @@ export const storeModelInfo = defineStore("modelInfo", {
          * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise for
          *  the model info. It rejects with `ModelInfoError` when the request fails, and with
          *  `AuthScopeInvalidatedError` if the authenticated user changes while it is in flight. It rejects
-         *  with a plain `Error` when `app` or `model` is missing, or the response has no primary key field.
+         *  with a plain `Error` when `app` or `model` is missing or when the response has no primary
+         *  key field.
          */
         fetchModelInfo(args) {
             if (!args.app || !args.model) {

@@ -623,7 +623,7 @@ def run(
 
 def update_for_main(subparsers=None, exit_on_error=True):
     """
-    Build the ``update`` argument parser, as a subcommand of ``subparsers`` when given.
+    Build the ``update`` argument parser as a subcommand of ``subparsers`` when given.
     Return ``run`` and the parser; the caller parses the arguments and passes them to ``run``.
     """
     parser_args = {

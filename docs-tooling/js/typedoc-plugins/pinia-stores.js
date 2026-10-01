@@ -9,7 +9,8 @@
 import { Converter, ReflectionKind, TypeScript as ts } from "typedoc";
 
 /**
- * Return the options object literal of a `defineStore(id, options)` variable declaration, or null.
+ * Return the options object literal of a `defineStore(id, options)` variable declaration. Return null
+ * when the declaration is not a `defineStore` call or its second argument is not an object literal.
  */
 function storeOptions(declaration) {
     const call = declaration && ts.isVariableDeclaration(declaration) ? declaration.initializer : null;
@@ -21,8 +22,8 @@ function storeOptions(declaration) {
 }
 
 /**
- * Return the member nodes of one section of the options object: the object `state` returns, or the
- * `getters` or `actions` object literal.
+ * Return the member nodes of one section of the options object: the object `state` returns, the
+ * `getters` object literal, or the `actions` object literal.
  */
 function sectionMembers(property) {
     let value = property.initializer ?? null;

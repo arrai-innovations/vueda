@@ -274,9 +274,9 @@ def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: 
 
 
 def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one workflow as ``changed_item`` records it.
+    """Add, change, or delete one workflow to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -308,9 +308,9 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one workflow permission as ``changed_item`` records it.
+    """Add, change, or delete one workflow permission to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -368,9 +368,9 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
 
 
 def handle_state(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one workflow state as ``changed_item`` records it.
+    """Add, change, or delete one workflow state to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -407,9 +407,9 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one state permission (a group's permission in a state) as ``changed_item`` records it.
+    """Add, change, or delete one state permission (a group's permission in a state) to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -488,9 +488,9 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
 
 
 def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete a workflow's initial state as ``changed_item`` records it.
+    """Add, change, or delete a workflow's initial state to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -551,9 +551,9 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one transition as ``changed_item`` records it.
+    """Add, change, or delete one transition to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -607,9 +607,9 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one transition permission as ``changed_item`` records it.
+    """Add, change, or delete one transition permission to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
@@ -686,9 +686,9 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
 
 
 def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):
-    """Add, change, or delete one transition source state as ``changed_item`` records it.
+    """Add, change, or delete one transition source state to match ``changed_item``.
 
-    Related rows are looked up by the identifying fields the change records. ``reversing`` restores
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
     old values on a change. Generated workflow migrations copy this function and reach it through
     ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """

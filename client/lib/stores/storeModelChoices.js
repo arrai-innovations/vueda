@@ -76,15 +76,15 @@ export const storeModelChoices = defineStore("modelChoices", {
          */
         filterChoices: {},
         /**
-         * The in-flight `fetchChoices` requests, keyed like `choices`. A request removes its entry when
-         * it settles.
+         * The in-flight `fetchChoices` requests, keyed by app and model dot name, then by field name. A
+         * request removes its entry when it settles.
          *
          * @type {{[appModelDotName: string]: {[fieldName: string]: Promise<object>}}}
          */
         promises: {},
         /**
-         * The in-flight `fetchFilterChoices` requests, keyed like `filterChoices`. A request removes its
-         * entry when it settles.
+         * The in-flight `fetchFilterChoices` requests, keyed by app and model dot name, then by filter
+         * name. A request removes its entry when it settles.
          *
          * @type {{[appModelDotName: string]: {[filterName: string]: Promise<object>}}}
          */
@@ -125,7 +125,8 @@ export const storeModelChoices = defineStore("modelChoices", {
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
          * @param {string} field - Field name.
-         * @param {object} choices - The choice list, in the shape `fetchChoices` stores.
+         * @param {object} choices - The choice list: a paginated response object with `{label, value}`
+         *     items in `results`.
          * @returns {void}
          */
         setChoices(app, model, field, choices) {
@@ -141,7 +142,8 @@ export const storeModelChoices = defineStore("modelChoices", {
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
          * @param {string} field - Filter name.
-         * @param {object} choices - The choice list, in the shape `fetchFilterChoices` stores.
+         * @param {object} choices - The choice list: a paginated response object with `{label, value}`
+         *     items in `results`.
          * @returns {void}
          */
         setFilterChoices(app, model, field, choices) {

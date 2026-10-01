@@ -321,8 +321,9 @@ export const storeWorkflow = defineStore("workflow", {
              */
             errors: createErrorPromiseStructure(),
             /**
-             * The in-flight fetches, in one bucket per cache and keyed the same way. A fetch removes its
-             * entry when it settles.
+             * The in-flight fetches, in one bucket per cache. Each object bucket is keyed by app and model
+             * dot name, then by object primary key. Each model bucket is keyed by app and model dot name. A
+             * fetch removes its entry when it settles.
              *
              * @type {{
              *     objectStates: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
@@ -407,7 +408,7 @@ export const storeWorkflow = defineStore("workflow", {
             }
         },
         /**
-         * Fetches the transitions the authenticated user is permitted to run on a model, and caches them
+         * Fetches the transitions the authenticated user is permitted to run on a model and caches them
          * in `workflowTransitions`.
          *
          * A cached list resolves at once, and a cached error rejects at once. A request already in flight
@@ -503,7 +504,7 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.workflowTransitions[key];
         },
         /**
-         * Fetches the possible workflow states of a model, and caches them in `modelStates`.
+         * Fetches the possible workflow states of a model and caches them in `modelStates`.
          *
          * A cached list resolves at once, and a cached error rejects at once. A request already in flight
          * for the same model is shared. The list is empty when workflow is off or the model does not
@@ -574,7 +575,7 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.modelStates[key];
         },
         /**
-         * Fetches the current workflow state of one object, and caches it in `objectStates`.
+         * Fetches the current workflow state of one object and caches it in `objectStates`.
          *
          * A cached state resolves at once, and a cached error rejects at once. A request already in flight
          * for the same object is shared.
@@ -652,7 +653,7 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.objectStates[key][objectPk];
         },
         /**
-         * Fetches the transitions the authenticated user may run on one object, and caches them in
+         * Fetches the transitions the authenticated user may run on one object and caches them in
          * `objectTransitions`.
          *
          * A cached list resolves at once, and a cached error rejects at once. A request already in flight
@@ -736,7 +737,7 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.objectTransitions[key][objectPk];
         },
         /**
-         * Fetches the recorded workflow states of one object, and caches them in `objectHistories`.
+         * Fetches the recorded workflow states of one object and caches them in `objectHistories`.
          *
          * A cached history resolves at once, and a cached error rejects at once. A request already in
          * flight for the same object is shared.
@@ -819,7 +820,7 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.objectHistories[key][objectPk];
         },
         /**
-         * Runs a workflow transition on one object, or on several objects in one request.
+         * Runs a workflow transition on one object or on several objects in one request.
          *
          * After a single-object run that is not a dry run, the cached state and transitions for that
          * object are updated from the response. When `router` and `stateToRoute` are given and the new
