@@ -59,6 +59,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
@@ -1284,6 +1285,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    NestedMultipartMixin,
     WarningConfirmationMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
@@ -1562,6 +1564,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    NestedMultipartMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
     ListRowLevelViewSetMixin,

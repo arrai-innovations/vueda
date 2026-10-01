@@ -8,8 +8,8 @@ import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { ConfirmationRequiredError, FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { actionRequestHeaders, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
+import { encodeObjectBody } from "@vueda/utils/multipart.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
-import isObject from "lodash-es/isObject.js";
 
 const makeSearchParamsString = (searchParams) => {
     const params = deepUnref(searchParams);
@@ -32,46 +32,6 @@ const makeSearchParamsString = (searchParams) => {
         }
     });
     return `?${usp.toString()}`;
-};
-
-/**
- * Converts an object into a `FormData` instance, handling nested arrays, objects, and files.
- * - If a property is an array, it appends each element in the array.
- * - If a property is an object (excluding `File` instances), it appends each nested property.
- * - If a property is a `File`, it appends it directly.
- * - If a property is `null` or `undefined`, it appends an empty string. Other falsy values such as
- *   `false`, `0`, and `""` are appended as their string form.
- *
- * @param {{ [key: string]: unknown }} object - The source object to convert into `FormData`.
- * @returns {FormData} - A `FormData` instance containing key-value pairs from the object, formatted for multipart form submission.
- */
-const getFormData = (object) => {
-    const formData = new FormData();
-    for (const key in object) {
-        if (object[key] !== null && object[key] !== undefined) {
-            if (Array.isArray(object[key])) {
-                const o = object[key];
-                o.forEach((value, i) => {
-                    if (isObject(value) && !(value instanceof File)) {
-                        for (const name in value) {
-                            formData.append(`${key}[${i}]${name}`, value[name]);
-                        }
-                    } else {
-                        formData.append(`${key}`, value);
-                    }
-                });
-            } else if (isObject(object[key]) && !(object[key] instanceof File)) {
-                for (const name in object[key]) {
-                    formData.append(`${key}.${name}`, object[key][name]);
-                }
-            } else {
-                formData.append(`${key}`, object[key]);
-            }
-        } else {
-            formData.append(`${key}`, "");
-        }
-    }
-    return formData;
 };
 
 /**
@@ -129,17 +89,16 @@ export function defaultObjectCreate({ target, object, params, acknowledgeWarning
     const controller = new AbortController();
     const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
 
-    const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
+    const body = encodeObjectBody(object);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
     };
-    if (!hasFile) {
+    if (!(body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
     }
     if (acknowledgeWarnings) {
         headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
-    const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
     const returnPromise = fetch(url, {
         method: "POST",
@@ -190,17 +149,16 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
     const query = params ? makeSearchParamsString(params) : "";
     const url = getDetailUrl({ app, model, pk, action, query });
 
-    const hasFile = Object.values(object).some((value) => value instanceof File || value instanceof Blob);
+    const body = encodeObjectBody(object);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
     };
-    if (!hasFile) {
+    if (!(body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
     }
     if (acknowledgeWarnings) {
         headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
-    const body = hasFile ? getFormData(object) : JSON.stringify(object);
 
     return cancellableFetch(
         url,
@@ -247,17 +205,16 @@ export function defaultObjectPatch({ target, pk, partialObject, params, acknowle
     const query = params ? makeSearchParamsString(params) : "";
     const url = getDetailUrl({ app, model, pk, action, query });
 
-    const hasFile = Object.values(partialObject).some((value) => value instanceof File || value instanceof Blob);
+    const body = encodeObjectBody(partialObject);
     const headers = {
         "X-CSRFToken": getCSRFValue(),
     };
-    if (!hasFile) {
+    if (!(body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
     }
     if (acknowledgeWarnings) {
         headers["Acknowledge-Warnings"] = acknowledgeWarnings;
     }
-    const body = hasFile ? getFormData(partialObject) : JSON.stringify(partialObject);
 
     return cancellableFetch(
         url,

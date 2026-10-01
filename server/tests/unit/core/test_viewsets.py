@@ -25,6 +25,8 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.conftest import use_plain_default_manager
 from tests.employee.models import Employee
+from tests.employee.models import User
+from tests.employee.serializers import EmployeeSerializer
 from tests.product.models import Product
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
@@ -46,6 +48,7 @@ from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
 from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
+from vueda.user.serializers import UserSerializer
 
 
 class StoreTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -1412,12 +1415,15 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         "Timesheet Updater": [
             ("timesheet", "Timesheet", "create"),
             ("timesheet", "Timesheet", "update"),
+            ("employee", "Employee", "update"),
         ],
         "Customer Updater": [
             ("store", "Customer", "update"),
+            ("employee", "User", "update"),
         ],
         "CartItem Updater": [
             ("store", "CartItem", "update"),
+            ("store", "ProductOption", "update"),
         ],
     }
 
@@ -1432,6 +1438,30 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             ],
         },
     }
+
+    @pytest.fixture(autouse=True)
+    def related_write_registrations(self, monkeypatch):
+        class EmployeeViewSet(VuedaViewSet):
+            queryset = Employee.objects.all()
+            serializer_class = EmployeeSerializer
+
+        class UserViewSet(VuedaViewSet):
+            queryset = User.objects.all()
+            serializer_class = UserSerializer
+
+        for serializer, viewset in (
+            (EmployeeSerializer, EmployeeViewSet),
+            (UserSerializer, UserViewSet),
+            (store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet),
+        ):
+            monkeypatch.setitem(
+                info.registration._registry,
+                serializer.Meta.model._meta.label_lower,
+                {
+                    "serializer": serializer,
+                    "viewset": viewset,
+                },
+            )
 
     def test_update_timesheet_with_existing_field(self, api_client):
         user = self.users["test_my_user@domain.invalid"]

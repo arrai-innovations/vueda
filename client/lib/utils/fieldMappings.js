@@ -89,8 +89,7 @@ export const defaultFieldMappings = {
     DurationSecondsField: {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
-            // todo: mode for WidgetDuration to handle seconds directly
-            widgetProps: { unit: "minutes" },
+            widgetProps: { seconds: true },
             // DurationDisplay reads a number as seconds and a string as Django's
             // duration format, so both duration types share one read-only widget.
             readOnlyWidget: availableWidgets.WidgetDurationReadOnly,
@@ -483,8 +482,7 @@ export const manyFieldMappings = {
         DurationField: {
             widget: availableWidgets.WidgetDuration,
             fieldProps: { manyComponent: availableFields.FormField },
-            // todo: mode for WidgetDuration to handle seconds directly
-            widgetProps: { unit: "minutes" },
+            widgetProps: { seconds: true },
             default: true,
         },
     },
@@ -609,8 +607,15 @@ export const manyFieldMappings = {
         },
     },
 };
+// Keep fractional values instead of snapping to integers or rounding the display to three places.
+const FILTER_NUMBER_WIDGET_PROPS = { stepSnapping: false, formatOptions: { maximumFractionDigits: 20 } };
+
 /**
- * Field-to-component mappings for filter form fields.
+ * Field-to-component mappings for filter form fields, keyed by the filter type the server
+ * reports as a filter's `typeFilter`. Every type here also has value handling in
+ * {@link FilterFieldMappings}. `ChoiceField`, `TypedChoiceField`, and `MultipleChoiceField` render
+ * the choices listed in the filter metadata. The `ModelChoice*` and `AllValues*` types render
+ * `WidgetModel`, which fetches their choices from the filter choices endpoint.
  *
  * @type {{[fieldType: string]: FieldMappingEntry}}
  */
@@ -630,12 +635,41 @@ export const filterFieldMapping = {
         fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetSelectDropdown,
     },
+    TypedChoiceField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "text", hidden: true },
+        widget: availableWidgets.WidgetSelectDropdown,
+    },
+    MultipleChoiceField: {
+        component: availableFields.FormField,
+        fieldProps: { hidden: true },
+        widget: availableWidgets.WidgetCombobox,
+        widgetProps: { multiple: true, optionLabel: "label" },
+    },
     NullBooleanField: {
         component: availableFields.FormField,
         fieldProps: { validation: "text", hidden: true },
         widget: availableWidgets.WidgetSelectDropdown,
     },
     ModelMultipleChoiceInField: {
+        component: availableFields.FormField,
+        fieldProps: { hidden: true },
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "multiSelect", isFilter: true },
+    },
+    ModelMultipleChoiceField: {
+        component: availableFields.FormField,
+        fieldProps: { hidden: true },
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "multiSelect", isFilter: true },
+    },
+    AllValuesChoiceField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "text", hidden: true },
+        widget: availableWidgets.WidgetModel,
+        widgetProps: { type: "select", isFilter: true },
+    },
+    AllValuesMultipleChoiceField: {
         component: availableFields.FormField,
         fieldProps: { hidden: true },
         widget: availableWidgets.WidgetModel,
@@ -653,8 +687,7 @@ export const filterFieldMapping = {
         boundaryComponent: availableFields.FormField,
         boundaryFieldProps: { validation: "decimal" },
         boundaryWidget: availableWidgets.WidgetNumberInput,
-        // Keep fractional thresholds instead of snapping to integers or rounding the display to three places.
-        boundaryWidgetProps: { stepSnapping: false, formatOptions: { maximumFractionDigits: 20 } },
+        boundaryWidgetProps: FILTER_NUMBER_WIDGET_PROPS,
     },
     DateRangeField: {
         component: availableFields.FieldSetRange,
@@ -673,11 +706,33 @@ export const filterFieldMapping = {
         boundaryWidget: availableWidgets.WidgetDateField,
         boundaryWidgetProps: { granularity: "minute" },
     },
+    DateField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "date", hidden: true },
+        widget: availableWidgets.WidgetDateField,
+    },
+    DateTimeField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "datetime", hidden: true },
+        widget: availableWidgets.WidgetDateField,
+        widgetProps: { granularity: "minute" },
+    },
     IsoDateTimeField: {
         component: availableFields.FormField,
         fieldProps: { validation: "date", hidden: true },
         widget: availableWidgets.WidgetDateField,
         widgetProps: { granularity: "minute" },
+    },
+    TimeField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "time", hidden: true },
+        widget: availableWidgets.WidgetTimeField,
+    },
+    DurationField: {
+        component: availableFields.FormField,
+        fieldProps: { hidden: true },
+        widget: availableWidgets.WidgetDuration,
+        widgetProps: { showDays: true, showHours: true, showMinutes: true },
     },
     ModelChoiceField: {
         component: availableFields.FormField,
@@ -689,11 +744,25 @@ export const filterFieldMapping = {
         component: availableFields.FormField,
         fieldProps: { validation: "decimal", hidden: true },
         widget: availableWidgets.WidgetNumberInput,
+        widgetProps: FILTER_NUMBER_WIDGET_PROPS,
     },
     PositiveDecimalField: {
         component: availableFields.FormField,
         fieldProps: { validation: "decimal", hidden: true },
         widget: availableWidgets.WidgetNumberInput,
+        widgetProps: { ...FILTER_NUMBER_WIDGET_PROPS, min: 0 },
+    },
+    FloatField: {
+        component: availableFields.FormField,
+        fieldProps: { validation: "decimal", hidden: true },
+        widget: availableWidgets.WidgetNumberInput,
+        widgetProps: FILTER_NUMBER_WIDGET_PROPS,
+    },
+    DecimalInField: {
+        component: availableFields.FormField,
+        fieldProps: { hidden: true },
+        widget: availableWidgets.WidgetTagsInput,
+        widgetProps: { numeric: true },
     },
 };
 
@@ -719,20 +788,23 @@ export function mergeDefaultFieldMappings(customMappings) {
 }
 
 /**
- * How a filter type's value behaves in the filter form and the URL.
+ * How a filter type's value behaves in the filter form, the URL, and the list request.
  *
  * @typedef {object} FilterValueMapping
  * @property {any} [initialValue] - The empty value the filter form starts from.
  * @property {boolean} [array] - Whether the filter carries a list of values.
  * @property {boolean} [range] - Whether the filter is a range rendered as two boundary inputs.
+ * @property {boolean} [repeatedKey] - Whether the list request sends each of the filter's values under its
+ *  own repeated query key, as Django's `SelectMultiple` widget reads them. Without it, an array value is
+ *  sent as one comma-separated value, as django-filter's CSV-based `in` filters read it.
  */
 
 /**
  * Per-filter-type value configuration: the empty/initial value a filter field
- * starts from, and whether it is a range (suffix pair) or an array filter. The
- * live filter form (`useFilterField`) and URL→filter restoration
- * (`buildFilterFromQuery`) both read it, so query values coerce the same way in
- * each. {@link filterFieldMapping} holds the components for the same types. A
+ * starts from, whether it is a range (suffix pair) or an array filter, and how
+ * the list request encodes an array value. The live filter form
+ * (`useFilterField`) and URL→filter restoration (`buildFilterFromQuery`) both
+ * read it, so query values coerce the same way in each. {@link filterFieldMapping} holds the components for the same types. A
  * custom filter type registers its entry here through
  * {@link mergeFilterFieldMapping}, alongside its components.
  *
@@ -761,12 +833,12 @@ export const FilterFieldMappings = {
     DecimalField: {
         initialValue: null,
     },
+    PositiveDecimalField: {
+        initialValue: null,
+    },
     DecimalInField: {
         initialValue: [],
         array: true,
-    },
-    DurationSecondsField: {
-        initialValue: null,
     },
     DurationField: {
         initialValue: null,
@@ -808,10 +880,20 @@ export const FilterFieldMappings = {
     ModelMultipleChoiceField: {
         initialValue: [],
         array: true,
+        repeatedKey: true,
     },
     MultipleChoiceField: {
         initialValue: [],
         array: true,
+        repeatedKey: true,
+    },
+    AllValuesChoiceField: {
+        initialValue: null,
+    },
+    AllValuesMultipleChoiceField: {
+        initialValue: [],
+        array: true,
+        repeatedKey: true,
     },
     TimeField: {
         initialValue: null,
@@ -831,12 +913,12 @@ export const FilterFieldMappings = {
  * @typedef {FieldMappingEntry & FilterValueMapping} FilterFieldMappingInput
  */
 
-const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range"];
+const FILTER_VALUE_MAPPING_KEYS = ["initialValue", "array", "range", "repeatedKey"];
 
 /**
  * Register custom filter types, or adjust existing ones, for filter forms. Each
  * entry's components merge into {@link filterFieldMapping}; its `initialValue`,
- * `array`, and `range` keys merge into the value table
+ * `array`, `range`, and `repeatedKey` keys merge into the value table
  * ({@link FilterFieldMappings}). A filter type needs both to be
  * offered in a list's filter menu: the value table tells the form what an empty
  * or URL-restored value looks like, and the component table tells it what to

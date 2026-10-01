@@ -21,17 +21,20 @@ from django.db.models import Min
 
 from vueda.core.audit import audited_action
 from vueda.vdq.celery import app
-from vueda.vdq.celery import cancel_task
 from vueda.vdq.exceptions import AnymailTransientError
+from vueda.vdq.exceptions import QueueItemLockError
 from vueda.vdq.handlers import TwilioQueueItemHandler
 from vueda.vdq.handlers import send_email
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SMSQueueItem
-from vueda.vdq.utils import lock_queue_item
+from vueda.vdq.utils import with_locked_queue_item
 from vueda.workflow.exceptions import InvalidTransitionError
 
 
 logger = logging.getLogger(__name__)
+
+# Seconds before `send_message` runs again when it could not lock its queue item.
+LOCK_RETRY_COUNTDOWN = 10
 
 
 class AuditedTask(DjangoTask):
@@ -63,19 +66,24 @@ class BaseTask(AuditedTask):
 class QueueProcessor(BaseTask):
     def on_retry(self, exc, task_id, args, kwargs, einfo):
         qi_pk = args[0]
-        try:
-            with lock_queue_item(qi_pk) as qi:
-                if not qi:
-                    cancel_task(task_id)
-                qi.task_id = task_id
-                try:
-                    if einfo.exception.exc.when:
-                        qi.retry_delay = einfo.exception.exc.when
-                except AttributeError:
-                    # Celery's retry metadata doesn't always expose `exc.when`; skip when it's absent.
-                    pass
-                qi.save(update_fields=["task_id", "retry_delay"])
+
+        def record_retry(qi):
+            if not qi:
+                return
+            qi.task_id = task_id
+            try:
+                if einfo.exception.exc.when:
+                    qi.retry_delay = einfo.exception.exc.when
+            except AttributeError:
+                # Celery's retry metadata doesn't always expose `exc.when`; skip when it's absent.
+                pass
+            qi.save(update_fields=["task_id", "retry_delay"])
+            # A retry from `queued` means the send never started, and the workflow has no `delay` from there.
+            if qi.workflow_state.code == "sending":
                 qi.fast_transition("delay")
+
+        try:
+            with_locked_queue_item(qi_pk, record_retry)
         except Exception as exc:
             logger.exception(
                 "Failed to update QueueItem during on_retry (task_id=%s, qi_pk=%s): %s: %s",
@@ -88,18 +96,22 @@ class QueueProcessor(BaseTask):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         qi_pk = args[0]
         method = args[1]
+        trace = format_exc()
+
+        def record_failure(qi):
+            if not qi:
+                return
+            logger.exception("There was an error while sending %s for QueueItem %s", method, qi.pk)
+            if qi.result:
+                qi.result += "\n*** During handling of the above exception, another exception occurred: ***\n"
+            qi.result += trace
+            qi.retry_delay = 0
+            qi.save(update_fields=["result", "retry_delay"])
+            if qi.workflow_state.code != "errored":
+                qi.fast_transition("error")
+
         try:
-            with lock_queue_item(qi_pk) as qi:
-                if not qi:
-                    return
-                logger.exception("There was an error while sending %s for QueueItem %s", method, qi.pk)
-                if qi.result:
-                    qi.result += "\n*** During handling of the above exception, another exception occurred: ***\n"
-                qi.result += format_exc()
-                qi.retry_delay = 0
-                qi.save(update_fields=["result", "retry_delay"])
-                if qi.workflow_state.code != "errored":
-                    qi.fast_transition("error")
+            with_locked_queue_item(qi_pk, record_failure)
         except Exception as exc:
             logger.exception(
                 "Failed to update QueueItem status during on_failure (task_id=%s, qi_pk=%s): %s: %s",
@@ -139,14 +151,21 @@ def check_sms_timeout_only(self):
 @app.task(name="vdq.send_message", base=QueueProcessor, bind=True)
 def send_message(self, qi_pk, method):
     """
-    Send the queue item ``qi_pk`` by SMS or email, as ``method`` names. Retries transient Anymail errors with
-    backoff and moves the item to ``errored`` on failure.
+    Send the queue item ``qi_pk`` by SMS or email, depending on ``method``. Retries the task when the queue item
+    stays locked, retries transient Anymail errors with backoff, and moves the item to ``errored`` on failure.
     """
+
+    def start_sending(qi):
+        if not qi:
+            raise Ignore()
+        qi.fast_transition("send")
+        return qi
+
     try:
-        with lock_queue_item(qi_pk) as qi:
-            if not qi:
-                raise Ignore()
-            qi.fast_transition("send")
+        try:
+            qi = with_locked_queue_item(qi_pk, start_sending)
+        except QueueItemLockError as exc:
+            raise self.retry(exc=exc, countdown=LOCK_RETRY_COUNTDOWN)
         if method == "sms":
             self.twilio.send_sms(qi)
         elif method == "email":

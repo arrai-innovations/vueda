@@ -21,7 +21,7 @@ Add a row there when you introduce a contract no row covers.
 ## Generated API Docs
 
 Generated API references live under `docs/reference/api/` and
-`docs/reference/theming/`. Do not edit generated pages directly. Fix errors in
+`docs/reference/theming/`, and `docs/reference/configuration.md`. Do not edit generated pages directly. Fix errors in
 source code, annotations, or docs-tooling renderers.
 
 When editing source annotations that feed generated docs, consult the relevant

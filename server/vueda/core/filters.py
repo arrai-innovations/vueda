@@ -31,13 +31,15 @@ from django.contrib.postgres.search import SearchVector
 from django.contrib.postgres.search import TrigramSimilarity
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
+from django.db.models import Exists
 from django.db.models import F
+from django.db.models import OuterRef
+from django.db.models import Subquery
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
-from ordered_set import OrderedSet
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
@@ -47,8 +49,8 @@ from vueda.core.fields.form import BaseArrayField
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.ordering import NULLS_PLACEMENTS
+from vueda.core.ordering import PK_ALIAS
 from vueda.core.ordering import ordering_pk_field_names
-from vueda.core.ordering import ordering_term_distinct_column
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
 from vueda.core.paths import join_ordering_direction
@@ -548,6 +550,11 @@ class VuedaSearchFilterBackend(SearchFilter):
     to indicate that the search term in `search_fields` should use trigram
     similarity comparison, and `~` for word similarity. The similarity threshold can be set on the ViewSet
     as `similarity_threshold`.
+
+    A search field that reaches through a multi-valued relation matches inside a subquery built from
+    the view's search queryset: the queryset its `get_search_queryset()` returns, or the model's
+    default manager when it defines none. A viewset whose `search_fields` name an annotation defines
+    `get_search_queryset()` with that annotation; see `get_search_queryset` below.
     """
 
     customized_lookup_prefixes = {
@@ -567,54 +574,6 @@ class VuedaSearchFilterBackend(SearchFilter):
         if "similarity_threshold" in kwargs:
             self.similarity_threshold = kwargs["similarity_threshold"]
 
-    @staticmethod
-    def _ordering_for_distinct(queryset):
-        """
-        The ordering already on the queryset, paired with the column names ``distinct()`` needs in
-        order to keep a ``DISTINCT ON`` matching it.
-
-        ``VuedaOrderingFilter`` runs before this backend and has already turned the client's ``?o=``
-        request into the terms the database will actually sort by: a related model's
-        ``formatted_name`` rewritten to the column behind it, and a field with a declared
-        ``nulls_ordering`` placement turned into an ``F(...).asc(nulls_first=True)`` expression.
-        Re-reading the raw query parameter here would throw both away, ordering by a path the
-        database doesn't know and dropping the placement, so the terms are taken from the queryset
-        instead.
-
-        ``ordering_term_distinct_column`` decides one term at a time, and describes what pairs with
-        what. The pairing is all or nothing: ``DISTINCT ON`` matches ``ORDER BY`` from the left, so a
-        single unpairable term takes the whole ordering with it rather than leaving a gap that
-        misaligns the terms after it.
-
-        ``None`` when the ordering can't be paired, which leaves the caller to order by search rank as
-        it does for a request that asked for no ordering at all. Two ways to get there:
-
-        - The queryset carries no explicit ordering. A ``?o=`` naming nothing valid resolves to no
-          ordering at all on a view that declares no default, and there is nothing to re-apply.
-        - Some term has no column to pair with. A term reading no column (``"?"``) or several
-          (``Concat("first_name", "last_name")``) is one case; so is a term that reads one column
-          without being that column (``Lower("name")``), and a relation Django expands into the
-          related model's own ordering (``"customer"``).
-
-        :param queryset: The queryset as the ordering backend left it.
-        :type queryset: django.db.models.QuerySet
-        :return: ``(ordering_terms, distinct_columns)``, or ``None``.
-        :rtype: Optional[Tuple[List, List[str]]]
-        """
-        ordering = list(queryset.query.order_by)
-        if not ordering:
-            return None
-
-        distinct_columns = []
-        for term in ordering:
-            distinct_column = ordering_term_distinct_column(queryset, term)
-            if distinct_column is None:
-                return None
-
-            distinct_columns.append(distinct_column)
-
-        return ordering, distinct_columns
-
     def construct_search(self, field_name, queryset):
         """
         Add our custom prefixes as 'aliases' to its related lookup.
@@ -624,6 +583,43 @@ class VuedaSearchFilterBackend(SearchFilter):
                 field_name = field_name[len(prefix) :]
                 return f"{field_name}__{lookup}"
         return super().construct_search(field_name, queryset)
+
+    def search_field_path(self, search_field):
+        """Return the field path a ``search_fields`` entry searches, without its lookup prefix."""
+        search_field = str(search_field)
+        for prefix in sorted(self.lookup_prefixes, key=len, reverse=True):
+            if search_field.startswith(prefix):
+                return search_field[len(prefix) :]
+        return search_field
+
+    def must_call_distinct(self, queryset, search_fields):
+        """
+        Whether any search field reaches through a multi-valued relation, read by its path.
+
+        DRF's check strips a one-character lookup prefix, which leaves the two-character `V:` prefix
+        in place, so each path is stripped here first.
+        """
+        paths = [self.search_field_path(field) for field in search_fields]
+        return super().must_call_distinct(queryset, paths)
+
+    def get_search_queryset(self, view, queryset):
+        """
+        Return the queryset that a search through a multi-valued relation (a reverse foreign key or a
+        many-to-many) matches against: the view's ``get_search_queryset()`` when the view defines one,
+        and the model's default manager otherwise.
+
+        Such a search matches inside a subquery that holds one row per matching related row, then
+        narrows ``queryset`` to the objects that match. ``queryset`` applies the viewset's filters and
+        aggregates outside the subquery, where they see every related row, so the subquery carries
+        none of them. A view defines ``get_search_queryset()`` when its ``search_fields`` name an
+        annotation that only ``get_queryset()`` adds, or when the default manager hides rows the view
+        lists. It returns the model's queryset with those annotations, every row the view lists and no
+        filters. The ``vueda_info.E014`` system check reports a missing annotation.
+        """
+        get_search_queryset = getattr(view, "get_search_queryset", None)
+        if get_search_queryset is None:
+            return queryset.model._default_manager.all()
+        return get_search_queryset()
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -637,7 +633,9 @@ class VuedaSearchFilterBackend(SearchFilter):
         4. For trigram similar fields: combine all terms into one and filter DRF-style (OR across fields).
         5. For deterministic lookups: filter (OR across fields, AND across terms) and boost rank.
         6. Filter on a minimum combined rank and optionally order by it.
-        7. Remove duplicates if needed (e.g. for M2M).
+        7. When a search field reaches through a multi-valued relation, keep the search's joins inside
+           subqueries built from :meth:`get_search_queryset`, so the queryset the view handed in keeps
+           one row per object (see below).
         """
         # gather search fields & terms (DRF semantics)
         search_fields = self.get_search_fields(view, request)
@@ -668,10 +666,19 @@ class VuedaSearchFilterBackend(SearchFilter):
             if lookup not in v_lookups and lookup not in trig_lookups and lookup not in trig_word_lookups
         ]
 
-        if not ranked_fields and not trigram_fields and not trigram_word_fields:
+        mcd = self.must_call_distinct(queryset, search_fields)
+        custom_lookups = bool(ranked_fields or trigram_fields or trigram_word_fields)
+
+        if not custom_lookups and not mcd:
             # no custom lookups, defer to base class behavior for deterministic lookups
             return super().filter_queryset(request, queryset, view)
 
+        # The queryset as the view and the ordering backend left it, before the search joins anything.
+        # A search through a multi-valued relation matches against the search queryset inside a
+        # subquery; any other search matches against `base` itself.
+        base = queryset
+        if mcd:
+            queryset = self.get_search_queryset(view, base)
         annotations = {}
 
         # ranked search: full-text, trigram and iregex
@@ -706,13 +713,16 @@ class VuedaSearchFilterBackend(SearchFilter):
             conditions = [models.Q(**{lookup: combined_term}) for lookup in trig_lookups + trig_word_lookups]
             queryset = queryset.filter(reduce(operator.or_, conditions))
 
-        # deterministic filtering and artificial rank boost
+        # deterministic filtering
         if det_lookups:
             per_term_groups = [
                 reduce(operator.or_, [models.Q(**{lookup: term}) for lookup in det_lookups]) for term in search_terms
             ]
             queryset = queryset.filter(reduce(operator.and_, per_term_groups))
 
+        # Deterministic lookups boost the rank only in a ranked search. On their own they filter, as in
+        # DRF's `SearchFilter`.
+        if det_lookups and custom_lookups:
             det_scores = [
                 models.Case(
                     models.When(**{lookup: term}, then=models.Value(10)),
@@ -724,21 +734,6 @@ class VuedaSearchFilterBackend(SearchFilter):
             ]
             annotations["deterministic_score"] = reduce(operator.add, det_scores, models.Value(0))
 
-        # strip custom prefixes so model opts.get_field doesn't choke
-        search_fields = list(
-            OrderedSet(search_fields)
-            - OrderedSet(f"{SEARCH_LOOKUP_PREFIX}{f}" for f in ranked_fields)
-            - OrderedSet(f"{TRIGRAM_SIMILAR_PREFIX}{f}" for f in trigram_fields)
-            - OrderedSet(f"{TRIGRAM_WORD_SIMILAR_PREFIX}{f}" for f in trigram_word_fields)
-            | OrderedSet(ranked_fields)
-            | OrderedSet(trigram_fields)
-            | OrderedSet(trigram_word_fields)
-        )
-        # De-dupe if necessary (for M2M or joins)
-        # A combination of what is in drf and django.contrib.admin.
-        # We can't use a base_queryset as drf does, because we would lose the ordering by ranking.
-        mcd = self.must_call_distinct(queryset, search_fields)
-
         # Whether the client asked for an ordering, which is what decides between sorting by rank and
         # sorting by the request. Read from the query parameter rather than from the queryset, because
         # a view's own default `ordering` reaches the queryset the same way an explicit request does
@@ -746,39 +741,60 @@ class VuedaSearchFilterBackend(SearchFilter):
         # `VuedaOrderingFilter` (see DEFAULT_FILTER_BACKENDS).
         ordering_requested = bool(request.query_params.get(api_settings.ORDERING_PARAM))
 
-        # What that request became, which is what has to be re-applied alongside `DISTINCT ON` below.
-        # `None` when there is nothing usable to re-apply, in which case the rank ordering is used.
-        applied_ordering = self._ordering_for_distinct(queryset) if ordering_requested else None
-
-        # final combined rank and ordering
-        if annotations:
-            # sum every numeric annotation into combined_rank
-            annotations["combined_rank"] = reduce(operator.add, [models.F(k) for k in annotations])
+        # A search field reaching through a multi-valued relation joins one row per matching related
+        # row. Those joins stay inside subqueries built from the search queryset, and the result is
+        # `base` narrowed to the objects that match. `base` keeps one row per object, its ordering, its
+        # own aggregates and its filters, which see every related row.
+        if not annotations:
             if mcd:
-                if applied_ordering is None:
-                    queryset = (
-                        queryset.annotate(**annotations)
-                        .order_by("-combined_rank", "pk")
-                        .distinct("combined_rank", "pk")
-                        .filter(combined_rank__gte=self.search_threshold)
-                    )
-                else:
-                    ordering_items, distinct_items = applied_ordering
-                    queryset = (
-                        queryset.annotate(**annotations)
-                        .order_by(*ordering_items, "pk")
-                        .distinct(*distinct_items, "pk")
-                        .filter(combined_rank__gte=self.search_threshold)
-                    )
-            else:
-                queryset = queryset.annotate(**annotations).filter(combined_rank__gte=self.search_threshold)
-            if not ordering_requested and not mcd:
+                queryset = base.filter(Exists(queryset.filter(pk=OuterRef("pk"))))
+            return queryset
+
+        # sum every numeric annotation into combined_rank
+        combined_rank = reduce(operator.add, [models.F(name) for name in annotations])
+
+        if not mcd:
+            queryset = queryset.annotate(**annotations, combined_rank=combined_rank).filter(
+                combined_rank__gte=self.search_threshold
+            )
+            if not ordering_requested:
                 queryset = queryset.order_by("-combined_rank")
+            return queryset
 
-        if mcd and not annotations:
-            queryset = queryset.distinct()
+        # One row per matching related row, each carrying its own rank. The threshold applies to each
+        # row, so an object matches when at least one of its rows reaches it.
+        matching_rows = (
+            queryset.alias(**annotations)
+            .annotate(combined_rank=combined_rank)
+            .filter(combined_rank__gte=self.search_threshold, pk=OuterRef("pk"))
+        )
+        queryset = base.filter(Exists(matching_rows))
 
-        return queryset
+        # The primary key breaks ties in the requested ordering, so objects that tie on it come back in
+        # a stable order. An ordering that already sorts by the primary key needs no tie-breaker.
+        if ordering_requested:
+            ordering = list(queryset.query.order_by) or list(queryset.model._meta.ordering)
+            if not any(self._orders_by_pk(queryset.model, term) for term in ordering):
+                queryset = queryset.order_by(*ordering, "pk")
+            return queryset
+
+        # An object ranks by its best matching row, with the primary key breaking ties between objects.
+        best_rank = matching_rows.order_by("-combined_rank").values("combined_rank")[:1]
+        return queryset.annotate(combined_rank=Subquery(best_rank)).order_by("-combined_rank", "pk")
+
+    @staticmethod
+    def _orders_by_pk(model, term):
+        """
+        Whether an ordering term sorts by the model's own primary key, named either by the ``"pk"``
+        alias or by the primary key field's name.
+
+        :param model: The model the ordering applies to.
+        :type model: Type[django.db.models.Model]
+        :param term: The ordering term to inspect.
+        :type term: Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]
+        :rtype: bool
+        """
+        return ordering_term_field_names(term) in ([PK_ALIAS], [model._meta.pk.name])
 
 
 class ModelChoiceArrayFilter(BaseArrayInFilter, ModelChoiceFilter):

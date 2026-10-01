@@ -35,6 +35,8 @@ const props = defineProps({
     delimiter: { type: [String, Object], default: undefined },
     /** The reading direction of the tags input. */
     dir: { type: String, default: undefined },
+    /** Converts an entered string to the tag value, before the duplicate check runs. */
+    convertValue: { type: Function, default: undefined },
     /** Maximum number of tags. */
     max: { type: Number, default: undefined },
     /** The name submitted with the form. */

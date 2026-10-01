@@ -137,21 +137,20 @@ describe("lib/utils/objectCrud.js", () => {
             expect(result).toEqual({ id: 6 });
         });
 
-        it("sends false and 0 as values in FormData, and only null and undefined as empty", async () => {
+        it("sends false, zero, and null as JSON values in FormData", async () => {
             getListUrl.mockReturnValue("list-url");
             getJsonOrText.mockResolvedValue({ id: 7 });
             global.fetch = vi.fn(() => Promise.resolve(new Response("{}", { status: 201 })));
 
             await objectCrud.defaultObjectCreate({
                 target: { app: "blog", model: "article" },
-                object: { file: new File(["data"], "file.txt"), active: false, count: 0, note: null, extra: undefined },
+                object: { file: new File(["data"], "file.txt"), active: false, count: 0, note: null },
             });
 
             const body = fetch.mock.calls[0][1].body;
             expect(body.get("active")).toBe("false");
             expect(body.get("count")).toBe("0");
-            expect(body.get("note")).toBe("");
-            expect(body.get("extra")).toBe("");
+            expect(body.get("note")).toBe("null");
         });
 
         it("passes params to makeSearchParamsString", async () => {

@@ -5,6 +5,8 @@ describe("lib/use/useFilter.js", () => {
             vi.resetModules();
             getMissingFilterInputSupport = (await import("@vueda/use/useFilter.js")).getMissingFilterInputSupport;
             mergeFilterFieldMapping = (await import("@vueda/utils/fieldMappings.js")).mergeFilterFieldMapping;
+            // A custom type registered with value handling alone.
+            mergeFilterFieldMapping({ SwatchField: { initialValue: null } });
         });
 
         it("reports nothing missing for a fully mapped plain filter", () => {
@@ -33,9 +35,9 @@ describe("lib/use/useFilter.js", () => {
         });
 
         it("reports the missing components for a type that only has value handling", () => {
-            expect(getMissingFilterInputSupport("published", { typeFilter: "DateField" })).toEqual([
-                'a field component for filter type "DateField"',
-                'a widget for filter type "DateField"',
+            expect(getMissingFilterInputSupport("swatch", { typeFilter: "SwatchField" })).toEqual([
+                'a field component for filter type "SwatchField"',
+                'a widget for filter type "SwatchField"',
             ]);
         });
 
@@ -43,13 +45,13 @@ describe("lib/use/useFilter.js", () => {
             const CustomWidget = { name: "CustomWidget" };
             expect(
                 getMissingFilterInputSupport(
-                    "published",
-                    { typeFilter: "DateField" },
+                    "swatch",
+                    { typeFilter: "SwatchField" },
                     {
                         // A named field component and a function-wrapped widget, the two override
                         // shapes `buildForm` resolves.
-                        fieldComponents: { published: "FormField" },
-                        widgetComponents: { published: () => CustomWidget },
+                        fieldComponents: { swatch: "FormField" },
+                        widgetComponents: { swatch: () => CustomWidget },
                     },
                 ),
             ).toEqual([]);
@@ -60,18 +62,18 @@ describe("lib/use/useFilter.js", () => {
             const WrappedWidget = { name: "WrappedWidget" };
             expect(
                 getMissingFilterInputSupport(
-                    "published",
-                    { typeFilter: "DateField" },
-                    { fieldComponents: { published: DirectField }, widgetComponents: { published: "WidgetDateField" } },
+                    "swatch",
+                    { typeFilter: "SwatchField" },
+                    { fieldComponents: { swatch: DirectField }, widgetComponents: { swatch: "WidgetTextInput" } },
                 ),
             ).toEqual([]);
             expect(
                 getMissingFilterInputSupport(
-                    "published",
-                    { typeFilter: "DateField" },
+                    "swatch",
+                    { typeFilter: "SwatchField" },
                     {
-                        fieldComponents: { published: "FormField" },
-                        widgetComponents: { published: () => WrappedWidget },
+                        fieldComponents: { swatch: "FormField" },
+                        widgetComponents: { swatch: () => WrappedWidget },
                     },
                 ),
             ).toEqual([]);
@@ -135,11 +137,11 @@ describe("lib/use/useFilter.js", () => {
         it("rejects a string override that names no registered component", () => {
             expect(
                 getMissingFilterInputSupport(
-                    "published",
-                    { typeFilter: "DateField" },
-                    { fieldComponents: { published: "NoSuchField" }, widgetComponents: { published: "NoSuchWidget" } },
+                    "swatch",
+                    { typeFilter: "SwatchField" },
+                    { fieldComponents: { swatch: "NoSuchField" }, widgetComponents: { swatch: "NoSuchWidget" } },
                 ),
-            ).toEqual(['a field component for filter type "DateField"', 'a widget for filter type "DateField"']);
+            ).toEqual(['a field component for filter type "SwatchField"', 'a widget for filter type "SwatchField"']);
         });
 
         it("checks each boundary of a range and accepts boundary overrides", () => {
@@ -167,6 +169,27 @@ describe("lib/use/useFilter.js", () => {
             expect(getMissingFilterInputSupport("created", { typeFilter: "DateRangeField" })).toEqual([
                 'a widget for filter type "DateRangeField"',
             ]);
+        });
+    });
+
+    describe("built-in filter types", () => {
+        it("give every declared type value handling and an input, with both boundaries for a range", async () => {
+            vi.resetModules();
+            const { getMissingFilterInputSupport } = await import("@vueda/use/useFilter.js");
+            const { FilterFieldMappings, filterFieldMapping } = await import("@vueda/utils/fieldMappings.js");
+            const declaredTypes = new Set([...Object.keys(FilterFieldMappings), ...Object.keys(filterFieldMapping)]);
+
+            const missingByType = {};
+            for (const typeFilter of declaredTypes) {
+                const details = FilterFieldMappings[typeFilter]?.range
+                    ? { typeFilter, suffixes: ["min", "max"] }
+                    : { typeFilter };
+                const missing = getMissingFilterInputSupport("filter", details);
+                if (missing.length) {
+                    missingByType[typeFilter] = missing;
+                }
+            }
+            expect(missingByType).toEqual({});
         });
     });
 });
