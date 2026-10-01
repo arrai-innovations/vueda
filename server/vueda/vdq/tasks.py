@@ -124,6 +124,10 @@ class QueueProcessor(BaseTask):
 
 @app.task(name="vdq.check_sms_status", base=BaseTask, bind=True)
 def check_sms_status(self):
+    """
+    Poll Twilio for the status of SMS queue items awaiting delivery and update them. Celery runs this every 30
+    seconds when no Twilio webhook is configured.
+    """
     queue = QueueItem.objects.filter(
         object_states_proxy__state__code="awaiting",
         method="sms",
@@ -137,11 +141,20 @@ def check_sms_status(self):
 
 @app.task(name="vdq.check_sms_timeout_only", base=BaseTask, bind=True)
 def check_sms_timeout_only(self):
+    """
+    Fetch the Twilio status of awaiting SMS queue items past the timeout window, and time out those without a
+    final status. Celery runs this every 30 seconds when a Twilio webhook is configured.
+    """
     self.twilio.pull_sms_timeout_only()
 
 
 @app.task(name="vdq.send_message", base=QueueProcessor, bind=True)
 def send_message(self, qi_pk, method):
+    """
+    Send the queue item ``qi_pk`` by SMS or email, depending on ``method``. Retries the task when the queue item
+    stays locked, retries transient Anymail errors with backoff, and moves the item to ``errored`` on failure.
+    """
+
     def start_sending(qi):
         if not qi:
             raise Ignore()
@@ -186,6 +199,10 @@ class CheckUnknownSMSMessageTask(AuditedTask):
 
 @app.task(name="vdq.check_previously_received_message_sid", base=CheckUnknownSMSMessageTask, bind=True)
 def check_previously_received_message_sid(self, message_sid, message_status):
+    """
+    Apply a Twilio webhook status to the SMS queue item with ``message_sid``. The webhook view queues this
+    when no matching queue item exists yet.
+    """
     with transaction.atomic():
         qi = (
             QueueItem.objects.select_related(

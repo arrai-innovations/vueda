@@ -129,7 +129,8 @@ class FormattedNamePathFilterSetMixin:
     The class-level declaration is untouched, and so is everything client-facing. The query parameter
     a client sends is the filter's name on the filterset, not its ``field_name``, and the label a
     filter generates for itself is taken from the declared path before the rewrite, so
-    ``model_filtering`` metadata describes the filter the way it was written.
+    ``model_filtering`` metadata describes the filter the way it was written. A rewritten filter keeps
+    its declared path as ``vueda_declared_field_name``, which that metadata reads.
     """
 
     def __init__(self, *args, **kwargs):

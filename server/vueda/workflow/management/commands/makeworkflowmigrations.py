@@ -172,6 +172,12 @@ def workflow_migration_action(apps, change_reason):
 
 
 def forwards_migrate_workflow(apps, changed_items, change_reason):
+    """Apply a generated workflow migration's ``changed_items`` in order, then sync workflow object states.
+
+    Generated workflow migrations call this from their forwards step; the migrations import it when
+    made with ``--import-instead`` and copy it otherwise. All writes are grouped under one migration
+    action named by ``change_reason``.
+    """
     with workflow_migration_action(apps, change_reason):
         _forwards_migrate_workflow(apps, changed_items, change_reason)
 
@@ -213,6 +219,12 @@ def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: n
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
+    """Undo a generated workflow migration's ``changed_items`` in reverse order, after deleting all object states.
+
+    Adds become deletes, deletes become adds, and changed fields get their old values back. Generated
+    workflow migrations call this from their reverse step; the migrations import it when made with
+    ``--import-instead`` and copy it otherwise.
+    """
     with workflow_migration_action(apps, change_reason):
         _backwards_migrate_workflow(apps, changed_items, change_reason)
 
@@ -262,6 +274,12 @@ def backwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: 
 
 
 def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -290,6 +308,12 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow permission to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -344,6 +368,12 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
 
 
 def handle_state(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -377,6 +407,12 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one state permission (a group's permission in a state) to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_group = apps.get_model("auth", "Group")
     model_permission = apps.get_model("auth", "Permission")
@@ -452,6 +488,12 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
 
 
 def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete a workflow's initial state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -509,6 +551,12 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -559,6 +607,12 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition permission to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_transition = apps.get_model("vueda_workflow", "Transition")
@@ -632,6 +686,12 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
 
 
 def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition source state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_transition_source = apps.get_model("vueda_workflow", "TransitionSource")
@@ -755,6 +815,11 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
 
 
 def handle_state_objects(apps, *, reversing=False):
+    """Run ``manage_state_objects`` for every workflow, using the migration's own models.
+
+    ``reversing`` deletes all object states instead. Generated workflow migrations copy this function
+    and reach it through ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -786,6 +851,11 @@ def workflow_identity(workflow_event):
 
 
 def get_id_values_from_item(values, reversing=False):
+    """Return the value that finds a row as it stands now: the old side of an ``(old, new)`` tuple.
+
+    ``reversing`` picks the new side instead. A value that is not a tuple is returned unchanged.
+    Generated workflow migrations copy this function.
+    """
     # The changed fields have a tuple with 2 values, the other fields do not.
     # Testing as tuple instead of length, because values could be a dictionary
     # with 2 keys, or a 2 character string.  A single value can't be a tuple.
@@ -796,6 +866,10 @@ def get_id_values_from_item(values, reversing=False):
 
 
 def get_id_values_from_dict(id_data, reversing=False):
+    """Return ``id_data`` with each value passed through ``get_id_values_from_item``.
+
+    The result finds the row as it stands now. Generated workflow migrations copy this function.
+    """
     results = {}
     for field_name, values in id_data.items():
         results[field_name] = get_id_values_from_item(values, reversing)
@@ -804,6 +878,11 @@ def get_id_values_from_dict(id_data, reversing=False):
 
 
 def make_sure_permissions_exist(app_label):
+    """Create any missing permissions for the app named ``app_label``.
+
+    Generated workflow migrations run this before applying their changes, so the permissions those changes
+    name exist. The migrations import it when made with ``--import-instead`` and copy it otherwise.
+    """
     app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)
 
@@ -818,6 +897,10 @@ def make_sure_permissions_exist_through_imports(apps, schema_editor):  # pragma:
 # These are added here for easy testing.
 #############################################################################
 def get_attr_names_for_workflow_models():
+    """Map each workflow model name to a mapping of its field names to their attribute names (``attname``).
+
+    The command adds fields renamed by migrations to this, then reads recorded field names through it.
+    """
     workflow_model_field_names_to_attname = {}
 
     for model in (
@@ -909,6 +992,11 @@ def get_history_diff(old_history_record, new_history_record):
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
+    """Set each changed field in ``data`` on ``obj``, then save ``obj``.
+
+    A changed field holds an ``(old, new)`` tuple, and ``reversing`` applies the old value. Fields that are
+    not tuples are skipped. Generated workflow migrations copy this function.
+    """
     # The changed fields have a tuple with 2 values, the other fields do not.
     # Testing as tuple instead of length, because values could be a dictionary
     # with 2 keys, or a 2 character string.  A single value can't be a tuple.

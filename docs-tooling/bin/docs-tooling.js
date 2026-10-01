@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
+import { ExternalDocsExtractor } from "../js/extractors/external-docs.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
 import { ThemeKeysExtractor, extractThemeKeysPayload } from "../js/extractors/theme-keys.js";
 import { ConfigurationNormalizer } from "../js/normalizers/configuration.js";
@@ -20,7 +21,7 @@ import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
 import { syncRenderedFiles } from "../js/utils/sync-rendered-files.js";
 import { validateClientSymbols } from "../js/validators/client-symbols.js";
-import { validateReferences } from "../js/validators/references.js";
+import { summarizeUnknownReferences, validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -105,6 +106,11 @@ async function extractCssTokens(outDir) {
     await extractor.extract({ outputPath: path.join(outDir, "css-tokens.json") });
 }
 
+async function extractExternalDocs(outDir) {
+    const extractor = new ExternalDocsExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "external-ids.json") });
+}
+
 async function extractThemeKeys(outDir) {
     const extractor = new ThemeKeysExtractor();
     await extractor.extract({ outputPath: path.join(outDir, "theme-keys.json") });
@@ -123,6 +129,7 @@ function expandTargets(targets) {
         set.add("components");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("external");
         set.add("configuration");
         set.delete("all");
     }
@@ -170,6 +177,9 @@ async function runExtract(argv) {
                 break;
             case "theme-keys":
                 await extractThemeKeys(outDir);
+                break;
+            case "external":
+                await extractExternalDocs(outDir);
                 break;
             default:
                 throw new Error(`Unknown target: ${target}`);
@@ -547,7 +557,14 @@ async function runValidate(argv) {
         return;
     }
 
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
+    const externalIdsFile = path.join(repoRoot, "docs-tooling", ".generated", "external-ids.json");
+    const { errors, warnings, apiIndexSize, glossaryIndexSize } = validateReferences({
+        files,
+        apiRoots,
+        glossaryFile,
+        externalIdsFile,
+        warnUnknown: argv.warnUnknown,
+    });
 
     const clientLibDir = path.join(repoRoot, "client", "lib");
     const symbols = validateClientSymbols({ files, clientLibDir });
@@ -560,10 +577,27 @@ async function runValidate(argv) {
         `Checked ${symbols.checkedFiles} authored file(s) against ${symbols.componentCount} client components`,
     );
 
+    const relative = (file) => path.relative(process.cwd(), file).split(path.sep).join("/");
+
+    if (warnings.length > 0) {
+        for (const warning of warnings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
+            console.log(`${relative(warning.file)}:${warning.line}: warning: ${warning.message}`);
+        }
+        const summary = summarizeUnknownReferences(warnings);
+        console.log("");
+        console.log(`Unknown references: ${summary.length} distinct, ${warnings.length} use(s)`);
+        for (const entry of summary) {
+            const label = entry.type === "api" ? "API id" : "glossary term";
+            console.log(`  ${label} "${entry.value}": ${entry.count} use(s)`);
+            for (const file of entry.files) {
+                console.log(`    ${relative(file)}`);
+            }
+        }
+    }
+
     if (errors.length > 0) {
         for (const error of errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
-            const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
-            console.log(`${rel}:${error.line}: ${error.message}`);
+            console.log(`${relative(error.file)}:${error.line}: ${error.message}`);
         }
         process.exit(1);
     }
@@ -616,6 +650,7 @@ yargs(hideBin(process.argv))
                         "components",
                         "css-tokens",
                         "theme-keys",
+                        "external",
                         "configuration",
                     ],
                     default: ["all"],
@@ -710,12 +745,19 @@ yargs(hideBin(process.argv))
         "validate",
         "Validate {@api} and {@term} references in documentation",
         (y) =>
-            y.option("files", {
-                alias: "f",
-                array: true,
-                type: "string",
-                describe: "Specific files to validate (default: all authored docs)",
-            }),
+            y
+                .option("files", {
+                    alias: "f",
+                    array: true,
+                    type: "string",
+                    describe: "Specific files to validate (default: all authored docs)",
+                })
+                .option("warn-unknown", {
+                    type: "boolean",
+                    default: false,
+                    describe:
+                        "Report unknown API ids and glossary terms as warnings with a summary, and exit 0 when nothing else fails",
+                }),
         runValidate,
     )
     .demandCommand(1)

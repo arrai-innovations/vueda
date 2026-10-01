@@ -17,12 +17,19 @@ from vueda.update import update_for_main
 
 
 def version(args):
+    """
+    Print the installed vueda-server version.
+    """
     from vueda import __version__
 
     print(__version__)
 
 
 def version_for_main(subparsers):
+    """
+    Add the ``version`` subcommand parser to ``subparsers``.
+    Return the command function and its parser.
+    """
     parser = subparsers.add_parser(
         "version",
         description="Print the version of vueda-server.",
@@ -53,6 +60,10 @@ def setup_django_settings_module():
 
 
 def main():
+    """
+    Parse arguments for the ``vueda`` command and run the chosen subcommand.
+    The ``update`` subcommand sets up the Django settings module first.
+    """
     parser = argparse.ArgumentParser(
         prog="vueda",
         description="VUEDA CLI Interface",

@@ -1,0 +1,109 @@
+{
+    "django": {
+        "title": "Django",
+        "lockPackage": "django",
+        "base": "https://docs.djangoproject.com/en/{minor}/",
+        "inventory": "https://docs.djangoproject.com/en/{minor}/_objects/"
+    },
+    "python": {
+        "title": "Python",
+        "base": "https://docs.python.org/3/"
+    },
+    "django-filter": {
+        "title": "django-filter",
+        "base": "https://django-filter.readthedocs.io/en/stable/"
+    },
+    "drf-spectacular": {
+        "title": "drf-spectacular",
+        "base": "https://drf-spectacular.readthedocs.io/en/stable/"
+    },
+    "celery": {
+        "title": "Celery",
+        "lockPackage": "celery",
+        "base": "https://docs.celeryq.dev/en/v{version}/"
+    },
+    "pghistory": {
+        "title": "django-pghistory",
+        "lockPackage": "django-pghistory",
+        "base": "https://django-pghistory.readthedocs.io/en/{version}/"
+    },
+    "drf": {
+        "title": "DRF",
+        "links": {
+            "rest_framework.decorators.action": "https://www.django-rest-framework.org/api-guide/viewsets/#marking-extra-actions-for-routing",
+            "rest_framework.exceptions.PermissionDenied": "https://www.django-rest-framework.org/api-guide/exceptions/#permissiondenied",
+            "rest_framework.exceptions.ValidationError": "https://www.django-rest-framework.org/api-guide/exceptions/#validationerror",
+            "rest_framework.fields.BooleanField": "https://www.django-rest-framework.org/api-guide/fields/#booleanfield",
+            "rest_framework.fields.CharField": "https://www.django-rest-framework.org/api-guide/fields/#charfield",
+            "rest_framework.fields.DateTimeField": "https://www.django-rest-framework.org/api-guide/fields/#datetimefield",
+            "rest_framework.fields.DurationField": "https://www.django-rest-framework.org/api-guide/fields/#durationfield",
+            "rest_framework.fields.IntegerField": "https://www.django-rest-framework.org/api-guide/fields/#integerfield",
+            "rest_framework.fields.JSONField": "https://www.django-rest-framework.org/api-guide/fields/#jsonfield",
+            "rest_framework.fields.SerializerMethodField": "https://www.django-rest-framework.org/api-guide/fields/#serializermethodfield",
+            "rest_framework.filters.OrderingFilter": "https://www.django-rest-framework.org/api-guide/filtering/#orderingfilter",
+            "rest_framework.filters.SearchFilter": "https://www.django-rest-framework.org/api-guide/filtering/#searchfilter",
+            "rest_framework.generics.GenericAPIView.get_object": "https://www.django-rest-framework.org/api-guide/generic-views/#get_objectself",
+            "rest_framework.generics.GenericAPIView.get_serializer_class": "https://www.django-rest-framework.org/api-guide/generic-views/#get_serializer_classself",
+            "rest_framework.generics.GenericAPIView.lookup_field": "https://www.django-rest-framework.org/api-guide/generic-views/#attributes",
+            "rest_framework.generics.GenericAPIView.serializer_class": "https://www.django-rest-framework.org/api-guide/generic-views/#attributes",
+            "rest_framework.permissions.AllowAny": "https://www.django-rest-framework.org/api-guide/permissions/#allowany",
+            "rest_framework.relations.PrimaryKeyRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#primarykeyrelatedfield",
+            "rest_framework.relations.SlugRelatedField": "https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield",
+            "rest_framework.serializers.BaseSerializer.to_internal_value": "https://www.django-rest-framework.org/api-guide/serializers/#to_internal_valueself-data",
+            "rest_framework.serializers.BaseSerializer.to_representation": "https://www.django-rest-framework.org/api-guide/serializers/#to_representationself-instance",
+            "rest_framework.serializers.ListSerializer": "https://www.django-rest-framework.org/api-guide/serializers/#listserializer",
+            "rest_framework.serializers.ModelSerializer": "https://www.django-rest-framework.org/api-guide/serializers/#modelserializer",
+            "rest_framework.viewsets.ModelViewSet": "https://www.django-rest-framework.org/api-guide/viewsets/#modelviewset",
+            "rest_framework.viewsets.ReadOnlyModelViewSet": "https://www.django-rest-framework.org/api-guide/viewsets/#readonlymodelviewset"
+        }
+    },
+    "drf-flex-fields": {
+        "title": "drf-flex-fields",
+        "links": {
+            "rest_flex_fields.FlexFieldsSerializerMixin": "https://github.com/rsinger86/drf-flex-fields#dynamic-field-expansion",
+            "rest_flex_fields.MAXIMUM_EXPANSION_DEPTH": "https://github.com/rsinger86/drf-flex-fields#customization"
+        }
+    },
+    "drf-writable-nested": {
+        "title": "drf-writable-nested",
+        "links": {
+            "drf_writable_nested.NestedCreateMixin": "https://github.com/beda-software/drf-writable-nested#drf-writable-nested",
+            "drf_writable_nested.NestedUpdateMixin": "https://github.com/beda-software/drf-writable-nested#drf-writable-nested",
+            "drf_writable_nested.UniqueFieldsMixin": "https://github.com/beda-software/drf-writable-nested#validation-problem-for-nested-serializers-with-unique-fields-on-update"
+        }
+    },
+    "vue": {
+        "title": "Vue",
+        "links": {
+            "markRaw": "https://vuejs.org/api/reactivity-advanced.html#markraw",
+            "onActivated": "https://vuejs.org/api/composition-api-lifecycle.html#onactivated",
+            "onDeactivated": "https://vuejs.org/api/composition-api-lifecycle.html#ondeactivated",
+            "onMounted": "https://vuejs.org/api/composition-api-lifecycle.html#onmounted",
+            "shallowReadonly": "https://vuejs.org/api/reactivity-advanced.html#shallowreadonly",
+            "toRef": "https://vuejs.org/api/reactivity-utilities.html#toref"
+        }
+    },
+    "mdn": {
+        "title": "MDN",
+        "links": {
+            "AbortController": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
+            "Blob": "https://developer.mozilla.org/en-US/docs/Web/API/Blob",
+            "File": "https://developer.mozilla.org/en-US/docs/Web/API/File",
+            "FormData": "https://developer.mozilla.org/en-US/docs/Web/API/FormData",
+            "JSON": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
+            "TypeError": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError"
+        }
+    },
+    "reactive-helpers": {
+        "title": "reactive-helpers",
+        "links": {
+            "bulkDelete": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#bulkdelete",
+            "cancellableFetch": "https://reactive-helpers.arrai.dev/v25/reference/api/utils/cancellableFetch.html#cancellablefetch",
+            "defaultObjectCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/objectCrud.html#defaultobjectcrud",
+            "getListCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#getlistcrud",
+            "setListCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/listCrud.html#setlistcrud",
+            "setObjectCrud": "https://reactive-helpers.arrai.dev/v25/reference/api/config/objectCrud.html#setobjectcrud",
+            "unwrapNested": "https://reactive-helpers.arrai.dev/v25/reference/api/utils/unwrapNested.html#unwrapnested"
+        }
+    }
+}

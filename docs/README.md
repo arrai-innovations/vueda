@@ -16,9 +16,12 @@ Use this guide when authoring pages under `docs/`.
   - [Diátaxis Types](#diátaxis-types)
   - [Topic Owners](#topic-owners)
   - [Generated API docs](#generated-api-docs)
+    - [Checking references](#checking-references)
   - [Changelog authoring](#changelog-authoring)
     - [Theming IDs](#theming-ids)
+    - [Upstream IDs](#upstream-ids)
   - [Glossary links](#glossary-links)
+  - [Link text](#link-text)
   - [Verifying VuedaDemo blocks](#verifying-vuedademo-blocks)
     - [InputOTP dependency patch](#inputotp-dependency-patch)
   - [HTML blocks inside VuedaDemo](#html-blocks-inside-vuedademo)
@@ -187,6 +190,12 @@ Examples:
 - `{@api theme-key:Card.root}` (links to a slot anchor on that page)
 - `{@api css-token:vueda-card-radius}` (links to the token anchor under its group page)
 
+### Checking references
+
+`just docs-validate` regenerates the reference pages and fails on any `{@api}` ID or `{@term}` name that does not exist. CI runs the same check, and the production site build fails on the same references.
+
+`just docs-validate-draft` reports those unknown references as warnings instead. At the end it lists each one once, with its use count and pages. It exits 0 when nothing else fails. Use it on a draft branch where a page links a symbol before the generator produces its ID. The list shows which generator gaps to close before the branch can merge. The dev server (`just docs-serve`) shows an unknown reference as its raw text.
+
 ## Changelog authoring
 
 Public changelog pages live under `docs/reference/changelog/`. Use the ignored
@@ -207,6 +216,27 @@ grep -nR "^member_ids" docs/reference/theming/
 
 Theme-key IDs are `theme-key:<Component>` for the component as a whole and `theme-key:<Component>.<slot>` for individual slots. CSS-token IDs are `css-token:<name>`, where `<name>` is the custom property without the leading `--`. Page-level IDs (used as link targets for `[…](…)` rather than `{@api …}`) follow `theming:keys`, `theming:keys:family:<family-slug>`, `theming:keys:<Component>`, `theming:tokens`, and `theming:tokens:<group-slug>`.
 
+### Upstream IDs
+
+Link a name from another project's documentation with `{@api ext:<package>:<name>}`, the same way as a VUEDA name:
+
+- `{@api ext:django:django.db.models.GeneratedField}`
+- `{@api ext:django:setting:DEFAULT_AUTO_FIELD}`
+- `{@api ext:drf:rest_framework.fields.SerializerMethodField}`
+- `{@api ext:mdn:AbortController}`
+
+The link text is the package and the name ("Django: GeneratedField"), and the link opens the upstream page. A labeled link shows the label and keeps the package and name as its hover title.
+
+`docs-tooling/external-docs.json` lists the packages. Most Python packages publish a Sphinx inventory, and `just docs-extract` downloads it for the version installed in the docs environment, the same version the API reference documents. A package that environment lacks falls back to the version `uv.lock` pins. Every Python object in it becomes `ext:<package>:<import path>`, and every Django setting becomes `ext:django:setting:<NAME>`. Use the path the upstream docs use, which is usually the public import path (`django.db.models.Manager`, not `django.db.models.manager.Manager`). To find a name, search the extracted ids:
+
+```bash
+grep -o '"ext:django:[^"]*Manager[^"]*"' docs-tooling/.generated/external-ids.json
+```
+
+DRF, Vue, MDN, reactive-helpers, drf-flex-fields, and drf-writable-nested publish no inventory, so `external-docs.json` lists their links by hand. To link a new name from one of them, add an entry under that package's `links`. The extract step fetches each listed page and fails when the page or its anchor is gone.
+
+Extraction keeps a copy of every download in `docs-tooling/.cache/external/` and uses it when the network is unavailable. To work offline, run `./bin/docs-tooling.js extract --target external` (or `just docs-extract`) once while online. An upstream page that answers with an error status still fails extraction, cached copy or not.
+
 ## Glossary links
 
 Link glossary terms from authored docs with `{@term ...}`.
@@ -221,6 +251,15 @@ Examples:
 
 - `{@term CRUDL}`
 - `{@term Model Info}`
+
+## Link text
+
+An `{@api ...}` link shows the target page's title, and a `{@term ...}` link shows the glossary heading. To show other text, put a label in square brackets directly before the reference, with no space between them:
+
+- `[queue items]{@term Queue Item (VDQ)}`
+- ``[`AbstractEmailQueueItem`]{@api py:class:vueda.vdq.models.AbstractEmailQueueItem}``
+
+The label is inline Markdown, so wrap a code identifier in backticks. The reference still picks the target, and the validator checks it the same way. The form works inside table cells, because it holds no `|`.
 
 ## Verifying VuedaDemo blocks
 
