@@ -10,13 +10,18 @@ import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
  * Resolve a column-component override reference into a usable component.
  *
  * Accepts the same forms as the form override chain: a component, a
- * `() => component` loader, or a string key into `availableColumns`. Unknown
- * string keys resolve to `undefined` so the caller can fall through.
+ * `() => component` function (called for its component, which keeps the
+ * component out of reactive state), or a string key into `availableColumns`.
+ * An unknown string key, or a function that returns nothing, resolves to
+ * `undefined`.
  *
- * @param {string | import('vue').Component | (()=>Promise<import('vue').Component>)} reference - The override reference.
- * @returns {import('vue').Component | (()=>Promise<import('vue').Component>) | undefined} The resolved component, or undefined.
+ * @param {string | import('vue').Component | (() => import('vue').Component)} reference - The override reference.
+ * @returns {import('vue').Component | undefined} The resolved component, or undefined.
  */
 function resolveComponentReference(reference) {
+    if (typeof reference === "function") {
+        return reference() || undefined;
+    }
     if (typeof reference === "string") {
         return availableColumns[reference];
     }
@@ -24,11 +29,34 @@ function resolveComponentReference(reference) {
 }
 
 /**
+ * Resolve an integrator's column override, throwing when it names nothing.
+ *
+ * @param {string | import('vue').Component | (() => import('vue').Component)} override - The override reference.
+ * @param {string} name - The column's field name, for the error message.
+ * @returns {import('vue').Component} The resolved component.
+ * @throws {Error} When a string names no `availableColumns` entry, or a function returns nothing.
+ */
+function resolveColumnOverride(override, name) {
+    const resolved = resolveComponentReference(override);
+    if (resolved) {
+        return resolved;
+    }
+    if (typeof override === "string") {
+        throw new Error(`No column component named "${override}" for column "${name}"`);
+    }
+    throw new Error(`No column component returned by the function configured for column "${name}"`);
+}
+
+/**
  * Resolve the adapter component for a single column, highest precedence first:
  * 1. `propComponents[name]` - the `columnComponents` prop on `<ViewList>`.
  * 2. `configComponents[name]` - `modelConfig.config.columnComponents`.
  * 3. type default from `columnMappings`.
- * 4. `ColumnText` fallback.
+ * 4. `ColumnText` fallback, for a type with no mapping entry.
+ *
+ * The prop entry is picked before the config entry is considered, as in the
+ * form override chain. An override that names no component throws, so a
+ * misconfigured column is reported instead of rendering a default.
  *
  * The consumer `#field(<col>)` slot (highest precedence overall) is handled in
  * the ViewList template, not here.
@@ -36,16 +64,14 @@ function resolveComponentReference(reference) {
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The column's field descriptor (carries `name`, `typeSerializer`, `typeModel`).
  * @param {{[name:string]: any}} [propComponents] - Inline component overrides by field name.
  * @param {{[name:string]: any}} [configComponents] - Model-config component overrides by field name.
- * @returns {import('vue').Component | (()=>Promise<import('vue').Component>)} The resolved adapter component.
+ * @returns {import('vue').Component} The resolved adapter component.
+ * @throws {Error} When the picked override, or the type mapping's `column`, names no component.
  */
 export function resolveColumnComponent(field, propComponents, configComponents) {
     const name = field?.name;
-    const override = propComponents?.[name] ?? configComponents?.[name];
+    const override = propComponents?.[name] || configComponents?.[name];
     if (override) {
-        const resolved = resolveComponentReference(override);
-        if (resolved) {
-            return resolved;
-        }
+        return resolveColumnOverride(override, name);
     }
     const mapping = getTypeMapping(columnMappings, field);
     if (mapping?.column) {
@@ -53,6 +79,10 @@ export function resolveColumnComponent(field, propComponents, configComponents) 
         if (resolved) {
             return resolved;
         }
+        if (typeof mapping.column === "string") {
+            throw new Error(`No column component named "${mapping.column}" in the type mapping for column "${name}"`);
+        }
+        throw new Error(`No column component returned by the type mapping's function for column "${name}"`);
     }
     return availableColumns.ColumnText;
 }
@@ -78,8 +108,9 @@ export function resolveColumnProps(field, propProps, configProps) {
 
 /**
  * @typedef {object} ResolvedColumn
- * @property {import('vue').Component | (()=>Promise<import('vue').Component>)} component - The adapter component to render.
+ * @property {import('vue').Component|null} component - The adapter component to render, or `null` when the column's override failed to resolve.
  * @property {object} props - The props to forward to the adapter (in addition to the grid cell's value-slot props).
+ * @property {Error} [error] - Why the column's override failed to resolve. The column renders no cells.
  */
 
 /**
@@ -104,8 +135,16 @@ export function resolveColumns({ fields, propComponents, propProps, configCompon
         if (!field?.name) {
             continue;
         }
+        // A column that cannot resolve reports itself and leaves the other columns alone.
+        let component;
+        try {
+            component = resolveColumnComponent(field, propComponents, configComponents);
+        } catch (error) {
+            result[field.name] = { component: null, props: {}, error };
+            continue;
+        }
         result[field.name] = {
-            component: resolveColumnComponent(field, propComponents, configComponents),
+            component,
             props: resolveColumnProps(field, propProps, configProps),
         };
     }

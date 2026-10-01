@@ -63,7 +63,7 @@ Pair `readyToDryRun` with a `dry-run-target` identity: a string that changes whe
 
 2. **`config.actionRedirects[action]`**: if the model config defines a redirect for the specific action name, that redirect is used. This enables per-action redirect customization.
 
-3. **`config.actionRedirects.default`**: if the model config defines a default redirect, it applies to all actions without specific overrides.
+3. **`config.actionRedirects.default`**: if the model config defines a default redirect, it applies to all actions without specific overrides. One exception: a successful `destroy` with no `destroy` entry goes to the `list` view, since the deleted row has no detail view to open.
 
 4. **Computed default**: when no configured redirect applies, the form computes a target. Bulk actions (or explicit `"list"` redirect values) route to the model's `list` view. Non-bulk actions route to the `detail` view with the selected object's PK.
 

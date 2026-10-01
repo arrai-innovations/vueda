@@ -52,7 +52,7 @@ describe("lib/use/useDetailView.js", () => {
         formInitialValue = reactive({});
 
         mockModelConfig = reactive({
-            info: { pk: "id", verbose_name: "widget" },
+            info: { pk: "id", verboseName: "widget" },
             config: {
                 fetchFields: ["id", "name"],
                 verboseName: "widget",

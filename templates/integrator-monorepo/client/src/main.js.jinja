@@ -2,58 +2,25 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-import {
-    faCaretDown,
-    faCaretUp,
-    faCheck,
-    faChevronLeft,
-    faChevronRight,
-    faCircle,
-    faCircleInfo,
-    faDownload,
-    faEllipsis,
-    faGripVertical,
-    faMinus,
-    faPlus,
-    faTriangleExclamation,
-    faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { setIcons } from "@vueda/use/useIcons.js";
-import { setTheme } from "@vueda/use/useTheme.js";
+// Register all defaults before applying project patches. For per-component
+// loading, omit this import; components register defaults when their modules load.
+// Project patches must still run after the defaults they customize have loaded.
+// Keep the base.css import in your stylesheet with either loading path.
+import "@vueda/theme/vueda-tailwind/index.js";
+import { installFontAwesomeFreeIcons } from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
+import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
+import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { getRouter } from "./router/index.js";
 import TheApp from "./TheApp.vue";
 
 faConfig.autoAddCss = false;
 
-// Register the built-in vueda-tailwind theme up front (the global-eager path).
-// Two leaner paths exist: import only the families you use
-// (e.g. import "@vueda/theme/vueda-tailwind/controls/index.js";), or drop this
-// call entirely and let each component register its own theme as it renders
-// (the fully-lazy path). Keep the base.css import in your stylesheet either way.
-setTheme(vuedaTailwind);
-setIcons({
-    Checkbox: {
-        check: { component: FontAwesomeIcon, props: { icon: faCheck } },
-        indeterminate: { component: FontAwesomeIcon, props: { icon: faMinus } },
-    },
-    Default: {
-        caretDown: { component: FontAwesomeIcon, props: { icon: faCaretDown } },
-        caretUp: { component: FontAwesomeIcon, props: { icon: faCaretUp } },
-        check: { component: FontAwesomeIcon, props: { icon: faCheck } },
-        chevronLeft: { component: FontAwesomeIcon, props: { icon: faChevronLeft } },
-        chevronRight: { component: FontAwesomeIcon, props: { icon: faChevronRight } },
-        circle: { component: FontAwesomeIcon, props: { icon: faCircle } },
-        close: { component: FontAwesomeIcon, props: { icon: faXmark } },
-        download: { component: FontAwesomeIcon, props: { icon: faDownload } },
-        ellipsis: { component: FontAwesomeIcon, props: { icon: faEllipsis } },
-        gripVertical: { component: FontAwesomeIcon, props: { icon: faGripVertical } },
-        info: { component: FontAwesomeIcon, props: { icon: faCircleInfo } },
-        plus: { component: FontAwesomeIcon, props: { icon: faPlus } },
-        triangleExclamation: { component: FontAwesomeIcon, props: { icon: faTriangleExclamation } },
-    },
-});
+installFontAwesomeFreeIcons();
+
+// Lists, reads, and saves go through these adapters; without them every
+// data request rejects with "Crud method ... is not implemented."
+setupDefaultListCrud();
+setupDefaultObjectCrud();
 
 const app = createApp(TheApp);
 const pinia = createPinia();

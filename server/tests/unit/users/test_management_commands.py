@@ -4,6 +4,8 @@ import os
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db.migrations.recorder import MigrationRecorder
@@ -13,6 +15,7 @@ from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import clear_info_registry_before_test
 from tests.utils import find_one_migration_generated_today_or_fail
+from vueda.user.management.commands.makegroupmigrations import migrate_step
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
@@ -82,9 +85,11 @@ class BaseAddedGroup:
         if not succeeded:
             pytest.fail("".join(results))
 
-        assert not Group.objects.filter(name="GroupAddedWorkers").exists(), (
-            "'GroupAddedWorkers' still exists after rolling back."
-        )
+        # Rolling back removes the permissions and keeps the group, whose memberships a migration
+        # cannot restore.
+        group = Group.objects.filter(name="GroupAddedWorkers").first()
+        assert group is not None, "'GroupAddedWorkers' was deleted by rolling back."
+        assert not group.permissions.exists(), "'GroupAddedWorkers' kept a permission after rolling back."
 
 
 class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
@@ -299,10 +304,10 @@ class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand)
             if not succeeded:
                 pytest.fail("".join(results))
 
-            # Group should be deleted, because there are no more permissions associated to it.
-            assert not Group.objects.filter(name="GroupDeletedWorkers").exists(), (
-                "'GroupDeletedWorkers' still exists after deletion migration."
-            )
+            # A `deleted` change removes the last permission and keeps the group.
+            group = Group.objects.filter(name="GroupDeletedWorkers").first()
+            assert group is not None, "'GroupDeletedWorkers' was deleted by replaying a `deleted` change."
+            assert not group.permissions.exists(), "'GroupDeletedWorkers' kept a permission after the migration."
 
             # Run the generated migration backwards.
             succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0003")
@@ -746,3 +751,23 @@ class Migration(migrations.Migration):
         assert '("test", "0001_make_sure_permissions_exist"),' in results
         assert '("test", "0002_forwards_migrate_groups"),' in results
         assert '("test", "0003_backwards_migrate_groups"),' in results
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("change_type", ["unassociated", "deleted"])
+def test_migrate_step_removal_without_the_group_does_not_raise(change_type):
+    """Replaying a removal against a database that has no group of that name leaves nothing to do."""
+    migrate_step(
+        ContentType,
+        Group,
+        Permission,
+        "GroupThatDoesNotExist",
+        "",
+        change_type,
+        "read_group",
+        "auth",
+        "group",
+        "Can read group",
+    )
+
+    assert not Group.objects.filter(name="GroupThatDoesNotExist").exists()

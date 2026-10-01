@@ -1,0 +1,3 @@
+- **Static filter choices match the filter-choices endpoint (`model_filtering`)**:
+    - `model_filtering` reported a declared-choice filter's values as given, so integer values stayed integers, and included the form placeholder (`---------`, or `Unknown` for a yes/no filter) with an empty value. The filter-choices endpoint already sends string values and no empty option, and a filter chip for a multiple-choice filter showed "unknown" for integer values. Both now send string values with no empty option.
+      _If your code reads `model_filtering` choices and uses the empty entry, treat an absent query parameter as "no filter" instead._

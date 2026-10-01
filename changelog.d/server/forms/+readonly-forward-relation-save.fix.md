@@ -1,0 +1,2 @@
+- **A read-only nested serializer on a forward relation no longer breaks saves (`VuedaReadonlySerializer`)**:
+    - A serializer that used a `VuedaReadonlySerializer` on a forward foreign key or one-to-one, declared as a field or reached through `e`, failed every create and update with a 500, even when the body left the relation out. The save now skips the relation: any value the body sends for it is discarded, and the stored foreign key does not change. A related object passed to `save()` is still stored.

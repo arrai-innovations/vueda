@@ -66,6 +66,19 @@ describe("lib/use/useAuthFlow.js", () => {
             expect(await redirectTo()).toBe(false);
         });
 
+        scopedIt("pushes the redirect option when no returnPath in query", async () => {
+            const { redirectTo } = useAuthFlow({ formProps: {}, redirect: "/done" });
+            expect(await redirectTo()).toBe(true);
+            expect(routerPush).toHaveBeenCalledWith("/done");
+        });
+
+        scopedIt("prefers returnPath over the redirect option", async () => {
+            routeQuery = { returnPath: "/back" };
+            const { redirectTo } = useAuthFlow({ formProps: {}, redirect: "/done" });
+            expect(await redirectTo()).toBe(true);
+            expect(routerPush).toHaveBeenCalledWith("/back");
+        });
+
         scopedIt("resolves false without navigating when no returnPath in query", async () => {
             const { redirectTo } = useAuthFlow({ formProps: {} });
             expect(await redirectTo()).toBe(false);

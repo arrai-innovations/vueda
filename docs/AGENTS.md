@@ -12,10 +12,16 @@ Use frontmatter fields consistently:
 - `audience`: `integrator`, `designer`, or `contributor`.
 - `type`: `tutorial`, `explanation`, `how-to`, `reference`, `plan`, or `index`.
 
+## Topic Owners
+
+Before explaining a contract, check "Topic Owners" in `README.md`. If another
+page owns it, state the fact you rely on in one sentence and link the owner.
+Add a row there when you introduce a contract no row covers.
+
 ## Generated API Docs
 
 Generated API references live under `docs/reference/api/` and
-`docs/reference/theming/`. Do not edit generated pages directly. Fix errors in
+`docs/reference/theming/`, and `docs/reference/configuration.md`. Do not edit generated pages directly. Fix errors in
 source code, annotations, or docs-tooling renderers.
 
 When editing source annotations that feed generated docs, consult the relevant
@@ -45,6 +51,10 @@ shared authoring convention.
 Link glossary terms with `{@term ...}`. Ensure the term exists as a `##`
 heading in `docs/reference/glossary.md`, and keep spelling aligned with that
 heading.
+
+To change the text of an `{@api ...}` or `{@term ...}` link, put a bracketed
+label directly before the reference, as in
+`[queue items]{@term Queue Item (VDQ)}`. See "Link text" in `README.md`.
 
 ## VuedaDemo Blocks
 

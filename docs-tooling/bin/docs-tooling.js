@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
+import { ExternalDocsExtractor } from "../js/extractors/external-docs.js";
 import { JavaScriptExtractor } from "../js/extractors/javascript.js";
 import { ThemeKeysExtractor, extractThemeKeysPayload } from "../js/extractors/theme-keys.js";
+import { ConfigurationNormalizer } from "../js/normalizers/configuration.js";
 import { CssTokensNormalizer } from "../js/normalizers/css-tokens.js";
 import { OpenApiNormalizer } from "../js/normalizers/openapi.js";
 import { PdocNormalizer } from "../js/normalizers/pdoc.js";
 import { ThemeKeysNormalizer } from "../js/normalizers/theme-keys.js";
 import { TypeDocNormalizer } from "../js/normalizers/typedoc.js";
 import { VueDocgenNormalizer } from "../js/normalizers/vue-docgen-api.js";
+import { renderConfigurationBundle } from "../js/renderers/configuration.js";
 import { renderCssTokensBundle } from "../js/renderers/css-tokens.js";
 import { renderOpenApiBundle } from "../js/renderers/openapi.js";
 import { renderPdocBundle } from "../js/renderers/pdoc.js";
@@ -16,8 +19,9 @@ import { renderThemeKeysBundle } from "../js/renderers/theme-keys.js";
 import { renderTypeDocBundle } from "../js/renderers/typedoc.js";
 import { renderVueDocgenBundle } from "../js/renderers/vue-docgen.js";
 import { bucketRendererOutputs } from "../js/utils/bucket-renderer-outputs.js";
+import { syncRenderedFiles } from "../js/utils/sync-rendered-files.js";
 import { validateClientSymbols } from "../js/validators/client-symbols.js";
-import { validateReferences } from "../js/validators/references.js";
+import { summarizeUnknownReferences, validateReferences } from "../js/validators/references.js";
 import { filterDiagnosticsByFiles, formatDiagnostic, validateThemeKeysPayload } from "../js/validators/sources.js";
 import { execFile } from "node:child_process";
 import fs from "node:fs";
@@ -46,6 +50,21 @@ async function extractPython(outDir) {
             cwd: path.join(repoRoot, "server"),
             env: { ...process.env, DJANGO_SETTINGS_MODULE: "doc_settings" },
         },
+    );
+}
+
+async function extractConfiguration(outDir) {
+    await execFileAsync(
+        "uv",
+        [
+            "run",
+            "--no-sync",
+            "python",
+            path.join(repoRoot, "docs-tooling", "py", "dump_configuration.py"),
+            "--output",
+            path.join(outDir, "configuration.json"),
+        ],
+        { cwd: repoRoot },
     );
 }
 
@@ -87,6 +106,11 @@ async function extractCssTokens(outDir) {
     await extractor.extract({ outputPath: path.join(outDir, "css-tokens.json") });
 }
 
+async function extractExternalDocs(outDir) {
+    const extractor = new ExternalDocsExtractor();
+    await extractor.extract({ outputPath: path.join(outDir, "external-ids.json") });
+}
+
 async function extractThemeKeys(outDir) {
     const extractor = new ThemeKeysExtractor();
     await extractor.extract({ outputPath: path.join(outDir, "theme-keys.json") });
@@ -105,6 +129,8 @@ function expandTargets(targets) {
         set.add("components");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("external");
+        set.add("configuration");
         set.delete("all");
     }
     return Array.from(set);
@@ -119,6 +145,7 @@ function expandNormalizeTargets(targets) {
         set.add("pdoc");
         set.add("css-tokens");
         set.add("theme-keys");
+        set.add("configuration");
         set.delete("all");
     }
     return Array.from(set);
@@ -130,6 +157,9 @@ async function runExtract(argv) {
 
     for (const target of targets) {
         switch (target) {
+            case "configuration":
+                await extractConfiguration(outDir);
+                break;
             case "python":
                 await extractPython(outDir);
                 break;
@@ -148,6 +178,9 @@ async function runExtract(argv) {
             case "theme-keys":
                 await extractThemeKeys(outDir);
                 break;
+            case "external":
+                await extractExternalDocs(outDir);
+                break;
             default:
                 throw new Error(`Unknown target: ${target}`);
         }
@@ -156,6 +189,10 @@ async function runExtract(argv) {
 
 async function runNormalize(argv) {
     const defaults = {
+        configuration: {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "configuration.json"),
+            output: path.join(repoRoot, "docs-tooling", ".generated", "configuration.canonical.json"),
+        },
         typedoc: {
             input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.json"),
             output: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
@@ -191,6 +228,9 @@ async function runNormalize(argv) {
     for (const source of requestedSources) {
         let normalizer;
         switch (source) {
+            case "configuration":
+                normalizer = new ConfigurationNormalizer();
+                break;
             case "typedoc":
                 normalizer = new TypeDocNormalizer();
                 break;
@@ -221,15 +261,6 @@ async function runNormalize(argv) {
         const normalized = normalizer.normalize(payload);
         await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
         await fs.promises.writeFile(outputPath, JSON.stringify(normalized, null, 2));
-    }
-}
-
-async function writeRenderedFiles(outputDir, outputs) {
-    await fs.promises.mkdir(outputDir, { recursive: true });
-    for (const [filename, contents] of outputs.entries()) {
-        const target = path.join(outputDir, filename);
-        await fs.promises.mkdir(path.dirname(target), { recursive: true });
-        await fs.promises.writeFile(target, contents);
     }
 }
 
@@ -332,6 +363,10 @@ function addIndexPages(outputs) {
 
 async function runRender(argv) {
     const defaults = {
+        configuration: {
+            input: path.join(repoRoot, "docs-tooling", ".generated", "configuration.canonical.json"),
+            output: path.join(repoRoot, "docs", "reference"),
+        },
         typedoc: {
             input: path.join(repoRoot, "docs-tooling", ".generated", "typedoc.canonical.json"),
             output: path.join(repoRoot, "docs", "reference", "api"),
@@ -360,7 +395,7 @@ async function runRender(argv) {
 
     // Sources whose output should NOT have auto-generated index.md pages
     // appended (the renderer emits its own group/index pages).
-    const skipIndexFor = new Set(["css-tokens", "theme-keys"]);
+    const skipIndexFor = new Set(["css-tokens", "theme-keys", "configuration"]);
 
     const requestedSources = expandNormalizeTargets(argv.source || []);
 
@@ -410,6 +445,9 @@ async function runRender(argv) {
         let renderer;
         let rendererOptions;
         switch (source) {
+            case "configuration":
+                renderer = renderConfigurationBundle;
+                break;
             case "typedoc":
                 renderer = renderTypeDocBundle;
                 break;
@@ -448,8 +486,24 @@ async function runRender(argv) {
         if (!skipIndexDirs.has(dir)) {
             addIndexPages(outputs);
         }
-        await writeRenderedFiles(dir, outputs);
     }
+
+    // Only a full render to the default locations knows every page that should exist, so only it
+    // removes stale pages. A partial or redirected render must not delete another source's pages.
+    const fullDefaultRender = requestedSources.length === Object.keys(defaults).length && !argv.output;
+    const reference = path.join(repoRoot, "docs", "reference");
+    const pruneRoots = fullDefaultRender
+        ? [
+              path.join(reference, "api"),
+              path.join(reference, "configuration.md"),
+              path.join(reference, "theming", "tokens"),
+              path.join(reference, "theming", "tokens.md"),
+              path.join(reference, "theming", "keys"),
+              path.join(reference, "theming", "keys.md"),
+          ]
+        : [];
+    const { written, unchanged, removed } = await syncRenderedFiles(combinedByDir, { pruneRoots });
+    console.log(`Rendered reference pages: ${written} written, ${unchanged} unchanged, ${removed} removed.`);
 }
 
 // Mirror VitePress srcExclude (docs/.vitepress/config.mjs): everything under
@@ -503,7 +557,14 @@ async function runValidate(argv) {
         return;
     }
 
-    const { errors, apiIndexSize, glossaryIndexSize } = validateReferences({ files, apiRoots, glossaryFile });
+    const externalIdsFile = path.join(repoRoot, "docs-tooling", ".generated", "external-ids.json");
+    const { errors, warnings, apiIndexSize, glossaryIndexSize } = validateReferences({
+        files,
+        apiRoots,
+        glossaryFile,
+        externalIdsFile,
+        warnUnknown: argv.warnUnknown,
+    });
 
     const clientLibDir = path.join(repoRoot, "client", "lib");
     const symbols = validateClientSymbols({ files, clientLibDir });
@@ -516,10 +577,27 @@ async function runValidate(argv) {
         `Checked ${symbols.checkedFiles} authored file(s) against ${symbols.componentCount} client components`,
     );
 
+    const relative = (file) => path.relative(process.cwd(), file).split(path.sep).join("/");
+
+    if (warnings.length > 0) {
+        for (const warning of warnings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
+            console.log(`${relative(warning.file)}:${warning.line}: warning: ${warning.message}`);
+        }
+        const summary = summarizeUnknownReferences(warnings);
+        console.log("");
+        console.log(`Unknown references: ${summary.length} distinct, ${warnings.length} use(s)`);
+        for (const entry of summary) {
+            const label = entry.type === "api" ? "API id" : "glossary term";
+            console.log(`  ${label} "${entry.value}": ${entry.count} use(s)`);
+            for (const file of entry.files) {
+                console.log(`    ${relative(file)}`);
+            }
+        }
+    }
+
     if (errors.length > 0) {
         for (const error of errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)) {
-            const rel = path.relative(process.cwd(), error.file).split(path.sep).join("/");
-            console.log(`${rel}:${error.line}: ${error.message}`);
+            console.log(`${relative(error.file)}:${error.line}: ${error.message}`);
         }
         process.exit(1);
     }
@@ -564,7 +642,17 @@ yargs(hideBin(process.argv))
                 .option("target", {
                     alias: "t",
                     array: true,
-                    choices: ["all", "python", "rest", "javascript", "components", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "python",
+                        "rest",
+                        "javascript",
+                        "components",
+                        "css-tokens",
+                        "theme-keys",
+                        "external",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which extractors to run",
                 })
@@ -583,7 +671,16 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "typedoc",
+                        "vue-docgen",
+                        "openapi",
+                        "pdoc",
+                        "css-tokens",
+                        "theme-keys",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which source format to normalize",
                 })
@@ -607,7 +704,16 @@ yargs(hideBin(process.argv))
                 .option("source", {
                     alias: "s",
                     array: true,
-                    choices: ["all", "typedoc", "vue-docgen", "openapi", "pdoc", "css-tokens", "theme-keys"],
+                    choices: [
+                        "all",
+                        "typedoc",
+                        "vue-docgen",
+                        "openapi",
+                        "pdoc",
+                        "css-tokens",
+                        "theme-keys",
+                        "configuration",
+                    ],
                     default: ["all"],
                     describe: "Which source format to render",
                 })
@@ -639,12 +745,19 @@ yargs(hideBin(process.argv))
         "validate",
         "Validate {@api} and {@term} references in documentation",
         (y) =>
-            y.option("files", {
-                alias: "f",
-                array: true,
-                type: "string",
-                describe: "Specific files to validate (default: all authored docs)",
-            }),
+            y
+                .option("files", {
+                    alias: "f",
+                    array: true,
+                    type: "string",
+                    describe: "Specific files to validate (default: all authored docs)",
+                })
+                .option("warn-unknown", {
+                    type: "boolean",
+                    default: false,
+                    describe:
+                        "Report unknown API ids and glossary terms as warnings with a summary, and exit 0 when nothing else fails",
+                }),
         runValidate,
     )
     .demandCommand(1)

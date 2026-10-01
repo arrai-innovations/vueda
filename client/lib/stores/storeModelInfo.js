@@ -34,6 +34,12 @@ const modelInfoUrl = ({ app, model }) =>
     `${httpOrHttpsHostname}${getUrl("infoModelInfo")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
 
 /**
+ * @param {string} key
+ * @returns {string}
+ */
+const camelCaseKey = (key) => key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+
+/**
  * A function to convert snake_case properties deeply on an object to be camelCase.
  *
  * @param {unknown} obj - The value to convert.
@@ -55,8 +61,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
                 return [k, v];
             }
 
-            const newKey = k.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-            return [newKey, camelCaseObject(v, skipKeys)];
+            return [camelCaseKey(k), camelCaseObject(v, skipKeys)];
         }),
     );
 };
@@ -242,7 +247,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} model - The Python model class name in lowercase (e.g., "user").
  * @property {string} verboseName - The human-readable, singular name of the model.
  * @property {string} verboseNamePlural - The human-readable, plural name of the model.
- * @property {boolean} workflow_enabled - Whether the model enables workflow on the server. The workflow store
+ * @property {boolean} workflowEnabled - Whether the model enables workflow on the server. The workflow store
  *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
  *  still decide what the user may see and do.
  * @property {string} pk - The primary key field of the model.
@@ -273,17 +278,29 @@ const camelCaseObject = (obj, skipKeys = []) => {
 
 /**
  * A store for model information.
- *
- * @returns {import('pinia').Store<{
- *     infos: {[key: string]: ModelInfo},
- *     promises: {[key: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>},
- *     fetchModelInfo: FetchModelInfo
- * }>}
  */
 export const storeModelInfo = defineStore("modelInfo", {
     state: () => ({
+        /**
+         * Fetched model info, keyed by app and model dot name. Field names and filter names keep the
+         * server's spelling; all other keys are camelCase.
+         *
+         * @type {{[appModelDotName: string]: ModelInfo}}
+         */
         infos: {},
+        /**
+         * The in-flight `fetchModelInfo` requests, keyed by app and model dot name. A request removes
+         * its entry when it settles.
+         *
+         * @type {{[appModelDotName: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>}}
+         */
         promises: {},
+        /**
+         * The error from each failed `fetchModelInfo` request, keyed by app and model dot name. Later
+         * calls for that model reject with this error instead of asking the server again.
+         *
+         * @type {{[appModelDotName: string]: Error}}
+         */
         errors: {},
         /**
          * Incremented by `clearAuthScoped`. Fetches capture it before issuing and discard their
@@ -310,6 +327,22 @@ export const storeModelInfo = defineStore("modelInfo", {
             trimReactiveObject(this.errors, {});
             trimReactiveObject(this.promises, {});
         },
+        /**
+         * Fetches the model info for an app and model, and caches it in `infos`.
+         *
+         * A cached result resolves at once, and a cached error rejects at once. A request already in
+         * flight for the same model is shared. The response keys are converted to camelCase, and `pk`
+         * is set to the name of the primary key field.
+         *
+         * @param {object} args - The model to fetch info for.
+         * @param {string} args.app - Django app label.
+         * @param {string} args.model - Model name.
+         * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise for
+         *  the model info. It rejects with `ModelInfoError` when the request fails, and with
+         *  `AuthScopeInvalidatedError` if the authenticated user changes while it is in flight. It rejects
+         *  with a plain `Error` when `app` or `model` is missing or when the response has no primary
+         *  key field.
+         */
         fetchModelInfo(args) {
             if (!args.app || !args.model) {
                 return Promise.reject(new Error("storeModelInfo.fetchModelInfo: app and model must be provided"));
@@ -378,13 +411,9 @@ export const storeModelInfo = defineStore("modelInfo", {
                                 if (key === "expands") {
                                     key = "expand";
                                 }
-                                // The only multi-word section name; every other root key is one word,
-                                // so this is the one place the camelCasing below would otherwise have
-                                // to reach a key rather than a value.
-                                if (key === "column_totals") {
-                                    key = "columnTotals";
-                                }
-                                // Only camelCase nested objects, leave root keys unchanged
+                                key = camelCaseKey(key);
+                                // `fields` and `filtering` map field names (server lookup keys) to
+                                // descriptors: keep the field names and camelCase each descriptor.
                                 if (key === "fields" || key === "filtering") {
                                     return [
                                         key,

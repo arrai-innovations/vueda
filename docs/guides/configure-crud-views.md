@@ -5,6 +5,12 @@ audience: integrator
 status: draft
 ---
 
+<script setup>
+import { orderScenario } from "../.vitepress/theme/fixtures/showcaseOrder.js";
+
+const order = orderScenario();
+</script>
+
 # Configure `list`/`read`/`create`/`update` Views
 
 This guide covers how to customize {@term CRUDL} view behaviour through model config overrides without forking core components. Every override described here builds on the defaults that {@api js:function:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig} derives from {@term Model Info}; the goal is to adjust only where the baseline does not meet your needs.
@@ -107,7 +113,68 @@ Each view consumes a different subset of the config's field properties. Aligning
 
 **`ViewCreate`** and **`ViewUpdate`** render the fields in `displayFields` by default. Explicit `FormModel` field props can override that selection. `fieldDetails` supplies labels, types, required flags, and validation constraints. Create also uses `displayFields` to derive initial form values.
 
-`submitFields` controls the `f` query parameter on create and update requests, selecting fields in the save response. Both views add the PK to that selection. It does not filter the request body: submission sends the form's values, excluding fields marked ignored. Changing only `submitFields` therefore neither hides a form field nor prevents its value from being sent. The server still validates writes against the serializer's writable fields.
+Each save request draws on three separate field lists:
+
+- `displayFields` selects the fields the form renders.
+- `submitFields` selects the values sent in the request body. A form value that `submitFields` omits stays out of the body, even when the form displays or fetched it.
+- `fetchFields` selects the fields the server returns, through the `f` query parameter. `ViewUpdate` uses it for retrieval and for the save response. `ViewCreate` uses it for the save response. Both views add the PK.
+
+A top-level `submitFields` name such as `lines` sends that field's whole value, including nested inline rows. A dotted path such as `address.city` sends only that nested value.
+
+An order form can render and submit `quantity` while a custom summary reads the server-calculated `unit_price` and `total`:
+
+```js
+storeModelConfig().setConfig(
+    { app: "shop", model: "order" },
+    {
+        displayFields: ["quantity"],
+        fetchFields: ["quantity", "unit_price", "total"],
+        submitFields: ["quantity"],
+    },
+);
+```
+
+The save response is available as `objectForm.state.object`. `ViewUpdate` also retrieves the object again after each save. The summary therefore sees fresh values after every save, and neither `unit_price` nor `total` joins the next request body.
+
+The demo below runs that configuration against an offline server. Change the quantity and submit, then compare the request log with the summary.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">view update · submit, display, and fetch fields · live ViewUpdate</header>
+  <ModelDemo
+    :view="() => import('../.vitepress/theme/components/DemoOrderUpdate.vue')"
+    :app="order.app"
+    :model="order.model"
+    pk="1"
+    action="update"
+    :seed="order.seed"
+    :api="order.api"
+    page-title
+  />
+  <section class="flex flex-col gap-1 text-xs" data-qa="order-request-log">
+    <h4 class="font-semibold uppercase tracking-wide text-muted-foreground">Requests</h4>
+    <p v-if="!order.requests.length" class="text-muted-foreground">No requests yet.</p>
+    <ol v-else class="flex flex-col gap-1">
+      <li v-for="(request, index) in order.requests" :key="index" class="font-mono">{{ request.method }} f={{ request.fields }}<template v-if="request.body"> body={{ JSON.stringify(request.body) }}</template></li>
+    </ol>
+  </section>
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>form: <code>displayFields</code> renders only <code>quantity</code></span>
+    <span>summary: an <code>after-fields</code> slot reads <code>unit_price</code> and <code>total</code> from the form context, which holds every fetched field</span>
+    <span>save: the <code>PUT</code> body carries only <code>submitFields</code>, and its <code>f</code> requests <code>fetchFields</code>, so the response includes the recalculated total</span>
+    <span>after the save, the view retrieves the order again and the summary shows the stored values</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+Each list resolves in this order, and an omitted or empty list at any level falls through to the next:
+
+1. The view's `submitFields` or `fetchFields` prop.
+2. The view-specific config.
+3. The model-wide config, or its `fields` shorthand.
+4. The defaults derived from model info.
+
+Fields marked ignored stay out of the body even when `submitFields` names them. `submitFields` only narrows what the client sends. The server still validates each write against the serializer's writable fields and the user's permissions.
 
 When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
 
@@ -167,7 +234,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **"Action Not Found" toast on navigation.** `routeActions` is filtering the action out. Entries in `routeActions` are compared against the server action names from `model_actions` (`retrieve`, `update`, `partial_update`, `destroy`, and so on). The only client route name that differs from its server action name is `read`, which the guard normalizes to `retrieve`; every other route segment (`update`, `destroy`, etc.) already matches its server action name. Use `retrieve` rather than `read` in `routeActions`.
 
-**Create/update form rejects a field on submission.** Check the field's error message and submitted value against the server serializer's validation rules. Changing `submitFields` changes the save response's field selection; it does not remove values from the request body or bypass required-field validation.
+**Create/update form rejects a field on submission.** Check the field's error message and submitted value against the server serializer's validation rules. A required field that `submitFields` leaves out never reaches the server, so a create request fails validation for it. Add the field to `submitFields`, or give it a default on the server.
 
 **Action renders in the wrong category (detail vs. targetless).** The `actionDetails` entry for the action has incorrect `detail` or `bulk` flags. For example, setting `detail: false` on a per-object action moves it from the row-level action list to the targetless button area. Review the server's action metadata and adjust `actionDetails` overrides to match the intended classification.
 

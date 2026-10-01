@@ -6,6 +6,7 @@ from django.db.models.sql.query import Query
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
 from tests.erring import viewsets as err_viewsets
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from vueda import info
@@ -1308,7 +1309,7 @@ class TestFieldResolutionMechanics:
 
 @pytest.mark.django_db
 class TestColumnTotalsChecks:
-    """`vueda_info.E011` on the `column_totals` declarations in `tests.store.viewsets`.
+    """`vueda_info.E013` on the `column_totals` declarations in `tests.store.viewsets`.
 
     Each fixture viewset there carries a docstring saying what its declaration costs at runtime;
     what is asserted here is that the check names the viewset, the total, and the problem.
@@ -1343,7 +1344,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemListColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].obj is store_viewsets.CartItemListColumnTotalsViewSet
         assert errors[0].msg == "CartItemListColumnTotalsViewSet.column_totals is a list, not a dict."
         assert "'quantity': 'quantity'" in errors[0].hint
@@ -1355,7 +1356,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemUnresolvableColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemUnresolvableColumnTotalsViewSet.column_totals['quantity'] is 'no_such_field', but "
             "CartItem has no such field or related field."
@@ -1365,7 +1366,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemUnsummableColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemUnsummableColumnTotalsViewSet.column_totals['product_name'] is "
             "'product_option__name', which is a CharField and cannot be summed."
@@ -1375,7 +1376,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemRelationColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemRelationColumnTotalsViewSet.column_totals['product_option'] is 'product_option', "
             "which names a relation rather than a column."
@@ -1389,7 +1390,7 @@ class TestColumnTotalsChecks:
         )
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "InvoiceReverseColumnTotalsViewSet.column_totals['line_amount'] is 'invoice_lines__amount', "
             "which reaches through a relation that can match more than one row."
@@ -1401,7 +1402,7 @@ class TestColumnTotalsChecks:
         )
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "ProductManyToManyColumnTotalsViewSet.column_totals['special_care_id'] is 'special_care__id', "
             "which reaches through a relation that can match more than one row."
@@ -1422,7 +1423,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemWildcardColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemWildcardColumnTotalsViewSet.column_totals declares a total named '*', which is a wildcard value."
         )
@@ -1432,7 +1433,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemBadNameColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemBadNameColumnTotalsViewSet.column_totals declares a total named 'total,quantity', "
             "which contains a comma."
@@ -1443,7 +1444,7 @@ class TestColumnTotalsChecks:
         errors = self.column_totals_errors_for(store_viewsets.CartItemAliasUnsafeNameColumnTotalsViewSet)
 
         assert len(errors) == 1, errors
-        assert errors[0].id == "vueda_info.E011"
+        assert errors[0].id == "vueda_info.E013"
         assert errors[0].msg == (
             "CartItemAliasUnsafeNameColumnTotalsViewSet.column_totals declares a total named 'total quantity', "
             "which Django will not accept as a column alias."
@@ -1460,7 +1461,7 @@ class TestColumnTotalsChecks:
 
 
 class TestColumnTotalName:
-    """What `vueda_info.E011` makes of a `column_totals` key, per class of name.
+    """What `vueda_info.E013` makes of a `column_totals` key, per class of name.
 
     The rule is two questions, and the tests follow that split. Django answers whether the name can
     be the alias `queryset.aggregate()` is called with, and VUEDA asks that of Django rather than
@@ -1517,7 +1518,7 @@ class TestColumnTotalName:
     def test_names_django_refuses_are_errors(self):
         for name in self.DJANGO_FORBIDDEN:
             messages = self.column_total_name_errors(name)
-            assert [message.id for message in messages] == ["vueda_info.E011"], name
+            assert [message.id for message in messages] == ["vueda_info.E013"], name
             with pytest.raises(ValueError):
                 Query(None).check_alias(name)
 
@@ -1525,13 +1526,13 @@ class TestColumnTotalName:
         """Django has no objection to these, so the check has to carry them itself."""
         for name in self.OURS_ONLY:
             messages = self.column_total_name_errors(name)
-            assert [message.id for message in messages] == ["vueda_info.E011"], name
+            assert [message.id for message in messages] == ["vueda_info.E013"], name
             Query(None).check_alias(name)
 
     def test_a_non_string_name_is_an_error(self):
         messages = self.column_total_name_errors(3)
 
-        assert [message.id for message in messages] == ["vueda_info.E011"]
+        assert [message.id for message in messages] == ["vueda_info.E013"]
         assert "not a string" in messages[0].msg
 
     def test_percent_sign_follows_the_installed_django(self):
@@ -1545,7 +1546,7 @@ class TestColumnTotalName:
         ``_django_alias_problem``, and VUEDA is held to the same answer.
 
         RemovedInDjango70Warning: when Django folds the percent sign into its own blocklist the
-        error branch is the only one left, and this collapses back to asserting `vueda_info.E011`.
+        error branch is the only one left, and this collapses back to asserting `vueda_info.E013`.
         """
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -1559,7 +1560,7 @@ class TestColumnTotalName:
         messages = self.column_total_name_errors("a%b")
 
         if django_refuses:
-            assert [message.id for message in messages] == ["vueda_info.E011"]
+            assert [message.id for message in messages] == ["vueda_info.E013"]
         elif django_deprecates:
             assert [message.id for message in messages] == ["vueda_info.W002"]
             assert "percent" in messages[0].hint.lower()
@@ -1570,5 +1571,115 @@ class TestColumnTotalName:
         """Its own message, because `{name!r}` reads as nothing at all for this one."""
         messages = self.column_total_name_errors("")
 
-        assert [message.id for message in messages] == ["vueda_info.E011"]
+        assert [message.id for message in messages] == ["vueda_info.E013"]
         assert "empty name" in messages[0].msg
+
+
+class TestSearchQuerysetChecks:
+    """`vueda_info.E014` on the search querysets of the cart viewsets in `tests.store.viewsets`."""
+
+    @staticmethod
+    def check_errors(viewset):
+        from vueda.info.checks import check_search_queryset_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, viewset)
+
+        return check_search_queryset_configuration(app_configs=None)
+
+    def test_annotation_missing_from_the_default_manager_is_reported(self):
+        from django.core.checks import Error
+
+        viewset = store_viewsets.CartM2MSearchAnnotationViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.search_fields names 'customer_name', which is neither a field of Cart nor an annotation "
+                f"of Cart's default manager. {name}.search_fields reach through a multi-valued relation (a reverse "
+                "foreign key or a many-to-many), so the search matches inside a subquery built from Cart's default "
+                "manager, and a search request fails with a FieldError.",
+                hint=(
+                    f"If 'customer_name' names an annotation {name}.get_queryset() adds, define "
+                    f"{name}.get_search_queryset() returning a Cart queryset with the same annotation and no filters."
+                ),
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_annotation_missing_from_the_search_queryset_is_reported(self):
+        from django.core.checks import Error
+
+        class CartM2MSearchAnnotationEmptySearchQuerysetViewSet(store_viewsets.CartM2MSearchAnnotationViewSet):
+            def get_search_queryset(self):
+                return store_models.Cart.objects.all()
+
+        viewset = CartM2MSearchAnnotationEmptySearchQuerysetViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.search_fields names 'customer_name', which is neither a field of Cart nor an annotation "
+                f"of {name}.get_search_queryset(). {name}.search_fields reach through a multi-valued relation (a "
+                "reverse foreign key or a many-to-many), so the search matches inside a subquery built from "
+                f"{name}.get_search_queryset(), and a search request fails with a FieldError.",
+                hint=f"Add the 'customer_name' annotation to {name}.get_search_queryset().",
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_search_queryset_filtering_on_an_aggregate_is_reported(self):
+        from django.core.checks import Error
+
+        viewset = store_viewsets.CartM2MSearchAggregateFilterInSearchQuerysetViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.get_search_queryset() filters on an aggregate or a window function, and "
+                f"{name}.search_fields reach through a multi-valued relation (a reverse foreign key or a "
+                "many-to-many). The search matches inside a subquery that holds only the matching related rows, "
+                "where that filter gives a different answer, so the search drops objects that match.",
+                hint=(
+                    "Remove that filter from get_search_queryset(). The viewset's queryset applies its filters "
+                    "outside the subquery, where they see every related row."
+                ),
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_search_queryset_filtering_on_a_window_function_is_reported(self):
+        from django.db.models import F
+        from django.db.models import Window
+        from django.db.models.functions import RowNumber
+
+        class CartM2MSearchWindowFilterViewSet(store_viewsets.CartM2MSearchOrderingViewSet):
+            def get_search_queryset(self):
+                row_number = Window(RowNumber(), order_by=F("pk").asc())
+                return store_models.Cart.objects.annotate(row_number=row_number).filter(row_number__lte=1)
+
+        assert [error.id for error in self.check_errors(CartM2MSearchWindowFilterViewSet)] == ["vueda_info.E014"]
+
+    @pytest.mark.parametrize(
+        "viewset",
+        [
+            pytest.param(store_viewsets.CartM2MSearchAggregateFilterViewSet, id="aggregate-filter-on-viewset"),
+            pytest.param(store_viewsets.CartM2MSearchAnnotationSearchQuerysetViewSet, id="annotation-in-hook"),
+            pytest.param(store_viewsets.CartSearchAnnotationOnlyViewSet, id="annotation-only-search"),
+            pytest.param(store_viewsets.CartSingleValuedSearchAggregateFilterViewSet, id="single-valued-search"),
+            pytest.param(store_viewsets.CartM2MSearchAggregateViewSet, id="aggregate-without-filter"),
+            pytest.param(store_viewsets.CartViewSet, id="no-search-fields"),
+        ],
+    )
+    def test_passes(self, viewset):
+        assert self.check_errors(viewset) == []
+
+    def test_search_queryset_needing_a_request_is_skipped(self):
+        class CartRequestSearchQuerysetViewSet(store_viewsets.CartM2MSearchAnnotationViewSet):
+            def get_search_queryset(self):
+                return store_models.Cart.objects.filter(customer__user=self.request.user)
+
+        assert self.check_errors(CartRequestSearchQuerysetViewSet) == []

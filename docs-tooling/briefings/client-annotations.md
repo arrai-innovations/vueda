@@ -60,6 +60,8 @@ Document options-object parameters with a description for the object itself and 
 export function runAction(options) {}
 ```
 
+Each parameter and each first-level property has an API ID that links to its table row. A colon separates the function's ID from the parameter path, because a store action's name contains a dot: `js:param:<module>#runAction:options.dryRun`, or `js:param:@arrai-innovations/vueda/stores/storeTheme#storeTheme.registerComponent:componentName`.
+
 ## `@vueda-spread` on shared prop/emit constants (JS files)
 
 When a composable exports a constant that components spread into `props` or `emits`, mark it with `@vueda-spread props` or `@vueda-spread emits` in its JSDoc block. The vue-docgen normalizer injects those entries into every component that spreads the constant.
@@ -217,6 +219,56 @@ The comment must start on the same source line as the declaration's start or end
 ```
 
 Only pure aliases of the form `var(--token-name)` register a mapping. Computed values (e.g. `calc(var(--radius) - 2px)`) inside `@theme inline` do not surface the underlying token in the utility column; that block is generating a Tailwind utility from a calculation, not aliasing an existing `:root` token. Tokens declared only in `:root` without an `@theme inline` alias render without a Tailwind utility column.
+
+## Pinia stores (`client/lib/stores/`)
+
+A store defined with `defineStore("id", { state, getters, actions })` exports a store definition function, and TypeDoc sees only that function. The `pinia-stores` TypeDoc plugin (`docs-tooling/js/typedoc-plugins/pinia-stores.js`) adds each state key, getter, and action from the options object as a member of the store. A state key renders as a property on the store page. A getter or action gets its own page. Each gets an ID such as `js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition`.
+
+Document each member where it is declared, inside the options object:
+
+```js
+export const storeExample = defineStore("example", {
+    state: () => ({
+        /**
+         * Cached results, keyed by `app.model`.
+         *
+         * @type {{[appModel: string]: object[]}}
+         */
+        results: {},
+    }),
+    actions: {
+        /**
+         * Fetch and cache the results for one model.
+         *
+         * @param {string} app - The model's app label.
+         * @param {string} model - The model name.
+         * @param {boolean} [force=false] - Refetch even when cached.
+         * @returns {Promise<object[]>} The cached results.
+         */
+        async fetchResults(app, model, force = false) {},
+    },
+});
+```
+
+- A state key's `@type` supplies its type. Without it, TypeDoc infers the type from the initial value, so `{}` renders as `object`.
+- An action or getter takes `@param` and `@returns` like any function. Without them, parameters render as `any`, and a defaulted parameter renders as required.
+- An action listed by name (`actions: { registerComponent }`) takes its JSDoc from the named function. Tag its use of the store with `@this`; the page omits `this` from the parameters, since Pinia binds it.
+- The plugin reads only the options form. A setup store (`defineStore("id", () => {...})`) gets no members.
+
+## Component member IDs
+
+Each prop, slot, slot binding, and event of a component has an API ID that links to its row or heading:
+
+| Member       | ID                                                | Example                                                 |
+| ------------ | ------------------------------------------------- | ------------------------------------------------------- |
+| Prop         | `vue:component:<Component>:prop:<name>`           | `vue:component:ObjectsGrid:prop:fieldClasses`           |
+| Slot         | `vue:component:<Component>:slot:<name>`           | `vue:component:ObjectsGridBodyCell:slot:value`          |
+| Slot binding | `vue:component:<Component>:slot:<name>.<binding>` | `vue:component:ObjectsGridBodyCell:slot:value.rowIndex` |
+| Event        | `vue:component:<Component>:event:<name>`          | `vue:component:Calendar:event:update:modelValue`        |
+
+A slot or event links to the component page, or to the component's slots or events page when it has one. A prop takes the name it is declared with. A slot binding takes the camelCase name slot content receives: Vue's compiler camelizes slot props, so `<slot :row-index>` binds `rowIndex`. The `name` attribute on `<slot>` is never a binding.
+
+A slot that passes on another slot's props with `v-bind="slotProps"` lists no bindings, because vue-docgen cannot see them. Link the slot that declares them instead.
 
 ## Cross-references between sources
 

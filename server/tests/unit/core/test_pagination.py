@@ -485,7 +485,7 @@ class TestRelationColumnTotals(BaseTestCommonModelViewSet):
         assert without.data["columnTotals"] == {}
 
     def test_a_row_multiplying_path_would_corrupt_the_other_totals(self, page_data):
-        """Why `vueda_info.E011` refuses a path through a relation matching more than one row.
+        """Why `vueda_info.E013` refuses a path through a relation matching more than one row.
 
         This one goes straight to the ORM rather than through a request, because the declaration it
         describes cannot be made: the check rejects it, so there is no viewset to send `?ct=` to.
@@ -509,7 +509,7 @@ class TestRelationColumnTotals(BaseTestCommonModelViewSet):
         assert together["id__sum"] == cart.pk * cart_item_count, (
             f"expected the join to inflate the unrelated total; got {together['id__sum']} against "
             f"{alone['id__sum']} alone. If these now agree, Django stopped joining for multiple "
-            "aggregations and the row-multiplying rule in vueda_info.E011 may be relaxable."
+            "aggregations and the row-multiplying rule in vueda_info.E013 may be relaxable."
         )
 
     def test_totals_cover_every_page(self, settings, authenticated_client, page_data, url):

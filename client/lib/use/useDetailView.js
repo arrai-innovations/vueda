@@ -85,7 +85,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} pk - Primary key of the instance to fetch.
  *
  * Optional data-fetching overrides.
- * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default.
+ * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default when non-empty.
  * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
  *
@@ -179,7 +179,9 @@ export function useDetailView(options, formInitialValue) {
         return verboseName ? `${capitalizedViewName.value} ${verboseName}` : "";
     });
 
-    const fetchFields = computed(() => options.fetchFields ?? modelConfig.config?.fetchFields);
+    const fetchFields = computed(() =>
+        options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
+    );
     const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
 
     const instanceObjectProps = reactive({

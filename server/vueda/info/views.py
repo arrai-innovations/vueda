@@ -196,6 +196,11 @@ def _build_apps(permissions_qs, workflow_map, selected_user):
 @api_view(["GET"])
 @permission_classes((AllowAny,))
 def server_info_view(request):
+    """
+    Return the installed VUEDA server version as ``{"server_version": ...}``.
+
+    The endpoint allows unauthenticated requests.
+    """
     return JsonResponse(
         {
             "server_version": server_version,
@@ -267,6 +272,7 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
             .order_by(
                 "content_type__app_label",
                 "crud_order_by",
+                "codename",
             )
         )
 

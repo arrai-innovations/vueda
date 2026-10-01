@@ -5,7 +5,7 @@
  * these into their public theme keys so existing override surfaces remain
  * stable while the common banner recipe has one owner.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     _ActionBanner: {

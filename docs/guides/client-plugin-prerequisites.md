@@ -7,7 +7,7 @@ type: how-to
 
 # Client Plugin Prerequisites
 
-This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The registration sequence depends on `setTheme` to provide component styling classes and on {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
+This guide covers the Vue plugins, directives, and VUEDA-specific setup functions that must be registered before mounting a VUEDA client application. It explains what each dependency provides, which built-in components rely on it, and what fails when it is missing. The setup imports the built-in theme to register component styling classes and calls {@api js:function:@arrai-innovations/vueda/utils/listCrud#setupDefaultListCrud} and {@api js:function:@arrai-innovations/vueda/utils/objectCrud#setupDefaultObjectCrud} to activate the shared {@term CRUDL} data path used by built-in views.
 
 The guide assumes familiarity with Vue 3 application setup (`createApp`, `app.use`). For the tutorial-style walkthrough that shows the full `main.js` in context, see [Start Building](../tutorials/start-building). For theme customization beyond the base tokens, see [Customize VUEDA Appearance](customize-vueda-appearance).
 
@@ -28,15 +28,13 @@ Plugin registration follows a specific order. Some steps have dependencies on ea
 ```javascript
 import TheApp from "./TheApp.vue";
 import { getRouter } from "./router/index.js";
-import vuedaTailwind from "@vueda/theme/vueda-tailwind/index.js";
-import { setTheme } from "@vueda/use/useTheme.js";
+import "@vueda/theme/vueda-tailwind/index.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
 
-// 1. Theme and CRUDL adapters (before app creation)
-setTheme(vuedaTailwind);
+// 1. CRUDL adapters (the theme import above registers defaults before app creation)
 setupDefaultListCrud();
 setupDefaultObjectCrud();
 
@@ -58,9 +56,9 @@ The sections below explain each registration step.
 
 ## Theme
 
-`setTheme(themeObject)` registers the component theme that VUEDA uses to resolve CSS classes for every component slot (layout containers, buttons, inputs, headings, etc.).
+Importing `@vueda/theme/vueda-tailwind/index.js` registers all built-in component defaults; no `setTheme` call is needed. For alternative loading paths and when to apply project patches, see [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered).
 
-VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports overrides through `patchTheme()`, `setTheme()`, and per-component `themeOverride` props. For an explanation of the available customization scopes, see [Theming and Customization](../core-concepts/theming-and-customization); for concrete recipes, see [Customize VUEDA Appearance](customize-vueda-appearance).
+VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports patches through `patchTheme()` and per-component `themeOverride` props. For an explanation of the available customization scopes, see [Theming and Customization](../core-concepts/theming-and-customization); for concrete recipes, see [Customize VUEDA Appearance](customize-vueda-appearance).
 
 Using the `vueda-tailwind` theme requires Tailwind CSS to be set up in your project so those utility classes generate CSS. Install `tailwindcss` and `@tailwindcss/vite` as dev dependencies and add the plugin to your `vite.config.js`:
 
@@ -86,11 +84,11 @@ The theme also requires a set of CSS custom properties that the class strings re
 
 The theme system itself is CSS-framework-agnostic. `setTheme` accepts any object that follows the `ThemeObject` shape (component name to slot to class map). To use a different CSS framework, provide a theme object that maps the same component and slot keys to your own classes, and either supply your own equivalent token definitions or rewrite the class strings to not depend on the VUEDA tokens.
 
-This must be called **before** any VUEDA component renders. Calling it before `createApp` satisfies this requirement.
+When installing your own theme object, call `setTheme` after the built-in defaults you intend to replace have registered and before those components render. It replaces the whole registry, including any earlier patches.
 
-**What depends on it:** Every VUEDA component resolves its CSS classes through the theme system. Without a registered theme, components render with empty class attributes.
+**What depends on it:** Themed components resolve their slot classes from the registry. Built-in components import their own theme modules, so they receive defaults even without the aggregate import or a `setTheme` call.
 
-**What fails without it:** Components render without any styling classes. The application is functional but visually unstyled. No runtime error occurs.
+**What fails without CSS:** Registered class names have no styling effect unless the corresponding CSS is generated and loaded. Keep Tailwind and `base.css` in the application stylesheet.
 
 ## CRUDL Adapters
 
@@ -104,7 +102,7 @@ These must be called **before** any VUEDA store or composable attempts a data fe
 
 ## Controls and Widgets
 
-VUEDA's controls and widgets (`Button`, `WidgetSelectDropdown`, `WidgetDateField`, `WidgetTextInput`, `WidgetCombobox`, `WidgetCheckbox`, `WidgetRadioGroup`, `WidgetRangeSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: once `setTheme` has run, these components resolve their classes from the registered theme and render styled output. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
+VUEDA's controls and widgets (`Button`, `WidgetSelectDropdown`, `WidgetDateField`, `WidgetTextInput`, `WidgetCombobox`, `WidgetCheckbox`, `WidgetRadioGroup`, `WidgetRangeSlider`, and others) are first-party components built on Reka UI, which VUEDA bundles. There is no third-party component-library plugin to register: these components import their defaults and resolve classes from the theme registry. The remaining setup steps cover the toaster surface, which is mounted as a component rather than registered as a plugin.
 
 ## Toast Notifications
 
@@ -168,7 +166,7 @@ After completing the registration sequence, verify the following:
 
 **Toast notifications not appearing.** The `Sonner` toaster is not mounted in the root component. Add `<Sonner />` to `TheApp.vue`.
 
-**Components render as unstyled HTML.** `setTheme` was not called, so components resolve empty class strings. Verify `setTheme(vuedaTailwind)` is called before app creation and that Tailwind plus `@vueda/theme/vueda-tailwind/base.css` are imported in your stylesheet. Check the browser console for missing CSS custom property warnings.
+**Components render as unstyled HTML.** Built-in components register their own defaults; omitting `setTheme` does not leave them unstyled. Verify that the application loads its stylesheet, that it imports Tailwind and `@vueda/theme/vueda-tailwind/base.css`, and that the Tailwind Vite plugin generates CSS for the theme classes. If slot classes are missing from the element, check whether a later `setTheme` call replaced the registry with an incomplete theme.
 
 **Text renders in a system font, and headers wrap where the component reference does not.** The page loads no face with the family name in {@api css-token:vueda-font-sans} or {@api css-token:vueda-font-mono}, so the browser used a fallback. Load the default fonts or override the stacks; see [Load or replace the fonts](customize-vueda-appearance#load-or-replace-the-fonts).
 

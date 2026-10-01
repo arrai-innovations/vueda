@@ -147,7 +147,6 @@ class TestModelFilteringValueDerivedChoices:
         condition = response.data["model_filtering"]["condition"]
 
         assert condition["choices"] == [
-            {"label": "---------", "value": ""},
             {"label": "New", "value": "new"},
             {"label": "Like New", "value": "like_new"},
             {"label": "Refurbished", "value": "refurbished"},

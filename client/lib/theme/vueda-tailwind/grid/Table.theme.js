@@ -5,7 +5,7 @@
  * Table.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire grid family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -15,12 +15,21 @@ patchTheme({
      */
     Table: {
         /**
-         * The scroll container around the native table. It owns the card surface, horizontal overflow, and sticky-table height cap used when `Table` receives `sticky`.
+         * The card surface around the scroll container: fill, radius, and {@api css-token:vueda-hairline-width} edge. Its padding matches the edge width, so the scroll container sits inside the painted edge and no row or sticky header cell can cover it.
+         */
+        frame: {
+            class: [
+                "relative w-full",
+                "rounded-vueda-card hairline hairline-border bg-card p-[var(--vueda-hairline-width)]",
+            ],
+        },
+        /**
+         * The scroll container around the native table, inside {@api theme-key:Table.frame}. It owns horizontal overflow and the sticky-table height cap used when `Table` receives `sticky`. Its radius is the card radius less the edge width, so scrolled content clips to the inside of the frame's corners.
          */
         container: {
             class: [
                 "relative w-full overflow-auto",
-                "rounded-vueda-card hairline hairline-border bg-card",
+                "rounded-[calc(var(--vueda-card-radius)-var(--vueda-hairline-width))]",
                 "data-[sticky]:overflow-y-auto data-[sticky]:max-h-[var(--vueda-tbl-max-h,30rem)]",
             ],
         },

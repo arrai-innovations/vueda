@@ -12,7 +12,7 @@
  */
 import "./_ButtonPrimitives.theme.js";
 import { resolveButtonVariant } from "@vueda/controls/button/buttonVariant.js";
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -52,7 +52,7 @@ patchTheme({
                     {
                         "h-vueda-control px-vueda-control-px has-[>svg]:px-vueda-control-px-sm":
                             !size || size === "default",
-                        "h-vueda-control-sm gap-1.5 px-vueda-control-px-sm": size === "sm",
+                        "h-vueda-control-sm px-vueda-control-px-sm": size === "sm",
                         "h-vueda-control-lg px-vueda-control-px-lg has-[>svg]:px-vueda-control-px": size === "lg",
                         "size-vueda-control": size === "icon",
                         "size-vueda-control-sm": size === "icon-sm",

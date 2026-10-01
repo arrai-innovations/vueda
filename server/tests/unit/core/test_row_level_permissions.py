@@ -2,12 +2,14 @@ from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.urls import reverse
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.product.models import Product
+from tests.product.viewsets import ProductViewSet
 
 
 @pytest.mark.django_db
@@ -145,6 +147,45 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         assert str(response.data[error_key][0]) == f"Object with pk={banana.pk} does not exist."
         assert Product.objects.filter(pk=apple.pk).exists()
         assert Product.objects.filter(pk=banana.pk).exists()
+
+    def assert_bulk_destroy_refuses_banana(self, api_client):
+        api_client.force_authenticate(user=self.users["test_customer_deleter@domain.invalid"])
+        Product.objects.bulk_create(Product(name=name, **data) for name, data in self.products_to_create.items())
+        apple = Product.objects.get(name="Apple")
+        banana = Product.objects.get(name="Banana")
+
+        response = api_client.delete(
+            reverse("product.product-list"), data={"pks": [apple.pk, banana.pk]}, format="json"
+        )
+
+        self.assert_response(response, 400)
+        error_key = banana.pk if banana.pk in response.data else str(banana.pk)
+        assert [str(message) for message in response.data[error_key]] == [
+            f"Object with pk={banana.pk} does not exist."
+        ], response.data
+        assert Product.objects.filter(pk=apple.pk).exists()
+        assert Product.objects.filter(pk=banana.pk).exists()
+
+    def test_bulk_destroy_instance_check_that_hides_a_row_answers_the_400_map(self, api_client, monkeypatch):
+        """With only `check_instance` deciding, a row denied both `delete` and `read` makes DRF's
+        object check raise `Http404`; the bulk delete still reports it as a missing pk (issue #371)."""
+        monkeypatch.setattr(Product.RowLevelPermissions, "check_queryset", classmethod(lambda cls, *a, **k: None))
+
+        self.assert_bulk_destroy_refuses_banana(api_client)
+
+    def test_bulk_destroy_override_raising_django_permission_denied_answers_the_400_map(self, api_client, monkeypatch):
+        """A viewset override may raise Django's `PermissionDenied`, a separate class from DRF's."""
+        original = ProductViewSet.check_object_permissions
+
+        def check_object_permissions(self, request, obj):
+            if obj.name == "Banana":
+                raise DjangoPermissionDenied
+            return original(self, request, obj)
+
+        monkeypatch.setattr(Product.RowLevelPermissions, "check_queryset", classmethod(lambda cls, *a, **k: None))
+        monkeypatch.setattr(ProductViewSet, "check_object_permissions", check_object_permissions)
+
+        self.assert_bulk_destroy_refuses_banana(api_client)
 
     def test_bulk_destroy_products_allowed_by_row_level_permissions(self, api_client, products):
         user = self.users["test_customer_deleter@domain.invalid"]

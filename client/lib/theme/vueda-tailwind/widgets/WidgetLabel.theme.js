@@ -5,7 +5,7 @@
  * for Phase 3 or future aggregator wiring, but is not currently imported by an
  * SFC because there is no WidgetLabel.vue in this tree.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -39,7 +39,6 @@ patchTheme({
                     "leading-[2.3958125rem]": true,
                     "text-neutral-900/60 dark:text-white/60": true,
                     "!text-amber-600 dark:!text-amber-500": warning,
-                    "!text-maroon-600 dark:!text-maroon-500": invalid,
                 };
             },
         },

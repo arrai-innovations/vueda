@@ -7,10 +7,11 @@ ALLOWED_HOSTS = ["{{ project_slug }}.example.com"]
 TIME_ZONE = "UTC"
 
 FRONTEND_DOMAIN = "https://{{ project_slug }}.example.com"
-FRONTEND_LOGIN_URL = "/login"
+FRONTEND_LOGIN_URL = "/sign-in/"
 
 SITE_NAME = "{{ project_name }}"
 SUPPORT_EMAIL = "support@{{ project_slug }}.example.com"
+NO_REPLY_EMAIL = "no-reply@{{ project_slug }}.example.com"
 
 AUTH_USER_MODEL = "users.User"
 LOCAL_APPS = ["{{ python_package }}.users"]

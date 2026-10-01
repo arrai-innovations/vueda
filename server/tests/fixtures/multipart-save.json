@@ -1,0 +1,28 @@
+[
+    {
+        "scenario": "nested-file",
+        "fields": {
+            "items": "[{\"name\":\"a\",\"attachment\":null}]",
+            "__vueda_multipart": "{\"version\":1,\"files\":{\"__vueda_file_0\":[\"items\",0,\"attachment\"]}}"
+        },
+        "files": [{ "part": "__vueda_file_0", "name": "inline.txt", "content": "inline bytes", "type": "text/plain" }]
+    },
+    {
+        "scenario": "blob",
+        "fields": { "__vueda_multipart": "{\"version\":1,\"files\":{\"blob\":[\"blob\"]}}" },
+        "files": [{ "part": "blob", "name": "blob", "content": "blob bytes", "type": "text/plain" }]
+    },
+    {
+        "scenario": "nested-values",
+        "fields": {
+            "items": "[{\"tags\":[\"x\",\"y\"],\"parent\":{\"id\":1},\"note\":null}]",
+            "active": "false",
+            "count": "0",
+            "empty_list": "[]",
+            "empty_object": "{}",
+            "empty_string": "\"\"",
+            "__vueda_multipart": "{\"version\":1,\"files\":{\"file\":[\"file\"]}}"
+        },
+        "files": [{ "part": "file", "name": "parent.txt", "content": "parent bytes", "type": "text/plain" }]
+    }
+]

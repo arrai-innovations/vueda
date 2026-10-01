@@ -1,9 +1,14 @@
 import datetime
 from http import HTTPStatus
+from types import SimpleNamespace
 from typing import ClassVar
+from unittest.mock import MagicMock
 
 import pytest
+from django.conf import settings
+from django.core.exceptions import FieldError
 from django.db import connection
+from django.db.models import Count
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -544,13 +549,12 @@ class TestVuedaSearchFilterDistinct:
         info.register(store_serializers.ProductSerializer, store_viewsets.ProductM2MSearchViewSet)
 
     def test_m2m_search_deduplicates_results(self, test_data, api_client, settings):
-        """Searching across an M2M field calls distinct() to prevent duplicate results.
+        """A search across an M2M field returns each matching product once.
 
         Two products each have three special_care entries: perishable, temperature_controlled,
         and fragile. Searching for 'Perishable Fragile' matches two special_care entries
-        per product via the M2M join. Without distinct(), each product would appear twice
-        in the result set (once per matching special_care row). The must_call_distinct path
-        in VuedaSearchFilterBackend deduplicates back to one row per product.
+        per product. VuedaSearchFilterBackend keeps the M2M join inside a subquery, so the
+        list holds one row per product.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
 
@@ -564,20 +568,102 @@ class TestVuedaSearchFilterDistinct:
             format="json",
         )
 
-        # Two products have both "perishable" and "fragile" special_care entries.
-        # Without distinct(), each would appear twice (once per matching M2M row).
-        # The combined_rank is the same for each.
+        # Two products have both "perishable" and "fragile" special_care entries, each matching
+        # through two M2M rows of equal rank.
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
         result_names = frozenset(x["name"] for x in response.data["results"])
         assert result_names == frozenset({"Square Cookies For Squares", "Shaped Cookies For Drapes"})
 
+    def test_reverse_fk_search_with_unequal_ranks_returns_one_row_per_object(self, test_data, api_client, settings):
+        """A ranked search returns one row per cart when a cart's matching items score different ranks.
+
+        The search matches two cart items in each cart: "Medium" and "Small" in the first cart, "Gentle
+        Cinnamon" and "Sweet Sugar" in the second. Each joined row scores its own rank, so the two rows
+        for one cart differ in rank. The rows come back ordered by the best rank each cart reaches, and
+        the first cart's best match outranks the second cart's.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartM2MSearchOrderingViewSet)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Small Medium Sugar Cinnamon"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        assert [result["id"] for result in response.data["results"]] == [
+            test_data.carts["test_customer_1@domain.invalid"]["cart"].pk,
+            test_data.carts["test_customer_2@domain.invalid"]["cart"].pk,
+        ], response_body(response)
+
+    def test_reverse_fk_search_ranks_each_object_by_its_best_row(self, test_data, api_client, settings):
+        """A ranked search orders objects by the best rank each one reaches.
+
+        The second cart gains a "Sugar Cinnamon" item, which matches two search terms and outranks every
+        item in the first cart. The second cart's other items still rank below the first cart's items,
+        so the second cart leads only when each cart ranks by its best row.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
+
+        second_cart = test_data.carts["test_customer_2@domain.invalid"]["cart"]
+        product_option = store_models.ProductOption.objects.create(
+            product=test_data.products["Square Cookies For Squares"]["product"],
+            name="Sugar Cinnamon",
+            sku="SUGAR-CINNAMON",
+            gtin="SUGAR-CINNAMON",
+        )
+        store_models.CartItem.objects.create(cart=second_cart, product_option=product_option, quantity=1)
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartM2MSearchOrderingViewSet)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Small Medium Sugar Cinnamon"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["id"] for result in response.data["results"]] == [
+            second_cart.pk,
+            test_data.carts["test_customer_1@domain.invalid"]["cart"].pk,
+        ], response_body(response)
+
+    def test_reverse_fk_search_keeps_an_object_with_one_row_over_the_threshold(self, test_data, api_client, settings):
+        """A ranked search keeps an object when at least one of its matching rows reaches the threshold.
+
+        "Explosive Dynamite" is the only cart item that matches "Dynamite", and it sits in the second
+        cart beside two items that score below the threshold. The first cart has no item that reaches
+        it.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartM2MSearchOrderingViewSet)
+
+        response = api_client.get(
+            reverse("store.cart-list"),
+            data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Dynamite"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["id"] for result in response.data["results"]] == [
+            test_data.carts["test_customer_2@domain.invalid"]["cart"].pk
+        ], response_body(response)
+
     def test_m2m_search_does_not_inflate_column_totals(self, test_data, api_client, settings):
         """A column total counts a matched row once, not once per joined row.
 
-        The search matches two special_care entries per product, so the queryset behind this
-        response joins each product twice. `distinct()` puts the *rows* back to one per product; a
-        `SUM` over that same queryset has no such protection and would count each product's
-        quantity twice. `vueda_info.E011` cannot catch it either: `quantity` is a column on Product
+        The search matches two special_care entries per product. A `SUM` over the joined rows would
+        count each product's quantity twice. `vueda_info.E013` cannot catch it either: `quantity` is a column on Product
         itself, and the join arrives from the search rather than from the declared path.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_totals"
@@ -645,13 +731,12 @@ class TestVuedaSearchFilterDistinct:
         assert response.data["columnTotals"] == {"quantity": 18, "double_quantity": 36}, response_body(response)
 
     def test_m2m_ordering_search_deduplicates_results(self, test_data, api_client, settings):
-        """An M2M search deduplicates its results and still applies the requested ordering, both ways.
+        """A search across an M2M field returns each matching product once, in the requested order either way.
 
         Two products each have three special_care entries: perishable, temperature_controlled,
         and fragile. Searching for 'Perishable Fragile' matches two special_care entries
-        per product via the M2M join. Without distinct(), each product would appear twice
-        in the result set (once per matching special_care row). The must_call_distinct path
-        in VuedaSearchFilterBackend deduplicates back to one row per product.
+        per product. VuedaSearchFilterBackend keeps the M2M join inside a subquery, so the
+        list holds one row per product.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search"
 
@@ -668,9 +753,8 @@ class TestVuedaSearchFilterDistinct:
             format="json",
         )
 
-        # Two products have both "perishable" and "fragile" special_care entries.
-        # Without distinct(), each would appear twice (once per matching M2M row).
-        # The combined_rank is the same for each.
+        # Two products have both "perishable" and "fragile" special_care entries, each matching
+        # through two M2M rows of equal rank.
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
         result_names = [x["name"] for x in response.data["results"]]
         assert result_names == ["Shaped Cookies For Drapes", "Square Cookies For Squares"]
@@ -684,9 +768,8 @@ class TestVuedaSearchFilterDistinct:
             format="json",
         )
 
-        # Two products have both "perishable" and "fragile" special_care entries.
-        # Without distinct(), each would appear twice (once per matching M2M row).
-        # The combined_rank is the same for each.
+        # Two products have both "perishable" and "fragile" special_care entries, each matching
+        # through two M2M rows of equal rank.
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
         result_names = [x["name"] for x in response.data["results"]]
         assert result_names == ["Square Cookies For Squares", "Shaped Cookies For Drapes"]
@@ -800,8 +883,10 @@ class TestMixedRankedAndWordSimilarSearch:
 
 
 @pytest.mark.django_db
-class TestM2MDistinctOrderByTiebreaker:
-    """Tests that the pk tiebreaker in order_by is preserved after distinct.
+class TestMultiValuedSearchPkTieBreaker:
+    """A ranked search through a multi-valued relation breaks ties by primary key, so objects that tie
+    on the ordering come back in a stable order, whether the list is sorted by rank or by a requested
+    ordering.
 
     When the search has to deduplicate (must_call_distinct) and no ordering was requested, the
     backend orders by ("-combined_rank", "pk") for DISTINCT ON. Replacing that afterwards with
@@ -809,9 +894,28 @@ class TestM2MDistinctOrderByTiebreaker:
     would come back in no defined order.
     """
 
-    def test_mcd_no_ordering_preserves_pk_tiebreaker(self):
-        """Directly verify the final ORDER BY clause includes pk when the search deduplicates
-        and no explicit ordering parameter is provided."""
+    @staticmethod
+    def search_carts(ordering):
+        request = MagicMock()
+        request.query_params = {
+            settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Small Medium Sugar Cinnamon",
+            settings.REST_FRAMEWORK["ORDERING_PARAM"]: ordering,
+        }
+        view = SimpleNamespace()
+        view.search_fields = ["V:cart_items__product_option__name"]
+        queryset = store_models.Cart.objects.order_by(ordering)
+        return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+    @pytest.mark.parametrize("ordering", ["expected_delivery_time", "-expected_delivery_time", "customer"])
+    def test_requested_ordering_breaks_ties_by_pk(self, ordering):
+        assert self.search_carts(ordering).query.order_by == (ordering, "pk")
+
+    @pytest.mark.parametrize("ordering", ["pk", "-pk", "id", "-id"])
+    def test_requested_ordering_by_pk_gets_no_second_pk(self, ordering):
+        assert self.search_carts(ordering).query.order_by == (ordering,)
+
+    def test_rank_ordering_breaks_ties_by_pk(self):
+        """The final ORDER BY includes pk when mcd=True and no ordering parameter is sent."""
         from unittest.mock import MagicMock
         from unittest.mock import patch
 
@@ -825,7 +929,7 @@ class TestM2MDistinctOrderByTiebreaker:
         request.query_params = {"s": "test"}
 
         # Mock view with M2M search field (triggers must_call_distinct=True)
-        view = MagicMock()
+        view = SimpleNamespace()
         view.search_fields = ["V:special_care__field_that_contains_the_name"]
 
         with patch.object(backend, "must_call_distinct", return_value=True):
@@ -833,27 +937,292 @@ class TestM2MDistinctOrderByTiebreaker:
 
         # Django's query.order_by contains the ORM-level ordering fields.
         order_by = result_qs.query.order_by
-        assert "pk" in order_by or "-pk" in order_by, (
-            f"ORDER BY should contain pk tiebreaker for deterministic ordering "
-            f"with DISTINCT ON, but a later order_by replaced it. "
-            f"query.order_by: {order_by}"
-        )
+        assert order_by == ("-combined_rank", "pk"), order_by
 
 
 @pytest.mark.django_db
-class TestSearchDistinctKeepsTheResolvedOrdering:
-    """A searched list that has to deduplicate keeps the ordering `VuedaOrderingFilter` resolved.
+class TestSearchKeepsQuerysetAggregates:
+    """A ranked search leaves the aggregates already on the queryset unchanged.
 
-    `VuedaSearchFilterBackend` runs after `VuedaOrderingFilter` and, on the `DISTINCT ON` path it
-    takes when a search joins a multi-valued relation, re-applies the ordering itself so the distinct
-    columns match it. The terms for that have to come from the queryset the ordering filter already
-    built: a related model's `formatted_name` has been rewritten to the column behind it by then, and
-    a field with a declared `nulls_ordering` placement has become an
-    `F(...).asc(nulls_first=True)` expression. Re-reading the raw `?o=` value would order by
-    `customer__formatted_name`, which names no column on Cart, and would drop the placement.
+    A viewset can hand the search backend a queryset that already counts or sums over a relation. A
+    search reaching through a multi-valued relation joins one row per matching related row, and an
+    aggregate computed over those joined rows counts each of its own rows once per match. Each object
+    should report the same aggregate with and without the search.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def search(queryset, search_field, terms, ordering=None):
+        request = MagicMock()
+        request.query_params = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        if ordering is not None:
+            request.query_params[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
+            queryset = queryset.order_by(ordering)
+
+        view = SimpleNamespace()
+        view.search_fields = [search_field]
+        return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+    @pytest.mark.parametrize(
+        ("model", "aggregate_path", "search_field", "terms", "ordering"),
+        [
+            pytest.param(
+                store_models.Product,
+                "product_options",
+                "V:special_care__field_that_contains_the_name",
+                "Perishable Fragile",
+                None,
+                id="other-relation-equal-ranks",
+            ),
+            pytest.param(
+                store_models.Product,
+                "product_options",
+                "V:special_care__field_that_contains_the_name",
+                "Perishable Fragile",
+                "name",
+                id="other-relation-requested-ordering",
+            ),
+            pytest.param(
+                store_models.Product,
+                "product_options",
+                f"{TRIGRAM_SIMILAR_PREFIX}special_care__field_that_contains_the_name",
+                "Perishable Fragile",
+                None,
+                id="other-relation-trigram",
+            ),
+            pytest.param(
+                store_models.Cart,
+                "cart_items",
+                "V:cart_items__product_option__name",
+                "Small Medium Sugar Cinnamon",
+                None,
+                id="searched-relation-unequal-ranks",
+            ),
+            pytest.param(
+                store_models.Cart,
+                "customer__customerorder",
+                "V:cart_items__product_option__name",
+                "Small Medium Sugar Cinnamon",
+                None,
+                id="other-relation-unequal-ranks",
+            ),
+        ],
+    )
+    def test_search_keeps_a_count_annotation(self, test_data, model, aggregate_path, search_field, terms, ordering):
+        queryset = model.objects.annotate(related_count=Count(aggregate_path))
+        expected = dict(queryset.values_list("pk", "related_count"))
+
+        results = list(self.search(queryset, search_field, terms, ordering))
+
+        assert results, "the search matches at least one object"
+        assert {obj.pk: obj.related_count for obj in results} == {obj.pk: expected[obj.pk] for obj in results}
+
+    @pytest.mark.parametrize(
+        "ordering",
+        [
+            pytest.param(None, id="rank-ordering"),
+            pytest.param("expected_delivery_time", id="requested-ordering"),
+        ],
+    )
+    def test_list_searches_a_viewset_whose_queryset_sums_a_relation(self, test_data, api_client, settings, ordering):
+        """A list request searches a viewset whose queryset carries `Sum("cart_items__quantity")`.
+
+        The aggregate gives the queryset a `GROUP BY`, and the search through `cart_items` joins one
+        row per matching cart item. The request succeeds and returns each cart once, whether the results
+        are ordered by rank or by an ordering the client requested.
+        """
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_aggregate"
+
+        api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartM2MSearchAggregateViewSet)
+
+        data = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Small Medium Sugar Cinnamon"}
+        if ordering is not None:
+            data[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
+
+        response = api_client.get(reverse("store.cart-list"), data=data, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        assert sorted(result["id"] for result in response.data["results"]) == sorted(
+            cart["cart"].pk for cart in test_data.carts.values()
+        ), response_body(response)
+
+
+@pytest.mark.django_db
+class TestSearchPrefixKeepsQuerysetFiltersIndependent:
+    """A search through a multi-valued relation and a queryset filter through the same relation are
+    independent conditions, whatever the search field's prefix.
+
+    The queryset keeps carts holding an item with a quantity of at least 24. The second customer's
+    cart holds "Explosive Dynamite" with a quantity of 24 and "Gentle Cinnamon" with a quantity of 6.
+    It has a big item and it has a Cinnamon item, so a search for Cinnamon keeps it, even though no
+    single item is both. The prefix decides how results are ranked, not which objects match.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms"),
+        [
+            pytest.param("cart_items__product_option__name", "Cinnamon", id="deterministic"),
+            pytest.param(f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Gentle Cinnamon", id="trigram"),
+            pytest.param(
+                f"{SEARCH_LOOKUP_PREFIX}cart_items__product_option__name",
+                "Cinnamon",
+                id="ranked",
+            ),
+        ],
+    )
+    def test_search_matches_items_the_queryset_filter_does_not_keep(self, test_data, search_field, terms):
+        request = MagicMock()
+        request.query_params = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        view = SimpleNamespace(search_fields=[search_field])
+        queryset = store_models.Cart.objects.filter(cart_items__quantity__gte=24)
+
+        results = VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+
+@pytest.mark.django_db
+class TestSearchQueryset:
+    """A search through a multi-valued relation matches against the view's search queryset: the one
+    `get_search_queryset()` returns, or the model's default manager.
+
+    The viewset's queryset applies its own filters outside the search subquery, where an item count
+    covers all of a cart's items. The second customer's cart holds three items and the first
+    customer's cart holds two.
+    """
+
+    @pytest.fixture
+    def test_data(self):
+        return VuedaTestData()
+
+    @staticmethod
+    def search(viewset, search_field, terms, ordering=None):
+        request = MagicMock()
+        request.query_params = {settings.REST_FRAMEWORK["SEARCH_PARAM"]: terms}
+        view = viewset()
+        queryset = view.get_queryset()
+        if ordering is not None:
+            request.query_params[settings.REST_FRAMEWORK["ORDERING_PARAM"]] = ordering
+            queryset = queryset.order_by(ordering)
+        if search_field is not None:
+            view.search_fields = [search_field]
+        return VuedaSearchFilterBackend().filter_queryset(request, queryset, view)
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms", "ordering"),
+        [
+            pytest.param("V:cart_items__product_option__name", "Small Medium Sugar Cinnamon", None, id="ranked"),
+            pytest.param(
+                "V:cart_items__product_option__name", "Small Medium Sugar Cinnamon", "id", id="ranked-ordered"
+            ),
+            pytest.param(
+                f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Sweet Sugar", None, id="trigram"
+            ),
+            pytest.param(
+                f"{TRIGRAM_WORD_SIMILAR_PREFIX}cart_items__product_option__name", "Sweet Sugar", None, id="word-similar"
+            ),
+            pytest.param("cart_items__product_option__name", "Sugar", None, id="deterministic"),
+        ],
+    )
+    def test_aggregate_filter_keeps_matching_objects(self, test_data, search_field, terms, ordering):
+        """`CartM2MSearchAggregateFilterViewSet` lists only carts holding at least three items. Two of
+        the second customer's three items match the ranked search, and a count over those two alone
+        would reject the cart."""
+        results = self.search(store_viewsets.CartM2MSearchAggregateFilterViewSet, search_field, terms, ordering)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    @pytest.mark.parametrize(
+        ("search_field", "terms"),
+        [
+            pytest.param(f"{TRIGRAM_SIMILAR_PREFIX}cart_items__product_option__name", "Medium Small", id="trigram"),
+            pytest.param("cart_items__product_option__name", "m", id="deterministic"),
+        ],
+    )
+    def test_upper_bound_aggregate_filter_keeps_matching_objects(self, test_data, search_field, terms):
+        """`CartM2MSearchAggregateUpperBoundViewSet` lists only carts holding at most two items. The first
+        customer's cart holds two, "Medium" and "Small", and both match the search.
+
+        A trigram or deterministic search filters through a join of its own on `cart_items`, so a count
+        over the search's rows would count each item once per matching item: four for this cart."""
+        results = self.search(store_viewsets.CartM2MSearchAggregateUpperBoundViewSet, search_field, terms)
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_1@domain.invalid"]["cart"].pk]
+
+    @pytest.mark.parametrize(
+        "ordering",
+        [
+            pytest.param(None, id="rank-ordering"),
+            pytest.param("id", id="requested-ordering"),
+        ],
+    )
+    def test_search_subqueries_carry_none_of_the_viewset_aggregates(self, test_data, ordering):
+        """The search subqueries are built from the model's default manager, so the rank subquery that
+        runs once per matching object carries no `GROUP BY` or `HAVING`. Only the outer query groups,
+        for the viewset's item count."""
+        results = self.search(
+            store_viewsets.CartM2MSearchAggregateFilterViewSet,
+            "V:cart_items__product_option__name",
+            "Small Medium Sugar Cinnamon",
+            ordering,
+        )
+
+        sql = str(results.query)
+        assert sql.count("GROUP BY") == 1, sql
+        assert sql.count("HAVING") == 1, sql
+
+    def test_single_valued_search_applies_the_aggregate_filter(self, test_data):
+        """A search that follows only foreign keys matches against the viewset's queryset itself."""
+        results = self.search(
+            store_viewsets.CartSingleValuedSearchAggregateFilterViewSet, "V:customer__user__name", "Test Customer 2"
+        )
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    def test_search_queryset_carries_an_annotation_search_fields_name(self, test_data):
+        """`CartM2MSearchAnnotationSearchQuerysetViewSet` searches the `customer_name` annotation
+        alongside `cart_items`, and its `get_search_queryset()` adds the same annotation."""
+        results = self.search(store_viewsets.CartM2MSearchAnnotationSearchQuerysetViewSet, None, "Cinnamon")
+
+        assert [cart.pk for cart in results] == [test_data.carts["test_customer_2@domain.invalid"]["cart"].pk]
+
+    def test_annotation_missing_from_the_search_queryset_raises_field_error(self, test_data):
+        """`CartM2MSearchAnnotationViewSet` adds `customer_name` only in `get_queryset()`. The default
+        manager the search subquery is built from has no such annotation."""
+        with pytest.raises(FieldError, match="customer_name"):
+            list(self.search(store_viewsets.CartM2MSearchAnnotationViewSet, None, "Cinnamon"))
+
+    def test_annotation_only_search_matches_against_the_viewset_queryset(self, test_data):
+        """A search on an annotation alone reaches through no multi-valued relation, so it needs no
+        search queryset."""
+        results = self.search(store_viewsets.CartSearchAnnotationOnlyViewSet, None, "Test Customer 2")
+
+        assert test_data.carts["test_customer_2@domain.invalid"]["cart"].pk in [cart.pk for cart in results]
+
+
+@pytest.mark.django_db
+class TestSearchKeepsTheResolvedOrdering:
+    """A searched list that reaches through a multi-valued relation keeps the ordering
+    `VuedaOrderingFilter` resolved.
+
+    `VuedaSearchFilterBackend` runs after `VuedaOrderingFilter`. When a search joins a multi-valued
+    relation, the backend returns the ordered queryset narrowed to the matching objects, so the
+    ordering is the one the ordering filter built: a related model's `formatted_name` rewritten to
+    the column behind it, and a field with a declared `nulls_ordering` placement turned into an
+    `F(...).asc(nulls_first=True)` expression.
 
     Both carts `create_test_data` builds hold more than one cart item, so every one of these searches
-    matches a cart through several rows and the deduplication is what brings each back to one.
+    matches a cart through several rows.
     """
 
     @pytest.fixture
@@ -881,8 +1250,8 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
 
     def test_ordering_by_a_related_formatted_name_uses_the_column_behind_it(self, test_data, api_client, settings):
         """Customer reaches its formatted name through
-        `formatted_name_lookup_expression = "data__formatted_name"`, so `customer__formatted_name`
-        names nothing the database knows. Ordering by the raw request here raised `FieldError`."""
+        `formatted_name_lookup_expression = "data__formatted_name"`, so the list sorts by
+        `customer__data__formatted_name`."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -911,8 +1280,7 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
 
     def test_ordering_keeps_the_declared_nulls_placement(self, test_data, api_client, settings):
         """`nulls_ordering = {"expected_delivery_time": "first"}` puts the cart with no delivery time
-        first. Ordering by the raw request here fell back to the database default, which for an
-        ascending sort is nulls last."""
+        first, where a plain ascending sort would put it last."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_ordering"
 
         # `create_test_data` leaves every cart's `expected_delivery_time` null, so one is given a
@@ -935,16 +1303,13 @@ class TestSearchDistinctKeepsTheResolvedOrdering:
 
 
 @pytest.mark.django_db
-class TestSearchDistinctPairsOnlyBareColumns:
-    """A searched list that has to deduplicate re-applies its ordering only when every term has a
-    column to pair with, and sorts by rank when one does not.
+class TestSearchKeepsAnyOrdering:
+    """A searched list that reaches through a multi-valued relation sorts by any ordering the same list
+    sorts by without a search.
 
-    `VuedaSearchFilterBackend` pairs the ordering it re-applies with the `DISTINCT ON` columns that
-    have to match it, and PostgreSQL compares those expressions rather than the values behind them.
-    A term that reads one column is not necessarily that column, and a relation name is not
-    necessarily the column Django orders by, so reading the column names out of a term is not enough
-    to pair it. Each case below produced `SELECT DISTINCT ON expressions must match initial ORDER BY
-    expressions`, an unhandled 500, before the pairing judged the resolved expressions.
+    The search keeps its joins inside a subquery, so the ordering applies to a queryset with one row
+    per object. An ordering that expands to more than a single column, such as a relation whose
+    related model declares its own `Meta.ordering`, sorts the searched list the same way.
     """
 
     @pytest.fixture
@@ -966,18 +1331,9 @@ class TestSearchDistinctPairsOnlyBareColumns:
 
         return api_client.get(reverse(url_name), data=data, format="json")
 
-    def test_a_default_ordering_over_one_column_falls_back_to_rank(self, test_data, api_client, settings):
-        """`ordering = [Lower("name")]` reads `name` and compiles to `LOWER("name")`, which
-        `distinct("name")` cannot match.
-
-        An invalid `?o=` can no longer put this on the queryset while still asking this backend for
-        explicit-order handling — an invalid term rejects the whole request atomically rather than
-        silently falling back to the default — so this is now reached only by sending no `?o=` at
-        all: `ordering_requested` is then false, and `applied_ordering` is `None` without this
-        backend ever having to judge the term. The regression this guards against — the unhandled
-        `SELECT DISTINCT ON expressions must match initial ORDER BY expressions` this view's default
-        ordering used to produce — still needs a search that forces deduplication to reproduce.
-        """
+    def test_a_default_ordering_over_a_function_gives_way_to_rank(self, test_data, api_client, settings):
+        """`ordering = [Lower("name")]` is the viewset's default, and a search that sends no `?o=`
+        sorts by rank instead."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_function_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -991,17 +1347,18 @@ class TestSearchDistinctPairsOnlyBareColumns:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+        # Both products score the same rank, so the primary key orders them.
+        ids = [result["id"] for result in response.data["results"]]
+        assert ids == sorted(ids), response_body(response)
 
-    def test_a_relation_whose_related_model_orders_itself_falls_back_to_rank(
+    def test_a_relation_whose_related_model_orders_itself_is_kept(
         self,
         test_data,
         api_client,
         settings,
     ):
-        """`Customer` declares `ordering = ["user__name"]`, so Django replaces `order_by("customer")`
-        with that ordering over the joined table while `distinct("customer")` trims the join back to
-        the local foreign key column. Unlike the case above, this arrives through a `?o=` the viewset
-        offers and metadata advertises."""
+        """`Customer` declares `ordering = ["user__name"]`, so `?o=customer` sorts carts by their
+        customer's user name."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_m2m_search_relation_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])
@@ -1011,27 +1368,17 @@ class TestSearchDistinctPairsOnlyBareColumns:
             store_viewsets.CartM2MSearchRelationOrderingViewSet,
         )
 
-        response = self.list_url(
-            api_client,
-            settings,
-            "store.cart-list",
-            self.CART_SEARCH_TERMS,
-            ordering="customer",
-        )
+        def customer_names(ordering):
+            response = self.list_url(api_client, settings, "store.cart-list", self.CART_SEARCH_TERMS, ordering)
 
-        assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert response.data["totalRecords"] == 2, response_body(response)  # noqa: PLR2004
+            return [
+                store_models.Cart.objects.get(pk=result["id"]).customer.user.name for result in response.data["results"]
+            ]
 
-        # Row for row the same as the rank path, which is what falling back to rank means. This
-        # search returns each cart once per matching cart item on that path, because the rank branch
-        # deduplicates on `combined_rank` alongside the primary key and each joined row scores its
-        # own rank. That is how the branch already behaves for a cart search sending no `?o=` at all,
-        # so the count is asserted against it rather than against one row per cart.
-        ranked = self.list_url(api_client, settings, "store.cart-list", self.CART_SEARCH_TERMS)
-
-        assert ranked.status_code == HTTPStatus.OK, response_body(ranked)
-        assert [result["id"] for result in response.data["results"]] == [
-            result["id"] for result in ranked.data["results"]
-        ]
+        assert customer_names("customer") == ["Test Customer 1", "Test Customer 2"]
+        assert customer_names("-customer") == ["Test Customer 2", "Test Customer 1"]
 
     def test_a_relation_whose_related_model_declares_no_ordering_is_kept(
         self,
@@ -1039,9 +1386,8 @@ class TestSearchDistinctPairsOnlyBareColumns:
         api_client,
         settings,
     ):
-        """The counterpart that has to keep working: `Distributor` declares no `Meta.ordering`, so
-        both sides of the query reach `store_product.distributor_id` and the ordering pairs. Rejecting
-        every relation name would sort this by rank instead."""
+        """`Distributor` declares no `Meta.ordering`, so `?o=distributor` sorts products by the local
+        foreign key column."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_m2m_search_relation_ordering"
 
         api_client.force_authenticate(user=test_data.users["test_admin@domain.invalid"])

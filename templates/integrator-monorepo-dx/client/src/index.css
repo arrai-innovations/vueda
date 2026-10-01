@@ -1,2 +1,14 @@
 @import "tailwindcss";
 @import "@vueda/theme/vueda-tailwind/base.css";
+/* base.css names IBM Plex Sans and JetBrains Mono but ships no font files.
+ * These imports load the variable builds, which register the families as
+ * "IBM Plex Sans Variable" and "JetBrains Mono Variable", so the :root rule
+ * below puts those names first. Remove the imports and the rule with the
+ * base.css import if you replace the vueda-tailwind theme. */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+:root {
+    --vueda-font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --vueda-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}

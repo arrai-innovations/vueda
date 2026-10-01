@@ -80,6 +80,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             ("test_user+timesheet+updater@domain.invalid", "PATCH"),
             ("test_user+timesheet+deleter@domain.invalid", "DELETE"),
             ("test_user+timesheet+lister@domain.invalid", "GET"),
+            ("test_user+timesheet+reader@domain.invalid", "HEAD"),
+            ("test_user+timesheet+lister@domain.invalid", "HEAD"),
         ],
         ids=[
             "read",
@@ -88,6 +90,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             "partial",
             "delete",
             "list",
+            "head-read",
+            "head-list",
         ],
     )
     def test_have_permission(self, email, http_method, api_client):
@@ -124,6 +128,11 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                     assert response.data["employee"] == e1.pk, response_body(response)
                     assert response.data["period_start"] == "2024-02-15", response_body(response)
                     assert response.data["period_end"] == "2024-02-29", response_body(response)
+            case "HEAD":
+                url = list_url if "lister" in email else detail_url
+                response = api_client.head(url)
+                self.assert_response(response, 200)
+                assert response.content == b""
             case "POST":
                 response = api_client.post(
                     list_url,
@@ -184,6 +193,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             ("PATCH", False),
             ("DELETE", False),
             ("GET", True),
+            ("HEAD", False),
+            ("HEAD", True),
         ],
         ids=[
             "read",
@@ -192,6 +203,8 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             "partial",
             "delete",
             "list",
+            "head-read",
+            "head-list",
         ],
     )
     def test_does_not_have_permission(self, http_method, is_list, api_client):
@@ -212,6 +225,10 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             case "GET":
                 url = list_url if is_list else detail_url
                 response = api_client.get(url, format="json")
+                self.assert_response(response, 403)
+            case "HEAD":
+                url = list_url if is_list else detail_url
+                response = api_client.head(url)
                 self.assert_response(response, 403)
             case "POST":
                 response = api_client.post(
@@ -249,6 +266,15 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
                 self.assert_response(response, 403)
             case _:
                 raise ValueError(f"Invalid http_method: {http_method}")
+
+    @pytest.mark.parametrize("http_method", ["GET", "HEAD"])
+    def test_does_not_have_permission_on_a_missing_pk(self, http_method, api_client):
+        """A missing pk is refused like an existing one, so the status does not reveal which rows exist."""
+        user = self.users["test_user+timesheet+no_permissions@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": 999999})
+        response = api_client.generic(http_method, detail_url)
+        self.assert_response(response, 403)
 
 
 @pytest.mark.django_db

@@ -750,8 +750,8 @@ When extending the primitive layer:
 
 ### 9.1 Theme-key class authoring: each token appears once
 
-A theme key's `class` array is flattened by `combineClasses`, which has
-**no tailwind-merge**. When the array mixes plain strings with conditional
+A theme key's `class` array is flattened by `combineClasses` before the
+registered Tailwind class merger resolves conflicting utilities. When the array mixes plain strings with conditional
 objects, it builds a flat `{ token: boolean }` map with **last-write-wins
 per token**, splitting compound keys. Two consequences shape how class
 arrays must be authored:
@@ -765,13 +765,20 @@ arrays must be authored:
   token appears exactly once across a slot's `class` array.** A token
   common to several branches must be hoisted to its own conditional entry,
   or to an unconditional string, never repeated in mutually-exclusive keys.
-- **Conflicting distinct utilities: CSS source order wins, not array
-  order.** Because the result is a flat class set (not tailwind-merged),
-  two different utilities in the same group (`gap-1` vs `gap-2`,
-  `min-w-0` vs `min-w-vueda-control`) both render, and the cascade picks
-  the one defined later in the compiled stylesheet, regardless of array
-  order. Don't rely on a later array entry "overriding" an earlier one;
-  make the conditions mutually exclusive or remove the loser.
+- **Conflicting distinct utilities: the later class wins.** The theme's
+  `classMerger.js` extends `tailwind-merge` with the utilities in `base.css`.
+  It runs after `combineClasses` applies false-key removals, so later classes
+  in an override replace conflicting defaults. Utilities for different
+  properties survive together, including `text-heading text-foreground`
+  and the intentionally composed `hairline focus-ring-shadow` pair. Keep
+  built-in recipes explicit about their conditions; the merger cannot
+  restore a token that an inactive branch already removed.
+
+Every component theme imports `patchTheme` from this theme's `registry.js`,
+which installs the merger before registering defaults. This keeps aggregate,
+family, and per-component imports consistent. Core and other themes do not
+import the Tailwind merger. The component's plain `class` prop stays outside
+this path; use `theme-override` to replace a default utility.
 
 The first rule is enforced by `tests/unit/lib/theme/classClobberGuard.spec.js`,
 which resolves every registered slot across a grid of prop values and fails

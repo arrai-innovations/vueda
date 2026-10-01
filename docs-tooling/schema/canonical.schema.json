@@ -2,7 +2,11 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://vueda.dev/schemas/docs-tooling/canonical.schema.json",
     "title": "DocBundle",
-    "oneOf": [{ "$ref": "#/$defs/DocNodeBundle" }, { "$ref": "#/$defs/ThemeKeysBundle" }],
+    "oneOf": [
+        { "$ref": "#/$defs/DocNodeBundle" },
+        { "$ref": "#/$defs/ThemeKeysBundle" },
+        { "$ref": "#/$defs/ConfigurationBundle" }
+    ],
     "$defs": {
         "DocNodeBundle": {
             "type": "object",
@@ -248,6 +252,159 @@
                 "line": { "type": "number" },
                 "column": { "type": "number" },
                 "url": { "type": "string" }
+            }
+        },
+        "ConfigurationBundle": {
+            "type": "object",
+            "required": ["schemaVersion", "source", "config", "settings", "djangoExemptions"],
+            "additionalProperties": false,
+            "properties": {
+                "schemaVersion": { "type": "string" },
+                "source": { "const": "configuration" },
+                "config": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "description", "settings", "when", "reads"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": { "type": "string" },
+                            "description": { "type": "string" },
+                            "settings": {
+                                "type": "array",
+                                "items": { "type": "string" }
+                            },
+                            "when": {
+                                "type": ["string", "null"]
+                            },
+                            "reads": {
+                                "type": "array",
+                                "items": { "$ref": "#/$defs/ConfigurationInputRead" }
+                            }
+                        }
+                    }
+                },
+                "settings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "description", "configKey", "definitions", "reads"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": { "type": "string" },
+                            "description": { "type": "string" },
+                            "configKey": {
+                                "type": ["string", "null"]
+                            },
+                            "definitions": {
+                                "type": "array",
+                                "items": { "$ref": "#/$defs/ConfigurationDefinition" }
+                            },
+                            "reads": {
+                                "type": "array",
+                                "items": { "$ref": "#/$defs/ConfigurationSettingRead" }
+                            }
+                        }
+                    }
+                },
+                "djangoExemptions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "reason"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": { "type": "string" },
+                            "reason": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        },
+        "ConfigurationInputRead": {
+            "type": "object",
+            "required": ["name", "accessor", "default", "source", "function", "conditions"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "accessor": { "type": "string" },
+                "default": {
+                    "type": ["string", "null"]
+                },
+                "source": {
+                    "type": "object",
+                    "required": ["file", "line"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "file": { "type": "string" },
+                        "line": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                },
+                "function": { "type": "string" },
+                "conditions": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
+            }
+        },
+        "ConfigurationDefinition": {
+            "type": "object",
+            "required": ["name", "path", "expression", "operation", "source", "function", "conditions"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "path": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "expression": { "type": "string" },
+                "operation": { "type": "string" },
+                "source": {
+                    "type": "object",
+                    "required": ["file", "line"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "file": { "type": "string" },
+                        "line": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                },
+                "function": { "type": "string" },
+                "conditions": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
+            }
+        },
+        "ConfigurationSettingRead": {
+            "type": "object",
+            "required": ["name", "access", "fallback", "source"],
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "access": {
+                    "enum": ["attribute", "getattr", "hasattr"]
+                },
+                "fallback": {
+                    "type": ["string", "null"]
+                },
+                "source": {
+                    "type": "object",
+                    "required": ["file", "line"],
+                    "additionalProperties": false,
+                    "properties": {
+                        "file": { "type": "string" },
+                        "line": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                }
             }
         }
     }

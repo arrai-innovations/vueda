@@ -48,9 +48,21 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    /**
+     * Called with the response after a successful submission, in place of the default, which shows nothing
+     * because the sign-in redirect announces itself.
+     */
+    onSubmissionSuccessHandler: {
+        type: Function,
+        default: undefined,
+    },
     ...THEME_OVERRIDE_PROPS,
 });
 const { formContext } = useSignInFlow(props);
+// useSignInFlow announces a completed sign-in once it redirects, so ActionForm's generic success toast would be
+// a second message for the same event. A caller's own onSubmissionSuccessHandler still takes precedence. It is a
+// declared prop, not an attr: Vue merges two `on*` bindings of one name into an array rather than overriding one.
+const leaveSuccessToSignInFlow = () => {};
 const theme = useTheme("AuthorizingForm", props);
 const emit = defineEmits([
     /** Emitted on mount with a readonly ref to the reactive form values object. */
@@ -89,7 +101,13 @@ onMounted(() => {
                         </div>
                         <!-- Replaces the default ActionForm; receives `runAction` and all inherited attrs as slot props. -->
                         <slot name="content" :run-action="runAction" v-bind="$attrs">
-                            <action-form :run-action="runAction" v-bind="$attrs">
+                            <action-form
+                                :run-action="runAction"
+                                :on-submission-success-handler="
+                                    props.onSubmissionSuccessHandler ?? leaveSuccessToSignInFlow
+                                "
+                                v-bind="$attrs"
+                            >
                                 <template v-for="(_, slot) in $slots" #[slot]="slotProps">
                                     <slot :name="slot" v-bind="slotProps || {}" />
                                 </template>

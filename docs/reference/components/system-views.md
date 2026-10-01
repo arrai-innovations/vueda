@@ -128,9 +128,9 @@ Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with sc
 
 ## ViewActionNotFound
 
-Model-action 404 fallback. Composes `SystemMessageCard(tone="info")` with a "404" crest showing the `app/model/action` key (action segment tinted destructive in the callout), a `TriedUrlCallout` with label `Action key`, a `SuggestionList(shape="action")` listing all registered actions for the closest matching model sorted by similarity to the tried action, a `DiagnosticStrip` debug footer, and a `Back` + `Browse all actions` actions row.
+Model-action 404 fallback. Composes `SystemMessageCard(tone="info")` with a "404" crest showing the `app/model/action` key (action segment tinted destructive in the callout), a `TriedUrlCallout` with label `Action key`, a `SuggestionList(shape="action")` listing the closest matching model's actions sorted by similarity to the tried action, a `DiagnosticStrip` debug footer, and a `Back` + `Browse all actions` actions row.
 
-Suggestions widen the previous closest-only behavior: every action on the closest model is rendered, sorted by `stringSimilarity` against the tried action name. HTTP verb chips in the action shape remain empty until the server exposes per-action verb metadata.
+Suggestions use each action's route name (`read` for `retrieve`) and leave out `partial_update`, which `update` serves. A detail action appears only when the tried route has a pk, and its link reuses that pk. The list is sorted by `stringSimilarity` against the tried action name. HTTP verb chips in the action shape remain empty until the server exposes per-action verb metadata.
 
 <VuedaDemo class="flex flex-col gap-5">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewActionNotFound — composed output (404 crest + action-key callout + available actions)</header>

@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -21,7 +21,7 @@ patchTheme({
                 "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground hover:bg-field-hover",
 
                 // Native select shell.
-                "field-line h-vueda-control w-full min-w-0 appearance-none rounded-vueda-field bg-field px-vueda-control-px pr-9 text-sm shadow-vueda-control transition-shadow",
+                "field-line h-vueda-control w-full min-w-0 appearance-none rounded-vueda-field bg-field px-vueda-control-px pr-9 text-sm transition-shadow",
 
                 // Disabled state.
                 // Disabled: an inert slab, not a faded field. See README section 7.6.

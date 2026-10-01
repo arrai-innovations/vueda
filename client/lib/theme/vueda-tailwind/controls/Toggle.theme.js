@@ -5,7 +5,7 @@
  * its consuming SFC, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire controls family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -37,8 +37,7 @@ patchTheme({
                 // bg-transparent key here would be cleared by the outline key anyway,
                 // since combineClasses is last-write-wins.)
                 {
-                    "hairline hairline-border-strong hover:hairline-foreground bg-transparent shadow-vueda-control":
-                        variant === "outline",
+                    "hairline hairline-border-strong hover:hairline-foreground bg-transparent": variant === "outline",
                 },
 
                 // Size classes.

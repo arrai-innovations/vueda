@@ -20,6 +20,7 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
     - [Theme keys](#theme-keys)
     - [CSS tokens](#css-tokens)
     - [Cross-references between sources](#cross-references-between-sources)
+  - [Server configuration](#server-configuration)
   - [Tests](#tests)
 
 <!--TOC-->
@@ -33,11 +34,11 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
 
 Default outputs live in `docs-tooling/.generated/`:
 
-- Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`, `theme-keys.json`, `css-tokens.json`
+- Raw extracts: `typedoc.json`, `vue-docgen.json`, `openapi.json`, `pdoc.json`, `theme-keys.json`, `css-tokens.json`, `configuration.json`
 - Canonical bundles: `*.canonical.json`
-- Rendered Markdown: `docs/reference/api/` for code references, and `docs/reference/theming/` for theme keys and CSS tokens
+- Rendered Markdown: `docs/reference/api/` for code references, `docs/reference/theming/` for theme keys and CSS tokens, and `docs/reference/configuration.md` for server configuration
 
-The root `just docs-render` command writes API references under `docs/reference/api/` and theming references under `docs/reference/theming/` for VitePress.
+The root `just docs-render` command writes API references under `docs/reference/api/`, theming references under `docs/reference/theming/`, and the server configuration reference at `docs/reference/configuration.md` for VitePress. It rewrites only the pages whose contents changed and deletes pages the render no longer produces, so a running `just docs-serve` reprocesses only what changed. A render limited with `--source` or redirected with `--output` deletes nothing.
 
 ## Sources
 
@@ -46,6 +47,7 @@ The root `just docs-render` command writes API references under `docs/reference/
 - DRF Spectacular (OpenAPI) from the server via `manage.py spectacular`.
 - pdoc (Python) against the server package, using `server/doc_settings.py`.
 - Theme keys, parsed from `client/lib/theme/vueda-tailwind/<family>/index.js` with @babel/parser. See "Theme keys and CSS tokens" below.
+- Server configuration, parsed from Python source with `ast`, with descriptions and conditions in `configuration.json`. See the [server annotation contract](./briefings/server-annotations.md#server-configuration).
 - CSS tokens, parsed from `client/lib/theme/vueda-tailwind/base.css` with PostCSS. See "Theme keys and CSS tokens" below.
 
 ## Structure
@@ -72,7 +74,7 @@ $ ./bin/docs-tooling.js extract --target all
 
 Options:
 
-- `--target` (`all`, `python`, `rest`, `javascript`, `components`, `theme-keys`, `css-tokens`)
+- `--target` (`all`, `python`, `rest`, `javascript`, `components`, `theme-keys`, `css-tokens`, `configuration`)
 - `--out-dir` (custom output dir)
 
 ### Normalize
@@ -83,19 +85,19 @@ $ ./bin/docs-tooling.js normalize --source all
 
 Options:
 
-- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`)
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`, `configuration`)
 - `--input` (single-source override)
 - `--output` (single-source override)
 
 ### Render
 
 ```console
-$ ./bin/docs-tooling.js render --source all --output ../docs/reference/api
+$ ./bin/docs-tooling.js render --source all
 ```
 
 Options:
 
-- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`)
+- `--source` (`all`, `typedoc`, `vue-docgen`, `openapi`, `pdoc`, `theme-keys`, `css-tokens`, `configuration`)
 - `--input` (single-source override)
 - `--output` (rendered Markdown dir)
 
@@ -160,6 +162,12 @@ Authoring conventions for `base.css` (group banners, trailing-comment descriptio
 ### Cross-references between sources
 
 When `render` is given both `vue-docgen` and `theme-keys` (the default with `--source all`), the CLI pre-loads a theme-keys component index and passes it to the vue-docgen renderer. Component pages then emit `Theme entry: {@api theme-key:<Component>}` when a matching key exists, so authored docs and generated component pages share the same `@api` reference scheme. See the [client annotation contract](./briefings/client-annotations.md) § Cross-references between sources for the full ID surface.
+
+## Server configuration
+
+The `configuration` source uses `py/dump_configuration.py` to scan env-adapter calls, factory declarations, and Django settings reads without importing Django. `configuration.json` supplies descriptions, config-to-setting mappings, conditional requirements, and explicit Django exemptions. Normalization rejects missing or stale entries before rendering `docs/reference/configuration.md`.
+
+Use `extract --target configuration`, `normalize --source configuration`, and `render --source configuration` for focused work. The default pipeline includes all three steps, so `just docs-validate` also checks configuration completeness. See the [server annotation contract](./briefings/server-annotations.md#server-configuration) for the authoring format and supported source patterns.
 
 ## Tests
 

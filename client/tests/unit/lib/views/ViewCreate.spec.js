@@ -57,7 +57,7 @@ const StickyBarStub = defineComponent({
 });
 const FormModelStub = defineComponent({
     name: "FormModelStub",
-    props: ["app", "model", "view", "variant"],
+    props: ["app", "model", "view", "variant", "fieldComponents", "widgetComponents"],
     setup(props, { slots, attrs }) {
         return () =>
             h(
@@ -192,6 +192,31 @@ describe("lib/views/ViewCreate.vue", () => {
         });
     });
 
+    describe("Component overrides", () => {
+        scopedIt("forwards fieldComponents and widgetComponents to FormModel", () => {
+            mockedInject.mockReturnValueOnce({});
+            const fieldComponents = { name: vi.fn() };
+            const widgetComponents = { email: vi.fn() };
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model", fieldComponents, widgetComponents },
+            });
+            const formModel = wrapper.findComponent(FormModelStub);
+            expect(formModel.props("fieldComponents")).toStrictEqual(fieldComponents);
+            expect(formModel.props("widgetComponents")).toStrictEqual(widgetComponents);
+        });
+
+        scopedIt("keeps model-config formProps component maps when the props are not passed", () => {
+            mockedInject.mockReturnValueOnce({});
+            const fieldComponents = { name: vi.fn() };
+            const widgetComponents = { email: vi.fn() };
+            modelConfig.config.formProps = { fieldComponents, widgetComponents };
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const formModel = wrapper.findComponent(FormModelStub);
+            expect(formModel.props("fieldComponents")).toStrictEqual(fieldComponents);
+            expect(formModel.props("widgetComponents")).toStrictEqual(widgetComponents);
+        });
+    });
+
     describe("Form integration", () => {
         scopedIt("emits form events and renders non-detail actions", async () => {
             mockedInject.mockReturnValueOnce({});
@@ -238,6 +263,47 @@ describe("lib/views/ViewCreate.vue", () => {
             const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
             const body = wrapper.find('[data-qa="create-form"]');
             expect(body.classes()).toEqual(expect.arrayContaining(["px-5", "py-5"]));
+        });
+    });
+
+    describe("Submit button", () => {
+        scopedIt("labels the default button Create and targets the form", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            const button = wrapper.get('[data-qa="create-action-buttons"] [data-qa="button"]');
+            expect(button.text()).toBe("Create");
+            expect(button.attributes("data-type")).toBe("submit");
+            expect(button.attributes("data-form")).toBe(wrapper.get("form").attributes("id"));
+        });
+
+        scopedIt("passes the Create label to the submit-button slot", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model" },
+                slots: {
+                    "submit-button": `<template #submit-button="{ label, type }">
+                        <button data-qa="custom-submit" :type="type">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Create");
+            expect(wrapper.find('[data-qa="create-action-buttons"] [data-qa="button"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders custom text from a submit-button slot override", () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, {
+                props: { app: "app", model: "model" },
+                slots: { "submit-button": `<button data-qa="custom-submit" type="submit">Add thing</button>` },
+            });
+            expect(wrapper.get('[data-qa="custom-submit"]').text()).toBe("Add thing");
+        });
+
+        scopedIt("submitting the form runs the create request", async () => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewCreate, { props: { app: "app", model: "model" } });
+            await wrapper.get("form").trigger("submit");
+            expect(objectForm.submit).toHaveBeenCalledTimes(1);
         });
     });
 

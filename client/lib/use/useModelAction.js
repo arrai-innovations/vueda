@@ -71,8 +71,9 @@ import { useRoute, useRouter } from "vue-router";
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
  *  crud handlers.
- * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Resolves `false` when
- *  the router reports a navigation failure, so `useActionForm` keeps the form usable.
+ * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Goes to the route's
+ *  `returnPath` query value when it has one. Otherwise it goes to the model config's `actionRedirects` entry for
+ *  the action. Resolves `false` when the router reports a navigation failure, so `useActionForm` keeps the form usable.
  */
 
 /**
@@ -233,7 +234,9 @@ export function useModelAction(props) {
         const redirects = modelConfig.config.actionRedirects || {};
         let redirect = redirects[props.action];
         if (redirect === undefined) {
-            redirect = redirects.default;
+            // A successful destroy removed the row, so no detail view of it can load. Cancel keeps the
+            // default, because the row still exists.
+            redirect = props.action === "destroy" && result === "success" ? "list" : redirects.default;
         }
         if (typeof redirect === "function") {
             redirect = redirect({ bulk: redirectBulk.value, result });

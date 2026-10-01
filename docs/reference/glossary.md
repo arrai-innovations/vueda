@@ -47,6 +47,10 @@ Django `ContentType` record identifying a model (`app_label`, `model`) used acro
 
 `create`, `read`, `update`, `delete`, `list` permission/action vocabulary used by VUEDA.
 
+## CRUDL Routes
+
+The two client routes that [`makeCRUDRoutes`]{@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} registers: a detail route at `/:app/:model/:action/:pk` for one object, and a list route at `/:app/:model/:action/` that takes comma-separated primary keys as the `pk` query value for a bulk action. Either route may carry a `returnPath` query value, where an action view goes after it finishes.
+
 ## CRUDL View Resolution
 
 The client-side mechanism that maps each CRUDL action to a Vue component via `setCrudComponents`, with `ViewActionRouter` selecting the correct component at render time.

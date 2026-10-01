@@ -20,7 +20,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         ({ storeModelInfo } = await import("@vueda/stores/storeModelInfo.js"));
         ({ AuthScopeInvalidatedError } = await import("@vueda/utils/errors.js"));
         // the store requests workflow data only for a model whose model info reports workflow
-        storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: true };
+        storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflowEnabled: true };
     });
 
     afterEach(() => {
@@ -64,7 +64,7 @@ describe("lib/stores/storeWorkflow.js", () => {
 
     describe("a model whose model info does not report workflow", () => {
         beforeEach(() => {
-            storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflow_enabled: false };
+            storeModelInfo().infos[getAppModelDotName({ app: "app", model: "model" })] = { workflowEnabled: false };
         });
 
         scopedIt.each([
@@ -88,7 +88,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
         const transitions = [{ code: "one", name: "One" }];
         const fetchModelInfo = vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
-            const info = { workflow_enabled: true };
+            const info = { workflowEnabled: true };
             modelInfoStore.infos[getAppModelDotName(args)] = info;
             return info;
         });
@@ -106,7 +106,7 @@ describe("lib/stores/storeWorkflow.js", () => {
         const modelInfoStore = storeModelInfo();
         delete modelInfoStore.infos[getAppModelDotName({ app: "app", model: "model" })];
         vi.spyOn(modelInfoStore, "fetchModelInfo").mockImplementation(async (args) => {
-            const info = { workflow_enabled: false };
+            const info = { workflowEnabled: false };
             modelInfoStore.infos[getAppModelDotName(args)] = info;
             return info;
         });
@@ -336,6 +336,24 @@ describe("lib/stores/storeWorkflow.js", () => {
 
         const options = mockedFetchHelper.mock.calls[0][1];
         expect(options.headers["Dry-Run"]).toBe("true");
+    });
+
+    scopedIt("executeTransition leaves cached state and route alone after a dry run", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { code: "closed", name: "Closed" },
+            new_transitions: [{ code: "reopen", name: "Reopen" }],
+        });
+        const store = storeWorkflow();
+        const key = getAppModelDotName({ app: "app", model: "model" });
+        store.objectStates[key] = { 1: { code: "open", name: "Open" } };
+        store.objectTransitions[key] = { 1: { transitions: [{ code: "close", name: "Close" }] } };
+        const router = { push: vi.fn() };
+
+        await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" }, true);
+
+        expect(store.objectStates[key]["1"]).toEqual({ code: "open", name: "Open" });
+        expect(store.objectTransitions[key]["1"]).toEqual({ transitions: [{ code: "close", name: "Close" }] });
+        expect(router.push).not.toHaveBeenCalled();
     });
 
     scopedIt("executeTransition adds Acknowledge-Warnings header when acknowledging warnings", async () => {

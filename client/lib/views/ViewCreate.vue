@@ -14,7 +14,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import omit from "lodash-es/omit.js";
-import { onMounted, toRef } from "vue";
+import { computed, onMounted, toRef } from "vue";
 
 /**
  * Form view for creating a new model instance, including a page title, a sticky submit button
@@ -53,6 +53,16 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
+    /** Map of field paths to async functions returning an override field component. */
+    fieldComponents: {
+        type: Object,
+        default: undefined,
+    },
+    /** Map of field paths to async functions returning an override widget component. */
+    widgetComponents: {
+        type: Object,
+        default: undefined,
+    },
     /** Extra props merged into the FormModel component, taking precedence over model-config defaults. */
     formProps: {
         type: Object,
@@ -68,8 +78,13 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** Field names included in the create submission payload; falls back to the model config's submitFields. */
+    /** Field paths sent in the create request body; falls back to the model config's submitFields when omitted or empty. */
     submitFields: {
+        type: Array,
+        default: undefined,
+    },
+    /** Field names the server returns in the create response; falls back to the model config's fetchFields when omitted or empty. */
+    fetchFields: {
         type: Array,
         default: undefined,
     },
@@ -86,6 +101,19 @@ const emit = defineEmits(["form-object", "form-context"]);
 const { formContext, objectForm, instance, actions, modelConfig } = useViewCreate(props);
 
 const theme = useTheme("ViewCreate", props);
+
+// Bound after combinedFormProps, and only when passed, so a component map set in model-config formProps still
+// applies when this view receives none.
+const componentOverrideProps = computed(() => {
+    const overrides = {};
+    if (props.fieldComponents !== undefined) {
+        overrides.fieldComponents = props.fieldComponents;
+    }
+    if (props.widgetComponents !== undefined) {
+        overrides.widgetComponents = props.widgetComponents;
+    }
+    return overrides;
+});
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -128,7 +156,7 @@ onMounted(() => {
                 >
                     <slot
                         :form="instance.formId"
-                        label="Submit"
+                        label="Create"
                         :loading="objectForm.state.loading"
                         :modified="formContext.state.anyModified"
                         name="submit-button"
@@ -141,7 +169,7 @@ onMounted(() => {
                             tone="primary"
                         >
                             <LoadingSpinnerInline v-if="objectForm.state.loading" />
-                            Submit
+                            Create
                         </Button>
                     </slot>
                 </div>
@@ -157,7 +185,7 @@ onMounted(() => {
             <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
                 <form-model
                     :app="app"
-                    v-bind="instance.combinedFormProps"
+                    v-bind="{ ...instance.combinedFormProps, ...componentOverrideProps }"
                     :field-props="props.fieldProps"
                     :model="model"
                     :variant="formModelVariant"

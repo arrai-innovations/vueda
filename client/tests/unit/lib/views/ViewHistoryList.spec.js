@@ -175,7 +175,7 @@ beforeEach(async () => {
     modelConfig = vue.reactive({
         loading: vue.ref(false),
         info: {
-            verbose_name: "Thing",
+            verboseName: "Thing",
             pk: "id",
             expand: [],
             fields: {},

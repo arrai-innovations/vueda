@@ -123,7 +123,7 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, FormattedNameBas
         url = self.generate_reset_url()
         context = {
             "reset_url": url,
-            "login_url": f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_LOGIN_URL}",
+            "login_url": f"{settings.FRONTEND_DOMAIN}{settings.FRONTEND_LOGIN_URL}",
             "support_email": settings.SUPPORT_EMAIL,
         }
         get_adapter().send_mail(self.email, self.name, "welcome_user", context)
@@ -136,7 +136,7 @@ class AbstractVUEDAUser(AbstractBaseUser, ActivatableBaseModel, FormattedNameBas
         hashids = Hashids(min_length=16)
         return (
             urljoin(
-                f"https://{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}/",
+                f"{settings.FRONTEND_DOMAIN}{settings.FRONTEND_RESET_URL}/",
                 hashids.encode(self.pk),
             )
             + "?token="

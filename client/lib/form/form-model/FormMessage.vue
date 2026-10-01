@@ -53,6 +53,8 @@ const theme = useTheme("FormMessage", props);
         :class="[theme('root'), props.class]"
         :style="theme.hideStyle?.value"
     >
+        <!-- Scroll target for the first-error jump when the first error is not tied to a field. -->
+        <a v-if="props.type === 'error'" :name="NON_FIELD_ERRORS_KEY" class="absolute" />
         <AlertDescription>
             <template v-if="messages.length === 1">
                 <!-- Replaces the rendering for a single message; receives `message` as a slot prop. -->

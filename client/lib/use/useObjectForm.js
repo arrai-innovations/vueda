@@ -11,6 +11,7 @@ import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constan
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
+import pick from "lodash-es/pick.js";
 import { computed, nextTick, onScopeDispose, reactive, watch } from "vue";
 import { useRouter } from "vue-router";
 
@@ -20,6 +21,9 @@ import { useRouter } from "vue-router";
  * @property {string} model - The model name.
  * @property {string} verboseName - The verbose name of the model.
  * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
+ * @property {string[]} [submitFields] - Field paths to send in the request body. A top-level name sends that
+ *  field's whole value; a dotted path sends only that nested value. When omitted, every non-ignored form value
+ *  is sent.
  */
 
 /**
@@ -509,7 +513,9 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             }
             const isUpdate = !!instanceObject.state.pk;
             const createOrUpdate = isUpdate ? instanceObject.update : instanceObject.create;
-            const formValues = formContext.state.submittingValues;
+            const formValues = props.submitFields
+                ? pick(formContext.state.submittingValues, props.submitFields)
+                : formContext.state.submittingValues;
             const args = {
                 object: {
                     ...formValues,

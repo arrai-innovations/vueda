@@ -265,16 +265,40 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.reauthenticate({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
         });
 
-        scopedIt("_handle_error stores pending flow on unauthorized error", async () => {
+        const handleFlows = async (flows) => {
             const store = storeUser();
             store.fetchCurrentUser = vi.fn(() => Promise.resolve());
-            const error = new UnauthorizedError("Unauthorized", undefined, { data: { flows: ["step1", "step2"] } });
+            await store._handle_error(new UnauthorizedError("Unauthorized", undefined, { data: { flows } }));
+            return store;
+        };
 
-            await store._handle_error(error);
+        scopedIt("_handle_error stores the flow marked pending, wherever it sits", async () => {
+            const mfa = { id: "mfa_authenticate", is_pending: true, types: ["totp"] };
+            const store = await handleFlows([
+                { id: "login" },
+                mfa,
+                { id: "password_reset_by_code", is_pending: false },
+            ]);
 
-            expect(store.pendingFlow).toBe("step2");
+            expect(store.pendingFlow).toEqual(mfa);
             expect(store.errored).toBe(false);
             expect(store.error).toBe(null);
+        });
+
+        scopedIt("_handle_error stores the reauthentication flow when none is marked pending", async () => {
+            const store = await handleFlows([
+                { id: "reauthenticate" },
+                { id: "mfa_reauthenticate" },
+                { id: "password_reset_by_code", is_pending: false },
+            ]);
+
+            expect(store.pendingFlow).toEqual({ id: "reauthenticate" });
+        });
+
+        scopedIt("_handle_error clears the pending flow when the response lists only available flows", async () => {
+            const store = await handleFlows([{ id: "login" }, { id: "signup" }]);
+
+            expect(store.pendingFlow).toBeNull();
         });
     });
 
@@ -315,6 +339,27 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.forgotPassword({ email: "test@domain.invalid" })).rejects.toBeInstanceOf(
                 FormValidationErrorClass,
             );
+        });
+
+        scopedIt("forgotPassword identifies the reset cooldown and preserves the server detail", async () => {
+            const response = { status: 429, statusText: "Too Many Requests" };
+            const data = { detail: "You must wait before requesting another password reset." };
+            getUrl.mockReturnValue("/forgot/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver(response, data));
+            });
+
+            const store = storeUser();
+            await expect(store.forgotPassword({ email: "reset@domain.invalid" })).rejects.toMatchObject({
+                name: "UserError",
+                message: "Password reset requested too recently: 429 Too Many Requests",
+                response,
+                responseData: data,
+            });
+            expect(store.error.responseData).toEqual(data);
+            expect(store.errored).toBe(true);
+            expect(store.loading).toBe(false);
         });
 
         scopedIt("changePassword posts payload", async () => {
@@ -427,6 +472,22 @@ describe("lib/stores/storeUser.js", () => {
             );
             expect(store.error).toBeInstanceOf(InvalidResetPasswordLinkError);
             expect(store.errored).toBe(true);
+        });
+
+        scopedIt("checkResetLinkIsValid builds the invalid link error from a 400 response", async () => {
+            const { InvalidResetPasswordLinkError } = await vi.importActual("@vueda/stores/storeUser.js");
+            getUrl.mockReturnValue("/reset/{pk}/{token}/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver({ status: 400, statusText: "Bad Request" }, { detail: "invalid" }));
+            });
+
+            const store = storeUser();
+            const error = await store.checkResetLinkIsValid({ pk: "1", token: "t" }).catch((caught) => caught);
+            expect(error).toBeInstanceOf(InvalidResetPasswordLinkError);
+            expect(error.message).toBe("Invalid password reset link: 400 Bad Request");
+            expect(error.response.status).toBe(400);
+            expect(error.responseData).toEqual({ detail: "invalid" });
         });
 
         scopedIt("checkResetLinkIsValid returns data on success", async () => {
