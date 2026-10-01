@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import os
 import shutil
 from pathlib import Path
 
@@ -9,10 +10,14 @@ from django.db.migrations.loader import MigrationLoader
 
 from tests.utils import BaseTestMigrations
 from vueda import workflow as workflow_module
+from vueda.workflow.management.commands import updateworkflowmigrations
 
 
 WORKFLOW_EVENTS = "0008_initialstateevent_objectstateevent_stateevent_and_more"
 VDQ_WORKFLOW = "0005_workflow_migrations_2025_11_21"
+
+# The directory holding both `vueda/` and `tests/`, whose apps carry workflow migrations of their own.
+SOURCE_TREE = Path(workflow_module.__file__).parents[2]
 
 
 def read_migration(path):
@@ -170,6 +175,107 @@ class TestWorkflowRewriteDependencies(BaseTestMigrations):
             assert "Updated 1 workflow migration(s)." in output.getvalue()
             assert f"Cannot update {path}:" not in errors.getvalue()
             assert b"old migration body" not in path.read_bytes()
+
+
+class TestInstalledPackageApps(BaseTestMigrations):
+    """A run with no app label passes over apps installed as packages.
+
+    Each test also counts the source tree as installed, so that a run with no app label reaches only
+    the temporary copy of ``vueda_vdq`` and never rewrites the test apps' own migrations.
+    """
+
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_no_label_leaves_an_installed_package_app_unchanged(self, settings, monkeypatch, dry_run):
+        with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
+            monkeypatch.setattr(
+                updateworkflowmigrations,
+                "INSTALLED_PACKAGE_PATHS",
+                (
+                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, directory)),
+                ),
+            )
+            # Compatible, so only being in a package keeps it from being rewritten.
+            write_workflow_migration(
+                Path(directory) / "0006_workflow_probe.py",
+                [("vueda_vdq", VDQ_WORKFLOW), ("vueda_workflow", WORKFLOW_EVENTS)],
+            )
+            originals = {path: path.read_bytes() for path in Path(directory).glob("*.py")}
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", dry_run=dry_run, stdout=output, stderr=errors)
+
+            assert {path: path.read_bytes() for path in originals} == originals
+            assert directory not in output.getvalue()
+            assert "No workflow migrations found to update." in output.getvalue()
+            assert errors.getvalue() == ""
+
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_named_installed_package_app_is_rejected(self, settings, monkeypatch, dry_run):
+        with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
+            monkeypatch.setattr(
+                updateworkflowmigrations,
+                "INSTALLED_PACKAGE_PATHS",
+                (
+                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, directory)),
+                ),
+            )
+            write_workflow_migration(
+                Path(directory) / "0006_workflow_probe.py",
+                [("vueda_vdq", VDQ_WORKFLOW), ("vueda_workflow", WORKFLOW_EVENTS)],
+            )
+            originals = {path: path.read_bytes() for path in Path(directory).glob("*.py")}
+            output, errors = io.StringIO(), io.StringIO()
+
+            with pytest.raises(SystemExit) as failure:
+                call_command("updateworkflowmigrations", "vueda_vdq", dry_run=dry_run, stdout=output, stderr=errors)
+
+            assert failure.value.code == 2  # noqa: PLR2004
+            assert {path: path.read_bytes() for path in originals} == originals
+            assert (
+                f"App 'vueda_vdq' is part of an installed package at {directory}. "
+                "updateworkflowmigrations will not update installed packages."
+            ) in errors.getvalue()
+            assert output.getvalue() == ""
+
+    def test_no_label_updates_an_app_outside_installed_packages(self, settings, monkeypatch):
+        with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
+            monkeypatch.setattr(
+                updateworkflowmigrations,
+                "INSTALLED_PACKAGE_PATHS",
+                (*updateworkflowmigrations.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(SOURCE_TREE))),
+            )
+            path = Path(directory) / "0006_workflow_probe.py"
+            write_workflow_migration(path, [("vueda_vdq", VDQ_WORKFLOW), ("vueda_workflow", WORKFLOW_EVENTS)])
+            output, errors = io.StringIO(), io.StringIO()
+
+            with pytest.raises(SystemExit) as failure:
+                call_command("updateworkflowmigrations", stdout=output, stderr=errors)
+
+            assert failure.value.code == 1  # The two original vdq migrations cannot be rewritten.
+            assert "Updated 1 workflow migration(s)." in output.getvalue()
+            assert "Failed updating 2 workflow migration(s)." in output.getvalue()
+            assert b"old migration body" not in path.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "expected"),
+    [
+        ("site-packages", True),
+        ("site-packages/somepackage/migrations", True),
+        ("site-packages-old/somepackage/migrations", False),
+        ("project/somepackage/migrations", False),
+    ],
+)
+def test_is_installed_package_path(tmp_path, monkeypatch, relative_path, expected):
+    monkeypatch.setattr(
+        updateworkflowmigrations,
+        "INSTALLED_PACKAGE_PATHS",
+        (os.path.normcase(os.path.realpath(tmp_path / "site-packages")),),
+    )
+
+    assert updateworkflowmigrations.is_installed_package_path(tmp_path / relative_path) is expected
 
 
 def workflow_references(value):
