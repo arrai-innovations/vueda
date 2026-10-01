@@ -11,7 +11,7 @@ from django.core.checks import Warning as CheckWarning
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.query import Query
-from rest_flex_fields import WILDCARD_VALUES
+from rest_flex_fields2.config import WILDCARD_VALUES
 
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION

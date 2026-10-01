@@ -50,8 +50,8 @@ The server enforces authorization independently of what the client displays.
 
 ## Get started
 
-VUEDA requires PostgreSQL. This version supports Python 3.11 to 3.14 and Django
-5.2 to 6.1, subject to the dependency constraints in the package metadata.
+VUEDA requires PostgreSQL. This version supports Python 3.12 to 3.14 and Django
+6.1, subject to the dependency constraints in the package metadata.
 
 For a new application, follow
 [Start Building](https://vueda.dev/v3/tutorials/start-building.html). The starter

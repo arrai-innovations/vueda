@@ -25,7 +25,7 @@ from vueda.workflow.serializers import StateSerializer
 from vueda.workflow.serializers import TransitionSerializer
 
 
-EXPAND_PARAM = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
+EXPAND_PARAM = settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]
 
 
 class WorkflowErrorSerializer(serializers.Serializer):

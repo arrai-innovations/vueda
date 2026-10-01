@@ -2,7 +2,7 @@
 
 import inspect
 
-import rest_flex_fields.serializers as flex_serializers
+import rest_flex_fields2.serializers as flex_serializers
 from django.conf import settings
 from django.core.checks import Error
 from django.core.checks import Warning as CheckWarning
@@ -170,7 +170,7 @@ def _get_routed_serializer_classes():
 
     Walking the resolved URL conf (rather than vueda.info's registry) means this covers any DRF ViewSet
     with a router route, not just ones registered with VUEDA's meta-info system -- the expandable_fields
-    format being validated comes from rest_flex_fields, not VUEDA.
+    format being validated comes from rest_flex_fields2, not VUEDA.
     """
     from django.urls import URLPattern
     from django.urls import URLResolver

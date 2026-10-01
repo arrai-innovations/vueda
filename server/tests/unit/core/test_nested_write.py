@@ -332,7 +332,7 @@ class TestReadonlyForwardRelation(BaseTestUserMixin):
         customer = store_models.Customer.objects.create(user=self.users["cart_owner@domain.invalid"])
         cart = store_models.Cart.objects.create(customer=customer)
         data = {"reserved_until": "10:00"}
-        request = FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["customer"]}, data, "PATCH")
+        request = FakeRequest({settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: ["customer"]}, data, "PATCH")
         view = FakeView(
             request, _CartExpandingReadonlyCustomerSerializer, queryset=store_models.Cart.objects.filter(pk=cart.pk)
         )

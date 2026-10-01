@@ -30,7 +30,7 @@ from http.client import responses
 
 from django.conf import settings
 from django.db import models
-from rest_flex_fields import WILDCARD_VALUES
+from rest_flex_fields2.config import WILDCARD_VALUES
 from rest_framework import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
@@ -613,7 +613,7 @@ else:
             """
             expandable_fields = getattr(getattr(serializer, "Meta", None), "expandable_fields", None) or {}
             properties = schema.setdefault("properties", {})
-            expand_param = settings.REST_FLEX_FIELDS["EXPAND_PARAM"]
+            expand_param = settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]
             for name, definition in expandable_fields.items():
                 if name in properties:
                     continue
