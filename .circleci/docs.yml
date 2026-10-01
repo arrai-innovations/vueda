@@ -30,7 +30,6 @@ jobs:
                 default: true
         executor: python311-node
         resource_class: medium
-        circleci_ip_ranges: true
         steps:
             - checkout
             - utils/add_ssh_config
@@ -272,7 +271,7 @@ workflows:
                       branches:
                           ignore:
                               - main
-            - pytest/pytest_fixed_ip:
+            - pytest/pytest:
                   name: docs-tooling-test-py
                   context: arrai-global
                   executor: python311

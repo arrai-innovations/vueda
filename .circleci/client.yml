@@ -46,8 +46,6 @@ jobs:
                 default: true
         executor: node-lts
         resource_class: medium+
-        # Only the badge run uploads to the docs host, which needs IP ranges.
-        circleci_ip_ranges: <<parameters.create_badges>>
         steps:
             - checkout
             - utils/add_ssh_config
@@ -182,7 +180,7 @@ workflows:
 
     client-lint:
         jobs:
-            - lintinator/lint_python_fixed_ip:
+            - lintinator/lint_python:
                   name: client-lint
                   context: arrai-global
                   executor: lintinator/python311
@@ -238,7 +236,7 @@ workflows:
 
     client-audit:
         jobs:
-            - pnpm/audit_fixed_ip:
+            - pnpm/audit:
                   name: client-pnpm-audit
                   context: arrai-global
                   executor: pnpm/lts
