@@ -82,7 +82,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
     @pytest.mark.parametrize(
         ("email", "product_name"),
         [
-            pytest.param("test_super_user@domain.invalid", "Apple", id="superuser"),
+            pytest.param("test_super_user@domain.invalid", "Banana", id="superuser-sees-product-not-for-sale"),
             pytest.param("test_admin@domain.invalid", "Banana", id="manager-sees-product-not-for-sale"),
             pytest.param("test_customer@domain.invalid", "Apple", id="purchaser-sees-product-for-sale"),
         ],
