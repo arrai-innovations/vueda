@@ -93,6 +93,20 @@ When the Celery worker processes an email queue item:
 
 **Non-transient failures** (authentication errors, malformed payloads, permanent provider rejections) propagate to the task failure handler, which appends traceback text to `result`, clears `retry_delay`, and transitions to `errored`.
 
+### ESPs without metadata support
+
+The default tracking strategy puts the queue item's key in the Anymail `metadata`. On an ESP that does not accept metadata, every send then takes the fallback path: Anymail raises `AnymailUnsupportedFeature` while it builds the request, `send_email` writes an info log line, and the email is built and sent a second time without the key. The email goes out once, and tracking events for it match by `message_id` only.
+
+To avoid the log line and the second build, select the no-op strategy:
+
+```python
+VDQ_EMAIL_TRACKING_STRATEGY = "vueda.vdq.tracking.EmailTrackingStrategy"
+```
+
+This changes nothing else about the send. Write a custom subclass instead when the ESP can carry the key another way, such as in a tag.
+
+If your project already runs Anymail with `IGNORE_UNSUPPORTED_FEATURES` on, Anymail drops the metadata without raising, so the default strategy sends on the first attempt and writes no log line.
+
 ## Tracking Events and Final States
 
 Anymail tracking events drive the final state transition for email queue items. The VDQ handler `handle_bounce` processes tracking signals keyed by Anymail `message_id`:
