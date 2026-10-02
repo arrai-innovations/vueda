@@ -1,8 +1,10 @@
+import datetime
 import importlib.util
 import io
 import os
 import shutil
 from pathlib import Path
+from pprint import pformat
 
 import pytest
 from django.core.management import call_command
@@ -15,6 +17,7 @@ from vueda.workflow.management.commands import updateworkflowmigrations
 
 WORKFLOW_EVENTS = "0008_initialstateevent_objectstateevent_stateevent_and_more"
 VDQ_WORKFLOW = "0005_workflow_migrations_2025_11_21"
+PRODUCT_LATEST = "0004_productcascadeorderedbyformattedname_and_more"
 
 # The directory holding both `vueda/` and `tests/`, whose apps carry workflow migrations of their own.
 SOURCE_TREE = Path(workflow_module.__file__).parents[2]
@@ -27,17 +30,18 @@ def read_migration(path):
     return module
 
 
-def write_workflow_migration(path, dependencies, *, import_instead=False):
+def write_workflow_migration(path, dependencies, *, import_instead=False, changed_data=()):
     imports = ""
     if import_instead:
         imports = "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
     path.write_text(
         "# Modified using VUEDA makeworkflowmigrations command.  Please do not delete this comment.\n"
+        "import datetime\n"
         "from django.db import migrations\n"
         f"{imports}\n"
         'history_change_reason = "Test workflow migration"\n'
         'migration_app_label = "vueda_vdq"\n'
-        "changed_data = []\n\n"
+        f"changed_data = {pformat(list(changed_data))}\n\n"
         "def forwards_migrate_workflow_through_imports(apps, schema_editor):\n"
         '    raise AssertionError("old migration body")\n\n'
         "class Migration(migrations.Migration):\n"
@@ -178,10 +182,10 @@ class TestWorkflowRewriteDependencies(BaseTestMigrations):
 
 
 class TestInstalledPackageApps(BaseTestMigrations):
-    """A run with no app label passes over apps installed as packages.
+    """Apps installed as packages are read, but never rewritten.
 
-    Each test also counts the source tree as installed, so that a run with no app label reaches only
-    the temporary copy of ``vueda_vdq`` and never rewrites the test apps' own migrations.
+    Each test also counts the source tree as installed, so that a run with no app label rewrites only
+    the temporary copies and never the test apps' own migrations.
     """
 
     @pytest.mark.parametrize("dry_run", [False, True])
@@ -257,6 +261,180 @@ class TestInstalledPackageApps(BaseTestMigrations):
             assert "Updated 1 workflow migration(s)." in output.getvalue()
             assert "Failed updating 2 workflow migration(s)." in output.getvalue()
             assert b"old migration body" not in path.read_bytes()
+
+    @pytest.mark.parametrize("app_labels", [(), ("product",)])
+    def test_reference_names_the_workflow_an_installed_package_recorded(self, settings, monkeypatch, app_labels):
+        """A project reference names the workflow that held its code when it was recorded.
+
+        Only the package's migrations record that workflow. The project later creates another workflow
+        with the same code, after the package renamed its own.
+        """
+        with (
+            self.temporary_migration_module(settings, app_label="vueda_vdq") as package_directory,
+            self.temporary_migration_module(settings, app_label="product") as project_directory,
+        ):
+            monkeypatch.setattr(
+                updateworkflowmigrations,
+                "INSTALLED_PACKAGE_PATHS",
+                (
+                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, package_directory)),
+                ),
+            )
+            package_directory, project_directory = Path(package_directory), Path(project_directory)
+            package_workflow = {"code": "reused", "historical_app_label": "product", "historical_model": "product"}
+
+            # 1. The package creates workflow `reused` for product.product.
+            write_workflow_migration(
+                package_directory / "0008_workflow_created.py",
+                [("vueda_vdq", VDQ_WORKFLOW), ("vueda_workflow", WORKFLOW_EVENTS)],
+                changed_data=[
+                    {
+                        "changes": {**package_workflow, "id": package_workflow, "name": "Reused"},
+                        "history_date": datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+                        "history_type": "added",
+                        "model_name": "workflow",
+                    }
+                ],
+            )
+            # 2. The project records a state whose workflow reference names the code alone.
+            state_path = project_directory / "0005_workflow_state.py"
+            write_workflow_migration(
+                state_path,
+                [("product", PRODUCT_LATEST), ("vueda_vdq", "0008_workflow_created")],
+                changed_data=[
+                    {
+                        "changes": {
+                            "code": "pending",
+                            "id": {"code": "pending", "workflow_id": {"code": "reused"}},
+                            "name": "Pending",
+                            "workflow_id": {"code": "reused"},
+                        },
+                        "history_date": datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC),
+                        "history_type": "added",
+                        "model_name": "state",
+                    }
+                ],
+            )
+            # 3. The package renames its workflow code to `retired`.
+            write_workflow_migration(
+                package_directory / "0009_workflow_renamed.py",
+                [("vueda_vdq", "0008_workflow_created"), ("product", "0005_workflow_state")],
+                changed_data=[
+                    {
+                        "changes": {
+                            "code": ("reused", "retired"),
+                            "historical_app_label": "product",
+                            "historical_model": "product",
+                            "id": {
+                                "code": ("reused", "retired"),
+                                "historical_app_label": "product",
+                                "historical_model": "product",
+                            },
+                            "name": "Reused",
+                        },
+                        "history_date": datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC),
+                        "history_type": "changed",
+                        "model_name": "workflow",
+                    }
+                ],
+            )
+            # 4. The project creates workflow `reused` for vueda_vdq.job.
+            write_workflow_migration(
+                project_directory / "0006_workflow_reused.py",
+                [("product", "0005_workflow_state"), ("vueda_vdq", "0009_workflow_renamed")],
+                changed_data=[
+                    {
+                        "changes": {
+                            "code": "reused",
+                            "historical_app_label": "vueda_vdq",
+                            "historical_model": "job",
+                            "id": {"code": "reused"},
+                            "name": "Reused",
+                        },
+                        "history_date": datetime.datetime(2026, 1, 4, tzinfo=datetime.UTC),
+                        "history_type": "added",
+                        "model_name": "workflow",
+                    }
+                ],
+            )
+            package_originals = {path: path.read_bytes() for path in package_directory.glob("*.py")}
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", *app_labels, stdout=output, stderr=errors)
+
+            assert {path: path.read_bytes() for path in package_originals} == package_originals
+            assert "Updated 2 workflow migration(s)." in output.getvalue()
+            assert errors.getvalue() == ""
+            state_changes = read_migration(state_path).changed_data[0]["changes"]
+            assert state_changes["workflow_id"] == package_workflow
+            assert state_changes["id"]["workflow_id"] == package_workflow
+
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_dependency_check_imports_installed_package_migrations(self, settings, monkeypatch, dry_run):
+        """Checking a project migration's dependencies loads the whole graph, package migrations included."""
+        with (
+            self.temporary_migration_module(settings, app_label="vueda_vdq") as package_directory,
+            self.temporary_migration_module(settings, app_label="product") as project_directory,
+        ):
+            monkeypatch.setattr(
+                updateworkflowmigrations,
+                "INSTALLED_PACKAGE_PATHS",
+                (
+                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, package_directory)),
+                ),
+            )
+            # Not a workflow migration, so only the dependency check imports it.
+            (Path(package_directory) / "0008_raises_on_import.py").write_text(
+                'raise RuntimeError("package migration imported")\n'
+            )
+            path = Path(project_directory) / "0005_workflow_probe.py"
+            write_workflow_migration(path, [("product", PRODUCT_LATEST), ("vueda_workflow", WORKFLOW_EVENTS)])
+            originals = {
+                item: item.read_bytes()
+                for directory in (package_directory, project_directory)
+                for item in Path(directory).glob("*.py")
+            }
+            output, errors = io.StringIO(), io.StringIO()
+
+            with pytest.raises(SystemExit) as failure:
+                call_command("updateworkflowmigrations", dry_run=dry_run, stdout=output, stderr=errors)
+
+            assert failure.value.code == 1
+            assert f"Cannot resolve migration dependencies for {path}: package migration imported, skipping." in (
+                errors.getvalue()
+            )
+            assert ("Would have failed updating" if dry_run else "Failed updating") + " 1 workflow migration(s)." in (
+                output.getvalue()
+            )
+            assert {item: item.read_bytes() for item in originals} == originals
+
+
+@pytest.mark.parametrize(
+    ("entries", "expected"),
+    [
+        # Recorded before the only workflow to hold the code, so it means that workflow.
+        (
+            [(datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"})],
+            {"historical_model": "first"},
+        ),
+        # Recorded before every workflow to hold the code, so which one it means cannot be told.
+        (
+            [
+                (datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"}),
+                (datetime.datetime(2026, 1, 4, tzinfo=datetime.UTC), {"historical_model": "second"}),
+            ],
+            None,
+        ),
+    ],
+)
+def test_workflow_identity_at_a_reference_recorded_before_every_workflow(entries, expected):
+    identity = updateworkflowmigrations.workflow_identity_at(
+        {"reused": entries}, "reused", datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC)
+    )
+
+    assert identity == expected
 
 
 @pytest.mark.parametrize(
