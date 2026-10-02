@@ -70,15 +70,23 @@ Content-Type: application/json
 }
 ```
 
-Omitting `e=customer` while sending `customer` as an object would cause a type error. Validate `e` against the payload shape on write requests, not just on `read` requests. `e` has to be explicit because expand membership is what `permit_{action}_expands` checks to authorize a nested write on that relation in the first place.
+Omitting `e=customer` while sending `customer` as an object would cause a type error. Validate `e` against the payload shape on write requests, not just on `read` requests. `permit_{action}_expands` controls which expanded payloads the action accepts. The related-row permission checks below separately authorize mutations.
 
 The `f` (fields) and `om` (omit) sparse-fieldset parameters shape the response only. They never change what a write validates: a write always validates against the serializer's full field set, so a field the body supplies is validated fully even when `f`/`om` would exclude it from the response. On `create` and full `update`, this means the request body must supply every required field regardless of `f`/`om`. On a partial update, whether a field is required at all still follows the normal partial-update rule -- a field the body omits stays optional, `f`/`om`-excluded or not.
+
+## Permissions for Related Rows
+
+Nested shared-row mutations use the related model's canonical viewset permissions; [Related-row authorization](../core-concepts/nested-write-compatibility#related-row-authorization) defines the checks, errors, and rollback rules.
+
+Register each related model you intend to create or update with `info.register(serializer, viewset)` and grant the required create or update permissions. A serializer-only registration cannot authorize those mutations.
+
+To link an existing row without changing it, send only its primary key, for example `{"customer": {"id": 42}}`. Omit the other fields instead of resubmitting the row's display data. This path needs no related update permission and runs no related save hooks.
 
 ## Reverse-Relation Update Semantics
 
 When updating an existing parent object, reverse-relation handling follows a fixed sequence defined by the mixin. Understanding this sequence is critical because it determines the behaviour of deletions.
 
-**Matching by PK.** Child objects in the payload are matched to existing database rows by their PK field. Children with a PK that matches an existing row are updated. Children without a PK (or with a PK not present in the database) are created as new rows.
+**Matching by PK.** Parent-owned reverse children match only rows already belonging to the parent. A missing or unmatched PK creates a new child without moving another parent's row. Many-to-many entries follow the related-row rules above: an unknown PK is an error.
 
 **Omission means deletion.** Existing child rows whose PKs are absent from the incoming payload are deleted. This is the `drf-writable-nested` default: the payload is treated as the complete set of children. If the intent is to leave existing children unchanged, include them in the payload with their PKs.
 
@@ -139,6 +147,8 @@ After implementing nested writes, verify the following:
 - Updating a parent with modified, added, and removed children applies all three changes correctly.
 - Omitting a child from an `update` payload deletes that child.
 - Sending object payloads without matching `e` parameters produces `incorrect_type` errors, not silent failures.
+- Related creates and updates require the related viewset's permissions; a denied entry leaves all rows unchanged.
+- Pk-only links work without related update permission and do not invoke related save hooks.
 - Readonly inline relations ignore write data without errors.
 - Nested validation errors appear as focusable form field errors on the client.
 - A POST/PUT with `f`/`om` still requires every required field; a PATCH with `f`/`om` still validates every field the body supplies. Only the response is narrowed.

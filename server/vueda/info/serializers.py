@@ -37,7 +37,8 @@ from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
 from vueda.core.installed_apps import workflow_enabled
-from vueda.core.open_api import replace_refs_with_schema
+from vueda.core.open_api import conditional_extend_schema_field_decorator
+from vueda.core.open_api import route_path
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
@@ -53,6 +54,14 @@ from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
 from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
+from vueda.info.schema import MODEL_INFO_DETAIL_EXAMPLES
+from vueda.info.schema import ModelInfoActionSerializer
+from vueda.info.schema import ModelInfoColumnTotalsSerializer
+from vueda.info.schema import ModelInfoExpandSerializer
+from vueda.info.schema import ModelInfoFieldSerializer
+from vueda.info.schema import ModelInfoFilterSerializer
+from vueda.info.schema import ModelInfoOrderingSerializer
+from vueda.info.schema import ModelInfoPermissionSerializer
 
 
 class UnnameableOrderingTermError(Exception):
@@ -169,6 +178,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return super().data
 
+    @conditional_extend_schema_field_decorator(ModelInfoPermissionSerializer(many=True))
     def get_model_permissions(self, instance):
         """
         Get the permissions for a model. Read-only serializers only ever expose list/retrieve
@@ -405,6 +415,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             field_data["pk"] = True
 
     # re: naming, we don't want to conflict with super's get_fields, we are unrelated to that method
+    @conditional_extend_schema_field_decorator(serializers.DictField(child=ModelInfoFieldSerializer()))
     def get_model_fields(self, instance):
         """
         Get the fields for a model and their own metadata.
@@ -425,6 +436,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return fields
 
+    @conditional_extend_schema_field_decorator(ModelInfoActionSerializer(many=True))
     def get_model_actions(self, instance):
         """
         Get the actions for a model and their own metadata.
@@ -510,6 +522,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return action_data
 
+    @conditional_extend_schema_field_decorator(ModelInfoExpandSerializer(many=True))
     def get_model_expands(self, instance):
         """
         Get the expands for a model and their own metadata.
@@ -546,6 +559,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return expands
 
+    @conditional_extend_schema_field_decorator(ModelInfoColumnTotalsSerializer())
     def get_model_column_totals(self, instance):
         """
         The column totals a ``list`` request may ask for.
@@ -699,6 +713,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return default
 
+    @conditional_extend_schema_field_decorator(ModelInfoOrderingSerializer())
     def get_model_ordering(self, instance):
         """
         Get the ordering fields for a model and their own metadata.
@@ -1104,6 +1119,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return choices, None
 
+    def get_model_filtering_type(self, filter_name, filter_obj, field):
+        # Report value-derived filters by their own type, so the client maps them to an input that
+        # fetches the column's stored values.
+        if isinstance(filter_obj, AllValuesMultipleFilter):
+            return "AllValuesMultipleChoiceField"
+        if isinstance(filter_obj, AllValuesFilter):
+            return "AllValuesChoiceField"
+        return self.get_model_fields_serializer_field_type(filter_name, field, True)
+
     def get_model_filtering_choices(self, filterset, filter_obj, field, widget):
         if isinstance(filter_obj, (AllValuesFilter, AllValuesMultipleFilter)):
             # These filters build their choices from the values currently stored in the column, so the
@@ -1254,6 +1278,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return None, None
 
+    @conditional_extend_schema_field_decorator(serializers.DictField(child=ModelInfoFilterSerializer()))
     def get_model_filtering(self, instance):  # noqa C901 - complexity of 21
         """
         Get the filtering fields for a model and their own metadata.
@@ -1312,7 +1337,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
                 field_type_db = self.get_model_fields_db_field_type(filter_name, model_field, True)
                 field_type_model = self.get_model_fields_model_field_type(filter_name, model_field, True)
-                field_type_filter = self.get_model_fields_serializer_field_type(filter_name, field, True)
+                field_type_filter = self.get_model_filtering_type(filter_name, filter_obj, field)
 
                 filtering_data[filter_name] = {
                     "hidden": widget.is_hidden if hasattr(widget, "is_hidden") else False,
@@ -1424,21 +1449,20 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return parameters
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info/" | "/routes/vueda.info/model_info/{app_label}/{model}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info/" | "/vueda.info/model_info/{app_label}/{model}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
 
     def customize_schema_response_data(self, auto_schema, response_data):  # pragma: no cover
-        from vueda.info.schema import CHOICES_TRUE_SCHEMA_DESCRIPTION
 
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List models
-                case ("GET", "/routes/vueda.info/model_info/", "200"):
+                case ("GET", "/vueda.info/model_info/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoExample": {
                             "summary": "With Results",
@@ -1451,6 +1475,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "distributor",
                                         "verbose_name": "distributor",
                                         "verbose_name_plural": "distributors",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 2,
@@ -1458,6 +1483,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "optiontype",
                                         "verbose_name": "option type",
                                         "verbose_name_plural": "option types",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 6,
@@ -1465,6 +1491,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "customer",
                                         "verbose_name": "customer",
                                         "verbose_name_plural": "customers",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 7,
@@ -1472,6 +1499,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "cart",
                                         "verbose_name": "cart",
                                         "verbose_name_plural": "carts",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 8,
@@ -1479,6 +1507,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "customerorder",
                                         "verbose_name": "customer order",
                                         "verbose_name_plural": "customer orders",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 11,
@@ -1486,6 +1515,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "inventoryrecordreason",
                                         "verbose_name": "inventory entry reason",
                                         "verbose_name_plural": "inventory entry reasons",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 13,
@@ -1493,6 +1523,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "product",
                                         "verbose_name": "product",
                                         "verbose_name_plural": "products",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 15,
@@ -1500,6 +1531,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "productoption",
                                         "verbose_name": "product option",
                                         "verbose_name_plural": "product options",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 16,
@@ -1507,6 +1539,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "orderitem",
                                         "verbose_name": "ORDER item",
                                         "verbose_name_plural": "ORDER items",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 17,
@@ -1514,6 +1547,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "inventoryrecord",
                                         "verbose_name": "inventory entry",
                                         "verbose_name_plural": "inventory entries",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 19,
@@ -1521,6 +1555,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "cartitem",
                                         "verbose_name": "cart item",
                                         "verbose_name_plural": "cart items",
+                                        "workflow_enabled": False,
                                     },
                                     {
                                         "id": 24,
@@ -1528,11 +1563,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "model": "packingbox",
                                         "verbose_name": "Packing Box",
                                         "verbose_name_plural": "Packing Boxes",
+                                        "workflow_enabled": False,
                                     },
                                 ],
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 12,
+                                "columnTotals": {},
                             },
                         },
                         "ListModelInfoNoResultsExample": {
@@ -1543,6 +1580,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 0,
+                                "columnTotals": {},
                             },
                         },
                     }
@@ -1581,1350 +1619,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     }
 
                 # Get model
-                case ("GET", "/routes/vueda.info/model_info/{app_label}/{model}/", "200"):
-                    replace_refs_with_schema(
-                        auto_schema.registry._components, data, ("#/components/schemas/ModelInfo",)
-                    )
-
-                    # Model Actions
-                    data["content"]["application/json"]["schema"]["properties"]["model_actions"] = {
-                        "type": "array",
-                        "title": "Action Data",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                },
-                                "bulk": {
-                                    "type": "boolean",
-                                    "readOnly": True,
-                                },
-                                "description": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                },
-                                "detail": {
-                                    "type": "boolean",
-                                    "readOnly": True,
-                                },
-                                "method_names": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string",
-                                    },
-                                    "enum": [
-                                        "get",
-                                        "post",
-                                        "put",
-                                        "patch",
-                                        "delete",
-                                    ],
-                                    "description": "<ul><li>get -> list (detail true)</li>"
-                                    + "<li>get -> retrieve (detail false)</li>"
-                                    + "<li>post -> create</li>"
-                                    + "<li>put -> update</li>"
-                                    + "<li>patch -> partial_update</li>"
-                                    + "<li>delete -> destroy</li></ul>",
-                                },
-                                "parameters": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string",
-                                    },
-                                    "example": "pk",
-                                    "description": "Additional parameters needed to call the action.",
-                                },
-                            },
-                            "required": [
-                                "name",
-                                "bulk",
-                                "description",
-                                "detail",
-                                "method_names",
-                            ],
-                        },
-                    }
-
-                    # Model Expands
-                    data["content"]["application/json"]["schema"]["properties"]["model_expands"] = {
-                        "type": "array",
-                        "title": "Expands Data",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                },
-                                "app_label": {
-                                    "title": "django app name",
-                                    "pattern": "^[a-zA-Z0-9_]+$",
-                                    "maxLength": 100,
-                                    "example": "store",
-                                },
-                                "model": {
-                                    "title": "model class name",
-                                    "pattern": "^[a-zA-Z0-9_]+$",
-                                    "maxLength": 100,
-                                    "example": "product",
-                                },
-                                "many": {
-                                    "type": "boolean",
-                                    "readOnly": True,
-                                    "description": (
-                                        "Whether a single object will be returned, or an array containing many."
-                                    ),
-                                },
-                                "read_only": {
-                                    "type": "boolean",
-                                    "readOnly": True,
-                                },
-                                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
-                                    "type": "object",
-                                    "title": "Field Names / Data",
-                                    "properties": {
-                                        "Field Name": {
-                                            "type": "object",
-                                            "readOnly": True,
-                                            "title": "Data",
-                                            "properties": {
-                                                "label": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": "Displayed name of the field.",
-                                                    "example": "Name",
-                                                },
-                                                "type_db": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": "Database Field Type.",
-                                                    "example": "CharField",
-                                                },
-                                                "type_model": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": "Django Model Field Type.",
-                                                    "example": "CharField",
-                                                },
-                                                "type_serializer": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": "Rest Framework Serializer Field Type.",
-                                                    "example": "CharField",
-                                                },
-                                                "many": {
-                                                    "type": "boolean",
-                                                    "readOnly": True,
-                                                    "description": "One or more objects?",
-                                                    "example": "False",
-                                                },
-                                                "read_only": {
-                                                    "type": "boolean",
-                                                    "readOnly": True,
-                                                    "example": "True",
-                                                },
-                                                "required": {
-                                                    "type": "boolean",
-                                                    "readOnly": True,
-                                                    "description": "A value is required when submitted.",
-                                                    "example": "False",
-                                                },
-                                                "app_label": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                                    "maxLength": 100,
-                                                    "pattern": "^[a-zA-Z0-9_]+$",
-                                                    "title": "django app name",
-                                                    "example": "store",
-                                                },
-                                                "model": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                                    "maxLength": 100,
-                                                    "pattern": "^[a-zA-Z0-9_]+$",
-                                                    "title": "model class name",
-                                                    "example": "cart",
-                                                },
-                                                "choices": {
-                                                    "oneOf": [
-                                                        {
-                                                            "type": "array",
-                                                            "readOnly": True,
-                                                            "description": "The choices to choose from.",
-                                                            "title": "Choices",
-                                                            "example": "False",
-                                                            "items": {
-                                                                "type": "object",
-                                                                "readOnly": True,
-                                                                "properties": {
-                                                                    "label": {
-                                                                        "type": "string",
-                                                                        "readOnly": True,
-                                                                        "description": "Displayed name for the choice.",
-                                                                        "example": "Express Shipping",
-                                                                    },
-                                                                    "value": {
-                                                                        "type": "string",
-                                                                        "readOnly": True,
-                                                                        "description": "PK or code for the choice.",
-                                                                        "example": "express_shipping",
-                                                                    },
-                                                                },
-                                                                "required": [
-                                                                    "label",
-                                                                    "value",
-                                                                ],
-                                                            },
-                                                        },
-                                                        {
-                                                            "type": "boolean",
-                                                            "readOnly": True,
-                                                            "description": (
-                                                                'If true, use <a href="#tag/vueda.info/operation'
-                                                                '/vueda.info_model_info_choices_list">'
-                                                                "List field choices</a> to get the choices."
-                                                                "<br>If false, there are no choices."
-                                                            ),
-                                                        },
-                                                    ],
-                                                },
-                                                "list_default": {
-                                                    "type": "boolean",
-                                                    "readOnly": True,
-                                                    "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
-                                                    "example": "False",
-                                                },
-                                                "pk": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Exists if this field is the primary key.",
-                                                    "example": "1",
-                                                },
-                                                "help_text": {
-                                                    "type": "string",
-                                                    "readOnly": True,
-                                                    "description": (
-                                                        "Helpful text about what data should exist in the field."
-                                                    ),
-                                                    "example": "Multiple values may be separated by commas.",
-                                                },
-                                                "max_length": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Maximum number of characters for the value.",
-                                                    "example": "32",
-                                                },
-                                                "min_length": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Minimum number of characters for the value.",
-                                                    "example": "2",
-                                                },
-                                                "max_value": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Maximum number allowed for the value.",
-                                                    "example": "2147483647",
-                                                },
-                                                "min_value": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Minimum number allowed for the value.",
-                                                    "example": "-2147483648",
-                                                },
-                                                "max_digits": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": (
-                                                        "Maximum number of digits including "
-                                                        "decimal places for the value."
-                                                    ),
-                                                    "example": "12",
-                                                },
-                                                "decimal_places": {
-                                                    "type": "integer",
-                                                    "readOnly": True,
-                                                    "description": "Number of decimal places for the value.",
-                                                    "example": "2",
-                                                },
-                                            },
-                                            "required": [
-                                                "label",
-                                                "type_db",
-                                                "type_model",
-                                                "type_serializer",
-                                                "many",
-                                                "read_only",
-                                                "required",
-                                                "choices",
-                                            ],
-                                        }
-                                    },
-                                },
-                            },
-                            "required": [
-                                "name",
-                                "app_label",
-                                "model",
-                                "many",
-                                "read_only",
-                            ],
-                        },
-                    }
-
-                    # Model Fields
-                    data["content"]["application/json"]["schema"]["properties"]["model_fields"] = {
-                        "type": "object",
-                        "title": "Field Names / Data",
-                        "properties": {
-                            # Openapi can't do dynamic {Field Name: Data} objects,
-                            # so we display it as best as possible, and have an example.
-                            "Field Name": {
-                                "type": "object",
-                                "readOnly": True,
-                                "description": "Example: <code>{&quot;product_name&quot;: {...</code>",
-                                "title": "Data",
-                                "properties": {
-                                    "label": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Displayed name of the field.",
-                                        "example": "Name",
-                                    },
-                                    "type_db": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Database Field Type.",
-                                        "example": "CharField",
-                                    },
-                                    "type_model": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Django Model Field Type.",
-                                        "example": "CharField",
-                                    },
-                                    "type_serializer": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Rest Framework Serializer Field Type",
-                                        "example": "CharField",
-                                    },
-                                    "many": {
-                                        "type": "boolean",
-                                        "readOnly": True,
-                                        "description": "One or more objects?",
-                                        "example": "False",
-                                    },
-                                    "read_only": {
-                                        "type": "boolean",
-                                        "readOnly": True,
-                                        "example": "True",
-                                    },
-                                    "required": {
-                                        "type": "boolean",
-                                        "readOnly": True,
-                                        "description": "A value is required when submitted.",
-                                        "example": "False",
-                                    },
-                                    "app_label": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                        "maxLength": 100,
-                                        "pattern": "^[a-zA-Z0-9_]+$",
-                                        "title": "django app name",
-                                        "example": "store",
-                                    },
-                                    "model": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                        "maxLength": 100,
-                                        "pattern": "^[a-zA-Z0-9_]+$",
-                                        "title": "model class name",
-                                        "example": "cart",
-                                    },
-                                    "choices": {
-                                        "oneOf": [
-                                            {
-                                                "type": "array",
-                                                "readOnly": True,
-                                                "description": "The choices to choose from.",
-                                                "title": "Choices",
-                                                "example": "False",
-                                                "items": {
-                                                    "type": "object",
-                                                    "readOnly": True,
-                                                    "properties": {
-                                                        "label": {
-                                                            "type": "string",
-                                                            "readOnly": True,
-                                                            "description": "Displayed name for the choice.",
-                                                            "example": "Express Shipping",
-                                                        },
-                                                        "value": {
-                                                            "type": "string",
-                                                            "readOnly": True,
-                                                            "description": "PK or code for the choice.",
-                                                            "example": "express_shipping",
-                                                        },
-                                                    },
-                                                    "required": [
-                                                        "label",
-                                                        "value",
-                                                    ],
-                                                },
-                                            },
-                                            {
-                                                "type": "boolean",
-                                                "readOnly": True,
-                                                "description": (
-                                                    'If true, use <a href="#tag/vueda.info/operation'
-                                                    '/vueda.info_model_info_choices_list">'
-                                                    "List field choices</a> to get the choices."
-                                                    "<br>If false, there are no choices."
-                                                ),
-                                            },
-                                        ],
-                                    },
-                                    "list_default": {
-                                        "type": "boolean",
-                                        "readOnly": True,
-                                        "description": "Exists if the serializer sets it. If false, a default list leaves this field out.",
-                                        "example": "False",
-                                    },
-                                    "pk": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Exists if this field is the primary key.",
-                                        "example": "1",
-                                    },
-                                    "help_text": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Helpful text about what data should exist in the field.",
-                                        "example": "Multiple values may be separated by commas.",
-                                    },
-                                    "max_length": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Maximum number of characters for the value.",
-                                        "example": "32",
-                                    },
-                                    "min_length": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Minimum number of characters for the value.",
-                                        "example": "2",
-                                    },
-                                    "max_value": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Maximum number allowed for the value.",
-                                        "example": "2147483647",
-                                    },
-                                    "min_value": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Minimum number allowed for the value.",
-                                        "example": "-2147483648",
-                                    },
-                                    "max_digits": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": (
-                                            "Maximum number of digits including decimal places for the value."
-                                        ),
-                                        "example": "12",
-                                    },
-                                    "decimal_places": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Number of decimal places for the value.",
-                                        "example": "2",
-                                    },
-                                },
-                                "required": [
-                                    "label",
-                                    "type_db",
-                                    "type_model",
-                                    "type_serializer",
-                                    "many",
-                                    "read_only",
-                                    "required",
-                                    "choices",
-                                ],
-                            },
-                        },
-                    }
-
-                    # Model Filtering
-                    data["content"]["application/json"]["schema"]["properties"]["model_filtering"] = {
-                        "type": "object",
-                        "title": "Field Names / Data",
-                        "properties": {
-                            # Openapi can't do dynamic {Field Name: Data} objects,
-                            # so we display it as best as possible, and have an example.
-                            "Field Name": {
-                                "type": "object",
-                                "readOnly": True,
-                                "description": "Example: <code>{&quot;order_number&quot;: {...</code>",
-                                "title": "Data",
-                                "properties": {
-                                    "label": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Displayed name of the filter",
-                                        "example": "Name",
-                                    },
-                                    "type_db": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Database Field Type",
-                                        "example": "CharField",
-                                    },
-                                    "type_model": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Django Model Field Type",
-                                        "example": "CharField",
-                                    },
-                                    "type_filter": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": (
-                                            "The django form field defined as the 'field_class' in a django "
-                                            "filters field.  This was used, so custom filters would work, as "
-                                            "long as they use a form field vueda already knows about."
-                                        ),
-                                        "example": "CharField",
-                                    },
-                                    "lookup_exprs": {
-                                        "type": "array",
-                                        "readOnly": True,
-                                        "description": (
-                                            "The lookup expressions used by queries.  These may not be "
-                                            "useful, since the suffixes should be used to submit a filter."
-                                        ),
-                                        "title": "Lookup Expressions",
-                                        "items": {
-                                            "type": "string",
-                                            "readOnly": True,
-                                            "example": "exact",
-                                        },
-                                    },
-                                    "required": {
-                                        "type": "boolean",
-                                        "readOnly": True,
-                                        "description": "A value is required when filtering.",
-                                        "example": "False",
-                                    },
-                                    "app_label": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                        "maxLength": 100,
-                                        "pattern": "^[a-zA-Z0-9_]+$",
-                                        "title": "django app name",
-                                        "example": "store",
-                                    },
-                                    "model": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": CHOICES_TRUE_SCHEMA_DESCRIPTION,
-                                        "maxLength": 100,
-                                        "pattern": "^[a-zA-Z0-9_]+$",
-                                        "title": "model class name",
-                                        "example": "cart",
-                                    },
-                                    "choices": {
-                                        "oneOf": [
-                                            {
-                                                "type": "array",
-                                                "readOnly": True,
-                                                "description": "The choices to choose from.",
-                                                "title": "Choices",
-                                                "example": "False",
-                                                "items": {
-                                                    "type": "object",
-                                                    "readOnly": True,
-                                                    "properties": {
-                                                        "label": {
-                                                            "type": "string",
-                                                            "readOnly": True,
-                                                            "description": "Displayed name for the choice.",
-                                                            "example": "Express Shipping",
-                                                        },
-                                                        "value": {
-                                                            "type": "string",
-                                                            "readOnly": True,
-                                                            "description": "PK or code for the choice.",
-                                                            "example": "express_shipping",
-                                                        },
-                                                    },
-                                                    "required": [
-                                                        "label",
-                                                        "value",
-                                                    ],
-                                                },
-                                            },
-                                            {
-                                                "type": "boolean",
-                                                "readOnly": True,
-                                                "description": (
-                                                    'If true, use <a href="#tag/vueda.info/operation'
-                                                    '/vueda.info_model_info_filter_choices_list">'
-                                                    "List filterset field choices</a> to get the "
-                                                    "choices.<br>If false, there are no choices."
-                                                ),
-                                            },
-                                        ],
-                                    },
-                                    "help_text": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Helpful text about what data should exist in the field.",
-                                        "example": "Multiple values may be separated by commas.",
-                                    },
-                                    "max_length": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Maximum number of characters for the value.",
-                                        "example": "32",
-                                    },
-                                    "min_length": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Minimum number of characters for the value.",
-                                        "example": "2",
-                                    },
-                                    "max_value": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Maximum number allowed for the value.",
-                                        "example": "2147483647",
-                                    },
-                                    "min_value": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Minimum number allowed for the value.",
-                                        "example": "-2147483648",
-                                    },
-                                    "max_digits": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": (
-                                            "Maximum number of digits including decimal places for the value."
-                                        ),
-                                        "example": "12",
-                                    },
-                                    "decimal_places": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Number of decimal places for the value.",
-                                        "example": "2",
-                                    },
-                                    "empty_label": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "Label for an empty choice.",
-                                        "example": "---------",
-                                    },
-                                    "empty_value": {
-                                        "type": "integer",
-                                        "readOnly": True,
-                                        "description": "Value for an empty choice.",
-                                        "example": "&quot;&quot;",
-                                    },
-                                    # Openapi can't do dynamic {key: value} objects, so we
-                                    # display it as best as possible, and have an example.
-                                    "error_messages": {
-                                        "type": "object",
-                                        "readOnly": True,
-                                        "title": "Code: Msg",
-                                        "properties": {
-                                            "code": {
-                                                "type": "string",
-                                                "readOnly": True,
-                                                "title": "msg",
-                                                "description": (
-                                                    "Code and value of the possible error messages.  Some messages "
-                                                    "contain python string replacement keys.<br>Example: <code>"
-                                                    "{<br>&nbsp;&nbsp;&nbsp;&nbsp;&quot;invalid_choice&quot;: &quot;"
-                                                    "Select a valid choice. %(value)s is not one of the available "
-                                                    "choices.&quot;,<br>&nbsp;&nbsp;&nbsp;&nbsp;...<br>}</code>"
-                                                ),
-                                            }
-                                        },
-                                    },
-                                    "input_formats": {
-                                        "type": "array",
-                                        "readOnly": True,
-                                        "description": "A list of the python input formats available.",
-                                        "items": {
-                                            "type": "string",
-                                            "readOnly": True,
-                                            "example": "%H:%M:%S",
-                                        },
-                                    },
-                                    "input_type": {
-                                        "type": "string",
-                                        "readOnly": True,
-                                        "description": "The html widget type used by the widget.",
-                                        "example": "select",
-                                    },
-                                    "suffixes": {
-                                        "type": "array",
-                                        "readOnly": True,
-                                        "description": "A list of the suffixes to use with the filter name.",
-                                        "items": {
-                                            "type": "string",
-                                            "readOnly": True,
-                                            "example": (
-                                                "after -> {&quot;last_modified_after&quot;: &quot;2024-08-01&quot;}"
-                                            ),
-                                        },
-                                    },
-                                },
-                                "required": [
-                                    "hidden",
-                                    "label",
-                                    "lookup_exprs",
-                                    "required",
-                                    "type_db",
-                                    "type_model",
-                                    "type_filter",
-                                ],
-                            },
-                        },
-                    }
-
-                    # Model Ordering
-                    data["content"]["application/json"]["schema"]["properties"]["model_ordering"] = {
-                        "type": "object",
-                        "title": "Ordering Data",
-                        "properties": {
-                            "default": {
-                                "type": "array",
-                                "description": (
-                                    "Names of the fields applied when no explicit ordering is requested. "
-                                    "Reflects the viewset's own `ordering`, falling back to the model's "
-                                    "`Meta.ordering` when the viewset doesn't declare one; it's one or the "
-                                    "other, never a merge of both. Every name listed here also appears in "
-                                    "`fields`, since it's always valid to order by explicitly."
-                                ),
-                                "items": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                    "description": "Field to order by.",
-                                    "example": "last_name",
-                                },
-                            },
-                            "fields": {
-                                "type": "array",
-                                "description": (
-                                    "The fields a client may order by. Reflects the viewset's own "
-                                    "`ordering_fields` when declared (expanded to the model's own fields "
-                                    "plus the annotations the viewset's `get_queryset` adds when set to "
-                                    '`"__all__"`), falling back to any readable field of the canonical '
-                                    "serializer, resolved by its underlying model field, when the viewset "
-                                    "declares no `ordering_fields` or declares it as `null`. Queryset "
-                                    "annotations named outright in `ordering_fields` are included too. "
-                                    "Also includes every field the default ordering references that "
-                                    "`ordering_fields` doesn't already cover, since ordering by a default "
-                                    "field explicitly is always allowed — that covers each column of a "
-                                    "multi-column default term, which `default` itself can't name."
-                                ),
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "name": {
-                                            "type": "string",
-                                            "readOnly": True,
-                                            "description": "Field to order by.",
-                                            "example": "last_name",
-                                        },
-                                        "type": {
-                                            "type": "string",
-                                            "readOnly": True,
-                                            "description": "Type of Ordering.",
-                                            "enum": [
-                                                "alpha",
-                                                "boolean",
-                                                "date",
-                                                "datetime",
-                                                "numeric",
-                                                "time",
-                                            ],
-                                        },
-                                        "ascending": {
-                                            "type": "boolean",
-                                            "readOnly": True,
-                                            "description": (
-                                                "Direction this field is sorted in when it's part of the "
-                                                "default ordering. Only present for fields listed in `default`."
-                                            ),
-                                        },
-                                    },
-                                    "required": [
-                                        "name",
-                                        "type",
-                                    ],
-                                },
-                            },
-                        },
-                    }
-
-                    # Model Column Totals
-                    data["content"]["application/json"]["schema"]["properties"]["model_column_totals"] = {
-                        "type": "object",
-                        "title": "Column Totals Data",
-                        "properties": {
-                            "fields": {
-                                "type": "array",
-                                "description": (
-                                    "The total names a client may request, in declaration order. Each is the "
-                                    "key the value comes back under in the paginated response's "
-                                    "`columnTotals`, and is named after the column it renders under rather "
-                                    "than after the server-side field path it sums. They are requested "
-                                    "through the `COLUMN_TOTALS_PARAM` query parameter, documented on each "
-                                    "`list` operation that declares totals; a wildcard value (`*` or `~all`) "
-                                    "requests every declared total, and naming none requests none, which "
-                                    "runs no aggregation query."
-                                ),
-                                "items": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                    "description": "Column total to request.",
-                                    "example": "product_price",
-                                },
-                            },
-                        },
-                        "required": [
-                            "fields",
-                        ],
-                    }
-
-                    # Model Permissions
-                    data["content"]["application/json"]["schema"]["properties"]["model_permissions"] = {
-                        "type": "array",
-                        "title": "Permissions Data",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "codename": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                    "example": "create_customerorder",
-                                },
-                                "name": {
-                                    "type": "string",
-                                    "readOnly": True,
-                                    "example": "Can create customer order",
-                                },
-                            },
-                            "required": [
-                                "codename",
-                                "name",
-                            ],
-                        },
-                    }
-
-                    data["content"]["application/json"]["examples"] = {
-                        "GetModelInfoNotExpandedExample": {
-                            "summary": "Expanded - Nothing",
-                            "description": "uri: /routes/vueda.info/model_info/",
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 1,
-                                        "app_label": "store",
-                                        "model": "distributor",
-                                        "verbose_name": "distributor",
-                                        "verbose_name_plural": "distributors",
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoActionsExpandedExample": {
-                            "summary": "Expanded - model_actions",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
-                                "/store/customer/<br>data: e='model_actions'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 6,
-                                        "app_label": "store",
-                                        "model": "customer",
-                                        "verbose_name": "customer",
-                                        "verbose_name_plural": "customers",
-                                        "model_actions": [
-                                            {
-                                                "name": "list",
-                                                "description": "list store.customer",
-                                                "detail": False,
-                                                "bulk": False,
-                                                "method_names": ["get"],
-                                            },
-                                            {
-                                                "name": "retrieve",
-                                                "description": "retrieve store.customer",
-                                                "detail": True,
-                                                "bulk": False,
-                                                "method_names": ["get"],
-                                                "parameters": ["pk"],
-                                            },
-                                            {
-                                                "name": "create",
-                                                "description": "create store.customer",
-                                                "detail": False,
-                                                "bulk": False,
-                                                "method_names": ["post"],
-                                            },
-                                            {
-                                                "name": "update",
-                                                "description": "update store.customer",
-                                                "detail": True,
-                                                "bulk": False,
-                                                "method_names": ["put"],
-                                                "parameters": ["pk"],
-                                            },
-                                            {
-                                                "name": "partial_update",
-                                                "description": "partial_update store.customer",
-                                                "detail": True,
-                                                "bulk": False,
-                                                "method_names": ["patch"],
-                                                "parameters": ["pk"],
-                                            },
-                                            {
-                                                "name": "destroy",
-                                                "description": "destroy store.customer",
-                                                "detail": True,
-                                                "bulk": True,
-                                                "method_names": ["delete"],
-                                                "parameters": ["pk"],
-                                            },
-                                            {
-                                                "name": "history-list",
-                                                "description": "history-list store.customer",
-                                                "detail": True,
-                                                "bulk": False,
-                                                "method_names": ["get"],
-                                                "parameters": ["args", "kwargs"],
-                                            },
-                                        ],
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoExpandsExpandedExample": {
-                            "summary": "Expanded - model_expands",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info/store/product/<br>data: e='model_expands'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 13,
-                                        "app_label": "store",
-                                        "model": "product",
-                                        "verbose_name": "product",
-                                        "verbose_name_plural": "products",
-                                        "model_expands": [
-                                            {
-                                                "name": "distributor",
-                                                "read_only": False,
-                                                "many": False,
-                                                "app_label": "store",
-                                                "model": "distributor",
-                                                "f": {
-                                                    "id": {
-                                                        "choices": False,
-                                                        "label": "ID",
-                                                        "many": False,
-                                                        "read_only": True,
-                                                        "required": False,
-                                                        "type_db": "AutoField",
-                                                        "type_model": "AutoField",
-                                                        "type_serializer": "IntegerField",
-                                                        "max_value": 2147483647,
-                                                        "min_value": -2147483648,
-                                                        "pk": True,
-                                                    },
-                                                    "name": {
-                                                        "choices": False,
-                                                        "label": "Name",
-                                                        "many": False,
-                                                        "read_only": False,
-                                                        "required": True,
-                                                        "type_db": "CharField",
-                                                        "type_model": "CharField",
-                                                        "type_serializer": "CharField",
-                                                        "max_length": 255,
-                                                    },
-                                                    "formatted_name": {
-                                                        "choices": False,
-                                                        "label": "Formatted Name",
-                                                        "many": False,
-                                                        "read_only": True,
-                                                        "required": False,
-                                                        "type_db": "CharField",
-                                                        "type_model": "GeneratedField",
-                                                        "type_serializer": "ModelField",
-                                                    },
-                                                    "object_revision": {
-                                                        "choices": False,
-                                                        "label": "Object Revision",
-                                                        "many": False,
-                                                        "read_only": True,
-                                                        "required": False,
-                                                        "type_db": None,
-                                                        "type_model": None,
-                                                        "type_serializer": "ObjectRevisionField",
-                                                    },
-                                                },
-                                            },
-                                        ],
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoFieldsExpandedExample": {
-                            "summary": "Expanded - model_fields",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_fields'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 8,
-                                        "app_label": "store",
-                                        "model": "customerorder",
-                                        "verbose_name": "customer order",
-                                        "verbose_name_plural": "customer orders",
-                                        "model_fields": {
-                                            "id": {
-                                                "choices": False,
-                                                "label": "ID",
-                                                "many": False,
-                                                "read_only": True,
-                                                "required": False,
-                                                "type_db": "AutoField",
-                                                "type_model": "AutoField",
-                                                "type_serializer": "IntegerField",
-                                                "max_value": 2147483647,
-                                                "min_value": -2147483648,
-                                                "pk": True,
-                                            },
-                                            "order_number": {
-                                                "choices": False,
-                                                "label": "Order Number",
-                                                "many": False,
-                                                "read_only": False,
-                                                "required": True,
-                                                "type_db": "DecimalField",
-                                                "type_model": "DecimalField",
-                                                "type_serializer": "DecimalField",
-                                                "max_digits": 7,
-                                                "decimal_places": 0,
-                                            },
-                                            "when": {
-                                                "choices": False,
-                                                "label": "Date / Time",
-                                                "many": False,
-                                                "read_only": True,
-                                                "required": False,
-                                                "type_db": "DateTimeField",
-                                                "type_model": "DateTimeField",
-                                                "type_serializer": "DateTimeField",
-                                            },
-                                            "customer": {
-                                                "choices": True,
-                                                "label": "Customer",
-                                                "many": False,
-                                                "read_only": False,
-                                                "required": True,
-                                                "type_db": "ForeignKey",
-                                                "type_model": "ForeignKey",
-                                                "type_serializer": "PrimaryKeyRelatedField",
-                                                "app_label": "store",
-                                                "model": "customer",
-                                            },
-                                            "order_state": {
-                                                "choices": True,
-                                                "label": "Order State",
-                                                "many": False,
-                                                "read_only": False,
-                                                "required": True,
-                                                "type_db": "ForeignKey",
-                                                "type_model": "ForeignKey",
-                                                "type_serializer": "PrimaryKeyRelatedField",
-                                                "app_label": "store",
-                                                "model": "orderstate",
-                                            },
-                                            "shipping_method": {
-                                                "choices": [
-                                                    {"label": "Free", "value": "free"},
-                                                    {"label": "Regular", "value": "regular"},
-                                                    {"label": "Express", "value": "express"},
-                                                ],
-                                                "label": "Shipping Method",
-                                                "many": False,
-                                                "read_only": False,
-                                                "required": False,
-                                                "type_db": "CharField",
-                                                "type_model": "CharField",
-                                                "type_serializer": "ChoiceField",
-                                            },
-                                            "formatted_name": {
-                                                "choices": False,
-                                                "label": "Formatted Name",
-                                                "many": False,
-                                                "read_only": True,
-                                                "required": False,
-                                                "type_db": "CharField",
-                                                "type_model": "GeneratedField",
-                                                "type_serializer": "ModelField",
-                                            },
-                                            "object_revision": {
-                                                "choices": False,
-                                                "label": "Object Revision",
-                                                "many": False,
-                                                "read_only": True,
-                                                "required": False,
-                                                "type_db": None,
-                                                "type_model": None,
-                                                "type_serializer": "ObjectRevisionField",
-                                            },
-                                        },
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoFilteringExpandedExample": {
-                            "summary": "Expanded - model_filtering",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info/store/cart/<br>data: e='model_filtering'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 7,
-                                        "app_label": "store",
-                                        "model": "cart",
-                                        "verbose_name": "cart",
-                                        "verbose_name_plural": "carts",
-                                        "model_filtering": {
-                                            "last_modified": {
-                                                "hidden": False,
-                                                "label": "Last modified",
-                                                "lookup_exprs": [],
-                                                "required": False,
-                                                "type_db": "DateTimeField",
-                                                "type_model": "DateTimeField",
-                                                "type_filter": "DateTimeRangeField",
-                                                "choices": False,
-                                                "error_messages": {
-                                                    "invalid": "Enter a list of values.",
-                                                    "incomplete": "Enter a complete value.",
-                                                },
-                                                "input_type": "text",
-                                                "suffixes": ["after", "before"],
-                                            },
-                                            "id": {
-                                                "hidden": True,
-                                                "label": "Id Is In",
-                                                "lookup_exprs": ["in"],
-                                                "required": False,
-                                                "type_db": "AutoField",
-                                                "type_model": "AutoField",
-                                                "type_filter": "DecimalInField",
-                                                "choices": False,
-                                                "error_messages": {"invalid": "Enter a number."},
-                                                "help_text": "Multiple values may be separated by commas.",
-                                                "input_type": "hidden",
-                                                "max_value": 2147483647,
-                                                "min_value": -2147483648,
-                                            },
-                                            "reserved_delivery_time": {
-                                                "hidden": False,
-                                                "label": "Reserved Delivery Time",
-                                                "lookup_exprs": ["exact"],
-                                                "required": False,
-                                                "type_db": "DateTimeField",
-                                                "type_model": "DateTimeField",
-                                                "type_filter": "DateTimeField",
-                                                "choices": False,
-                                                "error_messages": {"invalid": "Enter a valid date/time."},
-                                                "input_formats": [
-                                                    "%Y-%m-%d %H:%M:%S",
-                                                    "%Y-%m-%d %H:%M:%S.%f",
-                                                    "%Y-%m-%d %H:%M",
-                                                    "%m/%d/%Y %H:%M:%S",
-                                                    "%m/%d/%Y %H:%M:%S.%f",
-                                                    "%m/%d/%Y %H:%M",
-                                                    "%m/%d/%y %H:%M:%S",
-                                                    "%m/%d/%y %H:%M:%S.%f",
-                                                    "%m/%d/%y %H:%M",
-                                                    "%Y-%m-%d",
-                                                    "%Y-%m-%d",
-                                                    "%m/%d/%Y",
-                                                    "%m/%d/%y",
-                                                    "%b %d %Y",
-                                                    "%b %d, %Y",
-                                                    "%d %b %Y",
-                                                    "%d %b, %Y",
-                                                    "%B %d %Y",
-                                                    "%B %d, %Y",
-                                                    "%d %B %Y",
-                                                    "%d %B, %Y",
-                                                ],
-                                                "input_type": "text",
-                                            },
-                                            "reserved_until": {
-                                                "hidden": False,
-                                                "label": "Reserved Until",
-                                                "lookup_exprs": ["exact"],
-                                                "required": False,
-                                                "type_db": "TimeField",
-                                                "type_model": "TimeField",
-                                                "type_filter": "TimeField",
-                                                "choices": False,
-                                                "error_messages": {"invalid": "Enter a valid time."},
-                                                "input_formats": ["%H:%M:%S", "%H:%M:%S.%f", "%H:%M"],
-                                                "input_type": "text",
-                                            },
-                                            "expected_delivery_time": {
-                                                "hidden": False,
-                                                "label": "Expected Delivery Time",
-                                                "lookup_exprs": ["exact"],
-                                                "required": False,
-                                                "type_db": "DurationField",
-                                                "type_model": "DurationField",
-                                                "type_filter": "DurationField",
-                                                "choices": False,
-                                                "error_messages": {
-                                                    "invalid": "Enter a valid duration.",
-                                                    "overflow": (
-                                                        "The number of days must be between -999999999 and 999999999."
-                                                    ),
-                                                },
-                                                "input_type": "text",
-                                            },
-                                            "product_name": {
-                                                "hidden": False,
-                                                "label": "Product name",
-                                                "lookup_exprs": ["exact"],
-                                                "required": False,
-                                                "type_db": "CharField",
-                                                "type_model": "CharField",
-                                                "type_filter": "MultipleChoiceField",
-                                                "choices": True,
-                                                "app_label": "store",
-                                                "model": "cart",
-                                                "filterset_name": "CartFilterSet",
-                                                "empty_label": None,
-                                                "error_messages": {
-                                                    "invalid_choice": (
-                                                        "Select a valid choice. %(value)s "
-                                                        "is not one of the available choices."
-                                                    ),
-                                                    "invalid_list": "Enter a list of values.",
-                                                },
-                                                "input_type": "select",
-                                                "null_label": None,
-                                                "null_value": "null",
-                                            },
-                                            "product_quantity": {
-                                                "hidden": False,
-                                                "label": "Product quantity",
-                                                "lookup_exprs": ["exact"],
-                                                "required": False,
-                                                "type_db": "IntegerField",
-                                                "type_model": "IntegerField",
-                                                "type_filter": "MultipleChoiceField",
-                                                "choices": True,
-                                                "app_label": "store",
-                                                "model": "cart",
-                                                "filterset_name": "CartFilterSet",
-                                                "empty_label": None,
-                                                "error_messages": {
-                                                    "invalid_choice": (
-                                                        "Select a valid choice. %(value)s "
-                                                        "is not one of the available choices."
-                                                    ),
-                                                    "invalid_list": "Enter a list of values.",
-                                                },
-                                                "input_type": "select",
-                                                "null_label": None,
-                                                "null_value": "null",
-                                            },
-                                        },
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoOrderingExpandedExample": {
-                            "summary": "Expanded - model_ordering",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_ordering'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 8,
-                                        "app_label": "store",
-                                        "model": "customerorder",
-                                        "verbose_name": "customer order",
-                                        "verbose_name_plural": "customer orders",
-                                        "model_ordering": {
-                                            "default": [],
-                                            "fields": [
-                                                {"name": "order_number", "type": "numeric"},
-                                                {"name": "customer.user.email", "type": "alpha"},
-                                                {"name": "when", "type": "datetime"},
-                                                {"name": "order_state", "type": "alpha"},
-                                            ],
-                                        },
-                                    }
-                                ]
-                            },
-                        },
-                        "GetModelInfoPermissionsExpandedExample": {
-                            "summary": "Expanded - model_permissions",
-                            "description": (
-                                "uri: /routes/vueda.info/model_info/store/customerorder/<br>data: e='model_permissions'"
-                            ),
-                            "value": {
-                                "results": [
-                                    {
-                                        "id": 8,
-                                        "app_label": "store",
-                                        "model": "customerorder",
-                                        "verbose_name": "customer order",
-                                        "verbose_name_plural": "customer orders",
-                                        "model_permissions": [
-                                            {"codename": "create_customerorder", "name": "Can create customer order"},
-                                            {"codename": "delete_customerorder", "name": "Can delete customer order"},
-                                            {"codename": "fulfill_orders", "name": "Can fulfill orders"},
-                                            {"codename": "list_customerorder", "name": "Can list customer order"},
-                                            {"codename": "manage_customerorder", "name": "Can manage customer order"},
-                                            {"codename": "pack_order", "name": "Can pack order customer order"},
-                                            {"codename": "read_customerorder", "name": "Can read customer order"},
-                                            {"codename": "update_customerorder", "name": "Can update customer order"},
-                                        ],
-                                    }
-                                ]
-                            },
-                        },
-                    }
+                case ("GET", "/vueda.info/model_info/{app_label}/{model}/", "200"):
+                    data["content"]["application/json"]["examples"] = MODEL_INFO_DETAIL_EXAMPLES
 
                     response_data["403"] = {
                         "content": {
@@ -2983,26 +1679,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                 "examples": {
                                     "InvalidGetModelInfoContentTypeExample": {
                                         "summary": "Invalid content type",
-                                        "description": (
-                                            "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
-                                            "/store/pets/tangible_type/"
-                                        ),
+                                        "description": "uri: /routes/vueda.info/model_info/store/pets/",
                                         "value": {
                                             "detail": 'Unable to find the content type "store.pets".',
                                             "serverStack": open_api_tracebacks.INFO_INVALID_CONTENT_TYPE,
-                                        },
-                                    },
-                                    "InvalidGetModelInfoFieldExample": {
-                                        "summary": "Invalid field",
-                                        "description": (
-                                            "uri: /routes/vueda.info/model_info&ZeroWidthSpace;"
-                                            "/store/customer/tangible_type/"
-                                        ),
-                                        "value": {
-                                            "detail": [
-                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
-                                            ],
-                                            "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
                                         },
                                     },
                                 },
@@ -3028,8 +1708,8 @@ class ModelInfoChoicesSerializer(
         expandable_fields = {}
 
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info_choices/{app_label}/{model}/{field}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
@@ -3038,9 +1718,9 @@ class ModelInfoChoicesSerializer(
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List field choices
-                case ("GET", "/routes/vueda.info/model_info_choices/{app_label}/{model}/{field}/", "200"):
+                case ("GET", "/vueda.info/model_info_choices/{app_label}/{model}/{field}/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoChoicesWithResultsExample": {
                             "summary": "With Results",
@@ -3056,6 +1736,7 @@ class ModelInfoChoicesSerializer(
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 2,
+                                "columnTotals": {},
                             },
                         },
                         "ListModelInfoChoicesNoResultsExample": {
@@ -3069,6 +1750,7 @@ class ModelInfoChoicesSerializer(
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 0,
+                                "columnTotals": {},
                             },
                         },
                     }
@@ -3147,9 +1829,7 @@ class ModelInfoChoicesSerializer(
                                             "/store/customer/tangible_type/"
                                         ),
                                         "value": {
-                                            "detail": [
-                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
-                                            ],
+                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices are user.",
                                             "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
                                         },
                                     },
@@ -3161,8 +1841,8 @@ class ModelInfoChoicesSerializer(
 
 class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
     def customize_schema_request_data(self, request_data):  # pragma: no cover
-        match self.context["request"].path:
-            case "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/":
+        match route_path(self.context["request"].path):
+            case "/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/":
                 request_data["content"] = {}  # This prevents a message of 'Schema not provided' for the body.
 
         return request_data
@@ -3171,9 +1851,9 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
         request = self.context["request"]
 
         for status_code, data in tuple(response_data.items()):  # tuple because we may add items.
-            match (request.method, request.path, status_code):
+            match (request.method, route_path(request.path), status_code):
                 # List filterset field choices
-                case ("GET", "/routes/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/", "200"):
+                case ("GET", "/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/", "200"):
                     data["content"]["application/json"]["examples"] = {
                         "ListModelInfoFilterChoicesWithResultsExample": {
                             "summary": "With Results",
@@ -3189,6 +1869,7 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 2,
+                                "columnTotals": {},
                             },
                         },
                         "ListModelInfoFilterChoicesNoResultsExample": {
@@ -3202,6 +1883,7 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
                                 "perPage": settings.MAX_PAGE_SIZE,
                                 "totalPages": 1,
                                 "totalRecords": 0,
+                                "columnTotals": {},
                             },
                         },
                     }
@@ -3280,9 +1962,7 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
                                             "/store/customer/tangible_type/"
                                         ),
                                         "value": {
-                                            "detail": [
-                                                "Invalid field 'tangible_type'. Valid fields with choices are user."
-                                            ],
+                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices are user.",
                                             "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
                                         },
                                     },

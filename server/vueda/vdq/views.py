@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 
 
 def validate_twilio_request(f):
+    """
+    Wrap a view so it returns 403 unless the request carries a valid Twilio signature. The check uses
+    ``TWILIO_AUTH_TOKEN`` and the ``X-Twilio-Signature`` header.
+    """
+
     @wraps(f)
     def decorated_function(request, *args, **kwargs):
         from twilio.request_validator import RequestValidator

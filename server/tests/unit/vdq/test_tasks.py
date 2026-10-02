@@ -1,5 +1,4 @@
 import sys
-from contextlib import contextmanager
 from datetime import timedelta
 from types import SimpleNamespace
 
@@ -20,12 +19,11 @@ from vueda.workflow.exceptions import InvalidTransitionError
 
 @pytest.mark.django_db
 def test_send_message_missing_queue_item(monkeypatch):
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         assert pk == 99999  # noqa: PLR2004
-        yield None
+        return operation(None)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     with pytest.raises(Ignore):
         send_message(99999, "email")
@@ -36,13 +34,12 @@ def test_a_task_runs_inside_a_task_action(monkeypatch):
     """Every write a task makes carries the task's name and the ``task`` kind."""
     seen = {}
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         with pghistory.context() as active:
             seen.update(active.metadata)
-        yield None
+        return operation(None)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     with pytest.raises(Ignore):
         send_message(99999, "email")
@@ -129,6 +126,7 @@ def test_queue_processor_on_retry_updates_queue_item(monkeypatch):
         def __init__(self):
             self.task_id = ""
             self.retry_delay = 0
+            self.workflow_state = SimpleNamespace(code="sending")
 
         def save(self, update_fields):
             saved.append(update_fields)
@@ -138,15 +136,14 @@ def test_queue_processor_on_retry_updates_queue_item(monkeypatch):
 
     qi = DummyQueueItem()
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         assert pk == 1
-        yield qi
+        return operation(qi)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     cancel_calls = []
-    monkeypatch.setattr("vueda.vdq.tasks.cancel_task", lambda task_id: cancel_calls.append(task_id))
+    monkeypatch.setattr("vueda.vdq.celery.app.control.revoke", lambda task_id, **kwargs: cancel_calls.append(task_id))
     delay = 30
     einfo = SimpleNamespace(exception=SimpleNamespace(exc=SimpleNamespace(when=delay)))
 
@@ -170,6 +167,7 @@ def test_queue_processor_on_retry_without_when(monkeypatch):
         def __init__(self):
             self.task_id = ""
             self.retry_delay = 0
+            self.workflow_state = SimpleNamespace(code="sending")
 
         def save(self, update_fields):
             pass
@@ -179,12 +177,10 @@ def test_queue_processor_on_retry_without_when(monkeypatch):
 
     qi = DummyQueueItem()
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
-        yield qi
+    def fake_lock(pk, operation):
+        return operation(qi)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
-    monkeypatch.setattr("vueda.vdq.tasks.cancel_task", lambda task_id: None)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     einfo = SimpleNamespace(exception=SimpleNamespace())
 
@@ -197,22 +193,35 @@ def test_queue_processor_on_retry_without_when(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_queue_processor_on_retry_cancels_missing_queue_item(monkeypatch):
+def test_queue_processor_on_retry_from_queued_records_the_task_without_delaying(monkeypatch, email_queue_item):
+    monkeypatch.setattr(
+        "vueda.vdq.celery.app.control.revoke", lambda task_id, **kwargs: pytest.fail("revoke should not be called")
+    )
+
+    task = QueueProcessor()
+    task.on_retry(RuntimeError("locked"), "task-q", (email_queue_item.pk,), {}, SimpleNamespace(exception=None))
+
+    email_queue_item.refresh_from_db()
+    assert email_queue_item.task_id == "task-q"
+    assert email_queue_item.workflow_state.code == "queued"
+
+
+@pytest.mark.django_db
+def test_queue_processor_on_retry_ignores_missing_queue_item(monkeypatch):
     monkeypatch.setattr("vueda.vdq.tasks.TwilioQueueItemHandler", SimpleNamespace)
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
-        yield None
+    def fake_lock(pk, operation):
+        return operation(None)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     cancel_calls = []
-    monkeypatch.setattr("vueda.vdq.tasks.cancel_task", lambda task_id: cancel_calls.append(task_id))
+    monkeypatch.setattr("vueda.vdq.celery.app.control.revoke", lambda task_id, **kwargs: cancel_calls.append(task_id))
 
     task = QueueProcessor()
     task.on_retry(RuntimeError("boom"), "task-3", (3,), {}, SimpleNamespace(exception=SimpleNamespace()))
 
-    assert cancel_calls == ["task-3"]
+    assert cancel_calls == []
 
 
 @pytest.mark.django_db
@@ -237,12 +246,11 @@ def test_queue_processor_on_failure_records_error(monkeypatch):
 
     qi = DummyQueueItem()
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         assert pk == queue_item_pk
-        yield qi
+        return operation(qi)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     task = QueueProcessor()
 
@@ -261,11 +269,10 @@ def test_queue_processor_on_failure_records_error(monkeypatch):
 def test_queue_processor_on_failure_skips_when_missing_queue_item(monkeypatch):
     monkeypatch.setattr("vueda.vdq.tasks.TwilioQueueItemHandler", SimpleNamespace)
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
-        yield None
+    def fake_lock(pk, operation):
+        return operation(None)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     task = QueueProcessor()
 
@@ -294,11 +301,10 @@ def test_queue_processor_on_failure_does_not_transition_when_already_errored(mon
         def fast_transition(self, code):
             transitions.append(code)
 
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
-        yield DummyQueueItem()
+    def fake_lock(pk, operation):
+        return operation(DummyQueueItem())
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     task = QueueProcessor()
 
@@ -312,11 +318,10 @@ def test_queue_processor_on_failure_does_not_transition_when_already_errored(mon
 
 @pytest.mark.django_db
 def test_send_message_invalid_method(monkeypatch):
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
-        yield SimpleNamespace(fast_transition=lambda code: None)
+    def fake_lock(pk, operation):
+        return operation(SimpleNamespace(fast_transition=lambda code: None))
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     with pytest.raises(ValueError):
         send_message(1, "fax")
@@ -324,14 +329,13 @@ def test_send_message_invalid_method(monkeypatch):
 
 @pytest.mark.django_db
 def test_send_message_ignores_invalid_transition(monkeypatch):
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         def fast_transition(code):
             raise InvalidTransitionError("bad transition")
 
-        yield SimpleNamespace(fast_transition=fast_transition)
+        return operation(SimpleNamespace(fast_transition=fast_transition))
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     with pytest.raises(Ignore):
         send_message(1, "sms")
@@ -339,12 +343,11 @@ def test_send_message_ignores_invalid_transition(monkeypatch):
 
 @pytest.mark.django_db
 def test_send_message_sms_invokes_handler(monkeypatch, sms_queue_item):
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         assert pk == sms_queue_item.pk
-        yield sms_queue_item
+        return operation(sms_queue_item)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     calls: list[int] = []
 
@@ -361,12 +364,11 @@ def test_send_message_sms_invokes_handler(monkeypatch, sms_queue_item):
 
 @pytest.mark.django_db
 def test_send_message_email_invokes_send_email(monkeypatch, email_queue_item):
-    @contextmanager
-    def fake_lock(pk, skip_locked=True):
+    def fake_lock(pk, operation):
         assert pk == email_queue_item.pk
-        yield email_queue_item
+        return operation(email_queue_item)
 
-    monkeypatch.setattr("vueda.vdq.tasks.lock_queue_item", fake_lock)
+    monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     calls: list[int] = []
 

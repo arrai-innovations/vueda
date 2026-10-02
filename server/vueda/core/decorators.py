@@ -82,6 +82,14 @@ def action(methods=None, detail=None, bulk=False, confirm=False, url_path=None, 
 
 
 def recent_auth_required(func):
+    """
+    Wrap a viewset action so it returns 401 with ``Reauthentication required`` unless the user recently
+    authenticated.
+
+    The check uses django-allauth's reauthentication rules. The TOTP viewset applies it to device setup,
+    activation, and deletion.
+    """
+
     @wraps(func)
     def _wrapped_view(view_set_instance, request, *args, **kwargs):
         try:

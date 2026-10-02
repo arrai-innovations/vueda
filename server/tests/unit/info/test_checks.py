@@ -6,6 +6,7 @@ from django.db.models.sql.query import Query
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
 from tests.erring import viewsets as err_viewsets
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from vueda import info
@@ -1570,3 +1571,113 @@ class TestColumnTotalName:
 
         assert [message.id for message in messages] == ["vueda_info.E013"]
         assert "empty name" in messages[0].msg
+
+
+class TestSearchQuerysetChecks:
+    """`vueda_info.E014` on the search querysets of the cart viewsets in `tests.store.viewsets`."""
+
+    @staticmethod
+    def check_errors(viewset):
+        from vueda.info.checks import check_search_queryset_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, viewset)
+
+        return check_search_queryset_configuration(app_configs=None)
+
+    def test_annotation_missing_from_the_default_manager_is_reported(self):
+        from django.core.checks import Error
+
+        viewset = store_viewsets.CartM2MSearchAnnotationViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.search_fields names 'customer_name', which is neither a field of Cart nor an annotation "
+                f"of Cart's default manager. {name}.search_fields reach through a multi-valued relation (a reverse "
+                "foreign key or a many-to-many), so the search matches inside a subquery built from Cart's default "
+                "manager, and a search request fails with a FieldError.",
+                hint=(
+                    f"If 'customer_name' names an annotation {name}.get_queryset() adds, define "
+                    f"{name}.get_search_queryset() returning a Cart queryset with the same annotation and no filters."
+                ),
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_annotation_missing_from_the_search_queryset_is_reported(self):
+        from django.core.checks import Error
+
+        class CartM2MSearchAnnotationEmptySearchQuerysetViewSet(store_viewsets.CartM2MSearchAnnotationViewSet):
+            def get_search_queryset(self):
+                return store_models.Cart.objects.all()
+
+        viewset = CartM2MSearchAnnotationEmptySearchQuerysetViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.search_fields names 'customer_name', which is neither a field of Cart nor an annotation "
+                f"of {name}.get_search_queryset(). {name}.search_fields reach through a multi-valued relation (a "
+                "reverse foreign key or a many-to-many), so the search matches inside a subquery built from "
+                f"{name}.get_search_queryset(), and a search request fails with a FieldError.",
+                hint=f"Add the 'customer_name' annotation to {name}.get_search_queryset().",
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_search_queryset_filtering_on_an_aggregate_is_reported(self):
+        from django.core.checks import Error
+
+        viewset = store_viewsets.CartM2MSearchAggregateFilterInSearchQuerysetViewSet
+        name = viewset.__name__
+
+        assert self.check_errors(viewset) == [
+            Error(
+                f"{name}.get_search_queryset() filters on an aggregate or a window function, and "
+                f"{name}.search_fields reach through a multi-valued relation (a reverse foreign key or a "
+                "many-to-many). The search matches inside a subquery that holds only the matching related rows, "
+                "where that filter gives a different answer, so the search drops objects that match.",
+                hint=(
+                    "Remove that filter from get_search_queryset(). The viewset's queryset applies its filters "
+                    "outside the subquery, where they see every related row."
+                ),
+                obj=viewset,
+                id="vueda_info.E014",
+            )
+        ]
+
+    def test_search_queryset_filtering_on_a_window_function_is_reported(self):
+        from django.db.models import F
+        from django.db.models import Window
+        from django.db.models.functions import RowNumber
+
+        class CartM2MSearchWindowFilterViewSet(store_viewsets.CartM2MSearchOrderingViewSet):
+            def get_search_queryset(self):
+                row_number = Window(RowNumber(), order_by=F("pk").asc())
+                return store_models.Cart.objects.annotate(row_number=row_number).filter(row_number__lte=1)
+
+        assert [error.id for error in self.check_errors(CartM2MSearchWindowFilterViewSet)] == ["vueda_info.E014"]
+
+    @pytest.mark.parametrize(
+        "viewset",
+        [
+            pytest.param(store_viewsets.CartM2MSearchAggregateFilterViewSet, id="aggregate-filter-on-viewset"),
+            pytest.param(store_viewsets.CartM2MSearchAnnotationSearchQuerysetViewSet, id="annotation-in-hook"),
+            pytest.param(store_viewsets.CartSearchAnnotationOnlyViewSet, id="annotation-only-search"),
+            pytest.param(store_viewsets.CartSingleValuedSearchAggregateFilterViewSet, id="single-valued-search"),
+            pytest.param(store_viewsets.CartM2MSearchAggregateViewSet, id="aggregate-without-filter"),
+            pytest.param(store_viewsets.CartViewSet, id="no-search-fields"),
+        ],
+    )
+    def test_passes(self, viewset):
+        assert self.check_errors(viewset) == []
+
+    def test_search_queryset_needing_a_request_is_skipped(self):
+        class CartRequestSearchQuerysetViewSet(store_viewsets.CartM2MSearchAnnotationViewSet):
+            def get_search_queryset(self):
+                return store_models.Cart.objects.filter(customer__user=self.request.user)
+
+        assert self.check_errors(CartRequestSearchQuerysetViewSet) == []

@@ -1,6 +1,6 @@
 import { buildCanonicalIndex } from "../utils/index-canonical.js";
 import { buildTypedocPathMap } from "../utils/path-map.js";
-import { memberHeadingAnchor } from "../utils/reference-index.js";
+import { memberHeadingAnchor, parameterAnchor } from "../utils/reference-index.js";
 import {
     formatMembers,
     formatSource,
@@ -35,9 +35,41 @@ function renderTypeRef(typeRef, index, filePath) {
     return renderCodeInline(typeRef.name);
 }
 
+/**
+ * Return the keys of an object parameter that its properties table lists.
+ */
+function parameterKeys(param) {
+    return (param.members || []).filter((member) => member.kind === "property");
+}
+
+/**
+ * Wrap a table's name cell in the anchor of a parameter or of a key of an object parameter.
+ */
+function anchoredParameterName(parameterPath, name) {
+    return `<span id="${parameterAnchor("", parameterPath)}">${name}</span>`;
+}
+
+/**
+ * Return the parameter ids of a function or method page: one per parameter, and one per key of an
+ * object parameter, as `js:param:<module>#<function>:<path>`.
+ */
+function parameterIds(node) {
+    const prefix = node.id.replace(/^js:[^:]+:/, "js:param:");
+    const paths = new Set();
+    for (const signature of node.signatures || []) {
+        for (const param of signature.parameters || []) {
+            paths.add(param.name);
+            for (const member of parameterKeys(param)) {
+                paths.add(`${param.name}.${member.name}`);
+            }
+        }
+    }
+    return [...paths].map((path) => `${prefix}:${path}`);
+}
+
 function formatParametersTypedoc(parameters, index, filePath) {
     return (parameters || []).map((param) => [
-        param.name || "",
+        anchoredParameterName(param.name, param.name || ""),
         renderTypeRef(param.type, index, filePath),
         // TypeDoc serializes isOptional only when true, so undefined is required.
         param.optional ? "no" : "yes",
@@ -64,7 +96,11 @@ function renderSignatures(node, index, filePath) {
             lines.push(renderHeading(3, "Parameters"), "", paramTable, "");
         }
         for (const param of signature.parameters || []) {
-            const memberRows = formatMembers(param.members || []);
+            const members = parameterKeys(param);
+            const memberRows = formatMembers(members).map((row, position) => [
+                anchoredParameterName(`${param.name}.${members[position].name}`, row[0]),
+                ...row.slice(1),
+            ]);
             const memberTable = renderTable(["Name", "Type", "Required", "Default", "Description"], memberRows);
             if (memberTable) {
                 lines.push(renderHeading(4, `${param.name} Properties`), "", memberTable, "");
@@ -256,8 +292,9 @@ export function renderTypeDocNode(node, index, filePath) {
         kind: node.kind,
         source: "typedoc",
     };
-    if (inlineChildren.length) {
-        frontmatterData.member_ids = inlineChildren.map((child) => child.id);
+    const memberIds = [...inlineChildren.map((child) => child.id), ...parameterIds(node)];
+    if (memberIds.length) {
+        frontmatterData.member_ids = memberIds;
     }
     const frontmatter = renderFrontmatter(frontmatterData);
 

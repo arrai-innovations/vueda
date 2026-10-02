@@ -31,9 +31,10 @@ describe("lib/shell/item/Item.vue", () => {
             expect(wrapper.classes()).toContain("p-4");
         });
 
-        scopedIt("applies outline variant classes", () => {
+        scopedIt("keeps the outline variant border transparent", () => {
             const wrapper = mount(Item, { props: { variant: "outline" } });
-            expect(wrapper.classes()).toContain("border-border");
+            expect(wrapper.classes()).toContain("border-transparent");
+            expect(wrapper.classes()).not.toContain("border-border");
         });
 
         scopedIt("applies sm size classes", () => {

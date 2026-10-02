@@ -35,6 +35,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Case
 from django.db.models import CharField
 from django.db.models import F
@@ -126,6 +127,14 @@ class WhoIsView(RetrieveAPIView):
     },
 )
 class VuedaForgotPasswordView(GenericAPIView):
+    """
+    Email a password reset link to the active account with the given address.
+
+    The response is the same whether or not an account matches, so the endpoint does not reveal
+    which addresses have accounts. The one-minute cooldown applies to every address for the same
+    reason.
+    """
+
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
 
@@ -133,6 +142,15 @@ class VuedaForgotPasswordView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
+
+        cache_key = f"password-forgot-cooldown:{email.lower()}"
+        if cache.get(cache_key):
+            return Response(
+                {"detail": "You must wait before requesting another password reset."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(cache_key, True, timeout=60)
+
         active_user = (
             get_user_model()
             .objects.filter(
@@ -148,22 +166,11 @@ class VuedaForgotPasswordView(GenericAPIView):
             and active_user.has_usable_password()
             and _unicode_ci_compare(email, active_user.email)
         ):
-            cache_key = f"password-forgot-cooldown:{email.lower()}"
-            if cache.get(cache_key):
-                return Response(
-                    {"detail": "You must wait before requesting another password reset."},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
-
-            url = active_user.generate_reset_url()
             context = {
                 "user": active_user,
-                "reset_url": url,
+                "reset_url": active_user.generate_reset_url(),
             }
             get_adapter().send_mail(email, active_user.name, "forgot_password", context)
-            cache.set(cache_key, True, timeout=60)
-        else:
-            return Response({"email": ["Email not found or user is inactive. "]}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -189,7 +196,10 @@ class VuedaForgotPasswordView(GenericAPIView):
         204: None,
         400: conditional_inline_serializer(
             "ResetPasswordValidationError",
-            fields={"non_field_errors": serializers.ListField(child=serializers.CharField())},
+            fields={
+                "non_field_errors": serializers.ListField(child=serializers.CharField(), required=False),
+                "password": serializers.ListField(child=serializers.CharField(), required=False),
+            },
         ),
     },
 )
@@ -246,7 +256,12 @@ class VuedaResetPasswordView(GenericAPIView):
             )
 
         if token_validator.check_token(user, token):
-            password_validation.validate_password(password, user)
+            # The serializer validated the password without the user. Validators that compare it with
+            # the account, such as UserAttributeSimilarityValidator, can only run here.
+            try:
+                password_validation.validate_password(password, user)
+            except DjangoValidationError as error:
+                return Response({"password": list(error.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
             user.set_password(password)
             user.save()
@@ -697,6 +712,11 @@ class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView,
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating])
 def totp_code(request):
+    """List the TOTP delivery methods for the user who is logging in, or send them a TOTP code.
+
+    GET returns the methods of the user's TOTP devices. POST sends a current code by the requested ``method``,
+    email or sms.
+    """
     stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
     user = stage.login.user
     devices = user.totp_devices

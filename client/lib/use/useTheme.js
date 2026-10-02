@@ -1,6 +1,6 @@
 /**
  * @module use/useTheme
- * @description Resolves and caches component theme classes by merging the default theme with inherited and local overrides.
+ * @description Resolves and caches component theme classes from the base theme, project overrides, and inherited and local overrides.
  *
  * Slot entries may declare `composes: ['_MetaKey.slot', ...]` to compose classes from other entries before
  * their own classes. Underscore-prefixed entries (`_ButtonBase`, `_ButtonGhost`, etc.) are the convention
@@ -9,19 +9,29 @@
  * every leaf that composes from it. Override semantics for `composes` are replace (override list wins
  * entirely); own `class` values still combine default + override as in non-composing entries.
  */
-import { combineClasses } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
-import { defaultTheme, getTheme, mergeTheme, patchTheme, setTheme } from "@vueda/use/themeRegistry.js";
+import {
+    clearThemeOverrides,
+    combineThemeClasses,
+    defaultTheme,
+    getTheme,
+    mergeTheme,
+    overrideTheme,
+    patchTheme,
+    projectTheme,
+    setClassMerger,
+    setTheme,
+} from "@vueda/use/themeRegistry.js";
 import { ThemeOverrideSymbol } from "@vueda/utils/symbols.js";
 import { computedAsync } from "@vueuse/core";
 import isFunction from "lodash-es/isFunction.js";
 import { computed, effectScope, getCurrentInstance, inject, provide, ref, toRef, unref } from "vue";
 
 // Re-export the theme registry's public API so the `@vueda/use/useTheme.js`
-// import path stays stable for existing callers. New `*.theme.js` modules
-// should import `patchTheme` from `@vueda/use/themeRegistry.js` directly so the
+// import path stays stable for existing callers. Theme modules register through
+// themeRegistry (the built-in Tailwind theme uses its own registry adapter), so
 // eager registration survives specs that mock this composable.
-export { getTheme, mergeTheme, patchTheme, setTheme };
+export { clearThemeOverrides, getTheme, mergeTheme, overrideTheme, patchTheme, setClassMerger, setTheme };
 
 /**
  * Vue component props definition for components that accept a theme override prop.
@@ -137,12 +147,14 @@ const resolveSlotClassesSync = (componentName, slotKey, mergedOverride, context,
     }
 
     const resolvedDefault = defaultConfig || {};
+    const projectConfig = projectTheme.value[componentName] || {};
     const overrideConfig = mergedOverride?.[componentName] || {};
 
     const defaultSlot = getConfigValue(resolvedDefault, slotKey, context);
+    const projectSlot = getConfigValue(projectConfig, slotKey, context);
     const overrideSlot = getConfigValue(overrideConfig, slotKey, context);
 
-    const composes = overrideSlot?.composes !== undefined ? overrideSlot.composes : defaultSlot?.composes;
+    const composes = [overrideSlot, projectSlot, defaultSlot].find((slot) => slot?.composes !== undefined)?.composes;
 
     const classes = [];
     if (Array.isArray(composes)) {
@@ -163,14 +175,11 @@ const resolveSlotClassesSync = (componentName, slotKey, mergedOverride, context,
         }
     }
 
-    const defaultClass = isFunction(defaultSlot?.class) ? defaultSlot.class(context) : defaultSlot?.class;
-    const overrideClass = isFunction(overrideSlot?.class) ? overrideSlot.class(context) : overrideSlot?.class;
-
-    if (defaultClass !== undefined && defaultClass !== null) {
-        classes.push(defaultClass);
-    }
-    if (overrideClass !== undefined && overrideClass !== null) {
-        classes.push(overrideClass);
+    for (const slot of [defaultSlot, projectSlot, overrideSlot]) {
+        const value = isFunction(slot?.class) ? slot.class(context) : slot?.class;
+        if (value !== undefined && value !== null) {
+            classes.push(value);
+        }
     }
 
     return classes;
@@ -202,12 +211,14 @@ const resolveSlotClasses = async (componentName, slotKey, mergedOverride, contex
     }
     defaultConfig = defaultConfig || {};
 
+    const projectConfig = projectTheme.value[componentName] || {};
     const overrideConfig = mergedOverride?.[componentName] || {};
 
     const defaultSlot = getConfigValue(defaultConfig, slotKey, context);
+    const projectSlot = getConfigValue(projectConfig, slotKey, context);
     const overrideSlot = getConfigValue(overrideConfig, slotKey, context);
 
-    const composes = overrideSlot?.composes !== undefined ? overrideSlot.composes : defaultSlot?.composes;
+    const composes = [overrideSlot, projectSlot, defaultSlot].find((slot) => slot?.composes !== undefined)?.composes;
 
     const classes = [];
     if (Array.isArray(composes)) {
@@ -225,14 +236,11 @@ const resolveSlotClasses = async (componentName, slotKey, mergedOverride, contex
         }
     }
 
-    const defaultClass = isFunction(defaultSlot?.class) ? defaultSlot.class(context) : defaultSlot?.class;
-    const overrideClass = isFunction(overrideSlot?.class) ? overrideSlot.class(context) : overrideSlot?.class;
-
-    if (defaultClass !== undefined && defaultClass !== null) {
-        classes.push(defaultClass);
-    }
-    if (overrideClass !== undefined && overrideClass !== null) {
-        classes.push(overrideClass);
+    for (const slot of [defaultSlot, projectSlot, overrideSlot]) {
+        const value = isFunction(slot?.class) ? slot.class(context) : slot?.class;
+        if (value !== undefined && value !== null) {
+            classes.push(value);
+        }
     }
 
     return classes;
@@ -319,15 +327,16 @@ export function useTheme(componentName, props, context, keyFn) {
         throw new Error("No component name passed");
     }
 
-    // Snapshot configOverride at construction. If the entry is a lazy loader,
-    // its configOverride isn't available until the chunk resolves; the loader
-    // chunk should call patchTheme with a real entry, after which a fresh
-    // useTheme call would pick it up. The async re-resolve below still applies
-    // to slot resolution, which is the main correctness concern.
     const initialConfig = defaultTheme.value[componentName];
-    const configOverride = initialConfig && typeof initialConfig !== "function" ? initialConfig.themeOverride : null;
+    // Embedded overrides also follow base replacement, loader completion, and
+    // project updates. Merge only this component's config, not the full registry.
+    const configOverride = computed(() => {
+        const base = defaultTheme.value[componentName];
+        const project = projectTheme.value[componentName];
+        return mergeTheme(typeof base === "function" ? {} : base?.themeOverride || {}, project?.themeOverride || {});
+    });
 
-    const themeOverride = useThemeOverride(toRef(props, "themeOverride"), configOverride || null);
+    const themeOverride = useThemeOverride(toRef(props, "themeOverride"), configOverride);
 
     /**
      * Loading-state contributors for this `useTheme` instance. Eager probe
@@ -408,7 +417,7 @@ export function useTheme(componentName, props, context, keyFn) {
                     const mergedOverride = unref(themeOverride);
                     const syncResult = resolveSlotClassesSync(componentName, key, mergedOverride, calcContext);
                     if (syncResult !== LOADER_PENDING) {
-                        return combineClasses(...syncResult);
+                        return combineThemeClasses(...syncResult);
                     }
                     // Probe already fires the component-level loader; avoid a
                     // second invocation through the async fallback's loader-
@@ -432,7 +441,7 @@ export function useTheme(componentName, props, context, keyFn) {
                                     innerOverride,
                                     innerContext,
                                 );
-                                return combineClasses(...classes);
+                                return combineThemeClasses(...classes);
                             },
                             "",
                             {

@@ -1,5 +1,7 @@
 from dateutil.relativedelta import relativedelta
+from django.db.models import Count
 from django.db.models import F
+from django.db.models import Sum
 from django.db.models.functions import Lower
 from django.http import Http404
 from django.utils.timezone import now
@@ -241,28 +243,99 @@ class CartM2MSearchOrderingViewSet(CartOrderingFieldsViewSet):
     resolve, so the two backends have to agree on the terms.
 
     A search field reaching through `cart_items` joins a row per cart item, so
-    `VuedaSearchFilterBackend` takes its `DISTINCT ON` path — the one that re-applies the ordering
-    itself, alongside the distinct columns that have to match it. Both orderings offered here mean
-    something different before and after `VuedaOrderingFilter` has run:
-    `customer__formatted_name` is only a real path once it has been rewritten to
-    `customer__data__formatted_name`, and `expected_delivery_time` only keeps the nulls-first
-    placement `nulls_ordering` declares for it as the expression that filter builds. Re-deriving
-    either from the raw `?o=` value in the search backend would order by a column the database
-    doesn't have, or silently drop the placement."""
+    `VuedaSearchFilterBackend` keeps that join inside a subquery and returns the queryset
+    `VuedaOrderingFilter` ordered. Both orderings offered here only exist in their resolved form:
+    `customer__formatted_name` becomes `customer__data__formatted_name`, and `expected_delivery_time`
+    becomes the nulls-first expression `nulls_ordering` declares for it. A searched list sorts by
+    those resolved terms."""
 
     search_fields = ["V:cart_items__product_option__name"]
     ordering_fields = [*CartOrderingFieldsViewSet.ordering_fields, "customer__formatted_name"]
 
 
 class CartM2MSearchRelationOrderingViewSet(CartM2MSearchOrderingViewSet):
-    """Offers a plain relation name on a searched list that deduplicates.
+    """Offers a plain relation name on a searched list that reaches through a multi-valued relation.
 
-    `Customer` declares `ordering = ["user__name"]`, so Django replaces an `order_by("customer")` with
-    the related model's own ordering over the joined table, while `distinct("customer")` trims the
-    join back to `store_cart.customer_id`. The two cannot match, so the ordering has no column to
-    pair with and such a request sorts by rank."""
+    `Customer` declares `ordering = ["user__name"]`, so Django expands an `order_by("customer")` into
+    the related model's own ordering over the joined table. A searched list sorts by that expansion,
+    as the same list does without a search."""
 
     ordering_fields = [*CartM2MSearchOrderingViewSet.ordering_fields, "customer"]
+
+
+class CartM2MSearchAggregateViewSet(CartM2MSearchOrderingViewSet):
+    """Annotates an aggregate on its queryset, on a viewset whose ranked search reaches through a
+    reverse foreign key.
+
+    `Sum` gives the queryset a `GROUP BY`. The search keeps its own join on `cart_items` inside a
+    subquery, so this queryset keeps one row per cart and each cart's sum counts its items once."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(total_quantity=Sum("cart_items__quantity"))
+
+
+class CartM2MSearchAggregateFilterViewSet(CartM2MSearchOrderingViewSet):
+    """Lists only carts holding at least three items, on a viewset whose ranked search reaches through
+    `cart_items`.
+
+    The filter is on an aggregate. The search matches inside a subquery built from `Cart`'s default
+    manager, and this queryset applies the filter outside it, counting all of each cart's items."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+
+
+class CartM2MSearchAggregateUpperBoundViewSet(CartM2MSearchOrderingViewSet):
+    """Lists only carts holding at most two items, on a viewset whose ranked search reaches through
+    `cart_items`.
+
+    A trigram or deterministic search joins `cart_items` once more for its own condition, so a count
+    inside its subquery would count each item once per matching item. This queryset applies the filter
+    outside the subquery, counting each of a cart's items once."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__lte=2)
+
+
+class CartM2MSearchAggregateFilterInSearchQuerysetViewSet(CartM2MSearchAggregateFilterViewSet):
+    """Returns a search queryset that filters on an aggregate, which `vueda_info.E014` reports."""
+
+    def get_search_queryset(self):
+        return my_models.Cart.objects.annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+
+
+class CartSingleValuedSearchAggregateFilterViewSet(CartM2MSearchAggregateFilterViewSet):
+    """Filters on an aggregate, with a search that follows only foreign keys. The search matches
+    against the viewset's queryset itself, without a subquery, so it reads no search queryset."""
+
+    search_fields = ["V:customer__user__name"]
+
+
+class CartM2MSearchAnnotationViewSet(CartM2MSearchOrderingViewSet):
+    """Searches `customer_name`, an annotation only `get_queryset()` adds, alongside a field that
+    reaches through `cart_items`.
+
+    The search matches inside a subquery built from `Cart`'s default manager, which has no
+    `customer_name`, so `vueda_info.E014` reports it and a search request fails with a `FieldError`."""
+
+    search_fields = ["V:customer_name", "V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(customer_name=F("customer__user__name"))
+
+
+class CartM2MSearchAnnotationSearchQuerysetViewSet(CartM2MSearchAnnotationViewSet):
+    """Adds the `customer_name` annotation its search fields name to its search queryset."""
+
+    def get_search_queryset(self):
+        return my_models.Cart.objects.annotate(customer_name=F("customer__user__name"))
+
+
+class CartSearchAnnotationOnlyViewSet(CartM2MSearchAnnotationViewSet):
+    """Searches only the `customer_name` annotation. The search reaches through no multi-valued
+    relation, so it matches against the viewset's queryset itself and reads no search queryset."""
+
+    search_fields = ["V:customer_name"]
 
 
 class CartItemViewSet(VuedaViewSet):
@@ -487,13 +560,10 @@ class ProductM2MSearchViewSet(ProductViewSet):
 
 
 class ProductM2MSearchFunctionOrderingViewSet(ProductM2MSearchViewSet):
-    """Declares a default ordering that reads one column without being that column.
+    """Declares a default ordering that is a function over a column, `Lower("name")`, on a viewset
+    whose search reaches across a many-to-many.
 
-    `Lower("name")` compiles to `LOWER("name")` while `distinct("name")` compiles to the column, so
-    the ordering has no column to pair with on a searched list that deduplicates and such a request
-    sorts by rank. Reached through the default rather than through `?o=`, because a `?o=` value is a
-    plain field name and never carries the function: a nonempty `?o=` that DRF rejects leaves this
-    default in place while still asking the search backend for explicit-order handling."""
+    A search with no `?o=` sorts by rank rather than by this default."""
 
     ordering = [Lower("name")]
 
@@ -502,9 +572,8 @@ class ProductM2MSearchRelationOrderingViewSet(ProductM2MSearchViewSet):
     """Offers a plain relation name whose related model declares no ordering of its own.
 
     The counterpart to `CartM2MSearchRelationOrderingViewSet`: `Distributor` declares no
-    `Meta.ordering`, so Django leaves an `order_by("distributor")` on the local foreign key column
-    and `distinct("distributor")` reaches the same column. The two match, so this ordering pairs and
-    the request sorts by it rather than by rank."""
+    `Meta.ordering`, so Django orders `order_by("distributor")` by the local foreign key column. A
+    searched list sorts by that column."""
 
     ordering_fields = [*ProductM2MSearchViewSet.ordering_fields, "distributor"]
 

@@ -100,6 +100,9 @@ export const availableWidgets = {
     WidgetRangeSlider: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetRangeSlider.vue")).default),
     ),
+    WidgetTagsInput: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTagsInput.vue")).default),
+    ),
     WidgetTextInput: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetTextInput.vue")).default),
     ),

@@ -17,7 +17,7 @@
  * matter: a consumer only needs this module to have run by the time its own
  * slot is read.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -96,11 +96,11 @@ patchTheme({
      * FileUpload.trigger, RangeCalendarPrevButton).
      */
     _ButtonOutline: {
-        /** The neutral-chip recipe: DPR-aware hairline at `--border-strong` that darkens to `--foreground` on hover (a chip that still reads as a control without outweighing the one filled action beside it), `--background` fill, `shadow-vueda-control` micro-shadow, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping its stronger edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
+        /** The neutral-chip recipe: DPR-aware hairline at `--border-strong` that darkens to `--foreground` on hover (a chip that still reads as a control without outweighing the one filled action beside it), `--background` fill, and an `--accent` hover swap with an `--accent-active` pressed step. The hairline paints as an inset shadow rather than a layout border, so outlined buttons match fill-button intrinsic width while using the same chromatic-fringing mitigation as inputs. Hover / active use the mode-aware `--accent` tokens in both light and dark, so the lightness step is identical in either mode; only the *rest* fill differs (dark mode keeps the input-tint convention, `bg-input/30`, so an outlined chip reads input-like at rest while keeping its stronger edge). The earlier dark-mode `bg-input/50` hover topped out near the rest lightness because `--input` is itself dark, leaving the smaller sizes with no perceptible state change. Reused by chip-shaped leaves that want the button shape without a fill, including {@api theme-key:FileUpload.trigger} and the calendar prev / next buttons, so the hover and pressed steps reach those surfaces too. */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-border-strong bg-background text-foreground shadow-vueda-control",
+                "hairline hairline-border-strong bg-background text-foreground",
 
                 // Interactive states.
                 "hover:hairline-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active dark:bg-input/30",
@@ -171,7 +171,7 @@ patchTheme({
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-primary bg-background text-primary-text shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-primary bg-background text-primary-text dark:bg-input/30",
 
                 // Interactive states.
                 "hover:bg-primary/10 active:bg-primary/15",
@@ -189,11 +189,11 @@ patchTheme({
      * destructive sibling of {@api theme-key:_ButtonOutline}.
      */
     _ButtonDestructiveOutline: {
-        /** The destructive neutral-chip recipe: a DPR-aware `--destructive` hairline and `--destructive` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint), with the `shadow-vueda-control` micro-shadow. The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--destructive` tint behind the label (`/10` then `/15`) so the chip warms toward danger on interaction without becoming a filled destructive CTA, and focus swaps to the destructive outline. Use for a reversible-but-cautionary action that should not carry the weight of a filled {@api theme-key:_ButtonDestructive} (a low-emphasis delete in a toolbar or row). */
+        /** The destructive neutral-chip recipe: a DPR-aware `--destructive` hairline and `--destructive` text over the `--background` fill (dark mode keeps the outline-family `bg-input/30` rest tint). The inset hairline avoids layout-width drift against fill buttons and uses the same saturated-edge fringing mitigation as inputs. Hover and active wash a low-alpha `--destructive` tint behind the label (`/10` then `/15`) so the chip warms toward danger on interaction without becoming a filled destructive CTA, and focus swaps to the destructive outline. Use for a reversible-but-cautionary action that should not carry the weight of a filled {@api theme-key:_ButtonDestructive} (a low-emphasis delete in a toolbar or row). */
         root: {
             class: [
                 // Shape and surface.
-                "hairline hairline-destructive bg-background text-destructive shadow-vueda-control dark:bg-input/30",
+                "hairline hairline-destructive bg-background text-destructive dark:bg-input/30",
 
                 // Interactive and focus states.
                 "hover:bg-destructive/10 active:bg-destructive/15 focus-visible:outline-destructive",

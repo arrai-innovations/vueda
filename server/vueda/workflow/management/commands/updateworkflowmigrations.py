@@ -270,7 +270,7 @@ class Command(BaseCommand):
                 with open(filepath, encoding="utf-8") as f:
                     for line_no, line in enumerate(f):
                         if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
-                            result[filepath] = (app_label, filename[:-3])
+                            result[filepath] = (app_label, filename.removesuffix(".py"))
                             break
                         if line_no > 20:  # noqa: PLR2004
                             break

@@ -65,11 +65,33 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 ## File Detection and FormData Encoding
 
-**`defaultObjectCreate`, `defaultObjectUpdate`, and `defaultObjectPatch` auto-detect file content and switch serialization format.** Before sending, the adapter inspects the outgoing object's values with `Object.values(object).some((value) => value instanceof File || value instanceof Blob)`. When a `File` or `Blob` is detected, the request is serialized as `multipart/form-data` (via `FormData`) instead of `application/json`.
+`defaultObjectCreate`, `defaultObjectUpdate`, and `defaultObjectPatch` search nested arrays and objects for `File` or `Blob` values. Saves without files keep `application/json`. Saves with files use `FormData`; the browser supplies the multipart boundary.
 
-**FormData serialization uses specific naming conventions for nested structures.** Nested objects use dot notation (`parent.child`). Nested arrays use bracket notation (`items[0]fieldname`, with no dot before the field name in array items). These conventions match VUEDA's server-side parsers. Custom backends that expect different naming (for example, Django REST framework's default nested key format) may misinterpret the keys.
+Multipart saves preserve JSON values alongside uploaded files. Each top-level non-file field contains a JSON value, so arrays, objects, `null`, and empty collections retain their structure. A top-level `false` or `0` still travels as the text `"false"` or `"0"`. Strings include their JSON quotes, and `null` travels as `"null"` rather than an empty string.
 
-**The `instanceof` check does not cover cross-realm objects or custom wrappers.** Objects that behave like files but do not inherit from `File` or `Blob` (such as objects from a different iframe or custom file wrappers) will be JSON-serialized. The server receives a string like `[object Object]` instead of file data. There is no fallback detection mechanism; the check is strictly prototype-based.
+### Multipart format
+
+The reserved text part `__vueda_multipart` contains a manifest: a JSON object with `version: 1` and a `files` object. Each entry maps a file part name to an array of object keys and array indexes. Object keys are strings; indexes are nonnegative integers. Dots and brackets inside keys are literal characters.
+
+Top-level files use their field name as the part name. Nested files use generated names such as `__vueda_file_0`, avoiding names already present on the submitted object. Their positions in the JSON fields hold `null` placeholders. For example, `{ items: [{ name: "a", attachment: file }] }` produces:
+
+```text
+items: [{"name":"a","attachment":null}]
+__vueda_file_0: <file content>
+__vueda_multipart: {"version":1,"files":{"__vueda_file_0":["items",0,"attachment"]}}
+```
+
+The server restores files at the named positions before serializer validation. A `Blob` without a filename uses the browser's default filename, `blob`. Invalid manifests, duplicate fields, unmatched file parts, and conflicting paths return a `400` parse error.
+
+### Supported values and deployment
+
+Multipart saves support plain objects, dense arrays, strings, finite numbers, booleans, `null`, and files. Unsupported values throw a `TypeError` before sending, with the value's path, such as `$["items"][0]["attachment"]`. This includes `undefined`, non-finite numbers, functions, symbols, bigint values, dates, custom class instances, circular references, and arrays with extra properties. Convert dates and other custom values to their intended JSON values before saving. The top-level name `__vueda_multipart` is reserved when a save contains files.
+
+File detection uses `instanceof Blob`, which includes `File`. Pass files from the same browser context; this check does not recognize files created in another iframe or custom wrappers.
+
+Deploy the server change before the client change. `VuedaViewSet` and `VuedaReadOnlyViewSet` include `NestedMultipartMixin` from `vueda.core.parsers`. It replaces DRF's standard `MultiPartParser` and preserves the configured JSON, form, and custom parsers. Requests without a manifest retain DRF's existing multipart behavior, so older clients keep working.
+
+Custom DRF views can place `NestedMultipartMixin` before their DRF base class and enable the standard `MultiPartParser`. Views that override that parser, and non-VUEDA backends, must support this format before receiving saves from the updated adapters. The format changes transport only; serializers still perform field validation and permission checks through the normal save path.
 
 ## Error Classification
 
@@ -95,7 +117,7 @@ The registry also establishes a clear ownership boundary. Adapters own request c
 
 **Double registration overwrites silently.** Calling `setListCrud` or `setObjectCrud` multiple times replaces handler functions without warning. If both `main.js` and a test setup call `setupDefaultListCrud()`, the second call's registrations replace the first. For handler functions, replacement is complete (not merged). For `args`, the merge via `Object.assign` means that keys from the first call persist unless explicitly overwritten by the second.
 
-**File-like objects that do not inherit from `File` or `Blob` are JSON-serialized.** The `instanceof` check is strict. Cross-realm `File` objects (from iframes or web workers) and custom file wrappers fail the check and are serialized as JSON, producing garbled data on the server.
+**Files from another browser context and custom file wrappers are unsupported.** See [File Detection and FormData Encoding](#file-detection-and-formdata-encoding) for the supported values and transport requirements.
 
 **FormData nested property naming can conflict with server expectations.** The default serialization uses dot notation for nested objects and bracket notation for arrays. Custom backends that expect a different convention will receive unexpected keys. There is no configuration option for the naming strategy; projects with non-standard backends must provide custom adapters.
 
