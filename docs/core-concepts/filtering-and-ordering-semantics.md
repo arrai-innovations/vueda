@@ -283,7 +283,7 @@ class ContactViewSet(VuedaViewSet):
 
 The fields a term reads are what both layers work from, and one term can read any number of them.
 
-`VuedaOrderingFilter` makes each of those fields a valid explicit `?o=` target, on the same reasoning as the section above. What such a request sorts by is the column itself, not the function over it — `?o=name` against a `Lower("name")` default gives a plain case-sensitive sort. This is the same divergence an explicit request already has with a default that carries a nulls placement, and `nulls_ordering` is the analogous escape hatch for that one. It takes an explicit request to reach it: the VUEDA client shows a default it was told about without sending it back, so a list the reader has not sorted keeps the function. One path does not keep it. A search reaching through a multi-valued relation deduplicates with a `DISTINCT ON`, which a function over a column cannot pair with, so such a list arrives in relevance order instead (see [Observable Failure Modes](#observable-failure-modes)).
+`VuedaOrderingFilter` makes each of those fields a valid explicit `?o=` target, on the same reasoning as the section above. What such a request sorts by is the column itself, not the function over it — `?o=name` against a `Lower("name")` default gives a plain case-sensitive sort. This is the same divergence an explicit request already has with a default that carries a nulls placement, and `nulls_ordering` is the analogous escape hatch for that one. It takes an explicit request to reach it: the VUEDA client shows a default it was told about without sending it back, so a list the reader has not sorted keeps the function.
 
 `model_ordering` reports a term that reads exactly one column under that column's name, with `ascending` taken from the term's direction: `Lower("name").desc()` is reported as `{"name": "name", "type": "alpha", "ascending": false}`. The `type` describes the column the client orders by, not the value the function returns, so `Length("name")` reports `name` as `alpha` rather than `numeric`.
 
@@ -320,15 +320,96 @@ Ordering follows the same discipline at the value level, not only at the key lev
 
 ## Search Contract Surface
 
-Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search.
+Search is a distinct sub-surface of `list` queries, governed by `VuedaSearchFilterBackend`. This backend extends DRF's `SearchFilter` with two capabilities: trigram similarity and ranked search. It also builds a search through a multi-valued relation from its own search queryset, where `SearchFilter` copies the viewset's queryset (see [Search through a multi-valued relation](#search-through-a-multi-valued-relation)).
 
 The standard DRF search prefixes (`^` for starts-with, `=` for exact, `@` for full-text, `$` for regex) are available. VUEDA adds three additional prefixes: `#` for trigram similarity, `~` for trigram word similarity, and `V:` for VUEDA-specific ranked search fields.
 
-When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). An explicit `o` (ordering) parameter normally suppresses that ranking, since explicit ordering takes precedence over relevance. The backend reads the raw parameter, so any nonempty `o` suppresses ranking this way — including one that names an invalid term, which fails the whole request with HTTP 400 rather than falling back to relevance or the default ordering. Ranking wins anyway on one path: a search that deduplicates through a `DISTINCT ON` needs every ordering term to pair with a distinct column, and returns to `-combined_rank` when one cannot (see [Observable Failure Modes](#observable-failure-modes)). Duplicate results will be removed from ranked results.
+When at least one search field uses the `V:` prefix, the search backend switches to ranked-search mode. In this mode, the backend computes a `combined_rank` by combining full-text search rank, trigram similarity, and word-boundary match scores. Results are filtered by a `search_threshold` and, when no explicit ordering parameter is provided, ordered by `-combined_rank` (best match first). An explicit `o` (ordering) parameter normally suppresses that ranking, since explicit ordering takes precedence over relevance. The backend reads the raw parameter, so any nonempty `o` suppresses ranking this way — including one that names an invalid term, which fails the whole request with HTTP 400 rather than falling back to relevance or the default ordering.
 
 When at least one search field uses the `#` prefix, the search backend switches to use trigram similarity. In this mode, the backend combines the search term into a single search term, because that is required for trigram similarity.
 
-When no search fields use the `V:` or `#` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+When no search fields use the `V:`, `#` or `~` prefix, the backend falls back to standard DRF `SearchFilter` behaviour. A search field that reaches through a multi-valued relation still matches against the search queryset, as described in [Search through a multi-valued relation](#search-through-a-multi-valued-relation). The `V:` prefix is the boundary between deterministic lookups and ranked search; its presence or absence changes the query execution strategy.
+
+### Search through a multi-valued relation
+
+A search field can reach through a multi-valued relation (a reverse foreign key or a many-to-many), such as `V:cart_items__product_option__name` on a `Cart`. Joining that relation produces one row per matching related row, so a cart with two matching items would appear twice. The backend keeps those joins inside subqueries instead, and narrows the viewset's queryset to the objects that match. The list returns each object once. This applies to every search prefix, including the standard DRF ones.
+
+In ranked-search mode an object matches when at least one of its rows reaches `search_threshold`, and it ranks by its best matching row, with the primary key breaking ties. An explicit `o` sorts the list the same way it sorts the list without a search, with the primary key breaking ties.
+
+The subqueries are built from the viewset's **search queryset**:
+
+- When the viewset defines `get_search_queryset()`, the search queryset is what that method returns.
+- Otherwise, it is the model's default manager.
+
+The viewset's queryset applies its own ordering, annotations, aggregates and filters outside the subqueries, where they see every related row. So a viewset that lists only carts holding at least three items keeps a cart whose three items include two that match the search:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(item_count=Count("cart_items")).filter(item_count__gte=3)
+```
+
+A filter through the searched relation and the search are independent conditions, as two `filter()` calls on a multi-valued relation are in Django. A viewset queryset filtered by `.filter(cart_items__quantity__gte=24)` keeps a cart holding one item with a quantity of 24 and another item that matches the search.
+
+A search field that follows only foreign keys joins at most one row per object. That search needs no subquery, matches against the viewset's queryset directly, and never reads the search queryset. A search whose fields are all annotations of the viewset's queryset doesn't either.
+
+#### When a viewset needs `get_search_queryset()`
+
+A viewset defines `get_search_queryset()` when its `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation. The model's default manager has no such annotation:
+
+```python
+class CartViewSet(VuedaViewSet):
+    search_fields = ["V:customer_name", "V:cart_items__product_option__name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(customer_name=F("customer__user__name"))
+
+    def get_search_queryset(self):
+        return Cart.objects.annotate(customer_name=F("customer__user__name"))
+```
+
+Without `get_search_queryset()`, a search request on this viewset fails with `FieldError: Cannot resolve keyword 'customer_name'`. An annotation the model's default manager already adds, such as the `formatted_name` a `FormattedNameManager` annotates, resolves without it.
+
+A viewset also defines `get_search_queryset()` when the model's default manager hides rows that the viewset lists. Take a default manager that filters out archived widgets, on a viewset that lists them through a second manager:
+
+```python
+class WidgetManager(FormattedNameManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(archived=False)
+
+
+class Widget(VuedaModel):
+    objects = WidgetManager()
+    all_objects = FormattedNameManager()
+
+
+class WidgetViewSet(VuedaViewSet):
+    queryset = Widget.all_objects.all()
+    search_fields = ["V:parts__name"]
+
+    def get_search_queryset(self):
+        return Widget.all_objects.all()
+```
+
+Without `get_search_queryset()`, the search subquery is built from `Widget.objects`, which holds no archived widgets, so a search leaves every archived widget out of the list. The search returns no error, and the `vueda_info.E014` system check doesn't report it.
+
+The rules for the search queryset are:
+
+- **Carry every annotation that `search_fields` name.**
+- **Include every row the viewset lists.** Build it from a manager that hides none of the viewset's rows.
+- **Leave out filters.** The viewset's queryset applies its filters outside the subqueries. Inside them, a filter on an aggregate or a window function gives a different answer over the matching related rows than over all of them, and a filter through the searched relation limits a ranked (`V:`) search to the related rows that pass it.
+- **Return a new queryset, not `self.get_queryset()`.** Returning the viewset's queryset brings its filters back into the subqueries.
+
+#### What the `vueda_info.E014` system check reports
+
+The check reads the search queryset of every registered viewset whose search reaches through a multi-valued relation. It reports two problems:
+
+- A `search_fields` entry that names neither a field of the model nor an annotation of the search queryset. A search request would fail with a `FieldError`.
+- A `get_search_queryset()` that filters on an aggregate or a window function. The search would drop objects that match.
+
+Like the other checks, it stops `runserver`, `migrate` and the other management commands until the viewset is fixed. The model's default manager can always be built outside a request, so the check always reads a viewset without `get_search_queryset()`. A `get_search_queryset()` that reads `self.request` can't be built there, and the check skips that viewset.
 
 ## Filter Choices and Permission Surfaces
 
@@ -444,6 +525,10 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 **Ranked search bypassed silently.** If no search fields use the `V:` prefix, the search backend falls through to standard DRF `SearchFilter` behaviour. The symptom is that search results are not ranked by relevance and may not meet expected search quality standards. There is no runtime warning; the fallback is silent.
 
+**A search leaves out rows the default manager hides.** A viewset that lists rows its model's default manager filters out, such as archived rows listed through a second manager, loses those rows from every search that reaches through a multi-valued relation. The request returns 200, and nothing reports it at startup. Define `get_search_queryset()` returning the wider manager (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
+
+**A search on an annotation fails with `FieldError`.** A viewset whose `search_fields` name an annotation that only its `get_queryset()` adds, alongside a field that reaches through a multi-valued relation, fails every search request with `FieldError: Cannot resolve keyword ...` — an unhandled server error. `vueda_info.E014` reports the viewset at startup. Define `get_search_queryset()` with the annotation (see [When a viewset needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset)).
+
 **Filter choice endpoint returns 404 for unknown fields.** An incorrect field name in a filter-choice request returns 404 with the valid filter set named in the response. This can present as a missing-choices UI state rather than a validation error on the originating `list` view, because the error occurs on a separate endpoint.
 
 **Related model permission blocks filter choices.** Missing `list` permission on a related model causes the filter-choice endpoint to return 403, even when the user can read the current model. The symptom is a filter dropdown that fails to populate while the rest of the model's UI works normally.
@@ -462,19 +547,6 @@ Models that use a composite primary key cannot use `VuedaFilterSet` as a filters
 
 **A multi-column ordering expression shows no default sort in the client.** A default `ordering` term that reads more than one column — `Concat("first_name", "last_name")` — sorts the rows correctly but is left out of `model_ordering.default`, because no single field name stands for the sort it performs. No system check reports this: the configuration is valid, and the only symptom is a client that shows no sort indicator and offers no sort control for a list that is in fact sorted. If the sort is meant to be visible to clients, declare it as separate terms or annotate the expression in `get_queryset` and order by the annotation's name.
 
-**A deduplicating search falls back to relevance order for an ordering it cannot pair.** When a `V:`-prefixed or `#`-prefixed search reaches through a multi-valued relation, `VuedaSearchFilterBackend` deduplicates with a `DISTINCT ON`, and PostgreSQL requires those expressions to match the leftmost `ORDER BY` expressions. `distinct()` accepts only field paths, while `order_by()` accepts any expression. So each ordering term has to compile to a bare column that both sides of the query reach the same way. Four shapes do not:
-
-- **A term reading more than one column**, such as `Concat("first_name", "last_name")`, and a term reading none at all, such as `"?"`. Neither has a single column to pair with.
-- **A term reading one column without being that column**, such as `Lower("name")`. Its distinct column compiles to `name` while the ordering compiles to `LOWER("name")`.
-- **A plain relation name whose related model declares its own `Meta.ordering`**, such as `customer` where `Customer` orders by `["user__name"]`. Django replaces the term with that ordering over the joined table, while the distinct column trims the join back to the local foreign key.
-- **A `"pk"` alias on a composite primary key**, which stands for several columns where the pairing allows one.
-
-The rows then come back ranked by relevance rather than in the requested order. The response is correct and returns 200; only the order differs from the same request without a search term.
-
-How each shape gets here differs, which is what decides whether a client can trigger it during a search. A function over a column, and a term reading more than one, only ever come from the viewset's own default `ordering` — a `?o=` value is always a plain field name and carries neither — and default ordering never gets to compete with the `DISTINCT ON` pairing during a search: the backend applies `-combined_rank` outright whenever the raw `o` parameter is empty or absent, and a nonempty one that fails validation now rejects the whole request with HTTP 400 rather than falling back to the default ordering while the search still treats the request as explicitly ordered. What reaches the pairing failure instead is a _valid_ explicit `?o=` that Django itself expands past what was requested: a relation name (`?o=customer`, offered whenever `ordering_fields = "__all__"` advertises it in `model_ordering.fields`) that Django replaces with the related model's own `Meta.ordering`, or a `"pk"` alias on a composite primary key, which already stands for more than one column.
-
-Everything else pairs and is unaffected: a concrete field, a path through relations, a queryset annotation, the `"pk"` alias on an ordinary primary key, and a relation whose related model declares no ordering.
-
 ## Relevant Implementation Surface
 
 - {@api rest:endpoint:GET:/vueda.info/model_info/}
@@ -489,6 +561,7 @@ Everything else pairs and is unaffected: a concrete field, a path through relati
 - {@api py:module:vueda.core.filters}
 - {@api py:class:vueda.core.filters.VuedaOrderingFilter}
 - {@api py:class:vueda.core.filters.VuedaSearchFilterBackend}
+- {@api py:function:vueda.core.filters.VuedaSearchFilterBackend.get_search_queryset}
 - {@api py:module:vueda.core.ordering}
 - {@api py:function:vueda.core.ordering.ordering_term_field_names}
 - {@api py:function:vueda.core.ordering.queryset_explicit_ordering}
