@@ -150,7 +150,7 @@ def collect_workflow_identities(changed_data_lists):
 
 
 def workflow_identity_at(identities, code, recorded_at):
-    """Return what a workflow code meant when a change naming it was recorded."""
+    """Return what a workflow code meant when a change naming it was recorded, or ``None`` when that cannot be told."""
     entries = identities.get(code)
     if not entries:
         return None
@@ -160,8 +160,12 @@ def workflow_identity_at(identities, code, recorded_at):
         if recorded <= recorded_at:
             chosen = identity
 
-    # A reference recorded before the workflow's own change means the earliest workflow to hold it.
-    return chosen if chosen is not None else entries[0][1]
+    if chosen is not None:
+        return chosen
+
+    # A reference recorded before the workflow's own change means the only workflow to hold its code. When
+    # several have held it, which one the reference means cannot be told, so it is left naming the code alone.
+    return entries[0][1] if len(entries) == 1 else None
 
 
 def add_workflow_identities(value, identities, recorded_at, *, names_a_workflow=False):
@@ -223,7 +227,8 @@ class Command(BaseCommand):
     help = (
         "Scan the named apps, or every app when none is named, for workflow migrations created by "
         "makeworkflowmigrations and rewrite their import and function sections with the current implementations "
-        "from makeworkflowmigrations.py. Apps installed as packages are never updated. "
+        "from makeworkflowmigrations.py. Apps installed as packages are never updated, though their migrations "
+        "are read for the workflows they record and for dependency checks. "
         "The history_change_reason and migration_app_label variables are preserved unchanged, and changed_data "
         "keeps every change it records, gaining only the app and model naming each workflow it refers to by code. "
         "The class Migration block is also preserved, with stale operation function names updated to their "
@@ -245,22 +250,26 @@ class Command(BaseCommand):
         )
 
     def _find_workflow_migration_files(self, selected_apps=()):
+        """Return every generated workflow migration, with its migration key and whether this run may rewrite it.
+
+        Every app is scanned, not only the ones this run rewrites, because a migration that must not be
+        rewritten can still be the only record of which workflow a code meant, and the references in a
+        rewritten migration are resolved from that record.
+        """
         result = {}
 
         for app_config in django_apps.get_app_configs():
             app_label = app_config.label
 
-            # If you specify apps, skip models not in your app.
-            if selected_apps and app_label not in selected_apps:
-                continue
-
             migrations_path = get_migrations_path(app_config)
             if migrations_path is None or not os.path.isdir(migrations_path):
                 continue
 
-            # Only the project's own apps are updated. A named package app is rejected in handle().
-            if is_installed_package_path(migrations_path):
-                continue
+            # Only the project's own apps are rewritten, and only the named ones when apps are named.
+            # A named package app is rejected in handle().
+            writable = not is_installed_package_path(migrations_path) and (
+                not selected_apps or app_label in selected_apps
+            )
 
             for filename in sorted(os.listdir(migrations_path)):
                 if not filename.endswith(".py") or filename == "__init__.py":
@@ -270,20 +279,24 @@ class Command(BaseCommand):
                 with open(filepath, encoding="utf-8") as f:
                     for line_no, line in enumerate(f):
                         if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
-                            result[filepath] = (app_label, filename.removesuffix(".py"))
+                            result[filepath] = ((app_label, filename.removesuffix(".py")), writable)
                             break
                         if line_no > 20:  # noqa: PLR2004
                             break
 
         return result
 
-    def _load_changed_data(self, filepath):
+    def _load_changed_data(self, filepath, *, writable=True):
         """Return the changes a migration records, or ``None`` when they cannot be read.
 
         The file is read as the module it is, rather than parsed, because a change records real
         datetimes and a literal parser cannot build those. Changes that import but lack what the
         command reads from them are reported the same way, so the file is skipped rather than
         ending the run.
+
+        A migration this run does not rewrite is read only for the workflows it records, so a fault
+        in it is a warning rather than a failure: the workflows it records are left out, and
+        references are resolved from the history that remains.
         """
         try:
             spec = importlib.util.spec_from_file_location("workflow_migration_being_updated", filepath)
@@ -291,15 +304,22 @@ class Command(BaseCommand):
             spec.loader.exec_module(module)
             changed_data = module.changed_data
         except Exception as error:
-            self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {error}"))
-            return None
+            problem = str(error)
+        else:
+            problem = describe_unreadable_changes(changed_data)
 
-        problem = describe_unreadable_changes(changed_data)
-        if problem is not None:
+        if problem is None:
+            return changed_data
+
+        if writable:
             self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {problem}"))
-            return None
-
-        return changed_data
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  Could not read changed_data in {filepath}: {problem}. "
+                    "The workflows it records are not used to name references."
+                )
+            )
 
     @staticmethod
     def _replace_changed_data(lines_string, changed_data):
@@ -472,18 +492,20 @@ class Command(BaseCommand):
             sys.exit(2)
 
         migration_files = self._find_workflow_migration_files(app_labels)
+        writable_files = [filepath for filepath, (_, writable) in migration_files.items() if writable]
 
-        if not migration_files:
+        if not writable_files:
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No workflow migrations found to update."))
             return
 
-        # Every generated migration is read before any is written, because what a workflow code
-        # meant at one moment can be recorded in a different migration than the change naming it.
+        # Every generated migration is read before any is written, including those this run does
+        # not rewrite, because what a workflow code meant at one moment can be recorded in a
+        # different migration than the change naming it, even one in an installed package.
         changed_data_by_file = {}
-        for filepath in migration_files:
-            changed_data = self._load_changed_data(filepath)
+        for filepath, (_, writable) in migration_files.items():
+            changed_data = self._load_changed_data(filepath, writable=writable)
             if changed_data is not None:
-                if has_naive_history_dates(changed_data):
+                if writable and has_naive_history_dates(changed_data):
                     self.stdout.write(
                         self.style.WARNING(f"  Naive dates found in changed_data in {filepath}. Treating as UTC.")
                     )
@@ -494,12 +516,13 @@ class Command(BaseCommand):
 
         failure_count = 0
         updated_count = 0
-        for filepath in migration_files:
+        for filepath in writable_files:
             verb = "Would update" if self.dry_run else "Updating"
             self.stdout.write(f"{verb}: {filepath}")
-            if self._update_migration_file(
-                filepath, changed_data_by_file.get(filepath), identities, migration_files[filepath]
-            ):
+            # Each file is rewritten from its own changes, but the workflows its references name are
+            # looked up in identities, which every generated migration read above contributed to.
+            migration_key, _ = migration_files[filepath]
+            if self._update_migration_file(filepath, changed_data_by_file.get(filepath), identities, migration_key):
                 updated_count += 1
             else:
                 # Something went wrong, stderr will have printed what.
