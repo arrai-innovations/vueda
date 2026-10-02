@@ -152,30 +152,47 @@ The previous release does not know the model has workflow. Objects it creates af
 
 ## Updating Existing Workflow Migrations
 
-When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your app's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. Name each of your own apps:
+When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your project's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. With no app label, it updates every app in your project's source tree:
+
+```console
+python manage.py updateworkflowmigrations
+```
+
+Name apps to update only those:
 
 ```console
 python manage.py updateworkflowmigrations myapp otherapp
 ```
 
-::: warning
-Always name your own apps to update. With no app label, the command scans every installed app, including VUEDA's own migrations inside the installed package. It skips incompatible migrations but can still rewrite compatible package files that you cannot commit in your project. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
-:::
+### Which Apps a Run Covers
+
+The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside a directory Python installs packages into (`site-packages`). That covers the environment's own, the base interpreter's that a virtual environment created with `--system-site-packages` also uses, and the user directory that `pip install --user` installs into. VUEDA's own `vueda_vdq` is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the originals back.
+
+The command still reads migrations from installed packages, and from apps you did not name, without rewriting them. It reads them for two reasons:
+
+- **Workflow history.** A package's migration can be the only record of which app and model a workflow code belonged to. Your project's migrations can refer to that workflow by code. See [What the Command Updates](#what-the-command-updates).
+- **Dependency checks.** Checking a migration's dependencies loads Django's whole migration graph, which imports every installed app's migrations. If one of those raises an error on import, the command reports it and leaves your migration unchanged.
+
+Naming an installed app is an error. The command reports that it will not update installed packages, names the app, and exits with status 2 before it reads any migration, as it does for an app label that does not exist. A run that finds nothing in your project to update reports that and stops, without reading any package migration.
+
+An app installed in editable mode, such as a uv workspace member, keeps its files in its source tree. It counts as part of your project and is updated.
 
 ### What the Command Updates
 
-`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
+`updateworkflowmigrations` scans the apps you name, or every app in your project's source tree when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
 
 - Replaces the import block with the current imports from `makeworkflowmigrations.py`.
 - Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
 - Updates any stale function names referenced in the `operations` list.
 - Adds the app label and model name to every workflow that `changed_data` refers to by code alone.
 
-A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. What the changes record is only added to: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. That holds for the values, not the text of the file. See the note on `changed_data` below. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. Running the command twice makes no further difference.
+A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. It reads those changes from every app's generated migrations, including installed packages and apps you did not name, so a reference keeps the workflow it meant even when only a package recorded that workflow. What the changes record is only added to: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. That holds for the values, not the text of the file. See the note on `changed_data` below. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. A reference recorded before every workflow that has held its code is left as it is too, unless only one workflow has ever held that code. When several have, the command cannot tell which one the reference means. Running the command twice makes no further difference.
 
 Working out what a code meant when a change was recorded means ordering the dates that migrations record against each other, and every date a generated migration records carries a time zone. A date without one reached the file by hand, so the command reports the file and reads that date as UTC, which is what the generated dates hold. The date in the file is left exactly as it was written.
 
 If the command cannot read a migration's `changed_data`, it skips that file and reports the fault. Examples include a syntax error, a file that no longer imports on its own, or a change missing `model_name`, `history_date`, or `changes`. It continues updating files whose changes and dependencies it can read, then exits with status 1. If a broken file prevents Django from loading the migration graph, dependency checks fail too. A skipped file stays exactly as it was, including its imports and functions. Fix the reported fault, then run the command again.
+
+A migration the command reads but does not rewrite, such as one in an installed package, is reported as a warning instead. The command leaves out the workflows it records and does not count it as a failure. References are then resolved from the history that remains, so fix the reported fault where you can before relying on the result.
 
 The following are preserved exactly as written in each migration file:
 
