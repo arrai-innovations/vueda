@@ -383,8 +383,9 @@ def filter_rows_for_user(queryset, user, perm_type="list"):
     also annotates state permission info and calls ``check_queryset_workflow``.
 
     This is the single row-visibility rule. A viewset reaches it through
-    ``apply_row_level_filter``; history reaches it directly, so an event about a related row
-    follows the same rule as reading that row.
+    ``apply_row_level_filter``. History and the filter choices endpoint reach it directly, so an
+    event about a related row follows the same rule as reading that row, and a filter choice
+    comes only from a row the user may list.
     """
     model = queryset.model
     row_level_permissions = getattr(model, "RowLevelPermissions", None)
