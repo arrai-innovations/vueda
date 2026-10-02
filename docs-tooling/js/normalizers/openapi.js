@@ -15,6 +15,10 @@ function typeName(schema) {
     if (schema.type === "array") {
         return `${typeName(schema.items)}[]`;
     }
+    if (schema.type === "object" && schema.additionalProperties && typeof schema.additionalProperties === "object") {
+        // A keyed map, such as field metadata keyed by field name.
+        return `map<string, ${typeName(schema.additionalProperties)}>`;
+    }
     if (schema.type === "string" && schema.format) {
         return `${schema.type}(${schema.format})`;
     }

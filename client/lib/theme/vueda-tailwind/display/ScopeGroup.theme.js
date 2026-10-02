@@ -5,7 +5,7 @@
  * ScopeGroup.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire display family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**

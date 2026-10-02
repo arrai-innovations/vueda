@@ -63,6 +63,34 @@ describe("OpenApiNormalizer", () => {
         expect(endpoint.description).toBe("Fetch a widget.");
     });
 
+    it("names a keyed map by its value type", () => {
+        const normalizer = new OpenApiNormalizer();
+        const output = normalizer.normalize({
+            openapi: "3.0.3",
+            info: { title: "Test API", version: "0.1.0" },
+            paths: {},
+            components: {
+                schemas: {
+                    Field: { type: "object", properties: { label: { type: "string" } } },
+                    Info: {
+                        type: "object",
+                        properties: {
+                            fields: { type: "object", additionalProperties: { $ref: "#/components/schemas/Field" } },
+                            counts: { type: "object", additionalProperties: { type: "integer" } },
+                            loose: { type: "object", additionalProperties: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        const info = output.nodes.find((node) => node.kind === "schema" && node.name === "Info");
+        const typeOf = (name) => info.members.find((member) => member.name === name).type.name;
+        expect(typeOf("fields")).toBe("map<string, Field>");
+        expect(typeOf("counts")).toBe("map<string, integer>");
+        expect(typeOf("loose")).toBe("object");
+    });
+
     it("maps deprecated operations to canonical lifecycle metadata", async () => {
         const normalizer = new OpenApiNormalizer();
         const payload = {

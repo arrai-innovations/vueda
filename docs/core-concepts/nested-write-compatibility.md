@@ -88,7 +88,6 @@ This sequence has diverged from the default, due to a bug discovered in drf-writ
 - {@api py:module:vueda.core.serializers}
 - {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
 - {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value}
-- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.\_extract_relations}
 - {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update_or_create_direct_relations}
 - {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update}
 - {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}

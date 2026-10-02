@@ -5,7 +5,7 @@
  * Menubar.vue, so a route chunk that pulls only that SFC drags only this
  * component's theme entry, not the entire navigation family.
  */
-import { patchTheme } from "@vueda/use/themeRegistry.js";
+import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
@@ -16,7 +16,7 @@ patchTheme({
         root: {
             class: [
                 // Surface and layout.
-                "bg-background flex h-9 items-center gap-1 rounded-vueda-control hairline hairline-border p-1 shadow-vueda-control",
+                "bg-background flex h-9 items-center gap-1 rounded-vueda-control hairline hairline-border p-1",
             ],
         },
     },

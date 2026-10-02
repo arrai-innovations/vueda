@@ -1,8 +1,8 @@
 /**
  * Guard against a theme-authoring footgun.
  *
- * Theme `class` arrays are flattened by `combineClasses`, which has no
- * tailwind-merge: when the array contains conditional objects it builds a flat
+ * Theme `class` arrays are flattened by `combineClasses` before the theme
+ * merger runs: when the array contains conditional objects it builds a flat
  * `{ token: boolean }` map with LAST-WRITE-WINS per token, splitting compound
  * keys. So if the same utility token appears in more than one branch of a
  * variant/size/align object, an inactive branch's `false` silently clears the
@@ -28,6 +28,7 @@ const { captured } = vi.hoisted(() => ({ captured: [] }));
 vi.mock("@vueda/use/themeRegistry.js", () => ({
     patchTheme: (partial) => captured.push(partial),
     setTheme: () => {},
+    setClassMerger: () => {},
     getTheme: () => ({}),
     mergeTheme: (...themes) => themes[0],
     defaultTheme: { value: {} },

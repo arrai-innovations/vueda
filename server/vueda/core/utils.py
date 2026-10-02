@@ -21,6 +21,12 @@ if TYPE_CHECKING:
 
 
 def get_system_user() -> "User":
+    """
+    Return the user with ``is_system=True``. Workflow transitions fall back to this user when no acting
+    user is known.
+
+    Raises ``DoesNotExist`` when no system user exists.
+    """
     from django.contrib.auth import get_user_model
 
     user_model = get_user_model()

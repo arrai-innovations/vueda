@@ -30,7 +30,7 @@ const props = defineProps({
     },
     /**
      * The cell's display value; the label when it is a string or number. A list cell passes the
-     * raw value here when the field names no formatted path, so an expanded object is skipped.
+     * raw value here when the field does not name a formatted path, so an expanded object is skipped.
      */
     formatted: {
         type: [String, Number, Object, Array],

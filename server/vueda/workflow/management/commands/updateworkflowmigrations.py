@@ -9,6 +9,7 @@ from pprint import pformat
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
+from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NoRenamesError
 from vueda.user.management.commands.utils import get_migrations_path
@@ -25,6 +26,13 @@ from vueda.workflow.management.commands.makeworkflowmigrations import get_migrat
 
 WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
 IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmigrations import"
+
+# The copied functions read ObjectStateEvent and write through the workflow event triggers.
+# Keep this requirement in step with the schema used by get_migration_sources.
+REQUIRED_WORKFLOW_MIGRATION = (
+    "vueda_workflow",
+    "0008_initialstateevent_objectstateevent_stateevent_and_more",
+)
 
 # The keys naming the app and model a workflow was written for, which a change records alongside a
 # workflow's code so that a code two content types have held resolves to the right one.
@@ -204,7 +212,8 @@ class Command(BaseCommand):
         "The history_change_reason and migration_app_label variables are preserved unchanged, and changed_data "
         "keeps every change it records, gaining only the app and model naming each workflow it refers to by code. "
         "The class Migration block is also preserved, with stale operation function names updated to their "
-        "current _through_imports equivalents."
+        "current _through_imports equivalents. Migrations whose dependencies do not include the required "
+        "workflow schema are left unchanged and reported as failures."
     )
 
     def add_arguments(self, parser):
@@ -221,7 +230,7 @@ class Command(BaseCommand):
         )
 
     def _find_workflow_migration_files(self, selected_apps=()):
-        result = []
+        result = {}
 
         for app_config in django_apps.get_app_configs():
             app_label = app_config.label
@@ -242,7 +251,7 @@ class Command(BaseCommand):
                 with open(filepath, encoding="utf-8") as f:
                     for line_no, line in enumerate(f):
                         if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
-                            result.append(filepath)
+                            result[filepath] = (app_label, filename.removesuffix(".py"))
                             break
                         if line_no > 20:  # noqa: PLR2004
                             break
@@ -298,7 +307,35 @@ class Command(BaseCommand):
                 break
         return False
 
-    def _update_migration_file(self, filepath, changed_data, identities):
+    def _can_rewrite(self, filepath, migration_key):
+        """Require the workflow schema through the graph, including indirect dependencies."""
+        try:
+            if self._migration_loader is None:
+                # Use the declared graph, not the migrations applied to this database. A rewrite
+                # must also work when a new installation starts with an empty database.
+                self._migration_loader = MigrationLoader(None)
+            loader = self._migration_loader
+            ancestors = set(loader.graph.forwards_plan(migration_key)) - {migration_key}
+        except Exception as error:
+            self.stderr.write(
+                self.style.ERROR(f"  Cannot resolve migration dependencies for {filepath}: {error}, skipping.")
+            )
+            return False
+
+        required = REQUIRED_WORKFLOW_MIGRATION
+        if required in ancestors or any(required in loader.disk_migrations[key].replaces for key in ancestors):
+            return True
+
+        self.stderr.write(
+            self.style.ERROR(
+                f"  Cannot update {filepath}: its dependencies do not include {required[0]}.{required[1]}, "
+                "which the current workflow functions require. Leaving the file unchanged. "
+                "Keep its existing functions; review the migration graph before changing dependencies."
+            )
+        )
+        return False
+
+    def _update_migration_file(self, filepath, changed_data, identities, migration_key):
         with open(filepath, encoding="utf-8") as f:
             lines = f.readlines()
 
@@ -333,6 +370,9 @@ class Command(BaseCommand):
             # read for some other reason. Rewriting it anyway would report success while leaving
             # its references naming their workflows by code alone.
             self.stderr.write(self.style.ERROR(f"  Cannot update {filepath} without its changed_data, skipping."))
+            return False
+
+        if not self._can_rewrite(filepath, migration_key):
             return False
 
         # Writing the changes back reformats the whole list, so it is only written when a reference
@@ -389,6 +429,7 @@ class Command(BaseCommand):
 
     def handle(self, *app_labels, **options):
         self.dry_run = options["dry_run"]
+        self._migration_loader = None
 
         # If you pass in a specific app, validate that it exists.
         app_labels = set(app_labels)
@@ -428,7 +469,9 @@ class Command(BaseCommand):
         for filepath in migration_files:
             verb = "Would update" if self.dry_run else "Updating"
             self.stdout.write(f"{verb}: {filepath}")
-            if self._update_migration_file(filepath, changed_data_by_file.get(filepath), identities):
+            if self._update_migration_file(
+                filepath, changed_data_by_file.get(filepath), identities, migration_files[filepath]
+            ):
                 updated_count += 1
             else:
                 # Something went wrong, stderr will have printed what.

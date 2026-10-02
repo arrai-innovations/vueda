@@ -1,6 +1,9 @@
 /**
  * markdown-it plugin that resolves {@api <id>} references to links.
  *
+ * A reference renders the target's title as the link text. The labeled form,
+ * `[label]{@api <id>}`, renders the label instead (see `labeled-ref.js`).
+ *
  * References reach the plugin through two paths, because markdown-it exposes
  * them differently. In prose an inline rule sees them. Inside a raw HTML block
  * (a `<VuedaDemo>` caption, for instance) markdown-it runs no inline rule, so
@@ -11,6 +14,7 @@
  * `link_open` renderer rule, so a hand-built anchor string keeps an href that
  * resolves to nothing.
  */
+import { findTrailingLabel, parseLabeledRef, pushLabelTokens } from "./labeled-ref.js";
 import { parseApiRef } from "./reference-parser.js";
 
 const API_PREFIX = "{@api";
@@ -19,12 +23,30 @@ const SOFTBREAK_SPACER = " ";
 const unknownIdMessage = (rawId, env) =>
     `Unknown API id "${rawId}" in ${env?.relativePath || env?.path || "unknown file"}`;
 
-const linkTokens = (Token, href, title) => {
+/**
+ * Attributes for a resolved reference. An upstream documentation link also carries its title, such
+ * as "Django: GeneratedField", so a labeled link still names the site it leads to.
+ */
+const linkAttrs = (entry) =>
+    entry.external
+        ? [
+              ["href", entry.href],
+              ["title", entry.title],
+          ]
+        : [["href", entry.href]];
+
+const linkTokens = (Token, part, { md, env }) => {
     const open = new Token("link_open", "a", 1);
-    open.attrs = [["href", href]];
-    const text = new Token("text", "", 0);
-    text.content = title;
-    return [open, text, new Token("link_close", "a", -1)];
+    open.attrs = linkAttrs(part);
+    let content;
+    if (part.label) {
+        content = md.parseInline(part.label, env)[0].children;
+    } else {
+        const text = new Token("text", "", 0);
+        text.content = part.title;
+        content = [text];
+    }
+    return [open, ...content, new Token("link_close", "a", -1)];
 };
 
 /**
@@ -62,8 +84,18 @@ const splitApiRefs = (src, { resolve, strict, env }) => {
         const { raw, rawId, length } = parsed;
         const entry = resolve ? resolve(rawId) : null;
         if (entry) {
+            const trailing = findTrailingLabel(literal);
+            if (trailing) {
+                literal = literal.slice(0, trailing.start);
+            }
             flushLiteral();
-            parts.push({ type: "link", href: entry.href, title: entry.title || rawId });
+            parts.push({
+                type: "link",
+                href: entry.href,
+                title: entry.title || rawId,
+                external: entry.external,
+                label: trailing?.label,
+            });
             resolved = true;
         } else {
             if (strict) {
@@ -91,7 +123,7 @@ const expandHtmlInline = (children, Token, context) => {
         changed = true;
         for (const part of parts) {
             if (part.type === "link") {
-                expanded.push(...linkTokens(Token, part.href, part.title));
+                expanded.push(...linkTokens(Token, part, context));
                 continue;
             }
             const token = new Token("html_inline", "", 0);
@@ -114,7 +146,7 @@ const expandHtmlBlock = (token, Token, context) => {
             const inline = new Token("inline", "", 0);
             inline.content = "";
             inline.level = token.level;
-            inline.children = linkTokens(Token, part.href, part.title);
+            inline.children = linkTokens(Token, part, context);
             return inline;
         }
         const block = new Token("html_block", "", 0);
@@ -124,13 +156,42 @@ const expandHtmlBlock = (token, Token, context) => {
     });
 };
 
+/**
+ * Move past a reference that ends a line, standing a space in for the line
+ * break and the next line's indent.
+ */
+const skipTrailingNewline = (state, end) => {
+    let nextPos = end;
+    const char = state.src.charCodeAt(nextPos);
+    if (char === 0x0a || char === 0x0d) {
+        if (char === 0x0d) {
+            nextPos += 1;
+            if (state.src.charCodeAt(nextPos) === 0x0a) {
+                nextPos += 1;
+            }
+        } else {
+            nextPos += 1;
+        }
+        while (nextPos < state.src.length) {
+            const code = state.src.charCodeAt(nextPos);
+            if (code !== 0x20 && code !== 0x09) {
+                break;
+            }
+            nextPos += 1;
+        }
+        const spacer = state.push("text", "", 0);
+        spacer.content = SOFTBREAK_SPACER;
+    }
+    state.pos = nextPos;
+};
+
 export const apiLinkPlugin = (md, options = {}) => {
     const resolve = options.resolve;
     const strict = options.strict !== false;
 
     md.core.ruler.push("vueda-api-link-html", (state) => {
         const { Token } = state;
-        const context = { resolve, strict, env: state.env };
+        const context = { resolve, strict, env: state.env, md: state.md };
         const tokens = [];
         let changed = false;
 
@@ -158,6 +219,21 @@ export const apiLinkPlugin = (md, options = {}) => {
         }
     });
 
+    const resolveOrFallback = (state, parsed) => {
+        const { raw, rawId, length } = parsed;
+        const entry = resolve ? resolve(rawId) : null;
+        if (entry) {
+            return entry;
+        }
+        if (strict) {
+            throw new Error(unknownIdMessage(rawId, state.env));
+        }
+        const token = state.push("text", "", 0);
+        token.content = raw;
+        state.pos += length;
+        return null;
+    };
+
     md.inline.ruler.before("emphasis", "vueda-api-link", (state, silent) => {
         const { pos } = state;
         if (state.src.charCodeAt(pos) !== 0x7b) {
@@ -168,50 +244,51 @@ export const apiLinkPlugin = (md, options = {}) => {
             return false;
         }
         if (silent) {
+            state.pos += parsed.length;
             return true;
         }
 
-        const { raw, rawId, length } = parsed;
+        const entry = resolveOrFallback(state, parsed);
+        if (!entry) {
+            return true;
+        }
+
+        const open = state.push("link_open", "a", 1);
+        open.attrs = linkAttrs(entry);
+        const text = state.push("text", "", 0);
+        text.content = entry.title || parsed.rawId;
+        state.push("link_close", "a", -1);
+
+        skipTrailingNewline(state, pos + parsed.length);
+        return true;
+    });
+
+    md.inline.ruler.before("link", "vueda-api-labeled-link", (state, silent) => {
+        const match = parseLabeledRef(state, parseApiRef);
+        if (!match) {
+            return false;
+        }
+        if (silent) {
+            state.pos = match.end;
+            return true;
+        }
+
+        const { rawId } = match.parsed;
         const entry = resolve ? resolve(rawId) : null;
         if (!entry) {
             if (strict) {
                 throw new Error(unknownIdMessage(rawId, state.env));
             }
-            const token = state.push("text", "", 0);
-            token.content = raw;
-            state.pos += length;
-            return true;
+            // The bracketed label and the reference then render as written.
+            return false;
         }
 
         const open = state.push("link_open", "a", 1);
-        open.attrs = [["href", entry.href]];
-        const text = state.push("text", "", 0);
-        text.content = entry.title || rawId;
+        open.attrs = linkAttrs(entry);
+        pushLabelTokens(state, match);
         state.push("link_close", "a", -1);
 
-        let nextPos = pos + length;
-        const char = state.src.charCodeAt(nextPos);
-        if (char === 0x0a || char === 0x0d) {
-            if (char === 0x0d) {
-                nextPos += 1;
-                if (state.src.charCodeAt(nextPos) === 0x0a) {
-                    nextPos += 1;
-                }
-            } else {
-                nextPos += 1;
-            }
-            while (nextPos < state.src.length) {
-                const code = state.src.charCodeAt(nextPos);
-                if (code !== 0x20 && code !== 0x09) {
-                    break;
-                }
-                nextPos += 1;
-            }
-            const spacer = state.push("text", "", 0);
-            spacer.content = SOFTBREAK_SPACER;
-        }
-
-        state.pos = nextPos;
+        skipTrailingNewline(state, match.end);
         return true;
     });
 };

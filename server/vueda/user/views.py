@@ -712,6 +712,11 @@ class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView,
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating])
 def totp_code(request):
+    """List the TOTP delivery methods for the user who is logging in, or send them a TOTP code.
+
+    GET returns the methods of the user's TOTP devices. POST sends a current code by the requested ``method``,
+    email or sms.
+    """
     stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
     user = stage.login.user
     devices = user.totp_devices

@@ -15,12 +15,12 @@ For the conceptual model behind these mechanisms (what each scope means and how 
 
 ## Pick the right scope
 
-| Goal                                                                                                    | Scope     | Mechanism                    | Section                                                                 |
-| ------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- | ----------------------------------------------------------------------- |
-| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop         | [Override one instance](#override-one-instance)                         |
-| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `patchTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
-| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `patchTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
-| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override           | [Re-skin via tokens](#re-skin-via-tokens)                               |
+| Goal                                                                                                    | Scope     | Mechanism                       | Section                                                                 |
+| ------------------------------------------------------------------------------------------------------- | --------- | ------------------------------- | ----------------------------------------------------------------------- |
+| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop            | [Override one instance](#override-one-instance)                         |
+| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `overrideTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
+| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `overrideTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
+| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override              | [Re-skin via tokens](#re-skin-via-tokens)                               |
 
 If a customization touches values (colors, dimensions, durations), it almost always belongs in tokens. If it touches composition (a different class arrangement, a different state recipe), it belongs in the JavaScript theme.
 
@@ -42,7 +42,7 @@ const amberOverride = {
 </script>
 ```
 
-The override stays scoped to this Button. Other Buttons elsewhere in the app render with their default theme.
+With `vueda-tailwind`, `theme-override` replaces conflicting theme utilities while a plain `class` prop only adds classes; see [How the layers interact](../core-concepts/theming-and-customization#how-the-layers-interact). The override stays scoped to this Button. Other Buttons elsewhere in the app render with their default theme.
 
 The `themeOverride` mechanism propagates through provide/inject. Setting an override on a parent component affects every descendant `useTheme` call within its subtree, without intermediate components needing to thread props:
 
@@ -65,21 +65,21 @@ const borderlessInputs = {
 
 ## Restyle one component system-wide
 
-Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme} at app startup to merge an override into the default theme. Import defaults before applying the patch, as in [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered). Every instance of the component picks up the override as its baseline.
+Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} at app startup to add a project override. It applies after the component's defaults regardless of when they register, including through lazy routes. Every instance of the component picks up the override as its baseline.
 
 ```js
 // main.js
 import "@vueda/theme/vueda-tailwind/index.js";
-import { patchTheme } from "@vueda/use/useTheme.js";
+import { overrideTheme } from "@vueda/use/useTheme.js";
 
-patchTheme({
+overrideTheme({
     Button: {
         root: { class: "uppercase tracking-wide" },
     },
 });
 ```
 
-`patchTheme` merges the override; existing Button classes are preserved. `setTheme` replaces the entire registry, including earlier patches; reserve it for installing a complete theme object.
+`overrideTheme` combines project classes with existing Button classes; the Tailwind merger replaces conflicting utilities and preserves the other classes. Later project calls combine classes and replace explicit compose lists. `setTheme` replaces the base theme while preserving project overrides; `clearThemeOverrides()` removes all project overrides while preserving the base. See [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered) for snapshot behavior, resets, and migration from `patchTheme`.
 
 Per-instance overrides still merge on top, so specific instances stay customizable. Patching a leaf entry does not reach components that merely look like it (calendar day cells, pagination items); restyle the family for those.
 
@@ -90,9 +90,9 @@ When the change should affect Button, calendar day triggers, pagination items, d
 ```js
 // main.js
 import "@vueda/theme/vueda-tailwind/index.js";
-import { patchTheme } from "@vueda/use/useTheme.js";
+import { overrideTheme } from "@vueda/use/useTheme.js";
 
-patchTheme({
+overrideTheme({
     _ButtonGhost: {
         root: {
             class: "hover:bg-blue-100 dark:hover:bg-blue-900",
@@ -106,7 +106,7 @@ Every leaf entry whose default theme declares `composes: ['_ButtonGhost.root', .
 The replace semantics on `composes` are also useful. To redirect a leaf entry to compose from a different meta key:
 
 ```js
-patchTheme({
+overrideTheme({
     PaginationItem: {
         root: ({ isActive }) => ({
             // Default composed from _ButtonOutline / _ButtonGhost; replace
@@ -192,7 +192,7 @@ To confirm the fonts loaded, run `document.fonts.check('600 16px "IBM Plex Sans"
 
 **Reaching for `setTheme` to change a value.** If the change is a color, dimension, or duration, it almost certainly belongs in a CSS token. Reaching for `setTheme` produces a customization that does not propagate through composition or to surfaces you forgot to override.
 
-**Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `patchTheme` after the defaults have registered.
+**Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `overrideTheme`, which also works before the defaults register.
 
 **Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
 

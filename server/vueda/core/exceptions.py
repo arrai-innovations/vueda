@@ -174,6 +174,10 @@ def gate_warnings(request, warnings):
 
 
 def page_not_found(request, exception, *args, **kwargs):
+    """
+    Return a JSON 404 response with ``{"detail": "Not found."}``. Set it as ``handler404`` in the root
+    URLconf.
+    """
     return JsonResponse({"detail": "Not found."}, status=HTTP_404_NOT_FOUND)
 
 
