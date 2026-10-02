@@ -3,6 +3,9 @@ import importlib.util
 import io
 import os
 import shutil
+import site
+import sys
+import sysconfig
 from pathlib import Path
 from pprint import pformat
 
@@ -419,6 +422,14 @@ class TestInstalledPackageApps(BaseTestMigrations):
             [(datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"})],
             {"historical_model": "first"},
         ),
+        # The only workflow to hold the code changed after it was added, so it has two entries naming it.
+        (
+            [
+                (datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"}),
+                (datetime.datetime(2026, 1, 4, tzinfo=datetime.UTC), {"historical_model": "first"}),
+            ],
+            {"historical_model": "first"},
+        ),
         # Recorded before every workflow to hold the code, so which one it means cannot be told.
         (
             [
@@ -454,6 +465,30 @@ def test_is_installed_package_path(tmp_path, monkeypatch, relative_path, expecte
     )
 
     assert updateworkflowmigrations.is_installed_package_path(tmp_path / relative_path) is expected
+
+
+def test_user_site_directory_counts_as_installed(tmp_path, monkeypatch):
+    # `pip install --user` installs into the user site directory, which PYTHONUSERBASE moves. site works
+    # it out once at startup, so clearing its cached values makes it work it out again from the variable.
+    monkeypatch.setenv("PYTHONUSERBASE", str(tmp_path))
+    monkeypatch.setattr(site, "USER_BASE", None)
+    monkeypatch.setattr(site, "USER_SITE", None)
+    user_site = Path(site.getusersitepackages())
+    assert user_site.is_relative_to(tmp_path)
+    monkeypatch.setattr(
+        updateworkflowmigrations, "INSTALLED_PACKAGE_PATHS", updateworkflowmigrations.get_installed_package_paths()
+    )
+
+    assert updateworkflowmigrations.is_installed_package_path(user_site / "somepackage" / "migrations")
+    assert not updateworkflowmigrations.is_installed_package_path(tmp_path / "project" / "migrations")
+
+
+def test_base_interpreter_packages_count_as_installed():
+    # A virtual environment created with --system-site-packages also imports what the interpreter it was
+    # created from has installed, which is where that interpreter's own pip installs.
+    base_packages = sysconfig.get_path("purelib", vars={"base": sys.base_prefix, "platbase": sys.base_exec_prefix})
+
+    assert updateworkflowmigrations.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
 
 
 def workflow_references(value):

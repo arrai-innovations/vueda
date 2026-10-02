@@ -166,7 +166,7 @@ python manage.py updateworkflowmigrations myapp otherapp
 
 ### Which Apps a Run Covers
 
-The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside the Python environment's package directory (`site-packages`). VUEDA's own `vueda_vdq` is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the originals back.
+The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside a directory Python installs packages into (`site-packages`). That covers the environment's own, the base interpreter's that a virtual environment created with `--system-site-packages` also uses, and the user directory that `pip install --user` installs into. VUEDA's own `vueda_vdq` is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the originals back.
 
 The command still reads migrations from installed packages, and from apps you did not name, without rewriting them. It reads them for two reasons:
 

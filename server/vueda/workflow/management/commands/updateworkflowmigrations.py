@@ -4,6 +4,7 @@ import ast
 import datetime
 import importlib.util
 import os
+import site
 import sys
 import sysconfig
 from pprint import pformat
@@ -39,12 +40,30 @@ REQUIRED_WORKFLOW_MIGRATION = (
 # workflow's code so that a code two content types have held resolves to the right one.
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
 
-# The directories packages are installed into. A migration under one of them belongs to a package, so
-# the project cannot commit a rewrite of it, and reinstalling the package puts the original back. An
-# editable install leaves its files in their source tree, so it is not under any of these.
-INSTALLED_PACKAGE_PATHS = tuple(
-    os.path.normcase(os.path.realpath(path)) for path in {sysconfig.get_path("purelib"), sysconfig.get_path("platlib")}
-)
+
+def get_installed_package_paths():
+    """Return the directories packages are installed into, normalized for comparison.
+
+    A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
+    and reinstalling the package puts the original back. An editable install leaves its files in their
+    source tree, so it is not under any of these.
+
+    Besides the environment's own package directories, these include the base interpreter's, which a
+    virtual environment created with ``--system-site-packages`` also imports from, and the user site
+    directory that ``pip install --user`` installs into.
+    """
+    paths = (
+        sysconfig.get_path("purelib"),
+        sysconfig.get_path("platlib"),
+        *site.getsitepackages([sys.base_prefix, sys.base_exec_prefix]),
+        site.getusersitepackages(),
+    )
+    # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
+    # dropped once each path is resolved.
+    return tuple({os.path.normcase(os.path.realpath(path)): None for path in paths})
+
+
+INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
 
 
 def is_installed_package_path(path):
@@ -163,9 +182,12 @@ def workflow_identity_at(identities, code, recorded_at):
     if chosen is not None:
         return chosen
 
-    # A reference recorded before the workflow's own change means the only workflow to hold its code. When
-    # several have held it, which one the reference means cannot be told, so it is left naming the code alone.
-    return entries[0][1] if len(entries) == 1 else None
+    # A reference recorded before the workflow's own change means the only workflow to hold its code. A
+    # workflow records an entry for each of its changes, so one workflow can have several entries, all
+    # naming it. When different workflows have held the code, which one the reference means cannot be
+    # told, so it is left naming the code alone.
+    first_identity = entries[0][1]
+    return first_identity if all(identity == first_identity for _, identity in entries) else None
 
 
 def add_workflow_identities(value, identities, recorded_at, *, names_a_workflow=False):
