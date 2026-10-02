@@ -44,7 +44,6 @@ import os
 import re
 import sys
 from pathlib import Path
-from pprint import pformat
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -64,6 +63,7 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import locate_empty_migration_slots
@@ -2086,11 +2086,10 @@ class Command(BaseCommand):
             lines[slots["dependencies_index"] + 1 : slots["dependencies_index"] + 1] = dependency_data
 
             # Changed data and forwards/reverse functions.
-            # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f'{NEWLINE}migration_app_label = "{app_label}"',
-                f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}",
+                f"{NEWLINE}{format_changed_data(changed_data, migration_file, stderr=self.stderr)}",
                 *get_migration_sources(self.import_instead),
             ]
             lines[slots["class_index"] - 1 : slots["class_index"]] = copied_code

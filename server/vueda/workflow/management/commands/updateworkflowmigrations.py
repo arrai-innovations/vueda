@@ -7,13 +7,13 @@ import os
 import site
 import sys
 import sysconfig
-from pprint import pformat
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
 from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
@@ -343,8 +343,7 @@ class Command(BaseCommand):
                 )
             )
 
-    @staticmethod
-    def _replace_changed_data(lines_string, changed_data):
+    def _replace_changed_data(self, lines_string, changed_data, filepath):
         """Write the changes back in the form makeworkflowmigrations writes them."""
         tree = ast.parse(lines_string)
 
@@ -355,7 +354,7 @@ class Command(BaseCommand):
             return lines_string
 
         lines = lines_string.splitlines(keepends=True)
-        lines[node.lineno - 1 : node.end_lineno] = [f"changed_data = {pformat(changed_data, width=20)}{NEWLINE}"]
+        lines[node.lineno - 1 : node.end_lineno] = [format_changed_data(changed_data, filepath, stderr=self.stderr)]
 
         return "".join(lines)
 
@@ -442,7 +441,7 @@ class Command(BaseCommand):
         updated_changed_data = add_workflow_identities_to_changed_data(changed_data, identities)
         try:
             if updated_changed_data != changed_data:
-                lines_string = self._replace_changed_data(lines_string, updated_changed_data)
+                lines_string = self._replace_changed_data(lines_string, updated_changed_data, filepath)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
