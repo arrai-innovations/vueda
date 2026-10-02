@@ -7,9 +7,9 @@ status: draft
 
 # Row-Level Permission Filtering
 
-VUEDA supports per-row access control through an optional model-level hook that operates at two independent scopes: queryset filtering (which rows appear in `list` responses and are eligible for bulk deletion) and instance checking (which objects pass object-level permission evaluation). These two scopes are independent by design; they serve different purposes, may implement different rules, and can produce different outcomes for the same object.
+VUEDA supports per-row access control through an optional model-level hook that operates at two independent scopes: queryset filtering (which rows appear in `list` responses, are eligible for bulk deletion, and supply filter choices) and instance checking (which objects pass object-level permission evaluation). These two scopes are independent by design; they serve different purposes, may implement different rules, and can produce different outcomes for the same object.
 
-This page explains the {@term Row-Level Hook Surface}, the filtering boundaries for list and bulk-`delete` operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline {@term CRUDL}, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
+This page explains the {@term Row-Level Hook Surface}, the filtering boundaries for list, bulk-`delete`, and filter choice operations, how pagination and aggregates interact with row filtering, and the failure modes that result from row-level decisions. For the broader permission model (baseline {@term CRUDL}, workflow overlay, evaluation order), see [Permission Model](./permission-model). For the practical steps to implement row-level hooks, see [Implement Row-Level Permissions](../guides/implement-row-level-permissions). For workflow state permission overlays, see [Workflow as a Permission Overlay](./workflow-permission-overlay).
 
 ## Authority and Boundaries
 
@@ -23,7 +23,7 @@ The authority split is intentional. Queryset filtering must express its logic as
 
 ### Queryset-level filtering
 
-{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter} is the entry point for queryset-level row filtering. When a model defines `RowLevelPermissions`, the method calls `check_queryset` with the model class, the current queryset, the authenticated user, and a permission type string (typically `"list"` or `"delete"`).
+{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter} is the entry point for queryset-level row filtering. When a model defines `RowLevelPermissions`, the method calls `check_queryset` with the model class, the current queryset, the authenticated user, and a permission type string (typically `"list"` or `"delete"`). The filter choices endpoint applies the same rule, for the `list` permission type, to the rows it derives dynamic choices from; see [Filtering and Ordering Semantics](./filtering-and-ordering-semantics#filter-choices-and-permission-surfaces).
 
 The return value semantics are fixed:
 
