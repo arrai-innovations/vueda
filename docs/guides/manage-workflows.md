@@ -106,6 +106,27 @@ The migration is a standard Django migration file. After Django generates the em
 
 The `handle_*` functions look up the associated database record using the natural identifiers stored in the change data, then apply the appropriate create, update, or delete operation.
 
+### How `changed_data` Is Formatted
+
+`makeworkflowmigrations` and `updateworkflowmigrations` format `changed_data` with the Python formatter your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. These are usually installed as development dependencies. `makegroupmigrations` formats its `changed_data` the same way. See [How `changed_data` Is Formatted](manage-groups.md#how-changed-data-is-formatted) in the group guide.
+
+The commands use the first of these that applies:
+
+1. **black, when your project configures it** with a `[tool.black]` section. A project can have ruff installed only to lint, so black configuration takes priority.
+2. **ruff, when it is installed.**
+3. **black with its default settings, when it is installed** but not configured.
+4. **Python's `pprint`** with a narrow width, when neither is installed. That output uses single quotes and does not follow your settings.
+
+If the formatter that applies fails, for example because your `pyproject.toml` cannot be read or a setting has the wrong type, the commands do not switch to another formatter that would ignore your settings. They print the formatter's error, write `changed_data` with `pprint`, and ask you to fix the problem and then format that migration manually.
+
+With black or ruff:
+
+- **Your project's settings apply.** black reads `[tool.black]` from the `pyproject.toml` at your project root, and ruff reads the configuration that covers the migration file, such as your `pyproject.toml` or `ruff.toml`. The list follows your line length and quote style. ruff applies its settings even when they exclude migrations from ruff.
+- **Every change and every key gets its own line.** Each dictionary and list ends in a trailing comma, which keeps the formatter from joining the items onto one line. The commands keep the magic trailing comma on for this, even when your configuration skips it. An `(old, new)` pair from a changed field stays on one line.
+- **Keys are sorted**, as earlier versions of the commands wrote them.
+
+Only `changed_data` is formatted this way. The rest of the migration, including the embedded functions, is written in the commands' own layout.
+
 ### Command Options
 
 `--dry-run`
@@ -202,7 +223,7 @@ The following are preserved exactly as written in each migration file:
 
 Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
 
-`changed_data` is the exception. When the command adds the app and model to any reference in it, it writes the whole list back in the form `makeworkflowmigrations` writes it. The list is laid out differently, strings change quotes, and time zones are written as `datetime.timezone.utc`, so a comment or deliberate formatting inside the list is not kept, even though every value it records is. A list with nothing to add is left exactly as it was. Write a note about a change outside the list, where it is preserved along with the rest of your code.
+`changed_data` is the exception. When the command adds the app and model to any reference in it, it writes the whole list back in the form `makeworkflowmigrations` writes it. See [How `changed_data` Is Formatted](#how-changed-data-is-formatted). The list can be laid out differently, strings can change quotes, and time zones are written as `datetime.timezone.utc`, so a comment or deliberate formatting inside the list is not kept, even though every value it records is. A list with nothing to add is left exactly as it was. Write a note about a change outside the list, where it is preserved along with the rest of your code.
 
 That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
 
@@ -236,6 +257,6 @@ VUEDA ships the identities in its own `vueda_vdq` workflow migrations, together 
 
 ### Before Committing the Rewritten Files
 
-The command writes `changed_data` and the embedded functions in its own layout, which does not follow any project's formatting or lint rules. A rewritten file fails a check such as `ruff format --check` or `ruff check` until your tools have run on it. Run your formatter and linter on the rewritten files, then apply your migrations to an empty database, for example by running your test suite, before committing them.
+The command writes the embedded functions in its own layout, which does not follow any project's formatting or lint rules. `changed_data` follows your black or ruff settings only when one of them is installed. See [How `changed_data` Is Formatted](#how-changed-data-is-formatted). A rewritten file can fail a check such as `ruff format --check` or `ruff check` until your tools have run on it. Run your formatter and linter on the rewritten files, then apply your migrations to an empty database, for example by running your test suite, before committing them.
 
 Run it as a development step and commit what it writes. It is not something to call from a migration or a deploy: the command rewrites migration source files, so running it on a deployed checkout edits files that are never committed, and the next deploy starts from the unchanged ones again. The migration being applied at the time is already loaded, so rewriting it has no effect on that run either.
