@@ -17,17 +17,185 @@ import contextlib
 import datetime
 import importlib
 import io
+import shutil
+import subprocess
 import sys
+import tomllib
+from pprint import pformat
 
 from django.conf import settings
 from django.core.management import call_command as django_call_command
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 
 
+# black and ruff are optional. Whichever a project has installed formats changed_data in its migrations.
+try:
+    import black
+except ImportError:  # pragma: no cover - black is a development dependency here, so it is installed.
+    black = None
+
+try:
+    from ruff.__main__ import find_ruff_bin
+except ImportError:  # pragma: no cover - ruff is a development dependency here, so it is installed.
+    find_ruff_bin = None
+
+
 # The read path already normalizes everything to \n.
 # The write path already auto-translates \n → the platform's native ending exactly once.
 # So, there's no reason to pre-translate with os.linesep
 NEWLINE = "\n"  # no longer os.linesep
+
+# Formatting one changed_data list takes ruff milliseconds; a run this long has hung.
+RUFF_FORMAT_TIMEOUT_SECONDS = 60
+
+
+def find_ruff():
+    """Return the path of the ruff executable, or ``None`` when it is not installed.
+
+    The ``ruff`` package knows where it installed its binary, which finds it even when the virtual
+    environment's scripts directory is not on ``PATH``.
+    """
+    if find_ruff_bin is not None:
+        with contextlib.suppress(FileNotFoundError):
+            return find_ruff_bin()
+
+    return shutil.which("ruff")
+
+
+def changed_data_source(value):
+    """Return Python source for a ``changed_data`` value, with a trailing comma after every dict and list item.
+
+    black and ruff keep a collection that ends in a trailing comma split one item per line, so every change
+    and every key in it gets its own line, however short. A tuple holds an ``(old, new)`` pair, which
+    reads best on one line, so it gets no trailing comma beyond the one a single-item tuple needs. Dict
+    keys are sorted, as ``pformat`` sorts them, so a list written before this and rewritten now keeps
+    its order.
+    """
+    if isinstance(value, dict):
+        items = "".join(
+            f"{changed_data_source(key)}: {changed_data_source(item)}, " for key, item in sorted(value.items())
+        )
+        return f"{{{items}}}"
+
+    if isinstance(value, list):
+        items = "".join(f"{changed_data_source(item)}, " for item in value)
+        return f"[{items}]"
+
+    if isinstance(value, tuple):
+        items = ", ".join(changed_data_source(item) for item in value)
+        return f"({items},)" if len(value) == 1 else f"({items})"
+
+    return repr(value)
+
+
+def read_black_settings(migration_path):
+    """Return the ``[tool.black]`` settings that apply to ``migration_path``, empty when the project has none.
+
+    black finds the configuration the way its own command line does, from the project root above the
+    migration. Finding the project root reads each ``pyproject.toml`` above the migration as well, so a
+    configuration that cannot be read raises an error naming where the search started, which black's own
+    error leaves out.
+
+    black caches what it reads by path for the life of the process, so a process that calls this again
+    after the configuration changes, such as a Django shell, keeps the settings it read first.
+    """
+    try:
+        pyproject = black.find_pyproject_toml((str(migration_path),))
+        if not pyproject:
+            return {}
+
+        # black's parsed settings are not empty for a project without [tool.black]: black infers a
+        # target_version from [project] requires-python. Only a [tool.black] section configures black.
+        with open(pyproject, "rb") as f:
+            if "black" not in tomllib.load(f).get("tool", {}):
+                return {}
+
+        return black.parse_pyproject_toml(pyproject)
+    except (OSError, ValueError) as error:
+        raise ValueError(f"Could not read the pyproject.toml that applies to {migration_path}: {error}") from error
+
+
+def format_with_black(source, black_settings):
+    """Format ``source`` with black, using the project's line length and string normalization.
+
+    The magic trailing comma stays on, even when the project skips it, because the trailing commas are
+    what keep each item on its own line.
+    """
+    mode = black.Mode(
+        line_length=black_settings.get("line_length", black.DEFAULT_LINE_LENGTH),
+        string_normalization=not black_settings.get("skip_string_normalization", False),
+        magic_trailing_comma=True,
+    )
+    return black.format_str(source, mode=mode)
+
+
+def format_with_ruff(source, ruff, migration_path):
+    """Format ``source`` with ruff, using the configuration that applies to ``migration_path``.
+
+    ``--no-force-exclude`` formats it even when the project excludes migrations from ruff, because an
+    excluded file would be returned unformatted. ``skip-magic-trailing-comma`` is turned off, even when
+    the project turns it on, because the trailing commas are what keep each item on its own line.
+    """
+    return subprocess.run(
+        [
+            ruff,
+            "format",
+            "--no-force-exclude",
+            "--config",
+            "format.skip-magic-trailing-comma = false",
+            "--stdin-filename",
+            str(migration_path),
+            "-",
+        ],
+        input=source,
+        capture_output=True,
+        encoding="utf-8",
+        check=True,
+        timeout=RUFF_FORMAT_TIMEOUT_SECONDS,
+    ).stdout
+
+
+def format_changed_data(changed_data, migration_path, *, stderr):
+    """Return the ``changed_data = ...`` assignment a generated migration holds, ending in a newline.
+
+    The formatter the project uses lays it out, following the project's settings for ``migration_path``:
+
+    1. black, when the project configures it with a ``[tool.black]`` section. A project can have ruff
+       installed only to lint, so a project that configures black formats with black.
+    2. ruff, when it is installed.
+    3. black with its default settings, when it is installed but not configured.
+    4. ``pformat``, when neither is installed.
+
+    When the formatter that applies fails, including when the project's configuration cannot be read, its
+    error is written to ``stderr`` and ``pformat`` lays the list out, rather than another formatter that
+    would not follow the project's settings. The message asks for the migration to be formatted manually.
+    """
+    source = f"changed_data = {changed_data_source(changed_data)}{NEWLINE}"
+
+    formatter = "black"
+    try:
+        black_settings = read_black_settings(migration_path) if black is not None else {}
+        if black_settings:
+            return format_with_black(source, black_settings)
+
+        ruff = find_ruff()
+        if ruff is not None:
+            formatter = "ruff"
+            return format_with_ruff(source, ruff, migration_path)
+
+        if black is not None:
+            return format_with_black(source, {})
+    except Exception as error:
+        # ruff explains a failure on its stderr; black's exception carries its own explanation.
+        detail = error.stderr if isinstance(error, subprocess.CalledProcessError) else str(error)
+        detail = NEWLINE.join(f"    {line}" for line in detail.strip().splitlines())
+        stderr.write(
+            f"  {formatter} could not format changed_data for {migration_path}:{NEWLINE}{detail}{NEWLINE}"
+            f"  Wrote changed_data with pprint instead. Fix the problem above, then format {migration_path} manually."
+        )
+
+    # pformat is not formatted as nicely as black or ruff. At least a small width puts each item on its own line.
+    return f"changed_data = {pformat(changed_data, width=20)}{NEWLINE}"
 
 
 def get_matching_record(change, group_change_model):
