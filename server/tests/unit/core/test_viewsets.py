@@ -3,8 +3,10 @@ import json
 from http import HTTPStatus
 from typing import ClassVar
 from typing import TypedDict
+from unittest.mock import patch
 
 import pytest
+import rest_flex_fields2.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -710,6 +712,55 @@ class TestStoreProductViewSet:
         assert "available_actions" in response.data
         assert isinstance(response.data["distributor"], dict), response_body(response)
         assert "available_actions" not in response.data["distributor"]
+
+    def test_wildcard_expand_omits_available_actions_from_expanded_serializer(self, api_client, test_data):
+        """A ``?e=*`` expand passes the ``available_actions`` omit to each expanded serializer."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        with patch.object(
+            flex_serializers.FlexFieldsSerializerMixin,
+            "_make_expanded_field_serializer",
+            autospec=True,
+            side_effect=flex_serializers.FlexFieldsSerializerMixin._make_expanded_field_serializer,
+        ) as make_spy:
+            response = api_client.get(
+                reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+                data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "*"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        nested_omits = {
+            call.args[1]: call.args[4].get(call.args[1], [])
+            for call in make_spy.call_args_list
+            if isinstance(call.args[0], store_serializers.ProductSerializer)
+        }
+        assert "distributor" in nested_omits, nested_omits
+        assert "available_actions" in nested_omits["distributor"], nested_omits
+
+    def test_wildcard_expand_respects_top_level_omit(self, api_client, test_data):
+        """A top-level ``?om=`` drops a field that ``?e=*`` would otherwise expand."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "*",
+                settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: "distributor",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "distributor" not in response.data
 
 
 @pytest.mark.django_db

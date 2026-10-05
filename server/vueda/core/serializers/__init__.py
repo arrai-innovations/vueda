@@ -512,9 +512,15 @@ class VuedaExpandableFieldsSerializerMixin:
         Each requested expand name gains a ``<name>.available_actions`` omit. A next-level omit on a
         name also keeps that name from being dropped by a top-level ``?om=``, as flex-fields treats
         it as an omit inside the expanded object rather than of the object itself.
+
+        A wildcard expand resolves to the declared expandable names first, as flex-fields does, so each
+        expanded serializer receives the omit. Names the request omits get no nested omit, so a
+        top-level ``?om=`` still drops them from a wildcard expand.
         """
         expand_fields, _next_expand_fields = split_levels(flex_options["expand"])
         omit = list(flex_options["omit"])
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = [name for name in self._expandable_fields if name not in omit]
         for field_name in expand_fields:
             omit_path = f"{field_name}.available_actions"
             if omit_path not in omit:
