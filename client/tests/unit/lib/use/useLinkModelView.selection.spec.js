@@ -37,9 +37,9 @@ describe("lib/use/useLinkModelView.js", () => {
 
             props.pk.push("73");
             await flushPromises();
-            expect(selectedPKs()).toBe("20,73");
+            expect(selectedPKs()).toEqual(["20", "73"]);
             await navigate();
-            expect(routerState.router.currentRoute.value.query.pk).toBe("20,73");
+            expect(routerState.router.currentRoute.value.query.pk).toEqual(["20", "73"]);
 
             props.pk.splice(0, 1);
             await flushPromises();
@@ -47,7 +47,7 @@ describe("lib/use/useLinkModelView.js", () => {
 
             props.pk.length = 0;
             await flushPromises();
-            expect(selectedPKs()).toBe("");
+            expect(selectedPKs()).toBeUndefined();
             expect(actionDisabled.value).toBe(true);
 
             props.pk = ["91"];

@@ -2,6 +2,7 @@ import { scopedIt } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
+import { createMemoryHistory, createRouter } from "vue-router";
 
 const requireAuth = vi.fn();
 const requireGroups = vi.fn();
@@ -195,19 +196,72 @@ describe("lib/router/makeCrud.js", () => {
         });
     });
 
-    scopedIt("list route props splits pk query", () => {
-        const [, list] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+    describe("list route pk prop", () => {
+        const listProps = (query) => {
+            const [, list] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            return list.props({ params: { app: "app", model: "model", action: "bulk" }, query });
+        };
 
-        const props = list.props({
-            params: { app: "app", model: "model", action: "list" },
-            query: { pk: "1,2,3" },
+        scopedIt("reads repeated pk values as the selection", () => {
+            expect(listProps({ pk: ["1", "2", "3"] })).toEqual({
+                app: "app",
+                model: "model",
+                action: "bulk",
+                pk: ["1", "2", "3"],
+            });
         });
 
-        expect(props).toEqual({
-            app: "app",
-            model: "model",
-            action: "list",
-            pk: ["1", "2", "3"],
+        scopedIt("reads a single pk value as a one-key selection", () => {
+            expect(listProps({ pk: "1" }).pk).toEqual(["1"]);
+        });
+
+        scopedIt("reads the old comma-separated form as one key", () => {
+            expect(listProps({ pk: "1,2" }).pk).toEqual(["1,2"]);
+        });
+
+        scopedIt.each([
+            ["no pk", {}],
+            ["a bare ?pk", { pk: null }],
+            ["an empty ?pk=", { pk: "" }],
+            ["only empty values", { pk: [null, ""] }],
+        ])("selects nothing for %s", (_label, query) => {
+            expect(listProps(query).pk).toBeUndefined();
+        });
+
+        scopedIt("drops empty values beside real keys", () => {
+            expect(listProps({ pk: [null, "1", ""] }).pk).toEqual(["1"]);
+        });
+    });
+
+    describe("multi-object URL round trip", () => {
+        let getCRUDForTo;
+        let realRouter;
+        let list;
+
+        beforeEach(async () => {
+            ({ getCRUDForTo } = await import("@vueda/router/getCrud.js"));
+            const routes = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            [, list] = routes;
+            realRouter = createRouter({ history: createMemoryHistory(), routes });
+        });
+
+        scopedIt.each([
+            ["integer strings", ["1", "2"]],
+            ["a UUID", ["0b7e8a2c-1f3d-4c5e-9a6b-7c8d9e0f1a2b"]],
+            ["composite keys", ["[1, 2]", "[3, 4]"]],
+            ["one key containing a comma", ["a,b"]],
+            ["keys with brackets, ampersands, percent signs, and spaces", ["[q]", "a&b", "50%", "x y"]],
+        ])("keeps %s intact", async (_label, pk) => {
+            const url = realRouter.resolve(await getCRUDForTo({ app: "a", model: "m", pk, view: "bulk" })).fullPath;
+
+            expect(list.props(realRouter.resolve(url)).pk).toEqual(pk);
+        });
+
+        scopedIt("passes no selection for an empty array", async () => {
+            const url = realRouter.resolve(await getCRUDForTo({ app: "a", model: "m", pk: [], view: "bulk" })).fullPath;
+
+            expect(url).toBe("/a/m/bulk/");
+            expect(list.props(realRouter.resolve(url)).pk).toBeUndefined();
         });
     });
 
