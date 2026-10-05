@@ -36,7 +36,7 @@ class TestListPermittedExpands:
 
     def list_with_expand(self, client, expand):
         return client.get(
-            reverse("store.cart-list"), data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}, format="json"
+            reverse("store.cart-list"), data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: expand}, format="json"
         )
 
     def test_a_permitted_expand_is_expanded(self, admin_client):
@@ -83,7 +83,7 @@ def test_a_dotted_permit_entry_permits_that_path():
     serializer = store_serializers.CartSerializer(context={"permitted_expands": ["customer.user"]})
 
     valid_expands, valid_wildcard_expands, _, _ = get_recursive_expands_and_fields(
-        serializer, 0, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]
+        serializer, 0, settings.REST_FLEX_FIELDS2["MAXIMUM_EXPANSION_DEPTH"]
     )
 
     assert valid_expands == {"customer.user"}

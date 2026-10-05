@@ -322,7 +322,7 @@
         "REST_AUTH": {
             "description": "Authentication serializer defaults. The who-is endpoint imports USER_DETAILS_SERIALIZER, with vueda.user.serializers.WhoIsSerializer as its fallback when the dictionary omits that key."
         },
-        "REST_FLEX_FIELDS": {
+        "REST_FLEX_FIELDS2": {
             "description": "Names of the expand, selected-field, and omitted-field query parameters, plus the maximum expansion depth. VUEDA reads these for serialization, request validation, metadata, and OpenAPI. Query names must agree with the client."
         },
         "REST_FRAMEWORK": {

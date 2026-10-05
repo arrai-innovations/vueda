@@ -339,7 +339,7 @@ class TestFormattedName:
                 ),
                 format="json",
                 data={
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: [
                         "model_expands",
                     ],
                 },
@@ -372,7 +372,7 @@ class TestFormattedName:
             )
             response = api_client.get(
                 reverse("erring.relatedobjectsaremissingdata-list"),
-                data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "no_name"},
+                data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "no_name"},
             )
 
         assert response.status_code == HTTPStatus.OK, response.content
@@ -431,7 +431,7 @@ class TestModelInfoExcludeFieldsSerializerMixin:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_fields"},
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -473,7 +473,7 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
             reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
             format="json",
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: [
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: [
                     "model_actions",
                     "model_column_totals",
                     "model_expands",
@@ -554,7 +554,7 @@ class TestFieldSourceResolutionInfoEndpoint:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("erring", "sourceresolution")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_fields"},
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -569,7 +569,7 @@ class TestFieldSourceResolutionInfoEndpoint:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("erring", "unresolvablelookupexpression")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_fields"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_fields"},
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)

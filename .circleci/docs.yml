@@ -15,12 +15,12 @@ parameters:
         default: false
 
 executors:
-    python311:
+    python312:
         docker:
-            - image: cimg/python:3.11
-    python311-node:
+            - image: cimg/python:3.12
+    python312-node:
         docker:
-            - image: cimg/python:3.11-node
+            - image: cimg/python:3.12-node
 
 jobs:
     docs-tooling-test-js:
@@ -28,7 +28,7 @@ jobs:
             create_badges:
                 type: boolean
                 default: true
-        executor: python311-node
+        executor: python312-node
         resource_class: medium
         steps:
             - checkout
@@ -98,7 +98,7 @@ jobs:
                             host: docs
 
     docs-validate:
-        executor: python311-node
+        executor: python312-node
         resource_class: medium
         steps:
             - checkout
@@ -151,7 +151,7 @@ jobs:
                   command: |
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js validate-sources
     docs-publish:
-        executor: python311-node
+        executor: python312-node
         resource_class: large
         circleci_ip_ranges: true
         steps:
@@ -274,7 +274,7 @@ workflows:
             - pytest/pytest:
                   name: docs-tooling-test-py
                   context: arrai-global
-                  executor: python311
+                  executor: python312
                   wd: docs-tooling
                   env_type: uv
                   filters:

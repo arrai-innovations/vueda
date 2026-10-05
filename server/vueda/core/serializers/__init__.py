@@ -26,7 +26,7 @@ from functools import partial
 from typing import ClassVar
 
 import drf_writable_nested
-import rest_flex_fields.serializers as flex_serializers
+import rest_flex_fields2.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -39,7 +39,7 @@ from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
 from django.http import Http404
-from rest_flex_fields import split_levels
+from rest_flex_fields2.utils import split_levels
 from rest_framework import serializers
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.exceptions import PermissionDenied
@@ -131,7 +131,7 @@ class NoExtraFieldsSerializerMixin:
 def ensure_flex_fields_applied(serializer):
     """
     Apply the request's query-param-driven expand/fields/omit resolution (``_flex_options_rep_only``)
-    to ``serializer.fields``. ``rest_flex_fields`` only applies this resolution automatically inside
+    to ``serializer.fields``. ``rest_flex_fields2`` only applies this resolution automatically inside
     ``to_representation()``; merely accessing ``.fields`` does not, because the ``get_fields()`` that
     triggers applies a separate, constructor-kwarg-driven options set (``_flex_options_base``)
     instead, which is empty for a serializer built the normal way from a request.
@@ -506,20 +506,26 @@ class VuedaExpandableFieldsSerializerMixin:
 
     field_display_choices: ClassVar[dict] = {}
 
-    def _get_expanded_field_names(
-        self,
-        expand_fields: list[str],
-        omit_fields: list[str],
-        sparse_fields: list[str],
-        next_level_omits: dict[str, list[str]],  # rest_flex_fields says this is List[str], but it's a dictionary.
-    ) -> list[str]:
-        for field_name in expand_fields:
-            if field_name not in next_level_omits:
-                next_level_omits[field_name] = []
-            if "available_actions" not in next_level_omits[field_name]:
-                next_level_omits[field_name].append("available_actions")
+    def apply_flex_fields(self, fields, flex_options):
+        """Omit ``available_actions`` from every expanded object.
 
-        return super()._get_expanded_field_names(expand_fields, omit_fields, sparse_fields, next_level_omits)
+        Each requested expand name gains a ``<name>.available_actions`` omit. A next-level omit on a
+        name also keeps that name from being dropped by a top-level ``?om=``, as flex-fields treats
+        it as an omit inside the expanded object rather than of the object itself.
+
+        A wildcard expand resolves to the declared expandable names first, as flex-fields does, so each
+        expanded serializer receives the omit. Names the request omits get no nested omit, so a
+        top-level ``?om=`` still drops them from a wildcard expand.
+        """
+        expand_fields, _next_expand_fields = split_levels(flex_options["expand"])
+        omit = list(flex_options["omit"])
+        if self._contains_wildcard_value(expand_fields):
+            expand_fields = [name for name in self._expandable_fields if name not in omit]
+        for field_name in expand_fields:
+            omit_path = f"{field_name}.available_actions"
+            if omit_path not in omit:
+                omit.append(omit_path)
+        return super().apply_flex_fields(fields, {**flex_options, "omit": omit})
 
     def generate_expand_model_info(self) -> list:
         """
@@ -587,12 +593,12 @@ class VuedaExpandableFieldsSerializerMixin:
                 if get_field_model_info is not None:
                     fields = get_field_model_info(fields)
 
-                if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in expand_options:
+                if settings.REST_FLEX_FIELDS2["FIELDS_PARAM"] in expand_options:
                     # We need to call tuple, as we are modifying the dictionary.
                     for field_name, field in tuple(fields.items()):
                         if field_name == field_meta.pk.name:  # Always keep the pk.
                             continue
-                        if field_name not in expand_options[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]:
+                        if field_name not in expand_options[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]:
                             del fields[field_name]
                         if "many" not in field:
                             field["many"] = False
@@ -603,7 +609,7 @@ class VuedaExpandableFieldsSerializerMixin:
                         if "choices" not in field:
                             field["choices"] = False
 
-                expand_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = fields
+                expand_item[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]] = fields
 
             expands_data.append(expand_item)
 
@@ -669,7 +675,7 @@ class VuedaExpandableFieldsSerializerMixin:
         if enums:
             parameters.append(
                 {
-                    "name": settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
+                    "name": settings.REST_FLEX_FIELDS2["EXPAND_PARAM"],
                     "required": False,
                     "in": "query",
                     "description": "Replaces simple values with complex, nested serializations.",
@@ -689,7 +695,7 @@ class VuedaExpandableFieldsSerializerMixin:
         if schema_fields:
             parameters.append(
                 {
-                    "name": settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
+                    "name": settings.REST_FLEX_FIELDS2["FIELDS_PARAM"],
                     "required": False,
                     "in": "query",
                     "description": "Selects a sparse subset of fields to include in the response.",
@@ -759,7 +765,7 @@ class VuedaExpandableFieldsSerializerMixin:
         for expand_item in expands_data:
             if not isinstance(expand_item, dict):
                 continue
-            fields_param = expand_item.get(settings.REST_FLEX_FIELDS["FIELDS_PARAM"])
+            fields_param = expand_item.get(settings.REST_FLEX_FIELDS2["FIELDS_PARAM"])
             if isinstance(fields_param, dict):
                 for field_data in fields_param.values():
                     update_data(field_data)
@@ -1127,7 +1133,7 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
 
     Dynamically serializes the related object's concrete fields at to_representation
     time, since the related model is unknown until then. Supports flex field filtering
-    (fields/omit) via rest_flex_fields options passed through expandable_fields.
+    (fields/omit) via rest_flex_fields2 options passed through expandable_fields.
 
     The instance is not available at get_fields() time — for nested serializers DRF
     passes the related value directly to to_representation(), never setting self.instance.
@@ -1163,8 +1169,8 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         else:
             serializer_settings = {}
 
-        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
-        omit_param = settings.REST_FLEX_FIELDS["OMIT_PARAM"]
+        fields_param = settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]
+        omit_param = settings.REST_FLEX_FIELDS2["OMIT_PARAM"]
 
         # Resolve model-targeted field specifiers for the concrete instance type first, so the static
         # declaration is in its final per-model form before we apply request-time selections on top.
@@ -1204,7 +1210,7 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         # else: runtime is a wildcard — the static restriction is already tighter; no change.
 
         # runtime_omits will always be at least 'available_actions' because of
-        # 'VuedaExpandableFieldsSerializerMixin' > '_get_expanded_field_names'.
+        # 'VuedaExpandableFieldsSerializerMixin' > 'apply_flex_fields'.
         static_omit = serializer_settings.get(omit_param, [])
         extra = [f for f in runtime_omit if f not in static_omit]
         if extra:

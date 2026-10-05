@@ -132,7 +132,7 @@ class ModelInfoExpandSerializer(serializers.Serializer):
     def get_fields(self):
         # The nested field metadata sits under the flex-fields fields parameter name, which is a setting.
         fields = super().get_fields()
-        fields[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]] = serializers.DictField(
+        fields[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]] = serializers.DictField(
             child=ModelInfoFieldSerializer(),
             required=False,
             help_text="Field metadata of the related serializer, keyed by field name.",

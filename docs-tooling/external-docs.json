@@ -57,12 +57,9 @@
             "rest_framework.viewsets.ReadOnlyModelViewSet": "https://www.django-rest-framework.org/api-guide/viewsets/#readonlymodelviewset"
         }
     },
-    "drf-flex-fields": {
-        "title": "drf-flex-fields",
-        "links": {
-            "rest_flex_fields.FlexFieldsSerializerMixin": "https://github.com/rsinger86/drf-flex-fields#dynamic-field-expansion",
-            "rest_flex_fields.MAXIMUM_EXPANSION_DEPTH": "https://github.com/rsinger86/drf-flex-fields#customization"
-        }
+    "drf-flex-fields2": {
+        "title": "drf-flex-fields2",
+        "base": "https://drf-flex-fields2.readthedocs.io/en/stable/"
     },
     "drf-writable-nested": {
         "title": "drf-writable-nested",
