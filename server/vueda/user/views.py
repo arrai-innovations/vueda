@@ -3,6 +3,7 @@
 __all__ = (
     "AllAuthAdapterDispatchMixin",
     "AllAuthLoginView",
+    "AllAuthMFAReauthenticateView",
     "AllAuthReauthenticateView",
     "AllAuthTwoFactorAuthView",
     "PermissionDeleteView",
@@ -23,6 +24,7 @@ from allauth.account.stages import LoginStageController
 from allauth.headless.account.views import LoginView
 from allauth.headless.account.views import ReauthenticateView
 from allauth.headless.mfa.views import AuthenticateView
+from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
 from allauth.mfa.internal.constants import LoginStageKey
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -693,9 +695,29 @@ class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, Vu
     pass
 
 
-@conditional_extend_schema_decorator(summary="Re-authenticate", responses={200: conditional_open_api_types().OBJECT})
+@conditional_extend_schema_decorator(
+    summary="Re-authenticate with the password", responses={200: conditional_open_api_types().OBJECT}
+)
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
-    pass
+    """
+    Confirm the signed-in user's password and record a ``password`` authentication in the session.
+
+    This satisfies ``recent_auth_required`` for a user whose required flow is ``reauthenticate``. A user with
+    an MFA authenticator must use ``AllAuthMFAReauthenticateView`` instead; this view still accepts their
+    password, but the record it writes does not count for them.
+    """
+
+
+@conditional_extend_schema_decorator(
+    summary="Re-authenticate with a second factor", responses={200: conditional_open_api_types().OBJECT}
+)
+class AllAuthMFAReauthenticateView(AllAuthAdapterDispatchMixin, MFAReauthenticateView, VuedaAllAuthViewAdapter):
+    """
+    Confirm a TOTP or recovery ``code`` for the signed-in user and record an ``mfa`` authentication in the
+    session.
+
+    This satisfies ``recent_auth_required`` for a user whose required flow is ``mfa_reauthenticate``.
+    """
 
 
 @conditional_extend_schema_decorator(
@@ -710,15 +732,16 @@ class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView,
 )
 @conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code", responses={204: None})
 @api_view(["GET", "POST"])
-@permission_classes([Authenticating])
+@permission_classes([Authenticating | IsAuthenticated])
 def totp_code(request):
-    """List the TOTP delivery methods for the user who is logging in, or send them a TOTP code.
+    """List the TOTP delivery methods for the user who is logging in or reauthenticating, or send them a code.
 
-    GET returns the methods of the user's TOTP devices. POST sends a current code by the requested ``method``,
-    email or sms.
+    The user is the one in the pending two-factor login stage, or the signed-in user when no login is
+    pending, which is the case while they reauthenticate with a second factor. GET returns the methods of
+    the user's TOTP devices. POST sends a current code by the requested ``method``, email or sms.
     """
     stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
-    user = stage.login.user
+    user = stage.login.user if stage is not None else request.user
     devices = user.totp_devices
     if not devices.exists():
         return Response({"detail": "No TOTP device found"}, status=status.HTTP_404_NOT_FOUND)

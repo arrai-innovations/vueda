@@ -1,8 +1,11 @@
 import json
 from http import HTTPStatus
+from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
+from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
+from allauth.mfa.totp.internal.auth import TOTP
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
@@ -15,9 +18,12 @@ from rest_framework.test import APIRequestFactory
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import record_authentication_methods
 from tests.conftest import response_body
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.models import GroupChange
+from vueda.user.models import TOTPDevice
+from vueda.user.utils import get_current_totp_code
 from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
 from vueda.user.views import VuedaForgotPasswordView
@@ -253,3 +259,99 @@ class TestVuedaResetPasswordView:
         assert list(response.data) == ["password"]
         user.refresh_from_db()
         assert user.check_password("old-password")
+
+
+TOTP_SECRET = "JBSWY3DPEHPK3PXP"
+
+
+@pytest.fixture
+def reauth_user(db):
+    return get_user_model().objects.create_user(
+        email="reauth@domain.invalid",
+        password="test-pass",
+        name="Reauth User",
+    )
+
+
+@pytest.fixture
+def totp_device(reauth_user):
+    authenticator = TOTP.activate(reauth_user, TOTP_SECRET).instance
+    return TOTPDevice.objects.create(
+        authenticator=authenticator, method="email", user=reauth_user, email=reauth_user.email
+    )
+
+
+@pytest.mark.django_db
+def test_who_is_reports_an_mfa_user_recent_only_after_a_second_factor(api_client, totp_device):
+    api_client.force_login(totp_device.user)
+
+    record_authentication_methods(api_client, "password")
+    assert api_client.get(reverse("who-is"), format="json").data["recently_logged_in"] is False
+
+    record_authentication_methods(api_client, "password", "mfa")
+    assert api_client.get(reverse("who-is"), format="json").data["recently_logged_in"] is True
+
+
+@pytest.mark.django_db
+class TestAllAuthMFAReauthenticateView:
+    def test_valid_code_records_a_second_factor_authentication(self, api_client, totp_device):
+        api_client.force_login(totp_device.user)
+        record_authentication_methods(api_client, "password")
+
+        response = api_client.post(
+            reverse("mfa_reauthenticate"), {"code": get_current_totp_code(TOTP_SECRET)}, format="json"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        methods = [record["method"] for record in api_client.session[AUTHENTICATION_METHODS_SESSION_KEY]]
+        assert methods == ["password", "mfa"]
+        who_is = api_client.get(reverse("who-is"), format="json")
+        assert who_is.data["recently_logged_in"] is True
+
+    def test_invalid_code_is_rejected_without_a_record(self, api_client, totp_device):
+        api_client.force_login(totp_device.user)
+
+        response = api_client.post(reverse("mfa_reauthenticate"), {"code": "000000"}, format="json")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert response.data["non_field_errors"] == ["Incorrect code."]
+        assert AUTHENTICATION_METHODS_SESSION_KEY not in api_client.session
+
+    def test_password_confirmation_does_not_count_for_an_mfa_user(self, api_client, totp_device):
+        api_client.force_login(totp_device.user)
+
+        response = api_client.post(reverse("reauthenticate"), {"password": "test-pass"}, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        who_is = api_client.get(reverse("who-is"), format="json")
+        assert who_is.data["recently_logged_in"] is False
+
+
+@pytest.mark.django_db
+class TestTotpCodeForSignedInUser:
+    def test_lists_methods_for_a_signed_in_user_with_no_pending_login(self, api_client, totp_device):
+        api_client.force_login(totp_device.user)
+
+        response = api_client.get(reverse("totp_code"), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data == {"methods": ["email"]}
+
+    def test_sends_a_code_to_a_signed_in_user(self, api_client, totp_device, monkeypatch):
+        sent = []
+        monkeypatch.setattr(
+            "vueda.user.views.get_adapter",
+            lambda: SimpleNamespace(send_mail=lambda *args: sent.append(args), send_sms=lambda *args: None),
+        )
+        api_client.force_login(totp_device.user)
+
+        response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+        assert sent[0][0] == totp_device.email
+        assert sent[0][3] == {"code": get_current_totp_code(TOTP_SECRET)}
+
+    def test_refuses_an_anonymous_visitor_with_no_pending_login(self, api_client, totp_device):
+        response = api_client.get(reverse("totp_code"), format="json")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)

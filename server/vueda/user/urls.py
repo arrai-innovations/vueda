@@ -14,6 +14,7 @@ from django.urls import path
 
 from vueda.user import views
 from vueda.user.views import AllAuthLoginView
+from vueda.user.views import AllAuthMFAReauthenticateView
 from vueda.user.views import AllAuthReauthenticateView
 from vueda.user.views import AllAuthTwoFactorAuthView
 from vueda.user.views import WhoIsView
@@ -27,6 +28,11 @@ user_patterns = [
     path("login/", AllAuthLoginView.as_api_view(client="browser"), name="login2"),
     path("2fa/authenticate/", AllAuthTwoFactorAuthView.as_api_view(client="browser"), name="authenticate"),
     path("reauthenticate/", AllAuthReauthenticateView.as_api_view(client="browser"), name="reauthenticate"),
+    path(
+        "2fa/reauthenticate/",
+        AllAuthMFAReauthenticateView.as_api_view(client="browser"),
+        name="mfa_reauthenticate",
+    ),
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),
     path("change_password/", PasswordChangeView.as_view(), name="change_password"),
