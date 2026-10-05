@@ -1008,7 +1008,7 @@ class TestModelInfoFiltersetChoicesWorkflowState(FilterSetChoicesRequestMixin):
         return {"workflow": workflow, "new": new_order, "packed": packed_order}
 
     @staticmethod
-    def deny_list_in_new(test_data, orders):
+    def deny_list_in_new(orders):
         StatePermission.objects.create(
             state=State.objects.get(workflow=orders["workflow"], code="new"),
             permission=Permission.objects.get(
@@ -1020,11 +1020,11 @@ class TestModelInfoFiltersetChoicesWorkflowState(FilterSetChoicesRequestMixin):
         )
 
     @pytest.mark.parametrize("denied", [False, True], ids=["no_state_rule", "list_denied_in_new"])
-    def test_value_choices_follow_the_main_model_state_rules(self, authenticated_client, test_data, orders, denied):
+    def test_value_choices_follow_the_main_model_state_rules(self, authenticated_client, orders, denied):
         info.registration.get_empty_registry()
         info.register(store_serializers.CustomerOrderSerializer, CustomerOrderShippingMethodViewSet)
         if denied:
-            self.deny_list_in_new(test_data, orders)
+            self.deny_list_in_new(orders)
 
         labels = self.get_choice_labels(authenticated_client, "customerorder", "shipping_method")
 
@@ -1036,7 +1036,7 @@ class TestModelInfoFiltersetChoicesWorkflowState(FilterSetChoicesRequestMixin):
         info.registration.get_empty_registry()
         info.register(store_serializers.OrderItemSerializer, OrderItemCustomerOrderViewSet)
         if denied:
-            self.deny_list_in_new(test_data, orders)
+            self.deny_list_in_new(orders)
 
         labels = self.get_choice_labels(authenticated_client, "orderitem", "customer_order")
 
