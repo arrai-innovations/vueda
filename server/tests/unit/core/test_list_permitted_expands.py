@@ -50,7 +50,7 @@ class TestListPermittedExpands:
         response = self.list_with_expand(admin_client, expand)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
-        assert str(response.data[expand][0]["message"]) == (
+        assert response.data[expand][0] == (
             "Invalid expands. Permitted expands are cart_items, customer. Or use a wildcard to expand all: *, ~all"
         ), response_body(response)
 
@@ -64,7 +64,7 @@ class TestListPermittedExpands:
         response = self.list_with_expand(admin_client, requested)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
-        assert str(response.data[requested][0]["message"]) == (
+        assert response.data[requested][0] == (
             "Invalid expands. Permitted expands are customer.user. Or use a wildcard to expand all: *, ~all"
         ), response_body(response)
 

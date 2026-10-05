@@ -32,6 +32,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from vueda.core.formatted_name import annotate_formatted_name
+from vueda.core.permissions import filter_rows_for_user
 from vueda.core.viewsets import FlexFieldsMixin
 from vueda.info.registration import get_registered_content_types
 from vueda.info.registration import get_registration
@@ -507,6 +508,13 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         """
         Returns a queryset if the field is a relation.
         Return a list if the field is not a relation.
+
+        Dynamic choices come from the rows the requesting user may list, as ``filter_rows_for_user``
+        decides for the ``list`` permission: row-level rules and workflow state rules alike. A value
+        or related key found only on a hidden row is not offered. A queryset-backed filter's choices
+        are also rows the user may list on the related model, within the filter's own queryset, so a
+        visible main row that references a hidden related row does not make that row a choice.
+        Static declared choices never read a row and are unaffected.
         """
         self.resolve_choices()
 
@@ -515,12 +523,14 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
 
         filtr = self.choices_filter
         model_class = self.choices_model_class
+        user = self.request.user
 
-        # Build a queryset narrowed by all OTHER active filters (exclude this field's param).
+        # Build a queryset of the rows the user may list, narrowed by all OTHER active filters
+        # (exclude this field's param).
         other_params = self.request.query_params.copy()
         other_params.pop(self.choices_field, None)
         narrowing_filterset = self.choices_filterset_class(
-            queryset=model_class.objects.all(),
+            queryset=filter_rows_for_user(model_class.objects.all(), user, perm_type="list"),
             data=other_params,
             request=self.request,
         )
@@ -531,7 +541,9 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             related_model = self.choices_queryset_model
 
             used_pks = narrowed_qs.values_list(filtr.field_name, flat=True).distinct()
-            related_qs = self.choices_related_queryset.filter(pk__in=used_pks)
+            related_qs = filter_rows_for_user(self.choices_related_queryset, user, perm_type="list").filter(
+                pk__in=used_pks
+            )
 
             if callable(getattr(related_model, "get_formatted_name", None)):
                 choices = [
