@@ -19,14 +19,14 @@ The objective is a set of authentication views where:
 - Sign-in collects credentials through `FormField`/`WidgetTextInput` and submits them through the user store's `login` action.
 - `AuthorizingForm` watches the user store for login state changes and redirects automatically on success.
 - MFA flows are detected from the server response and route the user to a two-factor authentication view.
-- Re-authentication views enforce a `recentlyLoggedIn` check for sensitive operations.
+- Re-authentication views enforce a `recentlyLoggedIn` check for sensitive operations, asking for a second-factor code or the password as the server requires.
 - Server-side validation errors surface through the standard `ActionForm` error handling.
 
 Before you begin:
 
 The client application must have the VUEDA theme registered, a `<Sonner />` toaster mounted, and the VUEDA {@term CRUDL} adapters registered. See [Client Plugin Prerequisites](../guides/client-plugin-prerequisites) for the full registration sequence.
 
-The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
+The server must expose the authentication endpoints (`login`, `logout`, `who-is`, `2fa/authenticate`, `reauthenticate`, `2fa/reauthenticate`). These are provided by `vueda.user` when it is included in `INSTALLED_APPS`.
 
 ## Component Hierarchy
 
@@ -114,7 +114,7 @@ The `requireRecentLogin` prop adds an additional check: the redirect only fires 
 
 ## MFA Flow Handling
 
-When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler extracts the last flow from the array and sets it as `pendingFlow`.
+When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler picks the pending flow from the array and sets it as `pendingFlow`.
 
 `AuthorizingForm` watches `pendingFlow`. When it detects a flow with `id === "mfa_authenticate"`, it routes to the `2fa` named route. The login state remains `loggedIn: false` until MFA completes.
 
@@ -168,45 +168,44 @@ On success, `twoFactorAuthenticate` clears `pendingFlow` and sets `loggedIn: tru
 
 ## Build a Re-Authentication View
 
-Some operations require proof that the user logged in recently (not just that they have an active session). Build a re-authentication view with `requireRecentLogin: true`:
+Some operations require proof that the user authenticated recently (not just that they have an active session). The proof the server accepts depends on the account: a code from a user who has a two-factor device, the password otherwise. When the who-is response reports `recently_logged_in` as false, the user store sets `pendingFlow` to the flow the account owes, reading `totp_devices` to tell the two apart:
+
+- `mfa_reauthenticate`: the user has a two-factor device, so they must confirm a code. Their password alone does not count. `userStore.twoFactorReauthenticate` completes it.
+- `reauthenticate`: the user has only a password, so they confirm the password. `userStore.reauthenticate` completes it.
+- `null`: the session is recent, or the user has neither a password nor a device, so nothing is pending.
+
+`ViewReauthenticate` reads `pendingFlow` and renders the matching form: `ViewTwoFactorAuth` for a code, with method selection, code sending, and recovery codes, or a single password field. Mount it at the route named `reauthenticate`, which `useAuthFlow` and the `requireRecentAuth` guard push to with the refused path in `?redirect`:
+
+```js
+{
+    path: "/reauthenticate/",
+    name: "reauthenticate",
+    component: async () => (await import("@vueda/views/ViewReauthenticate.vue")).default,
+    beforeEnter: (to) => requireAuth({ name: "sign-in" }, to, router, pinia),
+}
+```
+
+Both forms pass `requireRecentLogin` to `AuthorizingForm`, which waits for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets that flag when the session completed the required flow, at login or by reauthenticating, within `ACCOUNT_REAUTHENTICATION_TIMEOUT`. A user who reaches the view with a recent session is redirected without a prompt.
+
+Adjust the copy through `header` and `subTitle`, or replace parts of the password form through its slots. This replaces the submit button and keeps everything else:
 
 ```vue
 <script setup>
-import FormField from "@vueda/form/form-model/FormField.vue";
-import { storeUser } from "@vueda/stores/storeUser.js";
-import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
-import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import { reactive } from "vue";
+import ViewReauthenticate from "@vueda/views/ViewReauthenticate.vue";
 
-const userStore = storeUser();
-const formProps = reactive({
-    initialValues: {
-        password: "",
-    },
-});
-
-const handleSubmit = ({ formValues }) => {
-    return userStore.reauthenticate(formValues);
-};
+import ButtonIcon from "@/components/ButtonIcon.vue";
 </script>
 
 <template>
-    <AuthorizingForm
-        header="Confirm Your Identity"
-        :run-action="handleSubmit"
-        :form-props="formProps"
-        :require-recent-login="true"
-    >
-        <template #action-form-inner>
-            <FormField label="Password" name="password" required>
-                <WidgetTextInput :required="true" type="password" autocomplete="current-password" />
-            </FormField>
+    <ViewReauthenticate sub-title="Please enter your password again to verify your identity">
+        <template #action-bar="{ loading }">
+            <ButtonIcon :fluid="true" verb="submit" label="Verify" :loading="loading" tone="primary" type="submit" />
         </template>
-    </AuthorizingForm>
+    </ViewReauthenticate>
 </template>
 ```
 
-The `requireRecentLogin` prop tells `AuthorizingForm` to wait for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets this flag when the login or reauthentication occurred within a recent window.
+`field(password)` and `widget(password)` replace the password row or only its input. Any other slot is forwarded to the form being rendered.
 
 ## Build a Change-Password View
 
@@ -327,11 +326,15 @@ After building auth views, verify the following:
 
 **Re-authentication redirect fires immediately.** If the user already has a recent login, `recentlyLoggedIn` is already true and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
 
+**Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `pendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
+
 ## Relevant Implementation Surface
 
 - Vue.js Components:
     - {@api vue:component:AuthorizingForm}
     - {@api vue:component:AuthForm}
+    - {@api vue:component:ViewReauthenticate}
+    - {@api vue:component:ViewTwoFactorAuth}
     - {@api vue:component:ActionForm}
     - {@api vue:component:FormField}
     - {@api vue:component:WidgetTextInput}
@@ -346,4 +349,5 @@ After building auth views, verify the following:
     - {@api rest:endpoint:GET:/vueda.user/who-is/}
     - {@api rest:endpoint:POST:/vueda.user/2fa/authenticate/}
     - {@api rest:endpoint:POST:/vueda.user/reauthenticate/}
+    - {@api rest:endpoint:POST:/vueda.user/2fa/reauthenticate/}
     - {@api rest:endpoint:POST:/vueda.user/change_password/}

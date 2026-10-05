@@ -6,6 +6,7 @@
  * replaces the actions the view calls with these canned, offline behaviors, so the
  * demos exercise the real view and theme against believable store state and results.
  */
+import { AUTH_FLOW } from "@vueda/utils/constants.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 
 /** Canned authenticated user, shaped like the current-user endpoint payload. */
@@ -50,7 +51,35 @@ export const MFA_PENDING = {
     loggedIn: false,
     loggedInUser: {},
     initialized: true,
-    pendingFlow: { id: "mfa_authenticate" },
+    pendingFlow: { id: AUTH_FLOW.MFA_AUTHENTICATE },
+};
+
+/**
+ * storeUser state preset: authenticated, but the session is no longer recent and the account has only a
+ * password, so the server asks for it again before a guarded action.
+ */
+export const REAUTH_PASSWORD = {
+    loggedIn: true,
+    loggedInUser: { ...DEMO_USER, recently_logged_in: false, totp_devices: [] },
+    recentlyLoggedIn: false,
+    initialized: true,
+    pendingFlow: { id: AUTH_FLOW.REAUTHENTICATE },
+};
+
+/**
+ * storeUser state preset: authenticated with a TOTP device, but the session is no longer recent, so the
+ * server asks for a second factor before a guarded action.
+ */
+export const REAUTH_MFA = {
+    loggedIn: true,
+    loggedInUser: {
+        ...DEMO_USER,
+        recently_logged_in: false,
+        totp_devices: [{ id: 1, name: "1Password", confirmed: true }],
+    },
+    recentlyLoggedIn: false,
+    initialized: true,
+    pendingFlow: { id: AUTH_FLOW.MFA_REAUTHENTICATE },
 };
 
 /** Verified 2FA methods returned by getTwoFactorAuthMethod. */
