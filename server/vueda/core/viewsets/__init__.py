@@ -46,7 +46,6 @@ from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
-from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -1010,7 +1009,19 @@ class NoExtraFieldsForViewSetMixin:
 
     @staticmethod
     def validate_flex_expand_and_field_param(request, serializer):
+        """
+        Reject each ``f`` and ``e`` value the serializer cannot render or expand.
+
+        Every invalid name in both parameters goes into one error, keyed by the name. A name invalid
+        in both parameters carries both messages.
+
+        :param request: The request whose ``f`` and ``e`` query values are checked.
+        :param serializer: The action's serializer, built with the action's serializer context.
+        :raises VuedaValidationError: When an ``f`` value is not a valid field or wildcard, or an ``e``
+            value is not a permitted expand or wildcard.
+        """
         submitted_fields = submitted_expand_fields = valid_expands = valid_fields = frozenset()
+        errors = {}
 
         if (
             settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params
@@ -1047,29 +1058,18 @@ class NoExtraFieldsForViewSetMixin:
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
 
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}",
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
-
-                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            for extra_key in extra_keys:
+                errors.setdefault(extra_key, []).append(
+                    f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}"
+                )
 
         if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
             messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
-            if messages:
-                errors = {
-                    key: [{"message": ErrorDetail(string=message, code="invalid"), "code": "invalid"}]
-                    for key, message in messages.items()
-                }
-                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            for key, message in messages.items():
+                errors.setdefault(key, []).append(message)
+
+        if errors:
+            raise VuedaValidationError(errors)
 
     @staticmethod
     def validate_flex_expand_param_for_write(request, serializer):
@@ -1108,9 +1108,7 @@ class NoExtraFieldsForViewSetMixin:
 
         serializer = self.get_serializer()
 
-        results = self.validate_flex_expand_and_field_param(request, serializer)
-        if results is not None:
-            return results
+        self.validate_flex_expand_and_field_param(request, serializer)
 
         return super().retrieve(request, *args, **kwargs)
 
@@ -1133,9 +1131,7 @@ class NoExtraFieldsForViewSetMixin:
 
         serializer = self.get_serializer()
 
-        results = self.validate_flex_expand_and_field_param(request, serializer)
-        if results is not None:
-            return results
+        self.validate_flex_expand_and_field_param(request, serializer)
 
         return super().list(request, *args, **kwargs)
 

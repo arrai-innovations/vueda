@@ -572,9 +572,8 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "supervisor" in response.data
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
-        assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
-        assert str(response.data["supervisor"][0]["message"]) == "Invalid expands. No expands are permitted.", (
-            f"supervisor message: {response.data['supervisor'][0]['message']}"
+        assert response.data["supervisor"][0] == "Invalid expands. No expands are permitted.", (
+            f"supervisor message: {response.data['supervisor'][0]}"
         )
 
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
@@ -595,12 +594,9 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert len(response.data["second_history_entry"]) == 1, (
             f"second_history_entry data: {response.data['second_history_entry']}"
         )
-        assert "message" in response.data["second_history_entry"][0], (
-            f"second_history_entry data: {response.data['second_history_entry'][0]}"
+        assert response.data["second_history_entry"][0] == "Invalid expands. No expands are permitted.", (
+            f"second_history_entry message: {response.data['second_history_entry'][0]}"
         )
-        assert (
-            str(response.data["second_history_entry"][0]["message"]) == "Invalid expands. No expands are permitted."
-        ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data
 
 
@@ -630,13 +626,10 @@ class TestStoreProductViewSet:
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
         )
-        assert "message" in response.data["distributor.brands"][0], (
-            f"distributor.brands data: {response.data['distributor.brands'][0]}"
-        )
         assert (
-            str(response.data["distributor.brands"][0]["message"])
+            response.data["distributor.brands"][0]
             == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
-        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
         assert "history" not in response.data
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
@@ -660,13 +653,10 @@ class TestStoreProductViewSet:
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
         )
-        assert "message" in response.data["distributor.brands"][0], (
-            f"distributor.brands data: {response.data['distributor.brands'][0]}"
-        )
         assert (
-            str(response.data["distributor.brands"][0]["message"])
+            response.data["distributor.brands"][0]
             == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
-        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
         assert "history" not in response.data
 
     def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
@@ -688,6 +678,53 @@ class TestStoreProductViewSet:
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "distributor.available_actions" in response.data
+
+    def test_retrieve_reports_invalid_fields_and_expands_together(self, api_client, test_data):
+        """Invalid ``f`` and ``e`` names come back in one standard validation error."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor.brands",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,bogus",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert set(response.data) == {"bogus", "distributor.brands", "serverStack"}, response_body(response)
+        assert len(response.data["bogus"]) == 1, response_body(response)
+        assert response.data["bogus"][0].startswith("Invalid field.  Valid fields are "), response_body(response)
+        assert response.data["distributor.brands"] == [
+            "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+        ], response_body(response)
+        assert "VuedaValidationError" in response.data["serverStack"], response_body(response)
+
+    def test_retrieve_reports_both_messages_for_a_name_invalid_as_field_and_expand(self, api_client, test_data):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "bogus",
+                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "bogus",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        field_message, expand_message = response.data["bogus"]
+        assert field_message.startswith("Invalid field.  "), response_body(response)
+        assert expand_message.startswith("Invalid expands. "), response_body(response)
 
 
 @pytest.mark.django_db
@@ -981,11 +1018,10 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "guardian" in response.data
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
-        assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
-            str(response.data["guardian"][0]["message"])
+            response.data["guardian"][0]
             == "Invalid expands. Permitted expands are employee, supervisor. Or use a wildcard to expand all: *, ~all"
-        ), f"guardian message: {response.data['guardian'][0]['message']}"
+        ), f"guardian message: {response.data['guardian'][0]}"
         assert "employee" not in response.data
 
     def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
@@ -1021,11 +1057,10 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "guardian" in response.data
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
-        assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
-            str(response.data["guardian"][0]["message"])
+            response.data["guardian"][0]
             == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
-        ), f"guardian message: {response.data['guardian'][0]['message']}"
+        ), f"guardian message: {response.data['guardian'][0]}"
         assert "employee" not in response.data
 
     def test_destroy_dry_run_skips_commit(self, page_data, authenticated_client):
@@ -1075,7 +1110,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         error_key = missing_pk if missing_pk in response.data else str(missing_pk)
         assert error_key in response.data
-        assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
+        assert response.data[error_key][0] == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
 
     def _create_timesheets(self, count):
