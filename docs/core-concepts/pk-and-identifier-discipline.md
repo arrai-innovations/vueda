@@ -42,11 +42,9 @@ VUEDA uses two distinct transport shapes for object identifiers, depending on wh
 
 **Single-object transport** uses a route parameter. `detail` routes carry the PK value in the URL path: `/:app/:model/:action/:pk`. The route parameter is always named `pk` regardless of the model's actual PK field name. `getDetailUrl` constructs the URL by interpolating the PK value into the `:pk` position. The PK value is unwrapped through `unwrapNested` before interpolation, handling cases where the value arrives as a nested reactive reference.
 
-**Multi-object transport** uses a query parameter. List-context operations that reference multiple objects (such as multi-select navigation) encode the PK values as a comma-separated string in `query.pk`. `getCRUDForTo` splits this string to recover the individual values, and `makeCRUDRoutes` joins selected PKs with commas when constructing navigation targets.
+**Multi-object transport** uses a query parameter. List-context operations that reference multiple objects (such as multi-select navigation) carry one `pk` query value per key: `?pk=4&pk=7`. `getCRUDForTo` builds these values from an array of keys, and the `list` route that `makeCRUDRoutes` defines passes them to the view as an array. Neither side splits or parses a value, so a key that contains a comma, such as a composite key, arrives intact. Empty values select nothing.
 
 **Bulk delete transport** uses a request body. The `defaultObjectsDelete` function sends `{ pks: [...] }` as the JSON body of a `DELETE` request to the `list` endpoint. The key is always `pks`, independent of the model's PK field name; this is a fixed protocol convention between the client and the server's bulk destroy handler.
-
-The comma-delimited encoding for multi-object query parameters is lossy if a string PK value itself contains commas. Route and query reconstruction become ambiguous because `split(",")` cannot distinguish between a delimiter and a literal comma within a PK value. This is a known limitation that does not affect integer or UUID primary keys but can cause issues with free-text string PKs.
 
 ## Choice Identifier Value Semantics
 
@@ -62,7 +60,9 @@ This string normalization is deliberate. The client compares choice values using
 
 **Missing PK marker causes persistent client-side failure.** If the server's model-info response does not include a field with `pk: true`, the error is thrown and cached per `app.model`. All subsequent operations for that model fail immediately. The typical cause is a serializer that does not include the model's PK field in `Meta.fields`, or a PK field name mismatch between the serializer and the model's `_meta.pk.name`.
 
-**Comma-delimited PK encoding is lossy for string PKs with commas.** The `join(",")` / `split(",")` encoding used for multi-object query parameters cannot round-trip PK values that contain literal commas. This affects route construction and navigation state recovery for models with free-text string primary keys.
+**A comma-separated `pk` link names one key.** Before v3, multi-object links joined keys with commas, as in `?pk=4,7`. That link now selects the single key `4,7`, which usually matches no object. Rewrite such links as `?pk=4&pk=7`.
+
+**`getCRUDForTo` throws for a `pk` entry in `query`.** Keys go through the `pk` argument only. Code that forwards another route's query, such as `route.query` on a multi-object page, must remove `pk` from it first.
 
 **`defaultObjectUpdate` requires correct `pkKey` for non-`id` PKs.** The function accepts a `pkKey` parameter that defaults to `"id"`. Callers using models with a non-`id` PK field must pass the correct `pkKey`; omitting it causes `object[pkKey]` to resolve to `undefined`, and the resulting detail URL will contain `undefined` as the PK segment.
 
