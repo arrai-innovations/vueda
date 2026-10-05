@@ -3,12 +3,14 @@ import contextlib
 import hashlib
 import importlib
 import io
+import time
 from collections.abc import Iterable
 from http import HTTPStatus
 from pprint import pformat
 from typing import ClassVar
 
 import pytest
+from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from django import db
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -40,6 +42,13 @@ def response_body(response):
         return response.json()
     except (ValueError, AttributeError):
         return response.content
+
+
+def record_authentication_methods(client, *methods):
+    """Write one fresh allauth authentication record per ``method`` into the client's session."""
+    session = client.session
+    session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": method, "at": time.time()} for method in methods]
+    session.save()
 
 
 def cached_filterset_field_names(filterset_class):

@@ -15,7 +15,6 @@ __all__ = (
 
 from collections.abc import Mapping
 
-from allauth.account.internal.flows.reauthentication import did_recently_authenticate
 from allauth.mfa.models import Authenticator
 from dj_rest_auth.serializers import TokenSerializer
 from django.contrib.auth import authenticate
@@ -31,6 +30,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.reauthentication import did_recently_authenticate
 from vueda.core.serializers import FormattedNameSerializerMixin
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaSerializer
@@ -70,6 +70,12 @@ class WhoIsSerializer(VuedaSerializer):
     This is a serializer for the current user, it is simpler than the other user serializers.
 
     These fields give the user information about themselves, after they login or when they return to the site.
+
+    ``recently_logged_in`` reports whether the session completed the reauthentication flow the account requires
+    within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``: a second factor for a user with an MFA authenticator, the
+    password for a user with only a password. It comes from ``vueda.core.reauthentication``, the same policy
+    ``recent_auth_required`` enforces. The client pairs it with ``totp_devices`` to pick the reauthentication
+    view: a code form when the user has a device, a password form otherwise.
     """
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")

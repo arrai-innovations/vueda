@@ -10,8 +10,6 @@ __all__ = (
 
 from functools import wraps
 
-from allauth.account.internal.flows.reauthentication import raise_if_reauthentication_required
-from allauth.core.exceptions import ReauthenticationRequired
 from django.db import transaction
 from rest_framework import status as drf_status
 from rest_framework.decorators import action as rf_action
@@ -20,6 +18,7 @@ from rest_framework.response import Response
 
 from vueda.core.exceptions import ACKNOWLEDGE_WARNINGS_HEADER
 from vueda.core.exceptions import gate_warnings
+from vueda.core.reauthentication import did_recently_authenticate
 
 
 DRY_RUN_HEADER = "Dry-Run"
@@ -84,18 +83,19 @@ def action(methods=None, detail=None, bulk=False, confirm=False, url_path=None, 
 def recent_auth_required(func):
     """
     Wrap a viewset action so it returns 401 with ``Reauthentication required`` unless the user recently
-    authenticated.
+    completed the reauthentication flow their account requires.
 
-    The check uses django-allauth's reauthentication rules. The TOTP viewset applies it to device setup,
-    activation, and deletion.
+    ``vueda.core.reauthentication.did_recently_authenticate`` decides: a user with an MFA authenticator
+    must have confirmed a second factor within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``, and a password-only
+    user must have confirmed their password. ``WhoIsSerializer`` reports the same decision as
+    ``recently_logged_in``, so the client can send the user to reauthenticate before it calls a guarded
+    action. The TOTP viewset applies this decorator to device setup, activation, and deletion.
     """
 
     @wraps(func)
     def _wrapped_view(view_set_instance, request, *args, **kwargs):
-        try:
-            raise_if_reauthentication_required(request)
-            return func(view_set_instance, request, *args, **kwargs)
-        except ReauthenticationRequired:
+        if not did_recently_authenticate(request):
             return Response({"detail": "Reauthentication required"}, status=drf_status.HTTP_401_UNAUTHORIZED)
+        return func(view_set_instance, request, *args, **kwargs)
 
     return _wrapped_view
