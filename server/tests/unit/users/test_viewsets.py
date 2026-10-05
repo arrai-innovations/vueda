@@ -344,6 +344,27 @@ def test_mfa_user_can_delete_a_device_after_a_two_factor_reauthentication(api_cl
     assert not Authenticator.objects.filter(user=mfa_device.user).exists()
 
 
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_password_only_user_sets_up_and_activates_a_first_device_after_a_password_check(api_client, user, monkeypatch):
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "JBSWY3DPEHPK3PXP")
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.validate_totp_code", lambda secret, code: True)
+    monkeypatch.setattr("vueda.user.viewsets.vueda_get_adapter", lambda: SimpleNamespace(send_mail=lambda *args: None))
+    api_client.force_login(user)
+    record_authentication_methods(api_client, "password")
+
+    setup = api_client.post(
+        reverse("vueda_user.totpdevice-setup"), {"method": "email", "destination": "user@domain.invalid"}, format="json"
+    )
+    activate = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
+
+    assert setup.status_code == HTTPStatus.OK, response_body(setup)
+    assert activate.status_code == HTTPStatus.CREATED, response_body(activate)
+    assert TOTPDevice.objects.filter(user=user, method="email").exists()
+    # The account now owes a second factor, and the activation code counts as one.
+    who_is = api_client.get(reverse("who-is"), format="json")
+    assert who_is.data["recently_logged_in"] is True
+
+
 class DummyAllAuthBase:
     def handle_invalid_input(self, data):
         self.base_called = True

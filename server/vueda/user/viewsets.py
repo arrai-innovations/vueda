@@ -5,6 +5,7 @@ __all__ = ("TOTPDeviceViewSet",)
 import base64
 from types import SimpleNamespace
 
+from allauth.account.internal.flows.login import record_authentication
 from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal import auth as totp_auth
@@ -169,6 +170,12 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             )
         else:
             TOTPDevice.objects.create(authenticator=authenticator, method=device_type, user=request.user)
+        # The code just validated proves possession of the authenticator, so it counts as a second-factor
+        # authentication. Without this record the first activation would leave the session stale at once,
+        # since the account now requires a second factor and has only confirmed a password.
+        record_authentication(
+            request, request.user, "mfa", id=authenticator.pk, type=authenticator.type, reauthenticated=True
+        )
         return Response({"detail": "TOTP setup complete"}, status=drf_status.HTTP_201_CREATED)
 
     @conditional_extend_schema_decorator(
