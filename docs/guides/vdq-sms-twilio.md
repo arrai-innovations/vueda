@@ -80,7 +80,7 @@ When the webhook receives a status update with a known `MessageSid`:
 - `update_sms_qi` processes the status.
 - **`delivered`**: clears `result` and transitions to `succeeded`.
 - **`undelivered` or `failed`**: records error context and transitions to `errored`.
-- Any other status changes nothing.
+- Any other status changes nothing, except that an `awaiting` item past the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) transitions to `unconfirmed`.
 
 When no queue item stores the `MessageSid`, the webhook looks for the item by the `queue_item` key on the callback URL. An item found that way stores the `MessageSid` and then applies the status: a final status moves it to `succeeded` or `errored`, and an in-flight status (`queued`, `sending`, or `sent`) moves a `sending` item to `awaiting`. An item that stores a different `MessageSid` is left unchanged and the callback is logged. When the key finds no item, the webhook enqueues a deferred lookup task (`check_previously_received_message_sid`) that retries the update until the item is found or the retry window expires. See [Matching a status update to its queue item](../core-concepts/vdq-and-background-work#matching-a-status-update-to-its-queue-item).
 

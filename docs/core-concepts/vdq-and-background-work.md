@@ -101,7 +101,7 @@ The provider ID is matched first. The key is used only when no item stores the I
 - An item that stores a different provider ID is left unchanged. VDQ logs the update instead.
 - A final status applies to a `sending` item the same way it applies to an `awaiting` item. The workflow allows `succeed` and `error` from `sending`. For Twilio, `delivered` succeeds, and `undelivered` and `failed` error. For Anymail, `delivered` succeeds, and `bounced`, `rejected`, and `failed` error.
 - An in-flight status moves a `sending` item to `awaiting`, where the usual delivery confirmation or timeout handles it. For Twilio, those are `queued`, `sending`, and `sent`. For Anymail, those are `queued`, `sent`, and `deferred`.
-- Any other status leaves the item where it is. Anymail events such as `opened` or `complained` take their existing path, which changes no state.
+- Any other status leaves the item where it is, except that a Twilio status on an `awaiting` item past the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) times it out. Anymail events such as `opened` or `complained` take their existing path, which changes no state.
 
 When the key finds no item, the Twilio webhook queues the same deferred lookup task it uses for a callback without a key, and `handle_bounce` logs the event and drops it.
 
