@@ -351,7 +351,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "TOKEN_SERIALIZER": "vueda.user.serializers.VuedaTokenSerializer",
             "OLD_PASSWORD_FIELD_ENABLED": True,
         },
-        "REST_FLEX_FIELDS": {
+        "REST_FLEX_FIELDS2": {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
@@ -370,7 +370,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             # Names the column totals a `list` request wants aggregated, e.g. `?ct=hours,product_price`.
             # Its own parameter rather than a value of the sparse-fields parameter: `f` selects row
             # fields, and a total name is never a valid `f` value. Deliberately not in
-            # REST_FLEX_FIELDS -- that dict configures rest-flex-fields, which never reads this.
+            # REST_FLEX_FIELDS2 -- that dict configures drf-flex-fields2, which never reads this.
             # Clients hold this name as a constant of their own (`COLUMN_TOTALS_PARAM` in
             # `@vueda/utils/constants` for VUEDA's client), as they do for every other wire
             # parameter, so changing it here needs a matching client change.

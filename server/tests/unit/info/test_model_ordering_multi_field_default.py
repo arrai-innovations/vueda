@@ -48,7 +48,7 @@ class TestModelOrderingMultiFieldDefaultValue:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("product", "product")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 
@@ -62,7 +62,7 @@ class TestModelOrderingMultiFieldDefaultValue:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("product", "product")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 
@@ -111,7 +111,7 @@ class TestModelOrderingScalarFunctionMultiFieldValue:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("product", "product")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 
@@ -125,7 +125,7 @@ class TestModelOrderingScalarFunctionMultiFieldValue:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("product", "product")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 
@@ -146,7 +146,7 @@ class TestModelOrderingScalarFunctionMultiFieldValue:
 
         response = api_client.get(
             reverse("info.model_info-detail", args=("product", "product")),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 

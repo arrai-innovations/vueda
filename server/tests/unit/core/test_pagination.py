@@ -469,13 +469,13 @@ class TestRelationColumnTotals(BaseTestCommonModelViewSet):
     def test_a_total_name_is_not_a_fields_param_value(self, settings, authenticated_client, page_data, url):
         """`f` selects row fields and nothing else; the two parameters never overlap."""
         response = authenticated_client.get(
-            url, data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "product_price"}, format="json"
+            url, data={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "product_price"}, format="json"
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
 
     def test_rows_are_unaffected_by_requesting_totals(self, settings, authenticated_client, page_data, url):
-        query = {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,quantity"}
+        query = {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,quantity"}
         without = authenticated_client.get(url, data=query, format="json")
         with_totals = authenticated_client.get(url, data={**query, settings.COLUMN_TOTALS_PARAM: "*"}, format="json")
 

@@ -31,7 +31,7 @@ from django.utils.functional import cached_property
 from django_filters.fields import ChoiceIterator
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
-from rest_flex_fields.serializers import FlexFieldsSerializerMixin
+from rest_flex_fields2.serializers import FlexFieldsSerializerMixin
 from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
@@ -542,7 +542,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         if get_expand_model_info is not None:
             expands = get_expand_model_info(expands)
 
-        fields_param = settings.REST_FLEX_FIELDS["FIELDS_PARAM"]
+        fields_param = settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]
 
         generic_foreign_key_names = {
             field.name for field in serializer.Meta.model._meta.private_fields if isinstance(field, GenericForeignKey)
@@ -1443,7 +1443,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         match operation_id:
             case "vueda.info_model_info_list":
                 for index, existing_parameter in reversed(tuple(enumerate(parameters))):
-                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS["EXPAND_PARAM"]):
+                    if existing_parameter["name"] in ("app_label", "model", settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]):
                         parameters.pop(index)
 
         return parameters

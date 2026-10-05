@@ -93,7 +93,7 @@ application, use the tutorial above.
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/),
 [pnpm](https://pnpm.io/installation), and
 [just](https://github.com/casey/just#installation). The starter projects use
-Python 3.11+ and Node.js 22+; server tests also need PostgreSQL.
+Python 3.12+ and Node.js 22+; server tests also need PostgreSQL.
 
 ```console
 git clone https://github.com/arrai-innovations/vueda.git

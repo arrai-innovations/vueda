@@ -461,7 +461,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "user",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -506,7 +506,7 @@ EXPECTED_RESULTS = [
                     "name": "dict_data",
                     "many": False,
                     "read_only": True,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "name": {
                             "label": "Name",
                             "type_db": None,
@@ -773,7 +773,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "customer",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -809,7 +809,7 @@ EXPECTED_RESULTS = [
                     "many": True,
                     "model": "cartitem",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -1213,7 +1213,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "customer",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -1249,7 +1249,7 @@ EXPECTED_RESULTS = [
                     "many": True,
                     "model": "orderitem",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -1298,7 +1298,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "orderstate",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -1841,7 +1841,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "distributor",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -2436,7 +2436,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "optiontype",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -2483,7 +2483,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "product",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -2883,7 +2883,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "customerorder",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -2956,7 +2956,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "productoption",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -3300,7 +3300,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "productoption",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -3409,7 +3409,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "inventoryrecordreason",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -3467,7 +3467,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "inventoryrecord",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -3614,7 +3614,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "orderitem",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -4127,7 +4127,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "cart",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -4163,7 +4163,7 @@ EXPECTED_RESULTS = [
                     "many": False,
                     "model": "productoption",
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -4734,7 +4734,7 @@ EXPECTED_RESULTS = [
                     "model": "ordercompositepk",
                     "many": False,
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -4781,7 +4781,7 @@ EXPECTED_RESULTS = [
                     "model": "productcompositepk",
                     "many": False,
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "id": {
                             "label": "ID",
                             "type_db": "AutoField",
@@ -5205,7 +5205,7 @@ EXPECTED_RESULTS = [
                     "model": "orderitemcompositepk",
                     "many": True,
                     "read_only": False,
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                         "order": {
                             "app_label": "store",
                             "choices": True,
