@@ -4,18 +4,29 @@
  */
 import { clearAuthScopedStores } from "@vueda/stores/authScope.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
+import { AUTH_FLOW, REAUTHENTICATION_FLOW_IDS } from "@vueda/utils/constants.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
 import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
 
-const REAUTHENTICATION_FLOW_IDS = ["reauthenticate", "mfa_reauthenticate"];
+/**
+ * The reauthentication flow a signed-in user owes once their session is no longer recent.
+ *
+ * @param {{totp_devices?: unknown[]}} user - A who-is response for a signed-in user.
+ * @returns {string} `mfa_reauthenticate` when the user has a two-factor device, else `reauthenticate`.
+ */
+function reauthenticationFlowFor(user) {
+    return user.totp_devices?.length > 0 ? AUTH_FLOW.MFA_REAUTHENTICATE : AUTH_FLOW.REAUTHENTICATE;
+}
 
 /**
  * Pick the flow a 401 response asks the client to continue: the one allauth marks `is_pending`, or, for a
- * signed-in user whose session needs reauthentication, the first reauthentication flow. Other listed flows
- * are only available, not pending.
+ * signed-in user whose session needs reauthentication, the most demanding reauthentication flow listed.
+ * allauth lists every flow the account could use, password first, but the server only counts a second
+ * factor from an account that has a device, so that flow wins when both appear. Other listed flows are only
+ * available, not pending.
  *
  * @param {{id: string, is_pending?: boolean}[]} flows
  * @returns {{id: string, is_pending?: boolean}|null}
@@ -23,7 +34,7 @@ const REAUTHENTICATION_FLOW_IDS = ["reauthenticate", "mfa_reauthenticate"];
 function selectPendingFlow(flows) {
     return (
         flows.find((flow) => flow.is_pending) ??
-        flows.find((flow) => REAUTHENTICATION_FLOW_IDS.includes(flow.id)) ??
+        REAUTHENTICATION_FLOW_IDS.map((id) => flows.find((flow) => flow.id === id)).find(Boolean) ??
         null
     );
 }
@@ -154,15 +165,21 @@ export const storeUser = defineStore("user", {
          */
         initializingPromise: null,
         /**
-         * The `recently_logged_in` flag from the last who-is response.
+         * The `recently_logged_in` flag from the last who-is response: whether the session completed the
+         * reauthentication flow the account requires within the server's reauthentication window.
          * Route guards use it to ask for reauthentication before sensitive pages.
          *
          * @type {boolean|null}
          */
         recentlyLoggedIn: false,
         /**
-         * The allauth flow that a 401 response asks the client to continue, such as `mfa_authenticate` or `reauthenticate`.
-         * `null` when no flow is pending.
+         * The allauth flow the user must complete next, or `null` when none is pending.
+         *
+         * A 401 response sets it from the flows the response lists, such as `mfa_authenticate` during sign-in.
+         * For a signed-in user, each who-is response derives it: `null` while `recently_logged_in` is true,
+         * otherwise `mfa_reauthenticate` when the user has a two-factor device and must confirm a code, or
+         * `reauthenticate` when they must confirm their password. The reauthentication view renders the input
+         * for the flow and calls `twoFactorReauthenticate` or `reauthenticate` to complete it.
          *
          * @type {{id: string, is_pending?: boolean}|null}
          */
@@ -217,6 +234,12 @@ export const storeUser = defineStore("user", {
                     const previousPrincipalId = this.principalId;
                     this.loggedIn = !!user.id;
                     this.recentlyLoggedIn = user.recently_logged_in;
+                    // The server only counts a second factor from a user who has a device, so a stale session
+                    // owes that flow when devices exist and the password flow otherwise. An anonymous response
+                    // says nothing about a sign-in flow in progress, such as `mfa_authenticate`, so that stays.
+                    if (user.id) {
+                        this.pendingFlow = this.recentlyLoggedIn ? null : { id: reauthenticationFlowFor(user) };
+                    }
                     this.loggedInUser = user;
                     this.principalId = nextPrincipalId;
                     // Every path that can change who is authenticated (login, logout, reauthenticate,
@@ -345,6 +368,9 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's password again, clears `pendingFlow`, then refetches the current user.
+         *
+         * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
+         * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
          *
          * @param {object} payload - The credentials to send.
          * @param {string} payload.password - The user's password.
@@ -611,6 +637,50 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
+         * Confirms the signed-in user's second factor with a code, clears `pendingFlow`, then refetches the current user.
+         *
+         * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
+         * before a reauthentication-guarded action.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.code - The code from the user's device, or a recovery code.
+         * @returns {Promise<void>}
+         */
+        twoFactorReauthenticate(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("twoFactorReauthenticate")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
+                    this.pendingFlow = null;
+                    return this.fetchCurrentUser();
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        /**
          * Sets a new password using the `pk` and `token` from a password reset link.
          *
          * @param {object} payload - The request body.
@@ -696,7 +766,7 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Fetches the two-factor methods of the user who is signing in.
+         * Fetches the two-factor methods of the user who is signing in or reauthenticating.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
          */
@@ -729,7 +799,8 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Asks the server to send a two-factor code to the signing-in user's device for the given method.
+         * Asks the server to send a two-factor code to the device of the user who is signing in or
+         * reauthenticating, for the given method.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The delivery method: `email` or `sms`.

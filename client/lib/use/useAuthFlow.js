@@ -7,6 +7,7 @@ import { toast } from "@arrai-innovations/vue-sonner";
 import { UnauthorizedError, storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { defaultOnSubmissionError } from "@vueda/use/useObjectForm.js";
+import { REAUTHENTICATION_FLOW_IDS } from "@vueda/utils/constants.js";
 import { toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -30,6 +31,12 @@ import { useRoute, useRouter } from "vue-router";
 /**
  * Registers reauthentication routing behaviour, produces a submission error handler, and
  * provides a form context.
+ *
+ * The form it serves sits behind recent authentication, so whenever `storeUser.pendingFlow` becomes a
+ * reauthentication flow the user is sent to the reauthenticate route with the current path as `redirect`.
+ * A 401 response sets that flow, and so does a who-is response for a signed-in user whose session is no
+ * longer recent, so the redirect happens as soon as the store learns the session is stale, not only after a
+ * refused request.
  *
  * @example
  * ```js
@@ -56,7 +63,7 @@ export function useAuthFlow(options) {
 
     watch(toRef(userStore, "pendingFlow"), async (newPendingFlow) => {
         if (newPendingFlow) {
-            if (newPendingFlow.id === "mfa_reauthenticate" || newPendingFlow.id === "reauthenticate") {
+            if (REAUTHENTICATION_FLOW_IDS.includes(newPendingFlow.id)) {
                 await doReauthenticate();
             }
         }

@@ -28,6 +28,7 @@ const defaultUrls = {
     resetPassword: "/routes/vueda.user/reset-password/",
     setupTOTPDevice: "/routes/vueda.user/totpdevice/setup/",
     twoFactorAuthenticate: "/routes/vueda.user/2fa/authenticate/",
+    twoFactorReauthenticate: "/routes/vueda.user/2fa/reauthenticate/",
     userCurrentUser: "/routes/vueda.user/who-is/",
     userLogin: "/routes/vueda.user/login/",
     userLogout: "/routes/vueda.user/logout/",

@@ -8,6 +8,7 @@ import { toast } from "@arrai-innovations/vue-sonner";
 import { storeUser } from "@vueda/stores/storeUser.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
+import { AUTH_FLOW } from "@vueda/utils/constants.js";
 import { toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -92,7 +93,7 @@ export function useSignInFlow(options) {
         [isActive, toRef(userStore, "loggedIn"), toRef(userStore, "recentlyLoggedIn"), toRef(userStore, "pendingFlow")],
         ([newActive, newLoggedIn, recentlyLoggedIn, newPendingFlow]) => {
             if (newPendingFlow) {
-                if (newPendingFlow.id === "mfa_authenticate") {
+                if (newPendingFlow.id === AUTH_FLOW.MFA_AUTHENTICATE) {
                     // The two-factor view signs the user in, so it needs the refused path to send
                     // them back to. A `redirect` option stays with this view; the two-factor view
                     // takes its own.
