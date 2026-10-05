@@ -706,6 +706,40 @@ def test_update_sms_qi_moves_a_sending_item_to_awaiting_on_an_in_flight_status(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("message_status", ["accepted", "canceled", "read", "partially_delivered"])
+def test_update_sms_qi_times_out_an_awaiting_item_on_a_status_vdq_does_not_handle(
+    settings, monkeypatch, queue_item_sms, message_status
+):
+    """An item past the window times out on any status that is neither delivered nor failed."""
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.fast_transition("await")
+    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
+    queue_item_sms.save(update_fields=["done_since"])
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, message_status, webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "unconfirmed"
+    assert "Status not received" in queue_item_sms.result
+
+
+@pytest.mark.django_db
+def test_update_sms_qi_leaves_an_awaiting_item_inside_the_window_on_a_status_vdq_does_not_handle(
+    settings, queue_item_sms
+):
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.fast_transition("await")
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, "accepted", webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "awaiting"
+    assert queue_item_sms.result == ""
+
+
+@pytest.mark.django_db
 def test_update_sms_qi_ignores_a_status_vdq_does_not_handle(settings, queue_item_sms):
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
     queue_item_sms.done_since = timezone.now() - timedelta(hours=3)

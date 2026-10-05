@@ -304,9 +304,9 @@ class TwilioQueueItemHandler:
         """
         Update a ``QueueItem`` based on a Twilio ``message_status`` string.
         Transitions to ``succeed`` on ``delivered`` and to ``error`` on ``undelivered`` or ``failed``, from
-        ``sending`` as well as from ``awaiting``. An in-flight status (``queued``, ``sending``, ``sent``)
-        moves a ``sending`` item to ``awaiting``, and times out an ``awaiting`` item that has waited longer
-        than the configured timeout. Any other status changes nothing.
+        ``sending`` as well as from ``awaiting``. Any other status moves a ``sending`` item to ``awaiting``
+        when it is in flight (``queued``, ``sending``, ``sent``), and times out an ``awaiting`` item that has
+        waited longer than the configured timeout. Otherwise it changes nothing.
         """
         timeout_hours = getattr(settings, "VDQ_TWILIO_SMS_TIMEOUT_HOURS", 2)
         if message_status in DELIVERED_SMS_STATUSES:
@@ -329,13 +329,16 @@ class TwilioQueueItemHandler:
             queue_item.result = msg
             queue_item.save(update_fields=["result"])
             queue_item.fast_transition("error")
-        elif message_status in IN_FLIGHT_SMS_STATUSES:
-            if queue_item.workflow_state.code == "sending":
+        elif queue_item.workflow_state.code == "sending":
+            if message_status in IN_FLIGHT_SMS_STATUSES:
                 # Twilio has the message, so the item waits for its final status from here on.
                 queue_item.fast_transition("await")
-            elif (timezone.now() - queue_item.done_since) > timedelta(hours=timeout_hours):
-                # Timeout. Save implied.
-                timeout_queue_item(queue_item, timeout_hours)
+        elif queue_item.workflow_state.code == "awaiting" and (timezone.now() - queue_item.done_since) > timedelta(
+            hours=timeout_hours
+        ):
+            # The item waited past the window for a final status, whatever status Twilio reports instead.
+            # Save implied.
+            timeout_queue_item(queue_item, timeout_hours)
 
 
 def twilio_status_callback_url(base_url, queue_item) -> str:
