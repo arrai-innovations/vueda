@@ -155,7 +155,7 @@ def format_with_ruff(source, ruff, migration_path):
     ).stdout
 
 
-def format_changed_data(changed_data, migration_path, *, stderr):
+def format_changed_data(changed_data, migration_path, *, stderr, dry_run=False):
     """Return the ``changed_data = ...`` assignment a generated migration holds, ending in a newline.
 
     The formatter the project uses lays it out, following the project's settings for ``migration_path``:
@@ -169,6 +169,7 @@ def format_changed_data(changed_data, migration_path, *, stderr):
     When the formatter that applies fails, including when the project's configuration cannot be read, its
     error is written to ``stderr`` and ``pformat`` lays the list out, rather than another formatter that
     would not follow the project's settings. The message asks for the migration to be formatted manually.
+    A ``dry_run`` writes nothing, so its message reports the error and what a real run would write instead.
     """
     source = f"changed_data = {changed_data_source(changed_data)}{NEWLINE}"
 
@@ -189,9 +190,16 @@ def format_changed_data(changed_data, migration_path, *, stderr):
         # ruff explains a failure on its stderr; black's exception carries its own explanation.
         detail = error.stderr if isinstance(error, subprocess.CalledProcessError) else str(error)
         detail = NEWLINE.join(f"    {line}" for line in detail.strip().splitlines())
+        if dry_run:
+            outcome = (
+                "A run without --dry-run would write changed_data with pprint instead. Fix the problem above first."
+            )
+        else:
+            outcome = (
+                f"Wrote changed_data with pprint instead. Fix the problem above, then format {migration_path} manually."
+            )
         stderr.write(
-            f"  {formatter} could not format changed_data for {migration_path}:{NEWLINE}{detail}{NEWLINE}"
-            f"  Wrote changed_data with pprint instead. Fix the problem above, then format {migration_path} manually."
+            f"  {formatter} could not format changed_data for {migration_path}:{NEWLINE}{detail}{NEWLINE}  {outcome}"
         )
 
     # pformat is not formatted as nicely as black or ruff. At least a small width puts each item on its own line.

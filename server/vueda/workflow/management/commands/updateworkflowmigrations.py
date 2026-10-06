@@ -354,7 +354,9 @@ class Command(BaseCommand):
             return lines_string
 
         lines = lines_string.splitlines(keepends=True)
-        lines[node.lineno - 1 : node.end_lineno] = [format_changed_data(changed_data, filepath, stderr=self.stderr)]
+        lines[node.lineno - 1 : node.end_lineno] = [
+            format_changed_data(changed_data, filepath, stderr=self.stderr, dry_run=self.dry_run)
+        ]
 
         return "".join(lines)
 
