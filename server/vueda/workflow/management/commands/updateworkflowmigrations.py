@@ -52,16 +52,23 @@ def get_installed_package_paths():
     Besides the environment's own package directories, these include the base interpreter's, which a
     virtual environment created with ``--system-site-packages`` also imports from, and the user site
     directory that ``pip install --user`` installs into.
+
+    On Windows, ``site.getsitepackages`` lists each prefix itself alongside its ``Lib\\site-packages``.
+    A prefix holds far more than packages, so counting it would treat a project kept inside a Python
+    install, such as a portable or embedded one, as installed. The prefixes are left out.
     """
+    prefixes = (sys.base_prefix, sys.base_exec_prefix)
     paths = (
         sysconfig.get_path("purelib"),
         sysconfig.get_path("platlib"),
-        *site.getsitepackages([sys.base_prefix, sys.base_exec_prefix]),
+        *site.getsitepackages(prefixes),
         site.getusersitepackages(),
     )
     # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
     # dropped once each path is resolved.
-    return tuple({os.path.normcase(os.path.realpath(path)): None for path in paths})
+    resolved_prefixes = {os.path.normcase(os.path.realpath(prefix)) for prefix in prefixes}
+    resolved_paths = {os.path.normcase(os.path.realpath(path)): None for path in paths}
+    return tuple(path for path in resolved_paths if path not in resolved_prefixes)
 
 
 INSTALLED_PACKAGE_PATHS = get_installed_package_paths()

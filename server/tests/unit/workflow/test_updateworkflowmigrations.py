@@ -528,6 +528,25 @@ def test_base_interpreter_packages_count_as_installed():
     assert updateworkflowmigrations.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
 
 
+def test_base_interpreter_directory_itself_does_not_count_as_installed(monkeypatch):
+    # On Windows, site.getsitepackages lists each prefix itself alongside its Lib\site-packages. A project kept
+    # inside a Python install, such as a portable one, is under the prefix but not under its site-packages.
+    monkeypatch.setattr(
+        site,
+        "getsitepackages",
+        lambda prefixes: [
+            path for prefix in prefixes for path in (prefix, os.path.join(prefix, "Lib", "site-packages"))
+        ],
+    )
+    monkeypatch.setattr(
+        updateworkflowmigrations, "INSTALLED_PACKAGE_PATHS", updateworkflowmigrations.get_installed_package_paths()
+    )
+    base_prefix = Path(sys.base_prefix)
+
+    assert updateworkflowmigrations.is_installed_package_path(base_prefix / "Lib" / "site-packages" / "somepackage")
+    assert not updateworkflowmigrations.is_installed_package_path(base_prefix / "project" / "migrations")
+
+
 def workflow_references(value):
     if isinstance(value, dict):
         for key, child in value.items():
