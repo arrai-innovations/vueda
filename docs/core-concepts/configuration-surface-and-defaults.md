@@ -95,7 +95,7 @@ If you use a reverse mapping (Django names as the mapped output), finalize `PERM
 
 On the client side, `storeModelConfig` builds per-model, per-view configuration objects from server-emitted model-info metadata. This derivation is the bridge between the server's metadata contract and the client's UI rendering decisions.
 
-The derivation starts with `getDefaultFromModelInfo`, which reads the model-info object's `fields`, `expand`, `actions`, `filtering`, and `ordering` entries and computes sensible defaults: which fields to fetch, display, and submit; which expands to request; which actions are available; and how to route action results. If the model-info object is missing any of these top-level keys, the function returns a minimal config shape with empty detail objects rather than throwing an error.
+The derivation starts with `getDefaultFromModelInfo`, which reads the model-info object's `fields`, `expand`, `actions`, `filtering`, and `ordering` entries and computes sensible defaults: which fields to fetch, display, and submit; the details of each declared expand, with none requested; which actions are available; and how to route action results. If the model-info object is missing any of these top-level keys, the function returns a minimal config shape with empty detail objects rather than throwing an error.
 
 Default action redirects use view-name strings (for example, `"read"`) even though the underlying server action name is `"retrieve"`. The mapping boundary is `viewToActionNameMap`, which translates between the client's view-oriented naming and the server's DRF-oriented naming. This translation is a stable convention, not a runtime lookup.
 

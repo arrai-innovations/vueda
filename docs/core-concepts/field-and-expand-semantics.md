@@ -15,7 +15,7 @@ This page explains the contract itself; what the parameters mean, how sparse-fie
 
 The server owns the definition of which fields exist and which fields are expandable. This definition lives in the canonical registered serializer, not in the Django model or database schema. The client owns the runtime decision of which fields and expands to request on a given fetch, within the boundaries the server advertises.
 
-The boundary between them is the {@term Model Info} metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field subsets and {@term Expand} sets for each view. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
+The boundary between them is the {@term Model Info} metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field subsets for each view, and the details of each {@term Expand} a view's config names. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
 
 ## Parameter Namespace and Wire Shape
 
@@ -116,7 +116,7 @@ Model-info responses undergo normalization when the client stores them. The norm
 
 The normalized result is cached by `app.model` key in `storeModelInfo`. Subsequent requests for the same model resolve from cache without a network fetch. If the initial fetch fails (including the `"no pk field found"` error), the error is cached instead, and subsequent requests for the same key short-circuit to the cached error. This prevents the client from repeatedly fetching metadata that the server returned but the client could not process.
 
-Default model-config generation uses the normalized metadata to derive field sets. `displayFields`, `fetchFields`, and `submitFields` are computed from the field metadata, excluding the PK field by default. The `expand` configuration is derived from the expand descriptor names, and expanded field details are flattened into `expand.subfield` composite keys in the `fieldDetails` map. When `expand` is overridden to an empty array, the flattening step is skipped and no `expand.subfield` keys are populated.
+Default model-config generation uses the normalized metadata to derive field sets. `displayFields`, `fetchFields`, and `submitFields` are computed from the field metadata, excluding the PK field by default. The default `expand` is empty, so a view requests an expansion only when its model config names one. The expand descriptors still populate `expandDetails`. For each expansion that `expand` names, its field details are flattened into `expand.subfield` composite keys in the `fieldDetails` map. A field list entry under a declared expansion that `expand` omits fails the config build.
 
 ## Multi-level Field and Expand Data
 
