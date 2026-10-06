@@ -21,8 +21,7 @@ def _env(**environ_overrides):
 
 
 def test_email_backend_is_used_by_default():
-    # use_mailers defaults to False, so the EMAIL_BACKEND/EMAIL_TIMEOUT configuration is
-    # returned on every supported Django version, unlike the use_mailers=True tests below.
+    # use_mailers defaults to False, so the EMAIL_BACKEND/EMAIL_TIMEOUT configuration is returned.
     defaults = get_defaults(_env())
 
     assert defaults["EMAIL_BACKEND"] == "django.core.mail.backends.console.EmailBackend"
@@ -30,14 +29,7 @@ def test_email_backend_is_used_by_default():
     assert "MAILERS" not in defaults
 
 
-def test_use_mailers_configures_mailers_or_rejects_by_django_version():
-    # Django < 6.1 ignores MAILERS entirely, so get_defaults refuses to produce a config that
-    # would silently fall back to the default SMTP backend instead of the one requested.
-    if django.VERSION < (6, 1):
-        with pytest.raises(ImproperlyConfigured, match="MAILERS"):
-            get_defaults(_env(), use_mailers=True)
-        return
-
+def test_use_mailers_configures_mailers():
     defaults = get_defaults(_env(), use_mailers=True)
 
     assert defaults["MAILERS"] == {

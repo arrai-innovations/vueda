@@ -16,7 +16,6 @@ from typing import Any
 from typing import Protocol
 from typing import TypeVar
 
-import django
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
 
@@ -118,22 +117,14 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     among others.
 
     Email is configured through Django's deprecated `EMAIL_BACKEND` and `EMAIL_TIMEOUT` settings by
-    default, since `EMAIL_BACKEND` still works on Django 6.1 and `MAILERS` doesn't exist before it. Pass
-    `use_mailers=True` to configure Django 6.1+'s `MAILERS` setting instead; see the
-    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/). `use_mailers=True`
-    raises `ImproperlyConfigured` on Django < 6.1, since those versions ignore `MAILERS` and would otherwise
-    silently fall back to Django's default SMTP backend instead of the configured one.
+    default, since `EMAIL_BACKEND` still works on Django 6.1 and third-party email packages may not yet
+    support `MAILERS`. Pass `use_mailers=True` to configure Django 6.1's `MAILERS` setting instead; see the
+    [MAILERS migration guide](https://docs.djangoproject.com/en/6.1/howto/mailers-migration/).
 
     `VUEDA_APPS` must include `vueda.history`. VUEDA ships pghistory event models and trigger operations in
     the migrations of every app that owns a tracked model, so a configuration without the app cannot load
     the migration graph. Omitting it raises `ImproperlyConfigured`.
     """
-    if use_mailers and django.VERSION < (6, 1):
-        raise ImproperlyConfigured(
-            f"get_defaults(use_mailers=True) requires Django 6.1+; Django {django.get_version()} ignores "
-            "MAILERS and would silently use the default SMTP EmailBackend instead of the configured one. "
-            "Pass use_mailers=False (the default) on this Django version to configure EMAIL_BACKEND instead."
-        )
     email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
     return_dict = {
@@ -456,7 +447,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         return_dict["REST_FRAMEWORK"]["DEFAULT_SCHEMA_CLASS"] = "vueda.core.open_api.VuedaAutoSchema"
         return_dict["SPECTACULAR_SETTINGS"] = {
             "TITLE": "VUEDA API",
-            "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-pghistory), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
+            "DESCRIPTION": "VUEDA is designed for projects that integrate Vue.js frontends with Django REST Framework backends. This server library enhances Django's native authentication and permissions systems with default DRF classes and optimizes integration with django-filter, drf-flex-fields2, and drf-writable-nested. It offers essential out-of-the-box functionalities such as custom workflow management, audit trails (with DRF support for django-pghistory), and row-level permissions. Additionally, vueda-server provides DRF classes to expose Django model details to the frontend, filtered by user permissions. It is built with customization in mind, offering most features as base classes that can be extended in your application, ensuring both control and adaptability.",
             "VERSION": "1.0.0",
             "TAGS": spectacular_tags,
             "COMPONENT_SPLIT_PATCH": False,
