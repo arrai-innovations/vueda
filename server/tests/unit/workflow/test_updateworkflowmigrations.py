@@ -1,7 +1,9 @@
+import ast
 import datetime
 import importlib.util
 import io
 import os
+import re
 import shutil
 import site
 import sys
@@ -229,9 +231,9 @@ class TestChangedDataFormatting(BaseTestMigrations):
     def test_rewritten_changed_data_follows_the_migrations_project_settings(self, settings):
         """The formatter reads the settings that apply to the migration's own path.
 
-        Only layout no formatter version is expected to change is checked. The trailing commas keep the list
-        open after its bracket, where pformat starts the first item on the same line. Single quotes are not the
-        default for ruff or black, so they show the formatter ran with the migration's settings.
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
         """
         with self.temporary_migration_module(settings, app_label="product") as directory:
             directory = Path(directory)
@@ -244,8 +246,14 @@ class TestChangedDataFormatting(BaseTestMigrations):
             assert "Updated 2 workflow migration(s)." in output.getvalue()
             assert errors.getvalue() == ""
             migration_content = state_path.read_text()
-            assert "changed_data = [\n" in migration_content
-            assert "'historical_model': 'product',\n" in migration_content
+            assignment = next(
+                node
+                for node in ast.parse(migration_content).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(migration_content, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'historical_model'" in changed_data_source
 
 
 class TestDryRun(BaseTestMigrations):

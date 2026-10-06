@@ -1,6 +1,8 @@
+import ast
 import datetime
 import io
 import os
+import re
 from pprint import pformat
 
 import pytest
@@ -141,9 +143,9 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
     def test_changed_data_follows_the_migrations_project_settings(self, settings):
         """The formatter reads the settings that apply to the migration's own path.
 
-        Only layout no formatter version is expected to change is checked. The trailing commas keep the list
-        open after its bracket, where pformat starts the first item on the same line. Single quotes are not the
-        default for ruff or black, so they show the formatter ran with the migration's settings.
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
         """
         settings.MIGRATION_MODULES = {
             "group_added": "tests.group_added",
@@ -169,8 +171,14 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
             with open(migration_filepath, encoding="utf-8") as f:
                 migration_content = f.read()
 
-            assert "changed_data = [\n" in migration_content
-            assert "'group_name': 'GroupAddedWorkers',\n" in migration_content
+            assignment = next(
+                node
+                for node in ast.parse(migration_content).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(migration_content, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'group_name'" in changed_data_source
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -797,7 +805,11 @@ class Migration(migrations.Migration):
     # Each format_changed_data test writes its pyproject.toml into its own tmp_path. black caches a parsed
     # pyproject.toml and a found project root by path for the life of the process, so a test that rewrote a
     # path another test had already read would get that test's settings.
-    def test_format_changed_data_puts_each_item_on_its_own_line(self, tmp_path):
+    #
+    # black and ruff test their own layout, so these tests only check that a formatter ran and which one. A
+    # formatter keeps the trailing comma after the last change, which pformat never writes. With a formatter
+    # shown to have run, the quote style shows which formatter and settings applied.
+    def test_format_changed_data_evaluates_to_the_same_values(self, tmp_path):
         # black is installed but not configured, so ruff formats.
         (tmp_path / "pyproject.toml").write_text("[tool.ruff]\nline-length = 120\n")
         changed_data = [
@@ -811,30 +823,17 @@ class Migration(migrations.Migration):
 
         source = format_changed_data(changed_data, tmp_path / "migrations" / "0002_workflow.py", stderr=errors)
 
-        # A pair stays on one line, and every dict or list item gets its own.
-        assert source == (
-            "changed_data = [\n"
-            "    {\n"
-            '        "changes": {\n'
-            '            "code": ("old", "new"),\n'
-            '            "id": {\n'
-            '                "code": "new",\n'
-            "            },\n"
-            '            "media_url": ("one",),\n'
-            '            "tags": [],\n'
-            "        },\n"
-            '        "history_date": datetime.datetime(2026, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc),\n'
-            '        "model_name": "workflow",\n'
-            "    },\n"
-            "]\n"
-        )
+        assert re.search(r",\s*\]\s*$", source)
+        # A pair has no trailing comma to split it, so it stays on one line.
+        assert '("old", "new")' in source
         namespace = {"datetime": datetime}
         exec(source, namespace)
         assert namespace["changed_data"] == changed_data
         assert errors.getvalue() == ""
 
     def test_format_changed_data_follows_the_project_configuration_even_when_it_excludes_migrations(self, tmp_path):
-        # Skipping the magic trailing comma would join the list onto one line, so it stays off.
+        # Skipping the magic trailing comma would join the list onto one line and drop the last comma, so a
+        # trailing comma shows it stayed off.
         (tmp_path / "pyproject.toml").write_text(
             '[tool.ruff]\nforce-exclude = true\nextend-exclude = ["migrations"]\n\n'
             '[tool.ruff.format]\nquote-style = "single"\nskip-magic-trailing-comma = true\n'
@@ -845,7 +844,8 @@ class Migration(migrations.Migration):
             [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
         )
 
-        assert source == "changed_data = [\n    {\n        'model_name': 'workflow',\n    },\n]\n"
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
         assert errors.getvalue() == ""
 
     def test_format_changed_data_uses_ruff_when_black_is_not_installed(self, tmp_path, monkeypatch):
@@ -857,7 +857,8 @@ class Migration(migrations.Migration):
             [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
         )
 
-        assert source == "changed_data = [\n    {\n        'model_name': 'workflow',\n    },\n]\n"
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
         assert errors.getvalue() == ""
 
     def test_format_changed_data_uses_ruff_when_black_only_infers_settings(self, tmp_path):
@@ -871,35 +872,25 @@ class Migration(migrations.Migration):
             [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
         )
 
-        assert source == "changed_data = [\n    {\n        'model_name': 'workflow',\n    },\n]\n"
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
         assert errors.getvalue() == ""
 
     def test_format_changed_data_prefers_black_when_the_project_configures_it(self, tmp_path):
         # The ruff settings ask for double quotes, so single quotes show black formatted. Skipping the magic
-        # trailing comma would join the list onto one line, so it stays off.
+        # trailing comma would drop the last comma, so a trailing comma shows it stayed off.
         (tmp_path / "pyproject.toml").write_text(
             "[tool.black]\nline-length = 120\nskip-string-normalization = true\nskip-magic-trailing-comma = true\n\n"
             '[tool.ruff.format]\nquote-style = "double"\n'
         )
-        changed_data = [
-            {
-                "history_date": datetime.datetime(2026, 1, 2, 3, 4, 5, tzinfo=datetime.UTC),
-                "model_name": "workflow",
-            }
-        ]
         errors = io.StringIO()
 
-        source = format_changed_data(changed_data, tmp_path / "migrations" / "0002_workflow.py", stderr=errors)
-
-        # A line length of 120 keeps the datetime on one line.
-        assert source == (
-            "changed_data = [\n"
-            "    {\n"
-            "        'history_date': datetime.datetime(2026, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc),\n"
-            "        'model_name': 'workflow',\n"
-            "    },\n"
-            "]\n"
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
         )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
         assert errors.getvalue() == ""
 
     def test_format_changed_data_uses_black_defaults_when_ruff_is_not_installed(self, tmp_path, monkeypatch):
@@ -912,7 +903,8 @@ class Migration(migrations.Migration):
             [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
         )
 
-        assert source == 'changed_data = [\n    {\n        "model_name": "workflow",\n    },\n]\n'
+        assert re.search(r",\s*\]\s*$", source)
+        assert '"model_name"' in source
         assert errors.getvalue() == ""
 
     def test_format_changed_data_uses_pformat_quietly_when_neither_is_installed(self, tmp_path, monkeypatch):
