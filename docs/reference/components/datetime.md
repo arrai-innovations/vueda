@@ -19,11 +19,12 @@ import RangeCalendar from "@vueda/controls/range-calendar/RangeCalendar.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import DateRangeDisplay from "@vueda/display/date-display/DateRangeDisplay.vue";
 import DateTimeDisplay from "@vueda/display/date-display/DateTimeDisplay.vue";
+import { ref } from "vue";
 
 const dateValue = new CalendarDate(2026, 5, 10);
 const placeholderMay = new CalendarDate(2026, 5, 1);
 const placeholderApr = new CalendarDate(2026, 4, 1);
-const calendarSelected = new CalendarDate(2026, 5, 14);
+const calendarSelected = ref(new CalendarDate(2026, 5, 14));
 const rangeValue = { start: new CalendarDate(2026, 4, 10), end: new CalendarDate(2026, 4, 24) };
 const timeValue = new Time(14, 30);
 const timeValueSec = new Time(9, 45, 22);
@@ -33,35 +34,42 @@ const isDateDisabled = (date) => date.day < 5;
 
 # Date + Time
 
-The date and time family covers segment-based text entry for dates, date
-ranges, and times, plus the standalone calendar pickers. All three
-field types share the same container chrome as regular inputs: a
-`hairline` border, `bg-transparent` fill, and `focus-within:hairline-ring`
-on the container when any segment is active. Individual segments highlight
-with {@api css-token:accent} on focus. Calendars carry their own visual
-budget: a `p-3` root, `--vueda-cal-day` for cell sizing, and
-{@api css-token:primary} for selected cells.
+The date and time family covers segment fields for dates, date ranges, and
+times, the calendar grids, and two display components.
+[Components](./index.md) describes the rules every component page shares.
+Each section below states the {@term Visual Contract} and links the theme
+keys and tokens that hold the current values.
 
-This page is the visual contract the default theme guarantees. Because the
-focus ring on segment fields is triggered by real keyboard focus inside the
-container rather than by a `focus-visible` pseudo-class, it cannot be
-simulated by the docs harness. Click into any segment below to see the
-accent highlight and container ring live.
-
-For the mechanics of overriding any of this, see
-[Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md).
+Focus styles on the segment fields appear only with real focus. Click into a
+segment in a demo to see them.
 
 ## DateField: composition matrix
 
-DateField is a segment-based date input. The default slot exposes
-`{ segments }` — an array of objects each with `part` and `value`.
-Pass `part` to `DateFieldInput` for each segment; Reka renders literal
-separators (slashes) as non-interactive spans automatically.
+{@api vue:component:DateField} is a segment-based date input. Each date part
+(year, month, day, and any time parts) is a segment that takes focus on its
+own. The [default slot]{@api vue:component:DateField:slot:default} exposes
+`{ segments }`, an array of objects with `part` and `value`. Render each one
+with {@api vue:component:DateFieldInput}, passing its
+[`part`]{@api vue:component:DateFieldInput:prop:part}. Literal parts, such as
+the separators, render as text that does not take focus.
+
+[`granularity`]{@api vue:component:DateField:prop:granularity} sets the
+smallest segment shown: `"day"`, `"hour"`, `"minute"`, or `"second"`.
+[`size`]{@api vue:component:DateField:prop:size} (`"sm"`, `"default"`, or
+`"lg"`) picks a step on the shared control-height scale:
+{@api css-token:vueda-control-height-sm},
+{@api css-token:vueda-control-height}, and
+{@api css-token:vueda-control-height-lg}. DateRangeField and TimeField take
+the same `size` values.
+
+The field shell is the input shell that [Inputs](./inputs.md#input-shell) describes, with
+the same rest, hover, focus, read-only, disabled, invalid, and warning states.
+The shell shows focus while any segment has focus. The focused segment fills
+with {@api css-token:accent}, and an empty segment shows its placeholder in
+{@api css-token:muted-foreground}. Segment digits keep a fixed width, so the
+field does not shift as the value changes.
 
 Theme keys: {@api theme-key:DateField}, {@api theme-key:DateFieldInput}.
-Token surface: {@api css-token:border} (container border),
-{@api css-token:ring} (focus ring), {@api css-token:accent} (active
-segment fill), {@api css-token:muted} (read-only fill).
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="date-only (default)">
@@ -86,9 +94,8 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span>container border <code>--border</code></span>
-      <span>placeholder text <code>--muted-foreground</code></span>
-      <span>click a segment to see focus ring</span>
+      <span>empty segments show a muted placeholder</span>
+      <span>click a segment to see the focus treatment</span>
     </template>
   </DemoCard>
   <DemoCard title="datetime (granularity=&quot;minute&quot;)">
@@ -139,8 +146,8 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span>readonly: no fill, <code>--border</code> bottom line</span>
-      <span>disabled opacity 50</span>
+      <span>read-only drops the editable field surface</span>
+      <span>disabled is an inert surface that takes no input</span>
     </template>
   </DemoCard>
   <DemoCard title="invalid">
@@ -152,12 +159,12 @@ segment fill), {@api css-token:muted} (read-only fill).
       </template>
     </DateField>
     <template #footer>
-      <span>border <code>--destructive</code></span>
+      <span><code>aria-invalid="true"</code> marks the edge in the destructive color</span>
     </template>
   </DemoCard>
   <DemoCard title="size variants">
     <div class="flex flex-col gap-1">
-      <StateLabel>sm (28px)</StateLabel>
+      <StateLabel>sm</StateLabel>
       <DateField :default-value="dateValue" size="sm">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -167,7 +174,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <div class="flex flex-col gap-1">
-      <StateLabel>default (32px)</StateLabel>
+      <StateLabel>default</StateLabel>
       <DateField :default-value="dateValue">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -177,7 +184,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <div class="flex flex-col gap-1">
-      <StateLabel>lg (40px)</StateLabel>
+      <StateLabel>lg</StateLabel>
       <DateField :default-value="dateValue" size="lg">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
@@ -187,7 +194,7 @@ segment fill), {@api css-token:muted} (read-only fill).
       </DateField>
     </div>
     <template #footer>
-      <span>shared control-height scale (§ 4.2)</span>
+      <span>steps on the shared control-height scale</span>
       <span>also accepted by DateRangeField and TimeField</span>
     </template>
   </DemoCard>
@@ -195,15 +202,17 @@ segment fill), {@api css-token:muted} (read-only fill).
 
 ## DateRangeField: composition matrix
 
-DateRangeField extends the segment pattern to a start–end pair. The
-default slot exposes `{ segments }` as `{ start: [...], end: [...] }`.
-Iterate each array with `DateRangeFieldInput`, passing `type="start"` or
-`type="end"` alongside `part`. A visual separator between the two halves
-is the consumer's responsibility and typically rendered as a plain
-`<span>`.
+{@api vue:component:DateRangeField} extends the segment pattern to a start
+and end pair in one shell. Its
+[default slot]{@api vue:component:DateRangeField:slot:default} exposes
+`{ segments }` as `{ start: [...], end: [...] }`. Render each array with
+{@api vue:component:DateRangeFieldInput}, passing `part` and
+[`type`]{@api vue:component:DateRangeFieldInput:prop:type} (`"start"` or
+`"end"`). The component renders no separator between the two halves, so add
+your own markup, such as a `<span>`. The shell and segments match DateField.
 
 Theme keys: {@api theme-key:DateRangeField},
-{@api theme-key:DateRangeFieldInput}. Token surface mirrors DateField.
+{@api theme-key:DateRangeFieldInput}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default">
@@ -270,20 +279,23 @@ Theme keys: {@api theme-key:DateRangeField},
       </DateRangeField>
     </div>
     <template #footer>
-      <span>readonly: no fill, <code>--border</code> bottom line</span>
-      <span>disabled opacity 50</span>
+      <span>read-only drops the editable field surface</span>
+      <span>disabled is an inert surface that takes no input</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## TimeField: composition matrix
 
-TimeField renders hour, minute, and optional second segments plus an
-AM/PM period segment when `hourCycle` is 12. The slot API is identical to
-DateField: `{ segments }` as a flat array, iterated with `TimeFieldInput`.
+{@api vue:component:TimeField} renders hour and minute segments.
+[`granularity`]{@api vue:component:TimeField:prop:granularity} (`"hour"`,
+`"minute"`, or `"second"`) sets the smallest segment, and
+[`hourCycle`]{@api vue:component:TimeField:prop:hourCycle} set to `12` adds an
+AM/PM segment. The slot matches DateField: `{ segments }` is a flat array,
+rendered with {@api vue:component:TimeFieldInput}. The shell and segments
+match DateField.
 
 Theme keys: {@api theme-key:TimeField}, {@api theme-key:TimeFieldInput}.
-Token surface mirrors DateField.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="24-hour">
@@ -335,7 +347,7 @@ Token surface mirrors DateField.
     </div>
     <template #footer>
       <span>AM/PM segment appended when hourCycle=12</span>
-      <span>segment bg <code>--accent</code> on focus</span>
+      <span>click a segment to see the focus treatment</span>
     </template>
   </DemoCard>
   <DemoCard title="read modes">
@@ -360,40 +372,52 @@ Token surface mirrors DateField.
       </TimeField>
     </div>
     <template #footer>
-      <span>readonly: no fill, <code>--border</code> bottom line</span>
-      <span>disabled opacity 50</span>
+      <span>read-only drops the editable field surface</span>
+      <span>disabled is an inert surface that takes no input</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## Calendar: state matrix
 
-Calendar is a fully self-contained composite: it renders the header,
-nav buttons, weekday row, and date grid internally. Consumers mount it
-directly with `v-model` or `default-value`. The `layout` prop switches
-the heading between a static text label, a month dropdown, a year
-dropdown, or the combined month-and-year dropdowns.
+{@api vue:component:Calendar} renders its header, navigation buttons,
+weekday row, and date grid itself. Bind the selected date with `v-model`. The
+[`layout`]{@api vue:component:Calendar:prop:layout} prop sets the heading: a
+text label by default, `"month-and-year"` for month and year dropdowns,
+`"month-only"` for a month dropdown, or `"year-only"` for a year dropdown.
+[`isDateDisabled`]{@api vue:component:Calendar:prop:isDateDisabled} and
+[`isDateUnavailable`]{@api vue:component:Calendar:prop:isDateUnavailable} mark
+single days.
+
+The calendar has no border, shadow, or footer of its own. The host surface,
+such as a popover, supplies the edge, and CalendarFooter adds a footer. Each
+day shows one state:
+
+- Selected: {@api css-token:primary} fill with
+  {@api css-token:primary-foreground} text.
+- Today, when not selected: {@api css-token:accent} fill.
+- Outside the shown month, or disabled: {@api css-token:muted-foreground}
+  text. Disabled days cannot be selected.
+- Unavailable: {@api css-token:destructive} text, struck through.
+
+A disabled calendar shows every day as disabled and turns off its navigation
+buttons.
 
 Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
-{@api theme-key:CalendarCellTrigger}. Token surface:
-{@api css-token:accent} (today highlight, range fill),
-{@api css-token:primary} (selected cell),
-{@api css-token:muted-foreground} (outside-month and disabled cells),
-{@api css-token:destructive} (unavailable cells).
+{@api theme-key:CalendarCellTrigger}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="default (today highlighted)">
     <Calendar :default-placeholder="placeholderMay" />
     <template #footer>
-      <span>today bg <code>--accent</code></span>
+      <span>today is highlighted</span>
       <span>no selection</span>
     </template>
   </DemoCard>
   <DemoCard title="with selected date">
-    <Calendar :default-value="calendarSelected" :default-placeholder="placeholderMay" />
+    <Calendar v-model="calendarSelected" :default-placeholder="placeholderMay" />
     <template #footer>
-      <span>selected bg <code>--primary</code></span>
-      <span>selected fg <code>--primary-foreground</code></span>
+      <span>the selected day takes the primary fill</span>
     </template>
   </DemoCard>
   <DemoCard title="month-and-year layout">
@@ -406,50 +430,50 @@ Theme keys: {@api theme-key:Calendar}, {@api theme-key:CalendarCell},
   <DemoCard title="unavailable dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-unavailable="isDateUnavailable" />
     <template #footer>
-      <span>unavailable fg <code>--destructive-foreground</code></span>
-      <span>unavailable text line-through</span>
+      <span>unavailable days are struck through in the destructive color</span>
       <span>days 8, 15, 22 marked unavailable in this demo</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled dates">
     <Calendar :default-placeholder="placeholderMay" :is-date-disabled="isDateDisabled" />
     <template #footer>
-      <span>disabled cells opacity 50</span>
+      <span>disabled days are muted and cannot be selected</span>
       <span>days before the 5th disabled in this demo</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled calendar">
     <Calendar :default-placeholder="placeholderMay" disabled />
     <template #footer>
-      <span>entire calendar at opacity 50</span>
-      <span>nav buttons and cells not interactive</span>
+      <span>every day shows the disabled state</span>
+      <span>navigation buttons and days do not respond</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## RangeCalendar: state matrix
 
-RangeCalendar renders a date range picker. The selected range fills
-with {@api css-token:accent} between start and end; the two endpoint
-cells use {@api css-token:primary}. The `RangeCalendarCell` CSS handles
-the rounded-corner transitions at the selection boundaries.
+{@api vue:component:RangeCalendar} selects a start and end date. The days
+from start to end form one continuous {@api css-token:accent} strip, painted
+on each {@api vue:component:RangeCalendarCell} so the strip rounds only at its
+outer ends. The two endpoint days fill with {@api css-token:primary}. Other
+day states match Calendar.
 
-Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
-{@api theme-key:RangeCalendarCellTrigger}. Token surface mirrors Calendar.
+Theme keys: {@api theme-key:RangeCalendar},
+{@api theme-key:RangeCalendarCell}, {@api theme-key:RangeCalendarCellTrigger}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <DemoCard title="with range (Apr 10 – Apr 24)">
+  <DemoCard title="with range (Apr 10 to Apr 24)">
     <RangeCalendar :default-value="rangeValue" :default-placeholder="placeholderApr" />
     <template #footer>
-      <span>range fill <code>--accent</code></span>
-      <span>endpoints bg <code>--primary</code></span>
-      <span>rounded corners at selection-start and selection-end</span>
+      <span>the range forms one strip with the accent fill</span>
+      <span>endpoints take the primary fill</span>
+      <span>the strip rounds at its start and end</span>
     </template>
   </DemoCard>
   <DemoCard title="default (empty, today highlighted)">
     <RangeCalendar :default-placeholder="placeholderMay" />
     <template #footer>
-      <span>today bg <code>--accent</code></span>
+      <span>today is highlighted</span>
       <span>click to start a selection</span>
     </template>
   </DemoCard>
@@ -457,15 +481,19 @@ Theme keys: {@api theme-key:RangeCalendar}, {@api theme-key:RangeCalendarCell},
 
 ## CalendarFooter
 
-CalendarFooter is the chin paired with `Calendar` or `RangeCalendar` inside
-date-picker popovers. It carries a `border-t` and renders a leading mono
-range summary alongside a trailing action row. The summary span uses the
-same mono / tabular / slashed-zero treatment as segment text so multi-day
-range labels stay digit-aligned.
+{@api vue:component:CalendarFooter} is the footer below a Calendar or
+RangeCalendar in a date picker popover. Its
+[`summary`]{@api vue:component:CalendarFooter:slot:summary} slot holds a
+leading status line, such as the selected range, and its
+[`actions`]{@api vue:component:CalendarFooter:slot:actions} slot holds the
+trailing buttons. The
+[default slot]{@api vue:component:CalendarFooter:slot:default} replaces both.
 
-Theme keys: {@api theme-key:CalendarFooter}. Token surface:
-{@api css-token:border} (top divider),
-{@api css-token:muted-foreground} (summary text).
+A {@api css-token:border} divider separates the footer from the grid above.
+The summary reads as status text in {@api css-token:muted-foreground}, and its
+digits keep a fixed width, as segment digits do.
+
+Theme keys: {@api theme-key:CalendarFooter}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
   <DemoCard title="range summary + actions">
@@ -478,29 +506,55 @@ Theme keys: {@api theme-key:CalendarFooter}. Token surface:
       </template>
     </CalendarFooter>
     <template #footer>
-      <span>summary text mono + tabular</span>
-      <span>top border <code>--border</code></span>
+      <span>summary digits keep a fixed width</span>
+      <span>a divider separates the footer from the grid</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## Display components
 
-The families above all **edit** a value. `DateTimeDisplay` and `DateRangeDisplay`
-**read** one: they take a value and render formatted, non-editable text. Reach for
-them in a table cell, a read view, or an audit row, where a field control would
-imply the value can be changed in place.
+{@api vue:component:DateTimeDisplay} and {@api vue:component:DateRangeDisplay}
+render a value as formatted text that cannot be edited.
 
-`DateTimeDisplay` accepts an ISO string, a JS `Date`, or a Luxon `DateTime`, and
-`DateRangeDisplay` takes a `start` and an `end`. Both parse in the reader's own
-time zone, so the rendered text below depends on where the page is opened; the
-values are fixed, the zone is not. Neither component claims a locale beyond the
-`en-CA` Luxon locale it sets internally.
+DateTimeDisplay's [`value`]{@api vue:component:DateTimeDisplay:prop:value}
+accepts an ISO string, a {@api ext:mdn:Date}, or a Luxon
+{@api ext:luxon:DateTime}. DateRangeDisplay's
+[`start`]{@api vue:component:DateRangeDisplay:prop:start} and
+[`end`]{@api vue:component:DateRangeDisplay:prop:end} accept an ISO string or
+a Luxon `DateTime`. ISO strings and `Date` values render in the reader's time
+zone, so the demo text below depends on where you open the page.
+DateTimeDisplay always formats with the `en-CA` locale. DateRangeDisplay takes
+a [`locale`]{@api vue:component:DateRangeDisplay:prop:locale} prop, which
+defaults to `en-CA`.
 
-`DateTimeDisplay` also renders a **relative** label ("4 months ago") next to the
-absolute one by default, and refreshes it on a timer. That output moves with the
-clock, so the first card below turns it off to stay deterministic and the second
-shows it on with that caveat stated.
+DateTimeDisplay's [`format`]{@api vue:component:DateTimeDisplay:prop:format}
+sets the layout:
+
+- `"inline"` (default): the absolute value, then the relative label in
+  parentheses.
+- `"break"`: the relative label on a second line.
+- `"absolute"`: the absolute value, with the relative label as its tooltip.
+- `"relative"`: the relative label, with the absolute value as its tooltip.
+- `"default"`, or a custom Luxon format string or options object: the
+  absolute value, with a tooltip formatted by
+  [`tooltipFormat`]{@api vue:component:DateTimeDisplay:prop:tooltipFormat}.
+
+Set [`showRelative`]{@api vue:component:DateTimeDisplay:prop:showRelative},
+[`showTime`]{@api vue:component:DateTimeDisplay:prop:showTime}, or
+[`showTooltip`]{@api vue:component:DateTimeDisplay:prop:showTooltip} to
+`false` to drop the relative label, the time, or the tooltip.
+[`inline`]{@api vue:component:DateTimeDisplay:prop:inline} renders the value
+without a wrapping element, so it sits in the surrounding text.
+
+The relative label ("2 days ago") counts from now and refreshes on a timer.
+The first card below turns it off so its output stays stable, and the second
+card shows it.
+
+DateRangeDisplay renders a range on one day as a single date, and shows the
+month and year once when both ends share them.
+[`showTime`]{@api vue:component:DateRangeDisplay:prop:showTime} adds the time
+to a single-day range.
 
 Theme keys: {@api theme-key:DateTimeDisplay}, {@api theme-key:DateRangeDisplay}.
 
@@ -549,9 +603,9 @@ Theme keys: {@api theme-key:DateTimeDisplay}, {@api theme-key:DateRangeDisplay}.
       <DateRangeDisplay end="2027-01-06" start="2026-12-28" />
     </div>
     <template #footer>
-      <span>a range on one day renders as a single date, not a span with two identical ends</span>
+      <span>a range on one day renders as a single date</span>
       <span>the year appears once when both ends share it, and the month once when both ends share that too</span>
-      <span>pass <code>:show-time="true"</code> to include the time portion on both ends</span>
+      <span>pass <code>:show-time="true"</code> to add the time to a single-day range</span>
     </template>
   </DemoCard>
 </VuedaDemo>
