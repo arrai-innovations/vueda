@@ -7,105 +7,102 @@ status: draft
 
 # Canonical Registration and Model Discovery
 
-{@term Canonical Registration} is the boundary for discoverability in VUEDA. If a model is not registered, it does not exist to the metadata API or the client. There is no automatic discovery from installed apps, no ORM introspection, no implicit scanning of serializer definitions. Registration is the single, explicit act that makes a model visible to the framework.
+{@term Canonical Registration} decides which models VUEDA knows about. The server publishes {@term Model Info} only for registered models, and the client builds routes, forms, and views only from model info. A model with a serializer, a viewset, a router entry, and rows in the database stays invisible to the client until it is registered.
 
-Everything downstream depends on this boundary. Client routes, form generation, permission gating, and action availability: all of it requires the model to be present in the registry. This page explains what registration is as a state model, what each registration state controls, and where the boundary is enforced.
+VUEDA does not scan installed apps or introspect the ORM to find models. Registration is an explicit call in your application code, usually in `AppConfig.ready()`.
 
-## Registration Is the Discoverability Gate
-
-Registration is the only mechanism by which a model becomes visible to VUEDA's metadata API. A registered model appears in {@term Model Info} responses. A model that is not registered does not, regardless of whether it has a serializer, a viewset, migrations, or data in the database. None of those things alone makes a model discoverable.
-
-This is the system's architectural spine. The metadata universe is exactly the set of registered models. The client cannot discover models that the server has not registered, and the server will not advertise models that have not been explicitly enrolled. There is no configuration file that lists models, no decorator that auto-registers them, and no startup scan that finds them. Registration is a deliberate call made in the application code.
+This page describes the registration states, what each state puts in model info, when to register, and what fails when registration is missing or wrong.
 
 ## Registration States and Transitions
 
-A model exists in exactly one of three registration states:
+A model is in one of three states:
 
-**Unregistered**: the model is invisible to model-info and the client. It may have a Django model class, migrations, database tables, and even serializers or viewsets defined in code, but none of that matters until registration occurs.
+- **Unregistered.** The model has no model info and no choices endpoints. The client cannot build anything for it.
+- **Serializer-only.** {@api py:function:vueda.info.registration.register_serializer} records the model's {@term Canonical Serializer} with no viewset. This is {@term Serializer-Only Registration}. The model gets field, expand, and permission metadata and working choices endpoints, and no actions.
+- **Fully registered.** {@api py:function:vueda.info.registration.register} records the canonical serializer together with its {@term Canonical Viewset}. The model gets every model info section, and the client can build a full {@term CRUD} surface for it.
 
-**Serializer-only**: the model is visible in model-info with field, expand, and permission metadata. It will have empty action, filter, and ordering metadata. This state exists to support metadata consumers that only need field shapes; for example, when the client needs to resolve field types for a related model referenced through an expand, but that related model does not need its own {@term CRUDL} surface. Expand metadata is provided to allow expansion through this model into other models that may be registered fully or serializer only. Both `register` and `register_serializer` only require a `Meta.model` on the canonical serializer, not inheritance from `VuedaSerializer`; a canonical serializer that skips `VuedaSerializer` still needs to inherit `VuedaExpandableFieldsSerializerMixin` directly for its expand metadata to be generated, otherwise `model_expands` is empty.
+Registration reads only the serializer's `Meta.model`. The serializer does not need to inherit `VuedaSerializer`. A serializer with no `Meta.model` raises {@api ext:django:django.core.exceptions.ImproperlyConfigured}. [Customize Model Info Field and Expand Metadata](../guides/customize-model-info-metadata.md#serializers-that-do-not-inherit-vuedaserializer) describes what a serializer outside `VuedaSerializer` needs for its expand metadata.
 
-**Fully registered** (serializer + viewset): the model is visible with complete metadata, including fields, expands, actions, filters, ordering, and permissions. This is the state required for the client to generate a functional UI surface for the model, with routes, forms, and views.
+Each model has one registration. A second `register` or `register_serializer` call for the same model raises {@api ext:python:ValueError} with the message `<app_label>.<model> is already registered.`, even when it passes the same serializer. Because registration runs in `ready()`, the error stops startup. The only transitions are from unregistered to serializer-only and from unregistered to fully registered. To move a model from serializer-only to fully registered, change the call.
 
-Only certain transitions between states are valid:
+Call `register` with both arguments. Called with only a serializer, `register` registers nothing and returns a class decorator for a viewset. Serializer-only registration is `register_serializer`. The `register` docstring describes the decorator form.
 
-- Unregistered to serializer-only, via `register_serializer`.
-- Unregistered to fully registered, via `register`.
-- Multiple registrations for a single model is **illegal**. Attempting to register a canonical serializer for an already-registered model fails at startup.
-
-The canonical serializer is unique per model. Two Django apps cannot register different serializers for the same model. The system enforces this as a startup constraint: the error surfaces immediately when the application boots, not at runtime when a request happens to hit the conflict.
-
-When the same data genuinely needs a second surface — a different audience, different permissions, a different set of actions — the supported route is a Django proxy model. A proxy is its own model with its own `ContentType` and permission codenames, so it registers in its own right and gets a complete metadata surface and the full set of system checks, rather than competing for this model's single registration. See [Expose a Proxy Model as a Separate CRUDL Surface](../guides/proxy-models).
+A Django [proxy model]{@api ext:django:django.db.models.Options.proxy} gives the same data a second surface, such as one with other permissions or actions. A proxy has its own {@term Content Type} and permission codenames, so you register it separately, and it gets its own model info and system checks. [Expose a Proxy Model as a Separate CRUD Surface](../guides/proxy-models.md) walks through it.
 
 ## Viewset Presence and Metadata Completeness
 
-The distinction between serializer-only and full registration is architecturally significant because it determines which sections of the metadata response exist.
+The viewset decides which model info sections have content. [Server-Client Metadata Contract](./server-client-metadata-contract.md#metadata-sections) describes each section.
 
-Serializer-only registration produces a model-info entry containing field and expand schema (types, constraints, read-only markers, choice indicators) and permission codenames. This is enough for metadata consumers that need to understand the shape of a model's data, like resolving field types for related-model choice lookups, but it is not enough to generate a CRUDL surface. Without a viewset, there are no actions to advertise, no filter definitions to expose, and no ordering capabilities to declare. A serializer-only model can be used for an inline model that is saved along with its parent model and has its data loaded through expandable fields.
+| Section            | Serializer-only                                           | Fully registered                                                                       |
+| ------------------ | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Fields and expands | From the serializer                                       | From the serializer                                                                    |
+| Permissions        | The model's permission codenames                          | The model's permission codenames                                                       |
+| Actions            | Empty                                                     | Built-in and extra actions the viewset offers the user                                 |
+| Filtering          | Empty                                                     | From the viewset's `filterset_class`                                                   |
+| Column totals      | Empty                                                     | From the viewset's `column_totals`                                                     |
+| Ordering           | The model's `Meta.ordering` as the default, if it has one | The viewset's ordering fields; its `ordering`, or else `Meta.ordering`, as the default |
 
-Full registration produces the complete metadata surface. Actions (CRUDL plus any extra actions defined on the viewset), filter definitions, and ordering capabilities are all derived from the viewset. The serializer alone cannot express these; they depend on viewset configuration, permission checks, and router integration that only exist when a viewset is present.
+With no actions, the client's route guard blocks every route for a serializer-only model. [Server-Client Metadata Contract](./server-client-metadata-contract.md#failure-modes-and-recovery) describes the toast the user sees.
 
-In practice, this means that if a model appears in model-info but the client cannot generate routes or forms for it, the first thing to check is whether the model was registered with a viewset or only with a serializer.
+Serializer-only registration suits a child model that is edited inline with its parent and loaded through the parent's [expand]{@term Expand}. The inline form's field metadata comes from the parent's expand descriptor, built from the serializer in the parent's `Meta.expandable_fields`. The child's own registration provides the [choices endpoints](./server-client-metadata-contract.md#choices-endpoints) for its relation fields. Those endpoints return `404` for an unregistered model, so without the registration the inline relation fields load no options.
+
+A model that needs its own routes, actions, filters, or column totals needs a viewset.
 
 ## Registration Timing
 
-Registration must occur after Django's app registry is ready. The registration functions resolve content types internally, which requires the app registry, content type framework, and all dependent models to be fully initialized.
-
-Performing registration at import time or module scope risks content-type resolution errors and ordering-dependent import failures. The established pattern is to register in `AppConfig.ready()`, which guarantees that all prerequisites are satisfied:
+Register in [`AppConfig.ready()`]{@api ext:django:django.apps.AppConfig.ready}:
 
 ```python
+from django.apps import AppConfig
+
+
 class MyAppConfig(AppConfig):
+    name = "myapp"
+
     def ready(self):
         from vueda.info.registration import register
         from vueda.info.registration import register_serializer
-        from .serializers import InlineExpandedModelSerializer
+
+        from .serializers import InlineChildSerializer
         from .serializers import MyModelSerializer
         from .viewsets import MyModelViewSet
 
         register(MyModelSerializer, MyModelViewSet)
-        register_serializer(InlineExpandedModelSerializer)
+        register_serializer(InlineChildSerializer)
 ```
 
-This pattern is consistent across VUEDA's own modules: `vueda.vdq`, `vueda.user`, and `vueda.release` all register their models in `ready()`.
+The imports go inside `ready()`. Serializer and viewset modules import your models, and importing models from an `apps` module at module scope raises {@api ext:django:django.core.exceptions.AppRegistryNotReady}.
 
-## How Model-Info Uses the Registry
+A call at module scope in another module runs only if something imports that module, so the model may be missing from model info with no error. The system checks also read the registry when they run. A model registered later, such as during a request, is never checked.
 
-The model-info viewset does not perform ORM introspection or scan installed apps. Its list and `detail` endpoints are derived exclusively from the set of registered models. If the registry is empty, model-info returns an empty list. If a specific model is requested that is not in the registry, model-info returns a 404. 404s for unregistered models will be JSON, returned by the model-info viewset. 404s for nonexistent URLs never reach Django and will be HTML, served by whatever web server sits in front of it.
+VUEDA's own apps follow this pattern: `vueda.vdq`, `vueda.user`, and `vueda.release` register their models in `ready()`.
 
-## Client Discovery and the Trust Boundary
+## How Model Info Uses the Registry
 
-The client fully trusts the registration boundary. It does not probe for models beyond what model-info advertises, does not attempt to construct routes for models it has not seen in metadata, and does not retry failed lookups on its own.
+{@api py:class:vueda.info.viewsets.ModelInfoViewSet} lists only registered models. Its list endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/}) returns one entry per registered model. Its detail endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) raises {@api ext:django:django.http.Http404} for a model that is not registered, which DRF returns as a JSON `404`. The choices endpoints return the same `404`.
 
-When the client requests metadata for a model and receives a 404, it caches that failure. This prevents retry storms: if a model is not registered, repeated navigation attempts to that model do not result in additional server requests. However, it also means that if a model is registered on the server after the client has already cached a 404 for it, the client must be reloaded to discover the newly registered model.
+A URL that matches no route never reaches these views. Django answers it with its [`handler404`]{@api ext:django:django.conf.urls.handler404}, an HTML page by default. To get a JSON `404` there too, set `handler404 = "vueda.core.exceptions.page_not_found"` in your root URLconf ({@api py:function:vueda.core.exceptions.page_not_found}).
 
-The client does not distinguish between "unregistered" and "nonexistent." Both produce the same opaque failure: navigation to that model is blocked, and no forms or views are generated. From the client's perspective, a model either has metadata or it does not, and the reason for its absence is not surfaced.
+Registration also feeds VUEDA's system checks. The `vueda_info` checks validate each registration's serializer and viewset, and the serializer checks start from every registered serializer. One check applies only to serializer-only registration: {@api py:function:vueda.core.checks.check_exclude_fields_serializer_usage} reports `vueda_core.E009` when a serializer registered with `register_serializer` inherits `ExcludeFieldsSerializerMixin`. That mixin needs a view in the serializer context, which a serializer-only registration never has ([#162](https://github.com/arrai-innovations/vueda/issues/162)).
+
+To read the registry from your own code, {@api py:function:vueda.info.registration.get_registration} and {@api py:function:vueda.info.registration.get_all_registrations} return deep copies, so changing the result does not change the registry. {@api py:function:vueda.info.registration.get_serializer_for_model} returns the registered serializer class itself. {@api py:function:vueda.info.registration.get_registered_content_types} returns the content type primary keys of all registered models.
+
+## Client Discovery
+
+The client learns about a model only by requesting its model info, which the route guard does for each route's model. It treats every model info failure the same way. An unregistered model, a nonexistent model, a server error, and a network failure all produce a "Model Not Found" toast and a redirect, as [Server-Client Metadata Contract](./server-client-metadata-contract.md#failure-modes-and-recovery) describes.
+
+The client caches the failure per model and sends no further request for it. A model registered after the client cached its failure stays blocked until the cache clears. [Reactive Data Flow](./reactive-data-flow.md#when-caches-clear) describes when that happens.
 
 ## Failure Modes
 
-**Serializer-only registration without a viewset** leaves the model visible in model-info but without action, filter, or ordering metadata. The client can see the model's fields and generate inline forms via expandable fields, but cannot generate CRUDL routes for it. If the model needs CRUDL routes, actions, filters, or ordering metadata, then it must be registered with a viewset.
+**`register` called with only a serializer and not applied as a decorator.** The call registers nothing and raises no error. The model is missing from model info. Use `register_serializer` for a serializer-only model, or pass the viewset to `register`.
 
-**Registration at import time** can cause content-type resolution failures or ordering-dependent import errors. These surface as startup crashes that may be difficult to diagnose because the error messages reference content types or models that appear to be correctly defined. The fix is always to move registration into `AppConfig.ready()`.
+**Serializer-only registration where a CRUD surface is needed.** The model has model info but no actions, so the route guard blocks its routes. Register it with a viewset.
 
-**Duplicate canonical serializers** fail at startup. If there are multiple attempts to register a serializer as the canonical serializer for the same model, the second registration call raises an error.
+**Duplicate registration.** The second call raises `ValueError` during `ready()`, and the server does not start. Remove one of the calls. For a second surface over the same data, register a proxy model.
 
-**Cached 404 errors on the client** block discovery of models that are registered after the client has loaded. There is no automatic cache invalidation for this case; a page reload is required.
+**Serializer or viewset imports at module scope in `apps.py`.** Startup fails with `AppRegistryNotReady`. Move the imports into `ready()`.
 
-**Registry accessor mutations** have no effect. The registry's accessor functions return defensive copies. Code that retrieves a registration entry and modifies it will not change the actual registry state. The registry is effectively immutable after startup.
+**Registration outside `ready()`.** The model can be missing from model info with no error, and the system checks do not see it. Move the call into `ready()`.
 
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:module:vueda.info.registration}
-    - {@api py:function:vueda.info.registration.register}
-    - {@api py:function:vueda.info.registration.register_serializer}
-    - {@api py:function:vueda.info.registration.get_registration}
-    - {@api py:function:vueda.info.registration.get_serializer_for_model}
-    - {@api py:function:vueda.info.registration.get_all_registrations}
-    - {@api py:function:vueda.info.registration.get_registered_content_types}
-    - {@api py:class:vueda.info.viewsets.ModelInfoViewSet}
-    - {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
-- REST:
-    - {@api rest:endpoint:GET:/vueda.info/model_info/}
-    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
+**Model registered after the client cached a failure.** The client keeps showing "Model Not Found" for that model until its caches clear.
