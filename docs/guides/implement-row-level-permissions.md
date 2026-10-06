@@ -7,170 +7,134 @@ status: draft
 
 # Implement Row-Level Permissions
 
-This guide covers implementing per-row access control for list and object-level operations by wiring model {@term Row-Level Permissions} hooks ({@api py:class:vueda.core.permissions.BaseRowLevelPermissions}) and verifying behaviour for allowed and denied users. It walks through defining the hooks, ensuring viewset integration, verifying object-level enforcement, and testing the behaviour matrix.
+This guide adds {@term Row-Level Permissions} to a model, so each user sees and changes only the rows that your rules allow. It ends with the tests that confirm the rules. [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering) describes where each hook runs and why the two scopes are separate.
 
-The guide assumes familiarity with VUEDA's permission evaluation chain. If you have not read [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering), start there; it explains the queryset vs instance hook surface and the contracts that govern list, retrieve, and bulk-delete behaviour. For the broader permission model, see [Permission Model](../core-concepts/permission-model). For workflow state permission overlays that compose with row-level checks, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay).
+## Before You Begin
 
-## Goal and Preconditions
+Check that the model's API uses the VUEDA defaults that run the hooks:
 
-The objective is a model where:
+- The model's viewset inherits from {@api py:class:vueda.core.viewsets.VuedaViewSet}. Its `list` comes from {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}, which applies row filtering.
+- The API's permission class is {@api py:class:vueda.core.permissions.ObjectPermissions}. VUEDA's default settings set it in `DEFAULT_PERMISSION_CLASSES`. Check that your settings and the viewset keep it.
+- The user model ({@api ext:django:setting:AUTH_USER_MODEL}) includes {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}, whose [`has_perm`]{@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm} runs the instance hooks. {@api py:class:vueda.user.models.AbstractVUEDAUser} includes it.
 
-- `list` responses show only the rows the requesting user is authorized to see.
-- Retrieve, update, and `delete` operations on individual objects respect per-row authorization.
-- Bulk-`delete` operations filter PKs through row-level and object-level checks before processing.
-- Pagination and column totals reflect the filtered row set, not the unfiltered base queryset.
-
-Before you begin:
-
-The model's viewset must inherit from `VuedaViewSet`, which includes `ListRowLevelViewSetMixin` in the inheritance chain. Custom viewsets that do not include this mixin will not apply queryset-level row filtering.
-
-The API stack must use {@api py:class:vueda.core.permissions.ObjectPermissions} as the permission class, and the user model must include {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}. These are the default VUEDA settings; verify they are in place if using a custom configuration.
-
-## Define RowLevelPermissions on the Model
-
-Add a `RowLevelPermissions` inner class to the model, inheriting from `BaseRowLevelPermissions`. Implement both `check_queryset` and `check_instance`:
+The examples below use this model:
 
 ```python
-from django.db.models import Q
-from vueda.core.permissions import BaseRowLevelPermissions
+from django.conf import settings
+from django.db import models
+
 
 class Project(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     is_public = models.BooleanField(default=False)
+```
+
+The rule: a user with the model permission can read any public project. Only the owner can read a private project, and only the owner can change or delete a project.
+
+## Step 1: Filter Rows with `check_queryset`
+
+Add a `RowLevelPermissions` inner class that inherits from {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}, and implement {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}:
+
+```python
+from django.db.models import Q
+
+from vueda.core.permissions import BaseRowLevelPermissions
+
+
+class Project(models.Model):
+    ...
 
     class RowLevelPermissions(BaseRowLevelPermissions):
         @classmethod
-        def check_queryset(cls, model, queryset, user, perm_type):
-            # Public projects are visible to all; private projects only to owners
+        def check_queryset(cls, queryset, perm, user, perm_type):
+            if perm_type == "delete":
+                return Q(owner=user)
             return Q(is_public=True) | Q(owner=user)
-
-        @classmethod
-        def check_instance(cls, model, obj, perm, user, perm_type):
-            if obj.is_public or obj.owner == user:
-                return True
-            return False
 ```
 
-The return value semantics for `check_queryset` are: `Q` object filters the queryset, `False` returns an empty queryset, `True` or `None` applies no filtering. For `check_instance`: `True` grants, `False` denies, `None` defers to the earlier permission layers.
+The hook receives the queryset, the full permission codename in `perm`, and the user. Its [`perm_type`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset.perm_type} is `"list"` for `list` responses and `"delete"` for bulk delete. It is `"read"` when {@term Model History} filters events about the model's rows.
 
-If the model participates in a workflow and row-level rules need to account for state overlay outcomes, also implement the workflow-aware hooks:
+Return a {@api ext:django:django.db.models.Q} to filter the rows, `False` for no rows, or `True` or `None` to leave them unfiltered. The filter runs in the database, so express the rule over model fields.
+
+## Step 2: Check Single Objects with `check_instance`
+
+`check_queryset` does not affect retrieve, update, or delete of a single object. Without an instance hook, a user can open, by pk, a row that `list` hides. Add {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance} with the same rule:
 
 ```python
 class RowLevelPermissions(BaseRowLevelPermissions):
-    @classmethod
-    def check_queryset(cls, model, queryset, user, perm_type):
-        return Q(is_public=True) | Q(owner=user)
-
-    @classmethod
-    def check_queryset_workflow(cls, model, queryset, user, perm_type):
-        # queryset is annotated with _state_denied, _state_granted
-        # Apply additional filtering based on state permission annotations
-        return queryset.exclude(_state_denied=True)
+    # check_queryset from step 1
 
     @classmethod
     def check_instance(cls, model, obj, perm, user, perm_type):
-        if obj.is_public or obj.owner == user:
-            return True
+        if obj.owner_id == user.pk:
+            return None  # keep the model permission decision
+        if perm_type == "read" and obj.is_public:
+            return None
         return False
+```
+
+The hook runs on every object permission check. Its [`perm_type`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_instance.perm_type} is the codename's action prefix, such as `read`, `update`, or `delete`. Return `False` to deny, or `None` to keep the decision of the earlier layers. A `True` return replaces that decision with a grant.
+
+[Permission Model](../core-concepts/permission-model) describes the layer order. [Permissions](../reference/permissions) lists each hook's arguments and return values.
+
+Keep the hook cheap. When a response includes {@term Available Actions}, the server runs an object check for each built-in action on each row. `check_instance` then runs several times per row of a `list` page.
+
+## Step 3: Add the Workflow Hooks (Workflow Models Only)
+
+For a {@term Workflow-Enabled Model}, {@term State Permission} rules already filter the rows and take part in object checks. Add the {@term Row-Level Workflow Permissions} hooks only when your row rule must combine with the object's state:
+
+```python
+class RowLevelPermissions(BaseRowLevelPermissions):
+    # check_queryset and check_instance from steps 1 and 2
+
+    @classmethod
+    def check_queryset_workflow(
+        cls, queryset, perm, user, perm_type, state_denied_annotation, state_granted_annotation
+    ):
+        # Owners keep their rows; others need a state grant for the row's current state.
+        return Q(owner=user) | Q(**{state_granted_annotation: True})
 
     @classmethod
     def check_instance_workflow(cls, model, obj, perm, user, perm_type, grant_or_deny):
-        # grant_or_deny is the state overlay result
-        # Can override state deny when business logic requires it
-        if obj.owner == user:
-            return True  # Owner always has access regardless of state
-        return None  # Defer to state overlay result
+        if grant_or_deny is False and obj.owner_id == user.pk:
+            return True  # the owner passes a state deny
+        return None  # keep the earlier decision
 ```
 
-`check_queryset_workflow` receives a queryset annotated with `_state_denied` and `_state_granted` flags inside `apply_row_level_filter`. `check_instance_workflow` receives the `grant_or_deny` outcome from the state overlay and can override prior decisions; including state denial; when it returns non-`None`.
+{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow} runs after the state rules remove denied rows. It can narrow the rows further but cannot restore rows that the state rules removed. It receives the names of two boolean annotations on the queryset, [`state_denied_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_denied_annotation} and [`state_granted_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_granted_annotation}. Use them in the `Q` you return.
 
-Keep the hook implementations focused. Queryset hooks must express logic as `Q` objects or booleans because they run at database scope. Instance hooks can be arbitrarily complex but should avoid expensive operations in hot paths (e.g., retrieving actions that run per-request).
+{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow} runs last in an object check. It receives the state rules' result in [`grant_or_deny`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow.grant_or_deny} (`True`, `False`, or `None`). A non-`None` return is the final decision, even over a state deny. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) describes how state rules decide.
 
-## Wire ViewSet `list` Filtering
+## Step 4: Keep Row Filtering in Custom Code
 
-If the viewset inherits from `VuedaViewSet`, queryset-level row filtering is already wired. The `list` method on `ListRowLevelViewSetMixin` calls `apply_row_level_filter` after DRF filter backends and before pagination.
+The default `list` calls {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter} after the filter backends and before pagination and {@term Column Totals}. Row filtering does not happen in `get_queryset`. A custom action, or an overridden `list` that does not call the mixin's `list`, returns unfiltered rows. Call `apply_row_level_filter` yourself at the same point:
 
-The mixin deliberately does **not** apply row filtering in `get_queryset`. This is intentional: applying the filter in `get_queryset` would affect all viewset actions (retrieve, update, delete, custom actions), which may not be appropriate for every action. Row filtering in `list` targets list-specific visibility. Object-level access for other actions is handled by `check_instance` through the permission chain.
+```python
+queryset = self.filter_queryset(self.get_queryset())
+queryset = self.apply_row_level_filter(queryset)
+page = self.paginate_queryset(queryset)
+```
 
-If you override `list` on the viewset, ensure your implementation calls `apply_row_level_filter` at the correct point: after filter backends, and before both pagination and aggregation read the queryset.
+A custom detail action that loads its object with `self.get_object()` runs the object permission check, which calls `check_instance`. An action that queries the model directly skips it.
 
-## Verify Object-Level Enforcement
+## Step 5: Test Allowed and Denied Users
 
-Object-level row checks run through the `has_perm` call chain. When `has_perm` is called with an object, and the model defines `RowLevelPermissions`, `check_instance` is evaluated as part of the permission layers. For workflow models, `check_instance_workflow` is also evaluated and can override prior decisions, including state denial.
+Give the test users their model permissions through groups, for example `myapp.list_project`, `myapp.read_project`, `myapp.update_project`, and `myapp.delete_project`. Then vary only the row conditions: owner, non-owner of a public project, and non-owner of a private project. [Permissions](../reference/permissions) lists the status code for each refusal.
 
-Verify this path is active by confirming:
+Cover these cases:
 
-- The API stack uses `ObjectPermissions` (or `WorkflowObjectPermissions` for workflow models) as the permission class. This is set in `DEFAULT_PERMISSION_CLASSES` or on the viewset directly.
-- The user model includes `VUEDAPermissionsMixin`, which provides the `has_perm` implementation that calls row-level hooks.
-- For `detail` actions (retrieve, update, delete), `check_object_permissions` is called, which triggers `has_perm(..., obj=instance)`.
+- `list`: an owner sees their own rows plus public rows. A user who matches no rows gets `200` with empty `results` and `totalRecords` of `0`.
+- `list` with pagination and totals: `totalRecords`, `totalPages`, and `columnTotals` count only the visible rows. If the viewset declares column totals, test them with row filtering active.
+- Retrieve: the owner gets `200`. A non-owner of a private project gets `404`, which hides that the row exists.
+- Update and single delete: a non-owner of a public project gets `403`, because they can read it. A non-owner of a private project gets `404`.
+- Bulk delete: when every requested pk passes both hooks, the rows are deleted. When any pk fails, nothing is deleted. The response is `400`, keyed by pk, with `"Object with pk=... does not exist."`, the same message as for a missing pk.
 
-No additional wiring is needed for standard viewset actions. Custom actions that bypass `check_object_permissions` will not trigger row-level instance checks.
+[Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering) explains the empty `list`, the `404`, and the bulk delete message. Bulk delete runs the object check once for each row that passes `check_queryset`, so its time grows with the number of pks.
 
-## Test Matrix for Allowed and Denied Users
+## Troubleshooting
 
-Build a test matrix with users/groups that separate model-level permissions from row-level conditions. The matrix should cover:
+**`list` returns every row.** The viewset does not inherit from `VuedaViewSet`, or it overrides `list` without calling `apply_row_level_filter` (step 4).
 
-**`list` filtering:**
+**Retrieve returns `200` for a row that should be denied.** `check_instance` returns `None` for that row, which keeps the model permission decision. Return `False` to deny.
 
-- User with model-level `list` permission + row-level conditions met: list returns matching rows.
-- User with model-level `list` permission + row-level conditions unmet for all rows: list returns `200` with empty results.
-- User with model-level `list` permission + row-level conditions met for some rows: list returns only matching rows with accurate `totalRecords`.
-
-**Retrieve:**
-
-- User with model-level `read` permission + row-level conditions met: retrieve returns `200`.
-- User with model-level `read` permission + row-level conditions unmet: retrieve returns `404` (not `403`). The object's existence is hidden.
-
-**Bulk delete:**
-
-- All requested PKs pass both queryset and object checks: delete succeeds.
-- Some PKs fail: entire operation fails with `400` and per-PK error messages.
-- PKs fail row-level checks: error message is `"Object with pk=... does not exist."` (same as genuinely missing PKs).
-
-Test row-level denied retrieve attempts explicitly. The `404` response (not `403`) is the expected behaviour under the current permission flow, but it differs from what you might expect if you are accustomed to explicit permission denials.
-
-## Verify Pagination and Totals Behaviour
-
-`apply_row_level_filter` runs before both pagination and `get_column_info`, so `totalRecords`, `totalPages`, and `columnTotals` all reflect only the visible row set. Verify:
-
-- A user with row-level restrictions sees `totalRecords` matching their visible row count, not the table total.
-- Column totals (declared in `column_totals` on the viewset and requested through the totals query parameter, `ct` by default) aggregate only the filtered rows.
-- Paginated navigation stays consistent; the user does not see "page 3 of 5" when their visible set has only 2 pages.
-
-::: warning
-
-row-level filtering and column totals are tested separately in the current test suite. There is no dedicated combined integration test, so verify the combined behaviour explicitly in your project if both features are active.
-
-:::
-
-## Troubleshooting and Known Gaps
-
-**List returns all rows despite `RowLevelPermissions` being defined.** Verify the viewset inherits from `VuedaViewSet`. Custom viewsets that do not include `ListRowLevelViewSetMixin` will not call `apply_row_level_filter`.
-
-**Retrieve returns `200` for objects that should be denied.** `check_instance` may be returning `None` (no opinion) instead of `False` (deny). Returning `None` defers to the baseline model permission, which may be `True`.
-
-**Implementing only `check_queryset` without `check_instance`.** Object-level access for retrieve, update, and delete is not affected by `check_queryset`. Without `check_instance`, a user who cannot see an object in `list` responses may still be able to access it directly by PK.
-
-**Workflow models without workflow-aware hooks.** For models participating in a workflow, implementing only the non-workflow hooks (`check_queryset`, `check_instance`) can produce unexpected outcomes when state overlays and row-level rules need to compose. Add `check_queryset_workflow` and `check_instance_workflow` where state-aware row filtering matters.
-
-**Bulk delete with large PK sets is slow.** `apply_object_permission_filter` iterates instances and calls `check_object_permissions` per row. For large bulk-`delete` requests against models with expensive permission checks, latency scales linearly with PK count.
-
-**Custom actions bypass row filtering.** Queryset-level filtering runs in `ListRowLevelViewSetMixin.list`, not in `get_queryset`. Custom viewset actions that query the model directly do not receive row-level filtering unless they explicitly call `apply_row_level_filter`.
-
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:class:vueda.core.permissions.BaseRowLevelPermissions}
-    - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance}
-    - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset}
-    - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow}
-    - {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow}
-    - {@api py:class:vueda.core.viewsets.ListRowLevelViewSetMixin}
-    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.apply_row_level_filter}
-    - {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.list}
-    - {@api py:class:vueda.core.permissions.ObjectPermissions}
-    - {@api py:function:vueda.core.permissions.ObjectPermissions.has_object_permission}
-    - {@api py:class:vueda.user.mixins.VUEDAPermissionsMixin}
-    - {@api py:function:vueda.user.mixins.VUEDAPermissionsMixin.has_perm}
-    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-    - {@api py:function:vueda.core.viewsets.VuedaViewSet.destroy}
+**A row is in `list` but retrieve returns `404`, or the reverse.** `check_queryset` and `check_instance` disagree for that row. VUEDA does not compare the two hooks, so keep their rules consistent.
