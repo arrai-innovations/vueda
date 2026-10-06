@@ -7,151 +7,194 @@ status: draft
 
 # Form State and Validation Lifecycle
 
-VUEDA manages form state through a two-layer context system: a form-level context that holds all values, errors, messages, and interaction state, and a field-level context that bridges individual fields into that shared state. Validation enters the state model through two distinct channels; local validation and server validation; and the system is designed so that the two never collide or overwrite each other. This behavior is centered on {@api js:module:@arrai-innovations/vueda/use/useForm} and {@api js:module:@arrai-innovations/vueda/use/useField}, which together define the user-facing {@term Client Affordance} for form feedback and submission gating.
+A VUEDA form keeps its values, validation feedback, and interaction state in one {@term Form Context}. {@api js:function:@arrai-innovations/vueda/use/useForm#useForm} creates it, and each field calls {@api js:function:@arrai-innovations/vueda/use/useField#useField} to read and write it at the field's {@term Field Path}. This page describes that shared state, how local validation and {@term Server Feedback} enter it, and when a form may submit.
 
-This page explains the state model, the lifecycle transitions that mutate it, and the submission-gating semantics that determine when a form is allowed to submit. For the server-side contract that produces the validation payloads the client ingests, see [Error and Validation Contract](./error-and-validation-contract). For practical steps on wiring validation into forms, see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors).
+[Error and Validation Contract](./error-and-validation-contract) describes the response bodies that the server sends and the client error classes built from them. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) gives the steps for wiring validation into a form.
 
-## System Boundary and Authority
+## Form and Field Contexts
 
-The form state system lives entirely on the client. The server owns data integrity and validation rules; the client owns the runtime representation of form values, validation feedback, and interaction tracking. The boundary between them is the HTTP response: the server returns validation payloads, and the client ingests them into a state model that is structurally separate from local validation.
+Form state lives on the client. It holds values, feedback, and interaction tracking between requests. The server validates every write on its own, so client validation shapes what the user sees and the server decides what is written.
 
-`useForm` creates and provides the form context. `useField` creates and provides the field context. Both use Vue's provide/inject mechanism with symbol keys (`FormContextSymbol`, `FieldContextSymbol`), making them available to any descendant component without explicit prop threading. The feedback renderers split by scope: `FormMessage` injects form context and renders non-field validation as an Alert; `FieldMessage` (rendered automatically by `FormField`) consumes field context and renders field-level validation as an inline muted line.
+`useForm` provides the form context under {@api js:property:@arrai-innovations/vueda/utils/symbols#FormContextSymbol}, and `useField` provides a field context under {@api js:property:@arrai-innovations/vueda/utils/symbols#FieldContextSymbol}. Descendant components inject them through Vue's provide and inject, so no component passes them down as props.
+
+Two components render feedback. {@api vue:component:FormMessage} injects the form context and renders {@term Non-Field Error} messages. {@api vue:component:FormField} renders a field's errors and warnings through {@api vue:component:FieldMessage}, which receives them in its [`messages`]{@api vue:component:FieldMessage:prop:messages} prop. [Forms](../reference/components/forms) describes how both components look.
 
 ## Form Context State Shape
 
-The form context, created by `useForm`, is a single reactive object with six state groups. It exposes `state` through Vue's `readonly()` so downstream consumers can observe shared form state without assigning into it directly. Field components, submit wrappers, and custom controls mutate that state through form-context methods such as `updateValue`, `deleteValue`, and `clearErrors`.
+`useForm` builds one reactive state object and exposes it read-only as [`state`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.state}. Components change it only through the form context's methods, such as [`updateValue`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateValue}, [`deleteValue`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.deleteValue}, and [`clearErrors`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearErrors}. A method that takes a path throws `"No name provided"` when the path is empty. This catches a field mounted without a `name` prop.
 
-**Values and initial values.** `state.values` holds the current field values. `state.initialValues` holds the baseline values used for reset and modification tracking. Both are mutated in-place using `assignReactiveObject`; they are never replaced with new objects, because doing so would break existing reactive references held by field components. When `initialValues` changes on the props passed to `useForm`, the form automatically resets: `state.values` is deep-cloned from the new initial values, and all errors, messages, touched, and focus state are cleared.
+**Values.** [`values`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.values} holds the current values as a nested object, so `updateValue("address.city", value)` writes `values.address.city`. [`initialValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.initialValues} holds the baseline for reset and modification tracking. VUEDA updates both objects in place and never replaces them, so the reactive references that fields hold stay valid.
 
-**Errors and messages.** These are the two feedback channels. `state.errors` holds blocking validation feedback; `state.messages` holds non-blocking feedback (warnings). Both use the same two-dimensional structure: `state.errors[path][code] = value` and `state.messages[path][code] = value`. The `path` is a field name or a dot/bracket-delimited nested path. The `code` identifies the source: `required` and `validate` come from local validation, `server` comes from server validation ingestion. `state.anyError` and `state.anyMessage` are derived flags maintained by the mutation methods; they reflect whether any entries exist in the respective collections.
+When the `initialValues` passed to `useForm` changes, the form resets. The reset copies the new initial values into `values` and clears errors, messages, touched state, the submitted flag, and focus. The first assignment of initial values fills `values` and clears nothing else.
 
-The separation between errors and messages is the mechanism that makes VUEDA's {@term Warning Channel} work. Blocking validation failures from the server are routed into `state.errors` under the `server` code. Warnings from the server, surfaced via the confirmation gate, are routed into `state.messages` under the `server` code. The submission pipeline checks only `state.errors` when deciding whether to block; a warning does not appear there because it withholds the write itself, via `409 Conflict`, before the client's own gating runs. See [Error and Validation Contract](./error-and-validation-contract) for how the server shapes these two channels on the wire.
+**Errors and messages.** [`errors`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.errors} holds blocking feedback. [`messages`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.messages} holds warnings, which do not block. Both are keyed by field path and then by a code, so `errors[path][code]` holds one message. Local validation writes the `required` and `validate` codes, and server feedback uses the `server` code. [`anyError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyError} and [`anyMessage`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyMessage} report whether each map has any entry.
 
-**Touched and focused.** `state.touched` is a path-keyed boolean map tracking which fields have been blurred. `state.anyTouched` is derived from non-emptiness. `state.focused` holds the name of the currently focused field, or `null`. Local validation only activates after a field is touched, which prevents error messages from appearing on fields the user has not yet interacted with.
+Warnings sit in their own map so that they never block a submit: the client's pre-submit checks read only `errors`. {@term Warning Confirmation} relies on this.
 
-**Modification tracking.** `state.modified` is a computed aggregate maintained by hook registrations from field contexts. Each field registers an `isModified` hook that returns `true` when the field's current value differs from its initial value (accounting for ignore state and unset-value semantics). `state.anyModified` is derived from the aggregate. The submission pipeline uses `anyModified` to detect and optionally block no-change submissions.
+**Touched, focused, and submitted.** [`touched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.touched} maps each blurred field path to `true`. [`anyTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyTouched} reports whether any field is touched. [`focused`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.focused} holds the focused field's path. It is `null` when no field has focus. [`submitted`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submitted} becomes `true` when [`setAllTouched`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.setAllTouched} runs at submit, and a reset clears it.
 
-**Ignored fields.** `state.ignored` is a path-keyed boolean map. Ignored fields are excluded from `state.submittingValues`, which is a computed property that omits ignored paths and compacts arrays when ignored items are array elements (bracket-keyed paths like `items[2]`). Ignored fields are also excluded from the modification check and from non-server error gating during submission.
+**Aggregates from fields.** Mounted fields register hooks that feed three computed maps keyed by field path: [`modified`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.modified}, [`required`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.required}, and [`valid`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.valid}. [`anyModified`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.anyModified} is `true` when any field is modified. [`labels`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.labels} and [`showsErrors`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.showsErrors} also come from field hooks. The `ActionForm` validation summary reads them.
 
-**Mutation methods** are the supported write boundary. `updateValue(name, value)` and `deleteValue(name)` change current values; corresponding methods manage initial values, validation feedback, touched state, and focus. These methods require non-empty path names; calling a named mutation method without a name throws `"No name provided"`. This is a hard runtime invariant that catches wiring errors where a field component mounts without a `name` prop.
+**Ignored fields.** [`ignored`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.ignored} maps each {@term Ignored Field} path to `true`. [Ignored Fields and Submitting Values](#ignored-fields-and-submitting-values) describes its effect.
 
 ## Field Context Responsibilities
 
-The field context, created by `useField`, is a per-field projection of the form context. It reads and writes through the form context's mutation methods rather than maintaining independent state. When no form context is available (the `contextless` prop is `true`, or no `FormContextSymbol` is provided), the field context falls back to a local reactive object with the same shape, enabling standalone field usage outside forms.
+`useField` projects the form context onto one field. It keeps no values of its own: reads come from the form state, and writes go through the form context's methods. A field keeps a local state of the same shape when it has the [`contextless`]{@api vue:component:FormField:prop:contextless} prop or no form context above it. It then emits [`update:modelValue`]{@api vue:component:FormField:event:update:modelValue}, so it also works outside a form.
 
-**Value bridging.** `state.value` is a writable computed that reads from `formContext.state.values` using the field's `name` as a lodash-style path, and writes through `formContext.updateValue`. This means nested paths like `address.city` or `items[0].sku` work without special handling; the form context stores the flat path as a key and the field context resolves it via `lodash/get` and `lodash/set`.
+**Value.** The field's [`state.value`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContextRawState.value} reads `values` at the field's path and writes through `updateValue`. Writing `undefined` deletes the value. Nested paths such as `address.city` and `items[0].sku` need no extra handling.
 
-**Local validation.** Each field context runs two reactive watchers that write error codes into the form context:
+**Required by default.** A field is required unless its [`required`]{@api vue:component:FormField:prop:required} prop is `false`. The prop defaults to `null`, which counts as required. When a [`shouldRequireFn`]{@api vue:component:FormField:prop:shouldRequireFn} is given, it decides instead, from the field's dependency values. A [`readOnly`]{@api vue:component:FormField:prop:readOnly} field and an ignored field are never required.
 
-The **required watcher** monitors four inputs: `state.required`, the `requiredMessage` prop, `state.touched`, and `state.valueRequiredViolation`. When all conditions are met (the field is required, has been touched, and the current value violates the required check), the watcher writes `errors[name].required` with the configured message. When any condition is not met, it deletes the `required` code. The required check itself is pluggable: `isRequiredViolation` defaults to treating `null`, `undefined`, `""`, `false`, and `0` as violations, and `shouldRequireFn` can override whether the field is required at all based on dependency values.
+**Hooks.** During setup, the field registers `isModified`, `isRequired`, and `isValid` hooks with the form. It unregisters them on unmount, so the form's aggregates cover only mounted fields. A field counts as modified when three things hold: its value differs from its initial value, it is not ignored, and the two values are not both unset (`undefined`, `null`, or `""`).
 
-The **validate watcher** monitors `state.valid`, which is a computed that calls the `validate` prop function (if provided) with the current value and dependency values. The validate function returns `true` for valid, or a string error message for invalid. The watcher writes `errors[name].validate` with the returned message when validation fails and the field has been touched, and deletes it otherwise. The validate watcher is intentionally not `immediate`; it waits for the first reactive change to avoid triggering validation on partially-initialized fields.
+**Dependencies.** The [`validationDependencies`]{@api vue:component:FormField:prop:validationDependencies} prop lists other field paths that `shouldRequireFn` and `validate` read. The field registers them during setup. Their current values reach both functions as the field's `state.dependencyValues`.
 
-**Blur and server error clearing.** When `blur()` is called on a field context, it does three things: clears focus state, sets the field as touched, and calls `clearServerErrors` on the form context for the field's name and its configured `clearServerErrorDependents`. This is the mechanism that makes server errors dismissible after user interaction; editing and blurring a field clears the stale `server` code for that field and optionally for related fields.
-
-**Hook registration.** On mount, the field context registers hooks for `isModified`, `isRequired`, and `isValid` with the form context's reactive hook registries. These hooks feed the form-level computed aggregates (`state.modified`, `state.required`, `state.valid`). On unmount, hooks are unregistered. This lifecycle ensures that the form-level aggregates always reflect the currently mounted set of fields.
-
-**Dependency registration.** Fields can declare `validationDependencies`; paths to other field values that the field's `shouldRequireFn` or `validate` function needs. On mount, the field context registers these paths with the form context's dependency values registry. The resolved dependency values are then available as `state.dependencyValues`, which the required and validate computeds consume.
+**Blur.** A field context's [`blur()`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContext.blur} clears focus, marks the field touched, and clears the field's server feedback. [Server Validation Ingestion and Clearing](#server-validation-ingestion-and-clearing) describes the clearing.
 
 ## Local Validation Semantics
 
-Local validation is strictly client-side. It writes error codes `required` and `validate` into `state.errors[name]`. It never writes into `state.messages`. It only activates after the field is touched.
+Local validation runs in the browser and writes only to `errors`, under two codes.
 
-The activation constraint is important: a freshly loaded form shows no local validation errors even if required fields are empty, because no field has been touched yet. This is by design; the submission pipeline calls `setAllTouched()` before checking errors, which forces all local validation to evaluate. The sequence is: mark all fields touched, yield to the next microtask (`await nextTick()`) so watchers fire, then check `state.anyError`.
+The `required` code comes from a watcher over six inputs:
 
-Local validation error codes are namespaced to avoid collisions. `required` and `validate` are the only two codes that local validation writes. The `server` code is reserved for server-originated feedback and is runtime-enforced in the client: attempts to set `server` via local `updateError`/`updateMessage` paths throw an error. The only valid writer for `server` is `handleServerFormValidationError(error)`.
+- whether the field is required
+- the [`requiredMessage`]{@api vue:component:FormField:prop:requiredMessage} prop
+- whether the field is touched
+- whether the value violates the required rule
+- whether the field is modified
+- the form's `submitted` flag
+
+The watcher writes `errors[path].required` when the field is required, touched, and violating, and is also modified or in a submitted form. Otherwise it deletes the code. A touched field that is empty and unmodified therefore shows no required error until the first submit.
+
+The default required rule, {@api js:function:@arrai-innovations/vueda/use/useField#defaultIsRequiredViolation}, treats `null`, `undefined`, `""`, `false`, and `0` as violations. The [`isRequiredViolation`]{@api vue:component:FormField:prop:isRequiredViolation} prop replaces it.
+
+The `validate` code comes from the [`validate`]{@api vue:component:FormField:prop:validate} prop. Once the field is touched, VUEDA calls it with the value and the dependency values. A return of `true` means valid, and a string is the error message. Any other return writes the message "Validation Failed". The watcher does not run at setup. It runs on the first change to the result, so a partly initialized field does not flag itself.
+
+A fresh form therefore shows no local errors. At submit, the form calls `setAllTouched()` and waits one Vue tick so that the watchers run. It then reads `anyError`.
+
+The `server` code is reserved for server feedback. [`updateError`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateError} and [`updateMessage`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.updateMessage} throw when given it, on the form context and on a field context:
+
+```text
+Error code "server" is reserved for server-originated validation and cannot be set from local validation. ...
+```
+
+Only `handleServerFormValidationError` writes the `server` code. The reservation keeps local errors out of the code that the submit checks treat as retryable.
 
 ## Server Validation Ingestion and Clearing
 
-Server feedback enters the form state through a single method: `handleServerFormValidationError(error)`. This method takes a `ServerFeedbackError` instance and iterates its two maps:
+[`handleServerFormValidationError(error)`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.handleServerFormValidationError} copies the two maps of a {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError} into the form. Each `error.errors` entry becomes `errors[path].server`, and each `error.messages` entry becomes `messages[path].server`.
 
-- `error.errors` entries are written as `state.errors[name].server`
-- `error.messages` entries are written as `state.messages[name].server`
+A `400` arrives as a {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}, which fills only `errors`. A `409` arrives as a {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}, which fills only `messages`, with the warnings. [Error and Validation Contract](./error-and-validation-contract) describes both bodies and which adapters raise each class.
 
-`FormValidationError` (parsed from a 400 response) extends `ServerFeedbackError`. It only populates `.errors`; its `.messages` stays empty. `ConfirmationRequiredError` (parsed from a 409 response) also extends `ServerFeedbackError`. It writes warnings into `.messages` from the response's `warnings` mapping.
+The method does not branch on the class. The submit flows decide what reaches it. They ingest a `FormValidationError` directly and send a `ConfirmationRequiredError` through [the warning confirmation](#the-warning-confirmation) first.
 
-The shared `{errors, messages}` shape lets `handleServerFormValidationError` ingest server feedback without branching on error type. Callers still branch before ingestion to keep blocking errors separate from confirm-then-resubmit warnings. See [The Warning Channel](#the-warning-channel) below for the full 409 lifecycle.
+[`clearServerErrors(path, dependents)`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.clearServerErrors} removes the `server` code from `errors[path]` and `messages[path]`. It then does the same for each path in `dependents`. It clears one hop and does not follow the dependents' own dependents.
 
-Server errors are cleared selectively, not globally. `clearServerErrors(name, dependents)` deletes the `server` code from both `state.errors[name]` and `state.messages[name]`, then clears each dependent path provided in the same call. Dependents can use the `$parent` placeholder, which resolves to the dot-delimited parent of the current field's path; this is how nested fields in array items can clear server errors on sibling fields when one field is edited.
+A dependent may contain `$parent`, which stands for the field's path up to its last `.`. For the field `items[0].quantity`, the dependent `$parent.price` clears `items[0].price`. `$parent` resolves only when the field's path contains a `.`.
 
-The clearing is triggered by field blur: `FieldContext.blur()` calls `clearServerErrors` with the field's `clearServerErrorDependents` configuration. This means server errors persist visually until the user interacts with the relevant field. Edits that do not blur (for example, programmatic value changes) do not clear server errors.
-
-## The {@term Warning Channel}
-
-The `state.messages` collection is the client-side representation of server warnings. Warnings are advisory: rather than failing a submission, they gate it behind an explicit confirmation, then let the same write proceed once the user accepts.
-
-A warning is authored on the server by overriding `get_warnings()` on the serializer, which returns `{field: [messages]}` after validation succeeds. When warnings are present and the request has not acknowledged them, `VuedaViewSet` withholds the create/update and responds `409 Conflict` with `{confirmation_required, digest, warnings}` (nothing is written). On the client, the create/update adaptor raises a `ConfirmationRequiredError`; `useObjectForm` surfaces the warnings through `handleServerFormValidationError` (so they populate `state.messages[name].server`) and opens its `confirmation` controller, which `ViewCreate` and `ViewUpdate` render as a `FormConfirmDialog`. Confirming resubmits once with the `Acknowledge-Warnings` header set to the returned `digest`, which the server matches to allow the write; cancelling leaves the form unsaved with the warnings still shown. A changed warning set produces a new digest and re-prompts, so a user never commits past a warning they did not see. If nothing is bound to the controller (a custom shell that omits the dialog), the request fails closed: the save resolves as cancelled, the warnings stay rendered on the fields, and a console warning identifies the missing dialog.
-
-The same 409 contract gates writes that do not flow through a serializer save. For `destroy`, `activate`, and `deactivate` (single-object and bulk), warnings are authored at the viewset level by overriding `get_warnings(action, objs)` on {@api py:class:vueda.core.viewsets.WarningConfirmationMixin}; `action` is the action name, `objs` is the affected instances, and the default returns `{}`. Custom action bodies opt in by calling `gate_warnings(request, warnings)` from {@api py:module:vueda.core.exceptions} after `serializer.is_valid(raise_exception=True)` and before the write, and an input-less consequence action can be declared `@action(confirm=True)` so its first unacknowledged submit always returns 409 before the body runs. On the client, `useActionForm` runs the same confirm-then-run flow as `useObjectForm`: the 409 surfaces as a `ConfirmationRequiredError`, the `confirmation` controller (both composables build it with the shared `useConfirmationController` factory) prompts, and a confirmed action is retried once with the digest acknowledged. The dialog mounting differs between the two families: object form shells render `FormConfirmDialog` themselves (`ViewCreate` and `ViewUpdate` do), while `ActionForm` mounts the dialog internally, so `ViewAction`, `ViewDestroy`, and custom `ActionForm` shells get confirmation without extra markup and the fail-closed path applies only to standalone `useActionForm` callers. One write path is not gated: bulk/list-serializer create and update saves (a `ListSerializer` has no `get_warnings`).
-
-Warnings are pre-write by definition. A warning is a consent question, and consent precedes the act, so every warning must be computable from the submitted input plus current database state, before anything is written. Every gate raises before the write, which is why a 409 never commits. Conditions discoverable only by performing the write (a protected foreign key, a constraint violation, a failure inside an action body) are errors that abort the transaction, not warnings. A post-consent error, where the user confirms and the write then fails, is possible but rare and harmless: nothing commits, and the failure surfaces through normal error handling.
-
-`FormMessage` renders warnings when used with `type="message"`, switching the underlying Alert to the `warning` variant (yellow) instead of `destructive` (red). For field-scope warnings, `FormField` automatically pairs an error `FieldMessage` with a `severity="warning"` `FieldMessage` for `state.messages`, so per-field warnings appear under the control without additional markup.
-
-Warnings do not participate in the client's pre-submit gating. The `defaultOnSubmitAnyError` function in `useObjectForm` checks only `state.errors`, stripping the `server` code to determine if blocking errors remain. `state.messages` is not consulted, so the submission proceeds to the server, which is where the confirmation gate lives.
+A field's `blur()` calls `clearServerErrors` with the field's [`clearServerErrorDependents`]{@api vue:component:FormField:prop:clearServerErrorDependents} prop. Server feedback therefore stays until the user leaves the field. A value change without a blur, such as a programmatic write, leaves it in place.
 
 ## Ignored Fields and Submitting Values
 
-`state.submittingValues` is a computed property that derives the payload to send to the server from `state.values` by removing ignored fields. The omission logic handles two cases:
+[`submittingValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittingValues} is `values` with every ignored path removed. The submit flows send it as the request body.
 
-For flat field paths, the ignored field is simply omitted via `lodash/omit`. For bracket-keyed array item paths (matching the pattern `...[digits]`), the ignored item is omitted and the parent array is compacted using `lodash/compact` to remove the resulting `undefined` hole. This means ignoring `items[2]` in a five-element array produces a four-element array without gaps.
+For an array item path such as `items[2]`, VUEDA removes the item and closes the gap. Ignoring `items[2]` in a five-item array leaves four items. The other items stay, including falsy values such as `0`, `""`, `false`, and `null`.
 
-The submission pipeline uses `state.submittingValues`, not `state.values`, as the payload for create and `update` operations. The default error-gating logic also accounts for ignored fields: when checking for non-server errors, it filters out errors whose keys match or are children of ignored field paths (using `.` as the separator for child-path detection).
+An ignored field is never required and never counts as modified. `useObjectForm`'s default pre-submit check also skips errors on ignored paths and their children. It finds children by a `.` separator only, so ignoring `items` skips `items.name` but not `items[0].quantity`.
 
 ## Submission Gating Semantics
 
-The default submission pipeline, implemented in `useObjectForm`, follows a fixed sequence:
+### Object form submission
 
-1. Set `loading` state immediately (disables the submit button).
-2. Call `setAllTouched()` to activate all local validation.
-3. `await nextTick()` to let validation watchers fire.
-4. Check `anyModified`. If the form has no changes, call `onSubmitNotAnyModified`; by default this shows a "No Changes Detected" toast and stops submission.
-5. Check `anyError`. If errors exist, call `onSubmitAnyError`; by default this filters ignored fields, strips the `server` code from remaining errors, and if non-server errors remain, shows a "Pre-save Validation Failed" toast, scrolls to the first error field, and stops submission. If only `server` errors remain, submission proceeds (the user is retrying after server feedback).
-6. Execute the create or `update` operation.
-7. If the operation fails with a `ServerFeedbackError` that is not a `ConfirmationRequiredError`, call `onSubmissionError`. By default, this hook ingests the error into form state and scrolls to the first error field.
-8. If the operation succeeds, call `onSubmissionSuccess`; by default this shows a success toast and redirects.
+{@api js:function:@arrai-innovations/vueda/use/useObjectForm#useObjectForm} submits create and update forms. Its [`submit()`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.submit} runs a fixed sequence:
 
-Each step in this sequence (`onSubmitNotAnyModified`, `onSubmitAnyError`, `onSubmissionError`, `onSubmissionSuccess`) is a replaceable hook on the `useObjectForm` return object. Projects can override individual hooks without forking the entire submission pipeline.
+1. Set [`loading`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.loading}, which views use to disable the submit button.
+2. Call `setAllTouched()` and wait one tick so that local validation runs.
+3. If `anyModified` is `false`, call `onSubmitNotAnyModified`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitNotAnyModified}, shows a "No Changes Detected" toast and stops.
+4. If `anyError` is `true`, call `onSubmitAnyError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitAnyError}, drops errors on ignored paths and removes the `server` code from the rest. If any error remains, it shows a "Pre-save Validation Failed" toast, scrolls to the first error, and stops. If only `server` codes remain, the submit continues.
+5. Send `submittingValues` to create or update. With the [`submitFields`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawProps.submitFields} prop, only those paths are sent.
+6. On a `ConfirmationRequiredError` that carries a digest, run [the warning confirmation](#the-warning-confirmation).
+7. On any other failure, call `onSubmissionError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}, ingests a `ServerFeedbackError`, shows a "Save Validation Failed" toast, and scrolls to the first error. For any other error it returns `false`, and the error becomes the form's [`state.error`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.error}.
+8. On success, call `onSubmissionSuccess`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionSuccess}, shows a success toast and follows [`redirectAfter`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawProps.redirectAfter}.
 
-The server-error retry behavior is the most significant design decision in this pipeline. After a failed submission that produced server errors, the user edits a field and blurs it. The blur clears the `server` code for that field. If the remaining errors are only `server` codes on other fields (not yet blurred), the pipeline allows resubmission so the server can re-evaluate. This prevents server errors from permanently blocking a form without requiring the user to blur every field that had a server error.
+The four hooks named above are properties of the object that `useObjectForm` returns, and so is [`onSubmissionWarningsRequireConfirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.onSubmissionWarningsRequireConfirmation}. Replacing one hook leaves the rest of the sequence in place.
 
-## Non-Field and Structured Feedback Rendering
+Server errors do not block a resubmit. After a failed save, the user edits and blurs a field, which clears that field's `server` code. `server` codes remain on fields that the user has not revisited. The next submit still goes to the server, which validates again. A non-field server error has no field to blur, so without this rule it would block the form until a reset.
 
-Non-field feedback; validation messages that are not associated with a specific field; uses the stable key `non_field_errors` (defined as `NON_FIELD_ERRORS_KEY`). This key originates from the server, where DRF's exception handler rewrites top-level list errors into `{non_field_errors: [...]}`, and is preserved as a contract constant on the client.
+Both default hooks scroll to [`firstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.firstErrorField}. {@api js:function:@arrai-innovations/vueda/use/useViewCreate#useViewCreate} and {@api js:function:@arrai-innovations/vueda/use/useViewUpdate#useViewUpdate} compute it with [`getFirstErrorField`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.getFirstErrorField} over the fields that they display. A custom shell passes its own `firstErrorField` in the props that it gives `useObjectForm`.
 
-Two components render this state. `FormMessage` is form-scope: placed inside a form context, it reads `formContext.state.errors[NON_FIELD_ERRORS_KEY]` (or `.messages[NON_FIELD_ERRORS_KEY]` when `type="message"`) and renders a single Alert containing the messages, listed when there is more than one. `FieldMessage` is field-scope: rendered automatically by `FormField` against `fieldContext.state.errors` and `.messages`, it produces a muted line of text under the control rather than an Alert.
+`getFirstErrorField` checks `non_field_errors` first, so a form-level error wins. For an array field it checks item paths such as `items[0]`. For a display path such as `items.quantity`, it checks `items[0].quantity`, `items[1].quantity`, and so on. The scroll target is an anchor named after the path. Each rendered field has one, and `FormMessage` with `type="error"` has one named `non_field_errors`.
 
-`ActionForm` adds a validation summary for field errors that no rendered field shows. Each field reports through `useField` whether the reader can see its own error messages, and the form collects those reports in `state.showsErrors`, keyed by field path. The summary renders above the fields, next to the non-field alert, and lists only the errors whose path has no `true` entry there: an error on a field rendered with `hidden`, on a field inside a collapsed inline field set, on a field whose renderer failed, or on a path no rendered field uses.
+### Action form submission
 
-Structured feedback objects (where a server error entry is an object rather than a string) have no wire-format template contract. The default `FormMessage` renderer iterates the object's entries and emits one `name: value` line per entry as a fallback. Consumers that need richer rendering override `FormMessage`'s default slot with a purpose-built component that pattern-matches on the object's shape; see [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for the pattern.
+{@api js:function:@arrai-innovations/vueda/use/useActionForm#useActionForm} runs the submit for {@api vue:component:ActionForm}. It differs from the object form sequence in four ways:
 
-`getFirstErrorField` supports non-field errors in its priority ordering. It prepends `NON_FIELD_ERRORS_KEY` to the display fields list before searching, so non-field errors are always found first. For array fields, it searches bracket-keyed error paths (`field[0]`, `field[1]`, etc.). For fields expressed with dot-delimited nesting (a display convention), it resolves the parent array and searches nested keys within array items.
+- Its pre-submit checks run only when the [`hasInput`]{@api vue:component:ActionForm:prop:hasInput} prop is `true`. With `hasInput`, it waits one tick and stops with "No Changes Detected" when nothing is modified, unless [`requireModified`]{@api vue:component:ActionForm:prop:requireModified} is `false`. It stops with a "Submission Blocked" toast when a non-`server` error exists. `hasInput` defaults to `false`, and no view that VUEDA ships sets it. Those views send the first submit without local checks.
+- [`confirmDisabled`]{@api js:property:@arrai-innovations/vueda/use/useActionForm#ActionFormContext.confirmDisabled} disables the submit button while the action loads or while any field has a non-`server` error. The count includes errors on ignored paths. Local errors that appear after the first submit therefore disable the button even without `hasInput`.
+- A `ServerFeedbackError` is ingested with no toast. This includes a `400` from the automatic {@term Dry Run}.
+- Any other failure calls the [`onSubmissionErrorHandler`]{@api vue:component:ActionForm:prop:onSubmissionErrorHandler} prop when given. If there is no handler, or it returns `false`, the form records the error. It then shows an error toast titled by [`actionErrorSummary`]{@api vue:component:ActionForm:prop:actionErrorSummary}.
+
+## The {@term Warning Confirmation}
+
+A warning is advisory. The server holds a warned write until the user confirms it, and then the same write proceeds.
+
+The server computes every warning from the submitted input and the current database state before it writes anything. Every gate raises before the write, so a `409` never commits.
+
+A condition found only by performing the write is an error and aborts the request. Examples are a protected foreign key, a constraint violation, or a failure inside an action body. If a write fails after the user confirms, the request's transaction rolls back and the error follows the normal error path. [Configuration Surface and Defaults](./configuration-surface-and-defaults) describes that transaction.
+
+The [write confirmation guide](../guides/require-write-confirmation) shows how to declare warnings on the server. [Error and Validation Contract](./error-and-validation-contract) describes the `409` body.
+
+### Confirmation in object forms
+
+A create or update can fail with a `ConfirmationRequiredError` that carries a digest. `useObjectForm` then calls `onSubmissionWarningsRequireConfirmation`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionWarningsRequireConfirmation}, does three things in order:
+
+1. It clears the `server` code from the fields that the previous prompt warned about, so a changed warning set leaves no stale warnings.
+2. It ingests the new warnings into `messages`, so the fields show them behind the dialog.
+3. It opens the [`confirmation`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormInstance.confirmation} controller and waits for the user.
+
+On confirm, the form sends the same write once more, with the [digest]{@api js:property:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError.digest} in the `Acknowledge-Warnings` header. If the warnings changed in the meantime, the server returns a new digest and the form prompts again. On cancel, the form stays unsaved, the warnings stay on the fields, and [`submitErrored`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.submitErrored} is set.
+
+A `409` without a digest skips the prompt and goes to `onSubmissionError`. Its default returns `false`, so the error becomes `state.error`. A retry without the header would be gated again on every attempt.
+
+### Confirmation in action forms
+
+`useActionForm` runs the same flow with the same default hook. The [`onSubmissionWarningsRequireConfirmation`]{@api vue:component:ActionForm:prop:onSubmissionWarningsRequireConfirmation} prop replaces it. The automatic dry run never prompts and drops its `409`. A cancel marks the action form errored with no error, so no toast, banner, or redirect follows. Both composables build their controller with {@api js:function:@arrai-innovations/vueda/use/useConfirmationController#useConfirmationController}.
+
+### Dialog mounting and failing closed
+
+The controller needs a dialog bound to it. {@api vue:component:FormConfirmDialog} registers itself with its [`controller`]{@api vue:component:FormConfirmDialog:prop:controller} when it mounts. {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate} render one bound to the object form's controller. `ActionForm` renders its own, so {@api vue:component:ViewAction}, {@api vue:component:ViewDestroy}, and custom `ActionForm` shells need no extra markup.
+
+A shell that calls `useObjectForm` or `useActionForm` directly renders its own `FormConfirmDialog`. It can instead register a custom consumer with the controller's [`register()`]{@api js:property:@arrai-innovations/vueda/use/useConfirmationController#ConfirmationController.register}.
+
+When a prompt starts and no consumer is registered, the controller fails closed. It logs a console warning that names the missing dialog and resolves as cancelled. The write is not sent again, and the warnings stay on the fields.
+
+### Warnings and submit checks
+
+The pre-submit checks read only `errors`, so warnings never stop a submit. Each submit reaches the server, where the confirmation gate runs.
+
+`FormMessage` renders non-field warnings when its [`type`]{@api vue:component:FormMessage:prop:type} is `"message"`. `FormField` renders a field's warnings with a second `FieldMessage` whose [`severity`]{@api vue:component:FieldMessage:prop:severity} is `"warning"`.
+
+## Non-Field and Structured Feedback
+
+Form-level feedback uses the `non_field_errors` key, which the client holds as {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}. `FormMessage` reads `errors.non_field_errors` and renders every entry together. With `type` set to `"message"`, it reads `messages.non_field_errors` instead.
+
+A server error entry can be an object. [Error and Validation Contract](./error-and-validation-contract) describes when the client keeps an object whole. `FormMessage` renders such an object as one `name: value` line per key, and its [default slot]{@api vue:component:FormMessage:slot:default} replaces that rendering. Under a field key, `FieldMessage` renders only strings and objects with a `message` property. Other objects there show nothing. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) shows a custom renderer.
+
+`ActionForm` adds a validation summary for field errors that no rendered field shows. Each field reports through `useField` whether the reader can see its own error messages. The form collects the reports in `showsErrors`. The summary sits above the fields, beside the non-field messages, and lists only the errors whose path has no `true` entry in `showsErrors`:
+
+- an error on a field rendered with [`hidden`]{@api vue:component:FormField:prop:hidden}
+- an error on a field inside a collapsed inline field set
+- an error on a field whose renderer failed
+- an error on a path that no rendered field uses
+
+Each entry takes its name from `labels`. When no field registered a label, the entry takes its name from the path.
 
 ## Observable Failure Signatures
 
-**Stale server errors after editing without blur.** Server errors and messages persist until `clearServerErrors` is triggered by blur. If a value is changed programmatically or the user edits without leaving the field, the `server` code remains visible. The form may still submit (server errors are retryable), but the stale feedback can confuse users.
+**Stale server feedback after an edit without blur.** Server feedback stays until the field blurs. After a programmatic change, or while the user is still in the field, the old message stays visible. The form still submits, because `server` codes do not block it.
 
-**No transitive dependent traversal.** `clearServerErrors` clears only the field and the dependent paths passed to that call. It does not read dependents from those dependent fields and continue traversing a graph.
+**No transitive clearing.** `clearServerErrors` clears the field and the dependents named in that call. It does not follow the dependents' own `clearServerErrorDependents`.
 
-**Ignored array items not matching bracket-keyed errors.** Ignoring a base array field name (e.g., `items`) does not automatically ignore bracket-keyed error paths under it (e.g., `items[0].quantity`). The submission gating logic matches ignored prefixes using `.` separators, so `items` matches `items.something` but not `items[0].something`. This can leave the form blocked by errors on fields the developer intended to ignore.
+**Ignored arrays and item errors.** Ignoring `items` does not skip errors at `items[0].quantity` in `useObjectForm`'s pre-submit check, because children match only after a `.`. Those errors keep the form blocked. Ignoring the item path `items[0]` does skip them.
 
-**Non-400 responses bypassing form feedback.** The default adapters only parse HTTP 400 responses as `FormValidationError`. A server endpoint may return a validation-shaped payload with a different status code, for example a 500 from an unhandled exception. The form context stays empty unless a custom adapter converts that response to a `ServerFeedbackError` subclass. Otherwise the error surfaces through generic error handling.
-
-**Reserved-code violation (`server`).** Local attempts to write the `server` code now throw immediately. The typical signature is: `Error code "server" is reserved for server-originated validation and cannot be set from local validation...`. This protects submission gating semantics by preventing local validation from entering the retryable server namespace.
-
-## Relevant Implementation Surface
-
-- {@api js:module:@arrai-innovations/vueda/use/useForm}
-- {@api js:module:@arrai-innovations/vueda/use/useField}
-- {@api js:module:@arrai-innovations/vueda/use/useObjectForm}
-- {@api js:module:@arrai-innovations/vueda/use/useActionForm}
-- {@api js:module:@arrai-innovations/vueda/utils/errors}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#ServerFeedbackError}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}
-- {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
-- {@api js:property:@arrai-innovations/vueda/utils/constants#NON_FIELD_ERRORS_KEY}
-- {@api vue:component:ActionForm}
-- {@api vue:component:FormConfirmDialog}
-- {@api vue:component:FormMessage}
-- {@api vue:component:FieldMessage}
-- {@api vue:component:FieldDescription}
+**Validation-shaped bodies on other statuses.** The default write adapters build a `ServerFeedbackError` only from a `400` or a `409`. A validation-shaped body with another status, such as a `500`, leaves the form state empty. It surfaces through generic error handling unless a custom adapter raises a `ServerFeedbackError` subclass for it.
