@@ -133,7 +133,18 @@ describe("lib/stores/storeUser.js", () => {
             expect(store.pendingFlow).toEqual({ id: "reauthenticate" });
         });
 
-        scopedIt("keeps a sign-in flow in progress across an anonymous response", async () => {
+        scopedIt("resumes a sign-in waiting at a stage from an anonymous response", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ login_stage: "mfa_authenticate" });
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+
+            expect(store.loggedIn).toBe(false);
+            expect(store.pendingFlow).toEqual({ id: "mfa_authenticate" });
+        });
+
+        scopedIt("clears the pending flow when an anonymous response holds no stage", async () => {
             getUrl.mockReturnValue("/current/");
             fetchHelper.mockResolvedValue({});
 
@@ -141,8 +152,7 @@ describe("lib/stores/storeUser.js", () => {
             store.pendingFlow = { id: "mfa_authenticate" };
             await store.fetchCurrentUser();
 
-            expect(store.loggedIn).toBe(false);
-            expect(store.pendingFlow).toEqual({ id: "mfa_authenticate" });
+            expect(store.pendingFlow).toBeNull();
         });
     });
 

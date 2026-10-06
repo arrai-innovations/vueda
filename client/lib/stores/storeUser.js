@@ -128,7 +128,8 @@ export const storeUser = defineStore("user", {
         loggedIn: false,
         /**
          * The last who-is response: the user's `id`, `email`, `name`, `totp_devices`, and `recently_logged_in`.
-         * An empty object before the first response; an anonymous response carries no `id`.
+         * An empty object before the first response; an anonymous response carries no `id`, only `login_stage`
+         * while a sign-in waits at a stage on the server.
          *
          * @type {{[key: string]: *}}
          */
@@ -175,11 +176,13 @@ export const storeUser = defineStore("user", {
         /**
          * The allauth flow the user must complete next, or `null` when none is pending.
          *
-         * A 401 response sets it from the flows the response lists, such as `mfa_authenticate` during sign-in.
-         * For a signed-in user, each who-is response derives it: `null` while `recently_logged_in` is true,
-         * otherwise `mfa_reauthenticate` when the user has a two-factor device and must confirm a code, or
-         * `reauthenticate` when they must confirm their password. The reauthentication view renders the input
-         * for the flow and calls `twoFactorReauthenticate` or `reauthenticate` to complete it.
+         * A 401 response sets it from the flows the response lists, and each who-is response then sets it from
+         * the session. For an anonymous session that is the `login_stage` the server holds, such as
+         * `mfa_authenticate`, so a reload mid-sign-in resumes the two-factor step. For a signed-in user it is
+         * `null` while `recently_logged_in` is true, otherwise `mfa_reauthenticate` when the user has a
+         * two-factor device and must confirm a code, or `reauthenticate` when they must confirm their password.
+         * The reauthentication view renders the input for the flow and calls `twoFactorReauthenticate` or
+         * `reauthenticate` to complete it.
          *
          * @type {{id: string, is_pending?: boolean}|null}
          */
@@ -234,11 +237,13 @@ export const storeUser = defineStore("user", {
                     const previousPrincipalId = this.principalId;
                     this.loggedIn = !!user.id;
                     this.recentlyLoggedIn = user.recently_logged_in;
-                    // The server only counts a second factor from a user who has a device, so a stale session
-                    // owes that flow when devices exist and the password flow otherwise. An anonymous response
-                    // says nothing about a sign-in flow in progress, such as `mfa_authenticate`, so that stays.
                     if (user.id) {
+                        // The server only counts a second factor from a user who has a device, so a stale
+                        // session owes that flow when devices exist and the password flow otherwise.
                         this.pendingFlow = this.recentlyLoggedIn ? null : { id: reauthenticationFlowFor(user) };
+                    } else {
+                        // Only the server session knows whether a sign-in is waiting at a stage.
+                        this.pendingFlow = user.login_stage ? { id: user.login_stage } : null;
                     }
                     this.loggedInUser = user;
                     this.principalId = nextPrincipalId;

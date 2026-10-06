@@ -20,6 +20,7 @@ __all__ = (
 import json
 import operator
 
+from allauth.account.internal.stagekit import get_pending_stage
 from allauth.account.stages import LoginStageController
 from allauth.headless.account.views import LoginView
 from allauth.headless.account.views import ReauthenticateView
@@ -97,6 +98,13 @@ User = get_user_model()
 )
 @ensure_csrf_token
 class WhoIsView(RetrieveAPIView):
+    """
+    Describe the current session: the signed-in user through ``WhoIsSerializer``, or, for an anonymous
+    session, an empty object plus ``login_stage`` while allauth holds a sign-in waiting at a stage such as
+    ``mfa_authenticate``. The stage lives only in the server session, so the client reads it from here to
+    resume the sign-in after a reload.
+    """
+
     serializer_class = import_string(
         settings.REST_AUTH.get("USER_DETAILS_SERIALIZER", "vueda.user.serializers.WhoIsSerializer")
     )
@@ -105,7 +113,8 @@ class WhoIsView(RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         if isinstance(instance, AnonymousUser):
-            return Response({}, status=status.HTTP_200_OK)
+            stage = get_pending_stage(request)
+            return Response({"login_stage": stage.key} if stage else {}, status=status.HTTP_200_OK)
         return super().retrieve(request, *args, **kwargs)
 
     def get_object(self):

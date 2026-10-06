@@ -282,6 +282,27 @@ def totp_device(reauth_user):
 
 
 @pytest.mark.django_db
+def test_who_is_is_empty_for_an_anonymous_visitor(api_client):
+    response = api_client.get(reverse("who-is"), format="json")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response.data == {}
+
+
+@pytest.mark.django_db
+def test_who_is_names_the_login_stage_while_a_sign_in_waits_for_a_second_factor(api_client, totp_device):
+    login = api_client.post(
+        reverse("login2"), {"email": totp_device.user.email, "password": "test-pass"}, format="json"
+    )
+    assert login.status_code == HTTPStatus.UNAUTHORIZED, response_body(login)
+
+    response = api_client.get(reverse("who-is"), format="json")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response.data == {"login_stage": "mfa_authenticate"}
+
+
+@pytest.mark.django_db
 def test_who_is_reports_an_mfa_user_recent_only_after_a_second_factor(api_client, totp_device):
     api_client.force_login(totp_device.user)
 

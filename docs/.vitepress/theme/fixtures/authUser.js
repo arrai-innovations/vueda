@@ -49,7 +49,7 @@ export const MFA_ENROLLED = {
 /** storeUser state preset: credentials accepted, a second factor is now required. */
 export const MFA_PENDING = {
     loggedIn: false,
-    loggedInUser: {},
+    loggedInUser: { login_stage: AUTH_FLOW.MFA_AUTHENTICATE },
     initialized: true,
     pendingFlow: { id: AUTH_FLOW.MFA_AUTHENTICATE },
 };

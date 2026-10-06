@@ -114,7 +114,7 @@ The `requireRecentLogin` prop adds an additional check: the redirect only fires 
 
 ## MFA Flow Handling
 
-When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler picks the pending flow from the array and sets it as `pendingFlow`.
+When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler picks the pending flow from the array and sets it as `pendingFlow`. While that sign-in waits, the anonymous who-is response carries the stage as `login_stage`, and the store sets `pendingFlow` from it, so a page reload during the two-factor step resumes where it left off.
 
 `AuthorizingForm` watches `pendingFlow`. When it detects a flow with `id === "mfa_authenticate"`, it routes to the `2fa` named route. The login state remains `loggedIn: false` until MFA completes.
 
