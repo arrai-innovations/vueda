@@ -45,22 +45,26 @@ const notificationEmails = ref(["orders@example.com", "accounts@example.com"]);
 
 # Forms
 
-The form family covers the field shell that wraps every input, form-scope feedback, and compound form patterns. Three layers build on each other: the {@api vue:component:Field} family handles a single label/control/message stack; {@api vue:component:FieldGroup} composes multiple fields with consistent spacing and responsive orientation support; {@api vue:component:FormMessage} renders non-field (form-scope) errors as a consolidated Alert.
+This page shows the field shell, field and form feedback, and form layouts in the default theme. [Components](./index.md) describes the rules every component page shares.
 
-Token surface: {@api css-token:border}, {@api css-token:destructive}, {@api css-token:muted-foreground}, {@api css-token:ring}, {@api css-token:vueda-control-radius}.
+## Field shell
 
-This page is the visual contract the default theme guarantees. Use it as the target spec when you re-skin: every cell shown here should still read as the same surface after a customization, even if its color, density, or spacing shifts. If a cell breaks, the change has crossed from skin into design language.
+{@api vue:component:Field} is the layout container for one field. It holds a {@api vue:component:FieldLabel} and a {@api vue:component:FieldContent} column. The column stacks the control, an optional {@api vue:component:FieldDescription}, and any {@api vue:component:FieldMessage}. {@api vue:component:FieldGroup} stacks several fields with even spacing.
 
-For the mechanics of overriding any of this, see [Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). Values belong in [CSS tokens](../theming/tokens.md); compositions belong in [theme keys](../theming/keys.md).
+The [`orientation`]{@api vue:component:Field:prop:orientation} prop sets the layout:
 
-## Field shell: anatomy
+| Value                | Layout                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `vertical` (default) | Label above the content column.                                                                                                           |
+| `horizontal`         | Label beside the content column. The label width is capped so the content keeps room.                                                     |
+| `responsive`         | Vertical in a narrow `FieldGroup`, horizontal in a wide one. It needs a `FieldGroup` ancestor, because it responds to that group's width. |
 
-{@api vue:component:Field} is the layout container. It groups a {@api vue:component:FieldLabel}, a {@api vue:component:FieldContent} column (which holds the control, optional {@api vue:component:FieldDescription}, and any {@api vue:component:FieldMessage}), and an optional required indicator. The `orientation` prop switches between `vertical` (default), `horizontal`, and `responsive`.
+{@api vue:component:FormField}, the default {@term Form Field}, builds this shell from the field's label, help text, and messages. While the field's widget is disabled, `FormField` sets `data-disabled="true"` on the `Field`, and the label dims. For a required field it appends an asterisk to the label, hidden from assistive technology. The asterisk is part of `FormField`'s markup, so no theme key reaches it. To change the indicator, replace the label through the [`field(<name>)label`]{@api vue:component:FormField:slot:field(fieldName)label} slot, which receives `label` and `required`. The demo composes its chip and "optional" markers that way.
 
-Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}, {@api theme-key:FieldDescription}.
+Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key:FieldContent}, {@api theme-key:FieldDescription}, {@api theme-key:FieldGroup}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
-  <DemoCard title="vertical (default) — label above">
+  <DemoCard title="vertical (default) · label above">
     <FieldGroup>
       <Field orientation="vertical">
         <FieldLabel for="anat-v">
@@ -73,12 +77,8 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>default orientation</span>
-      <span>label: <code>FieldLabel</code> · content column: <code>FieldContent</code></span>
-    </template>
   </DemoCard>
-  <DemoCard title="horizontal — label left, flex-row">
+  <DemoCard title="horizontal · label beside content">
     <FieldGroup>
       <Field orientation="horizontal">
         <FieldLabel for="anat-h">
@@ -91,27 +91,19 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>label and content sit side by side</span>
-      <span>label uses a capped flex basis so content keeps room</span>
-    </template>
   </DemoCard>
-  <DemoCard title="responsive — vertical then horizontal at @md">
+  <DemoCard title="responsive · vertical when narrow, horizontal when wide">
     <FieldGroup>
       <Field orientation="responsive">
         <FieldLabel for="anat-r">Display name</FieldLabel>
         <FieldContent>
           <Input id="anat-r" model-value="Granger Holdings" />
-          <FieldDescription>Flip occurs at the <code>FieldGroup</code> <code>@md</code> container breakpoint.</FieldDescription>
+          <FieldDescription>Switches layout with the width of the enclosing <code>FieldGroup</code>.</FieldDescription>
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>uses container query <code>@md/field-group</code></span>
-      <span>parent must be a <code>FieldGroup</code> or equivalent container</span>
-    </template>
   </DemoCard>
-  <DemoCard title="required indicators — three options" class="lg:col-span-2">
+  <DemoCard title="required indicators · asterisk, chip, optional marker" class="lg:col-span-2">
     <FieldGroup class="gap-4">
       <Field>
         <FieldLabel for="req-a">
@@ -134,7 +126,7 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
       <Field>
         <FieldLabel for="req-c">
           Email
-          <span class="font-normal text-muted-foreground">— optional</span>
+          <span class="font-normal text-muted-foreground">(optional)</span>
         </FieldLabel>
         <FieldContent>
           <Input id="req-c" type="email" placeholder="ar@granger.example" />
@@ -142,12 +134,10 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>asterisk: <code>text-destructive</code> span inside label</span>
-      <span>chip: <code>border + rounded-vueda-control</code> slab · same 10px caps weight</span>
-      <span>optional marker: <code>font-normal text-muted-foreground</code></span>
+      <span><code>FormField</code> renders the asterisk; the chip and optional marker replace the label slot</span>
     </template>
   </DemoCard>
-  <DemoCard title="disabled label cascade">
+  <DemoCard title="disabled control">
     <FieldGroup>
       <Field>
         <FieldLabel for="dis-a">Customer code</FieldLabel>
@@ -157,19 +147,30 @@ Theme keys: {@api theme-key:Field}, {@api theme-key:FieldLabel}, {@api theme-key
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span><code>peer-disabled:opacity-50</code> cascades from the sibling input</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
-## Field: validation states
+## Field feedback
 
-{@api vue:component:FieldMessage} handles both error and warning severity beneath the control. Error messages render in `text-destructive`; warning messages render in amber. Multiple messages automatically switch to a bulleted list. The control's own state line comes from the `Input` theme key, not the field shell: `aria-invalid="true"` paints it destructive, and `data-warning="true"` paints it amber.
+`FieldMessage` shows a field's messages below the control. Its [`severity`]{@api vue:component:FieldMessage:prop:severity} prop sets the color and the ARIA role:
 
-Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destructive}, {@api css-token:warning}.
+| `severity`        | Color                        | Role     |
+| ----------------- | ---------------------------- | -------- |
+| `error` (default) | {@api css-token:destructive} | `alert`  |
+| `warning`         | {@api css-token:warning}     | `status` |
 
-{@api vue:component:FormField} accepts `hideLabel` when a surrounding layout already supplies the label. Help text, errors, and warnings still render below the control. {@api vue:component:FieldSetTabularInline} uses this mode because its column headers (or card headers on narrow screens) already name each field. The separate `hidden` prop continues to suppress the whole field shell, including messages.
+The [`messages`]{@api vue:component:FieldMessage:prop:messages} prop takes strings, arrays of strings, or objects with a `message` property. `FieldMessage` drops duplicates. One message renders as text; several render as a list. With no messages, nothing renders.
+
+`FormField` renders the field's errors, then its warnings, each through a `FieldMessage`. The control carries its own bottom edge line. `aria-invalid="true"` on the input marks the edge line invalid, and `data-warning="true"` marks it as a warning; an invalid state outranks a warning. [Inputs](./inputs.md) shows the focus, disabled, and read-only states of the input shell. The valid and loading cards below are compositions: `FormField` renders no valid or pending indicator.
+
+Two `FormField` props remove parts of the shell:
+
+- [`hideLabel`]{@api vue:component:FormField:prop:hideLabel} drops the label. Help text, errors, and warnings still render below the control. {@api vue:component:FieldSetTabularInline} sets it, because its column headers (or card headers on narrow screens) name each field.
+- [`hidden`]{@api vue:component:FormField:prop:hidden} renders the widget alone, with no label, help text, or messages. {@api vue:component:ActionForm} lists that field's errors in its validation summary.
+
+VUEDA ships no compact feedback indicator for tight layouts. The theme registry has a {@api theme-key:FormHiddenFeedback} key, but no component reads it, so its values have no visible effect.
+
+Theme keys: {@api theme-key:FieldMessage}, {@api theme-key:Input}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-3">
   <DemoCard title="default · untouched">
@@ -181,9 +182,6 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>rest: <code>--field</code> fill, bottom line <code>--field-line</code></span>
-    </template>
   </DemoCard>
   <DemoCard title="focused">
     <FieldGroup>
@@ -194,10 +192,6 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>full <code>--ring</code> edge returns on focus</span>
-      <span>ring: <code>--ring/30</code> · 2px · 2px offset</span>
-    </template>
   </DemoCard>
   <DemoCard title="filled / valid · trailing check">
     <FieldGroup>
@@ -214,8 +208,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>trailing status icon: absolute in relative wrapper</span>
-      <span>valid glyph: <code>text-success</code></span>
+      <span>composition: <code>FormField</code> renders no valid indicator</span>
     </template>
   </DemoCard>
   <DemoCard title="error · single message">
@@ -232,8 +225,8 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>single string: renders as inline text</span>
-      <span>field line: <code>hairline-destructive</code> via <code>aria-invalid</code></span>
+      <span>one message renders as text</span>
+      <span><code>aria-invalid</code> on the input marks the line invalid</span>
     </template>
   </DemoCard>
   <DemoCard title="error · multiple messages">
@@ -250,7 +243,7 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>multiple strings: renders as <code>ul</code> with <code>list-disc</code></span>
+      <span>several messages render as a list</span>
     </template>
   </DemoCard>
   <DemoCard title="warning · non-blocking">
@@ -259,13 +252,13 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
         <FieldLabel for="vs-warn">Tax ID</FieldLabel>
         <FieldContent>
           <Input id="vs-warn" model-value="12-3456789" data-warning="true" />
-          <FieldMessage severity="warning" :messages="['Format unfamiliar — saved as-is. Verify before posting invoices.']" />
+          <FieldMessage severity="warning" :messages="['Format unfamiliar; saved as-is. Verify before posting invoices.']" />
         </FieldContent>
       </Field>
     </FieldGroup>
     <template #footer>
-      <span><code>severity="warning"</code> → amber text · <code>role="status"</code></span>
-      <span>field line: <code>hairline-warning</code> via <code>data-warning</code> · ring untouched, and an <code>aria-invalid</code> error outranks it</span>
+      <span><code>severity="warning"</code> sets the warning color and <code>role="status"</code></span>
+      <span><code>data-warning</code> on the input marks the line; <code>aria-invalid</code> outranks it</span>
     </template>
   </DemoCard>
   <DemoCard title="disabled · non-editable">
@@ -278,10 +271,6 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>input: the <code>--disabled</code> fill replaces <code>--field</code>, the line softens to <code>--border</code>, and the ink is <code>--disabled-foreground</code></span>
-      <span>distinct from read-only beside it, which keeps no fill at all</span>
-    </template>
   </DemoCard>
   <DemoCard title="readonly · editable later">
     <FieldGroup>
@@ -293,9 +282,6 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
         </FieldContent>
       </Field>
     </FieldGroup>
-    <template #footer>
-      <span>readonly: no pointer cursor · no focus ring · value selectable</span>
-    </template>
   </DemoCard>
   <DemoCard title="loading · async validation · static specimen">
     <FieldGroup>
@@ -313,28 +299,33 @@ Theme keys: {@api theme-key:FieldMessage}. Token surface: {@api css-token:destru
       </Field>
     </FieldGroup>
     <template #footer>
-      <span>trailing spinner: absolute · <code>animate-spin</code></span>
-      <span>inline status line: <code>text-muted-foreground</code></span>
+      <span>composition: <code>FormField</code> renders no pending indicator</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## Form-level feedback
+## Form feedback
 
-{@api vue:component:FormMessage} renders non-field (form-scope) errors as a single {@api vue:component:Alert}. When multiple messages arrive, they appear as a list inside one Alert rather than a stack of separate alerts. The `type="message"` prop switches the Alert variant to `warning` for non-blocking feedback.
+{@api vue:component:FormMessage} renders the form's {@term Non-Field Error} messages as one {@api vue:component:Alert}. It reads them from the {@term Form Context} and renders nothing when there are none. Its [`type`]{@api vue:component:FormMessage:prop:type} prop picks the messages and the Alert variant:
 
-Theme key: {@api theme-key:FormMessage}. Token surface: {@api css-token:destructive}, {@api css-token:warning}.
+| `type`            | Messages           | Alert variant |
+| ----------------- | ------------------ | ------------- |
+| `error` (default) | Non-field errors   | `destructive` |
+| `message`         | Non-field warnings | `warning`     |
+
+One message renders as text inside the Alert. Several render as a list inside the same Alert. A message that is an object renders one `name: value` line per key. The default slot receives `message` and replaces how each message renders.
+
+Theme keys: {@api theme-key:FormMessage}, {@api theme-key:Alert}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="single non-field error · destructive Alert">
     <Alert variant="destructive">
       <FontAwesomeIcon :icon="faCircleExclamation" />
       <AlertTitle>Couldn't save</AlertTitle>
-      <AlertDescription>Server returned a conflict — this customer code is already in use.</AlertDescription>
+      <AlertDescription>Server returned a conflict: this customer code is already in use.</AlertDescription>
     </Alert>
     <template #footer>
-      <span>one error → single line inside Alert</span>
-      <span><code>FormMessage</code> wraps this pattern automatically</span>
+      <span>one message renders as text inside the Alert</span>
     </template>
   </DemoCard>
   <DemoCard title="multiple errors · single Alert with list">
@@ -350,37 +341,24 @@ Theme key: {@api theme-key:FormMessage}. Token surface: {@api css-token:destruct
       </AlertDescription>
     </Alert>
     <template #footer>
-      <span>multiple errors → one Alert · list inside description</span>
-      <span>avoids a wall of red from stacked separate alerts</span>
+      <span>several messages render as a list inside one Alert</span>
     </template>
   </DemoCard>
   <DemoCard title="warning summary · non-blocking">
     <Alert variant="warning">
       <FontAwesomeIcon :icon="faTriangleExclamation" />
       <AlertTitle>Saved with warnings</AlertTitle>
-      <AlertDescription>Tax ID format unfamiliar — saved as-is. Verify before posting invoices.</AlertDescription>
+      <AlertDescription>Tax ID format unfamiliar; saved as-is. Verify before posting invoices.</AlertDescription>
     </Alert>
     <template #footer>
-      <span><code>type="message"</code> on <code>FormMessage</code> → <code>warning</code> Alert variant</span>
-    </template>
-  </DemoCard>
-  <DemoCard title="FormHiddenFeedback stub · tabular inline cells">
-    <div class="flex items-center gap-2">
-      <Input model-value="grg" aria-invalid="true" class="w-40" />
-      <button type="button" class="inline-flex size-8 shrink-0 items-center justify-center rounded-vueda-control border border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="2 errors" title="2 errors">
-        <FontAwesomeIcon :icon="faCircleExclamation" class="text-sm" />
-      </button>
-    </div>
-    <p class="mt-2 text-xs text-muted-foreground">Used in tabular inline cells where there is no room for a message line. Opens a popover with the field errors. Final visuals belong with ObjectsGrid.</p>
-    <template #footer>
-      <span>icon-only trigger · popover deferred to ObjectsGrid pass</span>
+      <span><code>type="message"</code> selects the <code>warning</code> variant</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## Long-form layout: new customer
+## Long-form layout
 
-Section headers and a 2-column grid compose multi-section forms. A `vk-form-section-title` header groups related fields, and a divider separates sections. Repeating contact rows (FieldSet machinery) belong with the ObjectsGrid pass.
+This demo builds a multi-section form from plain section markup, grids, and the field shell. Each section has a titled header and a divider, and its fields sit in a grid that collapses to one column on narrow screens. VUEDA's layout components for the same structure are {@api vue:component:FormSection}, {@api vue:component:FormSectionTitle}, and {@api vue:component:FormGrid}; the demo does not use them.
 
 <VuedaDemo>
   <div class="rounded-vueda-card hairline hairline-border bg-card p-6">
@@ -422,9 +400,9 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
             <FieldLabel for="nc-ccy">Default currency <span aria-hidden="true" class="text-destructive">*</span></FieldLabel>
             <FieldContent>
               <NativeSelect id="nc-ccy">
-                <NativeSelectOption value="cad">CAD — Canadian Dollar</NativeSelectOption>
-                <NativeSelectOption value="usd">USD — US Dollar</NativeSelectOption>
-                <NativeSelectOption value="eur">EUR — Euro</NativeSelectOption>
+                <NativeSelectOption value="cad">CAD: Canadian Dollar</NativeSelectOption>
+                <NativeSelectOption value="usd">USD: US Dollar</NativeSelectOption>
+                <NativeSelectOption value="eur">EUR: Euro</NativeSelectOption>
               </NativeSelect>
             </FieldContent>
           </Field>
@@ -481,7 +459,7 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
     <section class="mb-6">
       <div class="mb-4 flex items-baseline gap-3 border-b-hairline pb-2">
         <h4 class="text-sm font-semibold text-foreground">Primary contact</h4>
-        <span class="text-xs text-muted-foreground">A FieldSet of additional contacts ships with the ObjectsGrid pass.</span>
+        <span class="text-xs text-muted-foreground">The person who receives invoices and statements.</span>
       </div>
       <FieldGroup>
         <div class="grid gap-4 sm:grid-cols-2">
@@ -520,19 +498,18 @@ Section headers and a 2-column grid compose multi-section forms. A `vk-form-sect
       <Button emphasis="ghost">Cancel</Button>
     </div>
   </div>
-  <template #footer>
-    <span>section header: <code>text-sm font-semibold</code> + border-b divider</span>
-    <span>2-col grid: <code>sm:grid-cols-2</code> · 3-col for address sub-row</span>
-    <span>action bar: <code>flex gap-2</code> · spacer pushes Cancel to trailing edge</span>
-  </template>
 </VuedaDemo>
 
 ## Auth patterns
 
-Auth forms use a centered card on a flat neutral surface. The login form uses a `w-[35rem]` card with standard field layout. The authorizing form (2FA, change password) uses the same card in a narrower configuration. Both are composed from the same field primitives as any other form — the difference is only the page shell.
+The auth views place their form in a framed card, with the same field shell as any other form. The sign-in and two-factor views use {@api vue:component:AuthorizingForm}, which centers the card in the viewport. The change-password, device setup, and recovery-code views use {@api vue:component:AuthForm}, which places the card at the top of the page, below the page title. Both cards have the same width cap.
+
+The demos below compose field primitives by hand, so they show the pattern and can differ from the shipped views. [Auth & MFA Views](./auth-and-mfa.md) shows the shipped views, and [Build Auth Views](../../guides/build-auth-views.md) describes the flows.
+
+Theme keys: {@api theme-key:AuthorizingForm}, {@api theme-key:AuthForm}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <DemoCard title="login — email + password + remember + SSO">
+  <DemoCard title="sign in · email, password, remember, SSO">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
       <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Sign in</h1>
@@ -582,12 +559,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </p>
       </div>
     </div>
-    <template #footer>
-      <span>card: <code>max-w-sm</code> · <code>p-8</code> · <code>bg-card</code></span>
-      <span>SSO divider: hairline + "or" label · no badge, no colour</span>
-    </template>
   </DemoCard>
-  <DemoCard title="2FA — OTP slot row + recovery link">
+  <DemoCard title="two-factor · code slots and recovery link">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
       <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8 text-center">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Verify it's you</h1>
@@ -617,12 +590,8 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
         </p>
       </div>
     </div>
-    <template #footer>
-      <span>OTP: centered with <code>justify-center</code> flex wrapper</span>
-      <span>same card shell as login · narrower text area</span>
-    </template>
   </DemoCard>
-  <DemoCard title="change password — current / new / confirm with error" class="lg:col-span-2">
+  <DemoCard title="change password · current, new, confirm with error" class="lg:col-span-2">
     <div class="flex items-start justify-center bg-muted/30 p-6 rounded-vueda-card">
       <div class="w-full max-w-sm rounded-vueda-card hairline hairline-border bg-card p-8">
         <h1 class="text-xl font-semibold leading-snug text-foreground">Change your password</h1>
@@ -665,15 +634,25 @@ Auth forms use a centered card on a flat neutral surface. The login form uses a 
       </div>
     </div>
     <template #footer>
-      <span>error on "confirm" field: <code>aria-invalid</code> + <code>FieldMessage</code></span>
-      <span>field error stays inline · no form-scope Alert needed for a single field</span>
+      <span>a field error renders under its field, with no form-level Alert</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## ActionForm: bulk action panel
+## Action form
 
-ActionForm sits inline above the list of selected records — no overlay, no drawer. It frames a summary of the action, the affected records, and confirm/cancel buttons. The theme keys map 1:1: `root`, `inner`, `list`, `buttons`. The form-scope feedback block (for dry-run failures) uses the same consolidated Alert pattern as any other form.
+`ActionForm` renders an action's confirmation form in the page flow. From top to bottom it shows:
+
+1. An error display for failed fetches and failed action runs.
+2. The form-scope feedback block: a `FormMessage` for non-field errors, a validation summary, and a `FormMessage` with `type="message"` for non-field warnings. The summary lists field errors that no rendered field shows, such as errors on `hidden` fields. The [`validation-summary`]{@api vue:component:ActionForm:slot:validation-summary} slot replaces the summary.
+3. The form body, from the [`action-form-inner`]{@api vue:component:ActionForm:slot:action-form-inner} slot.
+4. The action bar with the confirm and cancel buttons, from the [`action-bar`]{@api vue:component:ActionForm:slot:action-bar} slot.
+
+`ActionForm` disables the confirm button while the action runs and while the form has client-side validation errors. {@term Server Feedback}, including errors from a failed {@term Dry Run}, leaves it enabled. A {@term Warning Confirmation} opens a dialog over the form.
+
+{@api vue:component:ModelActionForm} wraps `ActionForm` for model actions. It adds a banner, the list of selected records, and the confirmation prompt inside the form body. The demos below are compositions of those parts.
+
+Theme keys: {@api theme-key:ActionForm}, {@api theme-key:ModelActionForm}.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
   <DemoCard title="send 4 invoices — confirm step">
@@ -714,8 +693,7 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
       </div>
     </div>
     <template #footer>
-      <span>inline panel · not an overlay or drawer</span>
-      <span>action verb in <code>text-primary-text</code> · record list as bordered table</span>
+      <span>renders in the page flow, with no overlay</span>
     </template>
   </DemoCard>
   <DemoCard title="with form-level error · dry-run failed">
@@ -739,47 +717,38 @@ ActionForm sits inline above the list of selected records — no overlay, no dra
         </Alert>
         <p class="text-sm text-muted-foreground">Resolve the listed problems and try again, or remove the affected invoices from your selection.</p>
         <div class="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" tone="primary" disabled>Yes, void all 2</Button>
+          <Button type="submit" tone="primary">Yes, void all 2</Button>
           <Button emphasis="ghost">Cancel, go back</Button>
         </div>
       </div>
     </div>
     <template #footer>
-      <span>consolidated Alert at top · submit stays but is <code>disabled</code></span>
-      <span>single Alert · list inside description · no stacked alerts</span>
+      <span>server errors leave the confirm button enabled</span>
+      <span>several messages render as a list inside one Alert</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## Customization surface
-
-The field shell is the most frequently customized part of VUEDA's theme. The highest-value keys for structural change are:
-
-- {@api theme-key:Field}: `root` — gap between label and content, flex direction per orientation, invalid color cascade.
-- {@api theme-key:FieldLabel}: `root` — font-weight, size, checked-state highlight on inline checkbox/radio labels.
-- {@api theme-key:FieldContent}: `root` — gap between control, description, and message lines.
-- {@api theme-key:FieldDescription}: `root` — text color, size, link decoration.
-- {@api theme-key:FieldMessage}: `root` — error text color; `list` — multi-message bullet list layout.
-- {@api theme-key:FormMessage}: `root` — margin around the consolidated Alert; `list` — list layout inside Alert.
-- {@api theme-key:FieldGroup}: `root` — gap between fields, container-query scope for responsive orientation.
-
 ## Repeated values: FieldSetMany
 
 {@api vue:component:FieldSetMany} edits a list of values, with Add and Remove
-controls. Every entry can be removed, including the first and last. An optional
+controls. You can remove any entry, including the first and last. An optional
 list can be empty; a required list reports a list-level error when empty.
 Each added entry requires a value. Read-only lists disable Add and Remove.
 
-The fieldset heading labels the list. Per-entry labels stay available to assistive
-technology, while the default theme visually hides them to avoid repeating the
-heading. Remove aligns with the top control row, so validation messages below an
-input do not move its button. The `rows`, `component`, and `removeButton` slots on
-{@api theme-key:FieldSetMany} control this layout.
+The fieldset heading labels the list. Per-entry labels stay available to
+assistive technology, and the default theme hides them visually so the heading
+is not repeated. Remove aligns with the first control row, so validation
+messages below an input do not move its button. The
+{@api theme-key:FieldSetMany.rows}, {@api theme-key:FieldSetMany.component},
+and {@api theme-key:FieldSetMany.removeButton} theme slots control this layout.
 
-This example uses `contextless` and `v-model` to keep its draft local to the demo.
-Inside a form, the component uses the array at its `name` path. Removing an entry
-shifts indexed feedback with the remaining values through
-{@api js:function:@arrai-innovations/vueda/use/useForm#useForm}'s `removeArrayItem(name, index)` method.
+This example sets [`contextless`]{@api vue:component:FieldSetMany:prop:contextless}
+and binds `v-model` to keep its draft local to the demo. Inside a form, the
+component edits the array at its `name` path. Removing an entry shifts indexed
+feedback with the remaining values, through the `removeArrayItem(name, index)`
+method of the form context that
+{@api js:function:@arrai-innovations/vueda/use/useForm#useForm} returns.
 
 <VuedaDemo>
   <DemoCard title="optional email list">
