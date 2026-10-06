@@ -69,7 +69,15 @@ const props = defineProps({
 // views resolves instead of warning. The sub-app root is the view itself (not a
 // RouterView), so navigating never unmounts the demo; only route and query move.
 const NOOP = { render: () => null };
-const ROUTE_NAMES = ["welcome", "sign-in", "2fa", "reauthenticate", "setup-device"];
+const ROUTE_NAMES = [
+    "welcome",
+    "sign-in",
+    "2fa",
+    "reauthenticate",
+    "setup-device",
+    "forgot-password",
+    "reset-password",
+];
 const ROUTES = [
     ...ROUTE_NAMES.map((name) => ({
         path: name === "welcome" ? "/" : `/${name}`,
@@ -87,8 +95,8 @@ onMounted(async () => {
         mountPoint: mountPoint.value,
         view: props.view,
         // Vue's attrs fallthrough carries themeOverride from the sub-app root all the way to
-        // AuthorizingForm, since ViewSignIn (and its siblings) declare no props of their own and
-        // don't set inheritAttrs: false.
+        // AuthorizingForm, since ViewSignIn, ViewForgotPassword, and ViewResetPassword declare
+        // no themeOverride prop and don't set inheritAttrs: false.
         viewProps: {
             ...props.viewProps,
             themeOverride: mergeTheme(AUTH_DEMO_THEME_OVERRIDE, props.viewProps.themeOverride),
