@@ -6,15 +6,6 @@ type: reference
 ---
 
 <script setup>
-import Button from "@vueda/controls/button/Button.vue";
-import Field from "@vueda/shell/field/Field.vue";
-import FieldContent from "@vueda/shell/field/FieldContent.vue";
-import FieldLabel from "@vueda/shell/field/FieldLabel.vue";
-import RadioGroup from "@vueda/controls/radio-group/RadioGroup.vue";
-import RadioGroupItem from "@vueda/controls/radio-group/RadioGroupItem.vue";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faClock, faEnvelope, faMessage } from "@fortawesome/free-regular-svg-icons";
-import { ref } from "vue";
 import {
   LOGGED_IN,
   LOGGED_OUT,
@@ -27,12 +18,20 @@ import {
 } from "../../.vitepress/theme/fixtures/authUser.js";
 import { SHOWCASE_DEVICE, seedShowcaseDevice } from "../../.vitepress/theme/fixtures/showcaseDevice.js";
 
-// Selected method in the segmented-picker design proposal below. The live views drive
-// their own method state; this ref exists only so the proposal card is clickable.
-const tfaMethod = ref("totp");
-
+const signInProps = { forgotPasswordTo: { name: "forgot-password" } };
 const signInAccepts = { login: (payload, store) => { store.loggedIn = true; } };
 const signInRejects = { login: () => { throw formError({ non_field_errors: ["Incorrect email or password."] }); } };
+
+const forgotPasswordAccepts = { forgotPassword: () => ({ detail: "Password reset e-mail has been sent." }) };
+
+const resetLinkProps = { pk: "1", token: "demo-token" };
+const resetPasswordAccepts = {
+  checkResetLinkIsValid: () => ({ detail: "Link is valid." }),
+  resetPassword: () => ({ detail: "Password has been reset." }),
+};
+const resetLinkRejected = {
+  checkResetLinkIsValid: () => { throw new Error("Invalid reset link."); },
+};
 
 const changePasswordProps = {
   header: "Change Password",
@@ -77,290 +76,276 @@ const setupDeviceRejects = {
 
 # Auth & MFA Views
 
-Five end-user-facing flows sharing one of two card recipes. **AuthForm** (`theme key: AuthForm`) frames a card below a page-level `PageTitle`, capped at `max-w-3xl` on the outer column and `35rem` on the card itself. **AuthorizingForm** (`theme key: AuthorizingForm`) centers its card both horizontally and vertically, with no `PageTitle`: the card is the whole screen.
+This page shows the seven account views in the default theme: sign in, forgot password, reset password, {@term Two-Factor Authentication}, device setup, change password, and recovery codes. Each view renders inside one of two card layouts, {@api vue:component:AuthorizingForm} or {@api vue:component:AuthForm}. [Build Auth Views](../../guides/build-auth-views.md) describes how the views route, submit, redirect, and report errors. [Components](./index.md) describes the rules every component page shares.
 
-Every flow on this page renders live through the `AuthDemo` harness, which mounts the real view in its own sub-app with an isolated user store and an in-memory router. Submitting exercises the real loading, validation, toast, and redirect paths. Neither card renders `PageTitle` itself, so the demos show the card alone; a real shell supplies the page title above it.
+Each demo mounts the real view with its own user store. The demo replaces the store actions that the view calls with offline stand-ins, so submitting shows the real loading, error, and toast states. Toasts from every demo appear in one overlay in the corner of the window, as in an app.
 
-Two sections carry a clearly-labeled **design proposal** card alongside the live demo. Those are hand-authored and are not renderings of the default theme; each names the backlog entry that tracks it.
+## Card layouts
 
-Token surface: `--background`, `--border`, `--muted-foreground`, `--ring`, `--destructive`, `--vueda-font-mono`.
+`AuthorizingForm` centers its card in the viewport, and the card's heading is the page heading. `AuthForm` places its card at the top of the content column, under the layout's page title. Its card heading reads as a section heading. Both cards use the same frame. Both pass submission to an inner {@api vue:component:ActionForm}. `AuthorizingForm` also handles the redirect after sign-in, and `AuthForm` handles {@term Reauthentication} redirects.
 
-## Chrome anatomy
-
-The two cards below are structural diagrams, not styled specimens: they label the regions and name the theme slot that owns each one. For the actual rendered chrome, read the live demos in the sections that follow, which are the source of truth for padding, fill, radius, and type.
+The cards below are diagrams that label each region. The live demos in the sections that follow show the rendered chrome.
 
 <VuedaDemo class="grid gap-6 lg:grid-cols-2">
-  <DemoCard title="AuthForm" description=" (column-aligned, page title above)">
-    <div class="flex flex-col gap-3">
-      <div class="border-b border-dashed border-border pb-2 text-center text-xs text-muted-foreground">PageTitle, a page-level sibling the layout owns</div>
-      <div class="flex flex-col gap-3 rounded border border-dashed border-border p-3">
-        <div class="text-center text-xs text-muted-foreground"><code>AuthForm.inner</code></div>
-        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>title</code>: header + subTitle</div>
-        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">ActionForm fields</div>
-        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>ActionForm.buttons</code></div>
-      </div>
-    </div>
-    <template #footer>
-      <span><code>outer</code> caps the column at <code>max-w-3xl</code>; <code>inner</code> is <code>p-8</code> on <code>bg-background</code>, capped at <code>35rem</code> from <code>sm</code> up</span>
-      <span><code>header</code> is <code>text-heading</code>; it reads as a section head because a PageTitle sits above the card</span>
-      <span>used by: ChangePassword, SetupDevice, RecoveryCodes</span>
-    </template>
-  </DemoCard>
-  <DemoCard title="AuthorizingForm" description=" (centered, no page title)">
+  <DemoCard title="AuthorizingForm" description="centered, card heading is the page heading">
     <div class="flex min-h-44 items-center justify-center rounded border border-dashed border-border bg-muted/10">
       <div class="flex w-60 flex-col gap-3 rounded border border-dashed border-border p-3">
         <div class="text-center text-xs text-muted-foreground"><code>AuthorizingForm.inner</code></div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>title</code>: header + subTitle</div>
         <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">ActionForm fields</div>
-        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>ActionForm.buttons</code></div>
+        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">action bar (view-supplied)</div>
+        <div class="flex h-6 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>suffix</code> slot: links</div>
       </div>
     </div>
     <template #footer>
-      <span><code>root</code> is <code>flex min-h-svh justify-center items-center</code>, so the card centers against the viewport rather than the content flow</span>
-      <span>the docs harness cancels <code>min-h-svh</code> for the inline demos; a real page keeps it</span>
-      <span>used by: SignIn, TwoFactorAuth</span>
+      <span>the card centers against the viewport; the demos on this page cancel the viewport-height fill so the card sits inline</span>
+      <span>used by: ViewSignIn, ViewForgotPassword, ViewResetPassword, ViewTwoFactorAuth</span>
+    </template>
+  </DemoCard>
+  <DemoCard title="AuthForm" description="top of the column, page title above">
+    <div class="flex flex-col gap-3">
+      <div class="border-b border-dashed border-border pb-2 text-center text-xs text-muted-foreground">page title, rendered by the layout</div>
+      <div class="flex flex-col gap-3 rounded border border-dashed border-border p-3">
+        <div class="text-center text-xs text-muted-foreground"><code>AuthForm.inner</code></div>
+        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground"><code>title</code>: header + subTitle</div>
+        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">ActionForm fields</div>
+        <div class="flex h-8 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">action bar (ActionForm buttons or view-supplied)</div>
+      </div>
+    </div>
+    <template #footer>
+      <span>the card heading is a section heading under the page title</span>
+      <span>used by: ViewChangePassword, ViewSetupDevice, ViewRecoveryCodes</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
-## SignIn
+Theme keys: {@api theme-key:AuthorizingForm} and {@api theme-key:AuthForm}. {@api theme-key:AuthorizingForm.inner} and {@api theme-key:AuthForm.inner} set the card frame, and {@api theme-key:AuthorizingForm.header} and {@api theme-key:AuthForm.header} set the heading type.
 
-`ViewSignIn` is the default sign-in view: an email and password form in an `AuthorizingForm` card. Post-login routing and MFA pending-flow detection come from `AuthorizingForm` (via `useSignInFlow`); submission, loading, and server-side validation mapping come from the inner `ActionForm`. Unlike the cards above, these demos render the **live component** through the `AuthDemo` harness, so submitting exercises the real loading, toast, and error paths. The first demo hosts a single `Sonner`; because the toast store is global, every demo on this page surfaces its toasts through that one corner overlay, as in a real app.
+## ViewSignIn
+
+{@api vue:component:ViewSignIn} is an `AuthorizingForm` card with an email field and a password field. One full-width "Sign In" button sits in a strip across the bottom of the form. While the request runs, the button shows a spinner and ignores clicks. A rejected sign-in shows a {@term Non-Field Error} above the fields, and the button stays enabled so the user can try again.
+
+The [`forgotPasswordTo`]{@api vue:component:ViewSignIn:prop:forgotPasswordTo} prop adds a "Forgot password?" link below the form. Without it, no link shows. The first demo sets it.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · credentials accepted. Submit to see the loading state, then the "Signed In" success toast.</header>
-  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInAccepts" toasts />
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Credentials accepted. Submit to see the loading state, then the "Signed In" toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :view-props="signInProps" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInAccepts" toasts />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>AuthorizingForm centers the card; <code>ViewSignIn</code> supplies the email and password fields plus a single primary "Sign In" submit</span>
-    <span>theme key: <code>AuthorizingForm</code> · source: <code>ViewSignIn.vue</code></span>
+    <span>one primary submit; a sign-in form has nothing to cancel back to</span>
+    <span>the "Forgot password?" link shows because the demo sets <code>forgotPasswordTo</code></span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invalid credentials. Submit to see the form-scope error and the failure toast.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invalid credentials. Submit to see the form-level error above the fields.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewSignIn.vue')" :state="LOGGED_OUT" route-name="sign-in" :mocks="signInRejects" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>a server <code>non_field_errors</code> response maps to the ActionForm form-scope error; <code>action-error-summary</code> drives the toast</span>
+    <span>the server's <code>non_field_errors</code> message renders as an error alert above the fields</span>
+    <span>no "Forgot password?" link: this demo leaves <code>forgotPasswordTo</code> unset</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-## ChangePassword
+## ViewForgotPassword
 
-`ViewChangePassword` puts three password fields in an `AuthForm` card: current password, new password, and confirmation. The fields are `FormField` rows wrapping `WidgetTextInput`, not hand-placed `Field` primitives, so they pick up the same validation wiring as any model form. The heading and subtitle come from `AuthForm`'s `header` and `subTitle` props, which the layout supplies. A page-level `PageTitle` sits above the card in a real shell (see [Chrome anatomy](#chrome-anatomy)); the card below is what the view itself renders.
+{@api vue:component:ViewForgotPassword} is an `AuthorizingForm` card with one email field and a full-width "Send Reset Link" button. A "Back to sign in" link sits below the form and goes to the [`signInTo`]{@api vue:component:ViewForgotPassword:prop:signInTo} route.
 
-Submission, loading, per-field error mapping, and form-scope error reporting all come from the inner `ActionForm`. Both demos render the live view through the `AuthDemo` harness, so submitting exercises the real paths.
+A successful request shows a "Check Your Email" toast. The toast does not say whether an account uses the address, because the server answers the same way either way. Validation errors from the server show in the form. A failed request shows a "Reset Link Not Sent" toast.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Default · accepted. Submit to see the loading state, then the cleared form.</header>
-  <AuthDemo :view="() => import('@vueda/views/ViewChangePassword.vue')" :view-props="changePasswordProps" :state="LOGGED_IN" route-name="welcome" :mocks="changePasswordAccepts" />
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Request accepted. Enter an email and submit to see the loading state, then the "Check Your Email" toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewForgotPassword.vue')" :state="LOGGED_OUT" route-name="forgot-password" :mocks="forgotPasswordAccepts" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>card: <code>AuthForm.inner</code> is <code>p-8</code> on <code>bg-background</code>, capped at <code>35rem</code> from <code>sm</code> up</span>
-    <span>heading: <code>AuthForm.header</code> uses <code>text-heading</code>; it reads as a section head because a PageTitle sits above it</span>
-    <span>buttons: ActionForm's default pair, "Yes, continue" and "Cancel, go back", until the view overrides the labels</span>
-    <span>theme keys: <code>AuthForm</code>, <code>ActionForm</code> · source: <code>ViewChangePassword.vue</code></span>
+    <span>the same single-button strip as ViewSignIn; the form stays in place after the toast</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
+## ViewResetPassword
+
+{@api vue:component:ViewResetPassword} is the page that a password reset email links to. Its route passes the link's [`pk`]{@api vue:component:ViewResetPassword:prop:pk} and [`token`]{@api vue:component:ViewResetPassword:prop:token} as props. The view is an `AuthorizingForm` card with a new password field, a confirmation field, and a full-width "Reset Password" button.
+
+On mount the view asks the server whether the link is valid. The form shows while the check runs. When the server rejects the link, an "Invalid Reset Link" message replaces the card, with a "Request a new link" button and a "Sign in" link. The message renders without the card frame. The [`invalid-message`]{@api vue:component:ViewResetPassword:slot:invalid-message} slot replaces it.
+
+A successful reset shows a "Password Reset" toast and goes to the [`signInTo`]{@api vue:component:ViewResetPassword:prop:signInTo} route. The demo's in-memory router keeps the form on screen after that navigation.
+
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Error · confirm mismatch. Submit to see the per-field message under the confirmation field.</header>
-  <AuthDemo :view="() => import('@vueda/views/ViewChangePassword.vue')" :view-props="changePasswordProps" :state="LOGGED_IN" route-name="welcome" :mocks="changePasswordRejects" />
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valid link. Enter a new password twice and submit to see the "Password Reset" toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewResetPassword.vue')" :view-props="resetLinkProps" :state="LOGGED_OUT" route-name="reset-password" :mocks="resetPasswordAccepts" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>a server field-error response maps onto the named field; the confirm row shows its own message</span>
-    <span>summary: <code>ActionForm.validation</code> stays hidden here because every error shows beside its field; it renders a danger-toned block above the first field only for errors no rendered field shows</span>
-    <span>the submit button disables itself while <code>formContext.state.anyError</code> holds, so the guard is form-level, not decoration</span>
+    <span>the same single-button strip as ViewSignIn; the link check has already passed when the demo settles</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-## TwoFactorAuth
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rejected link. The form shows while the check runs, then the invalid-link message replaces it.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewResetPassword.vue')" :view-props="resetLinkProps" :state="LOGGED_OUT" route-name="reset-password" :mocks="resetLinkRejected" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>"Request a new link" goes to <code>forgotPasswordTo</code>; "Sign in" goes to <code>signInTo</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
 
-`ViewTwoFactorAuth` runs in an `AuthorizingForm` card: the user holds a session token but the server demands a second factor. The view fetches the account's verified methods on mount, renders a method field, and reveals the OTP grid only once a method is chosen. For `sms` and `email` it adds a send-code button with a 60-second cooldown; a recovery-code toggle swaps the OTP grid for a single mono text input.
+## ViewTwoFactorAuth
 
-All of that is one interactive component, so the demo below is one live mount rather than a set of frozen states. Pick a method, send a code, watch the cooldown chip count down, and toggle into the recovery path.
+{@api vue:component:ViewTwoFactorAuth} is an `AuthorizingForm` card shown after the password step passes, while the server waits for a second factor. It lists the account's verified methods in a {@api vue:component:WidgetSelectDropdown}, with each label in upper case. Choosing a method reveals a six-slot {@api vue:component:WidgetOTPInput} for the code. The method field is a dropdown; [#427](https://github.com/arrai-innovations/vueda/issues/427) tracks a card-based picker.
+
+The buttons stack in one column under the fields:
+
+- For `sms` and `email`, a Send button requests a code. After a send, it is disabled and shows a countdown chip for 60 seconds.
+- "Verify" is the primary submit. It stays disabled until a code is entered.
+- "Use a recovery code" swaps the method and code fields for one monospaced text input. In that state the button reads "Back to verified methods" and swaps them back.
+
+A rejected code shows its error under the code field.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live · three verified methods. Pick one to reveal the OTP grid; pick SMS or email to enable Send.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Three verified methods. Pick one to reveal the code input; pick SMS or email to enable Send.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewTwoFactorAuth.vue')" :state="MFA_PENDING" route-name="2fa" :mocks="twoFactorAccepts" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>method field: <code>WidgetSelectDropdown</code> over the fetched methods, uppercased for the option labels</span>
-    <span>the OTP grid is gated on a chosen method; Verify stays disabled until a code is entered</span>
-    <span>buttons: <code>ViewTwoFactorAuth.buttons</code> stacks the resend / verify / recovery trio in one column with a 16px top inset</span>
-    <span>cooldown: <code>ViewTwoFactorAuth.cooldownChip</code> is a <code>rounded-full bg-muted/70</code> pill with <code>tabular-nums</code> so the digits stay aligned while ticking</span>
-    <span>recovery path: <code>ViewTwoFactorAuth.recoveryInput</code> applies <code>font-mono tracking-[0.04em]</code> to the plain text input that replaces the grid</span>
-    <span>theme keys: <code>AuthorizingForm</code>, <code>ViewTwoFactorAuth</code> · source: <code>ViewTwoFactorAuth.vue</code></span>
+    <span>the countdown chip keeps its digits aligned while it ticks</span>
+    <span>the recovery toggle sits at the start of the column, apart from the Verify button</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rejected code. Enter any code and verify to see the failure path and its toast.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rejected code. Pick a method, enter any code, and verify to see the error under the code field.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewTwoFactorAuth.vue')" :state="MFA_PENDING" route-name="2fa" :mocks="twoFactorRejects" />
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span><code>action-error-summary</code> on the AuthorizingForm drives the toast text; the field error lands on the code row</span>
-  </footer>
 </VuedaDemo>
 </ClientOnly>
 
-### Design proposal: segmented method picker
+Theme keys: {@api theme-key:ViewTwoFactorAuth}. {@api theme-key:ViewTwoFactorAuth.buttons} stacks the buttons, {@api theme-key:ViewTwoFactorAuth.cooldownChip} styles the countdown, {@api theme-key:ViewTwoFactorAuth.recoveryToggle} places the toggle, and {@api theme-key:ViewTwoFactorAuth.recoveryInput} styles the recovery-code input.
 
-Not shipped. The card below is a proposal, not a rendering of the default theme: it replaces the method dropdown with a segmented rail of option cards carrying a per-option icon and a sub-line (the authenticator app, the masked phone, the email address). It removes a click and reads as the primary decision on the screen instead of a form row.
+## ViewSetupDevice
 
-It is blocked on one primitive-level choice: a new `WidgetSegmentedRadio`, or a `variant="rail"` mode on `WidgetRadioGroup`. `WidgetRadioGroup` cannot express the rail recipe through theme keys alone, because per-option icons, sub-lines, and the group's selected-option chrome need structural template changes plus accessibility plumbing. `ViewSetupDevice` needs the same control, so the choice is taken once and applied to both.
+{@api vue:component:ViewSetupDevice} is a three-step enrollment flow in an `AuthForm` card: Choose, Verify, and Done. It takes required [`app`]{@api vue:component:ViewSetupDevice:prop:app} and [`model`]{@api vue:component:ViewSetupDevice:prop:model} props and reads its method choices from that model's config through {@api js:function:@arrai-innovations/vueda/use/useModelConfig#useModelConfig}. The demo seeds a small device model into its store for this.
 
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proposal · hand-authored. Compare against the live dropdown above.</header>
-  <div class="flex items-center justify-center overflow-clip rounded-vueda-card hairline hairline-border bg-muted/10 px-4 py-10">
-    <div class="flex w-full max-w-sm flex-col gap-5 rounded-vueda-card hairline hairline-border bg-card p-6">
-      <Field orientation="vertical">
-        <FieldLabel>Method</FieldLabel>
-        <FieldContent>
-          <RadioGroup v-model="tfaMethod" class="grid grid-cols-3 gap-2">
-            <div :class="tfaMethod === 'totp' ? 'border-primary bg-primary/5' : 'border-border bg-card'" class="flex cursor-pointer flex-col items-center gap-1.5 rounded-vueda-control border p-3 text-center transition-colors" @click="tfaMethod = 'totp'">
-              <RadioGroupItem id="tfa-totp" value="totp" class="sr-only" />
-              <FontAwesomeIcon :icon="faClock" class="text-sm text-muted-foreground" />
-              <span class="text-xs font-semibold leading-tight">Authenticator</span>
-              <span class="text-[11px] leading-tight text-muted-foreground">1Password</span>
-            </div>
-            <div :class="tfaMethod === 'sms' ? 'border-primary bg-primary/5' : 'border-border bg-card'" class="flex cursor-pointer flex-col items-center gap-1.5 rounded-vueda-control border p-3 text-center transition-colors" @click="tfaMethod = 'sms'">
-              <RadioGroupItem id="tfa-sms" value="sms" class="sr-only" />
-              <FontAwesomeIcon :icon="faMessage" class="text-sm text-muted-foreground" />
-              <span class="text-xs font-semibold leading-tight">SMS</span>
-              <span class="text-[11px] leading-tight text-muted-foreground">···· 0413</span>
-            </div>
-            <div :class="tfaMethod === 'email' ? 'border-primary bg-primary/5' : 'border-border bg-card'" class="flex cursor-pointer flex-col items-center gap-1.5 rounded-vueda-control border p-3 text-center transition-colors" @click="tfaMethod = 'email'">
-              <RadioGroupItem id="tfa-email" value="email" class="sr-only" />
-              <FontAwesomeIcon :icon="faEnvelope" class="text-sm text-muted-foreground" />
-              <span class="text-xs font-semibold leading-tight">Email</span>
-              <span class="text-[11px] leading-tight text-muted-foreground">ada@example.com</span>
-            </div>
-          </RadioGroup>
-        </FieldContent>
-      </Field>
-    </div>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>selected option: <code>border-primary bg-primary/5</code>; the whole card is the click target, the radio itself is <code>sr-only</code></span>
-    <span>the sub-line needs data the current-user payload does not carry yet, so the control and its content are separate pieces of work</span>
-  </footer>
-</VuedaDemo>
+A step track above the fields shows progress. Upcoming steps are dimmed, the current step's number is filled, and a finished step shows a check in place of its number. Each step shows:
 
-## SetupDevice
+- **Choose:** a method dropdown and a "Choose Device" button. Choosing email or SMS reveals a destination field: an email address or a phone number.
+- **Verify:** the method and destination fields are disabled, a six-slot code input appears, and the button reads "Verify Device". For the authenticator app, a QR code and a manual key strip show the secret so a user without a camera can type it.
+- **Done:** a completion panel with a check icon, "Device added", and a short description replaces the fields, and the button reads "Continue".
 
-`ViewSetupDevice` is a three-step enrolment flow in an `AuthForm` card: choose a method, verify the device with a one-time code, then a confirmation panel. It takes required `app` and `model` props and reads its method choices from `useModelConfig`, so the demo seeds a small device model into the mounted store rather than passing the options in.
-
-The view owns a visible step track (`ViewSetupDevice.steps`, `step`, `stepNum`, `stepLabel`, `stepDivider`) that advances as `step` moves through Choose, Verify, and Done. Completed steps swap their number for a check glyph. Note that the track is built from these dedicated slots and not from the `Stepper` family documented on [Containers](./containers.md); reconciling the two is open Track F work, since the same visual pattern currently has two implementations.
-
-Choosing `email` or `sms` reveals a destination field and sends a code on submit. Choosing the authenticator app instead returns a QR and a manual key, both rendered from the setup response.
+A rejected code keeps the flow at Verify and shows the error under the code field.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live · walk all three steps. Authenticator app returns a QR and manual key; email and SMS reveal a destination field.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Walk all three steps. The authenticator app returns a QR code and manual key; email and SMS reveal a destination field.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewSetupDevice.vue')" :view-props="setupDeviceProps" :state="LOGGED_IN" route-name="setup-device" :seed="seedShowcaseDevice" :mocks="setupDeviceAccepts" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>step track: <code>ViewSetupDevice.step</code> routes <code>data-state</code> through <code>upcoming</code>, <code>current</code>, and <code>done</code>; the done state replaces the number with the registry <code>check</code> icon</span>
-    <span>the method field is a real <code>WidgetSelectDropdown</code> over the seeded choices, and it disables itself once the flow reaches Verify</span>
-    <span>manual key: <code>ViewSetupDevice.manualKeyValue</code> renders the secret beside the QR so a user without a camera can still enrol</span>
-    <span>done panel: <code>ViewSetupDevice.done</code> plus <code>doneIcon</code>, <code>doneTitle</code>, <code>doneDescription</code>, <code>doneActions</code></span>
-    <span>theme keys: <code>AuthForm</code>, <code>ActionForm</code>, <code>ViewSetupDevice</code> · source: <code>ViewSetupDevice.vue</code></span>
+    <span>the method field disables itself once the flow reaches Verify</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rejected verification code. Reach Verify, then submit a code to see the failure land on the code field.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rejected verification code. Reach Verify, then submit a code to see the error under the code field.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewSetupDevice.vue')" :view-props="setupDeviceProps" :state="LOGGED_IN" route-name="setup-device" :seed="seedShowcaseDevice" :mocks="setupDeviceRejects" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>the flow holds at Verify on failure; the step track does not advance until the server accepts the code</span>
+    <span>the step track stays at Verify until the server accepts the code</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
-## RecoveryCodes
+Theme keys: {@api theme-key:ViewSetupDevice}.
 
-`ViewRecoveryCodes` sits in an `AuthForm` card and gates its whole body on whether the account has a TOTP device enrolled. With a device, it fetches the unused codes on mount and renders them as a numbered list with download, print, and copy-all controls, plus a regenerate submit. Without one, it renders a single warning telling the user to add a second factor first.
+- Step track: {@api theme-key:ViewSetupDevice.steps}, {@api theme-key:ViewSetupDevice.step}, {@api theme-key:ViewSetupDevice.stepNum}, {@api theme-key:ViewSetupDevice.stepLabel}, and {@api theme-key:ViewSetupDevice.stepDivider}. Each step's `data-state` is `upcoming`, `current`, or `done`.
+- Manual key: {@api theme-key:ViewSetupDevice.manualKey}, {@api theme-key:ViewSetupDevice.manualKeyLabel}, and {@api theme-key:ViewSetupDevice.manualKeyValue}.
+- Completion panel: {@api theme-key:ViewSetupDevice.done}, {@api theme-key:ViewSetupDevice.doneIcon}, {@api theme-key:ViewSetupDevice.doneTitle}, and {@api theme-key:ViewSetupDevice.doneDescription}.
 
-Regenerating is the form's action, so it runs through `ActionForm` like any other submit: the button shows the inline spinner while in flight, and the success handler swaps the list for the new codes and raises a toast.
+## ViewChangePassword
+
+{@api vue:component:ViewChangePassword} is an `AuthForm` card with three password fields: current, new, and confirmation. Each is a {@api vue:component:FormField} around a {@api vue:component:WidgetTextInput}, so it shows labels and errors the same way as any model form. The card heading and subtitle come from `AuthForm`'s [`header`]{@api vue:component:AuthForm:prop:header} and [`subTitle`]{@api vue:component:AuthForm:prop:subTitle} props, which the demo passes.
+
+The buttons are `ActionForm`'s default pair, "Yes, continue" and "Cancel, go back". A field error from the server shows under its field. The validation summary above the fields appears only for errors that no rendered field shows.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live · device enrolled. Copy All flips its label; Generate replaces the list and toasts.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Accepted. Submit to see the loading state, then the "Action Succeeded" toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewChangePassword.vue')" :view-props="changePasswordProps" :state="LOGGED_IN" route-name="welcome" :mocks="changePasswordAccepts" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>with no return path or redirect set, the form stays in place and accepts input again</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Confirmation mismatch. Submit to see the error under the confirmation field.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewChangePassword.vue')" :view-props="changePasswordProps" :state="LOGGED_IN" route-name="welcome" :mocks="changePasswordRejects" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>the validation summary stays hidden because the error shows beside its field</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+Theme keys: {@api theme-key:AuthForm} and {@api theme-key:ActionForm}. {@api theme-key:ActionForm.buttons} lays out the button pair, and {@api theme-key:ActionForm.validation} styles the validation summary.
+
+## ViewRecoveryCodes
+
+{@api vue:component:ViewRecoveryCodes} is an `AuthForm` card whose content depends on whether the signed-in user has a two-factor device.
+
+With a device, the card shows the unused codes in a bordered panel:
+
+- A warning {@api vue:component:Alert} says each code works once.
+- The codes form a numbered, two-column monospaced list.
+- Download, Print, and Copy All buttons sit under the list. Copy All reads "Copied!" after a copy.
+- An action bar below the panel explains regeneration and holds a "Generate new recovery codes" button and a "Go Back" button. Generating replaces the list and shows a toast.
+
+Printing the page leaves out the warning, the buttons, and the action bar, so the printout shows the codes.
+
+The recovery-codes endpoint returns the unused codes and the code counts but does not identify used codes, so the list shows only unused codes ([#428](https://github.com/arrai-innovations/vueda/issues/428)).
+
+Without a device, a warning alert asks the user to set up two-factor first. The action bar then holds a "Set up a device" button and a "Go Back" button.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Device enrolled. Copy All changes its label; Generate replaces the list and shows a toast.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewRecoveryCodes.vue')" :state="MFA_ENROLLED" route-name="welcome" :mocks="recoveryCodesAccepts" />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>list: <code>ViewRecoveryCodes.listItem</code> is a <code>grid-cols-[22px_1fr]</code> row, so every code aligns on one baseline whatever the index width</span>
-    <span>codes are mono at 14px with a letter-spacing bump so a dashed code reads as machine-input</span>
-    <span>the warning above the list is a real <code>Alert variant="warning"</code>, not a hand-toned strip</span>
-    <span>saving controls are outline buttons at <code>size="sm"</code>; Copy All swaps to "Copied!" from <code>useClipboard</code></span>
-    <span>theme keys: <code>AuthForm</code>, <code>ActionForm</code>, <code>ViewRecoveryCodes</code> · source: <code>ViewRecoveryCodes.vue</code></span>
+    <span>every code aligns on one column whatever the width of its index</span>
   </footer>
 </VuedaDemo>
 </ClientOnly>
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live · no device enrolled. The codes panel and its action bar are both withheld.</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">No device enrolled. A set-up prompt replaces the codes panel and the regenerate bar.</header>
   <AuthDemo :view="() => import('@vueda/views/ViewRecoveryCodes.vue')" :state="LOGGED_IN" route-name="welcome" :mocks="recoveryCodesAccepts" />
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>the gate is <code>loggedInUser.totp_devices</code>, so the view never shows an empty list where codes would go</span>
-    <span>the action bar is withheld too: there is nothing to regenerate until a device exists</span>
-  </footer>
 </VuedaDemo>
 </ClientOnly>
 
-### Design proposal: mark redeemed codes
+Theme keys: {@api theme-key:ViewRecoveryCodes}.
 
-Not shipped. The card below is a proposal, not a rendering of the default theme. It keeps every code listed for transparency and strikes through the ones already redeemed, so the remaining count is readable at a glance instead of inferred.
-
-It is blocked on the server: the recovery-codes endpoint returns unused codes only, so the client has nothing to mark. Once used codes are exposed, the realized shape is a `data-used="true"` variant on {@api theme-key:ViewRecoveryCodes.listItem} rather than the hand-authored row below.
-
-<VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Proposal · hand-authored. 3 of 8 redeemed.</header>
-  <div class="flex flex-col gap-3 rounded-vueda-card hairline hairline-border bg-background p-6">
-    <strong>Unused Recovery codes:</strong>
-    <ol class="grid grid-cols-2 gap-x-6 gap-y-1 rounded-vueda-control hairline hairline-border bg-muted/10 p-3">
-      <li class="flex items-center gap-2 font-mono text-sm text-muted-foreground line-through"><span class="w-4 shrink-0 text-right text-xs">1.</span>rt3m-9kdq-pzn4</li>
-      <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">2.</span>4j2s-bvxm-twc8</li>
-      <li class="flex items-center gap-2 font-mono text-sm text-muted-foreground line-through"><span class="w-4 shrink-0 text-right text-xs">3.</span>h8nq-zd7r-yfa1</li>
-      <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">4.</span>m6kx-3pw2-l9eu</li>
-      <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">5.</span>cr5v-jbn4-xaw7</li>
-      <li class="flex items-center gap-2 font-mono text-sm text-muted-foreground line-through"><span class="w-4 shrink-0 text-right text-xs">6.</span>q1zd-ph8t-ekm3</li>
-      <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">7.</span>w0fy-72ng-srt6</li>
-      <li class="flex items-center gap-2 font-mono text-sm"><span class="w-4 shrink-0 text-right text-xs text-muted-foreground">8.</span>xb9c-uea4-vhk2</li>
-    </ol>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>redeemed rows: <code>text-muted-foreground line-through</code>; the index loses its own muted tone so the whole row reads as one struck unit</span>
-    <span>the live list uses a 22px index column; this proposal predates that and uses <code>w-4</code>, so the realized version inherits the live grid</span>
-  </footer>
-</VuedaDemo>
+- Codes panel: {@api theme-key:ViewRecoveryCodes.inner}, {@api theme-key:ViewRecoveryCodes.messageContainer}, {@api theme-key:ViewRecoveryCodes.listContainer}, {@api theme-key:ViewRecoveryCodes.list}, {@api theme-key:ViewRecoveryCodes.listItem}, and {@api theme-key:ViewRecoveryCodes.listItemNum}.
+- Save buttons: {@api theme-key:ViewRecoveryCodes.savingOptionButtons} and {@api theme-key:ViewRecoveryCodes.savingOptionButton}.
+- Action bars: {@api theme-key:ViewRecoveryCodes.actionBar} and {@api theme-key:ViewRecoveryCodes.actionBarTitleTextContainer} with a device; {@api theme-key:ViewRecoveryCodes.emptyActions} without one.
 
 ## Customization surface
 
-AuthForm and AuthorizingForm expose dedicated theme keys. All inner form content uses the same tokens and theme keys as the Forms family.
+These tokens apply across the seven views:
 
-| Surface                       | Key tokens / theme keys                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| AuthForm outer container      | `AuthForm` theme key · `theme.outer` controls width constraint                                    |
-| AuthorizingForm centering     | `AuthorizingForm` theme key · `theme.root` controls full-viewport centering                       |
-| Auth card background          | `--card` via `bg-card`                                                                            |
-| Auth card border              | `--border` via `border-border`                                                                    |
-| Auth card radius              | `--radius-vueda-card` via `rounded-vueda-card`                                                    |
-| Field shell and input chrome  | `Field`, `FieldLabel`, `FieldContent`, `Input`, `InputOTP`, `InputOTPSlot` — same as Forms family |
-| OTP slot active highlight     | `InputOTPSlot` theme key · `data-active` attribute drives focus ring                              |
-| Method picker selected card   | `--primary` via `border-primary bg-primary/5`                                                     |
-| Step indicator active         | `--primary` via `bg-primary border-primary text-primary-foreground`                               |
-| Step indicator done           | `--success` via `bg-success`; `text-success-foreground` for the checkmark                         |
-| Step connector active-to-done | `--primary` via `bg-primary`                                                                      |
-| Step connector pending        | `--border` via `bg-border`                                                                        |
-| Recovery code grid            | `--muted`, `--border` — same bordered content block as other panels                               |
-| Used code style               | `text-muted-foreground line-through`                                                              |
-| Alert tones                   | `Alert` theme key · `variant` prop: `warning`, `destructive`, `info`, `success`, `default`        |
+- {@api css-token:background} fills both cards, and {@api css-token:border} draws their {@term Hairline} edge.
+- {@api css-token:primary} fills the primary buttons and the current and finished steps in the setup step track.
+- {@api css-token:muted} and {@api css-token:muted-foreground} set the countdown chip, subtitles, and other secondary text.
+- {@api css-token:destructive} colors form-level errors and invalid code inputs.
+- {@api css-token:vueda-font-mono} sets the recovery codes, the recovery-code input, and the manual key.
+
+Theme keys shared by the views:
+
+- Cards: {@api theme-key:AuthorizingForm} and {@api theme-key:AuthForm}, described under [Card layouts](#card-layouts).
+- Fields: {@api theme-key:Field}, {@api theme-key:FieldLabel}, and {@api theme-key:FieldContent}, described on [Forms](./forms.md). Code inputs use {@api theme-key:InputOTPSlot}, described on [Inputs](./inputs.md).
+- Form-level errors: {@api theme-key:FormMessage}.
+- Alerts: {@api theme-key:Alert}.
+
+The single-button strip in `ViewSignIn`, `ViewForgotPassword`, and `ViewResetPassword` has no theme key. To restyle it, replace the view's `action-bar` slot ({@api vue:component:ViewSignIn:slot:action-bar}, {@api vue:component:ViewForgotPassword:slot:action-bar}, or {@api vue:component:ViewResetPassword:slot:action-bar}).
