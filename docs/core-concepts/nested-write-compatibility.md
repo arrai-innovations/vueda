@@ -7,88 +7,92 @@ status: draft
 
 # Nested Write Compatibility
 
-VUEDA serializers support nested writes, creating or updating related objects within a single request payload, by composing two third-party libraries into a single serializer mixin. The mixin defines the compatibility boundary: which flex-field behaviours apply during writes, how nested serializer fields receive data, how reverse relations are extracted and sequenced, and where the composition introduces constraints that differ from using either library alone.
+A {@term Nested Write} saves related objects from the parent's request body in the same request. {@api py:class:vueda.core.serializers.VuedaSerializer} inherits this from {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}, which combines drf-flex-fields2 with drf-writable-nested in one serializer. This page describes how that mixin reads a nested body, the order in which it writes rows, and when each validation runs. [Build Nested/Inlined Writes](../guides/nested-writable-inlines) gives the steps to set up a nested form.
 
-This page explains the composition boundary and the observable failure surfaces it creates. For the practical steps to build nested write flows, see [Build Nested/Inlined Writes](../guides/nested-writable-inlines). For the broader serializer and metadata contract, see [Server-Client Metadata Contract](./server-client-metadata-contract). For the field and {@term Expand} query parameter semantics that interact with nested writes, see [Field and Expand Semantics](./field-and-expand-semantics).
+## How the Mixin Is Composed
 
-## Boundary and Ownership
+The mixin's bases, in order, are [drf-writable-nested: `UniqueFieldsMixin`]{@api ext:drf-writable-nested:drf_writable_nested.UniqueFieldsMixin}, [drf-flex-fields2: `FlexFieldsSerializerMixin`]{@api ext:drf-flex-fields2:rest_flex_fields2.serializers.FlexFieldsSerializerMixin}, [drf-writable-nested: `NestedCreateMixin`]{@api ext:drf-writable-nested:drf_writable_nested.NestedCreateMixin}, and [drf-writable-nested: `NestedUpdateMixin`]{@api ext:drf-writable-nested:drf_writable_nested.NestedUpdateMixin}. Any serializer built on `VuedaSerializer` accepts nested writes.
 
-All nested write behaviour in VUEDA flows through {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}. This mixin composes four concerns into a single inheritance chain: `UniqueFieldsMixin` (unique-together validation), `FlexFieldsSerializerMixin` (dynamic field inclusion/exclusion via `f`/`e` query parameters), `NestedCreateMixin`, and `NestedUpdateMixin` (nested relation create and update from `drf-writable-nested`). The standard VUEDA serializer base, `VuedaSerializer`, inherits from this mixin, so any serializer built on it participates in the nested write composition automatically.
+The mixin changes three things in these packages. [`to_internal_value`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value} prepares nested fields before the body is read. [`update`]{@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update} replaces the library's update sequence. The mixin also drops read-only relations, forward and reverse, from the rows that it writes. A create runs the library code unchanged.
 
-The mixin is the single point where flex-field application, nested data propagation, reverse-relation extraction, and update sequencing are coordinated. Understanding its behaviour is necessary when debugging nested write failures, because the failure surface often involves the interaction between flex-field application and nested-write extraction rather than either concern in isolation.
+Two kinds of relation take part in a nested write. A direct relation is a foreign key or one-to-one field on the parent model. A reverse relation holds rows that point at the parent: child rows with a foreign key to it, many-to-many links, and reverse one-to-one relations.
 
-## Flex + Nested Write Composition
+## Which Relations Accept Nested Data
 
-Flex-fields and nested writes operate on the same serializer field set but with different goals, and the mixin keeps them on opposite sides of validation. {@term Expand} (`e`) is a write-path concern: when a relation is named in `e`, the mixin swaps it for its nested serializer before deserialization. Sparse-fieldset selection (`f`/`om`) is a response-only concern: a write always validates against the serializer's full field set, and `f`/`om` narrow only the representation returned after `save()`; a required field they exclude from the response still validates fully if the body supplies it. Whether that field must be present in the body at all is a separate question, governed by the request method rather than by `f`/`om`: `create`/full `update` require it regardless of `f`/`om`, while a partial update leaves it optional under the normal partial-update rule, `f`/`om`-excluded or not. Nested writes extract relation data from the incoming payload and delegate it to the child serializer `create`/`update` logic.
+A relation accepts a nested object when its serializer field is a nested serializer. The field is either declared that way on the serializer, or the request includes the relation's name in the `e` query parameter. For each name in `e`, `to_internal_value` swaps the primary key field for the relation's nested serializer before it reads the body. [Field and Expand Semantics](./field-and-expand-semantics#sparse-fields-and-expand-on-writes) describes how `f`, `om`, and `e` apply to a write, including the check that rejects an unpermitted `e` name before the body is validated.
 
-The mixin enforces the expand swap's ordering by performing it in `to_internal_value`, which runs before the nested write mixins' `create` and `update` methods. This ordering is not configurable; it is baked into the mixin chain's method resolution order. Sparse-fieldset narrowing runs later, in `to_representation`, which for a write happens after `save()`.
+The swap runs only on a serializer that is an instance of the view's serializer class. Query parameters reach only the root serializer. An expanded child receives the expand names below it from its parent, and never reads `e` from the request itself.
 
-## View-Bound Flex Application
+DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation that the body omits get no `initial_data`.
 
-Both the expand swap and sparse-fieldset narrowing are applied only when the serializer is the view's top-level serializer class -- never to a nested child, which already reflects whatever its parent decided for it. A nested child serializer will include whatever fields its class defines; it does not independently interpret `f`/`e`/`om` from the request's query parameters.
+## Read-Only Relations
 
-The expand swap, in `to_internal_value`, is naturally idempotent (it assigns dict entries rather than removing them), so it needs no double-application guard. Sparse-fieldset narrowing, in `to_representation`, does remove fields, so the mixin tracks it with a `_flex_fields_rep_applied` flag: the first `to_representation` call on an instance narrows the field set once and sets the flag, and a `ListSerializer` iterating many rows through the same child serializer instance skips reapplying it on every row.
+When the mixin collects relations to write, it drops each one whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. This applies to forward relations (a foreign key or one-to-one on the parent) and to reverse relations. These serializers mark a relation as display only. The mixin discards the data that the body sends for such a relation, without an error. The request succeeds and the parent saves, but the related rows do not change, and the parent keeps its stored foreign key.
 
-## Nested Serializer Data Access
+## Write Order
 
-DRF does not automatically pass `initial_data` to nested serializer fields. VUEDA's mixin explicitly propagates it: during `to_internal_value`, for each field that is a serializer instance and whose field name appears in the incoming data, the mixin sets `initial_data` on the nested serializer to the corresponding value from the input payload.
+A create writes rows in this order:
 
-This propagation is necessary because some validation paths on nested serializers need access to the raw submitted payload, not just the output of `to_internal_value`. Without it, nested serializers that inspect `initial_data` for validation decisions would see stale or missing data.
+1. Each direct relation in the body is linked, created, or updated, so that the parent can store the related row's key.
+2. The parent row is created.
+3. Each reverse relation row in the body is created, updated, or linked, with its foreign key set to the new parent.
 
-The propagation is conditional: only fields whose names are present in the incoming data receive `initial_data`. Fields the client omitted from the payload do not have `initial_data` set, and neither does a relation left as a flat PK field because `e` did not name it -- a plain PK field is not a serializer instance, so the propagation loop's `isinstance` check skips it.
+An update writes rows in this order:
 
-## Related-row Authorization
+1. Unique fields are checked, as [Unique Field Checks](#unique-field-checks) describes.
+2. Each direct relation in the body is linked, created, or updated.
+3. The parent row is saved.
+4. Reverse relation rows that the body leaves out are removed.
+5. Each reverse relation row in the body is updated, created, or linked.
+6. The parent is reloaded with {@api ext:django:django.db.models.Model.refresh_from_db}.
 
-A nested forward foreign key, forward one-to-one relation, or many-to-many entry can address a row outside the parent's ownership. Before saving a mutation, VUEDA resolves the related model's canonical viewset from the metadata registry. An absent viewset, an unsupported action, or missing request context denies the mutation.
+A row in the body updates the existing row whose primary key it carries, under `pk` or the model's primary key name. For a reverse foreign key, reverse one-to-one, or generic relation, the server looks for that row only among the parent's own rows. A row whose primary key matches none of them, or that has no primary key, creates a new row. For a direct relation or a many-to-many relation, the server looks for the row among all rows of the related model. A primary key that matches no row there is a `400` error, and a row without a primary key creates a new row. [Related-Row Authorization](#related-row-authorization) describes the permission check for these rows.
 
-The related viewset receives the authenticated request with the nested payload as its data and the related action as its context: `create` with POST for new rows, or `update` with PUT for existing rows. Its `check_permissions` runs first; `get_object` then resolves an existing row through the viewset's queryset and `check_object_permissions`. This preserves action-specific permission classes, viewset overrides, object rules, and workflow-state grants and denials. The viewset's create/update handler is not executed; the nested serializer still owns validation and saving.
+Removal applies only to a reverse relation whose key is in the body. A body that omits the key leaves every row of that relation in place. A `PATCH` that sends the key must send the relation's full set of rows. What removal does depends on the relation:
 
-A pk-only entry resolves and links an existing row without calling its serializer's `save`. It does not require the related model's create fields or update permission. Link visibility remains the relation queryset's contract. Unknown pks fail rather than selecting the create path.
+- A many-to-many relation loses its link to the row. The row stays.
+- A foreign key with {@api ext:django:django.db.models.SET_NULL} or `SET_DEFAULT` is set to null or to its default.
+- Any other foreign key has its row deleted. When {@api ext:django:django.db.models.PROTECT} blocks the delete, the response is a `400` with "Cannot delete ... because protected relation exists" under `non_field_errors`.
 
-The serializer wraps `save()` in a database transaction. A later nested denial or validation error rolls back earlier related writes, parent writes, and relation changes, including writes through parent-owned reverse inlines. Custom hooks that affect external services must arrange their own commit-time execution.
+The update removes rows before it writes the body's rows, which is the reverse of drf-writable-nested's order. When the body is HTML form data, DRF rebuilds the nested row list each time the serializer reads its submitted data. Form data is a form-encoded body or a multipart body without the manifest that [CRUD Adapter Layer](./crud-adapter-layer#multipart-saves) describes. The library records a new row's primary key in one copy of that list, and its removal step reads a fresh copy without it. Run in the library's order, the removal step would delete the rows that the request had just created.
 
-For configuration and payload examples, see [Permissions for Related Rows](../guides/nested-writable-inlines#permissions-for-related-rows).
+After a create or an update, `VuedaSerializer` reads the saved row again when its model keeps {@term Model History}, so the response carries the row's [`object_revision`]{@api py:property:vueda.core.serializers.VuedaSerializer.object_revision}. A nested row saved by a `VuedaSerializer` child is read again the same way.
 
-## Reverse Relation Write Filtering
+Each request runs in one database transaction ([Configuration Surface and Defaults](./configuration-surface-and-defaults#request-transactions)), and the serializer's `save()` runs in its own, as [Related-Row Authorization](#related-row-authorization) describes. A validation error raised partway through either sequence rolls back the rows written before it.
 
-When the mixin extracts reverse relations for nested update processing, it filters out any relation whose serializer is a {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} or {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}. These serializer wrappers signal that the relation is display-only; it should be expanded for `read` responses, but should not participate in write operations.
+## Related-Row Authorization
 
-The filtering happens in `_extract_relations`, before any nested update logic runs. Payloads that include data for a readonly-serializer relation will have that data silently dropped during write processing. No error is raised; the data is simply not extracted for nested write handling.
+A direct relation or a many-to-many relation can name a row that other parents also use, such as a customer that many invoices share. Before the mixin creates or updates such a row, it checks the related model's permissions. Rows of a reverse foreign key, reverse one-to-one, or generic relation belong to the parent, and the mixin does not check them separately.
 
-This means that if a relation is accidentally declared with a read-only serializer type but the client sends write data for it, the write data will be ignored without feedback. The mismatch between client expectation and server behaviour can be difficult to debug because the request succeeds (the parent object is created or updated), but the nested data has no effect.
+The check uses the related model's viewset from the model registry, which {@api py:function:vueda.info.register} fills. The action is `create` for a row without a primary key and `update` for a row with one. The viewset receives a copy of the request with the method `POST` or `PUT` and the nested row as its data. It runs `check_permissions`.
 
-## Update Sequencing
+For an update, the viewset then runs `get_object`, which finds the row through the viewset's queryset and runs `check_object_permissions`. Permission classes for each action, object rules, and workflow-state grants and denials therefore apply as they do for a direct request. The viewset's own `create` or `update` method does not run. The nested serializer validates and saves the row.
 
-The mixin defines a fixed update sequence for nested writes:
+The mixin refuses the write in three cases: the serializer context has no request, the registry has no viewset for the related model, or that viewset has no method for the action. A model registered with only a serializer has no viewset. A refusal, including a row that the viewset's queryset leaves out, is a `400` under the relation's key. The message is "You do not have permission to update app_label.Model." or "Cannot establish update permission for app_label.Model." A new row gets `create` in place of `update`. A many-to-many relation holds one entry per row in body order.
 
-1. **Direct relations are created or updated first.** Forward foreign key relations that appear in the payload are created or updated via `update_or_create_direct_relations` before the parent instance is saved. This ensures that foreign key values are available when the parent's `save()` runs.
+A row that carries only its primary key, under `pk` or the model's primary key name, links an existing row and leaves it unchanged. The mixin finds the row through the related model's default manager. It skips the child serializer's validation and `save()`, and it runs no permission check. The row therefore needs none of the child's required fields, and no save hooks of the child serializer run. A primary key that matches no row is a `400` under the relation's key.
 
-2. **The parent instance is updated.** The parent model's fields are written to the database.
+The serializer's `save()` runs inside {@api ext:django:django.db.transaction.atomic}. A refusal or validation error partway through the write rolls back every row saved before it. This includes the parent and its reverse relation rows. A save hook that calls an outside service is not undone by the rollback. Such a hook can defer the call with Django's `transaction.on_commit`.
 
-3. **Reverse relations are deleted.** Reverse relation items that are present in the database but absent from the incoming payload are deleted. The deletion semantics are provided by `drf-writable-nested`'s `NestedUpdateMixin` and depend on the relation's `many` configuration and the payload contents.
+[Build Nested/Inlined Writes](../guides/nested-writable-inlines#permissions-for-related-rows) shows the registration and a link payload.
 
-4. **Reverse relations are updated or created.** Remaining reverse relation items in the payload are matched to existing database rows (by PK when present) or created as new rows.
+## Save-Time Child Validation
 
-5. **The parent instance is refreshed from the database.** After all nested operations complete, the parent instance is refreshed to pick up any database-level changes (auto-generated fields, signals, etc.).
+Each nested row is validated twice. The first pass runs inside the parent's `is_valid()`, with the nested serializer field that the parent holds. The second pass runs during `save()`. For each row, the parent serializer builds a new instance of the child serializer class, validates that row's submitted data, and saves it. The new instance receives only the request context, the matched existing row, and the data. On a `PATCH`, an existing row is validated as a partial update, and a new row is validated in full. A direct or many-to-many row that carries only its primary key skips both passes, as [Related-Row Authorization](#related-row-authorization) describes.
 
-This sequence is not configurable. Custom save logic that depends on reverse relations being present before the parent save, or that expects parent save to happen before direct relation updates, will conflict with this ordering.
+The second pass explains two failures that appear after `is_valid()` has passed:
 
-This sequence has diverged from the default, due to a bug discovered in drf-writable-nested. A test has been created (in TestCreateIssueExpectedFailure) that will fail if things are fixed in drf-writable-nested. We will review the need for the overriding code if this occurs. The original sequence had `#3` and `#4` reversed.
+- The parent's foreign key reaches the child through `save()`, after validation. A child serializer that lists that foreign key as a required writable field fails with "This field is required." on each new row, and on every row of a `PUT`.
+- The new instance validates against the child class's full field set. Options from the parent's `expandable_fields` entry, such as a `fields` restriction, and expand names below the child do not reach it.
 
-## Observable Failure Modes
+The error is a `400` under the relation's key. A list relation holds one entry per row in body order, with an empty object for each row that passed, for example `{"invoice_lines": [{}, {"invoice": ["This field is required."]}]}`. [Error and Validation Contract](./error-and-validation-contract#non-field-and-nested-path-semantics) describes how the client turns these into field paths.
 
-**Readonly serializer payloads are silently dropped.** Reverse relation data targeting a `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer` field is excluded from nested write extraction. The request succeeds, but the nested data has no effect. Symptom: parent object saves correctly, child objects remain unchanged.
+## Unique Field Checks
 
-**Double application of sparse-fieldset narrowing is blocked.** If the `_flex_fields_rep_applied` flag is somehow set before the first legitimate `to_representation` call (through incorrect serializer reuse or manual flag manipulation), `f`/`om`/`e` will not narrow the representation at all. Symptom: responses include every field regardless of `f`/`om`, as though those parameters were not passed. This does not affect write validation or the `e` expand swap, which do not consult this flag.
+`UniqueFieldsMixin` removes each field's {@api ext:drf:rest_framework.validators.UniqueValidator} from field validation and runs it when the serializer saves. drf-writable-nested defers the check because a nested child has no row to compare against during the parent's validation, so an unchanged unique value would count as a duplicate.
 
-**Unique validation timing in nested flows.** `UniqueFieldsMixin` is composed before the nested `create`/`update` mixins in the mixin chain. Unique-together validation runs at the serializer validation phase, before nested objects are persisted. For validation rules that depend on the final state of nested relations (e.g., uniqueness constraints that span parent and child), the validation may evaluate against stale database state.
+For the parent, the check runs before any row is written. A create runs it through `UniqueFieldsMixin`. The mixin's `update` runs it as its first step, because it replaces the library's update. A duplicate value returns a `400` keyed by the field name.
 
-## Relevant Implementation Surface
+A child serializer built on `VuedaSerializer` checks its unique fields when its own row saves. By then the parent and earlier rows in the body are written, and on an update the omitted rows are removed. A new row can therefore take a unique value that a removed row held in the same request.
 
-- {@api py:module:vueda.core.serializers}
-- {@api py:class:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin}
-- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.to_internal_value}
-- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update_or_create_direct_relations}
-- {@api py:function:vueda.core.serializers.FlexFieldsWriteableNestedSerializerMixin.update}
-- {@api py:class:vueda.core.serializers.VuedaReadonlySerializer}
-- {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}
+The mixin moves only single-field unique validators. DRF's {@api ext:drf:rest_framework.validators.UniqueTogetherValidator} stays in validation and runs during `is_valid()`.
