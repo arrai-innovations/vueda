@@ -23,7 +23,7 @@ A serializer field is filterable only when the viewset's filterset declares a fi
 
 [`model_ordering`]{@api rest:schema:ModelInfoOrdering} has two keys:
 
-- `default` lists the field names that the rows are sorted by when a request sends no `o`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
+- `default` lists the names of the fields or queryset annotations that the rows are sorted by when a request sends no `o`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
 - `fields` lists every field that a request may name in `o`, each with a `name` and a semantic `type`. A field that the default ordering names also carries `ascending`.
 
 `fields` follows the viewset's `ordering_fields`. An explicit list reports its entries, and `"__all__"` reports the model's fields and the annotations that `get_queryset` adds. With no `ordering_fields`, `fields` reports the serializer's readable fields by `source`. Every field that the default ordering reads also appears in `fields`. [`VuedaOrderingFilter`]{@api py:class:vueda.core.filters.VuedaOrderingFilter} accepts an explicit `o` for each of them.
@@ -32,11 +32,10 @@ Every name in `model_ordering` is the [public name]{@term Public Name} that a cl
 
 [`get_model_ordering`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_ordering} documents each rule in full. {@api py:module:vueda.core.ordering} documents how an ordering term is read.
 
-A default ordering is reported whole or not at all. `default` is empty when any of its terms cannot be reported under one field name. Three kinds of term cause that:
+A default ordering is reported whole or not at all. `default` is empty when any of its terms cannot be reported under one name. Two kinds of term cause that:
 
 - A term that resolves to no field, such as a field renamed without updating `ordering`. Every `list` request that falls back to it fails with Django's `FieldError`.
 - A term that reads more than one column, or none, such as `Concat("first_name", "last_name")` or `"?"`. The rows are sorted, and nothing describes the sort.
-- A term that names a queryset annotation. The rows are sorted, and nothing describes the sort.
 
 A viewset `ordering` that fails to resolve does not fall back to the model's `Meta.ordering`. DRF passes the viewset's `ordering` to [`order_by()`]{@api ext:django:django.db.models.query.QuerySet.order_by} as written, so the request fails.
 
@@ -46,11 +45,9 @@ An `ordering_fields` entry that names no field is left out of `fields`, and the 
 
 ### Queryset Annotations
 
-An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`. Its `type` comes from the annotation's `output_field`. The `type` is `alpha` when Django cannot resolve one.
+An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`, or when the default ordering names it. Its `type` comes from the annotation's `output_field`. The `type` is `alpha` when Django cannot resolve one.
 
-A default ordering that names an annotation is not reported. `default` is empty for it, and E006 accepts it, so no check warns you. The rows are sorted and `o` on the annotation is accepted. A client cannot show which column sorts the list.
-
-A default ordering is reported when it sorts by a real column. That column can be a model field, a {@api ext:django:django.db.models.GeneratedField}, or a column of a database view. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-or-annotation-default-visible) shows each option.
+A default ordering that names an annotation is reported under the annotation's name, in `default` and in `fields`. A multi-column function becomes reportable once it is annotated and the ordering names the annotation, or once a {@api ext:django:django.db.models.GeneratedField} or a database view column holds it. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-default-visible) shows each option.
 
 ### Database Functions in a Default Ordering
 
@@ -367,7 +364,7 @@ A type needs entries in both tables. Without value handling, the filter form can
 
 **The sort indicator disagrees with the rows.** A queryset `order_by()` sorts the rows while `default` reports another order, or none. The response is a `200`. The client's sort indicator is wrong, and its reset restores an order the server never applied.
 
-**A sorted list shows no sort.** A default ordering on a multi-column function, a column-less term, or an annotation sorts the rows without a `default` entry. No check reports it, and the client shows no sort indicator.
+**A sorted list shows no sort.** A default ordering on a multi-column function or a column-less term sorts the rows without a `default` entry. No check reports it, and the client shows no sort indicator.
 
 **A search leaves out rows that the default manager hides.** A viewset lists rows that its model's default manager filters out, such as archived rows listed through a second manager. Every search through a many-valued relation leaves those rows out, with a `200`. No check reports it. [When a Viewset Needs `get_search_queryset()`](#when-a-viewset-needs-get-search-queryset) gives the fix.
 
