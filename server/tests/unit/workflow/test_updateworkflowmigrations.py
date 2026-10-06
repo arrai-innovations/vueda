@@ -414,35 +414,72 @@ class TestInstalledPackageApps(BaseTestMigrations):
             assert {item: item.read_bytes() for item in originals} == originals
 
 
+def workflow_change_recorded_on(day, history_type, code, historical_model):
+    """Return a workflow's change to ``changed_data``, recorded on that day of January 2026."""
+    return {
+        "changes": {"code": code, "historical_app_label": "product", "historical_model": historical_model},
+        "history_date": datetime.datetime(2026, 1, day, tzinfo=datetime.UTC),
+        "history_type": history_type,
+        "model_name": "workflow",
+    }
+
+
+FIRST_WORKFLOW = {"historical_app_label": "product", "historical_model": "first"}
+
+
 @pytest.mark.parametrize(
-    ("entries", "expected"),
+    ("changed_data", "expected"),
     [
         # Recorded before the only workflow to hold the code, so it means that workflow.
-        (
-            [(datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"})],
-            {"historical_model": "first"},
-        ),
+        ([workflow_change_recorded_on(3, "added", "reused", "first")], FIRST_WORKFLOW),
         # The only workflow to hold the code changed after it was added, so it has two entries naming it.
         (
             [
-                (datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"}),
-                (datetime.datetime(2026, 1, 4, tzinfo=datetime.UTC), {"historical_model": "first"}),
+                workflow_change_recorded_on(3, "added", "reused", "first"),
+                workflow_change_recorded_on(4, "changed", "reused", "first"),
             ],
-            {"historical_model": "first"},
+            FIRST_WORKFLOW,
         ),
-        # Recorded before every workflow to hold the code, so which one it means cannot be told.
+        # The only workflow to hold the code changed its own model, so its two entries name different models.
         (
             [
-                (datetime.datetime(2026, 1, 3, tzinfo=datetime.UTC), {"historical_model": "first"}),
-                (datetime.datetime(2026, 1, 4, tzinfo=datetime.UTC), {"historical_model": "second"}),
+                workflow_change_recorded_on(3, "added", "reused", "first"),
+                workflow_change_recorded_on(4, "changed", "reused", ("first", "second")),
+            ],
+            FIRST_WORKFLOW,
+        ),
+        # The workflow was deleted and added again for the same model, so either one is the same answer.
+        (
+            [
+                workflow_change_recorded_on(3, "added", "reused", "first"),
+                workflow_change_recorded_on(4, "deleted", "reused", "first"),
+                workflow_change_recorded_on(5, "added", "reused", "first"),
+            ],
+            FIRST_WORKFLOW,
+        ),
+        # A second workflow was added with the code, so which one the reference means cannot be told.
+        (
+            [
+                workflow_change_recorded_on(3, "added", "reused", "first"),
+                workflow_change_recorded_on(4, "added", "reused", "second"),
+            ],
+            None,
+        ),
+        # Another workflow's code was changed to this one, so which one the reference means cannot be told.
+        (
+            [
+                workflow_change_recorded_on(3, "added", "reused", "first"),
+                workflow_change_recorded_on(4, "changed", ("other", "reused"), "second"),
             ],
             None,
         ),
     ],
 )
-def test_workflow_identity_at_a_reference_recorded_before_every_workflow(entries, expected):
+def test_workflow_identity_at_a_reference_recorded_before_every_workflow(changed_data, expected):
+    identities = updateworkflowmigrations.collect_workflow_identities([changed_data])
+
     identity = updateworkflowmigrations.workflow_identity_at(
-        {"reused": entries}, "reused", datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC)
+        identities, "reused", datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC)
     )
 
     assert identity == expected

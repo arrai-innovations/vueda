@@ -21,6 +21,7 @@ from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_MODIFIED_COMMENT
 from vueda.workflow.management.commands.makeworkflowmigrations import NEWLINE
+from vueda.workflow.management.commands.makeworkflowmigrations import WorkflowChangeTypes
 from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_item
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_imports
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
@@ -141,6 +142,12 @@ def collect_workflow_identities(changed_data_lists):
     A code can be released by one model and taken over by another, so a code maps to a list rather
     than to one identity, and which entry a reference means depends on when that reference was
     recorded.
+
+    Each entry also records whether the workflow it names took the code at that change: one added
+    with the code, or one whose code was changed to it. Every other change to a workflow records an
+    entry too, under the code it already held, and can name a different app or model when the
+    workflow's own changed. Telling the two apart is what shows whether one workflow or several have
+    held a code.
     """
     identities = {}
 
@@ -149,7 +156,8 @@ def collect_workflow_identities(changed_data_lists):
             if changed_item["model_name"] != "workflow":
                 continue
 
-            code = get_id_values_from_item(changed_item["changes"].get("code"), reversing=True)
+            recorded_code = changed_item["changes"].get("code")
+            code = get_id_values_from_item(recorded_code, reversing=True)
             if code is None:
                 continue
 
@@ -160,7 +168,14 @@ def collect_workflow_identities(changed_data_lists):
                 for key, value in workflow_identity_of(changed_item["changes"]).items()
             }
 
-            identities.setdefault(code, []).append((recorded_at_utc(changed_item["history_date"]), identity))
+            # A changed code is recorded as an (old, new) pair, so a pair means the code was changed to this one.
+            took_code = changed_item.get("history_type") == WorkflowChangeTypes.ADDED.value or isinstance(
+                recorded_code, tuple
+            )
+
+            if code not in identities:
+                identities[code] = []
+            identities[code].append((recorded_at_utc(changed_item["history_date"]), identity, took_code))
 
     for entries in identities.values():
         entries.sort(key=lambda entry: entry[0])
@@ -175,7 +190,7 @@ def workflow_identity_at(identities, code, recorded_at):
         return None
 
     chosen = None
-    for recorded, identity in entries:
+    for recorded, identity, _ in entries:
         if recorded <= recorded_at:
             chosen = identity
 
@@ -183,11 +198,15 @@ def workflow_identity_at(identities, code, recorded_at):
         return chosen
 
     # A reference recorded before the workflow's own change means the only workflow to hold its code. A
-    # workflow records an entry for each of its changes, so one workflow can have several entries, all
-    # naming it. When different workflows have held the code, which one the reference means cannot be
-    # told, so it is left naming the code alone.
+    # workflow records an entry for each of its changes, so one workflow can have several entries, even
+    # naming different apps or models when its own changed. Only a later entry that took the code, naming a
+    # different app or model, shows a different workflow has held it. Then which one the reference means
+    # cannot be told, so it is left naming the code alone.
     first_identity = entries[0][1]
-    return first_identity if all(identity == first_identity for _, identity in entries) else None
+    if any(took_code and identity != first_identity for _, identity, took_code in entries[1:]):
+        return None
+
+    return first_identity
 
 
 def add_workflow_identities(value, identities, recorded_at, *, names_a_workflow=False):
