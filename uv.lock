@@ -2614,6 +2614,7 @@ redis = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "black" },
     { name = "coverage" },
     { name = "django-extensions" },
     { name = "django-view-manager" },
@@ -2630,6 +2631,7 @@ dev = [
     { name = "pytest-watcher" },
     { name = "pytest-xdist" },
     { name = "python-dateutil" },
+    { name = "ruff" },
 ]
 docs = [
     { name = "pdoc" },
@@ -2676,6 +2678,7 @@ provides-extras = ["redis"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "black", specifier = ">=26.5.1" },
     { name = "coverage", specifier = ">=7.14.1" },
     { name = "django-extensions", specifier = "==4.0.0" },
     { name = "django-view-manager", specifier = "==2.0.0" },
@@ -2692,6 +2695,7 @@ dev = [
     { name = "pytest-watcher", specifier = ">=0.4.3" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0,<3" },
+    { name = "ruff", specifier = "==0.15.20" },
 ]
 docs = [{ name = "pdoc", specifier = ">=16.0.0" }]
 
@@ -2727,7 +2731,6 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
-    { name = "black" },
     { name = "md-toc" },
     { name = "ruff" },
     { name = "towncrier" },
@@ -2737,7 +2740,6 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "black", specifier = ">=26.5.1" },
     { name = "md-toc", specifier = ">=8.2.2" },
     { name = "ruff", specifier = "==0.15.20" },
     { name = "towncrier", specifier = ">=26.9" },
