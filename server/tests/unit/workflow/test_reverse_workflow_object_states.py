@@ -198,6 +198,26 @@ class TestReverseWorkflowObjectStates(BaseTestUserMixin):
         assert {pk: row for pk, row in object_states().items() if row[0] == "order_fulfillment"} == order_states
         assert "Workflow mosovowo: 2 object state(s) deleted with the workflow." in capsys.readouterr().out
 
+    def test_a_removed_workflow_renamed_after_it_was_added_loses_its_object_states(
+        self, orders, erring_objects, capsys
+    ):
+        Workflow.objects.filter(code="mosovowo").update(code="mosovowo_renamed")
+        renamed = {
+            "changes": {
+                "code": ("mosovowo", "mosovowo_renamed"),
+                "id": {"code": ("mosovowo", "mosovowo_renamed")},
+            },
+            "history_type": "changed",
+            "model_name": "workflow",
+        }
+
+        reverse([*erring_workflow_changed_data("mosovowo"), renamed])
+
+        assert not Workflow.objects.filter(code__in=["mosovowo", "mosovowo_renamed"]).exists()
+        out = capsys.readouterr().out
+        assert "Workflow mosovowo_renamed: 2 object state(s) deleted with the workflow." in out
+        assert "left without a state" not in out
+
     def test_a_re_created_workflow_gives_its_objects_the_initial_state(self, orders, erring_objects, capsys):
         added = erring_workflow_changed_data("mosovowo")
         reverse(added)

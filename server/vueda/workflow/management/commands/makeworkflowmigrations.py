@@ -875,10 +875,20 @@ def delete_object_states_of_removed_workflows(apps, changed_items):
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
     released = {}
-    for changed_item in changed_items:
+    for index, changed_item in enumerate(changed_items):
         if changed_item["model_name"] != "workflow" or changed_item["history_type"] != WorkflowChangeTypes.ADDED.value:
             continue
-        workflow = model_workflow.objects.filter(**changed_item["changes"]["id"]).first()
+        # The add records the workflow's identifying fields as they were then. A later change in the
+        # same migration may have renamed it, so follow each rename to the fields the row has now.
+        workflow_id_data = changed_item["changes"]["id"]
+        for later_item in changed_items[index + 1 :]:
+            if (
+                later_item["model_name"] == "workflow"
+                and later_item["history_type"] == WorkflowChangeTypes.CHANGED.value
+                and get_id_values_from_dict(later_item["changes"]["id"]) == workflow_id_data
+            ):
+                workflow_id_data = get_id_values_from_dict(later_item["changes"]["id"], reversing=True)
+        workflow = model_workflow.objects.filter(**workflow_id_data).first()
         if workflow is None:
             continue
         object_states = model_object_state.objects.filter(workflow=workflow)
