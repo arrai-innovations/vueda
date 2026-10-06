@@ -84,14 +84,28 @@ Attachment cleanup is email-specific and runs when a queue item enters a done st
 When the Celery worker processes an email queue item:
 
 1. The worker acquires a row lock and transitions to `sending`.
-2. `send_email(...)` constructs an `EmailMultiAlternatives` message with the queue item's content, attachments, and HTML alternatives.
-3. The message is sent through Anymail.
+2. `send_email(...)` constructs an `EmailMultiAlternatives` message with the queue item's content, attachments, and HTML alternatives. The configured email tracking strategy (`VDQ_EMAIL_TRACKING_STRATEGY`) adds the queue item's key; by default as the `vdq_queue_item` entry in the Anymail `metadata`.
+3. The message is sent through Anymail. When the ESP accepts no such tracking data, Anymail raises `AnymailUnsupportedFeature` before contacting it, and `send_email` sends the message once more without the data.
 4. On success: the handler stores `anymail_status.message_id` on the `AnyMailQueueItem` detail row (for later tracking correlation) and transitions to `awaiting`.
 5. On failure: the handler records the error in `result` and transitions to `errored`.
 
 **Transient failure handling.** `send_email` maps Anymail API 5xx responses and specific 4xx codes (408, 423, 429) to `AnymailTransientError`. The Celery task auto-retries transient errors with configurable backoff. On retry, `QueueProcessor.on_retry` records `task_id` and optional `retry_delay` on the queue item and transitions it to `delayed`.
 
 **Non-transient failures** (authentication errors, malformed payloads, permanent provider rejections) propagate to the task failure handler, which appends traceback text to `result`, clears `retry_delay`, and transitions to `errored`.
+
+### ESPs without metadata support
+
+The default tracking strategy puts the queue item's key in the Anymail `metadata`. On an ESP that does not accept metadata, every send then takes the fallback path: Anymail raises `AnymailUnsupportedFeature` while it builds the request, `send_email` writes an info log line, and the email is built and sent a second time without the key. The email goes out once, and tracking events for it match by `message_id` only.
+
+To avoid the log line and the second build, select the no-op strategy:
+
+```python
+VDQ_EMAIL_TRACKING_STRATEGY = "vueda.vdq.tracking.EmailTrackingStrategy"
+```
+
+This changes nothing else about the send. Write a custom subclass instead when the ESP can carry the key another way, such as in a tag.
+
+If your project already runs Anymail with `IGNORE_UNSUPPORTED_FEATURES` on, Anymail drops the metadata without raising, so the default strategy sends on the first attempt and writes no log line.
 
 ## Tracking Events and Final States
 
@@ -100,7 +114,7 @@ Anymail tracking events drive the final state transition for email queue items. 
 - **`delivered`**: clears `result` and transitions to `succeeded`.
 - **`bounced`, `rejected`, `failed`**: records provider error context in `result` and transitions to `errored`.
 
-Unknown `message_id` values (events for messages not tracked by VDQ) are logged and ignored.
+When no queue item stores the event's `message_id`, `handle_bounce` asks the configured email tracking strategy for the item. With the default strategy, that reads the `vdq_queue_item` key from the event's `metadata`, for ESPs that return metadata on tracking events. An item found that way stores the `message_id` and then applies the event: a final event moves it to `succeeded` or `errored`, and an in-flight event (`queued`, `sent`, or `deferred`) moves a `sending` item to `awaiting`. An item that stores a different `message_id` is left unchanged and the event is logged. Events that find no item either way are logged and ignored. See [Matching a status update to its queue item](../core-concepts/vdq-and-background-work#matching-a-status-update-to-its-queue-item) for the strategy setting and the ESPs that return metadata.
 
 For tracking events to work, the VDQ URL configuration must include Anymail's webhook/tracking URLs. Verify that the provider is configured to send tracking events to the correct endpoint.
 
@@ -123,6 +137,7 @@ After implementing email through VDQ, verify:
 - Transient provider failures trigger Celery retry with the queue item in `delayed` state.
 - Non-transient failures produce `errored` state with descriptive `result` text.
 - Tracking events (delivered, bounced) update the queue item to the correct terminal state.
+- A tracking event for an item with no stored `message_id` finds the item through the tracking strategy, stores the ID, and applies the event.
 - Late tracking events after cancellation do not raise errors.
 - Send queue list excludes done-state items; sent history includes them.
 - Resend clones a sent item with AnyMail detail and schedules a new queue item.

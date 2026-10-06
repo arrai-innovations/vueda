@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from anymail.exceptions import AnymailAPIError
+from anymail.exceptions import AnymailUnsupportedFeature
 from django.core import mail
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -14,6 +15,7 @@ from vueda.vdq.handlers import TwilioQueueItemHandler
 from vueda.vdq.handlers import handle_bounce
 from vueda.vdq.handlers import send_email
 from vueda.vdq.handlers import timeout_queue_item
+from vueda.vdq.handlers import twilio_status_callback_url
 from vueda.vdq.handlers import validate_email_role
 from vueda.vdq.handlers import validate_sms_role
 from vueda.vdq.models import AnyMailQueueItem
@@ -21,6 +23,7 @@ from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import AnyMailQueueItemReceiverReplyTo
 from vueda.vdq.models import QueueItem
 from vueda.vdq.models import Receiver
+from vueda.vdq.tracking import EmailTrackingStrategy
 
 
 @pytest.mark.django_db
@@ -400,7 +403,7 @@ def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
 
     monkeypatch.setattr("vueda.vdq.handlers.timeout_queue_item", fake_timeout)
 
-    handler.update_sms_qi(queue_item_sms, "accepted")
+    handler.update_sms_qi(queue_item_sms, "sent")
 
     assert triggered["timeout"][0] == queue_item_sms.pk
 
@@ -454,11 +457,11 @@ def test_handle_bounce_updates_states(monkeypatch, queue_item_email):
     assert failed_qi.workflow_state.code == "errored"
     assert failed_qi.result == "Email Failed."
 
-    delayed_qi = make_queue_item("mid-delayed")
-    event = SimpleNamespace(message_id="mid-delayed", event_type="delayed", esp_event={})
+    deferred_qi = make_queue_item("mid-deferred")
+    event = SimpleNamespace(message_id="mid-deferred", event_type="deferred", esp_event={})
     handle_bounce(None, event, "esp")
-    delayed_qi.refresh_from_db()
-    assert "ESP delayed" in delayed_qi.result
+    deferred_qi.refresh_from_db()
+    assert "ESP delayed" in deferred_qi.result
 
 
 @pytest.mark.django_db
@@ -484,3 +487,374 @@ def test_handle_bounce_logs_and_raises(caplog, monkeypatch):
             handle_bounce(None, event, "esp")
 
     assert "There was an error while processing tracking event" in caplog.text
+
+
+def _anymail_params(message):
+    return message.anymail_test_params
+
+
+class TagEmailTrackingStrategy(EmailTrackingStrategy):
+    """Carries the queue item's key in an Anymail tag, for the custom-strategy tests."""
+
+    def attach(self, email, queue_item):
+        email.tags = [f"vdq-{queue_item.pk}"]
+
+    def find_queue_item(self, event):
+        for tag in getattr(event, "tags", None) or []:
+            if tag.startswith("vdq-"):
+                return QueueItem.objects.filter(pk=int(tag.removeprefix("vdq-"))).first()
+        return None
+
+
+@pytest.mark.django_db
+def test_send_email_carries_the_queue_item_key_in_metadata(settings, queue_item_email):
+    set_email_backend(settings, "anymail.backends.test.EmailBackend")
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+
+    send_email(queue_item_email)
+
+    assert _anymail_params(mail.outbox[0])["metadata"] == {"vdq_queue_item": str(queue_item_email.pk)}
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "0"
+    assert queue_item_email.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+def test_send_email_sends_once_without_tracking_data_when_the_esp_refuses_it(
+    settings, monkeypatch, caplog, queue_item_email
+):
+    set_email_backend(settings, "anymail.backends.test.EmailBackend")
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+
+    def refuse_metadata(self, metadata):
+        self.unsupported_feature("metadata")
+
+    monkeypatch.setattr("anymail.backends.test.TestPayload.set_metadata", refuse_metadata)
+
+    with caplog.at_level(logging.INFO, logger="vueda.vdq.handlers"):
+        send_email(queue_item_email)
+
+    assert len(mail.outbox) == 1
+    assert "metadata" not in _anymail_params(mail.outbox[0])
+    assert "Sending it without tracking data" in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "0"
+    assert queue_item_email.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+def test_send_email_raises_an_unsupported_feature_unrelated_to_tracking_data(settings, monkeypatch, queue_item_email):
+    set_email_backend(settings, "anymail.backends.test.EmailBackend")
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+
+    def refuse_reply_to(self, emails):
+        self.unsupported_feature("reply_to")
+
+    monkeypatch.setattr("anymail.backends.test.TestPayload.set_reply_to", refuse_reply_to)
+
+    with pytest.raises(AnymailUnsupportedFeature):
+        send_email(queue_item_email)
+
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+def test_send_email_with_the_no_op_strategy_sends_without_tracking_data(settings, caplog, queue_item_email):
+    set_email_backend(settings, "anymail.backends.test.EmailBackend")
+    settings.VDQ_EMAIL_TRACKING_STRATEGY = "vueda.vdq.tracking.EmailTrackingStrategy"
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+
+    with caplog.at_level(logging.INFO, logger="vueda.vdq.handlers"):
+        send_email(queue_item_email)
+
+    assert len(mail.outbox) == 1
+    assert "metadata" not in _anymail_params(mail.outbox[0])
+    assert "tracking data" not in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+def test_send_email_uses_a_custom_strategy_from_settings(settings, queue_item_email):
+    set_email_backend(settings, "anymail.backends.test.EmailBackend")
+    settings.VDQ_EMAIL_TRACKING_STRATEGY = TagEmailTrackingStrategy
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+
+    send_email(queue_item_email)
+
+    params = _anymail_params(mail.outbox[0])
+    assert params["tags"] == [f"vdq-{queue_item_email.pk}"]
+    assert "metadata" not in params
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("event_type", "expected_state", "expected_result"),
+    [
+        ("delivered", "succeeded", ""),
+        ("bounced", "errored", "Email Rejected or Bounced. Reject Reason: denied"),
+        ("queued", "awaiting", ""),
+    ],
+)
+def test_send_email_keeps_the_state_a_tracking_event_set_first(
+    settings, monkeypatch, queue_item_email, event_type, expected_state, expected_result
+):
+    """A tracking event that arrives before the message ID is stored applies, and the send keeps its result."""
+    set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    event = SimpleNamespace(
+        message_id="mid-race",
+        event_type=event_type,
+        esp_event={},
+        reject_reason="denied",
+        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+    )
+
+    def fake_send(self, *args, **kwargs):
+        handle_bounce(None, event, "esp")
+        self.anymail_status = SimpleNamespace(message_id="mid-race", status={"sent"})
+        return 1
+
+    monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
+
+    send_email(queue_item_email)
+
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "mid-race"
+    assert queue_item_email.workflow_state.code == expected_state
+    assert queue_item_email.result == expected_result
+
+
+@pytest.mark.django_db
+def test_twilio_send_sms_adds_the_queue_item_key_to_the_status_callback(settings, queue_item_sms):
+    settings.TWILIO_ACCOUNT_SID = None
+    settings.TWILIO_AUTH_TOKEN = None
+    settings.TWILIO_WEBHOOK_URL = "https://example.com/vueda.vdq/twilio-status-callback/?env=test"
+
+    message_calls = {}
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            message_calls.update(kwargs)
+            return SimpleNamespace(error_code=None, error_message="", status="sent", sid="SM123")
+
+    handler = TwilioQueueItemHandler()
+    handler.twilio_client = SimpleNamespace(messages=FakeMessages())
+
+    handler.send_sms(queue_item_sms)
+
+    assert message_calls["status_callback"] == (
+        f"https://example.com/vueda.vdq/twilio-status-callback/?env=test&queue_item={queue_item_sms.pk}"
+    )
+
+
+def test_twilio_status_callback_url_replaces_an_existing_key():
+    url = twilio_status_callback_url("https://example.com/hook/?queue_item=1&a=b", SimpleNamespace(pk=7))
+    assert url == "https://example.com/hook/?a=b&queue_item=7"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("message_status", "expected_state", "expected_result"),
+    [
+        ("delivered", "succeeded", ""),
+        ("undelivered", "errored", "Webhook SMS Status:undelivered"),
+        ("sent", "awaiting", ""),
+    ],
+)
+def test_twilio_send_sms_keeps_the_state_a_status_callback_set_first(
+    settings, queue_item_sms, message_status, expected_state, expected_result
+):
+    """A status callback that arrives before the SID is stored applies, and the send keeps its result."""
+    settings.TWILIO_ACCOUNT_SID = None
+    settings.TWILIO_AUTH_TOKEN = None
+    handler = TwilioQueueItemHandler()
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            callback_item = QueueItem.objects.select_related("sms").get(pk=queue_item_sms.pk)
+            callback_item.sms.message_sid = "SM123"
+            callback_item.sms.save(update_fields=["message_sid"])
+            handler.update_sms_qi(callback_item, message_status, webhook=True)
+            return SimpleNamespace(error_code=None, error_message="", status="queued", sid="SM123")
+
+    handler.twilio_client = SimpleNamespace(messages=FakeMessages())
+
+    handler.send_sms(queue_item_sms)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.sms.message_sid == "SM123"
+    assert queue_item_sms.workflow_state.code == expected_state
+    assert queue_item_sms.result.startswith(expected_result)
+    assert "queued" not in queue_item_sms.result
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("message_status", ["queued", "sending", "sent"])
+def test_update_sms_qi_moves_a_sending_item_to_awaiting_on_an_in_flight_status(
+    settings, queue_item_sms, message_status
+):
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
+    queue_item_sms.save(update_fields=["done_since"])
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, message_status, webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("message_status", ["accepted", "canceled", "read", "partially_delivered"])
+def test_update_sms_qi_times_out_an_awaiting_item_on_a_status_vdq_does_not_handle(
+    settings, monkeypatch, queue_item_sms, message_status
+):
+    """An item past the window times out on any status that is neither delivered nor failed."""
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.fast_transition("await")
+    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
+    queue_item_sms.save(update_fields=["done_since"])
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, message_status, webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "unconfirmed"
+    assert "Status not received" in queue_item_sms.result
+
+
+@pytest.mark.django_db
+def test_update_sms_qi_leaves_an_awaiting_item_inside_the_window_on_a_status_vdq_does_not_handle(
+    settings, queue_item_sms
+):
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.fast_transition("await")
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, "accepted", webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "awaiting"
+    assert queue_item_sms.result == ""
+
+
+@pytest.mark.django_db
+def test_update_sms_qi_ignores_a_status_vdq_does_not_handle(settings, queue_item_sms):
+    settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
+    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
+    queue_item_sms.save(update_fields=["done_since"])
+    handler = TwilioQueueItemHandler()
+
+    handler.update_sms_qi(queue_item_sms, "partially_delivered", webhook=True)
+
+    queue_item_sms.refresh_from_db()
+    assert queue_item_sms.workflow_state.code == "sending"
+    assert queue_item_sms.result == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("event_type", "expected_state"),
+    [
+        ("delivered", "succeeded"),
+        ("bounced", "errored"),
+        ("queued", "awaiting"),
+        ("sent", "awaiting"),
+        ("deferred", "awaiting"),
+        ("opened", "sending"),
+    ],
+)
+def test_handle_bounce_finds_a_sending_item_by_metadata_and_stores_the_message_id(
+    queue_item_email, event_type, expected_state
+):
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    event = SimpleNamespace(
+        message_id="mid-new",
+        event_type=event_type,
+        esp_event={},
+        reject_reason="denied",
+        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+    )
+
+    handle_bounce(None, event, "esp")
+
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "mid-new"
+    assert queue_item_email.workflow_state.code == expected_state
+
+
+@pytest.mark.django_db
+def test_handle_bounce_ignores_metadata_that_names_an_item_with_another_message_id(caplog, queue_item_email):
+    AnyMailQueueItem.objects.create(
+        queue_item=queue_item_email, subject="Subject", text="Plain text", message_id="mid-a"
+    )
+    queue_item_email.fast_transition("await")
+    event = SimpleNamespace(
+        message_id="mid-b",
+        event_type="delivered",
+        esp_event={},
+        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+    )
+
+    with caplog.at_level(logging.WARNING):
+        handle_bounce(None, event, "esp")
+
+    assert "which stores message_id=mid-a" in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "mid-a"
+    assert queue_item_email.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+def test_handle_bounce_drops_an_event_whose_metadata_finds_no_item(caplog, queue_item_email):
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    event = SimpleNamespace(
+        message_id="mid-orphan",
+        event_type="delivered",
+        esp_event={},
+        metadata={"vdq_queue_item": str(queue_item_email.pk + 1000)},
+    )
+
+    with caplog.at_level(logging.WARNING):
+        handle_bounce(None, event, "esp")
+
+    assert "unknown message_id=mid-orphan" in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == ""
+    assert queue_item_email.workflow_state.code == "sending"
+
+
+@pytest.mark.django_db
+def test_handle_bounce_does_not_match_an_item_by_an_empty_message_id(caplog, queue_item_email):
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    event = SimpleNamespace(message_id="", event_type="delivered", esp_event={}, metadata={})
+
+    with caplog.at_level(logging.WARNING):
+        handle_bounce(None, event, "esp")
+
+    assert "Tracking event" in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.workflow_state.code == "sending"
+
+
+@pytest.mark.django_db
+def test_handle_bounce_uses_a_custom_strategy_and_still_checks_the_message_id(settings, caplog, queue_item_email):
+    settings.VDQ_EMAIL_TRACKING_STRATEGY = f"{__name__}.TagEmailTrackingStrategy"
+    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    tags = [f"vdq-{queue_item_email.pk}"]
+
+    handle_bounce(None, SimpleNamespace(message_id="mid-tag", event_type="sent", esp_event={}, tags=tags), "esp")
+
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.anymail.message_id == "mid-tag"
+    assert queue_item_email.workflow_state.code == "awaiting"
+
+    with caplog.at_level(logging.WARNING):
+        handle_bounce(
+            None, SimpleNamespace(message_id="mid-other", event_type="delivered", esp_event={}, tags=tags), "esp"
+        )
+
+    assert "which stores message_id=mid-tag" in caplog.text
+    queue_item_email.refresh_from_db()
+    assert queue_item_email.workflow_state.code == "awaiting"
