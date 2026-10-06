@@ -89,28 +89,34 @@ def changed_data_source(value):
 
 
 def read_black_settings(migration_path):
-    """Return the ``[tool.black]`` settings that apply to ``migration_path``, empty when the project has none.
+    """Return the ``[tool.black]`` settings that apply to ``migration_path``, or ``None`` when the project has none.
 
-    black finds the configuration the way its own command line does, from the project root above the
-    migration. Finding the project root reads each ``pyproject.toml`` above the migration as well, so a
-    configuration that cannot be read raises an error naming where the search started, which black's own
-    error leaves out.
+    An empty ``[tool.black]`` section still configures black, with its defaults, so it returns an empty dict
+    rather than ``None``.
+
+    black finds the project root the way its own command line does, from the migration upward. Only that
+    root's ``pyproject.toml`` counts. black's command line falls back to a user-level configuration, such as
+    ``~/.config/black``, but one developer's file would then choose black over the project's ruff, so
+    whether black formats is left to the project. Finding the project root reads each ``pyproject.toml``
+    above the migration as well, so a configuration that cannot be read raises an error naming where the
+    search started, which black's own error leaves out.
 
     black caches what it reads by path for the life of the process, so a process that calls this again
     after the configuration changes, such as a Django shell, keeps the settings it read first.
     """
     try:
-        pyproject = black.find_pyproject_toml((str(migration_path),))
-        if not pyproject:
-            return {}
+        project_root, _ = black.find_project_root((str(migration_path),))
+        pyproject = project_root / "pyproject.toml"
+        if not pyproject.is_file():
+            return None
 
         # black's parsed settings are not empty for a project without [tool.black]: black infers a
         # target_version from [project] requires-python. Only a [tool.black] section configures black.
         with open(pyproject, "rb") as f:
             if "black" not in tomllib.load(f).get("tool", {}):
-                return {}
+                return None
 
-        return black.parse_pyproject_toml(pyproject)
+        return black.parse_pyproject_toml(str(pyproject))
     except (OSError, ValueError) as error:
         raise ValueError(f"Could not read the pyproject.toml that applies to {migration_path}: {error}") from error
 
@@ -160,8 +166,8 @@ def format_changed_data(changed_data, migration_path, *, stderr, dry_run=False):
 
     The formatter the project uses lays it out, following the project's settings for ``migration_path``:
 
-    1. black, when the project configures it with a ``[tool.black]`` section. A project can have ruff
-       installed only to lint, so a project that configures black formats with black.
+    1. black, when the project configures it with a ``[tool.black]`` section, even an empty one. A project
+       can have ruff installed only to lint, so a project that configures black formats with black.
     2. ruff, when it is installed.
     3. black with its default settings, when it is installed but not configured.
     4. ``pformat``, when neither is installed.
@@ -175,8 +181,8 @@ def format_changed_data(changed_data, migration_path, *, stderr, dry_run=False):
 
     formatter = "black"
     try:
-        black_settings = read_black_settings(migration_path) if black is not None else {}
-        if black_settings:
+        black_settings = read_black_settings(migration_path) if black is not None else None
+        if black_settings is not None:
             return format_with_black(source, black_settings)
 
         ruff = find_ruff()

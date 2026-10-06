@@ -907,6 +907,39 @@ class Migration(migrations.Migration):
         assert '"model_name"' in source
         assert errors.getvalue() == ""
 
+    def test_format_changed_data_uses_black_defaults_for_an_empty_black_section(self, tmp_path):
+        # An empty [tool.black] still chooses black. Its defaults normalize to double quotes, where ruff
+        # would follow the project's single quotes.
+        (tmp_path / "pyproject.toml").write_text('[tool.black]\n\n[tool.ruff.format]\nquote-style = "single"\n')
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert '"model_name"' in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_ignores_a_user_level_black_configuration(self, tmp_path, monkeypatch):
+        # The project has no pyproject.toml and configures ruff in ruff.toml. black's command line would fall
+        # back to the developer's own black configuration, and its double quotes would show black formatted.
+        project = tmp_path / "project"
+        (project / ".git").mkdir(parents=True)
+        (project / "ruff.toml").write_text('[format]\nquote-style = "single"\n')
+        user_configuration = tmp_path / "user_black"
+        user_configuration.write_text("[tool.black]\nline-length = 120\n")
+        monkeypatch.setattr("black.files.find_user_pyproject_toml", lambda: user_configuration)
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], project / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
     def test_format_changed_data_uses_pformat_quietly_when_neither_is_installed(self, tmp_path, monkeypatch):
         monkeypatch.setattr("vueda.user.management.commands.utils.black", None)
         monkeypatch.setattr("vueda.user.management.commands.utils.find_ruff", lambda: None)

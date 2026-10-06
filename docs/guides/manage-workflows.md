@@ -112,7 +112,7 @@ The `handle_*` functions look up the associated database record using the natura
 
 The commands use the first of these that applies:
 
-1. **black, when your project configures it** with a `[tool.black]` section. A project can have ruff installed only to lint, so black configuration takes priority.
+1. **black, when your project configures it** with a `[tool.black]` section, even an empty one, in the `pyproject.toml` at your project root. A project can have ruff installed only to lint, so black configuration takes priority. A black configuration in your home directory, such as `~/.config/black`, does not count, so one developer's file cannot choose the formatter for the whole project.
 2. **ruff, when it is installed.**
 3. **black with its default settings, when it is installed** but not configured.
 4. **Python's `pprint`** with a narrow width, when neither is installed. That output uses single quotes and does not follow your settings.
