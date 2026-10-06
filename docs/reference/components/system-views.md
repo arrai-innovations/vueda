@@ -20,8 +20,22 @@ import Button from "@vueda/controls/button/Button.vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { faHouse, faSearch } from "@fortawesome/free-solid-svg-icons";
 
-const deactivateConfirm = ref("");
+const usernameConfirm = ref("");
 const destroyConfirm = ref("");
+
+// Fixtures for the ViewNotFound and ViewActionNotFound compositions below. They mirror what
+// each view passes to SuggestionList and DiagnosticStrip for the tried path in its demo.
+const notFoundSuggestions = [
+  { label: "/admin/customers/:pk/edit", score: 0.87, to: "/admin/customers/99999/edit" },
+  { label: "/admin/customers/:pk", score: 0.74, to: "/admin/customers/99999" },
+];
+const notFoundDiagnostics = [{ label: "route", value: "/admin/custmrs/99999/edit" }];
+const actionNotFoundSuggestions = [
+  { label: "archive", sub: "/crm/customer/archive", to: "/crm/customer/archive" },
+  { label: "create", sub: "/crm/customer/create", to: "/crm/customer/create" },
+  { label: "list", sub: "/crm/customer/list", to: "/crm/customer/list" },
+];
+const actionNotFoundDiagnostics = [{ label: "route", value: "/crm/customer/archve/" }];
 
 // Fixtures for the SuggestionList, DiagnosticStrip, and ErrorDisplay demos below.
 // All values are fictional. Emails use domain.invalid per the test conventions.
@@ -62,13 +76,19 @@ const batchErrors = [
 
 # System Views
 
-Utility views that handle loading states and navigation dead ends. These are not linked to a specific model; they serve as default fallbacks when a route cannot be resolved or data is still in flight.
+This page shows the views that VUEDA renders while a route loads, when a route or model action does not exist, and when a user deactivates records. It also shows the display parts that those views and the other action views build on. [Components](./index.md) describes the rules that every component page shares.
 
 ## ViewLoading
 
-Route-level loading status. By default, it shows a loading icon and label. After `slowAfterMs` (three seconds by default), it shows an hourglass and a message explaining that the load is taking longer than usual. Context, request details, and dependency progress appear only when supplied by the caller.
+{@api vue:component:ViewLoading} is the route-level loading status. {@api vue:component:ViewActionRouter} shows it while a route's model config and workflow load. By default it shows a loading icon and a label.
 
-These previews keep the normal and slow states visible for inspection. `ViewActionRouter` uses the default presentation without sample request details.
+After [`slowAfterMs`]{@api vue:component:ViewLoading:prop:slowAfterMs}, it switches to an hourglass icon and a message saying the load is taking longer than usual. The prop defaults to the {@api css-token:vueda-loading-slow-ms} token. The [`slow-actions`]{@api vue:component:ViewLoading:slot:slow-actions} slot adds buttons once the load is slow. Context text, request details, and dependency progress appear only when the caller passes them.
+
+The `loading` and `hourglass` icons come from the `ViewLoading` entry of the {@term Icon Registry}, falling back to its `Default` entry.
+
+These previews hold the normal and slow states so both stay visible.
+
+Theme keys: {@api theme-key:ViewLoading}.
 
 <VuedaDemo class="grid gap-4 md:grid-cols-2">
   <section>
@@ -81,16 +101,27 @@ These previews keep the normal and slow states visible for inspection. `ViewActi
   </section>
 </VuedaDemo>
 
-Use the `ViewLoading` theme entry to style the status. Its `loading` and `hourglass` icons resolve through the `ViewLoading` icon registry entry, falling back to `Default`. The `slow-actions` slot can supply actions once the slow threshold is reached.
-
 ## ViewNotFound
 
-Route-level 404 fallback. Composes `SystemMessageCard(tone="info")` with a "404" crest showing the typed path, a `TriedUrlCallout` whose bad segments are diff'd against the closest registered route, a `SuggestionList(shape="route")` listing N-best matches with similarity-score chips, a `DiagnosticStrip` debug footer (route by default; extend via the `diagnostics` prop), and a `Back` + `Go to home` actions row.
+{@api vue:component:ViewNotFound} is the route-level 404 page. It is a [SystemMessageCard](#systemmessagecard) in the `info` tone, with these parts from top to bottom:
 
-Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with scores). The number of suggestions defaults to 5 and is configurable via the `suggestionLimit` prop. The home button navigates to `homePath` (default `/`). Both the `blurb` and `actions` slots accept overrides.
+- a crest with the "Route not found" eyebrow, the typed path, and a `404` code;
+- a short explanation, which the [`blurb`]{@api vue:component:ViewNotFound:slot:blurb} slot replaces;
+- a [TriedUrlCallout](#triedurlcallout) that marks the segments of the typed path that differ from the closest route;
+- a [SuggestionList](#suggestionlist) of the closest routes, each with its similarity score;
+- a [DiagnosticStrip](#diagnosticstrip) with the route, followed by any rows in the [`diagnostics`]{@api vue:component:ViewNotFound:prop:diagnostics} prop;
+- Back and Go to home buttons, which the [`actions`]{@api vue:component:ViewNotFound:slot:actions} slot replaces.
+
+{@api js:function:@arrai-innovations/vueda/use/useSuggestRoute#useSuggestRoutes} scores every registered route path against the typed path by string similarity, with each numeric segment read as a primary key. It keeps up to [`suggestionLimit`]{@api vue:component:ViewNotFound:prop:suggestionLimit} routes, five by default, and drops routes that score zero. The list is hidden when every route scores zero.
+
+The callout compares each typed segment with the same position in the top suggestion. A numeric segment matches a route parameter. With no suggestion, every segment is marked. Go to home opens [`homePath`]{@api vue:component:ViewNotFound:prop:homePath}, `/` by default.
+
+This page has no router, so the demo below composes the same parts that the view renders for a mistyped path.
+
+Theme keys: {@api theme-key:ViewNotFound}.
 
 <VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewNotFound — composed output (404 crest + tried path + suggestions + diagnostics)</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewNotFound: composed output (404 crest, tried path, suggestions, diagnostics)</header>
   <div class="flex justify-center">
     <SystemMessageCard tone="info" icon-name="notFound">
       <template #crest-eyebrow>Route not found</template>
@@ -106,34 +137,37 @@ Suggestion data comes from `useSuggestRoutes({ limit })` (N-best matches with sc
           { text: '/edit' },
         ]"
       />
+      <SuggestionList head="Did you mean" source="router.suggest()" shape="route" :items="notFoundSuggestions" />
+      <DiagnosticStrip :rows="notFoundDiagnostics" />
       <template #actions>
-        <Button size="sm" emphasis="outline">Back</Button>
+        <Button size="sm" emphasis="ghost">Back</Button>
         <Button size="sm" tone="primary" class="ml-auto">Go to home</Button>
       </template>
     </SystemMessageCard>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>composition: <code>SystemMessageCard</code> · <code>TriedUrlCallout</code> · <code>SuggestionList</code> (shape=route) · <code>DiagnosticStrip</code></span>
-    <span>tried path: diff'd segment-by-segment against the top suggestion's normalized path; non-matching segments tint destructive</span>
-    <span>diagnostics: route row by default; consumers append <code>request id</code> / <code>session</code> via the <code>diagnostics</code> prop</span>
+    <span>tried path: <code>/99999</code> matches the <code>:pk</code> parameter of the top suggestion, so only <code>/custmrs</code> is marked</span>
+    <span>diagnostics: the route row comes first; the <code>diagnostics</code> prop appends rows such as a request id</span>
   </footer>
 </VuedaDemo>
 
-### Customization surface
-
-| Key     | Element       | Default classes                                   |
-| ------- | ------------- | ------------------------------------------------- |
-| `root`  | Outer `<div>` | `flex min-h-full items-center justify-center p-8` |
-| `blurb` | Default `<p>` | `text-[13px] leading-[1.5] text-muted-foreground` |
-
 ## ViewActionNotFound
 
-Model-action 404 fallback. Composes `SystemMessageCard(tone="info")` with a "404" crest showing the `app/model/action` key (action segment tinted destructive in the callout), a `TriedUrlCallout` with label `Action key`, a `SuggestionList(shape="action")` listing the closest matching model's actions sorted by similarity to the tried action, a `DiagnosticStrip` debug footer, and a `Back` + `Browse all actions` actions row.
+{@api vue:component:ViewActionNotFound} is the 404 page for a model action. {@api vue:component:ViewActionRouter} shows it when no view resolves for the route ({@term Action View Resolution}). It has the same parts as [ViewNotFound](#viewnotfound), with these differences:
 
-Suggestions use each action's route name (`read` for `retrieve`) and leave out `partial_update`, which `update` serves. A detail action appears only when the tried route has a pk, and its link reuses that pk. The list is sorted by `stringSimilarity` against the tried action name. HTTP verb chips in the action shape remain empty until the server exposes per-action verb metadata.
+- The crest shows the `app/model/action` key.
+- The callout is labelled "Action key", and only its action segment is marked.
+- The suggestion list shows the closest model's actions.
+- The second button is Browse all actions, which opens that model's list route. It is hidden when no model is close.
+
+The suggestions come from the {@term Model Info} that the client has already loaded. The view picks the closest app label by string similarity, then the closest model in that app. It lists that model's actions by route name, so `retrieve` appears as `read`. It leaves out `partial_update`, which the `update` route serves. A detail action appears only when the tried route has a primary key, and its link reuses that key. The list is sorted by similarity to the tried action name. The view passes no HTTP verb, so the rows show no verb chip.
+
+This demo composes the same parts for a mistyped action on a model whose actions are `list`, `create`, and `archive`.
+
+Theme keys: {@api theme-key:ViewActionNotFound}.
 
 <VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewActionNotFound — composed output (404 crest + action-key callout + available actions)</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewActionNotFound: composed output (404 crest, action key, available actions, diagnostics)</header>
   <div class="flex justify-center">
     <SystemMessageCard tone="info" icon-name="actionNotFound">
       <template #crest-eyebrow>Action not found</template>
@@ -150,36 +184,81 @@ Suggestions use each action's route name (`read` for `retrieve`) and leave out `
           { text: 'archve', bad: true },
         ]"
       />
+      <SuggestionList head="Available actions" source="crm.customer · 3" shape="action" :items="actionNotFoundSuggestions" />
+      <DiagnosticStrip :rows="actionNotFoundDiagnostics" />
       <template #actions>
-        <Button size="sm" emphasis="outline">Back</Button>
+        <Button size="sm" emphasis="ghost">Back</Button>
         <Button size="sm" tone="primary" class="ml-auto">Browse all actions</Button>
       </template>
     </SystemMessageCard>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>composition: same chassis as <code>ViewNotFound</code>; the <code>SuggestionList</code> uses <code>shape="action"</code></span>
-    <span>callout: only the action segment is tinted destructive; app and model are surfaced verbatim</span>
-    <span>browse: navigates to the closest model's list route (<code>/{app}/{model}/list</code>); hidden when no model can be resolved</span>
+    <span>callout: only the action segment is marked; the app and model show as typed</span>
+    <span>browse: opens <code>/crm/customer/list</code>, the closest model's list route</span>
   </footer>
 </VuedaDemo>
 
-### Customization surface
+## ViewDeactivate
 
-| Key     | Element       | Default classes                                   |
-| ------- | ------------- | ------------------------------------------------- |
-| `root`  | Outer `<div>` | `flex min-h-full items-center justify-center p-8` |
-| `blurb` | Default `<p>` | `text-[13px] leading-[1.5] text-muted-foreground` |
+{@api vue:component:ViewDeactivate} is the default view for every model's `deactivate` route. It renders the same confirmation as {@api vue:component:ViewActivate}, which [Action & Workflow Views](./action-workflow.md#viewactivate) shows live. The title reads "Deactivate {Model}" unless you set the [`title`]{@api vue:component:ViewDeactivate:prop:title} prop. The card uses the `warning` [tone]{@api vue:component:ModelActionForm:prop:tone}.
+
+The confirmation is a {@api vue:component:ModelActionForm}. It lists the selected objects and sends a {@term Dry Run} of the `deactivate` action when it opens. On confirm, it sends the action as a `PATCH` request. If the server answers with warnings, the form asks the user to confirm them ({@term Warning Confirmation}) before it resends. After success or cancel, the form opens the {@term Action Redirect}. The view puts its title in the page title and a Go Back button in the page actions.
+
+Attributes and slots pass through to `ModelActionForm`, so a page that wraps `ViewDeactivate` can change the form's copy and add a typed confirmation.
+
+Theme keys: {@api theme-key:ViewDeactivate} for the outer wrapper, and {@api theme-key:ModelActionForm} for the card.
+
+### Self-service account page
+
+A page that lets a signed-in user deactivate their own account can wrap `ViewDeactivate`. This example targets the signed-in user and asks them to type their email address. It also replaces the default prompt with account copy:
+
+```vue
+<script setup>
+import { storeUser } from "@vueda/stores/storeUser.js";
+import ViewDeactivate from "@vueda/views/ViewDeactivate.vue";
+
+const userStore = storeUser();
+</script>
+
+<template>
+    <ViewDeactivate
+        app="accounts"
+        model="user"
+        :pk="String(userStore.loggedInUser.id)"
+        :confirm-text="userStore.loggedInUser.email"
+        banner-title="Deactivate your account"
+        action-success-summary="Account deactivated"
+    >
+        <template #confirm-message>
+            <p>Deactivate your account? Type your email address below to confirm.</p>
+        </template>
+    </ViewDeactivate>
+</template>
+```
+
+- Replace `accounts` and `user` with your user model's app label and model name.
+- [`confirmText`]{@api vue:component:ModelActionForm:prop:confirmText} adds a [TypedConfirmField](#typedconfirmfield), and the confirm button stays disabled until the typed value matches.
+- [`bannerTitle`]{@api vue:component:ModelActionForm:prop:bannerTitle} and [`actionSuccessSummary`]{@api vue:component:ModelActionForm:prop:actionSuccessSummary} replace the banner title and the success toast. By default both combine the action and model names.
+- The [`confirm-message`]{@api vue:component:ModelActionForm:slot:confirm-message} slot replaces the default prompt.
+
+The prompt only describes the action. The server's `deactivate` action decides what deactivating the account changes.
 
 ## SystemMessageCard
 
-Centered 460 px card chassis shared by all four system views (NotFound, ActionNotFound, Loading, Deactivate) and by the AuthAndMFA card. Provides a tone-tracked 36 px crest icon tile above a border separator, a meta column (eyebrow label + mono kind text), an optional trailing status code, a body slot, and an optional actions footer.
+{@api vue:component:SystemMessageCard} is the card that [ViewNotFound](#viewnotfound) and [ViewActionNotFound](#viewactionnotfound) are built on. It has three parts:
 
-The root carries `data-tone` and opens a `group/system-message-card` named scope. The `crestIcon` theme key routes soft tint colors (about 12 to 14 percent opacity) from that scope via `group-data-[tone=*]/system-message-card:` variants, so the icon resolved from `icon-name` inherits the tinted ink color automatically.
+- a crest: an icon tile tinted by the [`tone`]{@api vue:component:SystemMessageCard:prop:tone}, an eyebrow label, a monospace kind line, and an optional status code, above a divider;
+- a body, from the default slot;
+- an optional actions footer, from the `actions` slot.
 
-Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` for per-call attributes or classes, and use `iconOverride` to replace the icon registry entry for this card and its descendants.
+The tones are `info`, `warning`, `danger`, and `loading`. The root carries `data-tone`, and the crest icon tile takes its tint from that attribute. The crest code and the actions footer render only when their slots have content.
+
+Set [`icon-name`]{@api vue:component:SystemMessageCard:prop:iconName} to an {@term Icon Registry} name to show an icon in the tile. [`icon-props`]{@api vue:component:SystemMessageCard:prop:iconProps} adds attributes to that icon. [`iconOverride`]{@api vue:component:SystemMessageCard:prop:iconOverride} replaces registry entries for this card and its descendants.
+
+Theme keys: {@api theme-key:SystemMessageCard}. {@api theme-key:SystemMessageCard.crestIcon} holds the tint for each tone.
 
 <VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — info tone (404 route not found)</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard: info tone (404 route not found)</header>
   <div class="flex justify-center">
     <SystemMessageCard tone="info" icon-name="notFound">
       <template #crest-eyebrow>route not found</template>
@@ -199,52 +278,38 @@ Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` fo
     </SystemMessageCard>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: <code>info</code> — primary/blue soft tint on crest icon tile</span>
-    <span>crest-code: optional trailing mono numeral (36 px / 600 / tabular-nums); omit the slot and it disappears</span>
-    <span>actions slot: renders only when provided; omit and the footer disappears</span>
+    <span>crest-code: optional; omit the slot and the code disappears</span>
+    <span>actions slot: renders only when provided; omit it and the footer disappears</span>
   </footer>
 </VuedaDemo>
 
 <VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — warning tone (deactivate confirmation)</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard: warning tone, no crest code</header>
   <div class="flex justify-center">
     <SystemMessageCard tone="warning" icon-name="warning">
-      <template #crest-eyebrow>deactivate account</template>
-      <template #crest-kind>mara.tani</template>
-      <p class="text-[13px] leading-[1.5] text-muted-foreground">This account will be suspended. All active sessions will end immediately.</p>
+      <template #crest-eyebrow>import paused</template>
+      <template #crest-kind>billing/invoice/import</template>
+      <p class="text-[13px] leading-[1.5] text-muted-foreground">The import stopped at row 214 because the file changed while it ran. Upload the file again to continue.</p>
       <template #actions>
         <Button size="sm" emphasis="outline">Cancel</Button>
-        <Button size="sm" tone="destructive">Deactivate</Button>
+        <Button size="sm" tone="primary">Upload again</Button>
       </template>
     </SystemMessageCard>
   </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>tone: <code>warning</code> — amber soft tint on crest icon tile; no crest-code slot used</span>
-  </footer>
 </VuedaDemo>
-
-### Customization surface
-
-| Key            | Element                      | Default classes                                                                                                                  |
-| -------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `root`         | Card `<div>`                 | `max-w-[460px]` · flex column `gap-5` · `rounded-vueda-card border bg-card` · `px-8 pt-8 pb-7` · 1 px foreground/4 bottom shadow |
-| `crest`        | Crest row `<div>`            | `flex items-start gap-3 pb-4 border-b border-border`                                                                             |
-| `crestIcon`    | Icon tile `<div>`            | 36 px square · 4 px radius · 18 px icon · tone-tinted bg + ink via named group scope                                             |
-| `crestMeta`    | Eyebrow + kind stack `<div>` | `flex flex-col justify-center gap-0.5 min-w-0 flex-1`                                                                            |
-| `crestEyebrow` | Eyebrow `<span>`             | 10 px / 600 / uppercase / 0.06 em tracking · `text-muted-foreground`                                                             |
-| `crestKind`    | Kind `<span>`                | mono 12 px / 500 · `text-foreground`                                                                                             |
-| `crestCode`    | Trailing code `<span>`       | mono 36 px / 600 / tabular-nums · `text-foreground/50` · hidden when slot absent                                                 |
-| `body`         | Body wrapper `<div>`         | `flex flex-col gap-3`                                                                                                            |
-| `actions`      | Actions footer `<div>`       | `flex items-center gap-2` · hidden when slot absent                                                                              |
 
 ## ConsequencesBullets
 
-Bulleted consequence list for destructive surfaces. Each row renders an optional leading icon, a bold label, and an optional muted description inside a 2-column grid (icon · label/sub stack). Per-row `tone` (`default` | `warn` | `danger`) tints only the leading icon via the `toneWarn` / `toneDanger` keys, so the list signals relative severity without overwhelming the surrounding card.
+{@api vue:component:ConsequencesBullets} is a list of what a destructive action will do. {@api vue:component:ViewDestroy} uses it to list the linked records that a delete affects. Each row has an optional leading icon, a bold label, and an optional muted description.
 
-Icons resolve through `useIcons("ConsequencesBullets")`. Register a component under each icon name your messaging uses (or fall back to a `Default` registry entry). When the lookup misses, the icon cell still renders so labels stay aligned across rows.
+A row's `tone` (`default`, `warn`, or `danger`) tints only its icon, through {@api theme-key:ConsequencesBullets.toneWarn} and {@api theme-key:ConsequencesBullets.toneDanger}. The list shows relative severity without overpowering the card around it.
+
+Icons come from the `ConsequencesBullets` entry of the {@term Icon Registry}, falling back to its `Default` entry. When a name has no icon, the icon cell still renders, so labels stay aligned across rows.
+
+Theme keys: {@api theme-key:ConsequencesBullets}.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ConsequencesBullets — self-destroy cascade</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ConsequencesBullets: four rows, three tones</header>
   <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <ConsequencesBullets
       :items="[
@@ -256,104 +321,42 @@ Icons resolve through `useIcons("ConsequencesBullets")`. Register a component un
     />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>row shape: <code>{ icon, label, description, tone }</code> — only <code>label</code> is required</span>
-    <span>tone routing: <code>data-tone</code> on the row, <code>toneWarn</code> / <code>toneDanger</code> tint the icon wrapper</span>
-    <span>icon lookup: <code>useIcons("ConsequencesBullets")(item.icon)</code> with fallback to the <code>Default</code> registry</span>
+    <span>row shape: <code>{ icon, label, description, tone }</code>; only <code>label</code> is required</span>
+    <span>tone: each row carries <code>data-tone</code>; <code>warn</code> and <code>danger</code> tint the icon only</span>
   </footer>
 </VuedaDemo>
-
-### Customization surface
-
-| Key           | Element                 | Default classes                                           |
-| ------------- | ----------------------- | --------------------------------------------------------- |
-| `root`        | `<ul>`                  | flex column, `gap-2`, list-reset                          |
-| `item`        | `<li>` row              | `grid grid-cols-[18px_1fr] items-start gap-x-2.5`         |
-| `icon`        | leading icon `<span>`   | 18 px square cell, 14 px glyph, `text-muted-foreground`   |
-| `text`        | label/description stack | `flex flex-col gap-0.5 min-w-0`                           |
-| `label`       | label `<span>`          | 13 px / 600 / `--foreground`                              |
-| `description` | description `<span>`    | 11.5 px / 400 / `--muted-foreground`                      |
-| `toneWarn`    | applied to icon wrapper | `text-warning` (active when `item.tone === "warn"`)       |
-| `toneDanger`  | applied to icon wrapper | `text-destructive` (active when `item.tone === "danger"`) |
-
-## ViewDeactivate
-
-Self-service account deactivation view. Wraps the deactivate action in a `SystemMessageCard(tone="warning")` chassis: an icon crest identifies the action, an optional `ConsequencesBullets` list communicates the impact, and a `TypedConfirmField` gates the destructive button on the operator typing their own email address. Sends a PATCH to the model's `deactivate` endpoint on confirmation.
-
-Props: `app` + `model` + `pk` (or array of PKs) identify the target. `consequences[]` forwards to `ConsequencesBullets`; when empty the bullet list is omitted. The `message` slot overrides the default suspension explanation paragraph.
-
-The submit button stays disabled until `TypedConfirmField` emits a match and remains disabled while the request is in-flight. On success the component emits `success`. On a non-200 response an inline error paragraph appears.
-
-<VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewDeactivate — full composition (consequences + typed confirm)</header>
-  <div class="flex justify-center">
-    <SystemMessageCard tone="warning" icon-name="warning">
-      <template #crest-eyebrow>account · deactivate</template>
-      <template #crest-kind>myapp/account/deactivate</template>
-      <p class="text-[13px] leading-[1.5] text-muted-foreground">Your account will be suspended. Active sessions will end immediately, API tokens will be disabled, and shared resources will be reassigned. After 30 days this action is permanent.</p>
-      <ConsequencesBullets
-        :items="[
-          { label: 'Sessions revoked', description: 'All active sessions across devices end immediately.' },
-          { label: 'API tokens disabled', description: 'Personal access tokens stop authenticating.' },
-          { label: 'Shared resources transfer', description: 'Owned records move to the team default owner.', tone: 'warn' },
-          { label: 'After 30 days, irrecoverable', description: 'Account and history are permanently purged.', tone: 'danger' },
-        ]"
-      />
-      <TypedConfirmField
-        v-model="deactivateConfirm"
-        expected-value="mara.tani@example.com"
-        label-lead="Type your email address"
-        label-tail="to confirm"
-      />
-      <template #actions>
-        <Button size="sm" emphasis="outline">Cancel</Button>
-        <Button size="sm" tone="destructive" :disabled="deactivateConfirm !== 'mara.tani@example.com'" class="ml-auto">Deactivate account</Button>
-      </template>
-    </SystemMessageCard>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>consequences: forwarded to <code>ConsequencesBullets</code>; omit the prop (or pass an empty array) and the bullet section disappears</span>
-    <span>typed confirm: expected value is <code>userStore.loggedInUser.email</code>; the field is omitted when the email is unavailable</span>
-    <span>submit stays disabled until typed value matches and re-disables while the PATCH is in-flight</span>
-  </footer>
-</VuedaDemo>
-
-### Customization surface
-
-| Key       | Element               | Default classes                                   |
-| --------- | --------------------- | ------------------------------------------------- |
-| `root`    | Outer `<div>`         | `flex min-h-full items-center justify-center p-8` |
-| `message` | Default message `<p>` | `text-[13px] leading-[1.5] text-muted-foreground` |
-| `error`   | Error `<p>`           | `text-[12px] text-destructive leading-[1.5]`      |
 
 ## TypedConfirmField
 
-Anti-mistake confirmation primitive shared by destroy, deactivate, and recovery-code regenerate flows. The operator must type the exact `expectedValue` before the consumer's destructive button enables. The chrome is the canonical "type it to mean it" recipe: a bordered, muted-tinted box with a 12 px sans label, an inline mono chip showing the expected literal, and a 32 px mono input.
+{@api vue:component:TypedConfirmField} asks the user to type an exact value before a destructive button enables. {@api vue:component:ModelActionForm} renders one when its [`confirmText`]{@api vue:component:ModelActionForm:prop:confirmText} prop has a value. Any view built on it, such as {@api vue:component:ViewDestroy}, can require one.
 
-Consumers read the match state via `v-model:match` (or the `match` event) and gate their submit control on it. The raw typed value is exposed via `v-model` for callers that need to echo or inspect it.
+The field is a muted box with a label, an inline monospace chip showing the expected value, and a monospace input. The input turns off autocomplete and spell check. The match is exact, including case and whitespace, and the root carries `data-match="true"` or `"false"`.
+
+Read the match state from the [`match`]{@api vue:component:TypedConfirmField:event:match} event, or compare the `v-model` value with `expectedValue`. Disable your submit control until they match.
+
+Theme keys: {@api theme-key:TypedConfirmField}.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — username self-destroy confirm</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField: typed username</header>
   <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <TypedConfirmField
-      v-model="deactivateConfirm"
+      v-model="usernameConfirm"
       expected-value="mara.tani"
       label-lead="Type your username"
       label-tail="to confirm"
     />
     <p class="mt-3 text-xs text-muted-foreground">
-      typed: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ deactivateConfirm || "—" }}</code>
-      · match: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ deactivateConfirm === "mara.tani" ? "true" : "false" }}</code>
+      typed: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ usernameConfirm || "(empty)" }}</code>
+      · match: <code class="rounded border border-border bg-muted/40 px-1 font-mono text-[11px]">{{ usernameConfirm === "mara.tani" ? "true" : "false" }}</code>
     </p>
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>label: <code>labelLead</code> + inline <code>&lt;code&gt;</code> chip (<code>expectedValue</code>) + <code>labelTail</code></span>
-    <span>match: typed value equals <code>expectedValue</code> exactly (case- and whitespace-sensitive); root carries <code>data-match="true|false"</code></span>
-    <span>input: <code>autocomplete="off"</code>, <code>spellcheck="false"</code>, mono 12.5 px, hairline + focus-ring on <code>:focus-visible</code></span>
+    <span>label: <code>labelLead</code>, then the <code>expectedValue</code> chip, then <code>labelTail</code></span>
   </footer>
 </VuedaDemo>
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField — multi-record destroy phrase</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TypedConfirmField: multi-record destroy phrase</header>
   <div class="rounded-vueda-card hairline hairline-border bg-card p-4">
     <TypedConfirmField
       v-model="destroyConfirm"
@@ -363,28 +366,21 @@ Consumers read the match state via `v-model:match` (or the `match` event) and ga
     />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>placeholder defaults to <code>expectedValue</code>; override via the <code>placeholder</code> prop when the phrase is too long to echo</span>
-    <span>for fully-custom label markup, use the <code>label</code> slot (receives <code>expectedValue</code> and <code>chipClass</code> slot props)</span>
+    <span>placeholder defaults to <code>expectedValue</code>; set the <code>placeholder</code> prop when the phrase is too long to echo</span>
+    <span>for custom label markup, use the <code>label</code> slot, which receives <code>expectedValue</code> and <code>chipClass</code></span>
   </footer>
 </VuedaDemo>
 
-### Customization surface
-
-| Key            | Element              | Default classes                                                          |
-| -------------- | -------------------- | ------------------------------------------------------------------------ |
-| `root`         | Outer `<label>`      | muted-tinted box · rounded-vueda-card · 12 px gap-1.5 column             |
-| `label`        | Label text `<span>`  | 12 px sans, foreground ink                                               |
-| `expectedChip` | Inline `<code>` chip | mono 12 px semibold · rounded 3 px · border + background fill            |
-| `input`        | Text `<input>`       | 32 px tall · mono 12.5 px · hairline + `focus-visible:focus-ring-shadow` |
-
 ## TriedUrlCallout
 
-Bordered callout showing the URL path or action key the user attempted, with the bad segment tinted destructive. Used in `ViewNotFound` and `ViewActionNotFound` to ground the suggestion list visually rather than explaining the typo in prose.
+{@api vue:component:TriedUrlCallout} is a bordered callout that shows the path or action key the user tried, with the wrong segments marked. [ViewNotFound](#viewnotfound) and [ViewActionNotFound](#viewactionnotfound) place it above their suggestion lists.
 
-The root is a 2-column grid: an 88 px uppercase eyebrow label column on the left, a 1fr mono value column on the right. The `segments` prop accepts a `{ text, bad? }[]` array; segments with `bad: true` receive `text-destructive`, while non-bad segments receive the `fade` theme key (muted-foreground by default) so the destructive segment reads as the error signal.
+The callout has two columns: an uppercase label on the left and the monospace value on the right. The [`segments`]{@api vue:component:TriedUrlCallout:prop:segments} prop takes `{ text, bad? }` entries, and the caller splits the path. Segments with `bad: true` use the destructive text color. The other segments use {@api theme-key:TriedUrlCallout.fade}, so the marked segment stands out. The label defaults to "You tried".
+
+Theme keys: {@api theme-key:TriedUrlCallout}.
 
 <VuedaDemo class="flex flex-col gap-3">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TriedUrlCallout — route path with typo segment</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TriedUrlCallout: route path and action key</header>
   <div class="rounded-vueda-card hairline hairline-border bg-card p-4 flex flex-col gap-3">
     <TriedUrlCallout
       label="You tried"
@@ -400,33 +396,16 @@ The root is a 2-column grid: an 88 px uppercase eyebrow label column on the left
     />
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>bad segment: receives hardcoded <code>text-destructive</code>; non-bad segments receive the <code>fade</code> theme key (<code>text-muted-foreground</code>)</span>
-    <span>label defaults to "You tried"; override via the <code>label</code> prop</span>
-    <span>consumers compute segment splits; pass the full path pre-split with the typo segment marked <code>bad: true</code></span>
+    <span>marked segment: always the destructive text color; the other segments take the <code>fade</code> theme slot</span>
+    <span>segments: the caller splits the path and marks the wrong segment with <code>bad: true</code></span>
   </footer>
 </VuedaDemo>
 
-### Customization surface
-
-| Key     | Element                  | Default classes                                                         |
-| ------- | ------------------------ | ----------------------------------------------------------------------- |
-| `root`  | Outer `<div>`            | `grid grid-cols-[88px_1fr]` · `rounded-vueda-card border` · `px-3 py-2` |
-| `label` | Label `<span>`           | 10 px / 600 / uppercase / 0.06 em tracking · `text-muted-foreground`    |
-| `value` | Value wrapper `<span>`   | mono 12.5 px / 400 · `min-w-0 truncate`                                 |
-| `fade`  | Non-bad segment `<span>` | `text-muted-foreground` — fades path so bad segments pop                |
-
 ## SuggestionList
 
-`SuggestionList` is the "Did you mean?" list the 404 views compose. It takes a
-head label, an optional mono source label, and a list of rows. Each row is a
-four-column grid: icon, label with an optional sub-line, a trailing chip, and a
-chevron. Two shapes decide what the trailing chip carries: `route` shows a
-similarity score, `action` shows an HTTP verb.
+{@api vue:component:SuggestionList} is the "Did you mean" list the 404 views show. It takes a head label, an optional monospace source label, and a list of rows. Each row has an icon, a label with an optional second line, a trailing chip, and a chevron. The [`shape`]{@api vue:component:SuggestionList:prop:shape} decides what the chip shows: `route` shows a similarity score, and `action` shows an HTTP verb.
 
-Each row renders a `router-link`, so an application installs vue-router and these
-navigate. This page has no router, so the rows below render the anchor a real
-`RouterLink` would produce and swallow the click; hover and focus are otherwise
-the real recipe.
+Each row is a `router-link`, so the rows navigate in an application with vue-router. This page has no router, so the rows below render the link that a real `RouterLink` would produce and ignore the click.
 
 Theme keys: {@api theme-key:SuggestionList}.
 
@@ -454,13 +433,9 @@ Theme keys: {@api theme-key:SuggestionList}.
 
 ## DiagnosticStrip
 
-`DiagnosticStrip` is the two-column definition list the system views put in their
-footer, so an operator can copy the request id, route, and session into a ticket
-rather than describing what they saw. Values render monospace by default because
-they exist to be pasted somewhere else.
+{@api vue:component:DiagnosticStrip} is the two-column list of labels and values that the 404 views put below their suggestions. An operator can copy the route, request id, or session from it into a ticket. Values render in monospace by default, because they exist to be pasted elsewhere; set [`mono`]{@api vue:component:DiagnosticStrip:prop:mono} to `false` for sentences.
 
-It presents whatever the view hands it. Nothing in the strip is fetched, and
-nothing about it changes what the server did.
+The strip shows only the rows that the view passes. It fetches nothing, and it changes nothing on the server.
 
 Theme keys: {@api theme-key:DiagnosticStrip}.
 
@@ -468,38 +443,27 @@ Theme keys: {@api theme-key:DiagnosticStrip}.
   <DemoCard title="default" description=" (mono values)">
     <DiagnosticStrip :rows="diagnosticRows" />
     <template #footer>
-      <span>each row is a <code>dt</code> and <code>dd</code> pair: a 10 px uppercase label against an 11 px value</span>
+      <span>each row is a <code>dt</code> and <code>dd</code> pair</span>
       <span>intended for the body slot of a <code>SystemMessageCard</code>, which is where the 404 views place it</span>
     </template>
   </DemoCard>
   <DemoCard title=':mono="false"' description=" (prose values)">
     <DiagnosticStrip :mono="false" :rows="diagnosticProseRows" />
     <template #footer>
-      <span>turn mono off when the values are sentences rather than identifiers</span>
+      <span>turn mono off when the values are sentences</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## ErrorDisplay
 
-`ErrorDisplay` is the dismissible error card the view layer renders above a
-failed surface. `ActionForm` mounts one for every submit, which is why a failed
-save shows a card without the view doing anything. It takes an `errored` flag and
-an `error`, and formats whatever it is given: an `Error`, a `FetchError` carrying
-a response and server detail, an array of several, or a bare string.
+{@api vue:component:ErrorDisplay} is the error card that the view layer renders above a failed surface. {@api vue:component:ActionForm} renders one above its form, so a failed save shows a card without any code in the view. It takes an [`errored`]{@api vue:component:ErrorDisplay:prop:errored} flag and an [`error`]{@api vue:component:ErrorDisplay:prop:error}. It formats an `Error`, a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError} with a response and server detail, an array of several errors, or a string.
 
-It also reports each distinct error to Sentry once. That is part of its contract
-rather than a side effect of these demos: no Sentry client is initialised for this
-documentation site, so the calls below go nowhere.
+It reports each distinct error to Sentry once. This docs site has no Sentry client, so the demos below report nothing.
 
-Several error classes are deliberately ignorable, so a view can mount one card
-and still let the surfaces that own those failures present them instead:
-`ignore-form-validation-errors` for per-field validation that belongs on the
-fields, `ignore-list-filter-errors` for filter errors that belong on the chip,
-and `ignore-aborted-requests` for a request the user navigated away from.
+A view can hide some errors from the card so another part of the page shows them. [`ignore-form-validation-errors`]{@api vue:component:ErrorDisplay:prop:ignoreFormValidationErrors} hides server validation errors, which belong on the fields. [`ignore-list-filter-errors`]{@api vue:component:ErrorDisplay:prop:ignoreListFilterErrors} hides filter errors, which belong on the filter chip. [`ignore-aborted-requests`]{@api vue:component:ErrorDisplay:prop:ignoreAbortedRequests}, on by default, hides cancelled requests, such as one that the user left by navigating away.
 
-Displaying an error changes nothing on the server. It reports what already
-happened, and dismissing the card does not retry or undo it.
+The card reports a failure that already happened. Dismissing it does not retry or undo the request.
 
 Theme keys: {@api theme-key:ErrorDisplay}.
 
@@ -509,21 +473,20 @@ Theme keys: {@api theme-key:ErrorDisplay}.
     <template #footer>
       <span>the card leads with the <code>while-text</code>, so the reader learns what failed before how</span>
       <span>the formatter stacks name and message, then <code>response.status</code> and <code>statusText</code>, then <code>responseData.detail</code></span>
-      <span>the underlying surface is an <code>Alert</code>, so a re-tone of the destructive tokens carries here</span>
     </template>
   </DemoCard>
   <DemoCard title="several errors at once">
     <ErrorDisplay :error="batchErrors" :errored="true" while-text="reconciling the batch" />
     <template #footer>
-      <span>an array renders every entry in one card rather than stacking a card per error</span>
-      <span>each distinct error reports once; a repeat of the same message is not re-reported</span>
+      <span>an array renders every entry in one card</span>
+      <span>each distinct error reports once; a repeat of the same message is not reported again</span>
     </template>
   </DemoCard>
   <DemoCard title="dismissible">
     <ErrorDisplay :dismissible="true" :error="conflictError" :errored="true" while-text="saving the customer" />
     <template #footer>
-      <span><code>dismissible</code> adds an <code>AlertClose</code> and emits <code>dismiss-error</code>; the owning view decides what that clears</span>
-      <span>dismissing is a presentation change only. The failed request is not retried.</span>
+      <span><code>dismissible</code> adds a close button that emits <code>dismiss-error</code>; the view that owns the card decides what that clears</span>
+      <span>dismissing changes only the display. The failed request is not retried.</span>
     </template>
   </DemoCard>
 </VuedaDemo>
