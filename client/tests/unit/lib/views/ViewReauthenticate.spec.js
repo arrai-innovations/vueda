@@ -5,7 +5,7 @@ import { defineComponent, h, reactive } from "vue";
 
 const AuthorizingFormStub = defineComponent({
     name: "AuthorizingFormStub",
-    props: ["runAction", "header", "subTitle", "requireRecentLogin", "formProps"],
+    props: ["runAction", "header", "subTitle", "requireRecentLogin", "formProps", "toasts"],
     setup(props, { slots }) {
         return () =>
             h("div", { "data-qa": "authorizing-form" }, [
@@ -17,7 +17,7 @@ const AuthorizingFormStub = defineComponent({
 
 const ViewTwoFactorAuthStub = defineComponent({
     name: "ViewTwoFactorAuthStub",
-    props: ["runAction", "header", "requireRecentLogin"],
+    props: ["runAction", "header", "requireRecentLogin", "toasts"],
     setup(props, { slots }) {
         return () => h("div", { "data-qa": "view-two-factor-auth" }, slots.extra ? slots.extra({}) : null);
     },
@@ -167,6 +167,37 @@ describe("lib/views/ViewReauthenticate.vue", () => {
 
             expect(userStore.twoFactorReauthenticate).toHaveBeenCalledWith({ code: "123456" });
             expect(userStore.reauthenticate).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Toasts", () => {
+        const reauthenticatedToasts = expect.objectContaining({
+            success: expect.objectContaining({ title: "Identity Confirmed" }),
+            redirectFailed: expect.objectContaining({
+                title: "Identity confirmed, but could not open the next page",
+            }),
+        });
+
+        scopedIt("the two-factor form announces a confirmed identity", () => {
+            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            const wrapper = mount(ViewReauthenticate);
+
+            expect(twoFactorForm(wrapper).props("toasts")).toEqual(reauthenticatedToasts);
+        });
+
+        scopedIt("the password form announces a confirmed identity", () => {
+            userStore.pendingFlow = { id: "reauthenticate" };
+            const wrapper = mount(ViewReauthenticate);
+
+            expect(passwordForm(wrapper).props("toasts")).toEqual(reauthenticatedToasts);
+        });
+
+        scopedIt("a toasts attribute replaces the default", () => {
+            const toasts = { success: { title: "Verified" } };
+            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            const wrapper = mount(ViewReauthenticate, { attrs: { toasts } });
+
+            expect(twoFactorForm(wrapper).props("toasts")).toEqual(toasts);
         });
     });
 

@@ -17,8 +17,8 @@ import { computed, reactive, ref, useSlots, watch } from "vue";
  * `storeUser.reauthenticate`. Both wait for `recentlyLoggedIn` before redirecting, so a user whose session
  * is already recent is sent on without a prompt.
  *
- * The `header` and `subTitle` set here are defaults: an attribute passed in with the same name falls through
- * to whichever form is showing and replaces it, as does any other AuthorizingForm prop such as `redirect`.
+ * The `header`, `subTitle`, and `toasts` set here are defaults: an attribute passed in with the same name falls
+ * through to whichever form is showing and replaces it, as does any other AuthorizingForm prop such as `redirect`.
  * Integrators can replace pieces of the password form through the `field(password)`, `widget(password)`, and
  * `action-bar` slots; other slots are forwarded to the form being rendered.
  *
@@ -48,6 +48,17 @@ const formProps = reactive({
     },
 });
 
+const REAUTHENTICATED_TOASTS = {
+    success: {
+        title: "Identity Confirmed",
+        description: "You can continue where you left off.",
+    },
+    redirectFailed: {
+        title: "Identity confirmed, but could not open the next page",
+        description: "Your identity is confirmed. Use the navigation to continue.",
+    },
+};
+
 const handleSubmit = ({ formValues }) => {
     return userStore.reauthenticate({
         password: formValues.password,
@@ -73,6 +84,7 @@ const allSlots = computed(() => Object.keys(slots));
         :run-action="handleTwoFactorSubmit"
         header="Confirm your identity"
         :require-recent-login="true"
+        :toasts="REAUTHENTICATED_TOASTS"
     >
         <template v-for="slot in allSlots" #[slot]="slotProps">
             <slot :name="slot" v-bind="slotProps || {}" />
@@ -85,6 +97,7 @@ const allSlots = computed(() => Object.keys(slots));
         sub-title="Enter your password again to verify your identity."
         :form-props="formProps"
         :require-recent-login="true"
+        :toasts="REAUTHENTICATED_TOASTS"
         action-error-summary="Verification Failed"
     >
         <template #action-form-inner>

@@ -192,7 +192,7 @@ Some operations require proof that the user authenticated recently (not just tha
 }
 ```
 
-Both forms pass `requireRecentLogin` to `AuthorizingForm`, which waits for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets that flag when the session completed the required flow, at login or by reauthenticating, within `ACCOUNT_REAUTHENTICATION_TIMEOUT`. A user who reaches the view with a recent session is redirected without a prompt.
+Both forms pass `requireRecentLogin` to `AuthorizingForm`, which waits for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets that flag when the session completed the required flow, at login or by reauthenticating, within `ACCOUNT_REAUTHENTICATION_TIMEOUT`. A user who reaches the view with a recent session is redirected without a prompt. On arrival it shows an "Identity Confirmed" toast; pass `toasts` to `ViewReauthenticate` to change it.
 
 Adjust the copy through `header` and `subTitle`, or replace parts of the password form through its slots. This replaces the submit button and keeps everything else:
 
