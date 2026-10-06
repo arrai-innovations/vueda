@@ -231,7 +231,7 @@ describe("lib/stores/storeModelConfig.js", () => {
     });
 
     describe("getConfig", () => {
-        scopedIt("builds a default config from modelInfo with flattened expansion details", async () => {
+        scopedIt("builds a default config from modelInfo that expands nothing", async () => {
             const store = storeModelConfig();
             // Clear any caches.
             store.builtConfigs = {};
@@ -247,7 +247,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.detailLinkField).toBeNull();
             expect(config.submitFields).toEqual(["name", "description"]);
 
-            expect(config.expand).toEqual(["employee", "timesheet_days"]);
+            expect(config.expand).toEqual([]);
             expect(config.routeActions).toEqual([
                 "create",
                 "destroy",
@@ -280,14 +280,9 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.fieldDetails).toHaveProperty("name");
             expect(config.fieldDetails).toHaveProperty("description");
 
-            expect(config.fieldDetails).toHaveProperty("employee");
-            expect(config.fieldDetails).toHaveProperty("employee.id");
-            expect(config.fieldDetails).toHaveProperty("employee.username");
-            expect(config.fieldDetails).toHaveProperty("employee.email");
-
-            expect(config.fieldDetails).toHaveProperty("timesheet_days");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days.id");
-            expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
+            // Nothing is expanded, so nothing is flattened; the declared expands stay available.
+            expect(config.fieldDetails).not.toHaveProperty("employee.id");
+            expect(config.fieldDetails).not.toHaveProperty("timesheet_days.id");
 
             expect(config.expandDetails).toHaveProperty("employee");
             expect(config.expandDetails).toHaveProperty("timesheet_days");
@@ -661,6 +656,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.initialized = {};
 
             const customGenericConfig = {
+                expand: ["employee"],
                 expandDetails: {
                     employee: {
                         extra: "generic",
@@ -743,6 +739,37 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.fieldDetails).not.toHaveProperty("timesheet_days");
         });
 
+        scopedIt("flattens the details of each configured expand", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { expand: ["employee", "timesheet_days"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.expand).toEqual(["employee", "timesheet_days"]);
+            expect(config.fieldDetails).toHaveProperty("employee");
+            expect(config.fieldDetails).toHaveProperty("employee.id");
+            expect(config.fieldDetails).toHaveProperty("employee.username");
+            expect(config.fieldDetails).toHaveProperty("employee.email");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.id");
+            expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
+        });
+
+        scopedIt("keeps a view-specific expand to that view", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, null, { list: { expand: ["employee"] } });
+
+            const listConfig = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            const updateConfig = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+            expect(listConfig.expand).toEqual(["employee"]);
+            expect(updateConfig.expand).toEqual([]);
+        });
+
         scopedIt("handles expansions lacking sub-field info", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
@@ -751,10 +778,53 @@ describe("lib/stores/storeModelConfig.js", () => {
             const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
             delete customModelInfo.expand[0].f;
             mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+            store.setConfig({ app: "testApp", model: "testModel" }, { expand: ["employee"] });
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             expect(config.fieldDetails).toHaveProperty("employee");
             expect(config.fieldDetails).not.toHaveProperty("employee.id");
+        });
+    });
+
+    describe("expanded field path validation", () => {
+        scopedIt("rejects a field list entry that reads through an expand the config does not request", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { displayFields: ["name", "employee.username"] });
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).rejects.toThrow(
+                /testApp\.testModel reads through expands it does not request: displayFields names employee\.username; fetchFields names employee\.username/,
+            );
+        });
+
+        scopedIt("rejects a fields shorthand entry under an expand the view does not request", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                { fields: ["name", "employee.username"] },
+                { list: { expand: ["employee"] } },
+            );
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).resolves.toBeTruthy();
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "update" })).rejects.toThrow(
+                /displayFields names employee\.username/,
+            );
+        });
+
+        scopedIt("leaves a dotted entry that names no declared expand alone", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { displayFields: ["name", "related.label"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            expect(config.displayFields).toEqual(["name", "related.label"]);
         });
     });
 
@@ -764,7 +834,13 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.builtConfigs = {};
             store.initialized = {};
 
-            store.setConfig({ app: "testApp", model: "testModel" }, { submitFields: ["name", "employee.username"] });
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    expand: ["employee"],
+                    submitFields: ["name", "employee.username"],
+                },
+            );
 
             await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
                 /submitFields for testApp\.testModel names expand-flattened display field\(s\): employee\.username/,
@@ -776,7 +852,13 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.builtConfigs = {};
             store.initialized = {};
 
-            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    expand: ["employee"],
+                    fields: ["name", "employee.username"],
+                },
+            );
 
             const config = await store.getConfig({ app: "testApp", model: "testModel" });
             expect(config.displayFields).toEqual(["name", "employee.username"]);
@@ -789,7 +871,13 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.builtConfigs = {};
             store.initialized = {};
 
-            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    expand: ["employee"],
+                    fields: ["name", "employee.username"],
+                },
+            );
 
             const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
             expect(config.displayFields).toEqual(["name", "employee.username"]);
@@ -801,7 +889,13 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.builtConfigs = {};
             store.initialized = {};
 
-            store.setConfig({ app: "testApp", model: "testModel" }, { fields: ["name", "employee.username"] });
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    expand: ["employee"],
+                    fields: ["name", "employee.username"],
+                },
+            );
 
             const config = await store.getConfig({ app: "testApp", model: "testModel", view: "read" });
             expect(config.displayFields).toEqual(["name", "employee.username"]);
@@ -815,7 +909,7 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             store.setConfig(
                 { app: "testApp", model: "testModel" },
-                { fields: ["name"], submitFields: ["name", "employee.username"] },
+                { expand: ["employee"], fields: ["name"], submitFields: ["name", "employee.username"] },
             );
 
             await expect(store.getConfig({ app: "testApp", model: "testModel" })).rejects.toThrow(
@@ -831,6 +925,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.setConfig(
                 { app: "testApp", model: "testModel" },
                 {
+                    expand: ["employee"],
                     displayFields: ["name", "employee.username"],
                     fetchFields: ["name", "employee.username"],
                     submitFields: ["name"],
