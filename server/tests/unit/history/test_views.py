@@ -33,7 +33,7 @@ class TestWorkflowStateHistoryView:
         )
 
     def test_get_reads_permission_names_mapping_at_call_time(self, settings, api_client, customer_order):
-        # The permission class resolves the CRUDL action through PERMISSION_NAMES_MAPPING when the
+        # The permission class resolves the CRUD action through PERMISSION_NAMES_MAPPING when the
         # check runs. Binding the codename at import instead would leave the check pinned to
         # "read_customerorder" regardless of what an override requested.
         settings.ROOT_URLCONF = "tests.unit.history.urls_workflow_state_history"

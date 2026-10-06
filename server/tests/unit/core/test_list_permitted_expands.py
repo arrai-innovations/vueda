@@ -1,6 +1,6 @@
 """
 A list request's expands are validated against the viewset's `permit_list_expands` the way
-drf-flex-fields applies it: a requested path must be listed as written, or be a root wildcard.
+drf-flex-fields2 applies it: a requested path must be listed as written or be a root wildcard.
 """
 
 from http import HTTPStatus

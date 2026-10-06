@@ -280,6 +280,17 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
     the same ``aggregate()`` call, not just its own, which is why such a path is rejected outright
     rather than aggregated on its own. The ``vueda_info.E013`` system check reports a declaration
     that breaks any of these rules; see ``vueda.info.checks``.
+
+    Totals cover the rows that the list covers. ``list`` aggregates after the filter backends and
+    :meth:`apply_row_level_filter` run. It aggregates over the whole filtered queryset, so a total
+    is the same on every page. Only a paginated response has a ``columnTotals`` key to carry them:
+    ``VUEDAPageNumberPagination.get_paginated_response`` reads what ``list`` sets on
+    ``paginator.column_totals``, and a viewset with ``pagination_class = None`` computes none.
+
+    ``list`` computes totals in the request that returns them and never caches them, so a total is
+    exactly as fresh as the rows beside it. A response carries only the totals that request named. A
+    client therefore names every total it wants on every request and replaces its totals with each
+    response; merging responses would keep a total computed from rows that may since have changed.
     """
 
     column_totals: dict[str, str] = {}
@@ -385,18 +396,30 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         which is what "the same filtered, permission-limited set" has to mean for a total to be
         worth showing.
 
-        A total over an annotation the viewset's own ``get_queryset`` adds cannot follow that route,
-        so it is aggregated over ``queryset`` itself and the two kinds are summed in separate calls.
-        The annotation belongs to the queryset being replaced, and it cannot be moved: the
-        expressions in ``query.annotations`` are already resolved, and their ``Col`` leaves hold the
-        aliases of the query they were resolved against. Re-applying one to another queryset adds no
-        join -- ``Col`` has no ``resolve_expression`` of its own -- so an annotation reaching through
-        a relation would compile to SQL naming a table the query never joined.
+        A total over an annotation that the viewset's own ``get_queryset`` adds cannot follow that
+        route, so the two kinds are summed in separate calls. The annotation belongs to the queryset
+        being replaced, and it cannot be moved: the expressions in ``query.annotations`` are already
+        resolved, and their ``Col`` leaves hold the aliases of the query they were resolved against.
+        Re-applying one to another queryset adds no join -- ``Col`` has no ``resolve_expression`` of its
+        own -- so an annotation reaching through a relation would compile to SQL naming a table the
+        query never joined.
 
-        The consequence is that an annotation total is not protected from the row multiplication
-        described above: it is summed over the filtered queryset with whatever joins matched it. A
-        total over a real column is the one that carries the guarantee, which is the other reason to
-        prefer a ``GeneratedField`` or a database view where the value could be a column.
+        An annotation total is summed over ``values("pk", <annotation>).distinct()`` on the filtered
+        queryset instead. A join that matched a row more than once contributes one ``(pk, value)``
+        pair, so each matched row still counts once, and two rows sharing a value stay two rows. What
+        no route can total is an annotation that reads the multi-valued side of a join, such as
+        ``F("special_care__id")``: it has a value per joined row rather than per row, so there is no
+        per-row total to compute, and only exact duplicates collapse. ``vueda_info.E013`` cannot see
+        this either, since an annotation has no model field behind it to check. Where the value
+        could be a column, a ``GeneratedField`` or a database view reached through a one-to-one
+        relation avoids both gaps: the check validates its path like any other.
+
+        A queryset that picks one row per group with ``distinct(*fields)``, leaving out the primary key,
+        gets totals over the rows it picks: the re-selection keeps the queryset's ordering and distinct
+        fields, which decide the row that each group keeps. A ``DISTINCT ON`` that includes the primary
+        key only removes duplicates, so it is dropped from the re-selection. When the per-group distinct
+        fields refer to a queryset annotation, the re-selection cannot carry them, and a request that
+        names any total raises ``NotImplementedError``.
         """
         if not requested_column_totals:
             return {}
@@ -623,7 +646,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     add_valid_child_names(valid_wildcard_fields, field_name, child_valid_wildcard_fields)
 
                 if permitted_expands is not None:
-                    # drf-flex-fields keeps a requested expand only when the permit list names it as
+                    # drf-flex-fields2 keeps a requested expand only when the permit list contains it as
                     # written, or when the request holds a root wildcard, and drops the rest silently.
                     # Accept only what it would keep, so anything else is reported instead.
                     valid_expands &= permitted_expands
@@ -1076,7 +1099,7 @@ class NoExtraFieldsForViewSetMixin:
         """
         Reject each ``e`` value a write action does not permit, before the body is validated.
 
-        drf-flex-fields keeps only the permitted expands and drops the rest without an error, so a
+        drf-flex-fields2 keeps only the permitted expands and drops the rest without an error, so a
         write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
         expand and read the relation as a primary key. This applies the same rules and messages as
         :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
@@ -1291,6 +1314,7 @@ class VuedaViewSet(
     """
     Full CRUD ViewSet for VUEDA models. Extends DRF's ``ModelViewSet`` with:
 
+    - Multipart saves that carry JSON values and nested files (``NestedMultipartMixin``)
     - Flex-fields expansion (``FlexFieldsMixin``)
     - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)

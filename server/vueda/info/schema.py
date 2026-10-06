@@ -74,7 +74,7 @@ class ModelInfoPermissionSerializer(serializers.Serializer):
 
 
 class ModelInfoActionSerializer(serializers.Serializer):
-    name = serializers.CharField(help_text="Action name: a CRUDL action or the URL name of an extra action.")
+    name = serializers.CharField(help_text="Action name: a CRUD action or the URL name of an extra action.")
     description = serializers.CharField()
     detail = serializers.BooleanField(help_text="Whether the action acts on one object.")
     bulk = serializers.BooleanField(help_text="Whether the action acts on several objects at once.")

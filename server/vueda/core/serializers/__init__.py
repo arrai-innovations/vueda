@@ -358,7 +358,13 @@ class FlexFieldsWriteableNestedSerializerMixin(
                 fields[name] = self._make_expanded_field_serializer(name, next_expand_fields, {}, {})
 
     def update_or_create_direct_relations(self, attrs, relations):
-        """Link existing rows directly; authorize each nested create or update before saving."""
+        """Save each direct relation's row after checking the related viewset's permissions.
+
+        An entry that holds only a primary key links the existing row without saving it or
+        checking permissions, when the field has no save arguments. With save arguments, the
+        serializer checks and saves the row like any other entry. An unknown primary key raises a validation error
+        under the field name.
+        """
         for field_name, (field, field_source) in relations.items():
             try:
                 attrs[field_source] = self._save_nested_shared_row(

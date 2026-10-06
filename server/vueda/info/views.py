@@ -212,7 +212,7 @@ server_info_view.cls._ignore_model_permissions = True
 
 
 class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
-    """Read-only overview of registered models, their CRUDL groups, and workflow transition groups."""
+    """Read-only overview of registered models, their CRUD groups, and workflow transition groups."""
 
     template_name = "info/overview.jinja2"
     permission_required = ("auth.list_permission",)
@@ -253,7 +253,7 @@ class InfoOverviewView(LogoutMixin, PermissionRequiredMixin, TemplateView):
                 group_data["user_has_group"] = group.name in user_group_names
             groups_data.append(group_data)
 
-        # Permissions with their groups, ordered by app / model / CRUDL
+        # Permissions with their groups, ordered by app / model / CRUD
         permissions_qs = (
             Permission.objects.filter(content_type_id__in=registered_ct_ids)
             .annotate(
