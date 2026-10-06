@@ -346,39 +346,65 @@ const validateSubmitFields = (builtConfig, args) => {
 };
 
 /**
- * Reject a field list entry that reads through a declared expand the config does not request.
+ * Client-side namespaces a dotted display path may start with; `unifiedGet` reads them from the row's
+ * related and calculated objects rather than from the row.
+ */
+const clientPathNamespaces = new Set(["related", "calculated"]);
+
+/**
+ * Reject an `expand` entry or dotted field list entry that the model's metadata cannot satisfy.
  *
- * A dotted entry such as `employee.username` reads a value from the expanded `employee` object. Without
- * `employee` in `expand`, the response carries `employee` as a primary key, the entry has no field
- * details, and the cell or field renders blank. A dotted entry whose first segment names no declared
- * expand, such as a `related.` or `calculated.` path, is left alone.
+ * Each `expand` entry must start with an expand that model info declares; the server answers an
+ * undeclared one with a 400. A dotted field list entry is checked by its first segment:
+ *
+ * - A declared expand must also be in `expand`. Without it, the response carries the relation as a
+ *   primary key, the entry has no field details, and the cell or field renders blank.
+ * - A model field passes, since the entry reads into that field's nested value, such as `address.city`.
+ * - `related` and `calculated` pass, since the client resolves them itself.
+ * - Anything else names nothing the model provides.
+ *
+ * A model info response without expand metadata builds a minimal config, which this does not check.
  *
  * @param {ModelConfig} builtConfig - The built configuration, read for `expand` and its field lists.
- * @param {Iterable<string>} declaredExpandNames - The expand names model info declares.
+ * @param {ModelConfig} defaultGenericConfig - The config derived from model info, read for the declared
+ *  expands (`expandDetails`) and fields (`fieldDetails`).
  * @param {{app: string, model: string}} args - Identifies the model being configured, for the error message.
- * @throws {Error} If a field list names a field under a declared expand that `expand` omits.
+ * @throws {Error} If `expand` or a field list names something the model's metadata does not provide.
  */
-const validateExpandedFieldPaths = (builtConfig, declaredExpandNames, args) => {
-    const declared = new Set(declaredExpandNames);
+const validateExpandConfig = (builtConfig, defaultGenericConfig, args) => {
+    if (!defaultGenericConfig.expandDetails) {
+        return;
+    }
+    const declaredExpands = new Set(Object.keys(defaultGenericConfig.expandDetails));
+    const declaredFields = new Set(Object.keys(defaultGenericConfig.fieldDetails || {}));
     const requested = new Set(builtConfig.expand || []);
     const problems = [];
+    for (const expandName of builtConfig.expand || []) {
+        if (!declaredExpands.has(expandName.split(".", 1)[0])) {
+            problems.push(`expand names ${expandName}, which model info does not declare`);
+        }
+    }
     for (const listKey of ["displayFields", "fetchFields", "submitFields"]) {
         for (const fieldName of builtConfig[listKey] || []) {
             const dotIndex = fieldName.indexOf(".");
             if (dotIndex === -1) {
                 continue;
             }
-            const expandName = fieldName.slice(0, dotIndex);
-            if (declared.has(expandName) && !requested.has(expandName)) {
-                problems.push(`${listKey} names ${fieldName}`);
+            const prefix = fieldName.slice(0, dotIndex);
+            if (declaredExpands.has(prefix)) {
+                if (!requested.has(prefix)) {
+                    problems.push(`${listKey} names ${fieldName}, but expand does not name ${prefix}`);
+                }
+            } else if (!declaredFields.has(prefix) && !clientPathNamespaces.has(prefix)) {
+                problems.push(
+                    `${listKey} names ${fieldName}, but ${prefix} is not a declared expand, a field, ` +
+                        "or a related or calculated path",
+                );
             }
         }
     }
     if (problems.length) {
-        throw new Error(
-            `Model config for ${args.app}.${args.model} reads through expands it does not request: ` +
-                `${problems.join("; ")}. Add each expand to \`expand\`, or remove the field.`,
-        );
+        throw new Error(`Model config for ${args.app}.${args.model} is invalid: ${problems.join("; ")}.`);
     }
 };
 
@@ -735,7 +761,7 @@ export const storeModelConfig = defineStore("modelConfig", {
                     { fetchFollowsDisplay: fetchFollowsDisplayViews.includes(view) },
                 );
                 validateSubmitFields(builtConfig, args);
-                validateExpandedFieldPaths(builtConfig, Object.keys(defaultGenericConfig.expandDetails || {}), args);
+                validateExpandConfig(builtConfig, defaultGenericConfig, args);
 
                 mergeDeepProperties(
                     builtConfig,

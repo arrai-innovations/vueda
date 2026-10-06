@@ -786,7 +786,7 @@ describe("lib/stores/storeModelConfig.js", () => {
         });
     });
 
-    describe("expanded field path validation", () => {
+    describe("expand config validation", () => {
         scopedIt("rejects a field list entry that reads through an expand the config does not request", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
@@ -795,7 +795,7 @@ describe("lib/stores/storeModelConfig.js", () => {
             store.setConfig({ app: "testApp", model: "testModel" }, { displayFields: ["name", "employee.username"] });
 
             await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).rejects.toThrow(
-                /testApp\.testModel reads through expands it does not request: displayFields names employee\.username; fetchFields names employee\.username/,
+                /testApp\.testModel is invalid: displayFields names employee\.username, but expand does not name employee; fetchFields names employee\.username, but expand does not name employee\./,
             );
         });
 
@@ -812,19 +812,65 @@ describe("lib/stores/storeModelConfig.js", () => {
 
             await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).resolves.toBeTruthy();
             await expect(store.getConfig({ app: "testApp", model: "testModel", view: "update" })).rejects.toThrow(
-                /displayFields names employee\.username/,
+                /displayFields names employee\.username, but expand does not name employee/,
             );
         });
 
-        scopedIt("leaves a dotted entry that names no declared expand alone", async () => {
+        scopedIt("accepts related, calculated, and nested field paths", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
             store.initialized = {};
 
-            store.setConfig({ app: "testApp", model: "testModel" }, { displayFields: ["name", "related.label"] });
+            store.setConfig(
+                { app: "testApp", model: "testModel" },
+                {
+                    displayFields: ["name", "related.label", "calculated.total"],
+                    fetchFields: ["name", "description"],
+                    submitFields: ["name", "description.summary"],
+                },
+            );
 
             const config = await store.getConfig({ app: "testApp", model: "testModel", view: "list" });
-            expect(config.displayFields).toEqual(["name", "related.label"]);
+            expect(config.displayFields).toEqual(["name", "related.label", "calculated.total"]);
+            expect(config.submitFields).toEqual(["name", "description.summary"]);
+        });
+
+        scopedIt("rejects a dotted entry whose prefix the model does not provide", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { displayFields: ["name", "bogus.name"] });
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).rejects.toThrow(
+                /displayFields names bogus\.name, but bogus is not a declared expand, a field, or a related or calculated path/,
+            );
+        });
+
+        scopedIt("rejects an expand that model info does not declare", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, null, {
+                create: { expand: ["employee", "bogus"] },
+            });
+
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "list" })).resolves.toBeTruthy();
+            await expect(store.getConfig({ app: "testApp", model: "testModel", view: "create" })).rejects.toThrow(
+                /testApp\.testModel is invalid: expand names bogus, which model info does not declare\./,
+            );
+        });
+
+        scopedIt("checks only the first segment of a dotted expand entry", async () => {
+            const store = storeModelConfig();
+            store.builtConfigs = {};
+            store.initialized = {};
+
+            store.setConfig({ app: "testApp", model: "testModel" }, { expand: ["employee", "timesheet_days.day"] });
+
+            const config = await store.getConfig({ app: "testApp", model: "testModel" });
+            expect(config.expand).toEqual(["employee", "timesheet_days.day"]);
         });
     });
 

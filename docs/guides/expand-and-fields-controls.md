@@ -227,7 +227,15 @@ storeModelConfig().setConfig(
 );
 ```
 
-When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category.name"]` and `fieldDetails["category.description"]`. This allows display and field configuration to target expanded sub-fields directly. Without an expansion in `expand`, no flattening occurs for it and its `expand.subfield` keys are not present in `fieldDetails`. A `displayFields`, `fetchFields`, or `submitFields` entry such as `category.name` therefore needs `category` in the same view's `expand`. Building a config that names such an entry without its expansion throws an error that names the entry.
+When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category.name"]` and `fieldDetails["category.description"]`. This allows display and field configuration to target expanded sub-fields directly. Without an expansion in `expand`, no flattening occurs for it and its `expand.subfield` keys are not present in `fieldDetails`. Building a config checks `expand` and the dotted entries in `displayFields`, `fetchFields`, and `submitFields`, and throws an error naming each problem:
+
+- Each `expand` entry must start with an expansion that model info declares. The check reads only the first segment of a dotted entry.
+- A dotted entry under a declared expansion, such as `category.name`, needs `category` in the same view's `expand`.
+- A dotted entry under a model field, such as `address.city`, reads into that field's nested value and passes.
+- A `related.` or `calculated.` entry passes, since the client resolves those paths itself.
+- Any other dotted entry names nothing the model provides.
+
+The check runs for every view, so a list, a read view, and a form reject the same configuration in the same way.
 
 ## List and Detail Request Param Wiring
 
