@@ -41,12 +41,11 @@ from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.http import Http404
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
-from rest_flex_fields import WILDCARD_VALUES
-from rest_flex_fields.views import FlexFieldsMixin as DefaultFlexFieldsMixin
+from rest_flex_fields2.config import WILDCARD_VALUES
+from rest_flex_fields2.views import FlexFieldsMixin as DefaultFlexFieldsMixin
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import viewsets as drf_viewsets
-from rest_framework.exceptions import ErrorDetail
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -540,7 +539,7 @@ def add_valid_child_names(valid_set, field_name, child_names_list):
 
 
 def get_recursive_expands_and_fields(serializer, depth, max_depth):
-    max_depth = min((max_depth, settings.REST_FLEX_FIELDS["MAXIMUM_EXPANSION_DEPTH"]))
+    max_depth = min((max_depth, settings.REST_FLEX_FIELDS2["MAXIMUM_EXPANSION_DEPTH"]))
 
     valid_expands = set()
     valid_wildcard_expands = set()
@@ -552,7 +551,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
             valid_fields.update(serializer.fields.keys())
             if depth > 0:
                 # An expanded object always omits available_actions (see
-                # VuedaExpandableFieldsSerializerMixin._get_expanded_field_names), so it is not a
+                # VuedaExpandableFieldsSerializerMixin.apply_flex_fields), so it is not a
                 # field the request can ask for there.
                 valid_fields.discard("available_actions")
 
@@ -594,7 +593,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_expands.add(field_name)
 
                     serializer_settings = {}
-                    if isinstance(serializer_data, tuple):  # rest_flex_fields only tests for tuple.
+                    if isinstance(serializer_data, tuple):  # rest_flex_fields2 only tests for tuple.
                         child_serializer, serializer_settings = serializer_data
                     else:
                         child_serializer = serializer_data
@@ -816,7 +815,7 @@ def build_prefetch_plan(serializer, model):
     applied the request's query-param resolution (``vueda.core.serializers.ensure_flex_fields_applied``
     -- ``VuedaViewSet.get_queryset`` does this before calling here); a recursive call on a nested
     child gets this for free, because a child's expand/fields/omit values were passed as constructor
-    kwargs and ``rest_flex_fields`` applies those automatically the moment ``.fields`` is accessed.
+    kwargs and ``rest_flex_fields2`` applies those automatically the moment ``.fields`` is accessed.
     Either way, a nested serializer only appears in ``.fields`` when the response will actually
     traverse it. A field never named in ``?e=`` (or excluded by a ``permit_{action}_expands``
     restriction) never becomes one, so it is never planned.
@@ -825,7 +824,7 @@ def build_prefetch_plan(serializer, model):
     separate mechanisms that both happen to have the same effect:
     ``FlexFieldsWriteableNestedSerializerMixin.apply_flex_fields`` re-admits an already-requested
     expand's own name into the sparse-fields set, as a side effect of defaulting its sub-fields to a
-    wildcard when none are requested; ``VuedaExpandableFieldsSerializerMixin._get_expanded_field_names``
+    wildcard when none are requested; ``VuedaExpandableFieldsSerializerMixin.apply_flex_fields``
     does the same for omit, as a side effect of always hiding ``available_actions`` from an expanded
     object. Neither parameter can drop an expand this plan would otherwise cover, nor can either one
     add one the request never named in ``?e=``. The plan simply mirrors whatever survives in
@@ -833,7 +832,7 @@ def build_prefetch_plan(serializer, model):
 
     Depth is bounded the same way: a serializer with nothing further expanded at some level has no
     further nested serializer fields, so the recursion here terminates exactly where
-    ``rest_flex_fields``'s own (already-validated) expansion depth does, with no second bound to
+    ``rest_flex_fields2``'s own (already-validated) expansion depth does, with no second bound to
     maintain.
 
     A field's ``source`` (defaulting to its name, honoring an explicit ``source=`` in its
@@ -977,9 +976,9 @@ class NoExtraFieldsForViewSetMixin:
         extra_allowed_fields = [
             settings.PAGE_QUERY_PARAM,
             settings.PAGE_SIZE_QUERY_PARAM,
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
-            settings.REST_FLEX_FIELDS["OMIT_PARAM"],
+            settings.REST_FLEX_FIELDS2["EXPAND_PARAM"],
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"],
+            settings.REST_FLEX_FIELDS2["OMIT_PARAM"],
             settings.REST_FRAMEWORK["SEARCH_PARAM"],
             settings.REST_FRAMEWORK["ORDERING_PARAM"],
         ]
@@ -990,9 +989,9 @@ class NoExtraFieldsForViewSetMixin:
     @staticmethod
     def get_retrieve_allowed_fields():
         return (
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"],
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"],
-            settings.REST_FLEX_FIELDS["OMIT_PARAM"],
+            settings.REST_FLEX_FIELDS2["EXPAND_PARAM"],
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"],
+            settings.REST_FLEX_FIELDS2["OMIT_PARAM"],
         )
 
     @staticmethod
@@ -1010,15 +1009,27 @@ class NoExtraFieldsForViewSetMixin:
 
     @staticmethod
     def validate_flex_expand_and_field_param(request, serializer):
+        """
+        Reject each ``f`` and ``e`` value the serializer cannot render or expand.
+
+        Every invalid name in both parameters goes into one error, keyed by the name. A name invalid
+        in both parameters carries both messages.
+
+        :param request: The request whose ``f`` and ``e`` query values are checked.
+        :param serializer: The action's serializer, built with the action's serializer context.
+        :raises VuedaValidationError: When an ``f`` value is not a valid field or wildcard, or an ``e``
+            value is not a permitted expand or wildcard.
+        """
         submitted_fields = submitted_expand_fields = valid_expands = valid_fields = frozenset()
+        errors = {}
 
         if (
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params
-            or settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"] in request.query_params
+            or settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] in request.query_params
         ):
-            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS["FIELDS_PARAM"]))
+            submitted_fields = frozenset(serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]))
             submitted_expand_fields = frozenset(
-                serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+                serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
             )
             max_depth = (
                 max(
@@ -1032,7 +1043,7 @@ class NoExtraFieldsForViewSetMixin:
                 get_recursive_expands_and_fields(serializer, 0, max_depth)
             )
 
-        if settings.REST_FLEX_FIELDS["FIELDS_PARAM"] in request.query_params:
+        if settings.REST_FLEX_FIELDS2["FIELDS_PARAM"] in request.query_params:
             extra_keys = submitted_fields - (valid_fields | valid_wildcard_fields)
 
             # GFK expandable fields can resolve to any model, so sub-field specifiers like
@@ -1047,29 +1058,18 @@ class NoExtraFieldsForViewSetMixin:
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
 
-            if extra_keys:
-                errors = {}
-                for extra_key in extra_keys:
-                    errors[extra_key] = [
-                        {
-                            "message": ErrorDetail(
-                                string=f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}",
-                                code="invalid",
-                            ),
-                            "code": "invalid",
-                        }
-                    ]
+            for extra_key in extra_keys:
+                errors.setdefault(extra_key, []).append(
+                    f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}"
+                )
 
-                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
-
-        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] in request.query_params:
+        if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] in request.query_params:
             messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
-            if messages:
-                errors = {
-                    key: [{"message": ErrorDetail(string=message, code="invalid"), "code": "invalid"}]
-                    for key, message in messages.items()
-                }
-                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            for key, message in messages.items():
+                errors.setdefault(key, []).append(message)
+
+        if errors:
+            raise VuedaValidationError(errors)
 
     @staticmethod
     def validate_flex_expand_param_for_write(request, serializer):
@@ -1086,10 +1086,10 @@ class NoExtraFieldsForViewSetMixin:
         :param serializer: The action's serializer, built with the action's serializer context.
         :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
         """
-        if settings.REST_FLEX_FIELDS["EXPAND_PARAM"] not in request.query_params:
+        if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] not in request.query_params:
             return
         submitted_expand_fields = frozenset(
-            serializer._get_query_param_value(settings.REST_FLEX_FIELDS["EXPAND_PARAM"])
+            serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
         )
         if not submitted_expand_fields:
             return
@@ -1108,9 +1108,7 @@ class NoExtraFieldsForViewSetMixin:
 
         serializer = self.get_serializer()
 
-        results = self.validate_flex_expand_and_field_param(request, serializer)
-        if results is not None:
-            return results
+        self.validate_flex_expand_and_field_param(request, serializer)
 
         return super().retrieve(request, *args, **kwargs)
 
@@ -1133,9 +1131,7 @@ class NoExtraFieldsForViewSetMixin:
 
         serializer = self.get_serializer()
 
-        results = self.validate_flex_expand_and_field_param(request, serializer)
-        if results is not None:
-            return results
+        self.validate_flex_expand_and_field_param(request, serializer)
 
         return super().list(request, *args, **kwargs)
 
@@ -1148,7 +1144,7 @@ class FlexFieldsMixin(DefaultFlexFieldsMixin):
     allows every expandable field, except ``list``: ``permit_list_expands`` defaults to an empty list,
     so a list request expands nothing until the viewset names fields.
 
-    This replaces `rest_flex_fields.FlexFieldsMixin` and `rest_flex_fields.FlexFieldsModelViewSet` usage.
+    This replaces `rest_flex_fields2.views.FlexFieldsMixin` and `rest_flex_fields2.views.FlexFieldsModelViewSet` usage.
     """
 
     def get_serializer_context(self):

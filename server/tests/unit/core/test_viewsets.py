@@ -3,8 +3,10 @@ import json
 from http import HTTPStatus
 from typing import ClassVar
 from typing import TypedDict
+from unittest.mock import patch
 
 import pytest
+import rest_flex_fields2.serializers as flex_serializers
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -176,10 +178,10 @@ def expanded_serializer(serializer_class, expand):
     """Build ``serializer_class`` with ``expand`` applied, the way a request's ``?e=`` applies it.
 
     ``build_prefetch_plan`` reads ``serializer.fields``, and an expandable field only becomes a
-    nested serializer field once ``rest_flex_fields`` has processed the request, so an unexpanded
+    nested serializer field once ``rest_flex_fields2`` has processed the request, so an unexpanded
     serializer yields an empty plan rather than the one under test.
     """
-    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand}))
+    request = Request(APIRequestFactory().get("/", {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: expand}))
     serializer = serializer_class(context={"request": request})
     ensure_flex_fields_applied(serializer)
 
@@ -332,7 +334,7 @@ class TestCartFormattedNameSelectRelatedQueryCount:
         """
         use_plain_default_manager(store_models.Cart, monkeypatch)
         settings.ROOT_URLCONF = "tests.unit.core.urls_customer_with_carts"
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "cart_set"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_set"}
 
         counts = {}
         for customer_count in (2, 10):
@@ -566,15 +568,14 @@ class TestProductViewSet(BaseTestModelViewSet):
                 }
             )
 
-        list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "supervisor"
+        list_querystring[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]] = "supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "supervisor" in response.data
         assert len(response.data["supervisor"]) == 1, f"supervisor data: {response.data['supervisor']}"
-        assert "message" in response.data["supervisor"][0], f"supervisor data: {response.data['supervisor'][0]}"
-        assert str(response.data["supervisor"][0]["message"]) == "Invalid expands. No expands are permitted.", (
-            f"supervisor message: {response.data['supervisor'][0]['message']}"
+        assert response.data["supervisor"][0] == "Invalid expands. No expands are permitted.", (
+            f"supervisor message: {response.data['supervisor'][0]}"
         )
 
     def test_bulk_destroy_without_delete_permission(self, page_data, authenticated_client):
@@ -587,7 +588,7 @@ class TestProductViewSet(BaseTestModelViewSet):
 
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "second_history_entry"}
+        detail_querystring = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
@@ -595,12 +596,9 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert len(response.data["second_history_entry"]) == 1, (
             f"second_history_entry data: {response.data['second_history_entry']}"
         )
-        assert "message" in response.data["second_history_entry"][0], (
-            f"second_history_entry data: {response.data['second_history_entry'][0]}"
+        assert response.data["second_history_entry"][0] == "Invalid expands. No expands are permitted.", (
+            f"second_history_entry message: {response.data['second_history_entry'][0]}"
         )
-        assert (
-            str(response.data["second_history_entry"][0]["message"]) == "Invalid expands. No expands are permitted."
-        ), f"second_history_entry message: {response.data['second_history_entry'][0]['message']}"
         assert "history" not in response.data
 
 
@@ -620,7 +618,7 @@ class TestStoreProductViewSet:
         response = api_client.get(
             reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor.brands",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "distributor.brands",
             },
             format="json",
         )
@@ -630,13 +628,10 @@ class TestStoreProductViewSet:
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
         )
-        assert "message" in response.data["distributor.brands"][0], (
-            f"distributor.brands data: {response.data['distributor.brands'][0]}"
-        )
         assert (
-            str(response.data["distributor.brands"][0]["message"])
+            response.data["distributor.brands"][0]
             == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
-        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
         assert "history" not in response.data
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
@@ -649,8 +644,8 @@ class TestStoreProductViewSet:
         response = api_client.get(
             reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "distributor.brands",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "distributor.brands",
             },
             format="json",
         )
@@ -660,13 +655,10 @@ class TestStoreProductViewSet:
         assert len(response.data["distributor.brands"]) == 1, (
             f"distributor.brands data: {response.data['distributor.brands']}"
         )
-        assert "message" in response.data["distributor.brands"][0], (
-            f"distributor.brands data: {response.data['distributor.brands'][0]}"
-        )
         assert (
-            str(response.data["distributor.brands"][0]["message"])
+            response.data["distributor.brands"][0]
             == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
-        ), f"distributor.brands message: {response.data['distributor.brands'][0]['message']}"
+        ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
         assert "history" not in response.data
 
     def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
@@ -680,14 +672,132 @@ class TestStoreProductViewSet:
         response = api_client.get(
             reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "distributor",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,distributor.available_actions",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,distributor.available_actions",
             },
             format="json",
         )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "distributor.available_actions" in response.data
+
+    def test_retrieve_omits_available_actions_from_expanded_object(self, api_client, test_data):
+        """Requested by ``?f=``, ``available_actions`` renders on the top-level object but not an expanded one."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "distributor",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions,distributor",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "available_actions" in response.data
+        assert isinstance(response.data["distributor"], dict), response_body(response)
+        assert "available_actions" not in response.data["distributor"]
+
+    def test_wildcard_expand_omits_available_actions_from_expanded_serializer(self, api_client, test_data):
+        """A ``?e=*`` expand passes the ``available_actions`` omit to each expanded serializer."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        with patch.object(
+            flex_serializers.FlexFieldsSerializerMixin,
+            "_make_expanded_field_serializer",
+            autospec=True,
+            side_effect=flex_serializers.FlexFieldsSerializerMixin._make_expanded_field_serializer,
+        ) as make_spy:
+            response = api_client.get(
+                reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+                data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "*"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        nested_omits = {
+            call.args[1]: call.args[4].get(call.args[1], [])
+            for call in make_spy.call_args_list
+            if isinstance(call.args[0], store_serializers.ProductSerializer)
+        }
+        assert "distributor" in nested_omits, nested_omits
+        assert "available_actions" in nested_omits["distributor"], nested_omits
+
+    def test_wildcard_expand_respects_top_level_omit(self, api_client, test_data):
+        """A top-level ``?om=`` drops a field that ``?e=*`` would otherwise expand."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "*",
+                settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: "distributor",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert "distributor" not in response.data
+
+    def test_retrieve_reports_invalid_fields_and_expands_together(self, api_client, test_data):
+        """Invalid ``f`` and ``e`` names come back in one standard validation error."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "distributor.brands",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,bogus",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert set(response.data) == {"bogus", "distributor.brands", "serverStack"}, response_body(response)
+        assert len(response.data["bogus"]) == 1, response_body(response)
+        assert response.data["bogus"][0].startswith("Invalid field.  Valid fields are "), response_body(response)
+        assert response.data["distributor.brands"] == [
+            "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+        ], response_body(response)
+        assert "VuedaValidationError" in response.data["serverStack"], response_body(response)
+
+    def test_retrieve_reports_both_messages_for_a_name_invalid_as_field_and_expand(self, api_client, test_data):
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        key = next(iter(test_data.products))
+        obj = test_data.products[key]
+
+        response = api_client.get(
+            reverse("store.product-detail", kwargs={"pk": obj["product"].pk}),
+            data={
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "bogus",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "bogus",
+            },
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        field_message, expand_message = response.data["bogus"]
+        assert field_message.startswith("Invalid field.  "), response_body(response)
+        assert expand_message.startswith("Invalid expands. "), response_body(response)
 
 
 @pytest.mark.django_db
@@ -716,10 +826,10 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
         response = api_client.get(
             reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
             data={
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: (
                     "*,order_items.*,order_items.product_option.*,order_items.product_option.product.*"
                 ),
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items.product_option.product",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "order_items.product_option.product",
             },
             format="json",
         )
@@ -778,14 +888,14 @@ class TestStoreCustomerOrderViewSet:
         response = api_client.get(
             reverse("store.customerorder-detail", kwargs={"pk": obj.pk}),
             data={
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: (
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: (
                     "*,"
                     "order_items.*,"
                     "order_items.customer_order.*,"
                     "order_items.customer_order.product_option.*,"
                     "order_items.customer_order.product_option.product.*,"
                 ),
-                settings.REST_FLEX_FIELDS[
+                settings.REST_FLEX_FIELDS2[
                     "EXPAND_PARAM"
                 ]: "order_items.customer_order.order_items.product_option.product",
             },
@@ -953,7 +1063,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
                 }
             )
 
-        list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,supervisor"
+        list_querystring[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]] = "employee,supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -975,23 +1085,22 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
                 }
             )
 
-        list_querystring[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]] = "employee,guardian"
+        list_querystring[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]] = "employee,guardian"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "guardian" in response.data
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
-        assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
-            str(response.data["guardian"][0]["message"])
+            response.data["guardian"][0]
             == "Invalid expands. Permitted expands are employee, supervisor. Or use a wildcard to expand all: *, ~all"
-        ), f"guardian message: {response.data['guardian'][0]['message']}"
+        ), f"guardian message: {response.data['guardian'][0]}"
         assert "employee" not in response.data
 
     def test_retrieve_with_valid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
 
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,supervisor"}
+        detail_querystring = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee,supervisor"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
         self.update_expected_retrieve_response(expected_retrieve_response, instance)
         employee = instance.employee
@@ -1015,17 +1124,16 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
     def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
         instance = page_data.first()
 
-        detail_querystring = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,guardian"}
+        detail_querystring = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee,guardian"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert "guardian" in response.data
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
-        assert "message" in response.data["guardian"][0], f"guardian data: {response.data['guardian'][0]}"
         assert (
-            str(response.data["guardian"][0]["message"])
+            response.data["guardian"][0]
             == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
-        ), f"guardian message: {response.data['guardian'][0]['message']}"
+        ), f"guardian message: {response.data['guardian'][0]}"
         assert "employee" not in response.data
 
     def test_destroy_dry_run_skips_commit(self, page_data, authenticated_client):
@@ -1075,7 +1183,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         error_key = missing_pk if missing_pk in response.data else str(missing_pk)
         assert error_key in response.data
-        assert str(response.data[error_key][0]) == f"Object with pk={missing_pk} does not exist."
+        assert response.data[error_key][0] == f"Object with pk={missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
 
     def _create_timesheets(self, count):
@@ -1091,7 +1199,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         return supervisor
 
     def test_list_with_expands_query_count_does_not_grow_with_row_count(self, authenticated_client):
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,supervisor"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee,supervisor"}
 
         # Warm the requesting user's Django permission cache (ModelBackend.get_all_permissions,
         # cached on the user instance for the rest of the test) once, up front, so the one-time cost
@@ -1119,8 +1227,8 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         # (see FlexFieldsWriteableNestedSerializerMixin.apply_flex_fields), so the plan must still
         # cover it.
         query = {
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id",
+            settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee",
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id",
         }
 
         # See test_list_with_expands_query_count_does_not_grow_with_row_count for why this is needed.
@@ -1178,7 +1286,7 @@ class TestTimesheetWithAliasedSupervisorViewSet(BaseTestAssertResponseMixin, Bas
         # expand), so the plan must resolve it against the model's "supervisor" relation, not a
         # (nonexistent) "manager" attribute.
         url = reverse("timesheet.timesheetmanager-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "manager"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "manager"}
 
         counts = {}
         for row_count in (2, 10):
@@ -1231,7 +1339,7 @@ class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, Bas
         entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
 
         url = reverse("timesheet.timesheetprefetched-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "entries"}
         response = authenticated_client.get(url, data=query, format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -1277,7 +1385,7 @@ class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTe
 
     def test_list_with_to_many_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
         url = reverse("timesheet.timesheetaliasedentries-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "entries"}
 
         counts = {}
         for row_count in (2, 10):
@@ -1300,7 +1408,7 @@ class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTe
         self._create_timesheets(row_count)
 
         url = reverse("timesheet.timesheetaliasedentries-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries,entries_again"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "entries,entries_again"}
         response = authenticated_client.get(url, data=query, format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -1346,7 +1454,7 @@ class TestTimesheetWithDeeperPrefetchedEntriesViewSet(BaseTestAssertResponseMixi
         entry = TimesheetEntry.objects.create(timesheet=timesheet, date=datetime.date(2024, 1, 2), hours=8)
 
         url = reverse("timesheet.timesheetdeeperprefetched-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "entries"}
         response = authenticated_client.get(url, data=query, format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -1391,7 +1499,7 @@ class TestTimesheetWithToAttrPrefetchedEntriesViewSet(BaseTestAssertResponseMixi
 
     def test_list_with_expand_query_count_does_not_grow_with_row_count(self, authenticated_client):
         url = reverse("timesheet.timesheettoattrprefetched-list")
-        query = {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "entries"}
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "entries"}
 
         counts = {}
         for row_count in (2, 10):
@@ -1481,7 +1589,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,period_end"},
             ),
             data={
                 # ?f= narrows the response, not validation, so the required "employee" relation
@@ -1516,7 +1624,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,period_end"},
             ),
             data={
                 "period_start": datetime.date(2024, 2, 16),
@@ -1549,7 +1657,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         response = api_client.post(
             reverse(
                 "timesheet.timesheet-list",
-                query={settings.REST_FLEX_FIELDS[param_name]: requested},
+                query={settings.REST_FLEX_FIELDS2[param_name]: requested},
             ),
             data={
                 "period_start": datetime.date(2024, 3, 1),
@@ -1583,7 +1691,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start"},
             ),
             data={"employee": 999999},  # no employee with this pk
             format="json",
@@ -1628,7 +1736,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             period_end=datetime.date(2024, 2, 29),
         )
 
-        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        query = {settings.REST_FLEX_FIELDS2[param_name]: requested} if param_name else {}
         response = api_client.patch(
             reverse(
                 "timesheet.timesheet-detail",
@@ -1673,7 +1781,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,une"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,une"},
             ),
             data={
                 "employee": e1.pk,
@@ -1717,7 +1825,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee,foo"},
+                query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee,foo"},
             ),
             data={
                 "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-12345"},
@@ -1752,7 +1860,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "foo,label10"},
+                query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "foo,label10"},
             ),
             data={
                 "employee": e1.pk,
@@ -1784,8 +1892,8 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee",
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,period_end,employee",
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee",
                 },
             ),
             data={
@@ -1813,8 +1921,8 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 "store.customer-detail",
                 kwargs={"pk": c1.pk},
                 query={
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "user",
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "user",
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "user",
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "user",
                 },
             ),
             data={"user": {"id": user.pk, "email": user.email, "name": user.name}},
@@ -1862,8 +1970,8 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 "store.cartitem-detail",
                 kwargs={"pk": ci1.pk},
                 query={
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "cart,product_option",
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "product_option",
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "cart,product_option",
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "product_option",
                 },
             ),
             data={
@@ -1910,8 +2018,8 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
                 query={
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
-                    settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee",
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,period_end,employee,invalid_field_name",
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee",
                 },
             ),
             data={
@@ -1940,7 +2048,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: expand},
+                query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: expand},
             ),
             data=data,
             format="json",
@@ -1995,7 +2103,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
 
         response = api_client.post(
-            reverse("timesheet.timesheet-list", query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "employee"}),
+            reverse("timesheet.timesheet-list", query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee"}),
             data={"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"},
             format="json",
         )
@@ -2102,7 +2210,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
             reverse(
                 "store.ordercompositepk-detail",
                 kwargs={"pk": order_item.order.pk},
-                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+                query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "order_items_composite_pks"},
             ),
             data={"formatted_name": str(order_item.order.order_number)},
             format="json",
@@ -2121,7 +2229,7 @@ class TestNoExtraFieldsFormattedNameLookupExpression(
             reverse(
                 "store.ordercompositepk-detail",
                 kwargs={"pk": order_item.order.pk},
-                query={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "order_items_composite_pks"},
+                query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "order_items_composite_pks"},
             ),
             data={"xxx_invalid_field": "value"},
             format="json",
@@ -2279,7 +2387,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         distributor = test_data.distributors["T-Shirt Corp."]
         response = authenticated_client.get(
             reverse("store.distributor-detail", kwargs={"pk": distributor.pk}),
-            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "name"},
+            data={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "name"},
         )
 
         self.assert_response(response, HTTPStatus.OK)
@@ -2327,9 +2435,9 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
             settings.COLUMN_TOTALS_PARAM: "",
             settings.PAGE_QUERY_PARAM: 1,
             settings.PAGE_SIZE_QUERY_PARAM: 10,
-            settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,content_object.*",
-            settings.REST_FLEX_FIELDS["OMIT_PARAM"]: "text",
+            settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,text,content_object.*",
+            settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: "text",
             settings.REST_FRAMEWORK["SEARCH_PARAM"]: "distributor",
             settings.REST_FRAMEWORK["ORDERING_PARAM"]: "object_id",
         }
@@ -2361,7 +2469,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         )
         response = authenticated_client.get(
             reverse("store.note-detail", kwargs={"pk": note.pk}),
-            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "text"},
+            data={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "text"},
         )
 
         self.assert_response(response, HTTPStatus.OK)

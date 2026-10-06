@@ -15,7 +15,7 @@ This directory contains starter templates for integrator VUEDA monorepos.
 - [uv](https://docs.astral.sh/uv/)
 - [pnpm](https://pnpm.io/) for `integrator-monorepo`, or the JavaScript
   package manager selected for `integrator-monorepo-dx`
-- Python 3.11+
+- Python 3.12+
 - Node.js 22+
 
 ## Usage

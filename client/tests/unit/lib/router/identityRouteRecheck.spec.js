@@ -305,7 +305,7 @@ describe("lib/router/makeCrud.js", () => {
         scopedIt("preserves an identity denial when moving from bulk to detail update", async () => {
             modelAllows("post", ["update"]);
             await startAs({ id: 1 });
-            await router.push("/blog/post/update/?pk=1,2");
+            await router.push("/blog/post/update/?pk=1&pk=2");
             expect(router.currentRoute.value.name).toBe("actionrouter.listview");
 
             let releaseMetadata;

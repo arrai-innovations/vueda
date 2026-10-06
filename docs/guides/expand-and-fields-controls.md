@@ -25,7 +25,7 @@ Expand and field controls start at the serializer and viewset. The serializer de
 
 ### Declaring expandable fields on the serializer
 
-Define `expandable_fields` in the serializer's `Meta` class. Each entry maps a field name to a tuple of `(SerializerClass, options_dict)`. The options dict can specify sparse fields for the nested serializer, `many: True` for reverse relations, and other `rest_flex_fields` options:
+Define `expandable_fields` in the serializer's `Meta` class. Each entry maps a field name to a tuple of `(SerializerClass, options_dict)`. The options dict can specify sparse fields for the nested serializer, `many: True` for reverse relations, and other `rest_flex_fields2` options:
 
 ```python
 from vueda.core.serializers import VuedaSerializer
@@ -48,7 +48,7 @@ class WidgetSerializer(VuedaSerializer):
 
 Always merge the parent's `expandable_fields` at the end of the declaration, so any framework-level expansion `VuedaSerializer.Meta.expandable_fields` declares is preserved.
 
-The `expandable_fields` declaration is the canonical source for `model_expands` in the metadata response. The client reads this metadata to determine its default expand configuration.
+The `expandable_fields` declaration is the canonical source for `model_expands` in the metadata response. The client reads each expansion's details from this metadata, and requests an expansion only when the model config names it.
 
 ### Value formats for expandable_fields entries
 
@@ -62,7 +62,7 @@ expandable_fields = {
 }
 ```
 
-A bare class, when the expansion needs no `rest_flex_fields` options:
+A bare class, when the expansion needs no `rest_flex_fields2` options:
 
 ```python
 expandable_fields = {
@@ -84,7 +84,7 @@ It must be a tuple, not a list:
 ```python
 expandable_fields = {
     "category": (CategorySerializer, {}),  # correct
-    "tags": [TagSerializer, {}],  # wrong -- rest_flex_fields does not accept lists here
+    "tags": [TagSerializer, {}],  # wrong -- rest_flex_fields2 does not accept lists here
 }
 ```
 
@@ -106,7 +106,7 @@ class NoteSerializer(VuedaSerializer):
         expandable_fields = {
             "content_object": (
                 GenericForeignKeySerializer,
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"]},
+                {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["*"]},
             ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
@@ -146,8 +146,8 @@ class NoteSerializer(VuedaSerializer):
             "content_object": (
                 GenericForeignKeySerializer,
                 {
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["*"],
-                    settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["*"],
+                    settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: [
                         # Omit description only when the related object is a Distributor.
                         "_store__distributor__description",
                         # Omit these fields only when the related object is a PackingBox.
@@ -165,7 +165,7 @@ class NoteSerializer(VuedaSerializer):
 Model-targeted specifiers and plain field names can be mixed in the same list. Plain names and wildcards apply to every related model; model-targeted specifiers apply only to the model they name:
 
 ```python
-settings.REST_FLEX_FIELDS["OMIT_PARAM"]: [
+settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: [
     "available_actions",                    # removed from every related model
     "_store__distributor__description",     # removed only from Distributor
 ]
@@ -183,7 +183,7 @@ Field selection still operates within the fields declared on the model's registe
 
 ### Restricting expansions per action
 
-By default, all declared expandable fields are permitted on both `list` and `retrieve` actions. To restrict which expansions are allowed per action, set `permit_list_expands` and `permit_retrieve_expands` on the viewset:
+A `list` request may expand nothing until the viewset names the expands it permits. Every other action may expand every declared expandable field until the viewset restricts it. To set which expansions an action permits, set `permit_<action>_expands` on the viewset, such as `permit_list_expands` and `permit_retrieve_expands`:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet
@@ -199,7 +199,9 @@ class WidgetViewSet(VuedaViewSet):
 
 In this example, `list` responses can expand `category` but not `tags` (keeping the `list` response payload smaller), while `retrieve` responses can expand both. A request that asks to expand `tags` on a `list` endpoint returns a 400 with a message identifying which expansions are permitted.
 
-If `permit_list_expands` is not set, all declared expansions are allowed on `list`. The same applies to `permit_retrieve_expands` for `retrieve`. Setting either property to an empty list disables expansion entirely for that action.
+If `permit_list_expands` is not set, `list` permits no expansions. If `permit_retrieve_expands` is not set, `retrieve` permits every declared expansion, and the same holds for `create`, `update`, and `partial_update`. Setting any of these properties to an empty list disables expansion for that action.
+
+A dotted entry such as `customer.user` permits that path only. It does not permit `customer` on its own, so name both when a request should be able to expand either.
 
 ## Client Default Field/Expand Strategy
 
@@ -209,7 +211,9 @@ The client configures which fields and expansions to request through `storeModel
 
 **Default `submitFields`** are all non-PK, writable fields from the serializer's field list. They select the values that create and update send in the request body. `displayFields` selects the fields those forms render.
 
-**Default `expand`** is all expandable field names from model-info. This means that, by default, the client requests all declared expansions. If the server restricts expansions per action (via `permit_list_expands`), the default client `expand` may be broader than what the server allows on `list`, causing immediate 400 errors. In this case, override `expand` in the client config to match the server's per-action restrictions, or use view-specific overrides:
+**Default `expand`** is empty for every view. The client requests an expansion only when the model config names it, in the generic config or in a view-specific override. Expanding a relation adds a nested object to every response, so it is a choice you make per view. The client sends a configured `expand` as written, and the server rejects any expansion the action does not permit.
+
+A form renders a field named in `expand` as an inline fieldset, using the related serializer's fields. A relation that `expand` does not name renders with the widget its field mapping assigns, such as a select. A list column for an unexpanded foreign key labels each cell with the related object's primary key. To show the related object's name in a list, add the relation to the list's `expand` and to the viewset's `permit_list_expands`:
 
 ```js
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
@@ -223,7 +227,15 @@ storeModelConfig().setConfig(
 );
 ```
 
-When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category.name"]` and `fieldDetails["category.description"]`. This allows display and field configuration to target expanded sub-fields directly. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
+When expansion is configured, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has `name` and `description` fields, the config will contain entries at `fieldDetails["category.name"]` and `fieldDetails["category.description"]`. This allows display and field configuration to target expanded sub-fields directly. Without an expansion in `expand`, no flattening occurs for it and its `expand.subfield` keys are not present in `fieldDetails`. Building a config checks `expand` and the dotted entries in `displayFields`, `fetchFields`, and `submitFields`, and throws an error naming each problem:
+
+- Each `expand` entry must start with an expansion that model info declares. The check reads only the first segment of a dotted entry.
+- A dotted entry under a declared expansion, such as `category.name`, needs `category` in the same view's `expand`.
+- A dotted entry under a model field, such as `address.city`, reads into that field's nested value and passes.
+- A `related.` or `calculated.` entry passes, since the client resolves those paths itself.
+- Any other dotted entry names nothing the model provides.
+
+The check runs for every view, so a list, a read view, and a form reject the same configuration in the same way.
 
 ## List and Detail Request Param Wiring
 

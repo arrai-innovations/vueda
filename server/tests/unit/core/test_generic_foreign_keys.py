@@ -125,8 +125,8 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         response = reader_client.get(
             reverse("store.note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,formatted_name,content_object.*",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,text,formatted_name,content_object.*",
             },
         )
 
@@ -170,8 +170,8 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         response = reader_client.get(
             reverse("store.note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.*",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,content_object.*",
             },
         )
 
@@ -198,8 +198,8 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         response = reader_client.get(
             reverse("store.note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.id",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,content_object.id",
             },
         )
 
@@ -217,9 +217,9 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         response = reader_client.get(
             reverse("store.note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.*",
-                settings.REST_FLEX_FIELDS["OMIT_PARAM"]: "content_object.name",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,content_object.*",
+                settings.REST_FLEX_FIELDS2["OMIT_PARAM"]: "content_object.name",
             },
         )
 
@@ -307,8 +307,8 @@ class TestViewSetAnotherNoteContentObjectExpand(BaseTestAssertResponseMixin, Bas
         response = reader_client.get(
             reverse("store.another-note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,content_object.id",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,content_object.id",
             },
         )
 
@@ -394,7 +394,7 @@ class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, 
         response = reader_client.get(
             reverse("store.note-static-omit-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
             },
         )
 
@@ -416,8 +416,8 @@ class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, 
         response = reader_client.get(
             reverse("store.note-list"),
             data={
-                settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "content_object",
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,text,content_object.*",
+                settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "content_object",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,text,content_object.*",
             },
         )
 

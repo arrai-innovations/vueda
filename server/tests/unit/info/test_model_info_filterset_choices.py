@@ -3,10 +3,13 @@ from typing import ClassVar
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
+from django.db.models import Q
 from django.test.utils import CaptureQueriesContext
+from django_filters import rest_framework
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -18,8 +21,13 @@ from tests.store import viewsets as store_viewsets
 from tests.unit.info.utils import create_test_data
 from tests.unit.info.utils import idfn
 from vueda import info
+from vueda.core.filters import VuedaFilterSet
+from vueda.core.permissions import BaseRowLevelPermissions
 from vueda.core.viewsets import VuedaViewSet
 from vueda.info import viewsets as info_viewsets
+from vueda.workflow.models import State
+from vueda.workflow.models import StatePermission
+from vueda.workflow.models import Workflow
 
 
 DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
@@ -254,7 +262,7 @@ class InvalidFilterTestData(BaseTestUserMixin):
     }
 
 
-class BaseModelInfoFilterSetChoices:
+class FilterSetChoicesRequestMixin:
     """
     Shared setup for the filterset choices tests. ``test_data_class`` names the group and users the
     subclass needs, so each test creates one group instead of all of them.
@@ -277,6 +285,21 @@ class BaseModelInfoFilterSetChoices:
     def authenticated_client(self, api_client, test_data):
         api_client.force_authenticate(user=test_data.users[self.user_email])
         return api_client
+
+    @staticmethod
+    def get_choice_labels(client, model_name, field_name, **params):
+        """The labels the choices endpoint offers for a store model's filter, as a set."""
+        response = client.get(
+            reverse("info.model_info_filterset_choices-list", args=("store", model_name, field_name)),
+            data=params or None,
+            format="json",
+        )
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        return frozenset(result["label"] for result in response.data["results"])
+
+
+class BaseModelInfoFilterSetChoices(FilterSetChoicesRequestMixin):
+    """The request fixtures plus the checks every group's choices share."""
 
     def test_filter_choices_reads_permission_names_mapping_at_call_time(self, settings, api_client):
         # ModelInfoFilterSetChoicesViewSet.get_queryset previously closed over
@@ -767,3 +790,255 @@ def test_filterset_choices_query_count_does_not_grow_with_row_count_for_get_form
         assert len(set(counts.values())) == 1, f"filterset choices query count grows with row count: {counts}"
     finally:
         info.registration.get_empty_registry()
+
+
+def hide_rows(monkeypatch, model, hidden, calls=None):
+    """
+    Install a row rule on ``model`` that hides the rows ``hidden`` matches, whatever the permission.
+
+    ``calls`` collects each ``(perm, perm_type)`` the rule is asked about, for a test that checks
+    which permission the choices endpoint consults.
+    """
+
+    class RowLevelPermissions(BaseRowLevelPermissions):
+        @classmethod
+        def check_queryset(cls, queryset, perm, user, perm_type):
+            if calls is not None:
+                calls.append((perm, perm_type))
+            return ~hidden
+
+    monkeypatch.setattr(model, "RowLevelPermissions", RowLevelPermissions, raising=False)
+
+
+class ProductDistributorAllValuesFilterSet(VuedaFilterSet):
+    """`ProductFilterSet.distributor` is an `AllValuesMultipleFilter`; this is its single-valued twin."""
+
+    distributor = rest_framework.AllValuesFilter(field_name="distributor__name")
+
+    class Meta:
+        model = store_models.Product
+        fields = []
+
+
+class ProductDistributorAllValuesViewSet(store_viewsets.ProductViewSet):
+    filterset_class = ProductDistributorAllValuesFilterSet
+
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesRowRules(FilterSetChoicesRequestMixin):
+    """
+    Dynamic choices come from the rows the user may list.
+
+    The admin holds every model-level permission these cases consult, so a missing choice can only
+    be a row rule's doing. The store models declare no row rules of their own; each case installs
+    the one it needs.
+    """
+
+    test_data_class = AdminTestData
+    user_email = "test_admin@domain.invalid"
+
+    @pytest.mark.parametrize(
+        "viewset",
+        [store_viewsets.ProductViewSet, ProductDistributorAllValuesViewSet],
+        ids=["AllValuesMultipleFilter", "AllValuesFilter"],
+    )
+    def test_value_choices_omit_values_found_only_on_hidden_main_rows(self, authenticated_client, monkeypatch, viewset):
+        """Tasty Treats Assoc. distributes only the two cookie products. Hide those, and it is not a choice."""
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, viewset)
+        hide_rows(monkeypatch, store_models.Product, Q(name__icontains="cookies"))
+
+        labels = self.get_choice_labels(authenticated_client, "product", "distributor")
+
+        assert labels == frozenset({"Awesome Music Co.", "T-Shirt Corp.", "Vibrant Looks Inc."})
+
+    def test_model_choices_omit_a_hidden_related_row_that_a_visible_main_row_references(
+        self, authenticated_client, monkeypatch
+    ):
+        """The two music releases are digital. Hiding the Digital row hides the choice, not the releases."""
+        register_model("store", "product")
+        hide_rows(monkeypatch, store_models.TangibleType, Q(code="digital"))
+
+        tangible_types = self.get_choice_labels(authenticated_client, "product", "tangible_type")
+        distributors = self.get_choice_labels(authenticated_client, "product", "distributor")
+
+        assert tangible_types == frozenset({"Physical"})
+        assert "Awesome Music Co." in distributors, "the products that reference the hidden row are still listed"
+
+    def test_model_choices_keep_the_configured_related_queryset(self, authenticated_client, test_data, monkeypatch):
+        """
+        `ProductFilterSet.special_care` excludes the alcohol row by configuration. A product that
+        references it still does not make it a choice, and the row rule narrows the same set.
+        """
+        register_model("store", "product")
+        rum_cake = store_models.Product.objects.create(
+            distributor=test_data.distributors["Tasty Treats Assoc."],
+            name="Rum Cake",
+            order_between=[1, 2],
+            tangible_type=test_data.tangible_type["physical"],
+        )
+        rum_cake.special_care.add(test_data.special_care["alcohol"])
+        hide_rows(monkeypatch, store_models.SpecialCare, Q(code="dangerous"))
+
+        labels = self.get_choice_labels(authenticated_client, "product", "special_care")
+
+        assert labels == frozenset({"Fragile", "Perishable", "Temperature Controlled"})
+
+    def test_row_rules_narrow_alongside_the_other_active_filters(self, authenticated_client, test_data, monkeypatch):
+        """
+        Hiding the cookie products drops Tasty Treats Assoc.; the tangible type filter drops the
+        digital music distributor. Both apply at once.
+        """
+        register_model("store", "product")
+        hide_rows(monkeypatch, store_models.Product, Q(name__icontains="cookies"))
+
+        labels = self.get_choice_labels(
+            authenticated_client, "product", "distributor", tangible_type=test_data.tangible_type["physical"].pk
+        )
+
+        assert labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."})
+
+    def test_the_row_rules_are_asked_about_list_on_the_main_and_the_related_model(
+        self, authenticated_client, monkeypatch
+    ):
+        """
+        The endpoint requires `read` on the main model at the model level, but the rows it offers
+        choices from are the ones the user may `list`, on both models.
+        """
+        register_model("store", "product")
+        calls = []
+        hide_rows(monkeypatch, store_models.Product, Q(name__icontains="cookies"), calls)
+        hide_rows(monkeypatch, store_models.TangibleType, Q(code="digital"), calls)
+
+        self.get_choice_labels(authenticated_client, "product", "tangible_type")
+
+        assert sorted(calls) == [("store.list_product", "list"), ("store.list_tangibletype", "list")]
+
+
+class WorkflowChoicesTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    A fulfillment user who may list customer orders at the model level, so that a state rule is
+    the only thing that can hide an order from them.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Fulfillment": (
+            ("store", "CustomerOrder", "read"),
+            ("store", "CustomerOrder", "list"),
+            ("store", "OrderItem", "read"),
+        ),
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_fulfillment@domain.invalid": {
+            "name": "Test Fulfillment",
+            "password": "testpass",
+            "groups": ["Fulfillment"],
+        },
+        "test_customer_1@domain.invalid": {
+            "name": "Test Customer 1",
+            "password": "testpass",
+        },
+        "test_customer_2@domain.invalid": {
+            "name": "Test Customer 2",
+            "password": "testpass",
+        },
+    }
+
+    def __init__(self):
+        create_test_data(self)
+
+
+class CustomerOrderShippingMethodFilterSet(VuedaFilterSet):
+    shipping_method = rest_framework.AllValuesFilter(field_name="shipping_method")
+
+    class Meta:
+        model = store_models.CustomerOrder
+        fields = []
+
+
+class CustomerOrderShippingMethodViewSet(store_viewsets.CustomerOrderViewSet):
+    filterset_class = CustomerOrderShippingMethodFilterSet
+
+
+class OrderItemCustomerOrderFilterSet(VuedaFilterSet):
+    customer_order = rest_framework.ModelChoiceFilter(queryset=store_models.CustomerOrder.objects.all())
+
+    class Meta:
+        model = store_models.OrderItem
+        fields = []
+
+
+class OrderItemCustomerOrderViewSet(VuedaViewSet):
+    queryset = store_models.OrderItem.objects.all()
+    serializer_class = store_serializers.OrderItemSerializer
+    filterset_class = OrderItemCustomerOrderFilterSet
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+class TestModelInfoFiltersetChoicesWorkflowState(FilterSetChoicesRequestMixin):
+    """
+    Workflow state rules decide which rows a user may list the same way row rules do, on the main
+    model and on a related model alike.
+
+    Every order starts in the `new` state. Order 1004 is moved to `packed`, and a test that denies
+    `list` in `new` for the user's group leaves 1004 the only order the user may list. The orders
+    carry no shipping method, so the two the tests set are the only values the shipping method
+    filter can offer.
+    """
+
+    test_data_class = WorkflowChoicesTestData
+    user_email = "test_fulfillment@domain.invalid"
+
+    @pytest.fixture
+    def orders(self, test_data):
+        workflow = Workflow.objects.get(content_type=ContentType.objects.get_for_model(store_models.CustomerOrder))
+        # The store fixtures ship state rules of their own. Clearing them lets each test state the
+        # rule it means to exercise.
+        StatePermission.objects.filter(state__workflow=workflow).delete()
+
+        new_order = test_data.customer_orders[1001]
+        new_order.shipping_method = "regular"
+        new_order.save()
+        packed_order = test_data.customer_orders[1004]
+        packed_order.shipping_method = "express"
+        packed_order.save()
+        packed_order.update_object_state(State.objects.get(workflow=workflow, code="packed"))
+
+        return {"workflow": workflow, "new": new_order, "packed": packed_order}
+
+    @staticmethod
+    def deny_list_in_new(orders):
+        StatePermission.objects.create(
+            state=State.objects.get(workflow=orders["workflow"], code="new"),
+            permission=Permission.objects.get(
+                content_type=ContentType.objects.get_for_model(store_models.CustomerOrder),
+                codename="list_customerorder",
+            ),
+            group=Group.objects.get(name="Fulfillment"),
+            grant_or_deny=False,
+        )
+
+    @pytest.mark.parametrize("denied", [False, True], ids=["no_state_rule", "list_denied_in_new"])
+    def test_value_choices_follow_the_main_model_state_rules(self, authenticated_client, orders, denied):
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CustomerOrderSerializer, CustomerOrderShippingMethodViewSet)
+        if denied:
+            self.deny_list_in_new(orders)
+
+        labels = self.get_choice_labels(authenticated_client, "customerorder", "shipping_method")
+
+        assert labels == (frozenset({"express"}) if denied else frozenset({"express", "regular"}))
+
+    @pytest.mark.parametrize("denied", [False, True], ids=["no_state_rule", "list_denied_in_new"])
+    def test_model_choices_follow_the_related_model_state_rules(self, authenticated_client, test_data, orders, denied):
+        """Every order has order items, so without a state rule every order is a choice."""
+        info.registration.get_empty_registry()
+        info.register(store_serializers.OrderItemSerializer, OrderItemCustomerOrderViewSet)
+        if denied:
+            self.deny_list_in_new(orders)
+
+        labels = self.get_choice_labels(authenticated_client, "orderitem", "customer_order")
+
+        every_order = frozenset(str(number) for number in test_data.customer_orders)
+        assert labels == (frozenset({"1004"}) if denied else every_order)

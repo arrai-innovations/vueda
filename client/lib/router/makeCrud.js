@@ -111,6 +111,21 @@ async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, use
 }
 
 /**
+ * The keys a list route's `pk` query value selects.
+ *
+ * Vue Router gives one `?pk=` value as a string, a repeated one as an array, and a bare `?pk` as
+ * `null`. Values are kept whole. Empty and missing values select nothing, so a malformed query value
+ * never becomes a key.
+ *
+ * @param {string|null|(string|null)[]|undefined} value - The route's `pk` query value.
+ * @returns {string[]|undefined} The selected keys, or `undefined` when nothing is selected.
+ */
+function selectedKeysFromQuery(value) {
+    const keys = (Array.isArray(value) ? value : [value]).filter((key) => typeof key === "string" && key !== "");
+    return keys.length ? keys : undefined;
+}
+
+/**
  * Generate CRUD routes for a given app and model.
  *
  * Call this once during application setup and register the two records it returns. Besides building
@@ -123,8 +138,9 @@ async function recheckCurrentRoute(router, beforeEnter, generatedRouteNames, use
  *
  * The two records are `actionrouter.detailview` at `/:app/:model/:action/:pk`, for one object, and
  * `actionrouter.listview` at `/:app/:model/:action/`, for a model or several objects. The list route
- * reads `pk` from the query string instead, as comma-separated primary keys (`?pk=4,7`), which a bulk
- * action targets. Both routes pass `app`, `model`, `action`, and `pk` to the component as props. Either
+ * reads `pk` from the query string instead, as one repeated value per primary key (`?pk=4&pk=7`),
+ * which a bulk action targets. Each value is one whole key and is never split, so `?pk=4,7` names the
+ * single key `4,7`. Both routes pass `app`, `model`, `action`, and `pk` to the component as props. Either
  * route may carry a `returnPath` query value, where an action view goes after it succeeds or is
  * cancelled.
  *
@@ -228,7 +244,7 @@ export function makeCRUDRoutes({
             app: route.params.app,
             model: route.params.model,
             action: route.params.action,
-            pk: route.query?.pk?.split(","),
+            pk: selectedKeysFromQuery(route.query?.pk),
         }),
     };
 
