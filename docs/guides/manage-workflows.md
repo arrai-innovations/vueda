@@ -117,7 +117,7 @@ The commands use the first of these that applies:
 3. **black with its default settings, when it is installed** but not configured.
 4. **Python's `pprint`** with a narrow width, when neither is installed. That output uses single quotes and does not follow your settings.
 
-If the formatter that applies fails, for example because your `pyproject.toml` cannot be read or a setting has the wrong type, the commands do not switch to another formatter that would ignore your settings. They print the formatter's error, write `changed_data` with `pprint`, and ask you to fix the problem and then format that migration manually.
+If the formatter that applies fails, for example because your `pyproject.toml` cannot be read or a setting has the wrong type, the commands do not switch to another formatter that would ignore your settings. They print the formatter's error, write `changed_data` with `pprint`, and ask you to fix the problem and then format that migration manually. `updateworkflowmigrations --dry-run` still runs the formatter, so it reports the same error, but it writes nothing and says that a run without `--dry-run` would fall back to `pprint`.
 
 With black or ruff:
 
