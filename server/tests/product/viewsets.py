@@ -1,5 +1,7 @@
 from django.db.models import F
 from django.db.models.functions import Coalesce
+from django.db.models.functions import Concat
+from django.db.models.functions import Length
 
 from tests.product.filtersets import ProductFilterSet
 from tests.product.models import Product
@@ -262,3 +264,58 @@ class ProductModelOrderingWhitelistViewSet(ProductViewSet):
     field `ordering_fields` names stays available alongside it."""
 
     ordering_fields = ["available_for_sale"]
+
+
+class ProductOrderingAnnotationDefaultViewSet(ProductViewSet):
+    """Orders by default on a queryset annotation that the viewset's own `get_queryset` adds, with an
+    empty `ordering_fields` so nothing else offers it.
+
+    `name_length` is an integer, unlike the column it is computed from, so the type `model_ordering`
+    reports for it shows that the annotation's own output field types it."""
+
+    ordering = ["-name_length"]
+    ordering_fields = []
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("name"))
+
+
+class ProductOrderingManagerAnnotationDefaultViewSet(ProductViewSet):
+    """Orders by default on `reversed_name`, the annotation that `ProductManager` adds before the
+    viewset's `get_queryset` runs, to show that an annotation from a manager is reported as readily as
+    one that the viewset adds."""
+
+    ordering = ["reversed_name"]
+    ordering_fields = []
+
+
+class ProductOrderingFieldAndAnnotationDefaultViewSet(ProductViewSet):
+    """Orders by default on a model field and then on a queryset annotation, to show that both terms
+    are reported in their declared order with their own directions."""
+
+    ordering = ["available_for_sale", "-name_length"]
+    ordering_fields = []
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("name"))
+
+
+class ProductOrderingAnnotationAndUnresolvableDefaultViewSet(ProductViewSet):
+    """Orders by default on a queryset annotation and then on a name that is neither a field nor an
+    annotation. The stale name still drops the whole default, although the annotation resolves."""
+
+    ordering = ["-name_length", "no_such_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("name"))
+
+
+class ProductOrderingAnnotationMultiColumnDefaultViewSet(ProductViewSet):
+    """Orders by default on one term that reads a model field and a queryset annotation
+    (`Concat("name", "reversed_name")`), with an empty `ordering_fields`.
+
+    The term has no single name that stands for its sort, so the default is dropped. Each name that it
+    reads is still a valid `?o=` target, so each is still advertised, the annotation included."""
+
+    ordering = [Concat("name", "reversed_name")]
+    ordering_fields = []
