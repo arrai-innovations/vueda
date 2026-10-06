@@ -7,138 +7,96 @@ status: draft
 
 # Design Transition UX and Redirects
 
-This guide covers the client-side UX flow for action execution and workflow transitions: how action forms handle submit, dry-run, and cancel; how redirect targets are resolved after successful actions; and how the workflow execute-transition endpoint integrates with client routing. The guide focuses on implemented behaviour and the redirect precedence chain, not on workflow state modelling or UI styling.
+This guide shows how an action form runs a workflow {@term Transition}, and how to choose the view that an action form opens after a submit or cancel. The redirect rules apply to every view built on {@api vue:component:ModelActionForm}, including destroy, extra actions, and transitions.
 
-The guide assumes familiarity with VUEDA's action contract and workflow model. If you have not read [Action Contract and Availability](../core-concepts/action-contract-and-availability), start there. For the server-side workflow permission model, see [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay). For controlling which actions are visible in the UI, see [Control Action Availability in the UI](./control-action-availability).
+## How a Transition Route Reaches Its Form
 
-## Goal and Preconditions
+A transition route carries the transition's `code` as its action segment. {@term Route Admission} accepts it when the code is one of the user's {@term Permitted Transitions}. {@api vue:component:ViewActionRouter} then renders a project view named for the code. When no such view exists, it renders {@api vue:component:ViewExecuteTransition}. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full resolution order.
 
-The objective is a transition UX where:
+`ViewExecuteTransition` wraps `ModelActionForm` and replaces its [`run-action`]{@api vue:component:ActionForm:prop:runAction} with a call to {@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition}. A transition therefore gets the same pre-flight, submit, cancel, and redirect behavior as any other action form. [Action & Workflow Views](../reference/components/action-workflow.md#viewexecutetransition) describes what its confirmation shows.
 
-- Action routes are properly gated so users cannot navigate to actions they lack permission for.
-- Action form submit, dry-run, and cancel produce consistent toast and redirect behaviour.
-- Post-action redirects follow a defined precedence: return path, configured redirects, then computed defaults.
-- Workflow transition execution respects server-side locking and validation semantics.
-- Transition identification uses `code` consistently across route guards, action router, and form submission.
+The view uses the transition's `name` for the page title and the confirmation prompt. Routing and execution use only the `code`, which the view passes to `executeTransition` unchanged. When you change a transition's `code`, also rename any project view named for it (`ViewAction<Code>.vue` or `ViewAction<App><Model><Code>.vue`) and update any route links that your application builds with it.
 
-Before you begin:
+## What an Action Form Does on Pre-Flight, Submit, and Cancel
 
-Action routing is configured via {@api js:function:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes} with the {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} guard. See [Control Action Availability in the UI](./control-action-availability) for the route guard wiring.
+{@api vue:component:ActionForm} runs all three paths. `ModelActionForm` connects it to the model through {@api js:function:@arrai-innovations/vueda/use/useModelAction#useModelAction}.
 
-The model's workflow (if applicable) is configured with states, transitions, and permissions. Transitions must have valid string `code` properties; the route guard and action router both use `code` as the routing identifier.
+- **Pre-flight.** Once the form has at least one primary key, it runs the action as a {@term Dry Run}, with the `Dry-Run: true` header. Validation errors from the pre-flight appear on the form before the user confirms. The pre-flight shows no toast, does not redirect, and does not open the confirmation dialog for a `409` warnings response. It runs again when the app, model, action, or primary keys change. Set [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} to `false` to turn it off.
+- **Submit.** The form runs the action. On success it shows a toast and calls `redirectTo("success")`. With [`onSubmissionSuccessHandler`]{@api vue:component:ActionForm:prop:onSubmissionSuccessHandler} set, it calls that handler instead of both. On a `400`, the errors appear on the form. A `409` opens {@api vue:component:FormConfirmDialog}, and confirming retries with the warnings acknowledged ({@term Warning Confirmation}). Other failures show an error toast.
+- **Cancel.** The form calls `redirectTo("cancel")` without running the action.
 
-## Route Guard and Action Router Wiring
+After a success redirect navigates away, the form disables its buttons and ignores submits until the view unmounts. The action cannot run twice while the next view loads. A [`redirectTo`]{@api vue:component:ActionForm:prop:redirectTo} that finishes without navigating must resolve `false`, and the form then accepts input again. In a [slot override]{@api vue:component:ActionForm:slots}, bind `disabled` from the `confirm-button` and `cancel-button` slots, or `confirmDisabled` and `cancelDisabled` from `action-bar`. These flags control the buttons only. The server still decides whether the action runs.
 
-Action and transition routes pass through `requireModelInfo` before rendering. The guard fetches model-info, assembles the action set (model-info actions, optional `routeActions` filter, workflow permitted transitions), normalizes the route's action name (`read` -> `retrieve`), and checks membership.
+`ModelActionForm` passes `ActionForm` a [`dryRunTarget`]{@api vue:component:ActionForm:prop:dryRunTarget} that changes with the target. If you build a view on `ActionForm` directly and its target can change after mount, pass `dryRunTarget` along with [`readyToDryRun`]{@api vue:component:ActionForm:prop:readyToDryRun}. Without it, the pre-flight runs once for the life of the form.
 
-For workflow-enabled models, the guard includes permitted transition codes in the action set. This means transition routes are admissible alongside standard {@term CRUDL} routes; the guard does not distinguish between them at the admission level.
-
-{@api vue:component:ViewActionRouter} resolves the permitted action to a view component. Standard CRUDL actions resolve to their built-in views. A transition code with no project override resolves to `ViewExecuteTransition`, which composes {@api vue:component:ModelActionForm} with a `run-action` that submits through `storeWorkflow.executeTransition` rather than the generic model-action endpoint; a project-supplied `ViewAction{App}{Model}{Code}.vue` or `ViewAction{Code}.vue` still takes priority over it for a matching code. When the action cannot be resolved at all, it passes the guard but has no corresponding view component; `ViewActionNotFound` is rendered.
-
-The guard requires transition objects to have a valid string `code`. The server enforces this as a required, non-blank field, so the guard's check should not trigger in normal operation. If this error surfaces, it indicates a data integrity issue rather than a workflow misconfiguration.
-
-## Action Form Submit, Dry-Run, and Cancel Flow
-
-{@api vue:component:ActionForm} standardizes the three execution paths for action views.
-
-**Submit** executes the action against the server. On successful non-dry-run submit, `ActionForm` calls `redirectTo("success")` when no custom success handler is provided. The success path emits a toast and redirects to the resolved target. On failure, error handling displays validation errors or server error messages without redirecting.
-
-The action view stays on screen while the router loads the destination. From the successful submit until the view unmounts, `ActionForm` disables its confirm and cancel buttons and ignores further submits. The action cannot run twice. A `redirectTo` that did not navigate away resolves `false`, and the form then accepts input again. `useModelAction` does so when the router reports a navigation failure, and `AuthForm` when the route has no `returnPath`. A custom success handler skips the redirect, so its form accepts input again once the action settles.
-
-The `confirm-button` and `cancel-button` slots receive this state as `disabled`, and the `action-bar` slot receives it as `confirmDisabled` and `cancelDisabled`. Bind them in an override so it matches the default buttons. The form ignores extra submits whether or not the override binds them. These flags only control the buttons: the server still decides whether the action may run.
-
-**Dry-run** executes the action with the `Dry-Run: true` header. Use the `readyToDryRun` mechanism for validation and prefetch behaviour: when the form signals readiness, the action runs in dry-run mode to surface validation errors before the user commits. Dry-run responses should not trigger redirect or success toast behaviour. A dry run is a validation path, not a commit path.
-
-Pair `readyToDryRun` with a `dry-run-target` identity: a string that changes when the target does (`useModelAction`'s app, model, action, and primary keys, for example). `ActionForm` (via `useActionForm`) latches on this value, re-validating when it changes instead of firing once, ever. `useModelAction` computes the identity and `ModelActionForm` forwards it to `ActionForm` automatically, so `ViewExecuteTransition` and any other `ModelActionForm`-based view re-validate correctly when their selection changes after mount, including `ViewExecuteTransition`, which overrides `run-action` to submit through `storeWorkflow.executeTransition` instead of `useModelAction`'s own endpoint, but still gets `dry-run-target` forwarded like any other `ModelActionForm` consumer. A view that composes `ActionForm` directly, without `ModelActionForm`, must supply `dry-run-target` itself for a target that can change after mount; omitting it degrades to a single pre-flight for the lifetime of the form.
-
-**Cancel** calls `redirectTo("cancel")`, which resolves the cancel target through the same redirect precedence chain as success. The cancel path does not execute the action; it navigates away from the action view.
-
-`ViewExecuteTransition` shares this same submit, dry-run, and cancel flow. Its `run-action` forwards `ActionForm`'s `dryRun` and `acknowledgeWarnings` arguments straight to `storeWorkflow.executeTransition`, so dry-run validation errors appear beside the matching record chips, and in the validation summary for any error no field shows, as with any other model action, and an unacknowledged-warnings `409` drives the same `FormConfirmDialog` confirm-then-retry flow.
+For a transition, `ViewExecuteTransition` forwards the dry-run flag and the acknowledged warnings digest to `executeTransition`. The store rejects a `400` with {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} and a `409` with {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}, so both reach the form the same way as for other actions. A dry-run result stays out of the store's cached object state and transitions.
 
 ## Redirect Precedence and Route Targets
 
-{@api vue:component:ModelActionForm} resolves redirect targets through a defined precedence chain. The same chain applies to both success and cancel redirects, evaluated in order:
+The form's [`redirectTo`]{@api js:property:@arrai-innovations/vueda/use/useModelAction#ModelActionContext.redirectTo} picks the destination in this order, for both success and cancel:
 
-1. **`route.query.returnPath`**: if the current route has a `returnPath` query parameter, it takes absolute precedence. This enables "return to where you came from" navigation for actions reached via deep links or cross-model navigation.
+1. **`returnPath` query value.** When the current route has a `returnPath` query value, the form navigates to it. Add `returnPath` to a link into an action view to bring the user back to where they started.
+2. **`actionRedirects` entry.** Otherwise the form reads [`actionRedirects`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actionRedirects} from the model's {@term Model Config}: the entry for the route action, else `default`. A successful `destroy` with no `destroy` entry goes to the list view, because the deleted record has no detail view. Cancelling a destroy uses `default`.
+3. **Function entries.** An entry can be a function. The form calls it with `{ bulk, result }` and uses its return value. `result` is `"success"` or `"cancel"`, and `bulk` is `true` when the action targeted more than one record.
+4. **Route.** When the action targeted more than one record, or the value is `"list"`, the form opens the model's list view. Otherwise it opens the detail route for the first targeted record, with the value as the route action.
 
-2. **`config.actionRedirects[action]`**: if the model config defines a redirect for the specific action name, that redirect is used. This enables per-action redirect customization.
+The built `default` is `"update"` when {@term Model Info} lists `update`, else `"read"` when it lists `retrieve`, else `"list"` when it lists `list`. A model whose model info lists none of the three has no built default, so set `default` yourself.
 
-3. **`config.actionRedirects.default`**: if the model config defines a default redirect, it applies to all actions without specific overrides. One exception: a successful `destroy` with no `destroy` entry goes to the `list` view, since the deleted row has no detail view to open.
+To change the redirects for a model:
 
-4. **Computed default**: when no configured redirect applies, the form computes a target. Bulk actions (or explicit `"list"` redirect values) route to the model's `list` view. Non-bulk actions route to the `detail` view with the selected object's PK.
-
-Configure action redirects through model config when the default behaviour does not match the product's navigation flow:
+1. Call [`setConfig`]{@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} with `actionRedirects` in the generic config, the second argument. Action forms read the generic layer only.
+2. Key each entry by the route action: an extra action's name, a transition code, or `destroy`. Add `default` for the actions that you do not list. Your entries merge with the built ones key by key.
+3. Use route segments as values, such as `"list"`, `"read"`, `"update"`, or another action's name. The detail view's segment is `read`. The {@term Canonical Action Name} `retrieve` opens the generic action view.
 
 ```js
+import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
+
+const modelConfigStore = storeModelConfig();
+
 modelConfigStore.setConfig(
     { app: "myapp", model: "order" },
     {
         actionRedirects: {
             approve: "list",
-            default: "retrieve",
+            reopen: ({ result }) => (result === "success" ? "update" : "read"),
+            default: "read",
         },
     },
 );
 ```
 
-## Workflow Execute-Transition Contract (Detail and Bulk)
+### Navigate by the New State in a Project View
 
-The server's workflow execute-transition endpoint ({@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}) supports both detail and bulk execution, with distinct contracts for each.
+A project view that calls `executeTransition` itself can route by the object's new state. Pass the [`router`]{@api js:param:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition:router} and a [`stateToRoute`]{@api js:param:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition:stateToRoute} map from state code to route. After a single-object run that is not a dry run, the store navigates to the route for the new state's code, when the map has one. `ViewExecuteTransition` passes no map, so it uses `actionRedirects`. In a view built on `ActionForm`, the success redirect also navigates, so use one or the other.
 
-**Detail execution** targets a single object. The request includes the `transition_code` that identifies the transition to execute. The server acquires a row lock using `select_for_update(skip_locked=True)`; if the lock cannot be acquired (another process holds it), the response is a `400` with the message `"This object cannot be updated right now. Please try again."`. On successful lock acquisition, the transition runs through `apply_transition`, which validates source state, permissions, and transition-permission entries.
+## Send the Transition Request
 
-**Dry-run execution** skips locking and state persistence. Use dry-run mode when the UX needs to preview or validate a transition without committing to it. The server evaluates transition validity and returns the result without modifying the object's state.
+`executeTransition` sends `PATCH` to the workflow execute-transition endpoint:
 
-**Bulk execution** sends `{ object_ids: [...] }` in the request body. Non-`list` payloads return `400`.
+- For one object, it calls [`execute-transition/{object_id}/`]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/} with `{ "transition_code": "approve" }`.
+- For an array of primary keys, it calls [`execute-transition/`]{@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/} with `{ "transition_code": "approve", "object_ids": [...] }`. `object_ids` must be a list.
 
-**Warning confirmation** gates the write behind the same `409`/`Acknowledge-Warnings` contract used by create, update, destroy, activate, and deactivate. When a model overrides `get_transition_warnings`, an unacknowledged warning set responds `409` with `{"confirmation_required": true, "digest": ..., "warnings": {...}}` before anything is written; resubmitting with the digest in the `Acknowledge-Warnings` header lets the transition proceed, and a changed warning set yields a new digest and re-prompts. `storeWorkflow.executeTransition` maps this `409` to `ConfirmationRequiredError` and takes an `acknowledgeWarnings` argument for the confirmed retry. This gate applies to both detail and bulk execution; a bulk request's `warnings` is `{object_id: {field: [messages]}}` rather than the detail request's plain `{field: [messages]}`, and the whole batch gates once with one digest before any instance transitions.
+Generic bulk model actions send their keys as `pks`. Client code that calls the endpoint without the store must send `object_ids`.
 
-::: warning
-The bulk key name is endpoint-specific by design: generic model action execution uses `{ pks: [...] }`, while workflow execute-transition uses `{ object_ids: [...] }`. There is no automatic key translation between these APIs; client code must use the correct key for each endpoint.
-:::
+{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition} answers a missing `transition_code` with `400`. For a single object, it then runs these checks in order:
 
-**Transition identification** uses `code` throughout. The route's action parameter carries the transition `code` verbatim from admission (the route guard) through resolution (`ViewActionRouter`) to submission: `ViewExecuteTransition` passes it straight to `storeWorkflow.executeTransition`, which sends it as `transition_code` in the request payload without recasing it. The transition's `name` is display-only; `ViewExecuteTransition` uses it for the page title and confirmation copy, but it is never used for execution or routing. This distinction is important: a transition's display name can change without affecting routing or execution, but a `code` change requires updating route guard expectations and any client-side transition references.
+1. It checks that the user can read the object.
+2. It checks the workflow and transition permissions, and that the transition leaves the object's current state. An unknown `transition_code` also fails here, with `400`.
+3. It gates the write on the model's [`get_transition_warnings`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}, returning `409` until the user acknowledges the warnings. [Require Confirmation Before a Write](./require-write-confirmation.md#warn-on-a-workflow-transition) shows how to add warnings.
+4. Outside a dry run, it locks the row with {@api ext:django:django.db.models.query.QuerySet.select_for_update} and `skip_locked=True`. When another request holds the lock, it returns `400` with "This object cannot be updated right now. Please try again."
+5. It repeats the object and transition checks on the locked row, writes the new state, and calls [`on_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition}.
+
+The response holds `new_state` and `new_transitions`, the transitions the user can take from the new state. A bulk request checks every object and gates warnings once for the whole batch before it writes any. Its warnings and its response are keyed by object id. [Permissions](../reference/permissions.md#status-codes) lists the status code for each refusal.
+
+A dry run skips the row lock. The server writes the transition, and the request's rollback discards it. `on_transition` receives `dry_run=True`, so skip external side effects there during a dry run.
 
 ## Verification Checklist
 
-After implementing transition UX, verify the following:
-
-- Navigating to an action route for a permitted action renders the correct view.
-- Navigating to an action route for an unpermitted action produces a toast and redirect.
-- Submitting an action form (non-dry-run) redirects to the expected target per the precedence chain.
-- Cancelling an action form redirects without executing the action.
-- Dry-run execution surfaces validation errors without redirecting or toasting success.
-- `returnPath` query parameter overrides configured redirects.
-- Workflow transition submit sends the correct `transition_code` and redirects on success.
-- Bulk transition submit sends `{ object_ids: [...] }`, not `{ pks: [...] }`.
-- Locked-row transition attempt surfaces a user-friendly error message.
-- A transition with unacknowledged warnings surfaces the confirmation dialog; confirming retries with the digest acknowledged and completes the transition, cancelling leaves it unapplied.
-
-## Known Limitations
-
-**`ViewExecuteTransition` renders no source-state, target-state, or per-object eligibility context.** It confirms the transition's display name and the selected objects, the same as any other `ModelActionForm`-based confirmation, but does not explain why an object is or is not eligible for the transition. A rejected object in a dry run is identified by id in the resulting field errors, not by a human-readable eligibility summary.
-
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:module:vueda.workflow.viewsets}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.permitted_transitions}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.object_transitions}
-    - {@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.available_transitions}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.apply_transition}
-    - {@api py:function:vueda.workflow.models.WorkflowModelMethods.get_transition_warnings}
-- REST:
-    - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
-    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/}
-    - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
-- JavaScript:
-    - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}
-    - {@api js:function:@arrai-innovations/vueda/use/useWorkflowTransitions#useWorkflowTransitions}
-    - {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
-    - {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}
-    - {@api js:function:@arrai-innovations/vueda/use/useConfirmationController#useConfirmationController}
-- Vue.js Components:
-    - {@api vue:component:ViewExecuteTransition}
-    - {@api vue:component:ModelActionForm}
-    - {@api vue:component:FormConfirmDialog}
+- Opening a permitted transition route renders `ViewExecuteTransition` or your project view.
+- Opening the view shows pre-flight validation errors before you confirm, and nothing changes on the server.
+- Submitting sends the transition `code` as `transition_code` and redirects according to `actionRedirects`.
+- A `returnPath` query value overrides the configured redirect.
+- Cancelling redirects without running the transition.
+- A multi-record transition sends `object_ids` and lands on the list view.
+- A transition with unacknowledged warnings opens the confirmation dialog. Confirming completes the transition, and cancelling leaves it unapplied.
+- A transition attempted while another request holds the row lock shows the lock message.
