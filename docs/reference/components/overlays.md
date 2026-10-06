@@ -312,7 +312,7 @@ Theme key: {@api theme-key:HoverCardContent}. Token surface:
 
 ## DropdownMenu
 
-DropdownMenu and ContextMenu share the same panel and item components — a design change to one must be mirrored in the other. The highlight recipe is `bg-accent text-accent-foreground`. Destructive items tint only the foreground at rest; on focus they add `bg-destructive/10`. Menu icons sit at `--muted-foreground` at rest and inherit `--accent-foreground` on highlight so the row reads as a unit.
+DropdownMenu and ContextMenu share the same panel and item components, so a design change to one must be mirrored in the other. The highlight recipe is `bg-accent text-accent-foreground`. Destructive items tint only the foreground at rest; on focus they add `bg-destructive/10`. Menu icons sit at `--muted-foreground` at rest and inherit `--accent-foreground` on highlight so the row reads as a unit.
 
 Theme keys: {@api theme-key:DropdownMenuContent}, {@api theme-key:DropdownMenuItem}, {@api theme-key:DropdownMenuLabel}, {@api theme-key:DropdownMenuSeparator}. Token surface: {@api css-token:popover}, {@api css-token:popover-foreground}, {@api css-token:accent}, {@api css-token:destructive}.
 
