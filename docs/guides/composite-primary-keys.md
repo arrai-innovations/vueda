@@ -1,27 +1,19 @@
 ---
-title: Set Up CRUDL for a Composite Primary Key Model
+title: Set Up CRUD for a Composite Primary Key Model
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Set Up CRUDL for a Composite Primary Key Model
+# Set Up CRUD for a Composite Primary Key Model
 
-This guide covers using Django's composite primary key feature in VUEDA. A composite primary key identifies each row using the combined values of two or more fields instead of a single generated `id`. VUEDA adds support for composite primary keys in serializers, viewsets, and filtersets, so they work within the standard model-info contract.
+This guide sets up the model, serializer, filterset, viewset, and routes for a model whose rows are identified by a {@term Composite Primary Key}. It also shows how that key appears in API responses and detail URLs.
 
-For how Django defines composite primary key models, see the [Django documentation](https://docs.djangoproject.com/en/dev/topics/composite-primary-key/). This guide assumes familiarity with VUEDA's standard serializer, viewset, and filterset patterns. If you have not set up a basic CRUDL surface yet, read [Create a CRUDL Surface for a New Model](./create-crudl-surface) first.
+It assumes you have built a CRUD surface for an ordinary model. [Create a CRUD Surface for a New Model](./create-crud-surface) covers the parts that do not change here. For how Django defines these models, see [Django: `CompositePrimaryKey`]{@api ext:django:django.db.models.CompositePrimaryKey}.
 
-## Goal and Preconditions
+## Define the Model
 
-The objective is a working CRUDL surface for a model that uses a composite primary key, including correct URL routing, serialization, and filtering.
-
-Before you begin:
-
-Django requires the composite primary key field on the model to be named `pk`. Any other name is not valid.
-
-## Defining the Model
-
-Use `models.CompositePrimaryKey` on a field named `pk`, and pass the column names of the fields that together identify each row:
+Declare the key on a field named `pk`, which Django requires. Pass the names of the columns that together identify a row. Turn history off: VUEDA records history for each {@term VUEDA Model} by default, and pghistory cannot track a composite key.
 
 ```python
 from django.db import models
@@ -29,6 +21,7 @@ from vueda.core.models import VuedaModel
 
 
 class Order(VuedaModel):
+    name = models.CharField(max_length=50)
     order_date = models.DateTimeField(auto_now_add=True)
 
 
@@ -45,17 +38,22 @@ class OrderLine(VuedaModel):
     formatted_name = None
     formatted_name_lookup_expression = "product__formatted_name"
 
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "pghistory cannot track a composite primary key."
+
     class Meta(VuedaModel.Meta):
         default_related_name = "order_lines"
 ```
 
-Because `OrderLine` has no `id` field, `formatted_name` must either use a lookup expression pointing to another field or implement `get_formatted_name()`. Setting `formatted_name = None` without providing one of these alternatives will cause list and retrieve endpoints to return `null` for `formatted_name`. The choice endpoint failure this would cause is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served.
+A composite-key model that leaves history on fails the `vueda_core.E013` system check at startup. The [`History` section]{@api py:property:vueda.history.apps.HISTORY_SECTION} lists the history options.
 
-When `formatted_name_lookup_expression` is set, `FormattedNameManager` — the default manager `FormattedNameBaseModel` provides — annotates every queryset the model builds with the expression, and `VuedaViewSet` does the same in `get_queryset` for direct requests. When the model appears as an expanded field in another serializer, `VuedaListSerializer` applies the same annotation to the related queryset. Together, `formatted_name` returns the resolved value across all regular API responses — direct list, retrieve, and expand responses — not just from choice endpoints, and it resolves outside a request too (see [Create a CRUDL Surface](create-crudl-surface#replacing-the-default-manager)).
+`OrderLine` has no `name` field, so the default {@term Formatted Name} has no column to copy. The example sets `formatted_name = None` and points [`formatted_name_lookup_expression`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_lookup_expression} at the product's name. [Create a CRUD Surface](./create-crud-surface#the-formatted-name-contract) describes the other ways to supply a formatted name.
 
-## Defining the Serializer
+## Define the Serializer
 
-Use `pk` as the primary key field in the serializer's `Meta.fields`:
+List `pk` in the serializer's `Meta.fields`:
 
 ```python
 from vueda.core.serializers import VuedaSerializer
@@ -73,41 +71,11 @@ class OrderLineSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 ```
 
-The `pk` field is sent to and received from the client as a JSON string, for example `'["1", "42"]'`. The server converts this to a list, for example `[1, 42]`, automatically.
+{@api py:class:vueda.core.serializers.VuedaSerializer} maps the key to {@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}. The field sends the key as a JSON list string that holds each column's value as a string, for example `"[\"1\", \"42\"]"`.
 
-`pk` is not offered to clients as something to sort by. `"pk"` is an alias Django's query machinery resolves, not a column, so `model_ordering` reports the fields the key is built from instead — `order` and `product` for `OrderLine`, one entry per column. This holds wherever the alias appears: the serializer's `pk` field, `ordering_fields = "__all__"`, and a `Meta.ordering` or viewset `ordering` of `["pk"]` all resolve the same way, and the literal `"pk"` never reaches the client. See [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics) for the full rule.
+## Define the FilterSet
 
-## URL Format for Composite PKs
-
-To request a specific OrderLine, encode the composite key as a JSON string in the pk URL segment. Individual pks can be strings or integers:
-
-```text
-GET /api/orderlines/[1,"42"]/
-```
-
-PKs and a product type:
-
-```text
-GET /api/orderlines/["1",42,"digital"]/
-```
-
-`VuedaViewSet` detects the composite primary key on the model and converts the JSON `pk` URL segment into a list, before passing the result to the ORM. No extra viewset configuration is needed.
-
-## Using `reverse()` with Composite PKs
-
-Serialize `.pk` to its JSON string form before passing it to `reverse()`. Passing it directly as a list will raise an error.
-
-```python
-import json
-from django.urls import reverse
-
-order_line = OrderLine.objects.get(pk=[1, 42])
-url = reverse("orderline-detail", args=[json.dumps(order_line.pk)])
-```
-
-## Defining the FilterSet
-
-Use VuedaCompositePrimaryKeyFilterSet as the base, because it declares no default filters. Every filter you need (including ones for the fields that make up the composite key) must be declared explicitly. See [Composite Primary Key Filtering](../core-concepts/filtering-and-ordering-semantics#composite-primary-key-filtering) for the underlying constraint.
+Build the filterset on {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}. It has no `id` filter, because the model has no `id` field. Declare a filter for each key column that you want clients to filter by:
 
 ```python
 from django_filters import rest_framework
@@ -124,12 +92,75 @@ class OrderLineFilterSet(VuedaCompositePrimaryKeyFilterSet):
         fields = ["quantity"]
 ```
 
-## Relevant Implementation Surface
+On a {@term Workflow-Enabled Model}, the base filterset still adds the `workflow_state` filter.
 
-- Python:
-    - {@api py:class:vueda.core.serializers.VuedaSerializer}
-    - {@api py:class:vueda.core.serializers.VuedaListSerializer}
-    - {@api py:class:vueda.core.serializers.fields.CompositePrimaryKeyField}
-    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-    - {@api py:function:vueda.core.viewsets.VuedaViewSet.get_object}
-    - {@api py:class:vueda.core.filters.VuedaCompositePrimaryKeyFilterSet}
+## Define the ViewSet, Routes, and Registration
+
+The viewset, router, and registration are the same as for any model:
+
+```python
+from vueda.core.viewsets import VuedaViewSet
+from .filtersets import OrderLineFilterSet
+from .models import OrderLine
+from .serializers import OrderLineSerializer
+
+
+class OrderLineViewSet(VuedaViewSet):
+    queryset = OrderLine.objects.all()
+    serializer_class = OrderLineSerializer
+    filterset_class = OrderLineFilterSet
+    ordering_fields = ["order", "product", "quantity"]
+```
+
+```python
+from vueda.core.routers import VuedaRouter
+from .viewsets import OrderLineViewSet
+
+router = VuedaRouter()
+router.register("orderline", OrderLineViewSet)
+
+urlpatterns = router.urls
+```
+
+```python
+from django.apps import AppConfig
+from vueda.info import register
+
+
+class MyAppConfig(AppConfig):
+    name = "myapp"
+
+    def ready(self):
+        from .serializers import OrderLineSerializer
+        from .viewsets import OrderLineViewSet
+
+        register(OrderLineSerializer, OrderLineViewSet)
+```
+
+[Create a CRUD Surface](./create-crud-surface#router-and-url-wiring) shows where to mount the URL module. {@api py:class:vueda.core.routers.VuedaRouter} and {@api py:function:vueda.info.register} need no composite-key options.
+
+Ordering metadata reports the key's fields, `order` and `product`, in place of the `pk` alias. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#ordering-metadata) describes that rule.
+
+## Request a Row by Its Key
+
+Put the key in the detail URL's pk segment as a JSON list, percent-encoded. Each value may be a string or an integer. For `OrderLine` in app `myapp`, the key `[1, 42]` gives this URL:
+
+```text
+GET /routes/myapp/orderline/%5B1,%2042%5D/
+```
+
+{@api py:function:vueda.core.viewsets.VuedaViewSet.get_object} converts the segment to the key's column values before it looks up the row. A segment that is not a JSON list, or has the wrong number of values, answers `404`. A key with no matching row answers `404` too. A string value that contains `.` or `/` does not match the default detail route.
+
+To build the URL in Python, pass the key's JSON string to [Django: `reverse`]{@api ext:django:django.urls.reverse}. The key itself is a tuple, which `reverse` writes as `(1,%2042)`, and that URL answers `404`. The route name is the model's app label and model name, followed by `-detail`:
+
+```python
+import json
+from django.urls import reverse
+
+order_line = OrderLine.objects.get(pk=(1, 42))
+url = reverse("myapp.orderline-detail", args=[json.dumps(order_line.pk)])
+```
+
+## Known Limit: List Selection Actions
+
+When you select rows in a list, the route carries each selected key as its own `pk` query value, so a composite key reaches the view intact. Bulk delete, activate, and deactivate still fail for these models. The server reads their `pks` body with [`PrimaryKeyListSerializer`]{@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}, which accepts only integers, so it answers `400`. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline) describes how identifiers travel between views. Issue [#422](https://github.com/arrai-innovations/vueda/issues/422) tracks accepting every primary key type.
