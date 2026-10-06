@@ -15,6 +15,7 @@ import TableFooter from "@vueda/grid/table/TableFooter.vue";
 import TableHead from "@vueda/grid/table/TableHead.vue";
 import TableHeader from "@vueda/grid/table/TableHeader.vue";
 import TableRow from "@vueda/grid/table/TableRow.vue";
+import TableRowActions from "@vueda/grid/table/TableRowActions.vue";
 import Button from "@vueda/controls/button/Button.vue";
 import Badge from "@vueda/display/badge/Badge.vue";
 import Checkbox from "@vueda/controls/checkbox/Checkbox.vue";
@@ -75,285 +76,358 @@ const setRecipeSelectAll = (value) => {
 
 # Tables
 
-The table family covers the full surface for tabular data: nine primitive
-components that compose into a typed HTML table, plus a DataTable recipe layer
-that wires in row selection, sortable headers, a toolbar, and pagination at
-app level via TanStack Vue Table.
+::: tip Which table to use
+For a native HTML table that keeps its table layout at every width, use these
+primitives. For a table-like list that breaks down into cards on narrow
+screens, use [ObjectsGrid](objectsgrid.md). {@api vue:component:ViewList}
+builds each model's list on ObjectsGrid.
+:::
 
-Source ships only primitives under `grid/table/`. There is no `DataTable`
-composite in VUEDA; TanStack Vue Table integrates at the consuming application
-level. The DataTable section below is a recipe: a documented composition of
-primitives and layout patterns that any app can adopt directly.
-
-This page is the visual contract the default theme guarantees. Use it as the
-target spec when you re-skin. If a cell breaks after a customization, the
-change has crossed from skin into design language.
-
-For the mechanics of overriding any of this, see
-[Customize VUEDA Appearance](../../guides/customize-vueda-appearance.md). Values
-(color, dimension) belong in [CSS tokens](../theming/tokens.md); compositions
-belong in [theme keys](../theming/keys.md).
+This page shows the {@term Visual Contract} of the table primitives:
+{@api vue:component:Table}, {@api vue:component:TableHeader},
+{@api vue:component:TableBody}, {@api vue:component:TableFooter},
+{@api vue:component:TableRow}, {@api vue:component:TableHead},
+{@api vue:component:TableCell}, {@api vue:component:TableCaption},
+{@api vue:component:TableEmpty}, and {@api vue:component:TableRowActions}.
+It ends with a DataTable recipe that composes them. [Components](index.md)
+describes the rules that every component page shares.
 
 ## Table
 
-The root `Table` component renders a scrollable container div
-({@api theme-key:Table} `container` slot, default `relative w-full overflow-auto`)
-wrapping the `<table>` element ({@api theme-key:Table} `table` slot, default
-`w-full caption-bottom text-sm`). The container does not include border or
-background by default; those come from the enclosing surface (typically a Card
-or a bordered wrapper the consumer provides).
+`Table` renders a frame around a scroll container that holds the `<table>`
+element. The frame ({@api theme-key:Table.frame}) draws the card fill, the
+card radius, and a {@term Hairline} edge. Rows and sticky header cells scroll
+inside the frame, so they never cover its edge. Wide tables scroll sideways
+inside it.
 
-Seven additional keys cover the inner elements:
-{@api theme-key:TableHeader} (empty; the header row's cells carry the divider),
-{@api theme-key:TableBody} (`[&>tr:last-child>*]:border-b-0`),
-{@api theme-key:TableFooter} (`bg-muted/50 font-medium [&>tr:first-child>*]:border-t-hairline`),
-{@api theme-key:TableRow} (`hover:bg-accent/50 data-[state=selected]:bg-primary/[0.06] [&>*]:border-b-hairline transition-colors`).
-Row dividers sit on the cells, not the `<tr>`, because the table uses the
-separated border model, which does not paint borders on rows or row groups.
-{@api theme-key:TableHead} (`h-10 px-2 text-left align-middle font-medium whitespace-nowrap`),
-{@api theme-key:TableCell} (`p-2 align-middle whitespace-nowrap`),
-{@api theme-key:TableCaption} (`text-muted-foreground mt-4 text-sm`).
+- **Dividers:** a hairline on each row's cells divides that row from the next
+  row, and divides the header row from the body.
+- **Last row:** the frame edge closes the table below the last body row.
+- **Footer:** `TableFooter` rows take a muted fill and muted text, with a
+  divider above the first footer row. Use it for totals and summaries.
+- **Caption:** `TableCaption` renders low-emphasis text below the rows.
+- **Hover and selection:** a row fills on hover. A row marked
+  `data-state="selected"` takes a primary tint and a leading primary rail, and
+  hover and press deepen the tint.
+- **Numbers and codes:** a `TableHead` or `TableCell` marked `data-numeric`
+  aligns right in a monospaced face. One marked `data-mono` uses the
+  monospaced face at its normal alignment. The table sets tabular figures, so
+  digits line up in every column.
+- **Checkbox columns:** a cell or header holding a checkbox tightens its
+  trailing padding and aligns the box with the text line.
+
+Theme keys: {@api theme-key:Table}, {@api theme-key:TableHeader},
+{@api theme-key:TableBody}, {@api theme-key:TableFooter},
+{@api theme-key:TableRow}, {@api theme-key:TableHead},
+{@api theme-key:TableCell}, {@api theme-key:TableCaption}. Current values:
+{@api css-token:card}, {@api css-token:vueda-card-radius},
+{@api css-token:border}, {@api css-token:vueda-hairline-width},
+{@api css-token:accent}, {@api css-token:primary},
+{@api css-token:muted}, and {@api css-token:muted-foreground}.
 
 <VuedaDemo class="flex flex-col gap-6">
-  <DemoCard title="full anatomy — header · body · footer · caption">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="header, body, footer, caption">
       <Table>
-        <TableCaption>Recent invoices · all amounts in USD.</TableCaption>
+        <TableCaption>Recent invoices, all amounts in USD.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
+            <TableCell data-mono>INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
+            <TableCell data-mono>2026-04-12</TableCell>
             <TableCell><Badge variant="info">Sent</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
+            <TableCell data-numeric>$14,028.50</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
+            <TableCell data-mono>INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
+            <TableCell data-mono>2026-04-11</TableCell>
             <TableCell><Badge variant="success">Paid</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
+            <TableCell data-numeric>$2,440.00</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
+            <TableCell data-mono>INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
+            <TableCell data-mono>2026-04-09</TableCell>
             <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
+            <TableCell data-numeric>$8,915.20</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
+            <TableCell data-mono>INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
+            <TableCell data-mono>2026-04-07</TableCell>
             <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$612.00</TableCell>
+            <TableCell data-numeric>$612.00</TableCell>
           </TableRow>
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colspan="4">Total · 4 invoices</TableCell>
-            <TableCell class="text-right tabular-nums">$25,995.70</TableCell>
+            <TableCell colspan="4">Total, 4 invoices</TableCell>
+            <TableCell data-numeric>$25,995.70</TableCell>
           </TableRow>
         </TableFooter>
       </Table>
-    </div>
     <template #footer>
-      <span>container: <code>relative w-full overflow-auto</code></span>
-      <span>footer: <code>bg-muted/50 font-medium</code>, top divider on the first footer row's cells</span>
-      <span>caption: <code>caption-bottom mt-4 text-sm text-muted-foreground</code></span>
+      <span>the container draws the frame</span>
+      <span>the container edge closes the last row</span>
+      <span>the footer is muted and divided from the body</span>
     </template>
   </DemoCard>
-  <DemoCard title="selected row: data-[state=selected]">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="selected row">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow data-state="selected">
-            <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
+            <TableCell data-mono>INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
-            <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
+            <TableCell data-mono>2026-04-12</TableCell>
+            <TableCell data-numeric>$14,028.50</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
+            <TableCell data-mono>INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
-            <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
+            <TableCell data-mono>2026-04-11</TableCell>
+            <TableCell data-numeric>$2,440.00</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
+            <TableCell data-mono>INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
-            <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
+            <TableCell data-mono>2026-04-09</TableCell>
+            <TableCell data-numeric>$8,915.20</TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
     <template #footer>
-      <span>selected: <code>bg-primary/[0.06]</code> tint plus a 2px leading primary rail</span>
-      <span>hover fills to <code>bg-accent/50</code></span>
-      <span><code>[&amp;>*]:border-b-hairline</code> divider on every row's cells</span>
+      <span>selected: primary tint plus a leading rail</span>
+      <span>hover fills the row</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## Sticky header
+
+With the {@api vue:component:Table:prop:sticky} prop, the container becomes a
+vertically scrolling region with a capped height. Header cells pin to the top
+and take the card fill, and each carries its divider over the scrolling rows.
+To change the cap, set the `--vueda-tbl-max-h` custom property on the `Table`
+or an ancestor.
+
+<VuedaDemo>
+  <DemoCard title="sticky header, capped height">
+    <Table sticky style="--vueda-tbl-max-h: 12rem">
+      <TableHeader>
+        <TableRow>
+          <TableHead>SKU</TableHead>
+          <TableHead>Item</TableHead>
+          <TableHead data-numeric>On hand</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell data-mono>SKU-00412</TableCell>
+          <TableCell>Bearing, 6203-2RS</TableCell>
+          <TableCell data-numeric>1,840</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00413</TableCell>
+          <TableCell>Bearing, 6204-2RS</TableCell>
+          <TableCell data-numeric>912</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00414</TableCell>
+          <TableCell>Bearing, 6205-2RS</TableCell>
+          <TableCell data-numeric>3,210</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00415</TableCell>
+          <TableCell>Bearing, 6206-2RS</TableCell>
+          <TableCell data-numeric>604</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00416</TableCell>
+          <TableCell>Bearing, 6207-2RS</TableCell>
+          <TableCell data-numeric>1,125</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00417</TableCell>
+          <TableCell>Seal, 35x52x7</TableCell>
+          <TableCell data-numeric>2,480</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00418</TableCell>
+          <TableCell>Seal, 40x62x8</TableCell>
+          <TableCell data-numeric>1,016</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00419</TableCell>
+          <TableCell>Seal, 45x62x8</TableCell>
+          <TableCell data-numeric>388</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00420</TableCell>
+          <TableCell>Seal, 50x72x8</TableCell>
+          <TableCell data-numeric>752</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell data-mono>SKU-00421</TableCell>
+          <TableCell>Circlip, 35 mm</TableCell>
+          <TableCell data-numeric>5,600</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+    <template #footer>
+      <span>scroll the rows; the header stays in place</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## Density
 
-Density is a design-system pattern applied above the primitive layer, not
-encoded in the default theme keys. Three row heights are defined: **default**
-(32 px), **compact** (28 px), and **condensed** (24 px). In practice, density
-is set by overriding the `TableHead` and `TableCell` `class` props at the table
-level, or by patching the theme keys for a given context. The demos below use
-`class` prop overrides to show each tier.
+The {@api vue:component:Table:prop:density} prop sets a row height tier:
+`default`, `compact`, or `condensed`. `Table` writes it to `data-density` on
+the `<table>` element, and `TableHead` and `TableCell` read it. Each tier sets
+shorter rows than the one before it. Header cells shorten at `compact` and
+`condensed`, and `condensed` also uses smaller text. When `density` is unset,
+cells size to their padding and content.
+
+Theme keys: {@api theme-key:TableHead.root} and
+{@api theme-key:TableCell.root} hold the tiers.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-3">
-  <DemoCard title="default — 32 px rows">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
-      <Table>
+  <DemoCard title="default">
+      <Table density="default">
         <TableHeader>
           <TableRow>
             <TableHead>SKU</TableHead>
             <TableHead>Item</TableHead>
-            <TableHead class="text-right">On hand</TableHead>
+            <TableHead data-numeric>On hand</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">SKU-00412</TableCell>
+            <TableCell data-mono>SKU-00412</TableCell>
             <TableCell>Bearing, 6203-2RS</TableCell>
-            <TableCell class="text-right tabular-nums">1,840</TableCell>
+            <TableCell data-numeric>1,840</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">SKU-00413</TableCell>
+            <TableCell data-mono>SKU-00413</TableCell>
             <TableCell>Bearing, 6204-2RS</TableCell>
-            <TableCell class="text-right tabular-nums">912</TableCell>
+            <TableCell data-numeric>912</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="font-mono text-[11px]">SKU-00414</TableCell>
+            <TableCell data-mono>SKU-00414</TableCell>
             <TableCell>Bearing, 6205-2RS</TableCell>
-            <TableCell class="text-right tabular-nums">3,210</TableCell>
+            <TableCell data-numeric>3,210</TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
-    <template #footer>
-      <span>theme default: <code>h-10</code> head, <code>p-2</code> cells</span>
-    </template>
   </DemoCard>
-  <DemoCard title="compact — 28 px rows">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
-      <Table>
+  <DemoCard title="compact">
+      <Table density="compact">
         <TableHeader>
           <TableRow>
-            <TableHead class="!h-8">SKU</TableHead>
-            <TableHead class="!h-8">Item</TableHead>
-            <TableHead class="!h-8 text-right">On hand</TableHead>
+            <TableHead>SKU</TableHead>
+            <TableHead>Item</TableHead>
+            <TableHead data-numeric>On hand</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell class="!py-1 font-mono text-[11px]">SKU-00412</TableCell>
-            <TableCell class="!py-1">Bearing, 6203-2RS</TableCell>
-            <TableCell class="!py-1 text-right tabular-nums">1,840</TableCell>
+            <TableCell data-mono>SKU-00412</TableCell>
+            <TableCell>Bearing, 6203-2RS</TableCell>
+            <TableCell data-numeric>1,840</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="!py-1 font-mono text-[11px]">SKU-00413</TableCell>
-            <TableCell class="!py-1">Bearing, 6204-2RS</TableCell>
-            <TableCell class="!py-1 text-right tabular-nums">912</TableCell>
+            <TableCell data-mono>SKU-00413</TableCell>
+            <TableCell>Bearing, 6204-2RS</TableCell>
+            <TableCell data-numeric>912</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="!py-1 font-mono text-[11px]">SKU-00414</TableCell>
-            <TableCell class="!py-1">Bearing, 6205-2RS</TableCell>
-            <TableCell class="!py-1 text-right tabular-nums">3,210</TableCell>
+            <TableCell data-mono>SKU-00414</TableCell>
+            <TableCell>Bearing, 6205-2RS</TableCell>
+            <TableCell data-numeric>3,210</TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
-    <template #footer>
-      <span>override: <code>!h-8</code> head, <code>!py-1</code> cells</span>
-    </template>
   </DemoCard>
-  <DemoCard title="condensed — 24 px rows">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
-      <Table>
+  <DemoCard title="condensed">
+      <Table density="condensed">
         <TableHeader>
           <TableRow>
-            <TableHead class="!h-7 !text-[11px]">SKU</TableHead>
-            <TableHead class="!h-7 !text-[11px]">Item</TableHead>
-            <TableHead class="!h-7 !text-[11px] text-right">On hand</TableHead>
+            <TableHead>SKU</TableHead>
+            <TableHead>Item</TableHead>
+            <TableHead data-numeric>On hand</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell class="!py-0.5 !text-[11px] font-mono">SKU-00412</TableCell>
-            <TableCell class="!py-0.5 !text-[11px]">Bearing, 6203-2RS</TableCell>
-            <TableCell class="!py-0.5 !text-[11px] text-right tabular-nums">1,840</TableCell>
+            <TableCell data-mono>SKU-00412</TableCell>
+            <TableCell>Bearing, 6203-2RS</TableCell>
+            <TableCell data-numeric>1,840</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="!py-0.5 !text-[11px] font-mono">SKU-00413</TableCell>
-            <TableCell class="!py-0.5 !text-[11px]">Bearing, 6204-2RS</TableCell>
-            <TableCell class="!py-0.5 !text-[11px] text-right tabular-nums">912</TableCell>
+            <TableCell data-mono>SKU-00413</TableCell>
+            <TableCell>Bearing, 6204-2RS</TableCell>
+            <TableCell data-numeric>912</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell class="!py-0.5 !text-[11px] font-mono">SKU-00414</TableCell>
-            <TableCell class="!py-0.5 !text-[11px]">Bearing, 6205-2RS</TableCell>
-            <TableCell class="!py-0.5 !text-[11px] text-right tabular-nums">3,210</TableCell>
+            <TableCell data-mono>SKU-00414</TableCell>
+            <TableCell>Bearing, 6205-2RS</TableCell>
+            <TableCell data-numeric>3,210</TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
-    <template #footer>
-      <span>override: <code>!h-7 !text-[11px]</code> head, <code>!py-0.5 !text-[11px]</code> cells</span>
-    </template>
   </DemoCard>
 </VuedaDemo>
 
 ## TableEmpty
 
-`TableEmpty` is a full-width empty-state row. It renders a `TableRow`
-containing a `TableCell` (spanning via `colspan`) that centers a vertically
-padded content block. The two theme keys are
-{@api theme-key:TableEmpty} `root` (`p-4 whitespace-nowrap align-middle text-sm text-foreground`)
-and `content` (`flex items-center justify-center py-10`). Consumer content
-goes in the default slot and is displayed as a flex column inside `content`.
+`TableEmpty` is an empty-state row. It renders a `TableRow` with one
+`TableCell` that spans {@api vue:component:TableEmpty:prop:colspan}
+columns, and centers its content in a vertical stack. You supply the content in the
+default slot: an icon, a title, a description, and an action.
 
-Four canonical variants: **empty** (first-run, primary CTA), **loading**
-(spinner + message), **error** (destructive icon + retry CTA), and
-**filtered-empty** (no matches, clear-filters CTA).
+The {@api vue:component:TableEmpty:prop:variant} prop names the state:
+`empty` (the default), `loading`, `error`, or `filtered`. It sets
+`data-variant` on the content wrapper. A direct child marked
+`data-slot="icon"` takes the muted icon treatment, spins for `loading`, and
+takes the destructive color for `error`. For `filtered`, a ghost or tertiary
+action keeps the page's primary action the most prominent.
+
+Theme key: {@api theme-key:TableEmpty}. Current values:
+{@api css-token:muted-foreground} and {@api css-token:destructive}.
 
 <VuedaDemo class="grid gap-6 sm:grid-cols-2">
-  <DemoCard title="empty — first-run, primary CTA">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="empty: first run, primary action">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableEmpty :colspan="4">
-            <FontAwesomeIcon :icon="faFolderOpen" class="text-xl text-muted-foreground/70" />
-            <strong class="text-sm font-semibold text-foreground">No invoices yet.</strong>
-            <span class="text-sm text-muted-foreground">Issue your first invoice to populate this table.</span>
+            <FontAwesomeIcon :icon="faFolderOpen" data-slot="icon" />
+            <strong class="font-semibold text-foreground">No invoices yet.</strong>
+            <span>Issue your first invoice to populate this table.</span>
             <div class="mt-1">
               <Button size="sm" tone="primary">
                 <FontAwesomeIcon :icon="faPlus" />New invoice
@@ -362,51 +436,43 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
           </TableEmpty>
         </TableBody>
       </Table>
-    </div>
-    <template #footer>
-      <span>content is a flex column with <code>gap</code></span>
-      <span>icon, strong, span, and action compose naturally</span>
-    </template>
   </DemoCard>
-  <DemoCard title="loading — spinner + message">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="loading">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty :colspan="4">
-            <FontAwesomeIcon :icon="faCircleNotch" spin class="text-xl text-muted-foreground/70" />
-            <span class="text-sm text-muted-foreground">Loading invoices…</span>
+          <TableEmpty :colspan="4" variant="loading">
+            <FontAwesomeIcon :icon="faCircleNotch" data-slot="icon" />
+            <span>Loading invoices…</span>
           </TableEmpty>
         </TableBody>
       </Table>
-    </div>
     <template #footer>
-      <span>spinning icon via <code>spin</code> prop on FontAwesomeIcon</span>
+      <span>the variant spins the icon</span>
     </template>
   </DemoCard>
-  <DemoCard title="error — destructive icon, retry CTA">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="error: retry action">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty :colspan="4">
-            <FontAwesomeIcon :icon="faTriangleExclamation" class="text-xl text-destructive/80" />
-            <strong class="text-sm font-semibold text-foreground">Could not load invoices.</strong>
-            <span class="text-sm text-muted-foreground">Check your connection and try again.</span>
+          <TableEmpty :colspan="4" variant="error">
+            <FontAwesomeIcon :icon="faTriangleExclamation" data-slot="icon" />
+            <strong class="font-semibold text-foreground">Could not load invoices.</strong>
+            <span>Check your connection and try again.</span>
             <div class="mt-1">
               <Button size="sm" emphasis="outline">
                 <FontAwesomeIcon :icon="faRotateRight" />Retry
@@ -415,53 +481,125 @@ Four canonical variants: **empty** (first-run, primary CTA), **loading**
           </TableEmpty>
         </TableBody>
       </Table>
-    </div>
     <template #footer>
-      <span>icon color is consumer-provided, not from theme key</span>
+      <span>the variant colors the icon destructive</span>
     </template>
   </DemoCard>
-  <DemoCard title="filtered-empty — no matches, clear CTA">
-    <div class="rounded-vueda-card hairline hairline-border overflow-hidden">
+  <DemoCard title="filtered: no matches, clear action">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Invoice</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Issued</TableHead>
-            <TableHead class="text-right">Amount</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty :colspan="4">
-            <FontAwesomeIcon :icon="faCircleQuestion" class="text-xl text-muted-foreground/70" />
-            <strong class="text-sm font-semibold text-foreground">No matches.</strong>
-            <span class="text-sm text-muted-foreground">No invoices match the current filters.</span>
+          <TableEmpty :colspan="4" variant="filtered">
+            <FontAwesomeIcon :icon="faCircleQuestion" data-slot="icon" />
+            <strong class="font-semibold text-foreground">No matches.</strong>
+            <span>No invoices match the current filters.</span>
             <div class="mt-1">
               <Button size="sm" emphasis="ghost">Clear filters</Button>
             </div>
           </TableEmpty>
         </TableBody>
       </Table>
-    </div>
     <template #footer>
-      <span>use ghost or tertiary CTA so it doesn't compete with primary actions</span>
+      <span>a ghost action leaves the primary action unchallenged</span>
+    </template>
+  </DemoCard>
+</VuedaDemo>
+
+## TableRowActions
+
+`TableRowActions` groups small icon buttons inside a row. It appears while its
+row has the pointer or focus, or is selected. It holds its width while
+hidden, so the columns stay in place when it appears. Place it in a `TableCell` near the
+row's right edge. Its default slot receives
+{@api vue:component:TableRowActions:slot:default.actionClass}. Apply that class
+to each button, so row actions share one hover surface, border, and focus ring.
+
+Theme key: {@api theme-key:TableRowActions}. Current values:
+{@api css-token:muted}, {@api css-token:border}, and
+{@api css-token:ring}.
+
+<VuedaDemo>
+  <DemoCard title="row actions: hover, focus, or selected">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead data-numeric>Amount</TableHead>
+            <TableHead class="w-24" aria-label="Actions" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow data-state="selected">
+            <TableCell data-mono>INV-2026-00482</TableCell>
+            <TableCell>Northwind Logistics</TableCell>
+            <TableCell data-numeric>$14,028.50</TableCell>
+            <TableCell>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell data-mono>INV-2026-00481</TableCell>
+            <TableCell>Acme Coffee Roasters</TableCell>
+            <TableCell data-numeric>$2,440.00</TableCell>
+            <TableCell>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell data-mono>INV-2026-00480</TableCell>
+            <TableCell>Hightower Mfg.</TableCell>
+            <TableCell data-numeric>$8,915.20</TableCell>
+            <TableCell>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    <template #footer>
+      <span>the selected row shows its actions</span>
+      <span>hover or tab into another row to reveal its actions</span>
     </template>
   </DemoCard>
 </VuedaDemo>
 
 ## DataTable recipe
 
-DataTable is not a VUEDA source composite. TanStack Vue Table wires in at app
-level; the patterns below show how the Table primitives compose with a toolbar,
-filter chip rail, selection bar, and pagination footer. These elements are
-application-layer responsibilities, not theme keys. The recipe is a candidate
-for promotion to a future composite component.
+This recipe composes a data table by hand from the table primitives. It adds a
+toolbar, a filter chip rail, a selection bar, and a pagination footer. Your
+application holds the sorting, selection, and paging state, for example with
+[TanStack Vue Table](https://tanstack.com/table/latest/docs/framework/vue/vue-table).
 
-Key design decisions reflected here: sortable column headers use `aria-sort`
-for accessibility and flip the sort icon to the left of numeric columns so the
-number column edge stays stable when sort toggles; in-row actions are hidden
-by default and revealed on row hover, focus, or selected state; the selection
-bar appears at accent tint to signal a system-level state distinct from hover.
+- **Toolbar and chips:** search sits on the left and view controls on the
+  right. Active filters show as removable chips below the toolbar.
+- **Sortable headers:** each sortable `TableHead` sets `aria-sort`. On a
+  `data-numeric` header, the element marked `data-slot="sort-icon"` moves
+  before the label, so the column's right edge stays in place as the sort changes.
+- **Selection:** selected rows take the selected-row state. The selection bar
+  uses the same primary tint, so it reads as part of the selection.
+- **Row actions:** each row's `TableRowActions` shows for selected rows and on
+  hover or focus for the others.
+- **Height:** the table uses `sticky`, so the header stays visible while the
+  rows scroll.
 
 <VuedaDemo>
   <div class="flex flex-col gap-2.5 p-3 rounded-vueda-card hairline hairline-border bg-card">
@@ -527,17 +665,16 @@ bar appears at accent tint to signal a system-level state distinct from hover.
       </Button>
     </div>
     <!-- table -->
-    <div class="rounded-vueda-card hairline hairline-border overflow-auto max-h-[340px]">
-      <Table>
+      <Table sticky style="--vueda-tbl-max-h: 340px">
         <TableHeader>
           <TableRow>
-            <TableHead class="!pr-0 !w-9">
-              <Checkbox :model-value="recipeSelectAll" aria-label="Select all rows" class="translate-y-0.5" @update:model-value="setRecipeSelectAll" />
+            <TableHead class="w-9">
+              <Checkbox :model-value="recipeSelectAll" aria-label="Select all rows" @update:model-value="setRecipeSelectAll" />
             </TableHead>
             <TableHead aria-sort="descending" class="cursor-pointer select-none">
               <span class="inline-flex items-center gap-1.5">
                 Invoice
-                <span class="inline-flex items-center justify-center w-3 text-[10px] text-primary">
+                <span data-slot="sort-icon" class="inline-flex items-center justify-center w-3 text-[10px] text-primary">
                   <FontAwesomeIcon :icon="faArrowDownLong" />
                 </span>
               </span>
@@ -545,7 +682,7 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableHead aria-sort="none" class="cursor-pointer select-none">
               <span class="inline-flex items-center gap-1.5">
                 Customer
-                <span class="inline-flex items-center justify-center w-3 text-[10px] text-muted-foreground opacity-40">
+                <span data-slot="sort-icon" class="inline-flex items-center justify-center w-3 text-[10px] text-muted-foreground opacity-40">
                   <FontAwesomeIcon :icon="faSort" />
                 </span>
               </span>
@@ -553,16 +690,16 @@ bar appears at accent tint to signal a system-level state distinct from hover.
             <TableHead aria-sort="none" class="cursor-pointer select-none">
               <span class="inline-flex items-center gap-1.5">
                 Issued
-                <span class="inline-flex items-center justify-center w-3 text-[10px] text-muted-foreground opacity-40">
+                <span data-slot="sort-icon" class="inline-flex items-center justify-center w-3 text-[10px] text-muted-foreground opacity-40">
                   <FontAwesomeIcon :icon="faSort" />
                 </span>
               </span>
             </TableHead>
             <TableHead>Status</TableHead>
-            <TableHead class="text-right cursor-pointer select-none" aria-sort="ascending">
-              <span class="inline-flex flex-row-reverse items-center gap-1.5">
+            <TableHead data-numeric aria-sort="ascending" class="cursor-pointer select-none">
+              <span class="inline-flex items-center gap-1.5">
                 Amount
-                <span class="inline-flex items-center justify-center w-3 text-[10px] text-primary">
+                <span data-slot="sort-icon" class="inline-flex items-center justify-center w-3 text-[10px] text-primary">
                   <FontAwesomeIcon :icon="faArrowUpLong" />
                 </span>
               </span>
@@ -572,90 +709,89 @@ bar appears at accent tint to signal a system-level state distinct from hover.
         </TableHeader>
         <TableBody>
           <TableRow :data-state="recipeRows[0] ? 'selected' : undefined">
-            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[0]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
-            <TableCell class="font-mono text-[11px]">INV-2026-00482</TableCell>
+            <TableCell class="w-9"><Checkbox v-model="recipeRows[0]" aria-label="Select row" /></TableCell>
+            <TableCell data-mono>INV-2026-00482</TableCell>
             <TableCell>Northwind Logistics</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-12</TableCell>
+            <TableCell data-mono>2026-04-12</TableCell>
             <TableCell><Badge variant="info">Sent</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$14,028.50</TableCell>
+            <TableCell data-numeric>$14,028.50</TableCell>
             <TableCell>
-              <span class="inline-flex gap-0.5">
-                <button title="Open" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faFolderOpen" /></button>
-                <button title="Send" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faPaperPlane" /></button>
-                <button title="More" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faEllipsis" /></button>
-              </span>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
             </TableCell>
           </TableRow>
           <TableRow :data-state="recipeRows[1] ? 'selected' : undefined">
-            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[1]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
-            <TableCell class="font-mono text-[11px]">INV-2026-00480</TableCell>
+            <TableCell class="w-9"><Checkbox v-model="recipeRows[1]" aria-label="Select row" /></TableCell>
+            <TableCell data-mono>INV-2026-00480</TableCell>
             <TableCell>Hightower Mfg.</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-09</TableCell>
+            <TableCell data-mono>2026-04-09</TableCell>
             <TableCell><Badge variant="warning">Overdue</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$8,915.20</TableCell>
+            <TableCell data-numeric>$8,915.20</TableCell>
             <TableCell>
-              <span class="inline-flex gap-0.5">
-                <button title="Open" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faFolderOpen" /></button>
-                <button title="Send" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faPaperPlane" /></button>
-                <button title="More" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faEllipsis" /></button>
-              </span>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
             </TableCell>
           </TableRow>
           <TableRow :data-state="recipeRows[2] ? 'selected' : undefined">
-            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[2]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
-            <TableCell class="font-mono text-[11px]">INV-2026-00481</TableCell>
+            <TableCell class="w-9"><Checkbox v-model="recipeRows[2]" aria-label="Select row" /></TableCell>
+            <TableCell data-mono>INV-2026-00481</TableCell>
             <TableCell>Acme Coffee Roasters</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-11</TableCell>
+            <TableCell data-mono>2026-04-11</TableCell>
             <TableCell><Badge variant="success">Paid</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$2,440.00</TableCell>
+            <TableCell data-numeric>$2,440.00</TableCell>
             <TableCell>
-              <span class="inline-flex gap-0.5">
-                <button title="Open" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faFolderOpen" /></button>
-                <button title="Send" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faPaperPlane" /></button>
-                <button title="More" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faEllipsis" /></button>
-              </span>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
             </TableCell>
           </TableRow>
           <TableRow :data-state="recipeRows[3] ? 'selected' : undefined">
-            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[3]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
-            <TableCell class="font-mono text-[11px]">INV-2026-00479</TableCell>
+            <TableCell class="w-9"><Checkbox v-model="recipeRows[3]" aria-label="Select row" /></TableCell>
+            <TableCell data-mono>INV-2026-00479</TableCell>
             <TableCell>Pemberton &amp; Vale</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-07</TableCell>
+            <TableCell data-mono>2026-04-07</TableCell>
             <TableCell><Badge variant="secondary">Draft</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$612.00</TableCell>
+            <TableCell data-numeric>$612.00</TableCell>
             <TableCell>
-              <span class="inline-flex gap-0.5">
-                <button title="Open" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faFolderOpen" /></button>
-                <button title="Send" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faPaperPlane" /></button>
-                <button title="More" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faEllipsis" /></button>
-              </span>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
             </TableCell>
           </TableRow>
           <TableRow :data-state="recipeRows[4] ? 'selected' : undefined">
-            <TableCell class="!pr-0 !w-9"><Checkbox v-model="recipeRows[4]" aria-label="Select row" class="translate-y-0.5" /></TableCell>
-            <TableCell class="font-mono text-[11px]">INV-2026-00477</TableCell>
+            <TableCell class="w-9"><Checkbox v-model="recipeRows[4]" aria-label="Select row" /></TableCell>
+            <TableCell data-mono>INV-2026-00477</TableCell>
             <TableCell>Riverbend Builders</TableCell>
-            <TableCell class="font-mono text-[11px]">2026-04-04</TableCell>
+            <TableCell data-mono>2026-04-04</TableCell>
             <TableCell><Badge variant="success">Paid</Badge></TableCell>
-            <TableCell class="text-right tabular-nums">$11,240.00</TableCell>
+            <TableCell data-numeric>$11,240.00</TableCell>
             <TableCell>
-              <span class="inline-flex gap-0.5">
-                <button title="Open" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faFolderOpen" /></button>
-                <button title="Send" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faPaperPlane" /></button>
-                <button title="More" class="inline-flex items-center justify-center size-6 rounded border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border text-[11px]"><FontAwesomeIcon :icon="faEllipsis" /></button>
-              </span>
+              <TableRowActions v-slot="{ actionClass }">
+                <button type="button" title="Open" aria-label="Open" :class="actionClass"><FontAwesomeIcon :icon="faFolderOpen" /></button>
+                <button type="button" title="Send" aria-label="Send" :class="actionClass"><FontAwesomeIcon :icon="faPaperPlane" /></button>
+                <button type="button" title="More" aria-label="More" :class="actionClass"><FontAwesomeIcon :icon="faEllipsis" /></button>
+              </TableRowActions>
             </TableCell>
           </TableRow>
         </TableBody>
       </Table>
-    </div>
     <!-- footer -->
     <PaginationBar>
       <PaginationMeta>1 to 5 of 48 · page {{ recipePage }} of 10</PaginationMeta>
       <div class="flex items-center gap-3">
         <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
           Rows
-          <NativeSelect v-model="recipePageSize" class="w-auto">
+          <NativeSelect v-model="recipePageSize" :theme-override="{ NativeSelect: { root: { class: { 'w-full': false } } } }">
             <NativeSelectOption value="5">5</NativeSelectOption>
             <NativeSelectOption value="25">25</NativeSelectOption>
             <NativeSelectOption value="50">50</NativeSelectOption>
@@ -673,12 +809,9 @@ bar appears at accent tint to signal a system-level state distinct from hover.
     </PaginationBar>
   </div>
   <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-    <span class="whitespace-nowrap">toolbar: search left, view controls right, secondary actions on a chip rail</span>
-    <span class="whitespace-nowrap">selection bar: accent tint distinguishes it from hover</span>
-    <span class="whitespace-nowrap">sortable header: sort glyph flips to <code>row-reverse</code> on numeric columns</span>
-    <span class="whitespace-nowrap">in-row actions: shown for selected rows; reveal on hover for others</span>
-    <span class="whitespace-nowrap">search field and every checkbox are live <code>Input</code> and <code>Checkbox</code></span>
-    <span class="whitespace-nowrap">selection is real: toggling a row updates the count, the row tint, and the header's indeterminate state</span>
-    <span class="whitespace-nowrap">footer: live <code>PaginationBar</code> + <code>PaginationMeta</code> + <code>Pagination</code>; the page control works</span>
+    <span class="whitespace-nowrap">the search field and every checkbox are live</span>
+    <span class="whitespace-nowrap">toggling a row updates the count, the row tint, and the header checkbox</span>
+    <span class="whitespace-nowrap">the Amount sort icon sits before its label</span>
+    <span class="whitespace-nowrap">the page control works</span>
   </div>
 </VuedaDemo>
