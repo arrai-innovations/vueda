@@ -136,6 +136,54 @@ describe("lib/use/useSignInFlow.js", () => {
         });
     });
 
+    describe("toasts", () => {
+        const signInAs = (options) => {
+            useSignInFlow({ formProps: {}, ...options });
+            isActiveRef.value = true;
+            store.loggedIn = true;
+        };
+
+        scopedIt("shows the success toast it is given once the redirect arrives", async () => {
+            signInAs({ toasts: { success: { title: "Identity Confirmed", description: "Carry on." } } });
+            await flushPromises();
+            expect(toastMock.success).toHaveBeenCalledWith(
+                "Identity Confirmed",
+                expect.objectContaining({ description: "Carry on." }),
+            );
+        });
+
+        scopedIt("shows the redirectFailed toast it is given when the redirect does not happen", async () => {
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            routerPush.mockRejectedValueOnce(new Error('No match for {"name":"welcome"}'));
+            signInAs({ toasts: { redirectFailed: { title: "Confirmed, but stuck", description: "Navigate on." } } });
+            await flushPromises();
+            expect(toastMock.error).toHaveBeenCalledWith(
+                "Confirmed, but stuck",
+                expect.objectContaining({ description: "Navigate on." }),
+            );
+            consoleError.mockRestore();
+        });
+
+        scopedIt("keeps the default for each field it is not given", async () => {
+            signInAs({ toasts: { success: { title: "Welcome Back" } } });
+            await flushPromises();
+            expect(toastMock.success).toHaveBeenCalledWith(
+                "Welcome Back",
+                expect.objectContaining({ description: "You are now signed in and have been redirected." }),
+            );
+        });
+
+        scopedIt("reads reactive options when the toast fires", async () => {
+            const options = reactive({ formProps: {}, toasts: undefined });
+            useSignInFlow(options);
+            options.toasts = { success: { title: "Identity Confirmed" } };
+            isActiveRef.value = true;
+            store.loggedIn = true;
+            await flushPromises();
+            expect(toastMock.success).toHaveBeenCalledWith("Identity Confirmed", expect.any(Object));
+        });
+    });
+
     describe("requireRecentLogin", () => {
         scopedIt("blocks redirect until recentlyLoggedIn is true", async () => {
             useSignInFlow({ requireRecentLogin: true, redirect: { name: "welcome" }, formProps: {} });

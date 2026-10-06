@@ -108,7 +108,14 @@ After a successful login, `AuthorizingForm` evaluates redirect targets in priori
 
 4. **Default.** If none of the above match, the component routes to `{ name: "welcome" }`.
 
-On a successful redirect, `AuthorizingForm` shows a toast: "You are now signed in and have been redirected."
+On a successful redirect, `AuthorizingForm` shows a toast: "You are now signed in and have been redirected." When the redirect does not happen, it shows "Signed in, but could not open the next page" instead. The `toasts` prop replaces either message. Each entry takes a `title` and a `description`, and a field you leave out keeps its default:
+
+```vue
+<AuthorizingForm
+    :run-action="handleSubmit"
+    :toasts="{ success: { title: 'Welcome Back', description: 'Your dashboard is ready.' } }"
+/>
+```
 
 The `requireRecentLogin` prop adds an additional check: the redirect only fires when both `loggedIn` and `recentlyLoggedIn` are true. Use this prop for re-authentication views where a fresh login is required.
 
@@ -322,7 +329,7 @@ After building auth views, verify the following:
 
 **Form values are not sent to the server.** Verify that field `name` props match the keys the server expects. `ActionForm` reads values from `formContext.state.submittingValues`, which uses the field `name` as the key.
 
-**Toast shows "You are now signed in" but the page does not navigate.** The redirect target route may not exist. Check the router configuration for the target named route. If using `route.query.redirect`, verify the path matches an existing route.
+**Toast shows "Signed in, but could not open the next page".** The sign-in succeeded, but the redirect target does not resolve to a route. The browser console logs the destination that failed. Check that the router has the target named route, `welcome` by default, or that `route.query.redirect` matches an existing path.
 
 **Re-authentication redirect fires immediately.** If the user already has a recent login, `recentlyLoggedIn` is already true and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
 

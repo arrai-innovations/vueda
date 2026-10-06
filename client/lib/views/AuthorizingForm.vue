@@ -49,6 +49,14 @@ const props = defineProps({
         default: false,
     },
     /**
+     * Toast text for the post-login redirect: `success` once it arrives, `redirectFailed` when it does not.
+     * Each entry is `{ title, description }` and replaces the matching sign-in default, field by field.
+     */
+    toasts: {
+        type: Object,
+        default: undefined,
+    },
+    /**
      * Called with the response after a successful submission, in place of the default, which shows nothing
      * because the sign-in redirect announces itself.
      */
