@@ -375,6 +375,41 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
             self.continue_added_workflow_test(migration_dir, results)
 
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_changed_data_follows_the_migrations_project_settings(self, settings):
+        """The formatter reads the settings that apply to the migration's own path.
+
+        Only layout no formatter version is expected to change is checked. The trailing commas keep the list
+        open after its bracket, where pformat starts the first item on the same line. Single quotes are not the
+        default for ruff or black, so they show the formatter ran with the migration's settings.
+        """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
+            (Path(migration_dir).parent / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+
+            succeeded, results = self.call_command("migrate", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            migration_filepath = (
+                Path(migration_dir) / f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            )
+            migration_content = migration_filepath.read_text(encoding="utf-8")
+
+            assert "changed_data = [\n" in migration_content
+            assert "'code': 'added_workflow',\n" in migration_content
+
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
     def test_dry_run_no_changes(self):
