@@ -7,78 +7,85 @@ status: draft
 
 # Theming and Customization
 
-VUEDA's components carry no hardcoded styles in their templates. Every class on every rendered element comes from the active theme: a JavaScript object that maps each component's slots to class strings, resolved at render time and merged with any overrides in scope. The default setup imports the built-in theme for its registration side effects; consumers customize the registered defaults through the mechanisms below.
+Each VUEDA component takes its styling from the active theme. The theme is a JavaScript object that maps each component's [theme slots]{@term Theme Slot} to class strings. At render time, [`useTheme`]{@api js:function:@arrai-innovations/vueda/use/useTheme#useTheme} resolves the classes for a slot and merges them with any overrides in scope. A component such as [`Button`]{@api vue:component:Button} also accepts a [`class`]{@api vue:component:Button:prop:class} prop, which it adds after its theme classes.
 
-Those mechanisms map to four scopes with sharply different reach. The guiding principle: find the smallest scope that covers the change you need.
+Each themed component registers its own default theme entry when its module loads. [How the theme is registered](#how-the-theme-is-registered) describes the loading paths and how project overrides relate to them.
 
 ## The four scopes
 
-Customization concerns sort into four scopes, ordered from narrowest to broadest:
+Theme changes sort into four [customization scopes]{@term Customization Scope}, ordered from narrowest to broadest:
 
-| Scope     | Mechanism                                                                                                              | Affects                             |
-| --------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Instance  | {@api js:function:@arrai-innovations/vueda/use/useTheme#useThemeOverride} (via `themeOverride` prop or provide/inject) | One subtree                         |
-| Component | {@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} on a leaf entry                            | All instances of that component     |
-| Family    | `overrideTheme` on a meta key (`_ButtonBase`, etc.)                                                                    | All components that compose from it |
-| Brand     | CSS token override (`--vueda-*`, `--primary`, etc.)                                                                    | Every consumer of the token         |
+| Scope     | Mechanism                                                                                                                                 | Affects                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Instance  | [`useThemeOverride`]{@api js:function:@arrai-innovations/vueda/use/useTheme#useThemeOverride}, through a component's `themeOverride` prop | One component and its descendants             |
+| Component | [`overrideTheme`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} on a component's {@term Theme Key}           | Every instance of that component              |
+| Family    | `overrideTheme` on a {@term Composition Primitive}, such as `_ButtonBase`                                                                 | Every theme slot that composes that primitive |
+| Brand     | A {@term Theme Token} override, such as `--primary` or a `--vueda-*` token                                                                | Every class that reads that token             |
 
-Each scope up is "broader cross-cut, less component-specific." Instance customizations are local DOM scope; component customizations are one component identity; family customizations are a visual relationship across multiple components; brand customizations are the design language itself.
-
-The progression also matches the "least surprising change" principle: a narrower scope changes the smallest part of the system that achieves the goal. Reaching for a broader mechanism than necessary risks affecting screens the consumer never inspected.
+Instance changes reach one part of the page. Component changes reach one component everywhere it appears. Family changes reach a set of components that share a visual recipe. Brand changes reach the design language as a whole. A narrower scope changes fewer rendered elements, so fewer screens need a check after the change.
 
 ## Instance: `useThemeOverride`
 
-A component wired with `THEME_OVERRIDE_PROPS` accepts a `themeOverride` prop. The override is merged with that component's default theme, scoped to the subtree rooted at the receiving component, and propagated through provide/inject so descendants pick it up automatically.
+A component that spreads [`THEME_OVERRIDE_PROPS`]{@api js:property:@arrai-innovations/vueda/use/useTheme#THEME_OVERRIDE_PROPS} into its props accepts a `themeOverride` prop, which holds a {@term Theme Override}. The component merges the override over its own theme and provides the merged result to its descendants.
 
 ```vue
-<Button :theme-override="{ Button: { root: { class: 'bg-amber-500' } } }">
+<Button :theme-override="{ Button: { root: { class: 'w-full' } } }">
     Save
 </Button>
 ```
 
-Use it when one specific instance, in one specific surface, needs to look different; it does not affect any other Button in the app.
+This Button fills the width of its container. Every other Button in the app keeps its default width.
 
-The provide/inject behavior is significant: a parent that sets an override propagates it to every descendant `useTheme` call without the intermediate components needing to know. A field that needs its inputs to render without borders can override the Input theme on the field itself; the Input components inside it pick up the override without prop-threading.
+The provided override reaches every `useTheme` call below the component, and the components in between do not need to pass it along. For example, an override for the `Input` key, set on a container component, reaches every `Input` inside that container.
 
-## Component: `overrideTheme` on a leaf entry
+## Component: `overrideTheme` on a theme key
 
-Calling `overrideTheme({ Button: { root: { class: 'uppercase tracking-wide' } } })` adds classes to every Button in the app. Project overrides live separately from the base theme, so they apply after the defaults even when a lazy route registers those defaults later. Per-instance overrides still merge on top.
+An `overrideTheme` call adds a project override. A project override for one component's theme key changes every instance of that component:
 
-Use it to change how one component renders system-wide: a different focus treatment, default size, or data attribute that should be true everywhere the component appears. The change is component-specific; it does not affect anything that merely looks like a Button (calendar day cells, pagination items, dialog actions) without explicit configuration.
+```js
+import { overrideTheme } from "@vueda/use/useTheme.js";
+
+overrideTheme({ Button: { root: { class: "uppercase tracking-wide" } } });
+```
+
+The registry keeps project overrides apart from the registered defaults, and `useTheme` applies them after the defaults. The call can therefore run before or after the default that it changes has registered, including a default that a lazy route registers later. Per-instance overrides still merge on top of project overrides.
+
+The override also reaches components that render through `Button`, such as [`AlertDialogAction`]{@api vue:component:AlertDialogAction} and [`AlertDialogCancel`]{@api vue:component:AlertDialogCancel}. Calendar day cells and pagination items look like buttons but have their own theme keys, so they keep their styling.
 
 ## Family: meta keys
 
-Meta keys are theme entries with an underscore-prefixed name (`_ButtonBase`, `_ButtonGhost`, `_ButtonOutline`, etc.) that exist as composition primitives rather than as components. Leaf entries declare `composes: ['_ButtonBase.root', '_ButtonGhost.root']`, and the resolver walks those references at render time, prepending the meta entries' classes before the leaf's own.
+A family change targets a {@term Composition Primitive}, such as `_ButtonBase`, `_ButtonGhost`, or `_ButtonOutline`. Its underscore-prefixed key is also called a meta key. A theme slot opts into a primitive by listing it in its `composes` array. When `useTheme` resolves the slot, it resolves each listed slot first and puts those classes before the slot's own classes.
 
 ```js
-// Default theme excerpt
+// Simplified from the default theme
 {
-    _ButtonBase: { root: { class: ["inline-flex items-center ...", "..."] } },
-    _ButtonGhost: { root: { class: "hover:bg-accent ..." } },
+    _ButtonBase: { root: { class: [/* layout, type, focus ring */] } },
+    _ButtonGhost: { root: { class: [/* hover and active fills */] } },
     Button: {
-        root: ({ variant }) => ({
-            composes: ["_ButtonBase.root", `_Button${variant}.root`],
-            class: [/* per-component sizing */],
+        root: ({ tone, emphasis, size }) => ({
+            // resolveButtonVariant maps tone and emphasis to a primitive key.
+            composes: ["_ButtonBase.root", `${resolveButtonVariant({ tone, emphasis }).primitive}.root`],
+            class: [/* size classes */],
         }),
     },
     CalendarCellTrigger: {
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
-            class: [/* calendar-specific classes */],
+            class: [/* day cell classes */],
         },
     },
 }
 ```
 
-Overriding `_ButtonBase` with `overrideTheme` propagates through every leaf that composes from it: Buttons, calendar day triggers, pagination items, dialog actions, and any other entry that explicitly opts into the family. Overrides for `composes` use replace semantics (declaring a new compose list on an override replaces the default's list entirely), while own `class` values from default and override still combine as in non-composing entries.
+An override of `_ButtonBase` reaches every slot that composes it. These slots include `Button`, calendar day and navigation buttons, pagination items, and the [`FileUpload`]{@api vue:component:FileUpload} trigger. It also reaches the alert dialog actions, which render through `Button`. When an override sets `composes`, its list replaces the default list. The `class` values from the default and the override combine, as they do in slots without `composes`.
 
-Composition is opt-in. A leaf entry that does not declare `composes` is unaffected by meta-key overrides. This is intentional: family relationships are explicit in the default theme, not implicit by name. A third-party component bundled with a VUEDA-using app does not pick up `_ButtonBase` overrides unless its theme entries opt in.
+Composition is opt-in. A slot without `composes` takes no classes from a primitive, even when its name resembles one. A third-party component in the same app changes with a `_ButtonBase` override only when its theme entry lists `_ButtonBase.root` in `composes`.
 
 ## Brand: CSS token overrides
 
-Most brand-level concerns (primary color, accent color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing) resolve to CSS custom properties (`--primary`, `--vueda-control-height`, `--vueda-cal-day`, `--ring`, etc.) defined in `@vueda/theme/vueda-tailwind/base.css`. The default theme's class strings reference those tokens through Tailwind utilities (`h-vueda-control`, `bg-primary`) or arbitrary-value escapes (`h-[var(--vueda-control-height)]`).
+Brand values, such as colors, control radius, control heights, the focus ring, shadows, sidebar widths, and calendar cell size, are [theme tokens]{@term Theme Token}. The file `@vueda/theme/vueda-tailwind/base.css` defines them. Theme classes read the tokens through Tailwind utilities, such as `h-vueda-control` and `bg-primary`, or through arbitrary values, such as `size-[var(--vueda-cal-day)]`.
 
-A consumer rebrands by overriding the tokens in their own CSS, after the `base.css` import:
+An application overrides a token in its own stylesheet, after the `base.css` import:
 
 ```css
 @import "@vueda/theme/vueda-tailwind/base.css";
@@ -90,82 +97,89 @@ A consumer rebrands by overriding the tokens in their own CSS, after the `base.c
 }
 ```
 
-Every consumer of the token picks up the change instantly. No `setTheme` call is involved; no JavaScript runs.
+Every class that reads [`--primary`]{@api css-token:primary}, [`--vueda-control-height`]{@api css-token:vueda-control-height}, or [`--vueda-control-radius`]{@api css-token:vueda-control-radius} picks up the new value. No JavaScript runs.
 
-Fonts follow the same split, with one difference. The font tokens name families, but `base.css` ships no font files, so loading them is the application's job. An app either loads the default families or overrides the stacks with fonts it already loads. [Load or replace the fonts](../guides/customize-vueda-appearance#load-or-replace-the-fonts) has the recipe.
+The font tokens, [`--vueda-font-sans`]{@api css-token:vueda-font-sans} and [`--vueda-font-mono`]{@api css-token:vueda-font-mono}, hold font family names. `base.css` ships no font files. The application loads the fonts. The project templates load the variable builds of IBM Plex Sans and JetBrains Mono in `client/src/index.css`, next to the `base.css` import. [Load or replace the fonts](../guides/customize-vueda-appearance#load-or-replace-the-fonts) shows how to load these fonts or replace them.
 
-The token layer is broader than the JavaScript theme system in a specific sense: it cascades through CSS, so a single override affects every class that references the token, regardless of which component rendered it. The trade-off is that token overrides cannot express composition or per-component logic; those concerns belong in the JavaScript theme.
+## Tokens and theme entries
+
+The token layer and the JavaScript theme divide the work by the kind of change. A value, such as a color, a dimension, or a duration, is a token. A composition, such as a different class arrangement, a different structure, or a new state behavior, belongs in a theme entry.
+
+A token override cascades through CSS. It reaches every class that reads the token, whichever component rendered that class. A token cannot express composition or per-component logic; those changes need a theme entry. A value that changes between brands belongs in a token, even when only one component uses it today.
+
+The default look comes from the token values, so a set of token overrides [re-skins]{@term Skin} VUEDA with no change to any theme entry.
 
 ## How the layers interact
 
-At render time, a `useTheme` call resolves each component slot in this order:
+At render time, `useTheme` resolves each theme slot from three layers, from lowest to highest:
 
-1. Choose the `composes` list from the highest layer that defines it: base theme, project override, then scoped overrides. An empty list removes composition.
-2. Walk those references recursively. Each referenced slot resolves with the same layers.
-3. Append the slot's own base classes, then its project classes, then its scoped classes.
-4. Combine the class values with `combineClasses`, applying explicit `false` removals.
-5. Pass the active class string through the registered class merger, if the theme provides one.
+1. The registered default. Each default theme module adds its entry with [`patchTheme`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#patchTheme}.
+2. The project overrides that `overrideTheme` adds.
+3. The scoped override, which `useThemeOverride` merges from these sources, from lowest to highest:
+    - the `themeOverride` key in the component's own theme entry;
+    - the overrides that ancestor components provide;
+    - the component's `themeOverride` prop.
 
-The built-in `vueda-tailwind` theme registers a Tailwind-aware class merger. Later conflicting utilities replace earlier ones within the same variant: a `theme-override` with `bg-amber-500` removes the default `bg-secondary`, while `hover:bg-secondary` remains unless the override also supplies a hover background. Utilities for different properties, including VUEDA's `text-heading` and `text-foreground`, stay together. Explicit `false` keys still remove the named classes before conflict resolution.
+The `themeOverride` key in a theme entry holds a partial theme for the component and its descendants. For example, the default `ObjectsGridBodyCell` entry uses it to remove a margin from labels inside grid cells. Both the default and a project override can set this key. When a default or a project override changes, mounted components and their descendants update.
 
-This rule applies to `patchTheme`, `overrideTheme`, merged theme objects, and `theme-override`. A component's plain `class` prop is added after theme resolution, so it adds classes without removing conflicting theme classes. Use `theme-override` to replace a theme utility.
+`useTheme` resolves one slot in these steps:
 
-Other themes can register their own `(classes: string) => string` function with `setClassMerger`, exported from `@vueda/use/themeRegistry.js` and `@vueda/use/useTheme.js`. Core has no Tailwind dependency; importing only core or another theme does not bundle the Tailwind merger. Built-in components import their Tailwind defaults, so replacing their theme data with `setTheme` does not remove those imports from the bundle.
+1. It takes the `composes` list from the highest layer that sets one. An empty list removes composition.
+2. It resolves each listed slot in the same way, and puts those classes first.
+3. It appends the slot's own classes from the default, then from the project override, then from the scoped override.
+4. It applies keys set to `false`, which remove the named classes.
+5. It passes the remaining classes to the registered class merger, if a theme has registered one.
 
-With no registered merger, class combining keeps its existing behavior. `setClassMerger(null)` restores that behavior; `setTheme` changes theme data without changing the merger. Register a theme's merger before its defaults and project patches, since merging a patch can discard conflicting classes.
+A class merger is a function that takes a class string and returns it with conflicting classes resolved. The built-in `vueda-tailwind` theme registers a merger built on `tailwind-merge`. When two utilities set the same CSS property under the same variant, the merger keeps the later one. A `themeOverride` with `bg-amber-500` therefore replaces the default `bg-secondary`. The default `hover:bg-secondary-hover` stays unless the override also sets a hover background. Utilities that set different properties stay together, such as `text-heading` (font size) and `text-foreground` (color).
 
-Scoped overrides merge the component's embedded `themeOverride` configuration, ancestor overrides from `useThemeOverride`, and the local `themeOverride` prop, in that order. Embedded configuration can come from both the base theme and project overrides. Changes to either update mounted consumers and their descendants.
+With a class merger, a later layer wins a conflict within one slot. Classes from a composed slot come before the slot's own classes. A project override on `_ButtonBase.root` therefore loses a conflict with Button's own default classes. A project override on `Button.root` wins it.
 
-Precedence applies within each component and slot. A project override on `_ButtonBase.root` still resolves before Button's own default classes because the primitive appears in Button's compose list. Project overrides on `Button.root` follow Button's own defaults.
+Without a class merger, every active class stays in the result. When two classes set the same property, their order in the generated stylesheet decides which one applies. Their order in the class list does not. Keys set to `false` remove a conflicting default in that case.
 
-Without a class merger, use explicit `false` keys to remove conflicting defaults.
+A component's `class` prop takes no part in this resolution. The component adds those classes after `useTheme` returns, so they do not replace theme classes. To replace a theme class on one instance, use a `themeOverride`.
 
-The resulting classes reference the active CSS tokens. Changing `--primary`, for example, changes the value used by `bg-primary` and `text-primary` without a JavaScript theme change.
-
-## When the answer is a token, not the theme
-
-Many customization stories that read like "change the theme" are really "rebrand via tokens." Color, radius, control heights, focus rings, shadows, and spacing are all token-routed; reaching for `setTheme` to change any of them is reaching for the wrong layer.
-
-The rule of thumb: if a customization is a value (color, dimension, duration), it is a token. If it is a composition (a different class arrangement, a different structural recipe, a new state behavior), it is the theme. Mixing the two in code is a sign the boundary is being crossed for the wrong reason; values that change between brands belong in tokens, even if the immediate use case is one component.
-
-The token layer is also where the design system ships its defaults: overriding a few tokens, with no `setTheme` call, re-skins VUEDA.
+Another theme can register its own merger with [`setClassMerger`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#setClassMerger}, and `setClassMerger(null)` removes the merger. `patchTheme` and `overrideTheme` also apply the merger when they combine class values, so a theme registers its merger before its defaults. The `@vueda/use` theme modules do not import the Tailwind merger. Each `vueda-tailwind` theme module imports it, and each built-in component imports its theme module, so an application that uses built-in components bundles the merger.
 
 ## Reserved z-index bands
 
-When your shell adds chrome of its own (a custom header, a banner, a sticky toolbar, an overlay), it shares one stacking axis with VUEDA's components. VUEDA does not publish z-index as tokens, but it does claim bands, and placing your chrome at the wrong value is how a custom header ends up behind a dialog, or a sticky toolbar covers the nav. The bands:
+Application chrome, such as a custom header, a banner, a sticky toolbar, or an overlay, shares one stacking order with VUEDA's components. VUEDA publishes no z-index tokens. The default theme sets z-index with Tailwind `z-*` utilities and reserves these bands:
 
-| Band         | Concern                  | What sits there                                                                       |
-| ------------ | ------------------------ | ------------------------------------------------------------------------------------- |
-| `< 10`       | Component-local stacking | Internal ordering inside a single component; not page-level. Do not target this band. |
-| `10` to `20` | Focus promotion          | A focused control lifting above its neighbours so the focus ring is not clipped.      |
-| `30` to `39` | Sticky page chrome       | `PageTitle`, `StickyBar`, and every bar in a `StickyStackProvider`. Reserved.         |
-| `40`         | Fixed shell chrome       | The `Sidebar` desktop panel.                                                          |
-| `50`         | Floating overlays        | Dialogs, sheets, drawers, popovers, dropdowns, tooltips, menus, select, combobox.     |
-| `> 50`       | Toasts                   | Sonner. Set by `vue-sonner` itself; VUEDA does not control it.                        |
+| Band         | Concern                  | What sits there                                                                                                                                                               |
+| ------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `< 10`       | Component-local stacking | Ordering inside one component's own stacking context. These values take no part in page-level layering.                                                                       |
+| `10`         | Focus promotion          | A focused control in a group, lifted above its neighbours so that its focus ring is not clipped.                                                                              |
+| `20`         | Focus-within and rails   | A focused calendar day, and the [`SidebarRail`]{@api vue:component:SidebarRail}.                                                                                              |
+| `30` to `39` | Sticky page chrome       | [`PageTitle`]{@api vue:component:PageTitle}, [`StickyBar`]{@api vue:component:StickyBar}, and every bar in a [`StickyStackProvider`]{@api vue:component:StickyStackProvider}. |
+| `40`         | Fixed shell chrome       | The [`Sidebar`]{@api vue:component:Sidebar} desktop panel.                                                                                                                    |
+| `50`         | Floating overlays        | Dialogs, sheets, drawers, popovers, dropdowns, tooltips, menus, selects, comboboxes, and hover cards.                                                                         |
+| `> 50`       | Toasts                   | [`Sonner`]{@api vue:component:Sonner}. The `vue-sonner` package sets this value; VUEDA does not.                                                                              |
 
-Practical consequences for shell customization:
+The bands order the layers as follows:
 
-- **Keep custom sticky chrome out of `30` to `39`.** That band belongs to the sticky stack, which sizes itself dynamically (a stack of _N_ bars spans `31` through `30 + N`). If you pin your own bar there it will interleave unpredictably with VUEDA's. Prefer placing your chrome _inside_ a `StickyStackProvider` (so it joins the stack and is ordered for you) over hand-rolling a sticky element at a competing z-index.
-- **Custom overlays go at `50`** to sit alongside VUEDA's dialogs and popovers, not above the sticky chrome but below them.
-- **Toasts always win.** Sonner stacks above everything. If you raise the overlay band for a bespoke surface, remember confirmations still appear on top.
+- The sticky stack owns `30` to `39`. `StickyStackProvider` sets each bar's z-index to 30 plus the bar's position in the stack, so a stack of _N_ bars spans `31` to `30 + N`. A bar placed inside a `StickyStackProvider` joins the stack and takes its z-index from the provider. Other chrome given a z-index in this band interleaves with the stack's bars.
+- The `Sidebar` at `40` sits above the sticky stack, so a pinned toolbar does not cover the navigation. It sits below every overlay, so a dialog covers the navigation. On mobile, the Sidebar renders as a sheet in the `50` band.
+- An overlay at `50` sits above the sticky chrome and the Sidebar, in the same band as VUEDA's dialogs and popovers.
+- Toasts stack above every band, including an overlay band that an application raises.
 
-The authoritative scale, the per-component members, and the rationale for each band live in the default theme's design canon (`client/lib/theme/vueda-tailwind/README.md`, § 5.1).
+The default theme's design canon (`client/lib/theme/vueda-tailwind/README.md`, section 5.1) lists the components in each band and the reason for each band.
 
 ## How the theme is registered
 
-The four scopes above are about reach: which rendered elements a customization affects. Registration is a separate concern: which component defaults are present in the active theme at all, and what ships in the bundle. Base registration and project overrides use separate stores.
+The four scopes describe which rendered elements a change reaches. Registration decides which default entries the {@term Theme Registry} holds, and which theme modules ship in the bundle. The registry keeps the registered defaults and the project overrides in separate stores.
 
-The theme APIs are exported from {@api js:module:@arrai-innovations/vueda/use/useTheme} (which re-exports them from the underlying `@vueda/use/themeRegistry.js`):
+The {@api js:module:@arrai-innovations/vueda/use/themeRegistry} module defines these functions, and {@api js:module:@arrai-innovations/vueda/use/useTheme} re-exports them:
 
-- `setTheme(theme)` replaces the base wholesale, including earlier base patches. Use it to install your own complete theme object after the defaults you intend to replace have registered. Project overrides survive replacement.
-- `patchTheme(partial)` merges base entries. Each component uses it to register its defaults. Later base registrations can overwrite earlier base patches.
-- {@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} merges project overrides above the base. Later calls combine classes and replace explicit compose lists.
-- {@api js:function:@arrai-innovations/vueda/use/themeRegistry#clearThemeOverrides} removes all project overrides without changing the base. Mounted consumers update when overrides change or clear.
-- `getTheme()` returns a cloned base snapshot, excluding project overrides. Calling `setTheme({})` clears only the base; tests that use project overrides must also call `clearThemeOverrides()` to reset them.
+- [`setTheme(theme)`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme} replaces all registered defaults, including earlier patches. A component whose module loaded before the call keeps a default entry only when `theme` contains one. A component module that loads after the call adds its default entry to the new set. Project overrides and the class merger stay in effect.
+- `patchTheme(partial)` merges entries into the registered defaults and leaves other entries in place. Each default theme module calls it to register its own entry.
+- `overrideTheme(partial)` merges entries into the project overrides. A later call combines its classes with those of earlier calls, and its `composes` list replaces an earlier list.
+- [`clearThemeOverrides()`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#clearThemeOverrides} removes every project override and leaves the registered defaults in place.
+- [`getTheme()`]{@api js:function:@arrai-innovations/vueda/use/themeRegistry#getTheme} returns a copy of the registered defaults. The copy leaves out project overrides.
 
-The built-in `vueda-tailwind` theme is authored as one small module per component, co-located by family at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module imports the Tailwind theme registry, which installs its class merger, then calls `patchTheme` with its own entry, and each themed component imports its theme module as a side effect. So a component registers its own default the moment its code loads, independent of any global setup.
+Because the stores are separate, `setTheme({})` clears only the registered defaults. Project overrides stay in effect until `clearThemeOverrides()` runs.
 
-That yields three registration paths an integrator chooses between in `main.js`:
+The built-in `vueda-tailwind` theme has one module per component, at `@vueda/theme/vueda-tailwind/<family>/<Component>.theme.js`. Each module imports `@vueda/theme/vueda-tailwind/registry.js`, which registers the theme's class merger, and then calls `patchTheme` with its own entry. Each themed component imports its theme module for that module's side effect. A component therefore registers its default entry when its own code loads, with no global setup.
+
+An application uses one of three registration paths. They differ in the theme import in `main.js`:
 
 | Path            | Setup                                                     | What registers                                                                   |
 | --------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -173,22 +187,26 @@ That yields three registration paths an integrator chooses between in `main.js`:
 | Per-family      | `import "@vueda/theme/vueda-tailwind/<family>/index.js";` | That family's defaults and their shared dependencies when the module loads       |
 | Per-component   | No aggregate or family theme import                       | Each imported component's defaults and shared dependencies when its module loads |
 
-The eager import is the default for new projects. It registers all built-in defaults before the body of `main.js` runs. No `setTheme` call is needed. The aggregate module exports a base snapshot through `getTheme()`. Calling `setTheme(vuedaTailwind)` reinstalls that snapshot and discards later base patches, while project overrides stay in effect.
+The project templates use the eager path. ES module imports run before the body of `main.js`, so every built-in default has registered before code in that body runs. The aggregate module's default export is a snapshot of the registered defaults at import time. A `setTheme` call with that export reinstalls the snapshot and discards every patch made after the import. Project overrides stay in effect.
 
-For per-family loading, replace the aggregate import with imports of the family modules you need. Project `overrideTheme` calls work before or after those imports. Components from other families still register their own defaults when their modules load.
+On the per-family path, `main.js` imports family modules in place of the aggregate module. Components from other families still register their own defaults when their modules load.
 
-For per-component loading, remove both the aggregate theme import and any `setTheme(vuedaTailwind)` call. Components already import their own `*.theme.js` modules. Import the components your app uses, for example `@vueda/controls/button/Button.vue`; unused components' theme modules stay out of the bundle unless another import brings them in. Registration happens when component modules load, including when a lazy route loads, rather than when a component first renders.
+On the per-component path, the application imports neither the aggregate module nor a family module. Each component registers its default when its module loads, for example when `@vueda/controls/button/Button.vue` loads. Theme modules for components that nothing imports stay out of the bundle. Registration happens when a component module loads, which includes the moment a lazy route loads its code. A component's first render does not trigger registration.
 
-::: tip Migrate project customization
-Replace global project `patchTheme` calls with `overrideTheme` to make them independent of loading order. Existing theme authors keep using `patchTheme` for base registration. Applications that keep project customizations in base patches must still import the relevant defaults before patching them.
-:::
+An `overrideTheme` call applies whether it runs before or after the defaults register, so it works on every registration path. A project change made with `patchTheme` merges into the registered defaults, so it depends on load order. When a default registers after such a patch, the default's value wins on each key that both set, including `composes`. For `class`, the registry keeps the values from both, and the class merger then removes the patch's classes that conflict with the default's. On the per-family and per-component paths, a `patchTheme` call in `main.js` can run before a lazy route loads the component that it customizes. `overrideTheme` is the function for project changes, and `patchTheme` is the function for registering a theme's defaults.
 
-All three paths require the application stylesheet to import Tailwind and `@vueda/theme/vueda-tailwind/base.css`. Changing JavaScript registration does not replace the CSS setup.
+All three paths need the application stylesheet to import Tailwind and `@vueda/theme/vueda-tailwind/base.css`. The JavaScript registration path does not change the CSS setup.
 
-Built-in components import their defaults before their setup runs. If an application explicitly registers an asynchronous theme loader, the resolver reports `loading` while that loader is pending, and themed roots use a hide style until it settles. Project overrides neither replace that loader nor disappear when it registers its data.
+Built-in components import their defaults before their setup runs. An application can also register a loader function as a component's entry, such as `patchTheme({ Button: () => import("./buttonTheme.js") })`, where the loaded module calls `patchTheme` with the real entry. While that loader is pending, `useTheme` reports [`loading`]{@api js:type:@arrai-innovations/vueda/use/useTheme#UseThemeReturnFunction}, and themed roots apply a hide style until the loader settles. Project overrides for the component stay in their own store, so the loader neither replaces them nor removes them. They apply once the loaded module registers the real entry.
 
 ## Relationship to shadcn-vue
 
-VUEDA's component library is built on shadcn-vue's component vocabulary, which in turn wraps Reka UI primitives. shadcn-vue uses `cva` + `cn()` for variant selection and class merging, with consumer customization at the call site through a `class` prop. VUEDA replaces that with `useTheme`: the same variant logic still runs, but it lives inside the theme entry rather than in the component template, and override flows through provide/inject instead of prop-threading.
+VUEDA's control layer is built on shadcn-vue, which wraps Reka UI headless primitives. Where a VUEDA component corresponds to a shadcn-vue component, it has the same name: `Button`, `Dialog`, `Alert`, `Pagination`, and `Sonner`, for example. Components with no shadcn-vue counterpart, such as `PageTitle`, `StickyBar`, and the `View*` family, have VUEDA names.
 
-The trade-off is that VUEDA components are not a drop-in substitute for shadcn-vue components; consumers who want to layer in a shadcn-vue block as-is have to translate it to the VUEDA theme model. The payoff is that customization composes through the tree without manual prop wiring, and the four-scope model is uniform across the entire component surface.
+VUEDA's source is JavaScript. Each component is a single-file component that an application imports by its path, such as `@vueda/controls/button/Button.vue` or `@vueda/shell/dialog/Dialog.vue`. No barrel module exports a group of components.
+
+The VUEDA theme starts from shadcn-vue's defaults. Where the two differ, such as in control radius, control height, and motion, the VUEDA theme sets its own values.
+
+A shadcn-vue component selects its variant classes with `cva` and merges them with `cn()` in the component file. A VUEDA component takes its classes from its theme entry, which can compute them from the component's props. Overrides reach descendants through `useThemeOverride`, so the components in between need no extra props. VUEDA components also accept a `class` prop at the call site.
+
+A shadcn-vue block therefore does not run unchanged in a VUEDA project. Its imports point to `@/components/ui/...`, and it calls `cn()`, which VUEDA does not provide. [Port a shadcn-vue block](../guides/customize-vueda-appearance#port-a-shadcn-vue-block) describes how to adapt one.
