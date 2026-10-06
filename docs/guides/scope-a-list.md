@@ -7,20 +7,20 @@ status: draft
 
 # Open a Scoped List
 
-A **scope** is a list constraint that a link or application code supplies, with no editable filter input. For example, an action creates a batch of purchase orders and opens the purchase order list narrowed to that batch. {@api vue:component:ViewList} shows each active scope as a labeled chip in the constraints band, next to the filter and sort chips. A clearable chip has a clear control, so the reader can return to the full list.
+A {@term List Scope} narrows a list to records that a link or your application code chose, such as the purchase orders that one action just created. {@api vue:component:ViewList} shows each active scope as a labeled chip in the constraints band, next to the filter and sort chips. A clearable chip has a clear control that returns the user to the unscoped list.
 
 A scope comes from one of two sources:
 
 - **A hidden filter in the URL.** The server declares a filter with a hidden widget, and a link supplies its value as a query parameter.
-- **A declared `params` key.** Application code passes the value through the `ViewList` `params` prop and declares the key as a scope through the `scopes` prop.
+- **A declared `params` key.** Your code passes the value through the [`params`]{@api vue:component:ViewList:prop:params} prop and declares the key in the [`scopes`]{@api vue:component:ViewList:prop:scopes} prop.
 
-This guide assumes a working CRUDL surface (see [Create a CRUDL Surface](./create-crudl-surface)).
+This guide assumes a working CRUD surface (see [Create a CRUD Surface](./create-crud-surface)).
 
 ## Scope a List Through the URL
 
 ### Declare a Hidden Filter
 
-Declare the filter on the viewset's filterset with a `HiddenInput` widget:
+On the viewset's filterset, declare the filter with Django's [`HiddenInput`]{@api ext:django:django.forms.HiddenInput} widget:
 
 ```python
 from django import forms
@@ -38,23 +38,25 @@ class PurchaseOrderFilterSet(VuedaFilterSet):
         fields = ["id", "supplier", "status", "replenishment_batch"]
 ```
 
-The widget decides whether a filter is hidden. Model-info reports `hidden: true` for any filter whose widget is hidden. The filter's type and the model field's presentation elsewhere have no effect. A hidden filter:
+The widget alone decides whether a filter is hidden. {@term Model Info} reports [`hidden: true`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FilterInfo.hidden} for any filter whose widget is hidden, whatever the filter's type. A hidden filter:
 
 - never appears in the add-filter menu,
 - never becomes an editable filter chip,
-- needs no client input mapping for its type, so a hidden `UUIDFilter` works without registering a UUID input.
+- needs no client input mapping for its type, so a hidden [`UUIDFilter`]{@api ext:django-filter:django_filters.filters.UUIDFilter} works without a registered UUID input.
 
-`VuedaFilterSet` already declares a hidden `id` filter, which is why an `?id=1,2` link scopes any list to those records.
+{@api py:class:vueda.core.filters.VuedaFilterSet} inherits a hidden `id` filter from {@api py:class:vueda.core.filters.IdInFilterSet}, so an `?id=1,2` link scopes any list to those records. A composite-key filterset has no `id` filter (see [Set Up CRUD for a Composite Primary Key Model](./composite-primary-keys)).
+
+The server validates a hidden filter's value like any other filter value. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes that validation and how the server rejects a bad query.
 
 ### Link to the Scoped List
 
-Supply the filter's value as a query parameter on the list route:
+Put the filter's value in a query parameter on the list route:
 
 ```text
 /purchasing/purchaseorder/list/?replenishment_batch=3f2a9c1e-8b7d-4e21-9a55-0c1d2e3f4a5b
 ```
 
-From application code, build the same location with `getCRUDForTo`:
+From application code, build the same location with {@api js:function:@arrai-innovations/vueda/router/getCrud#getCRUDForTo}:
 
 ```js
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
@@ -69,39 +71,39 @@ await router.push(
 );
 ```
 
-`ViewList` sends the value with every list request. Changing visible filters, the sort, or the search term keeps the value in both the URL and the request. Navigation that changes the value, such as following a link to another batch or using the browser's back button, returns the list to page 1.
+`ViewList` sends the value with every list request. When the user changes visible filters, the sort, or the search term, the value stays in the URL and in the request. Navigation that changes the value returns the list to page 1. Examples are a link to another batch or the browser's back button.
 
 Scope chips appear once the list's model metadata has loaded, because their labels and keys come from that metadata. The first list request waits for the same metadata, so the chips and the scoped rows arrive together.
 
 ### Keep the Filter in an Overridden `filterables` List
 
-A `ViewList` recognizes a hidden filter only when the filter is in its resolved filterable list. That list is the server's filtering metadata unless the application overrides it through the `filterables` prop or the model config. When you override it, include the hidden filter:
+`ViewList` recognizes a hidden filter only when the filter is in its resolved filterable list. That list comes from the server's filtering metadata unless you override it through the [`filterables`]{@api vue:component:ViewList:prop:filterables} prop or the {@term Model Config}. When you override it, include the hidden filter:
 
 ```html
 <view-list app="purchasing" model="purchaseorder" :filterables="['supplier', 'status', 'replenishment_batch']" />
 ```
 
-A hidden filter left out of the override is not shown as a scope, and its URL value is not sent with the list request.
+If the override leaves the hidden filter out, `ViewList` shows no scope for it and does not send its URL value.
 
 ### Label the Scope
 
-The chip label comes from the filter's `filterableDetails` entry: its `label` with the value, such as `Replenishment Batch · 3f2a9c1e-8b7d-4e21-9a55-0c1d2e3f4a5b`. When the value has several parts, such as an `in` lookup's comma-separated list or a range filter's suffixed keys, the chip shows a count instead. For the built-in `id` filter, whose server label is `Id Is In`, an `?id=1,2` link shows `Id Is In · 2 values`. A label too long for the constraints band is truncated with an ellipsis, and the full text is shown on hover.
+The chip label is the filter's [`label`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FilterInfo.label} followed by the value, such as `Replenishment Batch · 3f2a9c1e-8b7d-4e21-9a55-0c1d2e3f4a5b`. When the value has several parts, the chip shows a count. Examples are an `in` lookup's comma-separated list and a range filter's suffixed keys. For the built-in `id` filter, whose server label is `Id Is In`, an `?id=1,2` link shows `Id Is In · 2 values`. A label too long for the constraints band is cut off with an ellipsis, and hovering the chip shows the full text.
 
-To change the text, override the filter's `label`. A hidden filter has no filter input, so the label appears on the scope chip and in filter error messages:
+To change the text, override the filter's `label` through the [`filterableDetails`]{@api vue:component:ViewList:prop:filterableDetails} prop. A hidden filter has no input, so its label appears only on the scope chip and in filter error messages:
 
 ```html
 <view-list app="purchasing" model="purchaseorder" :filterable-details="{ replenishment_batch: { label: 'Batch' } }" />
 ```
 
-`filterableDetails` can also be set in the list view config, like any other filter detail override.
+You can also set `filterableDetails` in the model config for the list view, like any other filter detail override.
 
-### Clearing a URL Scope
+### Clear a URL Scope
 
-Clearing the chip removes every query key the filter owns from the URL, including suffixed keys such as `created_after` and `created_before`. The list refetches without that value and returns to page 1. Visible filters, the sort, the search term, other scopes, and any other query parameters stay in place. A URL scope can always be cleared.
+When the user clears the chip, `ViewList` removes every query key that the filter owns from the URL. That includes suffixed keys such as `created_after` and `created_before`. The list refetches without the value and returns to page 1. Visible filters, the sort, the search term, other scopes, and other query parameters stay in place. A URL scope always has a clear control.
 
 ## Declare a Scope Backed by `params`
 
-Application code can also narrow a list through the `params` prop. By default, `params` values are plain request parameters with no presentation. To show one as a scope, declare its key in the `scopes` prop:
+Your code can also narrow a list through the `params` prop. A `params` value is a plain request parameter unless you declare its key in the `scopes` prop, which shows it as a scope:
 
 ```vue
 <script setup>
@@ -128,24 +130,24 @@ const clearScope = ({ name }) => {
 
 `scopes` is keyed by `params` key. Each entry accepts:
 
-- `label`: the chip text. Without it, the chip shows the filter's `filterableDetails` label with its value, or with a value count when it has several. A key that is not in the list's resolved filterables shows the key itself with its value.
-- `clearable`: whether the chip has a clear control. Defaults to `true`.
+- [`label`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeDeclaration.label}: the chip text. Without it, the chip uses the filter's label with the value. When there are several values, the chip uses the label with a value count. For a key that is not in the resolved filterables, the chip uses the key itself with the value.
+- [`clearable`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeDeclaration.clearable}: whether the chip has a clear control. Defaults to `true`.
 
-A declared key is shown while `params` has a value for it. When the key names a filter with suffixes, the scope owns the suffixed keys, such as `created_after` and `created_before` for `created`, and is shown while any of them has a value. Only declared keys become scopes; any other `params` key stays a plain request parameter, including one that names a hidden filter.
+The chip for a declared scope appears while `params` has a value for its key. When the key is the name of a filter with suffixes, the scope owns the suffixed keys too, such as `created_after` and `created_before` for `created`. The chip appears while any of them has a value. Only declared keys become scopes. Every other `params` key stays a plain request parameter, including a key that names a hidden filter.
 
 ### When `params` Carries a Filter
 
-If `params` carries any key of a filter, visible or hidden, `params` supplies that filter's value. This applies whether or not the key is declared in `scopes`. For a filter with suffixes, one suffixed key in `params` is enough. While `params` carries the filter:
+If `params` carries any key of a filter, visible or hidden, `params` supplies that filter's value. This holds whether or not `scopes` declares the key. For a filter with suffixes, one suffixed key in `params` is enough. While `params` carries the filter:
 
-- the add-filter menu stops offering it,
+- the add-filter menu does not offer it,
 - a URL value for it stays in the URL, but the list does not send it, restore it as a filter chip, or show it as a URL scope,
-- saved filter preferences neither store nor restore it.
+- saved list preferences do not store or restore it. [Configure `list`/`read`/`create`/`update` Views](./configure-crud-views#list-preferences) describes list preferences.
 
-Once the caller removes the filter's keys from `params`, the filter works as usual again. The menu offers it, and a URL value still in the URL applies again as a filter chip or a URL scope. The sort, the search term, and other filters are unaffected throughout.
+When your code removes the filter's keys from `params`, the filter behaves as usual again. The menu offers it, and a URL value still in the URL applies again as a filter chip or a URL scope. The sort, the search term, and other filters are unaffected throughout.
 
 ### Show a Fixed Constraint
 
-Set `clearable: false` for a constraint the reader must not remove, such as a list embedded on a record's page. The chip explains the constraint without offering a clear control:
+Set `clearable: false` for a constraint that the user must not remove, such as the parent record of a list embedded on that record's page. The chip describes the constraint and has no clear control:
 
 ```html
 <view-list
@@ -158,21 +160,21 @@ Set `clearable: false` for a constraint the reader must not remove, such as a li
 
 ### Respond to `clear-scope`
 
-The caller owns `params`, so `ViewList` does not change it. When the reader clears a declared scope, `ViewList` emits `clear-scope` with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in response. The updated prop removes the value from the request and the chip from the constraints band, and the list returns to page 1. Any change to the content of `params` returns the list to page 1 the same way; passing an equal `params` object again keeps the current page.
+`ViewList` does not change `params`, because your code supplies it. When the user clears a declared scope, `ViewList` emits [`clear-scope`]{@api vue:component:ViewList:event:clear-scope} with `{ name, keys }`, where `name` is the declared key. Remove those keys from `params` in the handler. The updated prop removes the value from the request and the chip from the constraints band, and the list returns to page 1.
 
-If the handler leaves `params` unchanged, the scope stays applied and its chip stays visible.
+Any change to the content of `params` returns the list to page 1. Passing an equal `params` object again keeps the current page. If the handler leaves `params` unchanged, the scope stays applied and its chip stays visible.
 
-Once `params` no longer carries the key, a filter with that name is offered in the add-filter menu again. If the URL still has a value for that filter, the value applies, so clearing the scope does not always return the reader to the full list.
+Once `params` no longer carries the key, the add-filter menu offers a filter with that name again. If the URL still has a value for that filter, the value applies. So clearing the scope does not always return the user to the unscoped list.
 
 ## Clear Scopes Together
 
-With more than one clearable scope active, the scope group shows a **Clear scopes** button. It clears every URL scope in one navigation and emits one `clear-scope` event per clearable `params` scope. Scopes declared with `clearable: false` stay in place.
+When more than one clearable scope is active, the scope group shows a **Clear scopes** button. It clears every URL scope in one navigation and emits one `clear-scope` event per clearable `params` scope. Scopes declared with `clearable: false` stay in place.
 
 ## Customize Scope Chips
 
-`ViewList` passes two slots through to the scope group. Both receive the scope as `{ name, label, keys, source, clearable }`.
+`ViewList` passes the {@api vue:component:ScopeGroup} slots through. Both slots receive the scope as `{ name, label, keys, source, clearable }`, the fields of {@api js:interface:@arrai-innovations/vueda/use/useViewList#ViewListScope}.
 
-`scope-label` replaces a chip's label text. The chip keeps its styling and its clear control:
+[`scope-label`]{@api vue:component:ScopeGroup:slot:scope-label} replaces a chip's label text. The chip keeps its styling and its clear control:
 
 ```html
 <view-list app="purchasing" model="purchaseorder">
@@ -183,7 +185,7 @@ With more than one clearable scope active, the scope group shows a **Clear scope
 </view-list>
 ```
 
-`scope-chip` replaces a whole chip. Its `clear` slot prop asks to clear that scope, the same as the built-in clear control. It does nothing for a scope whose `clearable` is false:
+[`scope-chip`]{@api vue:component:ScopeGroup:slot:scope-chip} replaces a whole chip. Its `clear` slot prop asks to clear that scope, the same as the built-in clear control. It does nothing for a scope whose `clearable` is false:
 
 ```html
 <view-list app="purchasing" model="purchaseorder">
@@ -195,24 +197,31 @@ With more than one clearable scope active, the scope group shows a **Clear scope
 </view-list>
 ```
 
-The Scope heading and the Clear scopes button stay in place with either slot.
+With either slot, the group keeps its Scope heading and its Clear scopes button.
 
-## Custom List Shells
+## Build Scopes into a Custom List Shell
 
-A shell built on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} reads the same state from its `scope` group:
+A shell built on {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList} reads the same state from its [`scope`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListContext.scope} group:
 
-- `scope.scopes` lists the active scopes as `{ name, label, keys, source, clearable }`. `source` is `"url"` for a hidden URL filter and `"params"` for a declared `params` key.
-- `scope.clearUrlScopes(names)` removes the named URL scopes' query keys.
+- [`scope.scopes`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeGroup.scopes} lists the active scopes. Each scope's `source` is `"url"` for a hidden URL filter and `"params"` for a declared `params` key.
+- [`scope.clearUrlScopes(names)`]{@api js:property:@arrai-innovations/vueda/use/useViewList#ViewListScopeGroup.clearUrlScopes} removes the named URL scopes' query keys.
 
-Render the chips with {@api vue:component:ScopeGroup}, hosted inside {@api vue:component:ConstraintsBar}'s `scopes` slot, and pass `scopesActive` so the band opens. `ScopeGroup` hides the clear control on a scope whose `clearable` is false. Its `clear` event carries the array of scope objects the reader asked to clear: one from a chip, or every clearable scope from Clear scopes. Pass the names of the `"url"` scopes to `scope.clearUrlScopes`, and remove the keys of the `"params"` scopes from the shell's own `params`.
+To render the chips:
 
-## Existing Scope Banners
+1. Put `ScopeGroup` in the [`scopes`]{@api vue:component:ConstraintsBar:slot:scopes} slot of {@api vue:component:ConstraintsBar}.
+2. Pass [`scopesActive`]{@api vue:component:ConstraintsBar:prop:scopesActive} so the band opens.
+3. Handle the `ScopeGroup` [`clear`]{@api vue:component:ScopeGroup:event:clear} event. It carries an array of the scopes that the user asked to clear: one from a chip, or every clearable scope from Clear scopes.
+4. Pass the names of the `"url"` scopes to `scope.clearUrlScopes`, and remove the keys of the `"params"` scopes from the shell's own `params`.
 
-The `before-list` slot works as before. An application that already renders its own scope banner there, with a link back to the full list, now also gets a scope chip in the constraints band when the constraint is a hidden filter in the URL or a declared `params` key. Remove the custom banner to rely on the chip, or keep it alongside.
+`ScopeGroup` hides the clear control on a scope whose `clearable` is false.
 
-## Scopes Change the Request, Not Access
+## Keep an Existing Scope Banner
 
-A scope narrows the list request. Clearing one broadens the request and nothing more. The server's permissions and row-level filtering still decide which records the reader receives, with or without the scope. Do not use a scope to hide records a reader must not see.
+Your application may already render its own scope banner in the [`before-list`]{@api vue:component:ViewList:slot:before-list} slot. The list also shows a scope chip for a hidden URL filter or a declared `params` key. Remove the banner to rely on the chip, or keep both.
+
+## Scopes and Access
+
+A scope narrows the list request, and clearing it broadens the request. The server's permissions and row-level filtering decide which records the user receives, with or without a scope. Do not use a scope to hide records that a user must not see. [Authorization vs UI Semantics](../core-concepts/authorization-vs-ui-semantics) describes where the server enforces access.
 
 ## Related
 
