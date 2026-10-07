@@ -1,3 +1,5 @@
+import datetime
+import glob
 import os
 import pathlib
 import shutil
@@ -37,7 +39,7 @@ def set_email_backend(settings, backend):
 
 
 # This is a decorator.
-class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa N801
+class clear_info_registry_before_test(TestContextDecorator):  # noqa: N801
     """
     Clears the info registry before the wrapped test runs.
 
@@ -58,14 +60,34 @@ class info_registry_clear_with_appended_apps(TestContextDecorator):  # noqa N801
 def append_installed_apps(settings, *apps_to_append):
     """
     For use with the pytest `settings` fixture. Companion to
-    info_registry_clear_with_appended_apps: appends to INSTALLED_APPS the way
+    clear_info_registry_before_test: appends to INSTALLED_APPS the way
     modify_settings(INSTALLED_APPS={"append": [...]}) used to as a decorator,
     but from inside the test body so call-order relative to
-    info_registry_clear_with_appended_apps (and any other settings the test
+    clear_info_registry_before_test (and any other settings the test
     sets first, e.g. AUTH_USER_MODEL) is explicit rather than decorator-stack
     order.
     """
     settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, *apps_to_append]
+
+
+def find_one_migration_generated_today_or_fail(migration_dir, name):
+    """Assert one migration in ``migration_dir`` is named ``<name>_<today>.py``, and return its file name.
+
+    ``name`` may leave out the number prefix, such as ``group_permission_migrations``. The commands name
+    a migration after the date they run, so a test that checks the name after midnight sees the
+    previous day's date: yesterday's date is accepted too, and the name found on disk is returned
+    rather than rebuilt from the clock.
+    """
+    today = datetime.date.today()
+    found = sorted(
+        os.path.basename(path)
+        for date in (today, today - datetime.timedelta(days=1))
+        for path in glob.glob(os.path.join(migration_dir, f"*{name}_{date.strftime('%Y_%m_%d')}.py"))
+    )
+    assert len(found) == 1, (
+        f"expected one {name}_<today>.py migration in {migration_dir}, found {found} among {sorted(os.listdir(migration_dir))}"
+    )
+    return found[0]
 
 
 class BaseTestMigrations:
@@ -155,7 +177,7 @@ class FakeView:
         serializer_class,
         action=None,
         queryset=None,
-        allowed_extra_actions=frozenset(("current", "history-list")),
+        allowed_extra_actions=frozenset(("history-list",)),
     ):
         self.request = request
         self.serializer_class = serializer_class
@@ -175,8 +197,8 @@ class FakeView:
         return set(self.allowed_extra_actions)
 
 
-# Because rest framework loads settings on class import there's no way to
-# override through 'settings', but we will do it regardless, to be thorough.
+# VuedaPagination reads REST_FRAMEWORK["PAGE_SIZE"] each time a paginator is created, so a value
+# set here applies to requests made inside the block.
 @contextmanager
 def adjust_page_size(settings, value):
     orig_value = settings.REST_FRAMEWORK["PAGE_SIZE"]

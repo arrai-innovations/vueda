@@ -55,15 +55,15 @@ def test_the_metadata_strategy_keeps_other_metadata():
 
 
 @pytest.mark.django_db
-def test_the_metadata_strategy_finds_the_item_from_a_string_or_integer_key(queue_item_email):
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+def test_the_metadata_strategy_finds_the_item_from_a_string_or_integer_key(sending_email_without_detail):
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
     strategy = MetadataEmailTrackingStrategy()
 
-    assert strategy.find_queue_item(SimpleNamespace(metadata={"vdq_queue_item": str(queue_item_email.pk)})) == (
-        queue_item_email
-    )
-    assert strategy.find_queue_item(SimpleNamespace(metadata={"vdq_queue_item": queue_item_email.pk})) == (
-        queue_item_email
+    assert strategy.find_queue_item(
+        SimpleNamespace(metadata={"vdq_queue_item": str(sending_email_without_detail.pk)})
+    ) == (sending_email_without_detail)
+    assert strategy.find_queue_item(SimpleNamespace(metadata={"vdq_queue_item": sending_email_without_detail.pk})) == (
+        sending_email_without_detail
     )
 
 
@@ -74,6 +74,6 @@ def test_the_metadata_strategy_finds_nothing_without_a_usable_key(metadata):
 
 
 @pytest.mark.django_db
-def test_the_metadata_strategy_finds_only_email_items(sms_queue_item):
-    event = SimpleNamespace(metadata={"vdq_queue_item": str(sms_queue_item.pk)})
+def test_the_metadata_strategy_finds_only_email_items(queued_sms):
+    event = SimpleNamespace(metadata={"vdq_queue_item": str(queued_sms.pk)})
     assert MetadataEmailTrackingStrategy().find_queue_item(event) is None

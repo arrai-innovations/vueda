@@ -26,7 +26,7 @@ def test_email_backend_is_used_by_default():
     defaults = get_defaults(_env())
 
     assert defaults["EMAIL_BACKEND"] == "django.core.mail.backends.console.EmailBackend"
-    assert defaults["EMAIL_TIMEOUT"] == 5  # noqa PLR2004
+    assert defaults["EMAIL_TIMEOUT"] == 5  # noqa: PLR2004
     assert "MAILERS" not in defaults
 
 
