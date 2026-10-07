@@ -164,6 +164,8 @@ Restoring an object moves only its object state. Anything else a transition chan
 
 Workflow migrations generated before this behavior delete the object states of every workflow in the project when reversed. Run `updateworkflowmigrations` to give them the current reverse code. See [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations).
 
+Older reverse code can also fail with `ValueError: Cannot query "Workflow object (2)": Must be "Workflow" instance.` This happens when the reversal leaves applied a later migration that changes model options or triggers, such as one that adds pghistory triggers. Django hands the reverse code models whose relations point at outdated classes ([Django ticket #33586](https://code.djangoproject.com/ticket/33586)), and the current reverse code rebuilds them first. Running `updateworkflowmigrations` fixes this too.
+
 ### Collaborative Workflows
 
 When two developers are making workflow changes in the same branch at the same time, the migration created by the first developer may not include the second developer's history records. The recommended approach is:

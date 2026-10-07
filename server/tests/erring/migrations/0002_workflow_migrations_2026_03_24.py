@@ -8,6 +8,8 @@ from django.apps import apps as django_apps
 from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.db import migrations
+from django.db.migrations.state import ModelState
+from django.db.migrations.state import ProjectState
 
 from vueda.core.audit import audited_action
 
@@ -322,8 +324,21 @@ def _forwards_migrate_workflow(apps, changed_items, change_reason):
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
+    apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
         _backwards_migrate_workflow(apps, changed_items, change_reason)
+
+
+def rebuild_migration_apps(apps):
+    # Some operations, such as AlterModelOptions and pgtrigger's AddTrigger, reload a model with
+    # delay=True. That leaves the models pointing at its direct relations on older classes than
+    # apps.get_model() returns. Django re-renders the registry before a forwards RunPython but not
+    # before a backwards one (https://code.djangoproject.com/ticket/33586), so the reverse step
+    # rebuilds it.
+    project_state = ProjectState()
+    for model in apps.get_models(include_swapped=True):
+        project_state.add_model(ModelState.from_model(model))
+    return project_state.apps
 
 
 def _backwards_migrate_workflow(apps, changed_items, change_reason):

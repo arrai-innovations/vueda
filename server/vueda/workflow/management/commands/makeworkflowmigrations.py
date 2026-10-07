@@ -31,6 +31,7 @@ __all__ = (
     "handle_workflow_permission",
     "make_sure_permissions_exist",
     "manage_state_objects",
+    "rebuild_migration_apps",
     "release_state_objects",
     "settle_released_object_states",
     "tracked_field_names",
@@ -59,6 +60,8 @@ from django.core.management import BaseCommand
 from django.db import migrations
 from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
+from django.db.migrations.state import ModelState
+from django.db.migrations.state import ProjectState
 from django.db.models import Q
 from django.db.transaction import atomic
 
@@ -231,8 +234,30 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
     keeps its row and its state. Generated workflow migrations call this from their reverse step; the
     migrations import it when made with ``--import-instead`` and copy it otherwise.
     """
+    apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
         _backwards_migrate_workflow(apps, changed_items, change_reason)
+
+
+def rebuild_migration_apps(apps):
+    """Return a fresh registry of the models in ``apps``, in which every relation points at a model of its own.
+
+    Some migration operations, such as ``AlterModelOptions`` and pgtrigger's ``AddTrigger``, reload a
+    model with ``delay=True``. That re-renders the model and its direct relations but not the models
+    that point at them, so a foreign key can keep an older class than ``apps.get_model()`` returns,
+    and filtering through it raises ``ValueError``. Django re-renders the registry before a forwards
+    ``RunPython`` but not before a backwards one (https://code.djangoproject.com/ticket/33586), so
+    the reverse step rebuilds it. Generated workflow migrations copy this function and reach it
+    through ``backwards_migrate_workflow``.
+
+    VUEDA keeps it until the oldest Django version it supports includes the fix. A copy in a
+    migration can stay after that, because rebuilding a registry that is already consistent changes
+    nothing.
+    """
+    project_state = ProjectState()
+    for model in apps.get_models(include_swapped=True):
+        project_state.add_model(ModelState.from_model(model))
+    return project_state.apps
 
 
 def _backwards_migrate_workflow(apps, changed_items, change_reason):
@@ -1223,6 +1248,10 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     if direct_runpython_import:
         result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
 
+    if not import_instead:
+        result_mapping[("ModelState",)] = f"from django.db.migrations.state import ModelState{NEWLINE}"
+        result_mapping[("ProjectState",)] = f"from django.db.migrations.state import ProjectState{NEWLINE}"
+
     if import_instead:
         result_mapping[("backwards_migrate_workflow",)] = (
             f"{NEWLINE}from vueda.workflow.management.commands.makeworkflowmigrations "
@@ -1280,6 +1309,7 @@ def get_migration_sources(import_instead=False, as_mapping=False):
                 ("forwards_migrate_workflow",): inspect.getsource(forwards_migrate_workflow),
                 ("_forwards_migrate_workflow",): inspect.getsource(_forwards_migrate_workflow),
                 ("backwards_migrate_workflow",): inspect.getsource(backwards_migrate_workflow),
+                ("rebuild_migration_apps",): inspect.getsource(rebuild_migration_apps),
                 ("_backwards_migrate_workflow",): inspect.getsource(_backwards_migrate_workflow),
                 ("make_sure_permissions_exist",): inspect.getsource(make_sure_permissions_exist),
                 ("handle_workflow",): inspect.getsource(handle_workflow),
