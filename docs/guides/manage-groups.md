@@ -7,183 +7,148 @@ status: draft
 
 # Manage Groups and Generate Group Migrations
 
-This guide explains how to create, rename, and remove groups through VUEDA's permission overview UI, and how to generate database migrations that replicate those changes on other environments using the `makegroupmigrations` management command.
+Use the {@term Group Management Page} to add groups to permissions, rename groups, and remove permissions from groups. VUEDA records each change. Then run [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command} to write a {@term Group Permission Migration}, which applies the same changes in your other environments.
 
-## Goal and Preconditions
+A group's permissions feed each member's {@term Baseline Permission}. To audit which groups hold each permission without editing anything, use the {@term Permissions and Workflow Overview}, described in [Use the Permissions and Workflow Overview](./permissions-workflow-overview.md).
 
-By the end of this guide you will have:
+## Before You Begin
 
-- Group and permission associations configured in the database through the UI.
-- A group migration that captures those changes and can be applied on other environments without manually repeating the UI steps.
+- The server runs with {@api ext:django:setting:DEBUG} on. The group management page and the URLs that it saves through exist only in debug mode.
+- `vueda.user` is in {@api ext:django:setting:INSTALLED_APPS}. [`get_defaults`]{@api py:function:vueda.core.default_settings.get_defaults} includes it.
+- The project includes the [`vueda.user` URLs]{@api py:module:vueda.user.urls} under `routes/`, as the template app does. The page's script sends its save and remove requests to paths under `/routes/`.
+- Your account holds these permissions, directly or through a group:
+    - `auth.list_permission` to open the page.
+    - `auth.create_group` and `auth.update_group` to add or rename a group.
+    - `auth.delete_permission` to remove a permission from a group.
 
-Before you begin:
-
-The `vueda.user` app must be in `INSTALLED_APPS`. The group management URLs become available when the project is running in debug mode (`DEBUG = True` in settings); they are not exposed in production. You will need a superuser account to access the management UI, because authentication is required.
+Grant these permissions outside the page, for example in `python manage.py shell`. You need `auth.list_permission` before you can open the page, and the page hides the other three permissions.
 
 ## Group Management UI
 
-### Navigating to the Permission Overview
+### Open the Page
 
-Open the permission overview page at `/routes/vueda.user/permissions/overview/`. On a local development server this is typically `http://localhost:8000/routes/vueda.user/permissions/overview/`. This page lists the permissions in the project, grouped by app. Some permissions are intentionally excluded from the page: create, update, and delete permissions for system-managed models (such as `auth.Group`, `auth.Permission`, `contenttypes.ContentType`, VDQ queue models, and other internal models) are hidden because those objects should not be created or modified directly through group management. Read and list permissions for those models remain visible so groups can be granted read access.
+1. Sign in to the server. In debug mode, `/routes/vueda.user/dev-login/` serves a Django login form. Add `?next=/routes/vueda.user/permissions/overview/` to that URL to land on the page after you sign in.
+2. Open `/routes/vueda.user/permissions/overview/`. On a local template app this is `http://localhost:8000/routes/vueda.user/permissions/overview/`.
 
-If you are not authenticated, you will be redirected to the login form. Log in before proceeding.
+An anonymous request redirects to the {@api ext:django:setting:LOGIN_URL} setting. A signed-in user without `auth.list_permission` gets `403`.
 
-### Adding a Group to a Permission
+The page groups permissions by app, then by model. Apps in `LOCAL_APPS` appear under **My App Permissions**, and the rest under **Other App Permissions**. Historical models stay hidden until you select **Toggle historical**. Each permission shows its codename, its name, and the groups that hold it.
 
-To create a new group and associate it with a permission:
+The page hides some permissions. For `auth.Group`, `auth.Permission`, `contenttypes.ContentType`, and the VDQ queue models, it hides the create, update, and delete permissions and shows read and list. For models such as `sessions.Session` and `vueda_user.GroupChange`, it hides every permission. The [`vueda.user.globals`]{@api py:module:vueda.user.globals} module lists each hidden model.
 
-1. Find the permission on the overview page.
-2. Click the `Add` button next to the permission name, which will then display an input field with save and delete buttons.
-3. Type the new group name and click save.
+### Add a Group to a Permission
 
-The group is created and associated with the permission. A record is created to store the change, for use when the management command is run.
+1. Find the permission and select **Add**. A name field appears with **Save** and **X** buttons.
+2. Type the group name, then select **Save** or press Enter.
 
-The save button will change colour when a change hasn't been saved.
+When no group has that name, VUEDA creates the group, adds the permission, and records an `added` change. When the group exists, VUEDA adds the permission to it and records an `associated` change. When the group already holds the permission, the page shows an error and records nothing.
 
-### Renaming a Group
+**Save** changes color while its name field has unsaved edits.
 
-To rename an existing group:
+### Rename a Group
 
-1. Find any permission associated with the group you want to rename.
-2. Modify the group name and save.
+1. Find any permission that the group holds.
+2. Edit the group name, then select **Save**.
 
-The group is renamed and all permission associations are retained. All groups with the same name are updated in the UI. A record is created, storing both the old and new name, so the migration can be run forwards and backwards.
+VUEDA renames the group and keeps its permissions and members. The page shows the new name on every row for that group. VUEDA records a `changed` change with the old and new names, so the migration can run forward and backward.
 
-### Removing a Permission from a Group
+### Remove a Permission from a Group
 
-To remove a permission from a group:
+1. Find the permission.
+2. Select **X** next to the group name.
 
-1. Find the permission on the overview page.
-2. Click the delete button (X) next to the group name on that permission row.
-
-The permission is removed from the group, and a record of the change is stored. The group stays even when it has no permissions left, so its users keep their membership.
-
-The delete button removes the permission immediately without a confirmation step.
+The page removes the permission at once, with no confirmation step. VUEDA records an `unassociated` change. The group and its members stay, even when the group holds no permissions.
 
 ::: warning
 
-Do not delete a group through the Django admin or a shell. That records no group change, so every other environment keeps the group. The permissions overview has no action that deletes a group yet; [#423](https://github.com/arrai-innovations/vueda/issues/423) tracks one.
+The group management page has no action that deletes a group; [#423](https://github.com/arrai-innovations/vueda/issues/423) tracks one. Do not delete a group through the Django admin or a shell. VUEDA records no change for that deletion, so every other environment keeps the group.
 
 :::
 
 ## Generating Group Migrations
 
-After making changes through the UI, run `makegroupmigrations` to produce a migration that applies the same changes on any other environment.
+1. Write the migration:
 
-```console
-python manage.py makegroupmigrations
-```
+    ```console
+    python manage.py makegroupmigrations
+    ```
 
-The migration is created in the same app that contains the project's `AUTH_USER_MODEL`.
+    The command writes the migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations_2026_04_21`. When there is nothing new to write, it prints `No group changes detected.`
 
-### How Change Detection Works
+2. Fake the migration in your own database, which already has the changes. The command prints a note that tells you to fake it.
 
-`makegroupmigrations` reads the change records that are stored in the database. It compares those records against the changes already captured in previously created group migrations, to determine which changes have not yet been added to a migration. Only the new, unrecorded changes are included in the migration that gets generated.
+    ```console
+    python manage.py migrate myapp 0005_group_permission_migrations_2026_04_21 --fake
+    ```
 
-Primary keys are not stored in the change data. Because primary keys can differ between databases, all relationships are stored using natural identifiers (group names, permission codenames, app labels, and model names) instead of raw integer ids.
+3. Ship the migration with your code. Other environments apply it with `python manage.py migrate`.
 
-### Change Types
-
-Group changes are broken into five types:
-
-| Type           | When it occurs                                                          | What the migration does                                           |
-| -------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `added`        | First permission for a group                                            | Creates the group and associates the permission with it           |
-| `associated`   | An additional permission for an existing group                          | Associates the permission with the group                          |
-| `changed`      | The group name is changed                                               | Renames the group, retaining all existing permission associations |
-| `unassociated` | A permission is removed from a group                                    | Removes the permission from the group                             |
-| `deleted`      | Recorded by earlier versions when a group's last permission was removed | Removes the permission and keeps the group                        |
-
-Changes are applied in the same order they were recorded. When migrating backwards, the migration processes changes in reverse order and inverts each type: `added` and `associated` become `unassociated`, `unassociated` becomes `associated`, and `deleted` becomes `added`. No change type deletes a group, in either direction.
-
-Each generated migration carries its own copy of these functions. A group migration generated by an earlier version still deletes a group when it replays a `deleted` change or rolls back an `added` one. Run [`updategroupmigrations`](#updating-existing-group-migrations) to rewrite them with the current code before running them in another environment.
-
-### What the Generated Migration Contains
-
-The migration is a standard Django migration file. Django generates an empty shell with placeholder values that are used to locate specific lines in the file. `makegroupmigrations` then rewrites the file to add:
-
-- A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
-- A `changed_data` variable containing the list of recorded changes.
-- A `GroupChangeTypes` enum with the five change types.
-- A `migrate_step` function that applies a single change by inspecting the change type and performing the appropriate create, associate, rename, or unassociate operation.
-- A `forwards_migrate_groups` function that iterates through `changed_data` in order, calling `migrate_step` for each entry.
-- A `backwards_migrate_groups` function that iterates through `changed_data` in reverse, inverting each change type before passing it to `migrate_step`.
-- A `make_sure_permissions_exist` function which calls Django's `create_permissions`, to ensures all permissions are present before the migration runs.
-- A comment that identifies the file as a VUEDA-generated group migration, used by the command to find and parse previously created migrations. Do not remove this comment.
-
-For example, the `forwards_migrate_groups` function for a migration that adds a `Managers` group with the `read_invoice` permission would:
-
-1. Call `make_sure_permissions_exist` to ensure `read_invoice` exists.
-2. Look up the `read_invoice` permission using the stored app label and model name.
-3. Create the `Managers` group.
-4. Associate `read_invoice` with `Managers`.
-
-When migrating backwards, `backwards_migrate_groups` removes `read_invoice` from `Managers`. The `Managers` group stays.
-
-### Command Options
-
-`--dry-run`
-
-Prints the output that occurs when the empty migration is created and modified. Mostly useful to see what the new migrations name will be. Dry run is passed to all management commands called by `makegroupmigrations`.
+To preview the migration name without writing a file, add `--dry-run`. The command passes `--dry-run` to Django's `makemigrations`, and still prints the note to fake the migration.
 
 ```console
 python manage.py makegroupmigrations --dry-run
 ```
 
-### Faking the Migration on Your Local Machine
+### Which Changes a Migration Includes
 
-If you made the group changes yourself and are the person running `makegroupmigrations`, your local database already contains the changes. A note is printed telling you to fake the migration, so that Django marks it as applied:
+VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makegroupmigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
 
-```console
-python manage.py migrate myapp 0005_group_permission_migrations_2026_04_21 --fake
-```
+A change names its group by name and its permission by codename, app label, and model name. It holds no primary keys, because keys differ between databases.
 
-Other environments that do not already have the changes should run the migration normally.
+When a group migration runs forward, it adds a `GroupChange` row for each of its changes that has none. A later `makegroupmigrations` run in that environment then skips those changes.
 
-### Syncing Group Changes from Existing Migrations
+### Change Types
 
-If you are setting up a new environment, a migration exists that will run the management command `sync_group_changes`, to populate change records in the `GroupChange` table, extracted from existing migration files.
+Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.management.commands.makegroupmigrations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
 
-If you think you have missing records locally, you can manually run `sync_group_changes` to see the number of records it creates:
+| Type           | Recorded when                                                | Forward                                                    | Backward                                                   |
+| -------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| `added`        | You save a name that no group has                            | Creates the group if it is missing and adds the permission | Removes the permission and keeps the group                 |
+| `associated`   | You save the name of an existing group                       | Adds the permission                                        | Removes the permission                                     |
+| `changed`      | You rename a group                                           | Renames the group                                          | Renames the group back                                     |
+| `unassociated` | You remove a permission from a group                         | Removes the permission and keeps the group                 | Adds the permission                                        |
+| `deleted`      | Earlier releases, when you removed a group's last permission | Removes the permission and keeps the group                 | Creates the group if it is missing and adds the permission |
+
+No change type deletes a group, in either direction.
+
+Each group migration carries its own copy of the code that applies these changes. A group migration generated by an earlier VUEDA release still deletes a group when it replays a `deleted` change or rolls back an `added` change. Review those migrations before you run them in another environment. The `updategroupmigrations` command, described in [Updating Existing Group Migrations](#updating-existing-group-migrations), replaces their copy with the current code.
+
+### What the Migration File Contains
+
+A group migration is a standard Django migration. `makegroupmigrations` adds:
+
+- `changed_data`, the list of changes that the migration applies.
+- Copies of [`migrate_step`]{@api py:function:vueda.user.management.commands.makegroupmigrations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.management.commands.makegroupmigrations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
+- A comment near the top that marks the file as a group migration. VUEDA's group migration commands find group migrations by this comment, so keep it.
+
+### Fill In Missing Change Records
+
+[`sync_group_changes`]{@api py:class:vueda.user.management.commands.sync_group_changes.Command} reads `changed_data` from the group migrations in your project's apps. It creates a `GroupChange` row for each change that has none, and prints how many it created. The `vueda_user` migration `0005_sync_group_changes` runs it once. You can run it again at any time:
 
 ```console
 python manage.py sync_group_changes
 ```
 
-This command scans all project migrations for those created by `makegroupmigrations`, reads the `changed_data` from each, and creates any missing `GroupChange` records. This ensures `makegroupmigrations` can correctly identify which changes have already been captured when you run it next.
-
 ## Updating Existing Group Migrations
 
-When the function implementations embedded in a group migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere — run `updategroupmigrations` to bring all existing group migrations in line with the current implementations from `makegroupmigrations.py`.
+A group migration runs without updates, because it carries its own copy of the code. Run [`updategroupmigrations`]{@api py:class:vueda.user.management.commands.updategroupmigrations.Command} when a VUEDA release changes that code and you want existing group migrations to use the new version.
 
 ```console
 python manage.py updategroupmigrations
 ```
 
-### What the Command Updates
-
-`updategroupmigrations` scans all installed apps for migrations created by `makegroupmigrations` (identified by a comment marker near the top of each file). For each file it finds, the command:
-
-- Replaces the import block with the current imports from `makegroupmigrations.py`.
-- Replaces the embedded function implementations (`GroupChangeTypes`, `migrate_step`, `forwards_migrate_groups`, `backwards_migrate_groups`, and `make_sure_permissions_exist`) with the current versions.
-- Preserves the `changed_data` variable and the `class Migration` block unchanged.
-
-Only these specific imports and functions, matched by name, are replaced. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
-
-That said, any changes you make inside the listed functions themselves are overwritten the next time `updategroupmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a group migration to do something beyond what `makegroupmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_groups`, `backwards_migrate_groups`, or the other recognized functions directly.
-
-### Command Options
-
-`--dry-run`
-
-Shows which migration files would be updated without writing any changes to disk.
+Add `--dry-run` to list the files that the command would update without writing them.
 
 ```console
 python manage.py updategroupmigrations --dry-run
 ```
 
-### When to Run It
+The command finds group migrations in every installed app by their marker comment. In each file it:
 
-Group migrations are self-contained: they carry everything they need to run, so you do not have to update them after every VUEDA upgrade. Running `updategroupmigrations` is optional.
+- Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any that the file lacks.
+- Updates the import lines that it recognizes, and leaves other imports in place.
+- Keeps `changed_data` and the `Migration` class. In the class's `operations` list, it renames references to functions that earlier releases named differently.
 
-If a bug is found in the embedded functions, the VUEDA release notes will describe the issue and state that running `updategroupmigrations` is needed to apply the fix to your existing migrations. Outside of that, running the command when nothing has changed is safe — the function bodies are rewritten with the same current implementations, so migration behavior is unchanged.
+Code outside the copied functions stays as it is. The command overwrites edits inside a copied function the next time it runs. To add behavior to a group migration, write a separate function and add it to the `operations` list.
+
+An environment that already applied a migration does not run it again. An update affects only rollbacks and environments that have not applied the migration. Running the command when nothing has changed rewrites the same code.
