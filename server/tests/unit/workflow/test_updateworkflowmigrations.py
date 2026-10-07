@@ -22,7 +22,7 @@ from vueda.workflow.management.commands import updateworkflowmigrations
 
 WORKFLOW_EVENTS = "0008_initialstateevent_objectstateevent_stateevent_and_more"
 VDQ_WORKFLOW = "0005_workflow_migrations_2025_11_21"
-PRODUCT_LATEST = "0004_productcascadeorderedbyformattedname_and_more"
+PRODUCT_LATEST = "0001_initial"
 
 # The directory holding both `vueda/` and `tests/`, whose apps carry workflow migrations of their own.
 SOURCE_TREE = Path(workflow_module.__file__).parents[2]
@@ -193,7 +193,7 @@ def write_workflow_and_state_migrations(directory):
     model to its references, so its changed_data is rewritten through the formatter.
     """
     workflow = {"code": "probe", "historical_app_label": "product", "historical_model": "product"}
-    workflow_path = directory / "0005_workflow_created.py"
+    workflow_path = directory / "0002_workflow_created.py"
     write_workflow_migration(
         workflow_path,
         [("product", PRODUCT_LATEST), ("vueda_workflow", WORKFLOW_EVENTS)],
@@ -206,10 +206,10 @@ def write_workflow_and_state_migrations(directory):
             }
         ],
     )
-    state_path = directory / "0006_workflow_state.py"
+    state_path = directory / "0003_workflow_state.py"
     write_workflow_migration(
         state_path,
-        [("product", "0005_workflow_created")],
+        [("product", "0002_workflow_created")],
         changed_data=[
             {
                 "changes": {
@@ -430,7 +430,7 @@ class TestInstalledPackageApps(BaseTestMigrations):
                 ],
             )
             # 2. The project records a state whose workflow reference names the code alone.
-            state_path = project_directory / "0005_workflow_state.py"
+            state_path = project_directory / "0002_workflow_state.py"
             write_workflow_migration(
                 state_path,
                 [("product", PRODUCT_LATEST), ("vueda_vdq", "0008_workflow_created")],
@@ -451,7 +451,7 @@ class TestInstalledPackageApps(BaseTestMigrations):
             # 3. The package renames its workflow code to `retired`.
             write_workflow_migration(
                 package_directory / "0009_workflow_renamed.py",
-                [("vueda_vdq", "0008_workflow_created"), ("product", "0005_workflow_state")],
+                [("vueda_vdq", "0008_workflow_created"), ("product", "0002_workflow_state")],
                 changed_data=[
                     {
                         "changes": {
@@ -473,8 +473,8 @@ class TestInstalledPackageApps(BaseTestMigrations):
             )
             # 4. The project creates workflow `reused` for vueda_vdq.job.
             write_workflow_migration(
-                project_directory / "0006_workflow_reused.py",
-                [("product", "0005_workflow_state"), ("vueda_vdq", "0009_workflow_renamed")],
+                project_directory / "0003_workflow_reused.py",
+                [("product", "0002_workflow_state"), ("vueda_vdq", "0009_workflow_renamed")],
                 changed_data=[
                     {
                         "changes": {
@@ -521,7 +521,7 @@ class TestInstalledPackageApps(BaseTestMigrations):
             (Path(package_directory) / "0008_raises_on_import.py").write_text(
                 'raise RuntimeError("package migration imported")\n'
             )
-            path = Path(project_directory) / "0005_workflow_probe.py"
+            path = Path(project_directory) / "0002_workflow_probe.py"
             write_workflow_migration(path, [("product", PRODUCT_LATEST), ("vueda_workflow", WORKFLOW_EVENTS)])
             originals = {
                 item: item.read_bytes()

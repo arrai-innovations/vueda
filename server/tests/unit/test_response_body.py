@@ -1,6 +1,11 @@
+import io
+from http import HTTPStatus
 from pprint import pformat
 from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
+
+from django.http import FileResponse
+from django.http import StreamingHttpResponse
 
 from tests.conftest import response_body
 
@@ -47,3 +52,36 @@ class TestResponseBody:
         response = MagicMock()
         type(response).data = PropertyMock(return_value=None)
         assert response_body(response) == pformat(None)
+
+    def test_describes_a_file_response_without_reading_it(self):
+        stream = io.BytesIO(b"file payload")
+        response = FileResponse(stream, content_type="text/plain")
+        try:
+            assert response_body(response) == (
+                "<FileResponse status_code=200 content_type='text/plain', streaming content not read>"
+            )
+            # The stream is still where it started, and still open, for whoever handles it next.
+            assert stream.tell() == 0
+            assert not stream.closed
+        finally:
+            # Closing the response would send request_finished, whose close_old_connections handler
+            # touches the database this test has no access to.
+            stream.close()
+
+    def test_describes_a_streaming_response_without_advancing_it(self):
+        chunks_read = []
+
+        def chunks():
+            chunks_read.append("first")
+            yield b"first"
+
+        generator = chunks()
+        response = StreamingHttpResponse(generator, status=HTTPStatus.ACCEPTED, content_type="text/csv")
+        try:
+            assert response_body(response) == (
+                "<StreamingHttpResponse status_code=202 content_type='text/csv', streaming content not read>"
+            )
+            assert chunks_read == []
+        finally:
+            # See the FileResponse test above for why this closes the generator, not the response.
+            generator.close()

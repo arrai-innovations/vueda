@@ -33,11 +33,21 @@ POSTGRES_MAX_DB_NAME_LENGTH = 63
 
 
 def response_body(response):
-    """Return the best available representation of a response body for assertion messages."""
+    """Return the best available representation of a response body for assertion messages.
+
+    A streaming response, such as a ``FileResponse``, has no ``content``, and reading its
+    ``streaming_content`` would consume the stream the test may still hold open. It is described by
+    its class, status and content type instead.
+    """
     if hasattr(response, "data"):
         if isinstance(response.data, str) and "Traceback" in response.data:
             return response.data
         return pformat(response.data)
+    if getattr(response, "streaming", False):
+        return (
+            f"<{type(response).__name__} status_code={response.status_code} "
+            f"content_type={response.get('Content-Type')!r}, streaming content not read>"
+        )
     try:
         return response.json()
     except (ValueError, AttributeError):
@@ -382,9 +392,6 @@ class BaseTestCommonModelViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin,
         # we need to convert them to dicts
         return {k: dict(v) if isinstance(v, dict) else v for k, v in response.data.items()}
 
-    def get_default_response(self, arguments):
-        return {key: arguments[key] for key in arguments}
-
 
 class BaseTestListModelViewSet:
     list_keys_arguments = set()
@@ -408,9 +415,8 @@ class BaseTestListModelViewSet:
 
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        # Get the index of the record we are trying to validate, so we know it has a revision.
-        # The only reason this worked before, was because there was no object
-        # with a name alphabetically before 'Distributor A'.  There is now.
+        # Find the record being validated by matching its values rather than assuming it is first in
+        # the results, because other rows can sort before it.
         response_info = response.json()
         index_of_page_data_arguments_item = None
         for index, result in enumerate(response_info["results"]):
@@ -473,9 +479,6 @@ class BaseTestCreateModelViewSet:
                 }
             )
 
-    def after_create(self, new_instance, expected_create_response):
-        pass
-
     # page_data is needed for object creation, even though it isn't used directly in test_list.
     def test_create(
         self, page_data, authenticated_client, create_arguments, expected_create_response, detail_querystring
@@ -488,7 +491,6 @@ class BaseTestCreateModelViewSet:
         self.update_expected_create_response(expected_create_response, new_instance)
         if status_code == HTTPStatus.CREATED:
             assert self.convert_response(response) == expected_create_response
-        self.after_create(new_instance, expected_create_response)
 
 
 class BaseTestRetrieveModelViewSet:
@@ -553,9 +555,6 @@ class BaseTestUpdateModelViewSet:
                 }
             )
 
-    def after_update(self, updated_instance, expected_update_response):
-        pass
-
     def test_update(
         self,
         page_data,
@@ -574,7 +573,6 @@ class BaseTestUpdateModelViewSet:
         self.update_expected_update_response(expected_update_response, updated_instance)
         if status_code == HTTPStatus.OK:
             assert self.convert_response(response) == expected_update_response
-        self.after_update(updated_instance, expected_update_response)
 
 
 class BaseTestModelViewSet(
@@ -590,7 +588,7 @@ class BaseTestModelViewSet(
 
 
 class BaseTestCallCommand:
-    def call_command(self, *args, stdout=None, stderr=None):
+    def call_command_capturing_output(self, *args, stdout=None, stderr=None):
         """
         Call a management command and capture the results.
 

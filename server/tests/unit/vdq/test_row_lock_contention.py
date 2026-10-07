@@ -136,66 +136,70 @@ def short_lock_timeout(monkeypatch):
 
 
 @pytest.fixture
-def sending_email_item(queue_item_email):
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
-    return queue_item_email
+def sending_email_with_detail(sending_email_without_detail):
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
+    return sending_email_without_detail
 
 
-def test_send_message_sends_after_a_holder_updates_the_row(monkeypatch, repeatable_read, email_queue_item):
+def test_send_message_sends_after_a_holder_updates_the_row(monkeypatch, repeatable_read, queued_email_with_detail):
     sent = []
     monkeypatch.setattr("vueda.vdq.tasks.send_email", lambda qi: sent.append(qi.pk))
 
-    with RowLockHolder(email_queue_item.pk, action=touch_row):
-        send_message(email_queue_item.pk, "email")
+    with RowLockHolder(queued_email_with_detail.pk, action=touch_row):
+        send_message(queued_email_with_detail.pk, "email")
 
-    assert sent == [email_queue_item.pk]
-    assert workflow_code(email_queue_item.pk) == "sending"
+    assert sent == [queued_email_with_detail.pk]
+    assert workflow_code(queued_email_with_detail.pk) == "sending"
 
 
-def test_send_message_ignores_an_item_the_holder_cancelled(monkeypatch, repeatable_read, email_queue_item):
+def test_send_message_ignores_an_item_the_holder_cancelled(monkeypatch, repeatable_read, queued_email_with_detail):
     sent = []
     monkeypatch.setattr("vueda.vdq.tasks.send_email", lambda qi: sent.append(qi.pk))
 
-    with RowLockHolder(email_queue_item.pk, action=lambda qi: qi.fast_transition("cancel")):
+    with RowLockHolder(queued_email_with_detail.pk, action=lambda qi: qi.fast_transition("cancel")):
         with pytest.raises(Ignore):
-            send_message(email_queue_item.pk, "email")
+            send_message(queued_email_with_detail.pk, "email")
 
     assert sent == []
-    assert workflow_code(email_queue_item.pk) == "cancelled"
+    assert workflow_code(queued_email_with_detail.pk) == "cancelled"
 
 
-def test_on_retry_records_the_retry_after_a_holder_updates_the_row(monkeypatch, repeatable_read, sending_email_item):
+def test_on_retry_records_the_retry_after_a_holder_updates_the_row(
+    monkeypatch, repeatable_read, sending_email_with_detail
+):
     revoked = []
     monkeypatch.setattr("vueda.vdq.celery.app.control.revoke", lambda task_id, **kwargs: revoked.append(task_id))
     delay = 30
     einfo = SimpleNamespace(exception=SimpleNamespace(exc=SimpleNamespace(when=delay)))
 
-    with RowLockHolder(sending_email_item.pk, action=touch_row):
-        QueueProcessor().on_retry(RuntimeError("transient"), "task-1", (sending_email_item.pk, "email"), {}, einfo)
+    with RowLockHolder(sending_email_with_detail.pk, action=touch_row):
+        QueueProcessor().on_retry(
+            RuntimeError("transient"), "task-1", (sending_email_with_detail.pk, "email"), {}, einfo
+        )
 
-    queue_item = QueueItem.objects.get(pk=sending_email_item.pk)
+    queue_item = QueueItem.objects.get(pk=sending_email_with_detail.pk)
     assert queue_item.task_id == "task-1"
     assert queue_item.retry_delay == delay
     assert queue_item.workflow_state.code == "delayed"
     assert revoked == []
 
 
-def test_on_failure_records_the_error_after_a_holder_updates_the_row(repeatable_read, sending_email_item):
-    with RowLockHolder(sending_email_item.pk, action=touch_row):
+def test_on_failure_records_the_error_after_a_holder_updates_the_row(repeatable_read, sending_email_with_detail):
+    with RowLockHolder(sending_email_with_detail.pk, action=touch_row):
         try:
             raise RuntimeError("provider down")
         except RuntimeError as exc:
-            QueueProcessor().on_failure(exc, "task-2", (sending_email_item.pk, "email"), {}, SimpleNamespace())
+            QueueProcessor().on_failure(exc, "task-2", (sending_email_with_detail.pk, "email"), {}, SimpleNamespace())
 
-    queue_item = QueueItem.objects.get(pk=sending_email_item.pk)
+    queue_item = QueueItem.objects.get(pk=sending_email_with_detail.pk)
     assert "provider down" in queue_item.result
     assert queue_item.workflow_state.code == "errored"
 
 
 def test_send_email_records_the_message_id_while_a_holder_updates_the_row(
-    monkeypatch, repeatable_read, sending_email_item
+    monkeypatch, repeatable_read, sending_email_with_detail
 ):
-    holder = RowLockHolder(sending_email_item.pk, action=touch_row)
+    holder = RowLockHolder(sending_email_with_detail.pk, action=touch_row)
 
     def fake_send(self, *args, **kwargs):
         self.anymail_status = SimpleNamespace(message_id="message-1", status={"sent"})
@@ -205,16 +209,16 @@ def test_send_email_records_the_message_id_while_a_holder_updates_the_row(
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     try:
-        send_email(sending_email_item)
+        send_email(sending_email_with_detail)
     finally:
         holder.finish()
 
-    assert AnyMailQueueItem.objects.get(queue_item=sending_email_item).message_id == "message-1"
-    assert workflow_code(sending_email_item.pk) == "awaiting"
+    assert AnyMailQueueItem.objects.get(queue_item=sending_email_with_detail).message_id == "message-1"
+    assert workflow_code(sending_email_with_detail.pk) == "awaiting"
 
 
-def test_send_sms_records_the_sid_while_a_holder_updates_the_row(repeatable_read, queue_item_sms):
-    holder = RowLockHolder(queue_item_sms.pk, action=touch_row)
+def test_send_sms_records_the_sid_while_a_holder_updates_the_row(repeatable_read, sending_sms):
+    holder = RowLockHolder(sending_sms.pk, action=touch_row)
 
     def create(**kwargs):
         holder.start()
@@ -224,23 +228,23 @@ def test_send_sms_records_the_sid_while_a_holder_updates_the_row(repeatable_read
     handler.twilio_client = SimpleNamespace(messages=SimpleNamespace(create=create))
 
     try:
-        handler.send_sms(queue_item_sms)
+        handler.send_sms(sending_sms)
     finally:
         holder.finish()
 
-    queue_item = QueueItem.objects.get(pk=queue_item_sms.pk)
+    queue_item = QueueItem.objects.get(pk=sending_sms.pk)
     assert SMSQueueItem.objects.get(queue_item=queue_item).message_sid == "SM1"
     assert queue_item.result == "sent"
     assert queue_item.workflow_state.code == "awaiting"
 
 
-def test_send_sms_records_a_rejection_while_a_holder_updates_the_row(monkeypatch, repeatable_read, queue_item_sms):
+def test_send_sms_records_a_rejection_while_a_holder_updates_the_row(monkeypatch, repeatable_read, sending_sms):
     class FakeTwilioRestException(Exception):  # noqa: N818
         def __init__(self, msg):
             self.msg = msg
 
     monkeypatch.setattr("vueda.vdq.handlers.TwilioRestException", FakeTwilioRestException)
-    holder = RowLockHolder(queue_item_sms.pk, action=touch_row)
+    holder = RowLockHolder(sending_sms.pk, action=touch_row)
 
     def create(**kwargs):
         holder.start()
@@ -250,11 +254,11 @@ def test_send_sms_records_a_rejection_while_a_holder_updates_the_row(monkeypatch
     handler.twilio_client = SimpleNamespace(messages=SimpleNamespace(create=create))
 
     try:
-        handler.send_sms(queue_item_sms)
+        handler.send_sms(sending_sms)
     finally:
         holder.finish()
 
-    queue_item = QueueItem.objects.get(pk=queue_item_sms.pk)
+    queue_item = QueueItem.objects.get(pk=sending_sms.pk)
     assert "rejected" in queue_item.result
     assert queue_item.workflow_state.code == "errored"
 
@@ -283,12 +287,14 @@ def test_pull_sms_timeout_only_continues_past_a_held_row(settings, repeatable_re
     assert workflow_code(free.pk) == "succeeded"
 
 
-def test_with_locked_queue_item_raises_when_the_row_stays_held(repeatable_read, short_lock_timeout, email_queue_item):
+def test_with_locked_queue_item_raises_when_the_row_stays_held(
+    repeatable_read, short_lock_timeout, queued_email_with_detail
+):
     ran = []
 
-    with RowLockHolder(email_queue_item.pk, release="manual"):
+    with RowLockHolder(queued_email_with_detail.pk, release="manual"):
         with pytest.raises(QueueItemLockError):
-            with_locked_queue_item(email_queue_item.pk, ran.append)
+            with_locked_queue_item(queued_email_with_detail.pk, ran.append)
 
     assert ran == []
 
@@ -298,7 +304,7 @@ def test_with_locked_queue_item_passes_none_for_a_missing_row(repeatable_read):
 
 
 def test_send_message_retries_later_when_the_row_stays_held(
-    monkeypatch, repeatable_read, short_lock_timeout, email_queue_item
+    monkeypatch, repeatable_read, short_lock_timeout, queued_email_with_detail
 ):
     retries = []
 
@@ -312,18 +318,18 @@ def test_send_message_retries_later_when_the_row_stays_held(
     monkeypatch.setattr(send_message, "retry", fake_retry)
     monkeypatch.setattr("vueda.vdq.tasks.send_email", lambda qi: pytest.fail("send_email should not be called"))
 
-    with RowLockHolder(email_queue_item.pk, release="manual"):
+    with RowLockHolder(queued_email_with_detail.pk, release="manual"):
         with pytest.raises(RetryScheduledError):
-            send_message(email_queue_item.pk, "email")
+            send_message(queued_email_with_detail.pk, "email")
 
     assert retries == [(QueueItemLockError, LOCK_RETRY_COUNTDOWN)]
-    assert workflow_code(email_queue_item.pk) == "queued"
+    assert workflow_code(queued_email_with_detail.pk) == "queued"
 
 
 def test_send_email_names_the_message_id_when_the_row_stays_held(
-    monkeypatch, repeatable_read, short_lock_timeout, sending_email_item
+    monkeypatch, repeatable_read, short_lock_timeout, sending_email_with_detail
 ):
-    holder = RowLockHolder(sending_email_item.pk, release="manual")
+    holder = RowLockHolder(sending_email_with_detail.pk, release="manual")
 
     def fake_send(self, *args, **kwargs):
         self.anymail_status = SimpleNamespace(message_id="message-2", status={"sent"})
@@ -334,13 +340,13 @@ def test_send_email_names_the_message_id_when_the_row_stays_held(
 
     try:
         with pytest.raises(QueueItemLockError, match="message-2"):
-            send_email(sending_email_item)
+            send_email(sending_email_with_detail)
     finally:
         holder.finish()
 
 
-def test_send_sms_names_the_sid_when_the_row_stays_held(repeatable_read, short_lock_timeout, queue_item_sms):
-    holder = RowLockHolder(queue_item_sms.pk, release="manual")
+def test_send_sms_names_the_sid_when_the_row_stays_held(repeatable_read, short_lock_timeout, sending_sms):
+    holder = RowLockHolder(sending_sms.pk, release="manual")
 
     def create(**kwargs):
         holder.start()
@@ -351,6 +357,6 @@ def test_send_sms_names_the_sid_when_the_row_stays_held(repeatable_read, short_l
 
     try:
         with pytest.raises(QueueItemLockError, match="SM2"):
-            handler.send_sms(queue_item_sms)
+            handler.send_sms(sending_sms)
     finally:
         holder.finish()
