@@ -1,7 +1,7 @@
 /**
  * @module .vitepress/theme/fixtures/showcaseCustomer
  *
- * Seeded model metadata for the Tier A CRUDL demos. The CRUDL view demos render
+ * Seeded model metadata for the Tier A CRUD demos. The CRUD view demos render
  * a real {@link FormModel} against this fixture instead of hand-building field
  * markup, so the demo form body stays in lock-step with the framework's actual
  * default output (the source of the earlier `px-6` vs `px-5` gutter drift).
@@ -293,7 +293,7 @@ export const customerModelInfo = {
 };
 
 /**
- * Seed the demo model metadata into the model-info store so the CRUDL demos can
+ * Seed the demo model metadata into the model-info store so the CRUD demos can
  * render a real FormModel offline. Idempotent: re-seeding overwrites the same key.
  *
  * @param {import('pinia').Pinia} pinia - The docs app's active pinia instance.

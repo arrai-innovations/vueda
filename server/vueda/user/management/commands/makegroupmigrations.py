@@ -24,7 +24,6 @@ import inspect
 import os
 import re
 from pathlib import Path
-from pprint import pformat
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -38,6 +37,7 @@ from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
 from vueda.user.management.commands.utils import create_group_change
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_matching_record
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
 from vueda.user.management.commands.utils import get_migrations_path
@@ -462,7 +462,7 @@ class Command(BaseCommand):
 
             # Changed data and forwards/reverse functions.
             copied_code = [
-                f"{NEWLINE}changed_data = {pformat(changes)}{NEWLINE}",
+                f"{NEWLINE}{format_changed_data(changes, migration_file, stderr=self.stderr)}",
                 *get_group_migration_sources(self.import_instead),
             ]
             lines[slots["class_index"] - 1 : slots["class_index"]] = copied_code

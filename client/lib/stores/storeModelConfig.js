@@ -440,7 +440,7 @@ const validateExpandConfig = (builtConfig, defaultGenericConfig, args) => {
  *    the flattened expansion fields) and the merged expandDetails.
  *
  * This approach allows the default expandable field configurations (as provided by
- * drf-flex-fields) to be customized via expandDetails, while also permitting direct
+ * drf-flex-fields2) to be customized via expandDetails, while also permitting direct
  * overrides in fieldDetails for the flattened keys.
  *
  * @param {ModelConfig} builtConfig - The built configuration object, which is mutated in place.
@@ -594,8 +594,10 @@ export const storeModelConfig = defineStore("modelConfig", {
          */
         builtConfigs: {},
         /**
-         * The in-flight `getConfig` builds, keyed like `builtConfigs`. A build removes its entry when
-         * it finishes, and each promise has a `cancel` method.
+         * The in-flight `getConfig` builds. The key is the app, model, and view dot name. When no view
+         * was given, the key is the app and model dot name. A build that succeeds or is cancelled
+         * removes its entry. A build that fails keeps its rejected promise here until `setConfig` for
+         * the model or `clearAuthScoped` removes it. Each promise has a `cancel` method.
          *
          * @type {{[builtKey: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>}}
          */

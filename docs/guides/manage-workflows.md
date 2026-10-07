@@ -106,6 +106,27 @@ The migration is a standard Django migration file. After Django generates the em
 
 The `handle_*` functions look up the associated database record using the natural identifiers stored in the change data, then apply the appropriate create, update, or delete operation.
 
+### How `changed_data` Is Formatted
+
+`makeworkflowmigrations` and `updateworkflowmigrations` format `changed_data` with the Python formatter your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. These are usually installed as development dependencies. `makegroupmigrations` formats its `changed_data` the same way. See [How `changed_data` Is Formatted](manage-groups.md#how-changed-data-is-formatted) in the group guide.
+
+The commands use the first of these that applies:
+
+1. **black, when your project configures it** with a `[tool.black]` section, even an empty one, in the `pyproject.toml` at your project root. A project can have ruff installed only to lint, so black configuration takes priority. A black configuration in your home directory, such as `~/.config/black`, does not count, so one developer's file cannot choose the formatter for the whole project.
+2. **ruff, when it is installed.**
+3. **black with its default settings, when it is installed** but not configured.
+4. **Python's `pprint`** with a narrow width, when neither is installed. That output uses single quotes and does not follow your settings.
+
+If the formatter that applies fails, for example because your `pyproject.toml` cannot be read or a setting has the wrong type, the commands do not switch to another formatter that would ignore your settings. They print the formatter's error, write `changed_data` with `pprint`, and ask you to fix the problem and then format that migration manually. `updateworkflowmigrations --dry-run` still runs the formatter, so it reports the same error, but it writes nothing and says that a run without `--dry-run` would fall back to `pprint`.
+
+With black or ruff:
+
+- **Your project's settings apply.** black reads `[tool.black]` from the `pyproject.toml` at your project root, and ruff reads the configuration that covers the migration file, such as your `pyproject.toml` or `ruff.toml`. The list follows your line length and quote style. ruff applies its settings even when they exclude migrations from ruff.
+- **Every change and every key gets its own line.** Each dictionary and list ends in a trailing comma, which keeps the formatter from joining the items onto one line. The commands keep the magic trailing comma on for this, even when your configuration skips it. An `(old, new)` pair from a changed field stays on one line.
+- **Keys are sorted**, as earlier versions of the commands wrote them.
+
+Only `changed_data` is formatted this way. The rest of the migration, including the embedded functions, is written in the commands' own layout.
+
 ### Command Options
 
 `--dry-run`
@@ -167,30 +188,47 @@ The previous release does not know the model has workflow. Objects it creates af
 
 ## Updating Existing Workflow Migrations
 
-When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your app's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. Name each of your own apps:
+When the function implementations embedded in a workflow migration become out of date — for example, after upgrading VUEDA but before the migration is run anywhere, or if you are squashing migrations — run `updateworkflowmigrations` to bring your project's workflow migrations in line with the current implementations from `makeworkflowmigrations.py`. With no app label, it updates every app in your project's source tree:
+
+```console
+python manage.py updateworkflowmigrations
+```
+
+Name apps to update only those:
 
 ```console
 python manage.py updateworkflowmigrations myapp otherapp
 ```
 
-::: warning
-Always name your own apps to update. With no app label, the command scans every installed app, including VUEDA's own migrations inside the installed package. It skips incompatible migrations but can still rewrite compatible package files that you cannot commit in your project. See [Migrations the command must not rewrite](#migrations-the-command-must-not-rewrite).
-:::
+### Which Apps a Run Covers
+
+The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside a directory Python installs packages into (`site-packages`). That covers the environment's own, the base interpreter's that a virtual environment created with `--system-site-packages` also uses, and the user directory that `pip install --user` installs into. VUEDA's own `vueda_vdq` is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the originals back.
+
+The command still reads migrations from installed packages, and from apps you did not name, without rewriting them. It reads them for two reasons:
+
+- **Workflow history.** A package's migration can be the only record of which app and model a workflow code belonged to. Your project's migrations can refer to that workflow by code. See [What the Command Updates](#what-the-command-updates).
+- **Dependency checks.** Checking a migration's dependencies loads Django's whole migration graph, which imports every installed app's migrations. If one of those raises an error on import, the command reports it and leaves your migration unchanged.
+
+Naming an installed app is an error. The command reports that it will not update installed packages, names the app, and exits with status 2 before it reads any migration, as it does for an app label that does not exist. A run that finds nothing in your project to update reports that and stops, without reading any package migration.
+
+An app installed in editable mode, such as a uv workspace member, keeps its files in its source tree. It counts as part of your project and is updated.
 
 ### What the Command Updates
 
-`updateworkflowmigrations` scans the apps you name, or every installed app when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
+`updateworkflowmigrations` scans the apps you name, or every app in your project's source tree when you name none, for migrations created by `makeworkflowmigrations` (identified by a comment marker near the top of each file). It first checks whether each file's dependencies include the workflow schema the current functions need. For each compatible file, the command:
 
 - Replaces the import block with the current imports from `makeworkflowmigrations.py`.
 - Replaces the embedded function implementations (`forwards_migrate_workflow`, `backwards_migrate_workflow`, `handle_*`, and related helpers) with the current versions.
 - Updates any stale function names referenced in the `operations` list.
 - Adds the app label and model name to every workflow that `changed_data` refers to by code alone.
 
-A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. What the changes record is only added to: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. That holds for the values, not the text of the file. See the note on `changed_data` below. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. Running the command twice makes no further difference.
+A migration written before workflow references carried the app and model names each workflow by its code. A code identifies one workflow at a time but not across the life of a project, so once another model takes a code over, a code on its own no longer says which workflow a change meant. The command works out what each code meant when each change was recorded, reading the workflow's own change, and writes that alongside the code. It reads those changes from every app's generated migrations, including installed packages and apps you did not name, so a reference keeps the workflow it meant even when only a package recorded that workflow. What the changes record is only added to: no change gains or loses an entry, no value already recorded is replaced, and no value other than these two is written. That holds for the values, not the text of the file. See the note on `changed_data` below. A workflow whose own change is not in any migration the command reads is left as it is, because there is nothing to derive from. A reference recorded before every workflow that has held its code is left as it is too, unless only one workflow has ever held that code. When several have, the command cannot tell which one the reference means. Running the command twice makes no further difference.
 
 Working out what a code meant when a change was recorded means ordering the dates that migrations record against each other, and every date a generated migration records carries a time zone. A date without one reached the file by hand, so the command reports the file and reads that date as UTC, which is what the generated dates hold. The date in the file is left exactly as it was written.
 
 If the command cannot read a migration's `changed_data`, it skips that file and reports the fault. Examples include a syntax error, a file that no longer imports on its own, or a change missing `model_name`, `history_date`, or `changes`. It continues updating files whose changes and dependencies it can read, then exits with status 1. If a broken file prevents Django from loading the migration graph, dependency checks fail too. A skipped file stays exactly as it was, including its imports and functions. Fix the reported fault, then run the command again.
+
+A migration the command reads but does not rewrite, such as one in an installed package, is reported as a warning instead. The command leaves out the workflows it records and does not count it as a failure. References are then resolved from the history that remains, so fix the reported fault where you can before relying on the result.
 
 The following are preserved exactly as written in each migration file:
 
@@ -200,7 +238,7 @@ The following are preserved exactly as written in each migration file:
 
 Only the imports and functions listed above are replaced, matched by name. Any other hand-added imports or helper functions elsewhere in the file are left exactly where they are, so custom code is never lost.
 
-`changed_data` is the exception. When the command adds the app and model to any reference in it, it writes the whole list back in the form `makeworkflowmigrations` writes it. The list is laid out differently, strings change quotes, and time zones are written as `datetime.timezone.utc`, so a comment or deliberate formatting inside the list is not kept, even though every value it records is. A list with nothing to add is left exactly as it was. Write a note about a change outside the list, where it is preserved along with the rest of your code.
+`changed_data` is the exception. When the command adds the app and model to any reference in it, it writes the whole list back in the form `makeworkflowmigrations` writes it. See [How `changed_data` Is Formatted](#how-changed-data-is-formatted). The list can be laid out differently, strings can change quotes, and time zones are written as `datetime.timezone.utc`, so a comment or deliberate formatting inside the list is not kept, even though every value it records is. A list with nothing to add is left exactly as it was. Write a note about a change outside the list, where it is preserved along with the rest of your code.
 
 That said, any changes you make inside the listed functions themselves are overwritten the next time `updateworkflowmigrations` runs, since each one is replaced wholesale with the current implementation. If you need a workflow migration to do something beyond what `makeworkflowmigrations` generates, add your logic as an additional, self-contained function referenced from the `class Migration` `operations` list, rather than editing `forwards_migrate_workflow`, `backwards_migrate_workflow`, or the other recognized functions directly.
 
@@ -234,6 +272,6 @@ VUEDA ships the identities in its own `vueda_vdq` workflow migrations, together 
 
 ### Before Committing the Rewritten Files
 
-The command writes `changed_data` and the embedded functions in its own layout, which does not follow any project's formatting or lint rules. A rewritten file fails a check such as `ruff format --check` or `ruff check` until your tools have run on it. Run your formatter and linter on the rewritten files, then apply your migrations to an empty database, for example by running your test suite, before committing them.
+The command writes the embedded functions in its own layout, which does not follow any project's formatting or lint rules. `changed_data` follows your black or ruff settings only when one of them is installed. See [How `changed_data` Is Formatted](#how-changed-data-is-formatted). A rewritten file can fail a check such as `ruff format --check` or `ruff check` until your tools have run on it. Run your formatter and linter on the rewritten files, then apply your migrations to an empty database, for example by running your test suite, before committing them.
 
 Run it as a development step and commit what it writes. It is not something to call from a migration or a deploy: the command rewrites migration source files, so running it on a deployed checkout edits files that are never committed, and the next deploy starts from the unchanged ones again. The migration being applied at the time is already loaded, so rewriting it has no effect on that run either.

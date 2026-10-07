@@ -139,6 +139,13 @@ Configuration lives in `lefthook.yml`. When editing hook commands:
 - Optimize for skimmability: short paragraphs, explicit subject/verb structure, and avoid stacked clauses.
 - Use "example.com" for email addresses that appear in documentation.
 
+These guardrails also apply to docstrings, JSDoc, and other comments that feed the generated reference pages:
+
+- Keep the words that show how a sentence's parts connect. Write "that" before a clause that describes a noun, especially when the clause's verb can also be read as a noun (records, names, lists, sets, changes). "The fields that the change records" parses on the first read; "the fields the change records" does not.
+- Give a fallback or exception its own sentence. "Returns the saved names. The array is empty when none are saved." reads better than "Returns the saved names, or an empty array when none are saved."
+- State each item's own facts. Do not describe an item as "like" another entry, especially one further down the page or one that is itself described as like a third. A docstring is read alone, in IDE hover text and at its own anchor on a generated page.
+- Treat readability targets as warnings. Never delete connecting words to shorten a sentence; split it instead.
+
 ## Test Conventions
 
 - Use "domain.invalid" for email addresses.

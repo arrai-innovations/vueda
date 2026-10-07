@@ -4,7 +4,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { useTheme } from "@vueda/use/useTheme.js";
 
 /**
- * Docs-only wrapper that renders a real {@link FormModel} the way a CRUDL view
+ * Docs-only wrapper that renders a real {@link FormModel} the way a CRUD view
  * does: a form body region (gutter sourced from the live view theme) wrapping the
  * generated fields. It stands in for the view's form plumbing without the parts
  * that need a backend or a router:

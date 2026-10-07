@@ -139,7 +139,7 @@ DETAIL_CHOICES_FILTERING_PARAMETRIZE = [
 
 # The filterset choices endpoint checks "read" on the model under test, and also "list" on the
 # related model when the filter is queryset-backed. These are only those permissions, so each group
-# is the set its own test cases consult rather than a full CRUDL set for every store model.
+# is the set that its own test cases consult rather than a full CRUD set for every store model.
 ADMIN_PERMISSIONS = (
     ("store", "Cart", "read"),
     ("store", "CustomerOrder", "read"),

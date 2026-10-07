@@ -4,7 +4,7 @@
  * Offline API seam for the live view demos.
  *
  * `AuthDemo` reaches its seam one level up, by replacing the `storeUser` actions a
- * view calls. The CRUDL, action, and workflow views cannot use that seam: their data
+ * view calls. The CRUD, action, and workflow views cannot use that seam: their data
  * arrives through `useList` / `useObject` (reactive-helpers), whose crud handlers are
  * wired inside `useViewList` / `useDetailView` and are not injectable from outside.
  *

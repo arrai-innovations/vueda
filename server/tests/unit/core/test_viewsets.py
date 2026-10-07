@@ -2023,7 +2023,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
 
     @pytest.mark.parametrize("expand", ["bogus", "supervisor"])
     def test_partial_update_rejects_an_expand_the_permit_list_leaves_out(self, api_client, monkeypatch, expand):
-        """drf-flex-fields drops an expand the action's permit list leaves out; the write reports it."""
+        """drf-flex-fields2 drops an expand that the action's permit list leaves out; the write reports it."""
         monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
 
         response, t1 = self._patch_timesheet(api_client, expand, {"period_end": "2024-03-01"})
