@@ -183,7 +183,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         Get the permissions for a model. Read-only serializers only ever expose list/retrieve
         actions, so their create/update/delete permissions (which may still exist in the
-        database, since the model itself keeps the standard CRUDL permission set) are filtered
+        database, since the model itself keeps the standard CRUD permission set) are filtered
         out here rather than restricted on the model.
         """
         permissions = Permission.objects.filter(content_type=instance)
@@ -666,21 +666,22 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         A default ordering only means something as a whole: rows arrive sorted by the first term,
         then by the second, and so on. Reporting only the terms that do resolve would tell the
         client the rows are sorted in an order they aren't, so an unresolvable term drops the whole
-        default ordering rather than part of it. A term that names several fields at once — a
-        ``Concat`` of two columns — is unresolvable in the same sense: it has no single name that
+        default ordering rather than part of it. A term that names several fields at once, such as a
+        ``Concat`` of two columns, is unresolvable in the same sense: it has no single name that
         stands for the sort it performs (see ``UnnameableOrderingTermError``). ``VuedaOrderingFilter``
         still accepts an explicit ``?o=`` request on each of those fields; what is dropped is the
         claim about how the rows currently arrive, not the fields themselves.
 
         A term naming a queryset annotation is dropped the same way, and that one is a gap rather
         than a judgement. An annotation resolves to no model field path, so there is no field to read
-        a type from, and nothing here can tell an annotation the viewset's own ``get_queryset`` added
-        from a name that is simply wrong — a queryset can pick one up anywhere on its way here,
-        including in a manager or a helper this never sees. The ordering still runs and ``?o=`` on
-        that name is still accepted; only the report is missing. Ordering a default by a real column,
-        a ``GeneratedField``, or a database view gives the client a name it can be told about — see
-        the "Queryset annotations" section of
-        ``docs/core-concepts/filtering-and-ordering-semantics.md``.
+        a type from, and nothing here can tell an annotation that the viewset's own ``get_queryset``
+        added from a name that is simply wrong. A queryset can pick up an annotation anywhere on its
+        way here, including in a manager or a helper that this method never sees. The ordering still
+        runs and ``?o=`` on that name is still accepted; only the report is missing. A default that
+        orders by a real column gives the client a name it can be told about: a model field for a stored value, a
+        ``GeneratedField`` for a value derived from the same row, or a column on an unmanaged model
+        over a database view, reached through a ``OneToOneField``, for a value that needs a join or
+        an aggregate.
         """
         if not ordering:
             return []
@@ -716,7 +717,56 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     @conditional_extend_schema_field_decorator(ModelInfoOrderingSerializer())
     def get_model_ordering(self, instance):
         """
-        Get the ordering fields for a model and their own metadata.
+        Return the ``model_ordering`` section: the ordering a list request gets when it sends no
+        ``o``, and every field that ``o`` may name.
+
+        ``default`` lists field names in order. It comes from the viewset's ``ordering`` when that is
+        declared, and from the model's ``Meta.ordering`` otherwise. The two are never merged, and a
+        viewset ``ordering`` that fails to resolve does not fall back to the model's. A model with no
+        canonical viewset still reports its ``Meta.ordering``, and ``fields`` then holds only the
+        fields that ordering reads.
+
+        ``fields`` lists a ``name`` and a ``type`` per field, built from the viewset's
+        ``ordering_fields`` the way DRF's ``OrderingFilter`` reads that attribute:
+
+        - An explicit list reports each entry, whether it is a plain name or a
+          ``(field_name, label)`` pair. The label is never reported.
+        - ``"__all__"`` reports the model's own fields by field name (a foreign key as ``customer``,
+          never ``customer_id``) and every annotation that the viewset's ``get_queryset`` adds.
+        - An undeclared ``ordering_fields`` (``None``, DRF's default) reports the canonical
+          serializer's readable fields by ``source`` (see ``get_default_ordering_field_sources``).
+          Model properties and fields with no orderable path are left out.
+        - An empty list offers nothing beyond the default ordering's fields.
+
+        Every field that the default ordering reads is added to ``fields``, because
+        ``VuedaOrderingFilter`` accepts ``o`` for each of them. Only the fields named in the
+        reported ``default`` carry ``ascending``.
+
+        Names and types follow these rules:
+
+        - Each name is the dotted public form that a client sends back in ``o``.
+        - ``"pk"`` is reported as the field behind it: ``id``, or each field of a
+          ``CompositePrimaryKey`` (see ``expand_ordering_pk``).
+        - ``formatted_name`` is reported under that name when the model stores it as a column or
+          reaches it through ``formatted_name_lookup_expression``, and is typed from the column it
+          lands on. A ``formatted_name`` computed by ``get_formatted_name()`` has no column, so it is
+          left out (see ``ordering_fields_from_path``). A related ``formatted_name`` is reported under
+          its declared path, dotted.
+        - A scalar function over one column is reported under that column, typed from the column,
+          with ``ascending`` from the term's direction. ``Lower("name").desc()`` is reported as
+          ``{"name": "name", "type": "alpha", "ascending": false}``, and ``Length("name")`` is typed
+          ``alpha``.
+        - An annotation is typed from its ``output_field``, or ``"alpha"`` when Django cannot resolve
+          one (see ``get_annotation_ordering_type``).
+        - ``"?"`` in ``ordering_fields`` names no field, so it is not reported, although DRF accepts
+          ``o=?`` for it and returns the rows in random order.
+        - An entry that resolves to no field is left out, and the ``vueda_info.E006`` system check
+          reports it.
+
+        ``default`` is reported whole or not at all (see ``get_default_ordering_data``). It is empty
+        when any term resolves to no field, reads more than one column or none, or names an
+        annotation. Each column that a multi-column term reads still appears in ``fields``, without
+        ``ascending``.
         """
         ordering_data = {
             "default": [],

@@ -1,7 +1,7 @@
 /**
  * @module .vitepress/theme/fixtures/showcaseOrder
  *
- * Seeded metadata and endpoints for the order demo in the Configure CRUDL Views guide. The
+ * Seeded metadata and endpoints for the order demo in the Configure CRUD Views guide. The
  * demo shows the three field lists doing separate jobs: the form renders and submits
  * `quantity`, while a custom summary reads the server-calculated `unit_price` and `total`.
  *

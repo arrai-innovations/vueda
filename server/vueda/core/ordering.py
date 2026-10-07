@@ -90,7 +90,9 @@ def ordering_term_field_names(term):
     Nothing here recognizes a particular function. ``flatten`` is ``BaseExpression``'s own tree walk,
     which every ``Func`` subclass inherits, and ``F`` is the only node that carries a field path — so
     every scalar function in ``django.db.models.functions`` is handled, along with any ``Func``
-    subclass an application writes and any function a future Django version adds.
+    subclass that an application writes and any function that a future Django version adds. Window
+    functions (``Rank``, ``RowNumber``, and the rest) are the exception: Django accepts them in
+    ``order_by()`` only inside a ``Window(...)``.
 
     A field named only inside a boolean condition — the ``Q`` in ``Case(When(active=True, ...))`` —
     is not reported. The condition decides which value is sorted, not which column the sort reads, and

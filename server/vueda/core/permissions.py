@@ -1,4 +1,4 @@
-"""Object-level and row-level permission classes for CRUDL and workflow integration."""
+"""Object-level and row-level permission classes for CRUD and workflow integration."""
 
 __all__ = (
     "DEFAULT",
@@ -143,7 +143,7 @@ def _read_permission(action) -> str:
 
 class ObjectPermissions(DjangoObjectPermissions):
     """
-    Extends DjangoObjectPermissions to support state permissions and CRUDL naming conventions.
+    Extends DjangoObjectPermissions to support state permissions and CRUD naming conventions.
     It sets the 'view_action' in permission checks to determine required permissions for views
     and objects based on the current action in the view.
     """
@@ -212,9 +212,9 @@ class ObjectPermissions(DjangoObjectPermissions):
 
 class DynamicObjectPermissions(DjangoObjectPermissions):
     """
-    CRUDL permissions for endpoints that select their model from ``app_label`` and ``model``.
+    CRUD permissions for endpoints that select their model from ``app_label`` and ``model``.
 
-    ``crudl_perms_map`` names the CRUDL action for each HTTP method, and
+    ``crudl_perms_map`` names the CRUD action for each HTTP method, and
     ``get_required_permissions`` resolves that action through ``PERMISSION_NAMES_MAPPING`` when
     the check runs. An installation that renames an action is therefore honoured without patching
     this class at import.
