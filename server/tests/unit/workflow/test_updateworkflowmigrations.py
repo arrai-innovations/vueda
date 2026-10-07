@@ -1,7 +1,9 @@
+import ast
 import datetime
 import importlib.util
 import io
 import os
+import re
 import shutil
 import site
 import sys
@@ -182,6 +184,133 @@ class TestWorkflowRewriteDependencies(BaseTestMigrations):
             assert "Updated 1 workflow migration(s)." in output.getvalue()
             assert f"Cannot update {path}:" not in errors.getvalue()
             assert b"old migration body" not in path.read_bytes()
+
+
+def write_workflow_and_state_migrations(directory):
+    """Write a workflow's migration, then a state's migration naming that workflow by code alone.
+
+    Return the workflow's full reference and both paths. Updating the state's migration adds the app and
+    model to its references, so its changed_data is rewritten through the formatter.
+    """
+    workflow = {"code": "probe", "historical_app_label": "product", "historical_model": "product"}
+    workflow_path = directory / "0005_workflow_created.py"
+    write_workflow_migration(
+        workflow_path,
+        [("product", PRODUCT_LATEST), ("vueda_workflow", WORKFLOW_EVENTS)],
+        changed_data=[
+            {
+                "changes": {**workflow, "id": workflow, "name": "Probe"},
+                "history_date": datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
+                "history_type": "added",
+                "model_name": "workflow",
+            }
+        ],
+    )
+    state_path = directory / "0006_workflow_state.py"
+    write_workflow_migration(
+        state_path,
+        [("product", "0005_workflow_created")],
+        changed_data=[
+            {
+                "changes": {
+                    "code": "pending",
+                    "id": {"code": "pending", "workflow_id": {"code": "probe"}},
+                    "name": "Pending",
+                    "workflow_id": {"code": "probe"},
+                },
+                "history_date": datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC),
+                "history_type": "added",
+                "model_name": "state",
+            }
+        ],
+    )
+    return workflow, workflow_path, state_path
+
+
+class TestChangedDataFormatting(BaseTestMigrations):
+    def test_rewritten_changed_data_follows_the_migrations_project_settings(self, settings):
+        """The formatter reads the settings that apply to the migration's own path.
+
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
+        """
+        with self.temporary_migration_module(settings, app_label="product") as directory:
+            directory = Path(directory)
+            (directory.parent / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+            _, _, state_path = write_workflow_and_state_migrations(directory)
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", "product", stdout=output, stderr=errors)
+
+            assert "Updated 2 workflow migration(s)." in output.getvalue()
+            assert errors.getvalue() == ""
+            migration_content = state_path.read_text()
+            assignment = next(
+                node
+                for node in ast.parse(migration_content).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(migration_content, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'historical_model'" in changed_data_source
+
+
+class TestDryRun(BaseTestMigrations):
+    def test_dry_run_reports_every_update_without_writing(self, settings):
+        """A dry run names each migration it would update and leaves every file as it was.
+
+        The same migrations are then updated for real, which shows the dry run skipped real changes: new
+        function bodies, and a workflow reference that gains the app and model it names.
+        """
+        with self.temporary_migration_module(settings, app_label="product") as directory:
+            directory = Path(directory)
+            workflow, workflow_path, state_path = write_workflow_and_state_migrations(directory)
+            originals = {path: path.read_bytes() for path in directory.glob("*.py")}
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", "product", dry_run=True, stdout=output, stderr=errors)
+
+            assert {path: path.read_bytes() for path in originals} == originals
+            assert f"Would update: {workflow_path}" in output.getvalue()
+            assert f"Would update: {state_path}" in output.getvalue()
+            assert "Would update 2 workflow migration(s)." in output.getvalue()
+            assert "Updating:" not in output.getvalue()
+            assert "Updated " not in output.getvalue()
+            assert errors.getvalue() == ""
+
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", "product", stdout=output, stderr=errors)
+
+            assert "Updated 2 workflow migration(s)." in output.getvalue()
+            assert errors.getvalue() == ""
+            for path in (workflow_path, state_path):
+                assert b"old migration body" not in path.read_bytes()
+            state_changes = read_migration(state_path).changed_data[0]["changes"]
+            assert state_changes["workflow_id"] == workflow
+            assert state_changes["id"]["workflow_id"] == workflow
+
+    def test_dry_run_reports_a_formatter_error_without_claiming_a_write(self, settings):
+        with self.temporary_migration_module(settings, app_label="product") as directory:
+            directory = Path(directory)
+            # ruff cannot read this setting, so it fails on the state's changed_data.
+            (directory.parent / "pyproject.toml").write_text('[tool.ruff]\nline-length = "long"\n')
+            _, _, state_path = write_workflow_and_state_migrations(directory)
+            originals = {path: path.read_bytes() for path in directory.glob("*.py")}
+            output, errors = io.StringIO(), io.StringIO()
+
+            call_command("updateworkflowmigrations", "product", dry_run=True, stdout=output, stderr=errors)
+
+            assert {path: path.read_bytes() for path in originals} == originals
+            assert "Would update 2 workflow migration(s)." in output.getvalue()
+            assert errors.getvalue().startswith(f"  ruff could not format changed_data for {state_path}:\n")
+            assert "Failed to parse" in errors.getvalue()
+            assert errors.getvalue().endswith(
+                "  A run without --dry-run would write changed_data with pprint instead. Fix the problem above first.\n"
+            )
+            assert "Wrote changed_data" not in errors.getvalue()
+            assert "manually" not in errors.getvalue()
 
 
 class TestInstalledPackageApps(BaseTestMigrations):
