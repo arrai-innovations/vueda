@@ -5,6 +5,7 @@ __all__ = (
     "AllAuthLoginView",
     "AllAuthMFAReauthenticateView",
     "AllAuthReauthenticateView",
+    "AllAuthRecoveryCodesView",
     "AllAuthTwoFactorAuthView",
     "PermissionDeleteView",
     "PermissionOverviewView",
@@ -22,9 +23,11 @@ import operator
 
 from allauth.account.internal.stagekit import get_pending_stage
 from allauth.account.stages import LoginStageController
+from allauth.core.exceptions import ReauthenticationRequired
 from allauth.headless.account.views import LoginView
 from allauth.headless.account.views import ReauthenticateView
 from allauth.headless.mfa.views import AuthenticateView
+from allauth.headless.mfa.views import ManageRecoveryCodesView
 from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
 from allauth.mfa.internal.constants import LoginStageKey
 from django.conf import settings
@@ -76,6 +79,7 @@ from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
+from vueda.core.reauthentication import did_recently_authenticate
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.history.revision import annotate_object_revision
 from vueda.user.adapters import get_adapter
@@ -727,6 +731,22 @@ class AllAuthMFAReauthenticateView(AllAuthAdapterDispatchMixin, MFAReauthenticat
 
     This satisfies ``recent_auth_required`` for a user whose required flow is ``mfa_reauthenticate``.
     """
+
+
+class AllAuthRecoveryCodesView(AllAuthAdapterDispatchMixin, ManageRecoveryCodesView, VuedaAllAuthViewAdapter):
+    """
+    View (GET) or regenerate (POST) the signed-in user's recovery codes, after the reauthentication VUEDA requires.
+
+    The session must hold a recent record of the user's required flow, the same check ``recent_auth_required``
+    applies, so a user with an MFA authenticator must have confirmed a second factor. Otherwise the view returns
+    allauth's 401 reauthentication response, which lists the available flows. Every other response keeps
+    allauth's format.
+    """
+
+    def handle(self, request, *args, **kwargs):
+        if not did_recently_authenticate(request):
+            raise ReauthenticationRequired()
+        return super().handle(request, *args, **kwargs)
 
 
 @conditional_extend_schema_decorator(

@@ -24,7 +24,7 @@ const defaultUrls = {
     modelDetailAction: "/routes/:app/:model/:pk/:action_name/",
     modelList: "/routes/:app/:model/",
     reauthenticate: "/routes/vueda.user/reauthenticate/",
-    recoveryCodes: "/routes/vueda.user/_allauth/browser/v1/account/authenticators/recovery-codes",
+    recoveryCodes: "/routes/vueda.user/2fa/recovery-codes/",
     resetPassword: "/routes/vueda.user/reset-password/",
     setupTOTPDevice: "/routes/vueda.user/totpdevice/setup/",
     twoFactorAuthenticate: "/routes/vueda.user/2fa/authenticate/",

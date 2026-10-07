@@ -16,6 +16,7 @@ from vueda.user import views
 from vueda.user.views import AllAuthLoginView
 from vueda.user.views import AllAuthMFAReauthenticateView
 from vueda.user.views import AllAuthReauthenticateView
+from vueda.user.views import AllAuthRecoveryCodesView
 from vueda.user.views import AllAuthTwoFactorAuthView
 from vueda.user.views import WhoIsView
 from vueda.user.views import totp_code
@@ -32,6 +33,11 @@ user_patterns = [
         "2fa/reauthenticate/",
         AllAuthMFAReauthenticateView.as_api_view(client="browser"),
         name="mfa_reauthenticate",
+    ),
+    path(
+        "2fa/recovery-codes/",
+        AllAuthRecoveryCodesView.as_api_view(client="browser"),
+        name="recovery_codes",
     ),
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),

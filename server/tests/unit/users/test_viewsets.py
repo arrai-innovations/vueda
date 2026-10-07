@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 from allauth.mfa.models import Authenticator
+from allauth.mfa.recovery_codes.internal.auth import RecoveryCodes
 from allauth.mfa.totp.internal.auth import SECRET_SESSION_KEY
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -31,6 +32,12 @@ def mfa_device(user):
     """An active TOTP device, which makes ``user`` an account that must confirm a second factor."""
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     return TOTPDevice.objects.create(authenticator=authenticator, method="totp", user=user)
+
+
+@pytest.fixture
+def recovery_codes(mfa_device):
+    """The recovery codes authenticator allauth keeps alongside an active TOTP device."""
+    return RecoveryCodes.activate(mfa_device.user)
 
 
 class QrAdapter:
@@ -363,6 +370,43 @@ def test_password_only_user_sets_up_and_activates_a_first_device_after_a_passwor
     # The account now owes a second factor, and the activation code counts as one.
     who_is = api_client.get(reverse("who-is"), format="json")
     assert who_is.data["recently_logged_in"] is True
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_view_recovery_codes(api_client, recovery_codes):
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.get(reverse("recovery_codes"))
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    body = response.json()
+    assert "unused_codes" not in body.get("data", {})
+    assert "mfa_reauthenticate" in [flow["id"] for flow in body["data"]["flows"]]
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_regenerate_recovery_codes(api_client, recovery_codes):
+    unused_codes = recovery_codes.get_unused_codes()
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.post(reverse("recovery_codes"), {}, format="json")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    recovery_codes.instance.refresh_from_db()
+    assert recovery_codes.get_unused_codes() == unused_codes
+
+
+@pytest.mark.django_db
+def test_mfa_user_can_view_recovery_codes_after_a_two_factor_reauthentication(api_client, recovery_codes):
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.get(reverse("recovery_codes"))
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response.json()["data"]["unused_codes"] == recovery_codes.get_unused_codes()
 
 
 class DummyAllAuthBase:
