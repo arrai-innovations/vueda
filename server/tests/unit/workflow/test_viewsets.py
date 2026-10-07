@@ -162,7 +162,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         )
 
     def test_object_state_returns_state_when_user_has_object_read_permission(
-        self, api_client, workflow_reader, customer_order
+        self, api_client, workflow_reader, customer_order, assert_matches_documented_response
     ):
         api_client.force_authenticate(workflow_reader)
         object_state_url = reverse(
@@ -175,6 +175,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["state"] == {"code": "new", "name": "New"}
         assert response.data["object_state_revision"] == object_revision(customer_order.object_state)
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/", "get"
+        )
 
     def test_object_state_revision_names_the_event_not_the_row(
         self, api_client, workflow_reader, workflow_user, customer_order
@@ -198,7 +201,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert customer_order.object_state.pk == object_state_pk
 
     def test_object_state_returns_403_without_object_read_permission(
-        self, api_client, workflow_read_only_user, customer_order
+        self, api_client, workflow_read_only_user, customer_order, assert_matches_documented_response
     ):
         api_client.force_authenticate(workflow_read_only_user)
         object_state_url = reverse(
@@ -210,6 +213,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response_body(response)
         assert response.data["detail"] == "You do not have permission to perform this action."
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/", "get"
+        )
 
     def test_object_state_reads_permission_names_mapping_at_call_time(
         self, settings, api_client, workflow_reader, customer_order
@@ -251,7 +257,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert mutated_permission_response.status_code == status.HTTP_200_OK, response_body(mutated_permission_response)
 
     def test_permitted_transitions_returns_transitions_when_user_has_workflow_permissions(
-        self, api_client, workflow_reader, customer_order
+        self, api_client, workflow_reader, customer_order, assert_matches_documented_response
     ):
         workflow_permission_ids = WorkflowPermission.objects.filter(
             workflow__content_type=customer_order.get_content_type()
@@ -268,6 +274,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert isinstance(response.data, list)
         assert "pack_order" in {transition["code"] for transition in response.data}
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/permitted_transitions/", "get"
+        )
 
     def test_permitted_transitions_returns_403_without_workflow_permissions(self, api_client, workflow_read_only_user):
         # Model-level read is the prerequisite this action checks first, so granting it here leaves
@@ -372,7 +381,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_200_OK, response_body(response)
         assert response.data["state"]["code"] == "new"
 
-    def test_object_transitions_returns_state_scoped_transitions(self, api_client, workflow_user, customer_order):
+    def test_object_transitions_returns_state_scoped_transitions(
+        self, api_client, workflow_user, customer_order, assert_matches_documented_response
+    ):
         api_client.force_authenticate(workflow_user)
         object_transitions_url = reverse(
             "workflow.workflow-object-transitions",
@@ -387,11 +398,14 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             "hold_order",
             "pack_order",
         }
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/", "get"
+        )
 
     def _get_valid_transitions(self, api_client, customer_order):
         return api_client.get(
             reverse("store.customerorder-detail", kwargs={"pk": customer_order.pk}),
-            data={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "valid_transitions"},
+            data={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "valid_transitions"},
             format="json",
         )
 
@@ -494,7 +508,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         lock_spy.assert_not_called()
 
     def test_execute_transition_detail_commits_and_locks_without_dry_run(
-        self, api_client, workflow_user, customer_order
+        self, api_client, workflow_user, customer_order, assert_matches_documented_response
     ):
         api_client.force_authenticate(workflow_user)
         detail_url = reverse(
@@ -514,6 +528,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert customer_order.workflow_state.code == "packed"
         assert lock_spy.call_count == 1
         assert response.data["new_state"]["code"] == "packed"
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/", "patch"
+        )
 
     def test_execute_transition_detail_returns_validation_error_when_locked(
         self, api_client, workflow_user, customer_order
@@ -539,7 +556,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert customer_order.workflow_state.code == "new"
 
     def test_execute_transition_bulk_commits_and_locks_without_dry_run(
-        self, api_client, workflow_user, customer_order, another_order
+        self, api_client, workflow_user, customer_order, another_order, assert_matches_documented_response
     ):
         api_client.force_authenticate(workflow_user)
         bulk_url = reverse(
@@ -566,6 +583,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert lock_spy.call_count == called_times
         assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
         assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/", "patch"
+        )
 
     def test_execute_transition_bulk_returns_validation_error_when_locked(
         self, api_client, workflow_user, customer_order, another_order

@@ -42,7 +42,7 @@ def get_model_ordering_response(api_client, settings, app_label, model_name):
 
     return api_client.get(
         reverse("info.model_info-detail", args=(app_label, model_name)),
-        data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+        data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
         format="json",
     )
 

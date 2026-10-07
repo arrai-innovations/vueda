@@ -99,7 +99,7 @@ The migration is a standard Django migration file. After Django generates the em
 - A `history_change_reason` variable used to identify history records created by the migration.
 - A `migration_app_label` variable identifying the app whose permissions must exist before the migration runs.
 - A `forwards_migrate_workflow` function that iterates through `changed_data` in order and applies each change by dispatching to the appropriate `handle_*` function (`handle_workflow`, `handle_state`, `handle_transition`, etc.).
-- A `backwards_migrate_workflow` function that iterates through `changed_data` in reverse and undoes each change.
+- A `backwards_migrate_workflow` function that iterates through `changed_data` in reverse and undoes each change. See [Reversing a Workflow Migration](#reversing-a-workflow-migration) for what it does to object states.
 - A call to `handle_state_objects` that gives existing objects without an object state the workflow's initial state, once one is set. On an initial state change, it moves object states with no update recorded after creation. That move records an update, so a later initial state change does not move those objects again.
 - Comments that allow the command to identify and parse previously created workflow migrations.
 - Other utility functions used by the `handle_*` functions.
@@ -127,6 +127,21 @@ python manage.py migrate myapp 0005_workflow_changes --fake
 Other environments that do not already have the changes should run the migration normally.
 
 Faking and running are not interchangeable, and `makeworkflowmigrations` treats them differently. A faked migration wrote nothing, so the edits you made by hand are the only record of its changes, and the command matches its changes against those edits. A migration that ran also recorded its own writes. The command still matches its changes, but only against edits made before it first ran on that environment. So rolling a faked migration back and applying it again is safe, and an edit made after the migration ran is never mistaken for one of its changes.
+
+### Reversing a Workflow Migration
+
+Reversing a workflow migration changes object states only for the workflows named in its `changed_data`:
+
+- An object in a state the reversal removes moves back to the most recent state in its history that the workflow still has. An object with no such state gets the workflow's initial state as it stands after the reversal. Either way, the object keeps its object state row, so its history continues.
+- A workflow the reversal removes loses its object states, because no state remains for them.
+- A workflow the reversal re-creates gives its objects its initial state.
+- Every other object state stays as it is.
+
+`migrate` prints one line for each workflow whose object states the reversal changed, with the count for each outcome.
+
+Restoring an object moves only its object state. Anything else a transition changed, such as a field it set or a message it sent, stays as it is.
+
+Workflow migrations generated before this behavior delete the object states of every workflow in the project when reversed. Run `updateworkflowmigrations` to give them the current reverse code. See [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations).
 
 ### Collaborative Workflows
 

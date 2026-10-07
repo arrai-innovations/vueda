@@ -430,6 +430,77 @@ describe("lib/use/useFormModel.js", () => {
             expect([...state.baseFieldNames]).toEqual(["title"]);
         });
     });
+    describe("expand from model config", () => {
+        const departmentFieldDetails = {
+            name: { name: "name", typeSerializer: "CharField", typeModel: "CharField", many: false, readOnly: false },
+            department: {
+                name: "department",
+                typeSerializer: "PrimaryKeyRelatedField",
+                typeModel: "ForeignKey",
+                many: false,
+                readOnly: false,
+            },
+        };
+        const departmentExpandDetails = {
+            department: {
+                many: false,
+                f: {
+                    title: {
+                        name: "title",
+                        typeSerializer: "CharField",
+                        typeModel: "CharField",
+                        many: false,
+                        readOnly: false,
+                    },
+                },
+            },
+        };
+
+        /**
+         * Build form state for a form whose `expand` prop is left undefined, as every view leaves it.
+         *
+         * @param {string[]} configExpand - The model config's `expand`.
+         * @returns {Promise<object>} The form state.
+         */
+        async function buildWithConfigExpand(configExpand) {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            modelConfig.config = {
+                fieldDetails: departmentFieldDetails,
+                expandDetails: departmentExpandDetails,
+                expand: configExpand,
+            };
+            const props = makeBaseProps({
+                view: "update",
+                fields: ["name", "department"],
+                expand: undefined,
+                fieldDetails: undefined,
+                expandDetails: undefined,
+            });
+            const state = await withSetup(() => useFormModel(props));
+            await flushPromises();
+            return state;
+        }
+
+        scopedIt("renders a relation with its mapped field when the config expands nothing", async () => {
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildWithConfigExpand([]);
+
+            expect([...state.expandedFieldNames]).toEqual([]);
+            expect([...state.expansionFieldNames]).toEqual([]);
+            expect(state.fieldComponents.department).not.toBe(availableFields.FieldSetSingularStackedInline);
+        });
+
+        scopedIt("renders a relation the config expands as an inline fieldset", async () => {
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildWithConfigExpand(["department"]);
+
+            expect([...state.expandedFieldNames]).toEqual(["department"]);
+            expect([...state.expansionFieldNames]).toEqual(["department.title"]);
+            expect(state.fieldComponents.department).toBe(availableFields.FieldSetSingularStackedInline);
+        });
+    });
     describe("field detail fallback behavior", () => {
         scopedIt("prefers explicit prop readOnly over config defaults", async () => {
             // mock model-config to declare name readOnly=true

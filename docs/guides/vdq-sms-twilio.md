@@ -34,7 +34,7 @@ VDQ supports two modes for receiving SMS delivery status updates. Choose one bas
 
 **Polling mode** (`TWILIO_WEBHOOK_URL` is not set): The periodic task `check_sms_status` polls Twilio for the status of awaiting SMS messages. This mode does not require inbound webhook access but adds latency to status updates (they arrive on the polling interval rather than in real time).
 
-In both modes, the `send_sms` handler passes `status_callback` to `twilio_client.messages.create(...)` when a webhook URL is configured, enabling Twilio to push updates proactively.
+In both modes, the `send_sms` handler passes `status_callback` to `twilio_client.messages.create(...)` when a webhook URL is configured, enabling Twilio to push updates proactively. The handler adds the queue item's primary key to that URL as the `queue_item` query parameter, so a status update can find its item before VDQ stores the `message_sid`. Twilio signs the full URL, so the webhook rejects a request with an altered key.
 
 ## Queue Item Creation (`add_sms`)
 
@@ -80,8 +80,9 @@ When the webhook receives a status update with a known `MessageSid`:
 - `update_sms_qi` processes the status.
 - **`delivered`**: clears `result` and transitions to `succeeded`.
 - **`undelivered` or `failed`**: records error context and transitions to `errored`.
+- Any other status changes nothing, except that an `awaiting` item past the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) transitions to `unconfirmed`.
 
-When the `MessageSid` is unknown (the queue item has not yet been committed, or a race condition occurred), the webhook enqueues a deferred lookup task (`check_previously_received_message_sid`) that retries the update until the item is found or the retry window expires.
+When no queue item stores the `MessageSid`, the webhook looks for the item by the `queue_item` key on the callback URL. An item found that way stores the `MessageSid` and then applies the status: a final status moves it to `succeeded` or `errored`, and an in-flight status (`queued`, `sending`, or `sent`) moves a `sending` item to `awaiting`. An item that stores a different `MessageSid` is left unchanged and the callback is logged. When the key finds no item, the webhook enqueues a deferred lookup task (`check_previously_received_message_sid`) that retries the update until the item is found or the retry window expires. See [Matching a status update to its queue item](../core-concepts/vdq-and-background-work#matching-a-status-update-to-its-queue-item).
 
 ### Polling
 
@@ -113,7 +114,8 @@ After implementing SMS through VDQ, verify:
 - Twilio API failures produce `errored` state with provider error text.
 - Webhook receives status updates and transitions to the correct terminal state.
 - Webhook validates Twilio signature and rejects invalid signatures with `403`.
-- Unknown `MessageSid` in webhook triggers deferred lookup rather than being dropped.
+- A webhook callback for an item with no stored `MessageSid` finds the item by the `queue_item` key, stores the SID, and applies the status.
+- A webhook callback whose `MessageSid` and key find no item triggers deferred lookup rather than being dropped.
 - Polling mode updates awaiting items on the periodic schedule.
 - Timeout transitions awaiting items to `unconfirmed` after the configured window.
 - Retry clears prior task metadata and re-schedules successfully.

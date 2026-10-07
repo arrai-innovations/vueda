@@ -335,7 +335,7 @@ class TestQueueOrderingMetadata:
     def test_default_ordering_is_the_one_the_list_applies(self, model_name, queue_ordering_client, settings):
         response = queue_ordering_client.get(
             reverse("info.model_info-detail", args=("vueda_vdq", model_name)),
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_ordering"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_ordering"},
             format="json",
         )
 

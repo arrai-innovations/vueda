@@ -20,16 +20,9 @@ executors:
     base:
         docker:
             - image: cimg/base:current
-    python311-pg:
+    python312-base:
         docker:
-            - image: cimg/python:3.11
-            - image: cimg/postgres:15.12
-    python311-base:
-        docker:
-            - image: cimg/python:3.11
-    python311-node:
-        docker:
-            - image: cimg/python:3.11-node
+            - image: cimg/python:3.12
     python312-pg:
         docker:
             - image: cimg/python:3.12
@@ -45,7 +38,7 @@ executors:
 
 jobs:
     server-build:
-        executor: python311-base
+        executor: python312-base
         resource_class: small
         steps:
             - checkout
@@ -87,7 +80,6 @@ jobs:
                 enum: [brightgreen, red]
         executor: base
         resource_class: small
-        circleci_ip_ranges: true
         steps:
             - utils/add_ssh_config
             - utils/make_status_shield:
@@ -104,101 +96,6 @@ workflows:
     server-test:
         jobs:
             - pytest/pytest:
-                  name: server-pytest-django52-py311
-                  executor: python311-pg
-                  context: arrai-global
-                  wd: server
-                  pytest_args: -n2 --dist loadgroup
-                  create_status_badge: false
-                  create_coverage_badge: false
-                  build_coverage: false
-                  config:
-                      - run:
-                            name: Copy config
-                            command: |
-                                cd server
-                                cp config.circleci.toml config.local.toml
-                  filters:
-                      branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
-            - pytest/pytest:
-                  name: server-pytest-django60-py312
-                  executor: python312-pg
-                  context: arrai-global
-                  wd: server
-                  pytest_args: -n2 --dist loadgroup
-                  create_status_badge: false
-                  create_coverage_badge: false
-                  build_coverage: false
-                  config:
-                      - run:
-                            name: Pin Django 6.0
-                            command: |
-                                cd server
-                                uv pip install "django>=6.0,<6.1"
-                      - run:
-                            name: Copy config
-                            command: |
-                                cd server
-                                cp config.circleci.toml config.local.toml
-                  filters:
-                      branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
-            - pytest/pytest:
-                  name: server-pytest-django60-py313
-                  executor: python313-pg
-                  context: arrai-global
-                  wd: server
-                  pytest_args: -n2 --dist loadgroup
-                  create_status_badge: false
-                  create_coverage_badge: false
-                  build_coverage: false
-                  config:
-                      - run:
-                            name: Pin Django 6.0
-                            command: |
-                                cd server
-                                uv pip install "django>=6.0,<6.1"
-                      - run:
-                            name: Copy config
-                            command: |
-                                cd server
-                                cp config.circleci.toml config.local.toml
-                  filters:
-                      branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
-            - pytest/pytest:
-                  name: server-pytest-django60-py314
-                  executor: python314-pg
-                  context: arrai-global
-                  wd: server
-                  pytest_args: -n2 --dist loadgroup
-                  create_status_badge: false
-                  create_coverage_badge: false
-                  build_coverage: false
-                  config:
-                      - run:
-                            name: Pin Django 6.0
-                            command: |
-                                cd server
-                                uv pip install "django>=6.0,<6.1"
-                      - run:
-                            name: Copy config
-                            command: |
-                                cd server
-                                cp config.circleci.toml config.local.toml
-                  filters:
-                      branches:
-                          only: /.*/
-                      tags:
-                          only: /^server-v.*/
-            - pytest/pytest:
                   name: server-pytest-django61-py312
                   executor: python312-pg
                   context: arrai-global
@@ -208,11 +105,6 @@ workflows:
                   create_coverage_badge: false
                   build_coverage: false
                   config:
-                      - run:
-                            name: Pin Django 6.1
-                            command: |
-                                cd server
-                                uv pip install "django>=6.1,<6.2"
                       - run:
                             name: Copy config
                             command: |
@@ -234,11 +126,6 @@ workflows:
                   build_coverage: false
                   config:
                       - run:
-                            name: Pin Django 6.1
-                            command: |
-                                cd server
-                                uv pip install "django>=6.1,<6.2"
-                      - run:
                             name: Copy config
                             command: |
                                 cd server
@@ -248,7 +135,7 @@ workflows:
                           only: /.*/
                       tags:
                           only: /^server-v.*/
-            - pytest/pytest_fixed_ip:
+            - pytest/pytest:
                   name: server-pytest-django61-py314
                   executor: python314-pg
                   context: arrai-global
@@ -260,11 +147,6 @@ workflows:
                   coverage_badge_file: server-coverage.svg
                   config:
                       - run:
-                            name: Pin Django 6.1
-                            command: |
-                                cd server
-                                uv pip install "django>=6.1,<6.2"
-                      - run:
                             name: Copy config
                             command: |
                                 cd server
@@ -274,7 +156,7 @@ workflows:
                           only: main
                       tags:
                           only: /^server-v.*/
-            - pytest/pytest_fixed_ip:
+            - pytest/pytest:
                   name: server-pytest-django61-py314-no-badge
                   executor: python314-pg
                   context: arrai-global
@@ -284,11 +166,6 @@ workflows:
                   create_coverage_badge: false
                   coverage_artifacts_directory: server-pytest
                   config:
-                      - run:
-                            name: Pin Django 6.1
-                            command: |
-                                cd server
-                                uv pip install "django>=6.1,<6.2"
                       - run:
                             name: Copy config
                             command: |
@@ -315,10 +192,6 @@ workflows:
                   context: arrai-global
                   requires:
                       - server-pytest-status-pending
-                      - server-pytest-django52-py311
-                      - server-pytest-django60-py312
-                      - server-pytest-django60-py313
-                      - server-pytest-django60-py314
                       - server-pytest-django61-py312
                       - server-pytest-django61-py313
                       - server-pytest-django61-py314
@@ -328,10 +201,6 @@ workflows:
             - server-build:
                   name: server-build
                   requires:
-                      - server-pytest-django52-py311
-                      - server-pytest-django60-py312
-                      - server-pytest-django60-py313
-                      - server-pytest-django60-py314
                       - server-pytest-django61-py312
                       - server-pytest-django61-py313
                       - server-pytest-django61-py314
@@ -367,10 +236,10 @@ workflows:
 
     server-lint:
         jobs:
-            - lintinator/lint_python_fixed_ip:
+            - lintinator/lint_python:
                   name: server-lint
                   context: arrai-global
-                  executor: lintinator/python311
+                  executor: lintinator/python312
                   hooks: ruff md-toc
                   hook_manager: lefthook
                   install_deps: true
@@ -401,7 +270,7 @@ workflows:
             - lintinator/lint_python:
                   name: server-lint-no-badge
                   context: arrai-global
-                  executor: lintinator/python311
+                  executor: lintinator/python312
                   hooks: ruff md-toc
                   hook_manager: lefthook
                   create_badges: false
@@ -433,10 +302,10 @@ workflows:
 
     server-audit:
         jobs:
-            - pysentry/pysentry_ip:
+            - pysentry/pysentry:
                   name: server-pysentry
                   context: arrai-global
-                  executor: python311-base
+                  executor: python312-base
                   version: 0.4.9
                   filters:
                       branches:
@@ -445,7 +314,7 @@ workflows:
             - pysentry/pysentry:
                   name: server-pysentry-no-badge
                   context: arrai-global
-                  executor: python311-base
+                  executor: python312-base
                   version: 0.4.9
                   create_badges: false
                   filters:

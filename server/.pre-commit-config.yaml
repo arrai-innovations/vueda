@@ -4,7 +4,7 @@ default_stages: [pre-commit]
 fail_fast: true
 
 default_language_version:
-    python: python3.11
+    python: python3.12
 
 repos:
     - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook

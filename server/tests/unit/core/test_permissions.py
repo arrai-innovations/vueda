@@ -111,7 +111,7 @@ class TestObjectPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, Bas
             "timesheet.timesheet-detail",
             kwargs={"pk": t1.pk},
             query={
-                settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,employee,period_start,period_end",
+                settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,employee,period_start,period_end",
             },
         )
         list_url = reverse("timesheet.timesheet-list")
@@ -364,7 +364,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         response = client.get(
             reverse(
                 "timesheet.timesheet-list",
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions"},
             ),
         )
         self.assert_response(response, 200)
@@ -376,7 +376,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": timesheet.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
             ),
         )
         self.assert_response(response, 200)
@@ -387,7 +387,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": timesheet.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
             ),
             format="json",
             data={"period_start": "2024-02-17"},
@@ -531,7 +531,7 @@ class TestAvailableActionsSeparatesListFromRetrieve(BaseTestAssertResponseMixin,
         response = api_client.get(
             reverse(
                 "timesheet.timesheet-list",
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions"},
             ),
         )
 

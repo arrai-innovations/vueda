@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from typing import ClassVar
 
@@ -334,10 +335,10 @@ class BaseModelInfoDetail(BaseModelInfo):
                         f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {{keys}}'
                     )
                     for key, value in model_expand.items():
-                        if key == settings.REST_FLEX_FIELDS["FIELDS_PARAM"]:
+                        if key == settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]:
                             self.check_model_fields(
                                 value,
-                                expected_model_expand[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]],
+                                expected_model_expand[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]],
                                 app_label,
                                 model_name,
                                 f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}"',
@@ -442,6 +443,7 @@ class BaseModelInfoDetail(BaseModelInfo):
     def test_info_detail(
         self,
         authenticated_client,
+        assert_matches_component,
         app_label,
         model_name,
         kwargs,
@@ -457,7 +459,7 @@ class BaseModelInfoDetail(BaseModelInfo):
                 ),
             ),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: EXPANDED_FIELDS},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: EXPANDED_FIELDS},
         )
 
         expected_actions_key = self.expected_actions_key
@@ -474,6 +476,8 @@ class BaseModelInfoDetail(BaseModelInfo):
         self.check_model_ordering_data(response, kwargs["expected_ordering"], app_label, model_name)
         self.check_model_column_totals_data(response, kwargs["expected_column_totals"], app_label, model_name)
         self.check_model_permissions_data(response, kwargs["expected_permissions"], app_label, model_name)
+        # The published schema documents every key this response carries.
+        assert_matches_component(json.loads(response.content), "ModelInfo")
 
 
 @pytest.mark.django_db
@@ -512,7 +516,7 @@ def get_model_action_names_expecting_ok(client, app_label, model_name):
     response = client.get(
         reverse("info.model_info-detail", args=(app_label, model_name)),
         format="json",
-        data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+        data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
     )
     assert response.status_code == HTTPStatus.OK, response_body(response)
     return {action["name"] for action in response.data["model_actions"]}
@@ -629,7 +633,7 @@ class TestModelActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
         response = api_client.get(
             reverse("info.model_info-detail", args=("store", "customerdata")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_actions"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -816,7 +820,7 @@ class TestModelColumnTotalsSection(BaseModelInfo):
         response = authenticated_client.get(
             reverse("info.model_info-detail", args=("store", "cartitem")),
             format="json",
-            data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_column_totals"},
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_column_totals"},
         )
         assert response.status_code == HTTPStatus.OK, response_body(response)
         return response.data["model_column_totals"], response

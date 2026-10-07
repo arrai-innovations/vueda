@@ -40,7 +40,7 @@ def get_product_filtering_response(api_client, settings):
 
     return api_client.get(
         reverse("info.model_info-detail", args=("store", "product")),
-        data={settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: "model_filtering"},
+        data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_filtering"},
         format="json",
     )
 

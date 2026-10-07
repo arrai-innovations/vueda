@@ -322,7 +322,7 @@
         "REST_AUTH": {
             "description": "Authentication serializer defaults. The who-is endpoint imports USER_DETAILS_SERIALIZER, with vueda.user.serializers.WhoIsSerializer as its fallback when the dictionary omits that key."
         },
-        "REST_FLEX_FIELDS": {
+        "REST_FLEX_FIELDS2": {
             "description": "Names of the expand, selected-field, and omitted-field query parameters, plus the maximum expansion depth. VUEDA reads these for serialization, request validation, metadata, and OpenAPI. Query names must agree with the client."
         },
         "REST_FRAMEWORK": {
@@ -363,6 +363,9 @@
         },
         "TWILIO_WEBHOOK_URL": {
             "description": "Twilio SMS status callback URL. A truthy URL enables webhook-based status updates with timeout polling; a false value selects status polling. Configure the URL when using Twilio callbacks."
+        },
+        "VDQ_EMAIL_TRACKING_STRATEGY": {
+            "description": "Class, or dotted import path of the class, that attaches the queue item's key to an outgoing email and reads it back from an Anymail tracking event. The read site falls back to vueda.vdq.tracking.MetadataEmailTrackingStrategy, which carries the key in Anymail metadata. Set vueda.vdq.tracking.EmailTrackingStrategy to send without tracking data on an ESP that accepts no metadata."
         },
         "VDQ_MAX_FILES_AGE_IN_SECONDS": {
             "description": "A value of zero deletes queue attachment files when an item reaches a done state. The current read site does nothing for None or positive values; this setting alone does not schedule age-based cleanup."

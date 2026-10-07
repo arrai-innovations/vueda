@@ -19,7 +19,7 @@ The server defaults layer (`get_defaults` and `get_production_defaults`) defines
 
 The env adapter layer sits beneath defaults and governs how raw configuration values are read from the environment. The adapter is a protocol; any object that satisfies the `EnvLike` typing contract will work. The concrete implementation shipped with VUEDA is `TomlEnv`, which reads from a TOML file and optionally overlays process environment variables. The env adapter is responsible for type coercion (booleans, integers, lists, URLs) and for enforcing required-key semantics. Missing required keys and invalid type conversions are raised as exceptions at read time.
 
-The wire namespace layer defines query parameter names that must match between server and client. This layer is not negotiated at runtime; both sides hard-code the same literal strings. The server sets these in `REST_FRAMEWORK` and `REST_FLEX_FIELDS` settings; the client declares them as constants. Drift between the two is a wire contract break.
+The wire namespace layer defines query parameter names that must match between server and client. This layer is not negotiated at runtime; both sides hard-code the same literal strings. The server sets these in `REST_FRAMEWORK` and `REST_FLEX_FIELDS2` settings; the client declares them as constants. Drift between the two is a wire contract break.
 
 The client config layer derives model-specific UI configuration from server-emitted metadata. `storeModelConfig` builds a `ModelConfig` object by reading model-info (fields, expands, actions, filtering, ordering), computing defaults, and merging any project-supplied overrides. This layer operates entirely at runtime and depends on the server metadata contract being stable.
 
@@ -49,7 +49,7 @@ Error semantics are strict and immediate. A missing required key raises `KeyErro
 
 The server and client share a fixed set of query parameter names for search, ordering, pagination, and flex-field control. These names are a wire contract: both sides must use the same strings, and there is no runtime negotiation or discovery mechanism for them.
 
-The canonical names are: `s` for search, `o` for ordering, `p` for page number, `ps` for page size, `e` for expand, `f` for fields, `om` for omit, and `ct` for column totals. The server declares these in `REST_FRAMEWORK` settings (`SEARCH_PARAM`, `ORDERING_PARAM`), `REST_FLEX_FIELDS` settings (`EXPAND_PARAM`, `FIELDS_PARAM`, `OMIT_PARAM`), the top-level `COLUMN_TOTALS_PARAM` setting, and pagination class settings. The client declares the same values as constants in `@vueda/utils/constants`. Renaming any of them on the server requires the matching change in that file.
+The canonical names are: `s` for search, `o` for ordering, `p` for page number, `ps` for page size, `e` for expand, `f` for fields, `om` for omit, and `ct` for column totals. The server declares these in `REST_FRAMEWORK` settings (`SEARCH_PARAM`, `ORDERING_PARAM`), `REST_FLEX_FIELDS2` settings (`EXPAND_PARAM`, `FIELDS_PARAM`, `OMIT_PARAM`), the top-level `COLUMN_TOTALS_PARAM` setting, and pagination class settings. The client declares the same values as constants in `@vueda/utils/constants`. Renaming any of them on the server requires the matching change in that file.
 
 ::: info
 Parameter-name discovery — reporting these names in metadata so a client reads them rather than declaring them — is planned for after the v3.0.0 release, and is deliberately being taken up for the parameter set as a whole rather than one parameter at a time.
@@ -95,7 +95,7 @@ If you use a reverse mapping (Django names as the mapped output), finalize `PERM
 
 On the client side, `storeModelConfig` builds per-model, per-view configuration objects from server-emitted model-info metadata. This derivation is the bridge between the server's metadata contract and the client's UI rendering decisions.
 
-The derivation starts with `getDefaultFromModelInfo`, which reads the model-info object's `fields`, `expand`, `actions`, `filtering`, and `ordering` entries and computes sensible defaults: which fields to fetch, display, and submit; which expands to request; which actions are available; and how to route action results. If the model-info object is missing any of these top-level keys, the function returns a minimal config shape with empty detail objects rather than throwing an error.
+The derivation starts with `getDefaultFromModelInfo`, which reads the model-info object's `fields`, `expand`, `actions`, `filtering`, and `ordering` entries and computes sensible defaults: which fields to fetch, display, and submit; the details of each declared expand, with none requested; which actions are available; and how to route action results. If the model-info object is missing any of these top-level keys, the function returns a minimal config shape with empty detail objects rather than throwing an error.
 
 Default action redirects use view-name strings (for example, `"read"`) even though the underlying server action name is `"retrieve"`. The mapping boundary is `viewToActionNameMap`, which translates between the client's view-oriented naming and the server's DRF-oriented naming. This translation is a stable convention, not a runtime lookup.
 

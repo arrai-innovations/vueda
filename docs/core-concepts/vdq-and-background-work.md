@@ -88,6 +88,36 @@ Celery auto-retries transient provider failures (`AnymailTransientError`) for em
 
 For SMS, delivery confirmation can be provided via a webhook callback or periodic polling, depending on configuration. When `TWILIO_WEBHOOK_URL` is set, the webhook handles status updates, and the periodic task checks only for timeouts. Without the webhook URL, the periodic task polls Twilio for awaiting messages and updates their states.
 
+### Matching a status update to its queue item
+
+A status update names the message by the provider's ID: the Twilio `MessageSid` or the Anymail `message_id`. VDQ matches the update to the queue item that stores that ID. A worker can stop after the provider accepts the message and before VDQ stores the ID, so VDQ also hands each provider the queue item's primary key at send time and uses it as a fallback:
+
+- **Twilio.** `send_sms` adds the key to the `status_callback` URL as the `queue_item` query parameter. Twilio posts every status update to that URL. The webhook validates the Twilio signature against the full URL, including the query string, so a request with an altered key is rejected with `403`.
+- **Anymail.** `send_email` attaches the key through an email tracking strategy. The default strategy, `MetadataEmailTrackingStrategy`, stores it under the `vdq_queue_item` key in the email's Anymail `metadata`. Anymail sends `metadata` to the ESP and returns it on tracking events for the ESPs that support it. In the Anymail version VUEDA depends on, those are Amazon SES, Brevo, Mailgun, Mailjet, Mailtrap, Mandrill, Postmark, Resend, SendGrid, SparkPost, and Unisender Go. Check the [Anymail ESP feature matrix](https://anymail.dev/en/stable/esps/) for the version you run.
+
+The provider ID is matched first. The key is used only when no item stores the ID, so status updates for messages sent before the key was added still match. When the key finds an item:
+
+- An item that stores no provider ID stores the ID from the update, then applies the status.
+- An item that stores a different provider ID is left unchanged. VDQ logs the update instead.
+- A final status applies to a `sending` item the same way it applies to an `awaiting` item. The workflow allows `succeed` and `error` from `sending`. For Twilio, `delivered` succeeds, and `undelivered` and `failed` error. For Anymail, `delivered` succeeds, and `bounced`, `rejected`, and `failed` error.
+- An in-flight status moves a `sending` item to `awaiting`, where the usual delivery confirmation or timeout handles it. For Twilio, those are `queued`, `sending`, and `sent`. For Anymail, those are `queued`, `sent`, and `deferred`.
+- Any other status leaves the item where it is, except that a Twilio status on an `awaiting` item past the timeout window (`VDQ_TWILIO_SMS_TIMEOUT_HOURS`) times it out. Anymail events such as `opened` or `complained` take their existing path, which changes no state.
+
+When the key finds no item, the Twilio webhook queues the same deferred lookup task it uses for a callback without a key, and `handle_bounce` logs the event and drops it.
+
+A status update can also arrive while the worker is still running, after the provider accepted the message and before the worker saved the provider ID. The update then finds the item by its key and applies the status first. The worker still saves the provider ID, but it leaves the state and `result` the update set, so an `undelivered` callback's error text is not replaced by the send response's `queued`. Without the fallback, the worker would move the item to `awaiting` and the update would wait for the ID.
+
+#### Email tracking strategies
+
+`VDQ_EMAIL_TRACKING_STRATEGY` selects the class that attaches tracking data to an email and reads it back from a tracking event. It holds the class or its dotted import path. VDQ ships two:
+
+- `vueda.vdq.tracking.MetadataEmailTrackingStrategy`, the default, carries the key in Anymail `metadata`.
+- `vueda.vdq.tracking.EmailTrackingStrategy` attaches nothing and finds nothing. Select it on an ESP that accepts no metadata, so every email sends on the first attempt and tracking events match by `message_id` only, as they did before the fallback existed.
+
+A custom strategy subclasses `EmailTrackingStrategy` and implements two methods. `attach(email, queue_item)` adds the tracking data to the email before it is sent. `find_queue_item(event)` reads that data from a tracking event and returns the queue item, or `None`. For example, an ESP that returns tags but not metadata can carry the key in a tag. `handle_bounce` locks the returned item and runs the provider ID check itself, so a custom strategy cannot skip it.
+
+Not every ESP accepts metadata. When Anymail builds a request for such an ESP, it raises `AnymailUnsupportedFeature` before contacting the ESP. `send_email` catches that, logs it at info level, and sends the email once more without the tracking data, so the email is delivered once and matches by `message_id` only. With Anymail's `IGNORE_UNSUPPORTED_FEATURES` setting on, Anymail drops the metadata silently instead, and the email sends on the first attempt without tracking data. On such an ESP, select the no-op strategy or write a custom one. That stops the log line and the second build without changing how Anymail treats any other feature. See [ESPs without metadata support](../guides/vdq-email-anymail#esps-without-metadata-support) in the Anymail guide.
+
 ## Done-state Semantics and Cleanup Gating
 
 VDQ defines a set of terminal workflow states, `QUEUE_ITEM_DONE_STATES`, that drive three behaviours:
@@ -119,6 +149,8 @@ The view enforces authentication but does not perform object-level permission ch
 ## Relevant Implementation Surface
 
 - {@api py:module:vueda.vdq}
+- {@api py:class:vueda.vdq.tracking.EmailTrackingStrategy}
+- {@api py:class:vueda.vdq.tracking.MetadataEmailTrackingStrategy}
 - {@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_available_transitions}
 - {@api py:function:vueda.workflow.models.WorkflowModelMethods.fast_transition}
 - {@api rest:endpoint:GET:/vueda.vdq/queueitem/}

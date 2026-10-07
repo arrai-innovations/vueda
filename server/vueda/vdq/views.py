@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_open_api_types
+from vueda.vdq.constants import TWILIO_QUEUE_ITEM_PARAM
 from vueda.vdq.handlers import TwilioQueueItemHandler
 from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import QueueItem
@@ -77,20 +78,44 @@ class TwilioSMSWebhook(APIView):
                 logger.exception("Failed to fetch Twilio message details", extra={"sid": message_sid})
 
         with transaction.atomic():
-            try:
-                qi = (
-                    QueueItem.objects.select_related("sms")
-                    .prefetch_related("object_states_proxy")
-                    .select_for_update(of=("self",))
-                    .get(sms__message_sid=message_sid)
-                )
-                SMSQueueItem.objects.select_for_update(of=("self",)).get(message_sid=message_sid)
-            except QueueItem.DoesNotExist:
+            queue_items = (
+                QueueItem.objects.select_related("sms")
+                .prefetch_related("object_states_proxy")
+                .select_for_update(of=("self",))
+            )
+            qi = queue_items.filter(sms__message_sid=message_sid).first()
+            queue_item_key = _queue_item_key(request)
+            if qi is None and queue_item_key is not None:
+                # Twilio echoes the key that send_sms put on the callback URL. The signature check covers the URL,
+                # so the key is as trustworthy as the rest of the request.
+                qi = queue_items.filter(pk=queue_item_key, method="sms").first()
+                if qi is not None and qi.sms.message_sid and qi.sms.message_sid != message_sid:
+                    logger.warning(
+                        "Twilio status callback for MessageSid %s names QueueItem %s, which stores MessageSid %s. "
+                        "Ignoring it.",
+                        message_sid,
+                        qi.pk,
+                        qi.sms.message_sid,
+                    )
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+            if qi is None:
                 check_previously_received_message_sid.delay(message_sid, message_status)
             else:
+                SMSQueueItem.objects.select_for_update(of=("self",)).get(queue_item=qi)
+                if not qi.sms.message_sid:
+                    qi.sms.message_sid = message_sid
+                    qi.sms.save(update_fields=["message_sid"])
                 handler = TwilioQueueItemHandler()
                 handler.update_sms_qi(qi, message_status, message=message, webhook=True, error_code=error_code)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _queue_item_key(request) -> int | None:
+    """Return the queue item primary key from the callback URL, or ``None`` when the URL carries none."""
+    try:
+        return int(request.GET[TWILIO_QUEUE_ITEM_PARAM])
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 @conditional_extend_schema_decorator(responses={200: conditional_open_api_types().BINARY})

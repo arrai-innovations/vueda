@@ -41,7 +41,7 @@ class TestValidateFlexExpandsAndFields:
     """
 
     def test_limits_depth_to_configured_maximum(self, settings):
-        settings.REST_FLEX_FIELDS = {
+        settings.REST_FLEX_FIELDS2 = {
             "EXPAND_PARAM": "e",
             "FIELDS_PARAM": "f",
             "OMIT_PARAM": "om",
@@ -283,7 +283,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         context = {
             "request": FakeRequest(
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start", "period_end"]}, put_data, "PUT"
+                {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["period_start", "period_end"]}, put_data, "PUT"
             )
         }
 
@@ -328,7 +328,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         }
         del put_data[dropped_field]
 
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, put_data, "PUT")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2[param_name]: requested}, put_data, "PUT")}
 
         t = Timesheet.objects.create(
             **{
@@ -374,7 +374,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             "period_end": "2024-03-15",
         }
 
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, post_data, "POST")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2[param_name]: requested}, post_data, "POST")}
         context["view"] = FakeView(context["request"], TimesheetSerializer, "create")
 
         serializer = TimesheetSerializer(data=post_data, context=context)
@@ -395,7 +395,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         patch_data = {"employee": 999999}  # no employee with this pk
 
         context = {
-            "request": FakeRequest({settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start"]}, patch_data, "PATCH")
+            "request": FakeRequest({settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["period_start"]}, patch_data, "PATCH")
         }
         context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
 
@@ -431,7 +431,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         t = Timesheet.objects.create(**{**valid_timesheet_data, "employee": employee})
         patch_data = {"period_start": "2024-02-16"}  # employee omitted entirely
 
-        query = {settings.REST_FLEX_FIELDS[param_name]: requested} if param_name else {}
+        query = {settings.REST_FLEX_FIELDS2[param_name]: requested} if param_name else {}
         context = {"request": FakeRequest(query, patch_data, "PATCH")}
         context["view"] = FakeView(context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=t.id))
 
@@ -465,7 +465,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         }
         context = {
             "request": FakeRequest(
-                {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["period_start", "invalid_field_name"]}, put_data, "PUT"
+                {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["period_start", "invalid_field_name"]}, put_data, "PUT"
             )
         }
         context["view"] = FakeView(context["request"], TimesheetSerializer)
@@ -519,7 +519,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
 
         context = {
             "request": FakeRequest(
-                {settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT", user=employee.user
+                {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: ["employee", "foo"]}, put_data, "PUT", user=employee.user
             )
         }
 
@@ -552,7 +552,7 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
             "period_end": "2024-02-28",
         }
         context = {
-            "request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["foo", "label10"]}, put_data, "PUT")
+            "request": FakeRequest({settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: ["foo", "label10"]}, put_data, "PUT")
         }
 
         context["view"] = FakeView(context["request"], TimesheetSerializer)
@@ -775,7 +775,7 @@ class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, Base
             "period_end": "2024-02-28",
         }
 
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS["EXPAND_PARAM"]: ["employee"]}, data, "PUT")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: ["employee"]}, data, "PUT")}
         context["view"] = FakeView(
             context["request"], TimesheetSerializer, queryset=Timesheet.objects.filter(pk=timesheet.pk)
         )
@@ -804,7 +804,7 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
     def test_sparse_fieldset_does_not_drop_a_required_field_validator(self, param_name):
         # "f=id" and "om=code,field_that_contains_the_name" both request the same subset: id only.
         requested = ["id"] if param_name == "FIELDS_PARAM" else ["code", "field_that_contains_the_name"]
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, {}, "POST")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2[param_name]: requested}, {}, "POST")}
         context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
 
         count_before = store_models.SpecialCare.objects.count()
@@ -827,7 +827,7 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
         back, never what is required to be sent."""
         requested = ["id"] if param_name == "FIELDS_PARAM" else ["code", "field_that_contains_the_name"]
         request_data = {"code": "sc-1"}
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, request_data, "POST")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2[param_name]: requested}, request_data, "POST")}
         context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
 
         count_before = store_models.SpecialCare.objects.count()
@@ -854,7 +854,7 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
     ):
         request_data = {"code": "sc-1"}  # field_that_contains_the_name omitted: blank=True, so optional
 
-        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS[param_name]: requested}, request_data, "POST")}
+        context = {"request": FakeRequest({settings.REST_FLEX_FIELDS2[param_name]: requested}, request_data, "POST")}
         context["view"] = FakeView(context["request"], _PlainSpecialCareSerializer, "create")
 
         serializer = _PlainSpecialCareSerializer(data=request_data, context=context)
@@ -1098,14 +1098,14 @@ class TestVuedaReadonlySerializer:
                 expandable_fields = {
                     "distributor": (
                         store_serializers.DistributorSerializer,
-                        {settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: ["name"]},
+                        {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["name"]},
                     )
                 }
 
         expand_items = _ParentSerializer().generate_expand_model_info()
         distributor_item = next(item for item in expand_items if item["name"] == "distributor")
 
-        assert set(distributor_item[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]) == {"id", "name"}
+        assert set(distributor_item[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]) == {"id", "name"}
 
 
 @pytest.mark.django_db
@@ -1131,7 +1131,7 @@ class TestSchemaExpandableFieldsAndFields:
 
         assert expands["dict_data"] == {
             "name": "dict_data",
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                 "name": {
                     "label": "Name",
                     "type": "CharField",
@@ -1154,7 +1154,7 @@ class TestSchemaExpandableFieldsAndFields:
             "name": "user",
             "app_label": "employee",
             "model": "user",
-            settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: {
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: {
                 "id": {
                     "choices": False,
                     "label": "ID",
@@ -1201,11 +1201,11 @@ class TestSchemaExpandableFieldsAndFields:
         parameters = store_serializers.CustomerSerializer().get_schema_operation_parameters("op", [])
         parameters_by_name = {parameter["name"]: parameter for parameter in parameters}
 
-        expand_param = parameters_by_name[settings.REST_FLEX_FIELDS["EXPAND_PARAM"]]
+        expand_param = parameters_by_name[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]]
         assert "user" in expand_param["schema"]["items"]["enum"]
         assert "dict_data" in expand_param["schema"]["items"]["enum"]
 
-        fields_param = parameters_by_name[settings.REST_FLEX_FIELDS["FIELDS_PARAM"]]
+        fields_param = parameters_by_name[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]
         assert "number_of_ordered_products" in fields_param["schema"]["items"]["enum"]
 
 

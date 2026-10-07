@@ -179,7 +179,7 @@ class WidgetSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 ```
 
-The serializer also serves as the source for `expandable_fields` metadata. If your model has foreign key or many-to-many relationships that should be expandable in the API, declare them in `Meta.expandable_fields` following the `rest_flex_fields` tuple syntax.
+The serializer also serves as the source for `expandable_fields` metadata. If your model has foreign key or many-to-many relationships that should be expandable in the API, declare them in `Meta.expandable_fields` following the `rest_flex_fields2` tuple syntax.
 
 The `NoExtraFieldsSerializerMixin` (which `VuedaSerializer` includes) rejects unknown fields on input. Submitting a field name that is not in the serializer's declared fields will produce a validation error. This strictness is intentional; it prevents silent data loss from typos and keeps the serializer definition authoritative.
 

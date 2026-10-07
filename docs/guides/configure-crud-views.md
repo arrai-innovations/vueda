@@ -35,7 +35,7 @@ The defaults are:
     - `create` displays only writable fields. A new record has no value yet for a read-only field, and the server ignores input for one.
     - `list` displays and fetches only fields whose model-info entry does not set `list_default: false`. A workflow model's serializers set it on `workflow_state_code` and `valid_transitions`, so a workflow list shows `workflow_state_name` alone.
 - `submitFields`: the same fields minus read-only ones.
-- `expand`: all expandable field names declared on the serializer.
+- `expand`: empty. A view expands a relation only when its config names it. See [Use Expand and Sparse Field Controls](./expand-and-fields-controls#client-default-field-expand-strategy).
 - `routeActions` and `actions`: all action names from model-info.
 - `filterables`: all keys from the filterset definition.
 - `sortables`: every field name in the model-info `model_ordering.fields` list — the fields a client may order by.
@@ -176,7 +176,7 @@ Each list resolves in this order, and an omitted or empty list at any level fall
 
 Fields marked ignored stay out of the body even when `submitFields` names them. `submitFields` only narrows what the client sends. The server still validates each write against the serializer's writable fields and the user's permissions.
 
-When expansion metadata is present, `storeModelConfig` flattens expanded sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
+For each relation that `expand` names, `storeModelConfig` flattens its sub-fields into `fieldDetails` using `expand.subfield` keys. For example, if `category` is expanded and has a `name` field, the config will contain `fieldDetails["category.name"]`. This allows display and field configuration to target expanded sub-fields directly.
 
 ## Action and Route Strategy
 
@@ -240,7 +240,7 @@ With config overrides in place, verify the surface end-to-end:
 
 **Links to an action are always enabled, even without a selected object.** `useLinkModelView` checks `actionDetails[action].detail || actionDetails[action].bulk` to decide if a PK is required. If neither flag is set, the link is enabled unconditionally. Set `detail: true` or `bulk: true` on the action's `actionDetails` entry to gate the link on row selection.
 
-**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only when the `expand` config is non-empty. If `expand` is overridden to `[]`, no expansion flattening occurs and `expand.subfield` keys will not be present in `fieldDetails`.
+**Expanded sub-field is not configurable in field details.** Expansion metadata is flattened into `fieldDetails` using `expand.subfield` keys only for relations that `expand` names, and `expand` is empty by default. Add the relation to the view's `expand`.
 
 **Template route paths do not match project structure.** The provided project templates wire CRUDL routes in `client/src/router/index.js`. If your project does not use the template structure, this path will not apply. The `makeCRUDRoutes` call is project-level wiring and can live wherever your router is set up.
 

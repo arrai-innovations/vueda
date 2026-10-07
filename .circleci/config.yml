@@ -70,6 +70,12 @@ workflows:
                       docs-tooling/.* run-docs-workflows true .circleci/docs.yml
                       client/.* run-docs-workflows true .circleci/docs.yml
                       server/.* run-docs-workflows true .circleci/docs.yml
+                      \.circleci/client\.yml$ run-client-workflows true .circleci/client.yml
+                      \.circleci/server\.yml$ run-server-workflows true .circleci/server.yml
+                      \.circleci/docs\.yml$ run-docs-workflows true .circleci/docs.yml
+                      \.circleci/config\.yml$ run-client-workflows true .circleci/client.yml
+                      \.circleci/config\.yml$ run-server-workflows true .circleci/server.yml
+                      \.circleci/config\.yml$ run-docs-workflows true .circleci/docs.yml
                       uv\.lock$ run-server-workflows true .circleci/server.yml
                       uv\.lock$ run-docs-workflows true .circleci/docs.yml
                       pnpm-lock\.yaml$ run-client-workflows true .circleci/client.yml

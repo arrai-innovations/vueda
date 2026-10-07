@@ -263,6 +263,26 @@ just changelog-build client 3.0.0-alpha.6
 
 Commit the result with the version bump.
 
+## Dependency audit fixes
+
+Keep a dependency audit fix out of a pull request whose focus is other work.
+Land it on its own, in a pull request whose focus is that fix.
+
+An audit fix edits files that most branches share: `uv.lock`,
+`pnpm-lock.yaml`, and the overrides in `pnpm-workspace.yaml`. A pull request
+that carries one conflicts with every other branch that touches those files.
+Those conflicts grow while the pull request waits for review and while other
+work lands on `main`.
+
+Run both audits from the repository root. The Python audit reads the root
+`uv.lock`, so it reports the versions the workspace resolves rather than the
+lower bounds in `server/pyproject.toml`:
+
+```bash
+uvx pysentry-rs . --config server/pyproject.toml --compact --color never
+pnpm audit
+```
+
 ## Commit messages
 
 Commit messages use the same Conventional Commit format, allowed types, and

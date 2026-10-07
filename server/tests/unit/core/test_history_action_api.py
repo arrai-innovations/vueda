@@ -654,7 +654,7 @@ class TestHistoryActionObjectAvailability(BaseTestAssertResponseMixin, BaseTestU
             reverse(
                 "store.distributor-detail",
                 kwargs={"pk": distributor.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
             ),
             data={"description": "Fine widgets, updated."},
             format="json",
@@ -755,7 +755,7 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
             reverse(
                 "store.customerorder-list",
                 query={
-                    settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions",
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions",
                     settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
                 },
             ),
@@ -778,7 +778,7 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
             reverse(
                 "store.customerorder-detail",
                 kwargs={"pk": order.pk},
-                query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
             ),
         )
         self.assert_response(response, HTTPStatus.OK)
@@ -846,7 +846,7 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
                 reverse(
                     "store.customerorder-list",
                     query={
-                        settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: fields,
+                        settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: fields,
                         settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
                     },
                 ),
@@ -933,7 +933,7 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
                 reverse(
                     "store.customerorder-list",
                     query={
-                        settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "id,available_actions",
+                        settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions",
                         settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
                     },
                 ),
@@ -1034,7 +1034,7 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
                 reverse(
                     "store.customerorder-detail",
                     kwargs={"pk": order.pk},
-                    query={settings.REST_FLEX_FIELDS["FIELDS_PARAM"]: "available_actions"},
+                    query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
                 ),
             )
         self.assert_response(response, HTTPStatus.OK)
