@@ -10,7 +10,9 @@
  *
  * The result is a flat map of id to `{ href, title }`, written to `.generated/external-ids.json`,
  * which the reference validator and the VitePress site both read. Every download is also kept in
- * `.cache/external/`, which this extract falls back to when the network is unavailable.
+ * `.cache/external/`. An inventory whose URL names an exact release never changes, so a kept copy is
+ * used without a request. Any other download falls back to its kept copy when the network is
+ * unavailable or the server asks to try later.
  */
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -202,32 +204,59 @@ const DEFAULT_CACHE_DIR = path.join(repoRoot, "docs-tooling", ".cache", "externa
 const FETCH_TIMEOUT_MS = 20000;
 
 /**
- * Fetch `url` and keep a copy in `cacheDir`, or return the kept copy when the network fails.
- *
- * Only a network failure falls back to the cache. An HTTP error status still fails, because a page
- * that upstream removed is what the registry check exists to report. Running this extract once
- * while online primes the cache for offline work.
+ * Whether an HTTP status means "try later" rather than "this page is wrong".
  */
-export async function cachedFetch(url, { cacheDir = DEFAULT_CACHE_DIR, fetchImpl = fetch, warn = console.warn } = {}) {
+function isTransientStatus(status) {
+    return status === 429 || status >= 500;
+}
+
+/**
+ * Fetch `url` and keep a copy in `cacheDir`, or return the kept copy when a fresh one is not needed or not available.
+ *
+ * With `preferCache`, a kept copy is returned without a request. Use it only for a URL whose content
+ * never changes, such as an inventory for an exact release.
+ *
+ * A network failure, a 429, or a 5xx status falls back to the cache. Any other HTTP error status
+ * still fails, because a page that upstream removed is what the registry check exists to report.
+ * Running this extract once while online primes the cache for offline work.
+ */
+export async function cachedFetch(
+    url,
+    { cacheDir = DEFAULT_CACHE_DIR, fetchImpl = fetch, warn = console.warn, preferCache = false } = {},
+) {
     const cacheFile = path.join(cacheDir, `${createHash("sha256").update(url).digest("hex")}.bin`);
+    if (preferCache) {
+        try {
+            return await readFile(cacheFile);
+        } catch {
+            // Nothing kept yet; fetch it.
+        }
+    }
     let response;
+    let failure;
     try {
         response = await fetchImpl(url, { redirect: "follow", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     } catch (error) {
+        failure = error.message;
+    }
+    if (response && !response.ok && !isTransientStatus(response.status)) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    if (response && !response.ok) {
+        failure = `HTTP ${response.status}`;
+    }
+    if (failure) {
         let cached;
         try {
             cached = await readFile(cacheFile);
         } catch {
             throw new Error(
-                `${error.message}, and no cached copy exists. Run \`docs-tooling.js extract --target external\` ` +
+                `${failure}, and no cached copy exists. Run \`docs-tooling.js extract --target external\` ` +
                     `while online to fill ${path.relative(repoRoot, cacheDir)}/.`,
             );
         }
-        warn(`Using the cached copy of ${url}: ${error.message}`);
+        warn(`Using the cached copy of ${url}: ${failure}`);
         return cached;
-    }
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
     }
     const body = Buffer.from(await response.arrayBuffer());
     await mkdir(cacheDir, { recursive: true });
@@ -268,7 +297,8 @@ export async function installedVersions(names) {
 export class ExternalDocsExtractor {
     /**
      * @param {object} [options]
-     * @param {(url: string) => Promise<ArrayBuffer>} [options.fetchInventory] - Fetches an inventory.
+     * @param {(url: string, options: {pinned: boolean}) => Promise<ArrayBuffer>} [options.fetchInventory] -
+     *  Fetches an inventory. `pinned` is true when the URL names an exact release.
      * @param {(url: string) => Promise<string>} [options.fetchPage] - Fetches a hand-listed page.
      * @param {string} [options.cacheDir] - Where the default fetchers keep copies for offline use.
      * @param {(names: string[]) => Promise<{[name: string]: string|null}>} [options.findInstalledVersions] -
@@ -276,7 +306,8 @@ export class ExternalDocsExtractor {
      */
     constructor({ fetchInventory, fetchPage, cacheDir, findInstalledVersions } = {}) {
         this.findInstalledVersions = findInstalledVersions || installedVersions;
-        this.fetchInventory = fetchInventory || ((url) => cachedFetch(url, { cacheDir }));
+        this.fetchInventory =
+            fetchInventory || ((url, { pinned }) => cachedFetch(url, { cacheDir, preferCache: pinned }));
         this.fetchPage = fetchPage || (async (url) => (await cachedFetch(url, { cacheDir })).toString("utf-8"));
     }
 
@@ -296,12 +327,15 @@ export class ExternalDocsExtractor {
             }
             const version = installed[packageConfig.lockPackage] ?? lockedVersions[packageConfig.lockPackage];
             const base = fillVersion(packageConfig.base, version);
+            const inventoryTemplate = packageConfig.inventory || packageConfig.base;
             const inventoryUrl = packageConfig.inventory
                 ? fillVersion(packageConfig.inventory, version)
                 : new URL("objects.inv", base).href;
+            // `{minor}` docs are rebuilt with each patch release; only `{version}` names content that never changes.
+            const pinned = inventoryTemplate.includes("{version}");
             let entries;
             try {
-                entries = parseInventory(await this.fetchInventory(inventoryUrl));
+                entries = parseInventory(await this.fetchInventory(inventoryUrl, { pinned }));
             } catch (error) {
                 throw new Error(`${packageKey} inventory ${inventoryUrl}: ${error.message}`);
             }
