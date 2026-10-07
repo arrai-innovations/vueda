@@ -81,7 +81,7 @@ Keep the hook cheap. When a response includes {@term Available Actions}, the ser
 
 ## Step 3: Add the Workflow Hooks (Workflow Models Only)
 
-For a {@term Workflow-Enabled Model}, {@term State Permission} rules already filter the rows and take part in object checks. Add the {@term Row-Level Workflow Permissions} hooks only when your row rule must combine with the object's state:
+For a {@term Workflow-Enabled Model}, {@term State Permission} rules already filter the rows and take part in object checks. Add the {@term Row-Level Workflow Permissions} hooks only when your row rule must combine with the object's state. This example requires a non-owner to hold a state grant for the row's current state. The owner needs no grant, and a state deny applies to everyone:
 
 ```python
 class RowLevelPermissions(BaseRowLevelPermissions):
@@ -91,19 +91,19 @@ class RowLevelPermissions(BaseRowLevelPermissions):
     def check_queryset_workflow(
         cls, queryset, perm, user, perm_type, state_denied_annotation, state_granted_annotation
     ):
-        # Owners keep their rows; others need a state grant for the row's current state.
+        # The state rules already removed denied rows. Non-owners also need a state grant.
         return Q(owner=user) | Q(**{state_granted_annotation: True})
 
     @classmethod
     def check_instance_workflow(cls, model, obj, perm, user, perm_type, grant_or_deny):
-        if grant_or_deny is False and obj.owner_id == user.pk:
-            return True  # the owner passes a state deny
-        return None  # keep the earlier decision
+        if obj.owner_id != user.pk and grant_or_deny is not True:
+            return False  # a non-owner needs a state grant
+        return None  # keep the earlier decision, a state deny included
 ```
 
 {@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow} runs after the state rules remove denied rows. It can narrow the rows further but cannot restore rows that the state rules removed. It receives the names of two boolean annotations on the queryset, [`state_denied_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_denied_annotation} and [`state_granted_annotation`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_queryset_workflow.state_granted_annotation}. Use them in the `Q` you return.
 
-{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow} runs last in an object check. It receives the state rules' result in [`grant_or_deny`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow.grant_or_deny} (`True`, `False`, or `None`). A non-`None` return is the final decision, even over a state deny. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) describes how state rules decide.
+{@api py:function:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow} runs last in an object check. It receives the state rules' result in [`grant_or_deny`]{@api py:param:vueda.core.permissions.BaseRowLevelPermissions.check_instance_workflow.grant_or_deny} (`True`, `False`, or `None`). A non-`None` return is the final decision, even over a state deny. A `True` that overrides a state deny has no `list` counterpart, because `check_queryset_workflow` cannot restore the row. Such a row opens by pk but stays out of `list`. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay) describes how state rules decide.
 
 ## Step 4: Keep Row Filtering in Custom Code
 
