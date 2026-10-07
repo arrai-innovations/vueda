@@ -14,9 +14,9 @@ from tests.conftest import response_body
 
 ALLAUTH_PREFIX = "/routes/vueda.user/_allauth/browser/v1/"
 
-# Every allauth headless browser route that `allauth.headless.urls` would mount with VUEDA's settings, other than
-# recovery codes. VUEDA's own views cover login, two-factor, reauthentication, password change and reset, and
-# device management, so these would only be a second, untested way into the same accounts.
+# Every allauth headless browser route that `allauth.headless.urls` would mount with VUEDA's settings. VUEDA's own
+# views cover login, two-factor, reauthentication, recovery codes, password change and reset, and device management,
+# so these would only be a second, untested way into the same accounts.
 UNMOUNTED_ALLAUTH_PATHS = (
     "config",
     "auth/session",
@@ -37,6 +37,7 @@ UNMOUNTED_ALLAUTH_PATHS = (
     "account/phone",
     "account/authenticators",
     "account/authenticators/totp",
+    "account/authenticators/recovery-codes",
 )
 
 
@@ -52,8 +53,8 @@ def mfa_user(db):
     return user
 
 
-def test_recovery_codes_keep_their_client_url():
-    assert reverse("recovery_codes") == f"{ALLAUTH_PREFIX}account/authenticators/recovery-codes"
+def test_recovery_codes_are_served_from_vueda_url():
+    assert reverse("recovery_codes") == "/routes/vueda.user/2fa/recovery-codes/"
 
 
 @pytest.mark.django_db
