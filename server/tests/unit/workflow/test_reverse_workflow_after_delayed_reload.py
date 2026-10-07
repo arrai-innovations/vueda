@@ -6,8 +6,15 @@ with ``delay=True``. That re-renders the model and its direct relations but not 
 them, so a foreign key can keep an older class than ``apps.get_model()`` returns. Django re-renders the
 registry before a forwards ``RunPython`` but not before a backwards one
 (https://code.djangoproject.com/ticket/33586), so the reverse code VUEDA generates rebuilds it.
+
+The workaround can go once the oldest Django version VUEDA supports includes the fix. The xfail test
+reports the first Django version with the fix, and the removal check then reports when VUEDA's declared
+Django requirement no longer allows a version without it.
 """
 
+import importlib.metadata
+
+import django
 import pytest
 from django.apps import apps as django_apps
 from django.contrib.contenttypes.models import ContentType
@@ -16,20 +23,45 @@ from django.db import migrations
 from django.db import models
 from django.db.migrations.state import ModelState
 from django.db.migrations.state import ProjectState
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 from tests.store import models as store_models
 from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow
 from vueda.workflow.models import Workflow
 
 
+# The first Django version that fixes ticket #33586, such as (6, 2). Set it when the xfail test below
+# passes unexpectedly on a new Django version.
+DJANGO_33586_FIXED_IN = None
+
+
+def oldest_supported_django():
+    """Return the lower bound of the Django requirement that the installed vueda package declares."""
+    for requirement_text in importlib.metadata.requires("vueda"):
+        requirement = Requirement(requirement_text)
+        if canonicalize_name(requirement.name) == "django":
+            return min(Version(spec.version) for spec in requirement.specifier if spec.operator == ">=").release
+    raise LookupError("The vueda package declares no Django requirement.")
+
+
+def test_rebuild_migration_apps_is_still_needed():
+    assert DJANGO_33586_FIXED_IN is None or oldest_supported_django() < DJANGO_33586_FIXED_IN, (
+        "Every Django version VUEDA supports fixes ticket #33586. Remove rebuild_migration_apps from the "
+        "workflow migration reverse code and the vueda_vdq workflow migrations, along with this file."
+    )
+
+
 @pytest.mark.django_db
 class TestReverseWorkflowAfterDelayedReload:
     @pytest.mark.xfail(
+        DJANGO_33586_FIXED_IN is None or django.VERSION < DJANGO_33586_FIXED_IN,
         strict=True,
         reason=(
             "Django ticket #33586: RunPython.database_backwards does not re-render a delayed registry "
-            "(https://code.djangoproject.com/ticket/33586). Once this passes on every supported Django "
-            "version, remove rebuild_migration_apps from the workflow migration reverse code."
+            "(https://code.djangoproject.com/ticket/33586). When this passes unexpectedly on a new Django "
+            "version, set DJANGO_33586_FIXED_IN to that version."
         ),
     )
     def test_django_gives_backwards_run_python_consistent_related_models(self):

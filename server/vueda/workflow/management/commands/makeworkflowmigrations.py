@@ -249,6 +249,10 @@ def rebuild_migration_apps(apps):
     ``RunPython`` but not before a backwards one (https://code.djangoproject.com/ticket/33586), so
     the reverse step rebuilds it. Generated workflow migrations copy this function and reach it
     through ``backwards_migrate_workflow``.
+
+    VUEDA keeps it until the oldest Django version it supports includes the fix. A copy in a
+    migration can stay after that, because rebuilding a registry that is already consistent changes
+    nothing.
     """
     project_state = ProjectState()
     for model in apps.get_models(include_swapped=True):
