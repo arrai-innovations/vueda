@@ -369,7 +369,7 @@ def test_password_only_user_sets_up_and_activates_a_first_device_after_a_passwor
     assert TOTPDevice.objects.filter(user=user, method="email").exists()
     # The account now owes a second factor, and the activation code counts as one.
     who_is = api_client.get(reverse("who-is"), format="json")
-    assert who_is.data["recently_logged_in"] is True
+    assert who_is.data["auth_pending_flow"] is None
 
 
 @pytest.mark.django_db
@@ -407,6 +407,20 @@ def test_mfa_user_can_view_recovery_codes_after_a_two_factor_reauthentication(ap
 
     assert response.status_code == HTTPStatus.OK, response_body(response)
     assert response.json()["data"]["unused_codes"] == recovery_codes.get_unused_codes()
+
+
+@pytest.mark.django_db
+def test_mfa_user_can_regenerate_recovery_codes_after_a_two_factor_reauthentication(api_client, recovery_codes):
+    unused_codes = recovery_codes.get_unused_codes()
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.post(reverse("recovery_codes"), {}, format="json")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    regenerated = RecoveryCodes.activate(recovery_codes.instance.user).get_unused_codes()
+    assert regenerated != unused_codes
+    assert response.json()["data"]["unused_codes"] == regenerated
 
 
 class DummyAllAuthBase:

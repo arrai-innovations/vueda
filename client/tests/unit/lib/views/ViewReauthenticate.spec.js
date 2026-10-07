@@ -74,7 +74,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
     beforeEach(async () => {
         storeUserMock.mockReset();
         userStore = reactive({
-            pendingFlow: null,
+            authPendingFlow: null,
             reauthenticate: vi.fn().mockResolvedValue(undefined),
             twoFactorReauthenticate: vi.fn().mockResolvedValue(undefined),
         });
@@ -84,7 +84,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
 
     describe("Choosing the form", () => {
         scopedIt("renders the two-factor form when the user owes a second factor", () => {
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             const form = twoFactorForm(wrapper);
@@ -95,7 +95,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("renders the password form when the user owes their password", () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             const form = passwordForm(wrapper);
@@ -120,7 +120,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
             const wrapper = mount(ViewReauthenticate);
             expect(passwordForm(wrapper).exists()).toBe(true);
 
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             await flushPromises();
 
             expect(twoFactorForm(wrapper).exists()).toBe(true);
@@ -128,20 +128,20 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("keeps the two-factor form after completing the flow clears it", async () => {
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
-            userStore.pendingFlow = null;
+            userStore.authPendingFlow = null;
             await flushPromises();
 
             expect(twoFactorForm(wrapper).exists()).toBe(true);
         });
 
         scopedIt("ignores a sign-in flow", async () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
-            userStore.pendingFlow = { id: "mfa_authenticate" };
+            userStore.authPendingFlow = "mfa_authenticate";
             await flushPromises();
 
             expect(passwordForm(wrapper).exists()).toBe(true);
@@ -150,7 +150,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
 
     describe("Submitting", () => {
         scopedIt("the password form confirms the password", async () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             await passwordForm(wrapper).props("runAction")({ formValues: { password: "hunter2" } });
@@ -160,7 +160,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("the two-factor form confirms the code", async () => {
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             await twoFactorForm(wrapper).props("runAction")({ formValues: { code: "123456" } });
@@ -179,14 +179,14 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("the two-factor form announces a confirmed identity", () => {
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             expect(twoFactorForm(wrapper).props("toasts")).toEqual(reauthenticatedToasts);
         });
 
         scopedIt("the password form announces a confirmed identity", () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate);
 
             expect(passwordForm(wrapper).props("toasts")).toEqual(reauthenticatedToasts);
@@ -194,7 +194,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
 
         scopedIt("a toasts attribute replaces the default", () => {
             const toasts = { success: { title: "Verified" } };
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate, { attrs: { toasts } });
 
             expect(twoFactorForm(wrapper).props("toasts")).toEqual(toasts);
@@ -203,7 +203,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
 
     describe("Slots and attributes", () => {
         scopedIt("replaces the action bar of the password form", () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate, {
                 slots: { "action-bar": '<button data-qa="custom-submit">Go</button>' },
             });
@@ -213,7 +213,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("forwards other slots to the two-factor form", () => {
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             const wrapper = mount(ViewReauthenticate, {
                 slots: { extra: '<span data-qa="extra-slot">extra</span>' },
             });
@@ -222,7 +222,7 @@ describe("lib/views/ViewReauthenticate.vue", () => {
         });
 
         scopedIt("a sub-title attribute replaces the password form's default", () => {
-            userStore.pendingFlow = { id: "reauthenticate" };
+            userStore.authPendingFlow = "reauthenticate";
             const wrapper = mount(ViewReauthenticate, { attrs: { subTitle: "Prove it" } });
 
             expect(passwordForm(wrapper).props("subTitle")).toBe("Prove it");

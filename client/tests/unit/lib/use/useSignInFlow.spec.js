@@ -27,8 +27,7 @@ vi.mock("@vueda/use/useForm.js", () => ({ useForm: () => formContext }));
 
 const store = reactive({
     loggedIn: false,
-    recentlyLoggedIn: false,
-    pendingFlow: null,
+    authPendingFlow: null,
 });
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser: () => store }));
 
@@ -39,7 +38,7 @@ describe("lib/use/useSignInFlow.js", () => {
         ({ useSignInFlow } = await import("@vueda/use/useSignInFlow.js"));
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
-        Object.assign(store, { loggedIn: false, recentlyLoggedIn: false, pendingFlow: null });
+        Object.assign(store, { loggedIn: false, authPendingFlow: null });
         routeQuery = {};
         isActiveRef.value = false;
     });
@@ -54,7 +53,6 @@ describe("lib/use/useSignInFlow.js", () => {
             useSignInFlow({ redirect: { name: "dashboard" }, formProps: {} });
             isActiveRef.value = true;
             store.loggedIn = true;
-            store.recentlyLoggedIn = true;
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "dashboard" });
             expect(toastMock.success).toHaveBeenCalledWith("Signed In", expect.any(Object));
@@ -185,23 +183,23 @@ describe("lib/use/useSignInFlow.js", () => {
     });
 
     describe("requireRecentLogin", () => {
-        scopedIt("blocks redirect until recentlyLoggedIn is true", async () => {
+        scopedIt("blocks redirect until authPendingFlow clears", async () => {
             useSignInFlow({ requireRecentLogin: true, redirect: { name: "welcome" }, formProps: {} });
             isActiveRef.value = true;
             store.loggedIn = true;
-            store.recentlyLoggedIn = false;
+            store.authPendingFlow = "reauthenticate";
             await flushPromises();
-            routerPush.mockClear();
-            store.recentlyLoggedIn = true;
+            expect(routerPush).not.toHaveBeenCalled();
+            store.authPendingFlow = null;
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "welcome" });
         });
 
-        scopedIt("allows redirect when requireRecentLogin is false regardless of recentlyLoggedIn", async () => {
+        scopedIt("allows redirect when requireRecentLogin is false regardless of authPendingFlow", async () => {
             useSignInFlow({ requireRecentLogin: false, redirect: { name: "welcome" }, formProps: {} });
             isActiveRef.value = true;
             store.loggedIn = true;
-            store.recentlyLoggedIn = false;
+            store.authPendingFlow = "reauthenticate";
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "welcome" });
         });
@@ -210,7 +208,7 @@ describe("lib/use/useSignInFlow.js", () => {
     describe("MFA pending flow", () => {
         scopedIt("pushes to 2fa on mfa_authenticate pending flow", async () => {
             useSignInFlow({ formProps: {} });
-            store.pendingFlow = { id: "mfa_authenticate" };
+            store.authPendingFlow = "mfa_authenticate";
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "2fa" });
         });
@@ -218,14 +216,14 @@ describe("lib/use/useSignInFlow.js", () => {
         scopedIt("carries the ?redirect query param to 2fa", async () => {
             routeQuery = { redirect: "/home" };
             useSignInFlow({ redirect: "/dashboard", formProps: {} });
-            store.pendingFlow = { id: "mfa_authenticate" };
+            store.authPendingFlow = "mfa_authenticate";
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "2fa", query: { redirect: "/home" } });
         });
 
         scopedIt("ignores unrelated pending flow ids", async () => {
             useSignInFlow({ formProps: {} });
-            store.pendingFlow = { id: "some_other_flow" };
+            store.authPendingFlow = "some_other_flow";
             await flushPromises();
             expect(routerPush).not.toHaveBeenCalled();
         });

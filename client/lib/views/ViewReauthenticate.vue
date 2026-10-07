@@ -11,11 +11,11 @@ import { computed, reactive, ref, useSlots, watch } from "vue";
 
 /**
  * Default reauthentication view. Confirms a signed-in user's identity before a reauthentication-guarded
- * action, with the proof the server requires for the account. `storeUser.pendingFlow` names it:
+ * action, with the proof the server requires for the account. `storeUser.authPendingFlow` names it:
  * `mfa_reauthenticate` renders `ViewTwoFactorAuth` submitting through `storeUser.twoFactorReauthenticate`;
  * `reauthenticate` renders a password form in an AuthorizingForm card submitting through
- * `storeUser.reauthenticate`. Both wait for `recentlyLoggedIn` before redirecting, so a user whose session
- * is already recent is sent on without a prompt.
+ * `storeUser.reauthenticate`. Both wait for `authPendingFlow` to clear before redirecting, so a user whose
+ * session is already recent is sent on without a prompt.
  *
  * The `header`, `subTitle`, and `toasts` set here are defaults: an attribute passed in with the same name falls
  * through to whichever form is showing and replaces it, as does any other AuthorizingForm prop such as `redirect`.
@@ -28,11 +28,11 @@ defineOptions({});
 
 const userStore = storeUser();
 
-// The form follows the pending flow and holds once chosen. Completing the flow clears `pendingFlow`
+// The form follows the pending flow and holds once chosen. Completing the flow clears `authPendingFlow`
 // while the redirect is still running, and holding keeps the form from swapping underneath it.
 const flow = ref(null);
 watch(
-    () => userStore.pendingFlow?.id,
+    () => userStore.authPendingFlow,
     (id) => {
         if (REAUTHENTICATION_FLOW_IDS.includes(id)) {
             flow.value = id;

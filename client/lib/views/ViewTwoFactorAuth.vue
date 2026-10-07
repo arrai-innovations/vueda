@@ -101,7 +101,7 @@ const computedOptions = computed(() => {
 // The store names the flow the user owes: `mfa_authenticate` mid-sign-in, `mfa_reauthenticate` for a signed-in
 // user who must confirm a second factor. Either one means there is a user with methods to list.
 const SECOND_FACTOR_FLOWS = new Set([AUTH_FLOW.MFA_AUTHENTICATE, AUTH_FLOW.MFA_REAUTHENTICATE]);
-const owesSecondFactor = computed(() => SECOND_FACTOR_FLOWS.has(userStore.pendingFlow?.id));
+const owesSecondFactor = computed(() => SECOND_FACTOR_FLOWS.has(userStore.authPendingFlow));
 watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => {
     if (newActive && newOwesSecondFactor) {
         try {

@@ -31,6 +31,7 @@ from rest_framework.exceptions import ValidationError
 
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.reauthentication import did_recently_authenticate
+from vueda.core.reauthentication import required_flow
 from vueda.core.serializers import FormattedNameSerializerMixin
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaSerializer
@@ -71,15 +72,15 @@ class WhoIsSerializer(VuedaSerializer):
 
     These fields give the user information about themselves, after they login or when they return to the site.
 
-    ``recently_logged_in`` reports whether the session completed the reauthentication flow the account requires
-    within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``: a second factor for a user with an MFA authenticator, the
-    password for a user with only a password. It comes from ``vueda.core.reauthentication``, the same policy
-    ``recent_auth_required`` enforces. The client pairs it with ``totp_devices`` to pick the reauthentication
-    view: a code form when the user has a device, a password form otherwise.
+    ``auth_pending_flow`` names the reauthentication flow the session owes: ``mfa_reauthenticate`` for a user
+    with an MFA authenticator, ``reauthenticate`` for a user with only a password, or ``None`` when the session
+    completed that flow within ``ACCOUNT_REAUTHENTICATION_TIMEOUT`` or the account has nothing to confirm. It
+    comes from ``vueda.core.reauthentication``, the same policy ``recent_auth_required`` enforces, so the client
+    shows the form the server will accept.
     """
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")
-    recently_logged_in = serializers.SerializerMethodField()
+    auth_pending_flow = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
         model = User
@@ -90,7 +91,7 @@ class WhoIsSerializer(VuedaSerializer):
             "groups",
             "is_superuser",
             "totp_devices",
-            "recently_logged_in",
+            "auth_pending_flow",
         ] + VuedaSerializer.Meta.fields
 
     def get_fields(self):
@@ -107,10 +108,11 @@ class WhoIsSerializer(VuedaSerializer):
 
         return fields
 
-    def get_recently_logged_in(self, _):
-        if "request" in self.context and self.context["request"].user:
-            return did_recently_authenticate(self.context["request"])
-        return None
+    def get_auth_pending_flow(self, _) -> str | None:
+        request = self.context.get("request")
+        if request is None or did_recently_authenticate(request):
+            return None
+        return required_flow(request.user)
 
 
 class UserSerializer(VuedaSerializer):

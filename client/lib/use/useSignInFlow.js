@@ -29,7 +29,7 @@ const DEFAULT_TOASTS = {
  * @property {import('vue-router').RouteLocationRaw} [redirect] - Route to push to after
  *  a successful login. Falls back to `?redirect` query param, then `{ name: "welcome" }`.
  * @property {boolean} [requireRecentLogin] - When `true`, the post-login redirect only
- *  fires if the user also recently authenticated.
+ *  fires once `storeUser.authPendingFlow` is empty, meaning the user also recently authenticated.
  * @property {SignInFlowToasts} [toasts] - Toast text for the redirect. Each entry replaces
  *  the matching default, field by field.
  * @property {{ [key: string]: any }} [formProps] - Props forwarded to `useForm`.
@@ -121,10 +121,10 @@ export function useSignInFlow(options) {
     const toastFor = (key) => ({ ...DEFAULT_TOASTS[key], ...options.toasts?.[key] });
 
     watch(
-        [isActive, toRef(userStore, "loggedIn"), toRef(userStore, "recentlyLoggedIn"), toRef(userStore, "pendingFlow")],
-        ([newActive, newLoggedIn, recentlyLoggedIn, newPendingFlow]) => {
+        [isActive, toRef(userStore, "loggedIn"), toRef(userStore, "authPendingFlow")],
+        ([newActive, newLoggedIn, newPendingFlow]) => {
             if (newPendingFlow) {
-                if (newPendingFlow.id === AUTH_FLOW.MFA_AUTHENTICATE) {
+                if (newPendingFlow === AUTH_FLOW.MFA_AUTHENTICATE) {
                     // The two-factor view signs the user in, so it needs the refused path to send
                     // them back to. A `redirect` option stays with this view; the two-factor view
                     // takes its own.
@@ -132,7 +132,7 @@ export function useSignInFlow(options) {
                     router.push(redirect ? { name: "2fa", query: { redirect } } : { name: "2fa" });
                 }
             }
-            if (newActive && newLoggedIn && (!options.requireRecentLogin || recentlyLoggedIn)) {
+            if (newActive && newLoggedIn && (!options.requireRecentLogin || !newPendingFlow)) {
                 const destination = route.query?.redirect || options.redirect || { name: "welcome" };
                 navigate(router, destination, toastFor("redirectFailed")).then((arrived) => {
                     if (arrived) {

@@ -124,8 +124,8 @@ export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 /**
- * django-allauth flow ids the store and auth views act on. A 401 response lists them under `data.flows`;
- * the store also derives the two reauthentication flows from the who-is response.
+ * django-allauth flow ids the store and auth views act on. The who-is response names the pending one as
+ * `auth_pending_flow`, and the store holds it as `authPendingFlow`.
  */
 export const AUTH_FLOW = Object.freeze({
     /** Sign-in needs a second factor. */
@@ -136,8 +136,5 @@ export const AUTH_FLOW = Object.freeze({
     REAUTHENTICATE: "reauthenticate",
 });
 
-/**
- * The flows that send the user to the reauthenticate route, most demanding first. When a response lists both,
- * the second factor is the one the server counts for an account that has a device.
- */
+/** The flows that send the user to the reauthenticate route. */
 export const REAUTHENTICATION_FLOW_IDS = Object.freeze([AUTH_FLOW.MFA_REAUTHENTICATE, AUTH_FLOW.REAUTHENTICATE]);

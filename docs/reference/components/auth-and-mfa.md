@@ -49,7 +49,7 @@ const twoFactorMethods = { getTwoFactorAuthMethod: () => ({ methods: TWO_FACTOR_
 const twoFactorAccepts = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
-  twoFactorAuthenticate: (payload, store) => { store.pendingFlow = null; store.loggedIn = true; },
+  twoFactorAuthenticate: (payload, store) => { store.authPendingFlow = null; store.loggedIn = true; },
 };
 const twoFactorRejects = {
   ...twoFactorMethods,
@@ -57,10 +57,10 @@ const twoFactorRejects = {
   twoFactorAuthenticate: () => { throw formError({ code: ["That code is not valid or has expired."] }); },
 };
 
-// Reauthentication clears the pending flow and marks the session recent, which is what the real who-is
-// refetch reports after the server records the confirmation.
+// Reauthentication clears the pending flow, which is what the real who-is refetch reports after the server
+// records the confirmation.
 const reauthPasswordAccepts = {
-  reauthenticate: (payload, store) => { store.pendingFlow = null; store.recentlyLoggedIn = true; },
+  reauthenticate: (payload, store) => { store.authPendingFlow = null; },
 };
 const reauthPasswordRejects = {
   reauthenticate: () => { throw formError({ password: ["Incorrect password."] }); },
@@ -68,7 +68,7 @@ const reauthPasswordRejects = {
 const reauthTwoFactorAccepts = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
-  twoFactorReauthenticate: (payload, store) => { store.pendingFlow = null; store.recentlyLoggedIn = true; },
+  twoFactorReauthenticate: (payload, store) => { store.authPendingFlow = null; },
 };
 
 // getRecoveryCodes returns the fetched set; generateRecoveryCode returns a rotated one so
@@ -271,7 +271,7 @@ It is blocked on one primitive-level choice: a new `WidgetSegmentedRadio`, or a 
 
 ## Reauthenticate
 
-`ViewReauthenticate` confirms a signed-in user's identity before a guarded action, such as changing two-factor devices, with the proof the server requires for the account. When who-is reports the session as no longer recent, the store sets `pendingFlow` from `totp_devices`, and the view renders the matching form: a single password field for `reauthenticate`, or `ViewTwoFactorAuth` for `mfa_reauthenticate`, since a password alone does not count for an account with a device. Both run in an `AuthorizingForm` card with `requireRecentLogin`, so a user whose session is already recent is redirected without a prompt.
+`ViewReauthenticate` confirms a signed-in user's identity before a guarded action, such as changing two-factor devices, with the proof the server requires for the account. When who-is reports the session as no longer recent, its `auth_pending_flow` names the flow the account owes and the store copies it into `authPendingFlow`. The view renders the matching form: a single password field for `reauthenticate`, or `ViewTwoFactorAuth` for `mfa_reauthenticate`, since a password alone does not count for an account with a device. Both run in an `AuthorizingForm` card with `requireRecentLogin`, so a user whose session is already recent is redirected without a prompt.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -340,6 +340,8 @@ Choosing `email` or `sms` reveals a destination field and sends a code on submit
 ## RecoveryCodes
 
 `ViewRecoveryCodes` sits in an `AuthForm` card and gates its whole body on whether the account has a TOTP device enrolled. With a device, it fetches the unused codes on mount and renders them as a numbered list with download, print, and copy-all controls, plus a regenerate submit. Without one, it renders a single warning telling the user to add a second factor first.
+
+The server shows and regenerates codes only for a session that recently confirmed a second factor. When it refuses, the store's `authPendingFlow` becomes `mfa_reauthenticate`, and `AuthForm` sends the user to the `reauthenticate` route, which returns them here once they confirm a code.
 
 Regenerating is the form's action, so it runs through `ActionForm` like any other submit: the button shows the inline spinner while in flight, and the success handler swaps the list for the new codes and raises a toast.
 

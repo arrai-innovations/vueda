@@ -15,7 +15,7 @@ export const DEMO_USER = {
     email: "ada@example.com",
     first_name: "Ada",
     last_name: "Lovelace",
-    recently_logged_in: true,
+    auth_pending_flow: null,
 };
 
 /** storeUser state preset: signed out, idle. */
@@ -23,7 +23,7 @@ export const LOGGED_OUT = {
     loggedIn: false,
     loggedInUser: {},
     initialized: true,
-    pendingFlow: null,
+    authPendingFlow: null,
 };
 
 /** storeUser state preset: authenticated. */
@@ -31,7 +31,7 @@ export const LOGGED_IN = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER },
     initialized: true,
-    pendingFlow: null,
+    authPendingFlow: null,
 };
 
 /**
@@ -43,15 +43,15 @@ export const MFA_ENROLLED = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER, totp_devices: [{ id: 1, name: "1Password", confirmed: true }] },
     initialized: true,
-    pendingFlow: null,
+    authPendingFlow: null,
 };
 
 /** storeUser state preset: credentials accepted, a second factor is now required. */
 export const MFA_PENDING = {
     loggedIn: false,
-    loggedInUser: { login_stage: AUTH_FLOW.MFA_AUTHENTICATE },
+    loggedInUser: { auth_pending_flow: AUTH_FLOW.MFA_AUTHENTICATE },
     initialized: true,
-    pendingFlow: { id: AUTH_FLOW.MFA_AUTHENTICATE },
+    authPendingFlow: AUTH_FLOW.MFA_AUTHENTICATE,
 };
 
 /**
@@ -60,10 +60,9 @@ export const MFA_PENDING = {
  */
 export const REAUTH_PASSWORD = {
     loggedIn: true,
-    loggedInUser: { ...DEMO_USER, recently_logged_in: false, totp_devices: [] },
-    recentlyLoggedIn: false,
+    loggedInUser: { ...DEMO_USER, auth_pending_flow: AUTH_FLOW.REAUTHENTICATE, totp_devices: [] },
     initialized: true,
-    pendingFlow: { id: AUTH_FLOW.REAUTHENTICATE },
+    authPendingFlow: AUTH_FLOW.REAUTHENTICATE,
 };
 
 /**
@@ -74,12 +73,11 @@ export const REAUTH_MFA = {
     loggedIn: true,
     loggedInUser: {
         ...DEMO_USER,
-        recently_logged_in: false,
+        auth_pending_flow: AUTH_FLOW.MFA_REAUTHENTICATE,
         totp_devices: [{ id: 1, name: "1Password", confirmed: true }],
     },
-    recentlyLoggedIn: false,
     initialized: true,
-    pendingFlow: { id: AUTH_FLOW.MFA_REAUTHENTICATE },
+    authPendingFlow: AUTH_FLOW.MFA_REAUTHENTICATE,
 };
 
 /** Verified 2FA methods returned by getTwoFactorAuthMethod. */

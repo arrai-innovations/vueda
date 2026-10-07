@@ -20,7 +20,7 @@ const useAuthFlow = vi.fn(() => ({
 }));
 vi.mock("@vueda/use/useAuthFlow.js", () => ({ useAuthFlow }));
 
-const storeState = { pendingFlow: null };
+const storeState = { authPendingFlow: null };
 const storeUser = vi.fn(() => storeState);
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser }));
 

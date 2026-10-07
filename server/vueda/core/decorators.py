@@ -87,8 +87,8 @@ def recent_auth_required(func):
 
     ``vueda.core.reauthentication.did_recently_authenticate`` decides: a user with an MFA authenticator
     must have confirmed a second factor within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``, and a password-only
-    user must have confirmed their password. ``WhoIsSerializer`` reports the same decision as
-    ``recently_logged_in``, so the client can send the user to reauthenticate before it calls a guarded
+    user must have confirmed their password. ``WhoIsSerializer`` reports the flow this check would ask for
+    as ``auth_pending_flow``, so the client can send the user to reauthenticate before it calls a guarded
     action. The TOTP viewset applies this decorator to device setup, activation, and deletion.
     """
 

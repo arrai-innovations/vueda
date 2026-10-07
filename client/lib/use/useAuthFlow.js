@@ -32,11 +32,11 @@ import { useRoute, useRouter } from "vue-router";
  * Registers reauthentication routing behaviour, produces a submission error handler, and
  * provides a form context.
  *
- * The form it serves sits behind recent authentication, so whenever `storeUser.pendingFlow` becomes a
+ * The form it serves sits behind recent authentication, so whenever `storeUser.authPendingFlow` becomes a
  * reauthentication flow the user is sent to the reauthenticate route with the current path as `redirect`.
- * A 401 response sets that flow, and so does a who-is response for a signed-in user whose session is no
- * longer recent, so the redirect happens as soon as the store learns the session is stale, not only after a
- * refused request.
+ * Every who-is response for a signed-in user whose session is no longer recent sets that flow, including the
+ * refetch after a 401 response, so the redirect happens as soon as the store learns the session is stale, not
+ * only after a refused request.
  *
  * @example
  * ```js
@@ -61,9 +61,9 @@ export function useAuthFlow(options) {
         await router.push({ name: "reauthenticate", query: { redirect: route.fullPath } });
     };
 
-    watch(toRef(userStore, "pendingFlow"), async (newPendingFlow) => {
+    watch(toRef(userStore, "authPendingFlow"), async (newPendingFlow) => {
         if (newPendingFlow) {
-            if (REAUTHENTICATION_FLOW_IDS.includes(newPendingFlow.id)) {
+            if (REAUTHENTICATION_FLOW_IDS.includes(newPendingFlow)) {
                 await doReauthenticate();
             }
         }

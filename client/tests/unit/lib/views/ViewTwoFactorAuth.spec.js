@@ -154,7 +154,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         useIsActiveMock.mockReturnValue(activeRef);
         userStore = reactive({
             loggedIn: false,
-            pendingFlow: { id: "mfa_authenticate" },
+            authPendingFlow: "mfa_authenticate",
             getTwoFactorAuthMethod: vi.fn().mockResolvedValue({ methods: [] }),
             sendTwoFactorAuthenticationCode: vi.fn().mockResolvedValue({}),
             twoFactorAuthenticate: vi.fn().mockResolvedValue({}),
@@ -256,7 +256,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         });
 
         scopedIt("does not fetch methods when no second-factor flow is pending", async () => {
-            userStore.pendingFlow = null;
+            userStore.authPendingFlow = null;
             mount(ViewTwoFactorAuth);
             userStore.loggedIn = true;
             activeRef.value = true;
@@ -266,12 +266,12 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         });
 
         scopedIt("fetches methods for a signed-in user who owes a second-factor reauthentication", async () => {
-            userStore.pendingFlow = null;
+            userStore.authPendingFlow = null;
             mount(ViewTwoFactorAuth);
             userStore.loggedIn = true;
             activeRef.value = true;
             userStore.getTwoFactorAuthMethod.mockClear();
-            userStore.pendingFlow = { id: "mfa_reauthenticate" };
+            userStore.authPendingFlow = "mfa_reauthenticate";
             await flushPromises();
             expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
         });

@@ -18,8 +18,8 @@ The objective is a set of authentication views where:
 
 - Sign-in collects credentials through `FormField`/`WidgetTextInput` and submits them through the user store's `login` action.
 - `AuthorizingForm` watches the user store for login state changes and redirects automatically on success.
-- MFA flows are detected from the server response and route the user to a two-factor authentication view.
-- Re-authentication views enforce a `recentlyLoggedIn` check for sensitive operations, asking for a second-factor code or the password as the server requires.
+- The who-is response names a pending MFA step, and the user is routed to a two-factor authentication view.
+- Re-authentication views ask for confirmation before sensitive operations while `authPendingFlow` names a reauthentication flow, asking for a second-factor code or the password as the server requires.
 - Server-side validation errors surface through the standard `ActionForm` error handling.
 
 Before you begin:
@@ -32,7 +32,7 @@ The server must expose the authentication endpoints (`login`, `logout`, `who-is`
 
 Auth views are built from three layers:
 
-**`AuthorizingForm`** wraps `ActionForm` and adds login-aware redirect logic. It watches `storeUser` for changes to `loggedIn`, `recentlyLoggedIn`, and `pendingFlow`, and routes the user on success or MFA detection.
+**`AuthorizingForm`** wraps `ActionForm` and adds login-aware redirect logic. It watches `storeUser` for changes to `loggedIn` and `authPendingFlow`, and routes the user on success or MFA detection.
 
 **`ActionForm`** handles the submit lifecycle: validation, calling `runAction`, displaying toasts, and routing success/error responses.
 
@@ -100,7 +100,7 @@ The `handleSubmit` function receives `{ formValues }` from `ActionForm`'s submit
 
 After a successful login, `AuthorizingForm` evaluates redirect targets in priority order:
 
-1. **MFA pending flow.** If `storeUser.pendingFlow` has `id === "mfa_authenticate"`, the component routes to the `2fa` named route immediately. No success toast is shown; the user must complete MFA first.
+1. **MFA pending flow.** If `storeUser.authPendingFlow` is `"mfa_authenticate"`, the component routes to the `2fa` named route immediately. No success toast is shown; the user must complete MFA first.
 
 2. **Query parameter redirect.** If `route.query.redirect` is present, the component uses that path. This supports the pattern where a route guard redirects an unauthenticated user to sign-in with `?redirect=/original-path`.
 
@@ -117,13 +117,13 @@ On a successful redirect, `AuthorizingForm` shows a toast: "You are now signed i
 />
 ```
 
-The `requireRecentLogin` prop adds an additional check: the redirect only fires when both `loggedIn` and `recentlyLoggedIn` are true. Use this prop for re-authentication views where a fresh login is required.
+The `requireRecentLogin` prop adds an additional check: the redirect only fires when `loggedIn` is true and `authPendingFlow` is empty. Use this prop for re-authentication views where a fresh login is required.
 
 ## MFA Flow Handling
 
-When the server requires two-factor authentication, the login endpoint returns a `401` response with a `flows` array in the response body. The user store's error handler picks the pending flow from the array and sets it as `pendingFlow`. While that sign-in waits, the anonymous who-is response carries the stage as `login_stage`, and the store sets `pendingFlow` from it, so a page reload during the two-factor step resumes where it left off.
+When the server requires two-factor authentication, the login endpoint returns a `401` response. The user store's error handler refetches who-is. While that sign-in waits, the anonymous who-is response carries the stage as `auth_pending_flow`, and the store sets `authPendingFlow` from it. Because the stage lives in the server session, a page reload during the two-factor step resumes where it left off.
 
-`AuthorizingForm` watches `pendingFlow`. When it detects a flow with `id === "mfa_authenticate"`, it routes to the `2fa` named route. The login state remains `loggedIn: false` until MFA completes.
+`AuthorizingForm` watches `authPendingFlow`. When it becomes `"mfa_authenticate"`, it routes to the `2fa` named route. The login state remains `loggedIn: false` until MFA completes.
 
 Build a two-factor authentication view following the same pattern, but calling `userStore.twoFactorAuthenticate` instead of `login`:
 
@@ -171,17 +171,17 @@ const handleSubmit = ({ formValues }) => {
 </template>
 ```
 
-On success, `twoFactorAuthenticate` clears `pendingFlow` and sets `loggedIn: true`. `AuthorizingForm` then evaluates the redirect chain as normal.
+On success, `twoFactorAuthenticate` refetches who-is, which sets `loggedIn: true` and clears `authPendingFlow`. `AuthorizingForm` then evaluates the redirect chain as normal.
 
 ## Build a Re-Authentication View
 
-Some operations require proof that the user authenticated recently (not just that they have an active session). The proof the server accepts depends on the account: a code from a user who has a two-factor device, the password otherwise. When the who-is response reports `recently_logged_in` as false, the user store sets `pendingFlow` to the flow the account owes, reading `totp_devices` to tell the two apart:
+Some operations require proof that the user authenticated recently (not just that they have an active session). The proof the server accepts depends on the account: a code from a user who has a two-factor device, the password otherwise. The who-is response names the flow the session owes as `auth_pending_flow`, and the user store copies it into `authPendingFlow`:
 
 - `mfa_reauthenticate`: the user has a two-factor device, so they must confirm a code. Their password alone does not count. `userStore.twoFactorReauthenticate` completes it.
 - `reauthenticate`: the user has only a password, so they confirm the password. `userStore.reauthenticate` completes it.
 - `null`: the session is recent, or the user has neither a password nor a device, so nothing is pending.
 
-`ViewReauthenticate` reads `pendingFlow` and renders the matching form: `ViewTwoFactorAuth` for a code, with method selection, code sending, and recovery codes, or a single password field. Mount it at the route named `reauthenticate`, which `useAuthFlow` and the `requireRecentAuth` guard push to with the refused path in `?redirect`:
+`ViewReauthenticate` reads `authPendingFlow` and renders the matching form: `ViewTwoFactorAuth` for a code, with method selection, code sending, and recovery codes, or a single password field. Mount it at the route named `reauthenticate`, which `useAuthFlow` and the `requireRecentAuth` guard push to with the refused path in `?redirect`:
 
 ```js
 {
@@ -192,7 +192,7 @@ Some operations require proof that the user authenticated recently (not just tha
 }
 ```
 
-Both forms pass `requireRecentLogin` to `AuthorizingForm`, which waits for `recentlyLoggedIn` (not just `loggedIn`) before triggering the redirect. The server sets that flag when the session completed the required flow, at login or by reauthenticating, within `ACCOUNT_REAUTHENTICATION_TIMEOUT`. A user who reaches the view with a recent session is redirected without a prompt. On arrival it shows an "Identity Confirmed" toast; pass `toasts` to `ViewReauthenticate` to change it.
+Both forms pass `requireRecentLogin` to `AuthorizingForm`, which waits for `authPendingFlow` to clear (not just for `loggedIn`) before triggering the redirect. The server clears `auth_pending_flow` when the session completed the required flow, at login or by reauthenticating, within `ACCOUNT_REAUTHENTICATION_TIMEOUT`. A user who reaches the view with a recent session is redirected without a prompt. On arrival it shows an "Identity Confirmed" toast; pass `toasts` to `ViewReauthenticate` to change it.
 
 Adjust the copy through `header` and `subTitle`, or replace parts of the password form through its slots. This replaces the submit button and keeps everything else:
 
@@ -317,23 +317,23 @@ After building auth views, verify the following:
 - Submitting invalid credentials displays a server-provided error message on the form.
 - Navigating to a protected route while unauthenticated redirects to sign-in with `?redirect=/original-path`, and successful login returns to the original path.
 - When MFA is required, the sign-in form routes to the 2FA view instead of completing the redirect.
-- Completing 2FA clears `pendingFlow` and triggers the normal redirect chain.
-- The re-authentication view only redirects when `recentlyLoggedIn` is true.
+- Completing 2FA clears `authPendingFlow` and triggers the normal redirect chain.
+- The re-authentication view only redirects once `authPendingFlow` is empty.
 - The change-password view displays per-field validation errors from the server (e.g., "This password is too common.").
 
 ## Troubleshooting
 
 **Sign-in succeeds but no redirect occurs.** Check that the view uses `AuthorizingForm`, not `AuthForm`. `AuthForm` does not watch login state. Also verify that the router has a route named `welcome` (the default redirect target) or that the `redirect` prop is set.
 
-**MFA flow is not detected after login.** The server must return a `401` with a `flows` array. If the response lacks `flows`, `pendingFlow` will not be set. Inspect the raw API response. Also verify that the router has a route named `2fa`.
+**MFA flow is not detected after login.** The who-is response after the login `401` must carry `auth_pending_flow: "mfa_authenticate"`. If it does not, `authPendingFlow` stays empty. Inspect the raw who-is response. Also verify that the router has a route named `2fa`.
 
 **Form values are not sent to the server.** Verify that field `name` props match the keys the server expects. `ActionForm` reads values from `formContext.state.submittingValues`, which uses the field `name` as the key.
 
 **Toast shows "Signed in, but could not open the next page".** The sign-in succeeded, but the redirect target does not resolve to a route. The browser console logs the destination that failed. Check that the router has the target named route, `welcome` by default, or that `route.query.redirect` matches an existing path.
 
-**Re-authentication redirect fires immediately.** If the user already has a recent login, `recentlyLoggedIn` is already true and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
+**Re-authentication redirect fires immediately.** If the user already has a recent login, `authPendingFlow` is already empty and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
 
-**Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `pendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
+**Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `authPendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
 
 ## Relevant Implementation Surface
 

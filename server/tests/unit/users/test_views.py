@@ -64,7 +64,7 @@ class TestWhoIsView(BaseTestUserMixin, BaseTestGroupMixin):
             "is_superuser",
             "formatted_name",
             "totp_devices",
-            "recently_logged_in",
+            "auth_pending_flow",
             "object_revision",
         }
         assert response.data["email"] == "test_user+timesheet+reader@domain.invalid"
@@ -282,15 +282,15 @@ def totp_device(reauth_user):
 
 
 @pytest.mark.django_db
-def test_who_is_is_empty_for_an_anonymous_visitor(api_client):
+def test_who_is_has_no_pending_flow_for_an_anonymous_visitor(api_client):
     response = api_client.get(reverse("who-is"), format="json")
 
     assert response.status_code == HTTPStatus.OK, response_body(response)
-    assert response.data == {}
+    assert response.data == {"auth_pending_flow": None}
 
 
 @pytest.mark.django_db
-def test_who_is_names_the_login_stage_while_a_sign_in_waits_for_a_second_factor(api_client, totp_device):
+def test_who_is_names_the_pending_flow_while_a_sign_in_waits_for_a_second_factor(api_client, totp_device):
     login = api_client.post(
         reverse("login2"), {"email": totp_device.user.email, "password": "test-pass"}, format="json"
     )
@@ -299,18 +299,36 @@ def test_who_is_names_the_login_stage_while_a_sign_in_waits_for_a_second_factor(
     response = api_client.get(reverse("who-is"), format="json")
 
     assert response.status_code == HTTPStatus.OK, response_body(response)
-    assert response.data == {"login_stage": "mfa_authenticate"}
+    assert response.data == {"auth_pending_flow": "mfa_authenticate"}
 
 
 @pytest.mark.django_db
-def test_who_is_reports_an_mfa_user_recent_only_after_a_second_factor(api_client, totp_device):
+def test_who_is_asks_an_mfa_user_for_a_second_factor_until_they_confirm_one(api_client, totp_device):
     api_client.force_login(totp_device.user)
 
     record_authentication_methods(api_client, "password")
-    assert api_client.get(reverse("who-is"), format="json").data["recently_logged_in"] is False
+    assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "mfa_reauthenticate"
 
     record_authentication_methods(api_client, "password", "mfa")
-    assert api_client.get(reverse("who-is"), format="json").data["recently_logged_in"] is True
+    assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
+
+
+@pytest.mark.django_db
+def test_who_is_asks_a_password_only_user_for_the_password_until_they_confirm_it(api_client, reauth_user):
+    api_client.force_login(reauth_user)
+    assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "reauthenticate"
+
+    record_authentication_methods(api_client, "password")
+    assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
+
+
+@pytest.mark.django_db
+def test_who_is_has_no_pending_flow_for_an_account_with_nothing_to_confirm(api_client, reauth_user):
+    reauth_user.set_unusable_password()
+    reauth_user.save()
+    api_client.force_login(reauth_user)
+
+    assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
 
 
 @pytest.mark.django_db
@@ -327,7 +345,7 @@ class TestAllAuthMFAReauthenticateView:
         methods = [record["method"] for record in api_client.session[AUTHENTICATION_METHODS_SESSION_KEY]]
         assert methods == ["password", "mfa"]
         who_is = api_client.get(reverse("who-is"), format="json")
-        assert who_is.data["recently_logged_in"] is True
+        assert who_is.data["auth_pending_flow"] is None
 
     def test_invalid_code_is_rejected_without_a_record(self, api_client, totp_device):
         api_client.force_login(totp_device.user)
@@ -345,7 +363,7 @@ class TestAllAuthMFAReauthenticateView:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         who_is = api_client.get(reverse("who-is"), format="json")
-        assert who_is.data["recently_logged_in"] is False
+        assert who_is.data["auth_pending_flow"] == "mfa_reauthenticate"
 
 
 @pytest.mark.django_db

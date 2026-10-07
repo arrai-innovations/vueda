@@ -104,9 +104,9 @@ User = get_user_model()
 class WhoIsView(RetrieveAPIView):
     """
     Describe the current session: the signed-in user through ``WhoIsSerializer``, or, for an anonymous
-    session, an empty object plus ``login_stage`` while allauth holds a sign-in waiting at a stage such as
-    ``mfa_authenticate``. The stage lives only in the server session, so the client reads it from here to
-    resume the sign-in after a reload.
+    session, an object holding only ``auth_pending_flow``. For an anonymous session that is the stage allauth
+    holds a sign-in at, such as ``mfa_authenticate``, or ``None`` when no sign-in is waiting. The stage lives
+    only in the server session, so the client reads it from here to resume the sign-in after a reload.
     """
 
     serializer_class = import_string(
@@ -118,7 +118,7 @@ class WhoIsView(RetrieveAPIView):
         instance = self.get_object()
         if isinstance(instance, AnonymousUser):
             stage = get_pending_stage(request)
-            return Response({"login_stage": stage.key} if stage else {}, status=status.HTTP_200_OK)
+            return Response({"auth_pending_flow": stage.key if stage else None}, status=status.HTTP_200_OK)
         return super().retrieve(request, *args, **kwargs)
 
     def get_object(self):
