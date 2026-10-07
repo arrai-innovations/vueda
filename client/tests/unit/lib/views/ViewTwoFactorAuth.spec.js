@@ -154,6 +154,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         useIsActiveMock.mockReturnValue(activeRef);
         userStore = reactive({
             loggedIn: false,
+            authPendingFlow: "mfa_authenticate",
             getTwoFactorAuthMethod: vi.fn().mockResolvedValue({ methods: [] }),
             sendTwoFactorAuthenticationCode: vi.fn().mockResolvedValue({}),
             twoFactorAuthenticate: vi.fn().mockResolvedValue({}),
@@ -237,25 +238,42 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             await wrapper.vm.handleSubmit({ formValues: { code: "000000" } });
             expect(userStore.twoFactorAuthenticate).toHaveBeenCalledWith({ code: "000000" });
         });
+
+        scopedIt("a run-action attribute replaces the sign-in submit on the form", async () => {
+            const runAction = vi.fn();
+            const wrapper = mount(ViewTwoFactorAuth, { attrs: { runAction } });
+            expect(wrapper.findComponent({ name: "AuthorizingFormStub" }).props("runAction")).toBe(runAction);
+        });
     });
 
     describe("Activation guards", () => {
         scopedIt("does not fetch methods when inactive", async () => {
             mount(ViewTwoFactorAuth);
             activeRef.value = false;
-            userStore.loggedIn = false;
             userStore.getTwoFactorAuthMethod.mockClear();
             await flushPromises();
             expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
         });
 
-        scopedIt("does not fetch methods when not logged in", async () => {
+        scopedIt("does not fetch methods when no second-factor flow is pending", async () => {
+            userStore.authPendingFlow = null;
             mount(ViewTwoFactorAuth);
             userStore.loggedIn = true;
             activeRef.value = true;
             userStore.getTwoFactorAuthMethod.mockClear();
             await flushPromises();
             expect(userStore.getTwoFactorAuthMethod).not.toHaveBeenCalled();
+        });
+
+        scopedIt("fetches methods for a signed-in user who owes a second-factor reauthentication", async () => {
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            userStore.loggedIn = true;
+            activeRef.value = true;
+            userStore.getTwoFactorAuthMethod.mockClear();
+            userStore.authPendingFlow = "mfa_reauthenticate";
+            await flushPromises();
+            expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
         });
     });
 

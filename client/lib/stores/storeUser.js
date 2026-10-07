@@ -10,24 +10,6 @@ import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
 
-const REAUTHENTICATION_FLOW_IDS = ["reauthenticate", "mfa_reauthenticate"];
-
-/**
- * Pick the flow a 401 response asks the client to continue: the one allauth marks `is_pending`, or, for a
- * signed-in user whose session needs reauthentication, the first reauthentication flow. Other listed flows
- * are only available, not pending.
- *
- * @param {{id: string, is_pending?: boolean}[]} flows
- * @returns {{id: string, is_pending?: boolean}|null}
- */
-function selectPendingFlow(flows) {
-    return (
-        flows.find((flow) => flow.is_pending) ??
-        flows.find((flow) => REAUTHENTICATION_FLOW_IDS.includes(flow.id)) ??
-        null
-    );
-}
-
 /**
  * An error for use from the user store.
  * @extends {FetchError}
@@ -116,8 +98,9 @@ export const storeUser = defineStore("user", {
          */
         loggedIn: false,
         /**
-         * The last who-is response: the user's `id`, `email`, `name`, `totp_devices`, and `recently_logged_in`.
-         * An empty object before the first response; an anonymous response carries no `id`.
+         * The last who-is response: the user's `id`, `email`, `name`, `totp_devices`, and `auth_pending_flow`.
+         * An empty object before the first response; an anonymous response carries no `id`, only
+         * `auth_pending_flow`.
          *
          * @type {{[key: string]: *}}
          */
@@ -154,19 +137,20 @@ export const storeUser = defineStore("user", {
          */
         initializingPromise: null,
         /**
-         * The `recently_logged_in` flag from the last who-is response.
-         * Route guards use it to ask for reauthentication before sensitive pages.
+         * The allauth flow the user must complete next, or `null` when none is pending.
          *
-         * @type {boolean|null}
-         */
-        recentlyLoggedIn: false,
-        /**
-         * The allauth flow that a 401 response asks the client to continue, such as `mfa_authenticate` or `reauthenticate`.
-         * `null` when no flow is pending.
+         * Each who-is response sets it from `auth_pending_flow`, including the refetch that follows a 401
+         * response. For an anonymous session it is the stage a sign-in waits at, such as
+         * `mfa_authenticate`, so a reload mid-sign-in resumes the two-factor step. For a signed-in user it is
+         * `mfa_reauthenticate` when they must confirm a second factor, `reauthenticate` when they must confirm
+         * their password, and `null` while their session is recent. A signed-in user with no pending flow has
+         * recently authenticated, which is what the `requireRecentAuth` guard checks.
+         * The reauthentication view renders the input for the flow and calls `twoFactorReauthenticate` or
+         * `reauthenticate` to complete it.
          *
-         * @type {{id: string, is_pending?: boolean}|null}
+         * @type {string|null}
          */
-        pendingFlow: null,
+        authPendingFlow: null,
         /**
          * The id of the authenticated user, `null` while nobody is authenticated, and `undefined`
          * until the first who-is response has been seen. The `undefined` sentinel is what keeps the
@@ -216,12 +200,12 @@ export const storeUser = defineStore("user", {
                     const nextPrincipalId = user?.id ?? null;
                     const previousPrincipalId = this.principalId;
                     this.loggedIn = !!user.id;
-                    this.recentlyLoggedIn = user.recently_logged_in;
+                    this.authPendingFlow = user.auth_pending_flow ?? null;
                     this.loggedInUser = user;
                     this.principalId = nextPrincipalId;
                     // Every path that can change who is authenticated (login, logout, reauthenticate,
                     // two-factor, TOTP activation, init) funnels through here, so this is the one place
-                    // that has to notice. Compare the principal only: `recently_logged_in` flips on
+                    // that has to notice. Compare the principal only: `auth_pending_flow` changes on
                     // reauthenticate and `totp_devices` changes on device activation, neither of which
                     // changes what the user is permitted to see.
                     if (previousPrincipalId !== undefined && previousPrincipalId !== nextPrincipalId) {
@@ -247,7 +231,7 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Signs the user in, then refetches the current user.
-         * When the server answers with a pending flow, such as two-factor authentication, sets `pendingFlow` and resolves instead of rejecting.
+         * When the server answers with a pending flow, such as two-factor authentication, the refetch sets `authPendingFlow` and the call resolves instead of rejecting.
          *
          * @param {object} payload - The credentials to send.
          * @param {string} payload.email - The user's email address.
@@ -258,7 +242,7 @@ export const storeUser = defineStore("user", {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            this.pendingFlow = null;
+            this.authPendingFlow = null;
 
             return fetchHelper(
                 `${httpOrHttpsHostname}${getUrl("userLogin")}`,
@@ -279,9 +263,9 @@ export const storeUser = defineStore("user", {
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
-                    this._handle_error(error);
-                    if (!this.pendingFlow) {
+                .catch(async (error) => {
+                    await this._handle_error(error);
+                    if (!this.authPendingFlow) {
                         this.error = error;
                         this.errored = true;
                         throw error;
@@ -317,7 +301,7 @@ export const storeUser = defineStore("user", {
             this.loading = true;
             this.error = null;
             this.errored = false;
-            this.pendingFlow = null;
+            this.authPendingFlow = null;
 
             return fetchHelper(
                 `${httpOrHttpsHostname}${getUrl("userLogout")}`,
@@ -344,7 +328,10 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Confirms the signed-in user's password again, clears `pendingFlow`, then refetches the current user.
+         * Confirms the signed-in user's password again, then refetches the current user, which clears `authPendingFlow`.
+         *
+         * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
+         * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
          *
          * @param {object} payload - The credentials to send.
          * @param {string} payload.password - The user's password.
@@ -372,7 +359,6 @@ export const storeUser = defineStore("user", {
                 authErrorResolver,
             )
                 .then(() => {
-                    this.pendingFlow = null;
                     return this.fetchCurrentUser();
                 })
                 .catch((error) => {
@@ -469,7 +455,7 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Handles an `UnauthorizedError` by setting `pendingFlow` from the flows the response lists, then refetching the current user.
+         * Handles an `UnauthorizedError` by refetching the current user, whose who-is response sets `authPendingFlow`.
          * The refetch keeps the existing error and ignores its own failure. Other errors are ignored.
          *
          * @param {Error} error - The error from a failed request.
@@ -477,10 +463,6 @@ export const storeUser = defineStore("user", {
          */
         _handle_error(error) {
             if (error instanceof UnauthorizedError) {
-                const flows = error.responseData?.data?.flows;
-                if (flows && flows.length > 0) {
-                    this.pendingFlow = selectPendingFlow(flows);
-                }
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
         },
@@ -570,7 +552,7 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Completes a two-factor sign-in with a code, clears `pendingFlow`, then refetches the current user.
+         * Completes a two-factor sign-in with a code, then refetches the current user, which clears `authPendingFlow`.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the user's device.
@@ -598,7 +580,49 @@ export const storeUser = defineStore("user", {
                 authErrorResolver,
             )
                 .then(() => {
-                    this.pendingFlow = null;
+                    return this.fetchCurrentUser();
+                })
+                .catch((error) => {
+                    this.error = error;
+                    this.errored = true;
+                    throw error;
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        },
+        /**
+         * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears `authPendingFlow`.
+         *
+         * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
+         * before a reauthentication-guarded action.
+         *
+         * @param {object} payload - The request body.
+         * @param {string} payload.code - The code from the user's device, or a recovery code.
+         * @returns {Promise<void>}
+         */
+        twoFactorReauthenticate(payload) {
+            this.loading = true;
+            this.error = null;
+            this.errored = false;
+
+            return fetchHelper(
+                `${httpOrHttpsHostname}${getUrl("twoFactorReauthenticate")}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCSRFValue(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                },
+                "Error sending authentication request",
+                UserError,
+                undefined,
+                undefined,
+                authErrorResolver,
+            )
+                .then(() => {
                     return this.fetchCurrentUser();
                 })
                 .catch((error) => {
@@ -696,7 +720,7 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Fetches the two-factor methods of the user who is signing in.
+         * Fetches the two-factor methods of the user who is signing in or reauthenticating.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
          */
@@ -729,7 +753,8 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Asks the server to send a two-factor code to the signing-in user's device for the given method.
+         * Asks the server to send a two-factor code to the device of the user who is signing in or
+         * reauthenticating, for the given method.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The delivery method: `email` or `sms`.

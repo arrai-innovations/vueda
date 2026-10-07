@@ -99,6 +99,60 @@ describe("lib/stores/storeUser.js", () => {
             expect(store.error).toBe(error);
             expect(store.errored).toBe(true);
         });
+
+        scopedIt("clears the pending flow when who-is names none", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ id: 1, auth_pending_flow: null, totp_devices: [{ id: 7 }] });
+
+            const store = storeUser();
+            store.authPendingFlow = "mfa_reauthenticate";
+            await store.fetchCurrentUser();
+
+            expect(store.authPendingFlow).toBeNull();
+        });
+
+        scopedIt("sets the flow who-is names for a signed-in user, whatever devices it lists", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ id: 1, auth_pending_flow: "mfa_reauthenticate", totp_devices: [] });
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+
+            expect(store.loggedIn).toBe(true);
+            expect(store.authPendingFlow).toEqual("mfa_reauthenticate");
+        });
+
+        scopedIt("sets the password flow when who-is names it", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ id: 1, auth_pending_flow: "reauthenticate", totp_devices: [] });
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+
+            expect(store.authPendingFlow).toEqual("reauthenticate");
+        });
+
+        scopedIt("resumes a sign-in waiting at a stage from an anonymous response", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ auth_pending_flow: "mfa_authenticate" });
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+
+            expect(store.loggedIn).toBe(false);
+            expect(store.authPendingFlow).toEqual("mfa_authenticate");
+        });
+
+        scopedIt("clears the pending flow when an anonymous response names none", async () => {
+            getUrl.mockReturnValue("/current/");
+            fetchHelper.mockResolvedValue({ auth_pending_flow: null });
+
+            const store = storeUser();
+            store.authPendingFlow = "mfa_authenticate";
+            await store.fetchCurrentUser();
+
+            expect(store.authPendingFlow).toBeNull();
+        });
     });
 
     describe("init", () => {
@@ -170,6 +224,21 @@ describe("lib/stores/storeUser.js", () => {
             expect(store.error).toBe(error);
         });
 
+        scopedIt("resolves without an error when the refetch after a 401 names a pending flow", async () => {
+            getUrl.mockReturnValue("/login/");
+            fetchHelper.mockRejectedValueOnce(new UnauthorizedError("Unauthorized"));
+
+            const store = storeUser();
+            vi.spyOn(store, "fetchCurrentUser").mockImplementation(async () => {
+                store.authPendingFlow = "mfa_authenticate";
+            });
+            await expect(store.login({ username: "u", password: "p" })).resolves.toBeUndefined();
+
+            expect(store.authPendingFlow).toEqual("mfa_authenticate");
+            expect(store.errored).toBe(false);
+            expect(store.error).toBeNull();
+        });
+
         scopedIt("stores error on fetch failure", async () => {
             getUrl.mockReturnValue("/login/");
             const error = new Error("Error sending authentication request");
@@ -231,12 +300,12 @@ describe("lib/stores/storeUser.js", () => {
     });
 
     describe("reauthenticate", () => {
-        scopedIt("clears pending flow and refreshes user", async () => {
+        scopedIt("refreshes the user, whose who-is response clears the pending flow", async () => {
             getUrl.mockReturnValueOnce("/reauth/").mockReturnValueOnce("/current/");
-            fetchHelper.mockResolvedValueOnce({}).mockResolvedValueOnce({ id: 5, recently_logged_in: true });
+            fetchHelper.mockResolvedValueOnce({}).mockResolvedValueOnce({ id: 5, auth_pending_flow: null });
 
             const store = storeUser();
-            store.pendingFlow = "flow";
+            store.authPendingFlow = "reauthenticate";
             await store.reauthenticate({ method: "app" });
 
             expectFetchHelperCall(
@@ -250,7 +319,7 @@ describe("lib/stores/storeUser.js", () => {
                 "Error sending authentication request",
             );
             expectFetchHelperCall(1, "http://host/current/", { method: "GET" }, "Error requesting current user");
-            expect(store.pendingFlow).toBeNull();
+            expect(store.authPendingFlow).toBeNull();
             expect(store.loggedIn).toBe(true);
         });
 
@@ -265,40 +334,24 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.reauthenticate({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
         });
 
-        const handleFlows = async (flows) => {
+        scopedIt("_handle_error refetches the current user for an UnauthorizedError, keeping the error", async () => {
             const store = storeUser();
             store.fetchCurrentUser = vi.fn(() => Promise.resolve());
+            const flows = [{ id: "mfa_reauthenticate", is_pending: true }];
+
             await store._handle_error(new UnauthorizedError("Unauthorized", undefined, { data: { flows } }));
-            return store;
-        };
 
-        scopedIt("_handle_error stores the flow marked pending, wherever it sits", async () => {
-            const mfa = { id: "mfa_authenticate", is_pending: true, types: ["totp"] };
-            const store = await handleFlows([
-                { id: "login" },
-                mfa,
-                { id: "password_reset_by_code", is_pending: false },
-            ]);
-
-            expect(store.pendingFlow).toEqual(mfa);
-            expect(store.errored).toBe(false);
-            expect(store.error).toBe(null);
+            expect(store.fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+            // The refetch, not the 401 body, sets the pending flow.
+            expect(store.authPendingFlow).toBeNull();
         });
 
-        scopedIt("_handle_error stores the reauthentication flow when none is marked pending", async () => {
-            const store = await handleFlows([
-                { id: "reauthenticate" },
-                { id: "mfa_reauthenticate" },
-                { id: "password_reset_by_code", is_pending: false },
-            ]);
+        scopedIt("_handle_error ignores errors other than UnauthorizedError", async () => {
+            const store = storeUser();
+            store.fetchCurrentUser = vi.fn(() => Promise.resolve());
 
-            expect(store.pendingFlow).toEqual({ id: "reauthenticate" });
-        });
-
-        scopedIt("_handle_error clears the pending flow when the response lists only available flows", async () => {
-            const store = await handleFlows([{ id: "login" }, { id: "signup" }]);
-
-            expect(store.pendingFlow).toBeNull();
+            expect(store._handle_error(new Error("boom"))).toBeUndefined();
+            expect(store.fetchCurrentUser).not.toHaveBeenCalled();
         });
     });
 
@@ -503,17 +556,42 @@ describe("lib/stores/storeUser.js", () => {
     });
 
     describe("Two-factor authentication", () => {
-        scopedIt("twoFactorAuthenticate clears pending flow on success", async () => {
-            getUrl.mockReturnValueOnce("/2fa/").mockReturnValueOnce("/current/");
-            fetchHelper.mockResolvedValueOnce({}).mockResolvedValueOnce({ id: 10, recently_logged_in: true });
+        scopedIt(
+            "twoFactorAuthenticate refreshes the user, whose who-is response clears the pending flow",
+            async () => {
+                getUrl.mockReturnValueOnce("/2fa/").mockReturnValueOnce("/current/");
+                fetchHelper.mockResolvedValueOnce({}).mockResolvedValueOnce({ id: 10, auth_pending_flow: null });
+
+                const store = storeUser();
+                store.authPendingFlow = "mfa_authenticate";
+                await store.twoFactorAuthenticate({ code: "123456" });
+
+                expectFetchHelperCall(
+                    0,
+                    "http://host/2fa/",
+                    {
+                        method: "POST",
+                        headers: { "X-CSRFToken": "csrftoken", "Content-Type": "application/json" },
+                        body: JSON.stringify({ code: "123456" }),
+                    },
+                    "Error sending authentication request",
+                );
+                expect(store.authPendingFlow).toBeNull();
+                expect(store.loggedIn).toBe(true);
+            },
+        );
+
+        scopedIt("twoFactorReauthenticate posts the code to its own endpoint and refreshes the user", async () => {
+            getUrl.mockImplementation((key) => (key === "twoFactorReauthenticate" ? "/2fa-reauth/" : "/current/"));
+            fetchHelper.mockResolvedValueOnce({}).mockResolvedValueOnce({ id: 10, auth_pending_flow: null });
 
             const store = storeUser();
-            store.pendingFlow = "2fa";
-            await store.twoFactorAuthenticate({ code: "123456" });
+            store.authPendingFlow = "mfa_reauthenticate";
+            await store.twoFactorReauthenticate({ code: "123456" });
 
             expectFetchHelperCall(
                 0,
-                "http://host/2fa/",
+                "http://host/2fa-reauth/",
                 {
                     method: "POST",
                     headers: { "X-CSRFToken": "csrftoken", "Content-Type": "application/json" },
@@ -521,8 +599,22 @@ describe("lib/stores/storeUser.js", () => {
                 },
                 "Error sending authentication request",
             );
-            expect(store.pendingFlow).toBeNull();
-            expect(store.loggedIn).toBe(true);
+            expectFetchHelperCall(1, "http://host/current/", { method: "GET" }, "Error requesting current user");
+            expect(store.authPendingFlow).toBeNull();
+        });
+
+        scopedIt("twoFactorReauthenticate treats 400 responses as FormValidationError", async () => {
+            getUrl.mockReturnValue("/2fa-reauth/");
+            fetchHelper.mockImplementation((...fetchArgs) => {
+                const resolver = fetchArgs[6];
+                return Promise.reject(resolver({ status: 400 }, { detail: "invalid" }));
+            });
+
+            const store = storeUser();
+            await expect(store.twoFactorReauthenticate({ code: "123456" })).rejects.toBeInstanceOf(
+                FormValidationErrorClass,
+            );
+            expect(store.errored).toBe(true);
         });
 
         scopedIt("twoFactorAuthenticate treats 400 responses as FormValidationError", async () => {
@@ -598,7 +690,7 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.activateTOTPDevice({ code: "123456" })).rejects.toBeInstanceOf(FormValidationErrorClass);
         });
 
-        scopedIt("activateTOTPDevice throw UnauthorizedError with empty pending flows", async () => {
+        scopedIt("activateTOTPDevice rethrows an UnauthorizedError after refetching the user", async () => {
             getUrl.mockReturnValue("/activate/");
             const store = storeUser();
             const error = new UnauthorizedError("Unauthorized");
@@ -694,8 +786,8 @@ describe("lib/stores/storeUser.js", () => {
         scopedIt("does not clear when the same user is refreshed", async () => {
             // the reauthenticate and activateTOTPDevice shapes: same principal, other fields changed
             whoIsSequence(
-                { id: 1, recently_logged_in: false, totp_devices: [] },
-                { id: 1, recently_logged_in: true, totp_devices: ["device"] },
+                { id: 1, auth_pending_flow: "reauthenticate", totp_devices: [] },
+                { id: 1, auth_pending_flow: null, totp_devices: ["device"] },
             );
             const store = storeUser();
 

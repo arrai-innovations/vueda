@@ -199,3 +199,16 @@ def test_omitting_the_no_reply_email_is_rejected():
 
     with pytest.raises(KeyError, match="NO_REPLY_EMAIL"):
         get_defaults(TomlEnv(config, environ={}))
+
+
+def test_account_reauthentication_timeout_reads_the_environment_as_an_integer():
+    # allauth compares the timeout with elapsed seconds, so a string from the environment would raise.
+    defaults = get_defaults(_env(ACCOUNT_REAUTHENTICATION_TIMEOUT="60"))
+
+    assert defaults["ACCOUNT_REAUTHENTICATION_TIMEOUT"] == 60  # noqa PLR2004
+
+
+def test_account_reauthentication_timeout_defaults_to_five_minutes():
+    defaults = get_defaults(_env())
+
+    assert defaults["ACCOUNT_REAUTHENTICATION_TIMEOUT"] == 300  # noqa PLR2004

@@ -1,11 +1,14 @@
 from http import HTTPStatus
+from types import SimpleNamespace
 
 import pytest
-from allauth.core.exceptions import ReauthenticationRequired
 from allauth.mfa.models import Authenticator
+from allauth.mfa.recovery_codes.internal.auth import RecoveryCodes
+from allauth.mfa.totp.internal.auth import SECRET_SESSION_KEY
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from tests.conftest import record_authentication_methods
 from tests.conftest import response_body
 from vueda.core.exceptions import VuedaValidationError
 from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS
@@ -22,6 +25,27 @@ def user(db):
         password="test-pass",
         name="TOTP User",
     )
+
+
+@pytest.fixture
+def mfa_device(user):
+    """An active TOTP device, which makes ``user`` an account that must confirm a second factor."""
+    authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
+    return TOTPDevice.objects.create(authenticator=authenticator, method="totp", user=user)
+
+
+@pytest.fixture
+def recovery_codes(mfa_device):
+    """The recovery codes authenticator allauth keeps alongside an active TOTP device."""
+    return RecoveryCodes.activate(mfa_device.user)
+
+
+class QrAdapter:
+    def build_totp_url(self, target_user, secret):
+        return "otpauth://totp"
+
+    def build_totp_svg(self, url):
+        return "<svg>QR</svg>"
 
 
 @pytest.mark.django_db
@@ -45,23 +69,6 @@ def test_get_queryset_limits_to_authenticated_user(api_client, user):
 
 
 @pytest.mark.django_db
-def test_setup_totp_return_unauthenticated_when_not_recently_logged_in(api_client, user, monkeypatch):
-    def fake_raise_if_reauthentication_required(request):
-        raise ReauthenticationRequired()
-
-    monkeypatch.setattr(
-        "vueda.core.decorators.raise_if_reauthentication_required",
-        fake_raise_if_reauthentication_required,
-    )
-
-    api_client.force_authenticate(user=user)
-    response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
-
-    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
-    assert response.data["detail"] == "Reauthentication required"
-
-
-@pytest.mark.django_db
 def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
     regenerate_calls = []
 
@@ -82,7 +89,7 @@ def test_setup_totp_returns_secret_and_svg(api_client, user, monkeypatch):
 
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", fake_secret)
     monkeypatch.setattr("vueda.user.viewsets.get_adapter", lambda: RecordingAdapter())
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
@@ -110,7 +117,7 @@ def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
         return "dummy-secret"
 
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", fake_secret)
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     api_client.force_authenticate(user=user)
     response = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "email"}, format="json")
@@ -124,7 +131,7 @@ def test_setup_requires_destination_for_email(api_client, user, monkeypatch):
 @pytest.mark.django_db(databases=("default", "db_logging"))
 def test_setup_blocks_duplicate_method(api_client, user, monkeypatch):
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@domain.invalid")
 
@@ -142,7 +149,7 @@ def test_setup_blocks_duplicate_method(api_client, user, monkeypatch):
 def test_activate_creates_device(api_client, user, monkeypatch):
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.validate_totp_code", lambda secret, code: code == "123456")
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     created = {}
 
@@ -161,23 +168,6 @@ def test_activate_creates_device(api_client, user, monkeypatch):
     assert response.status_code == HTTPStatus.CREATED, response_body(response)
     assert TOTPDevice.objects.filter(user=user, method="totp").exists()
     assert response.data == {"detail": "TOTP setup complete"}
-
-
-@pytest.mark.django_db
-def test_activate_totp_return_unauthenticated_when_not_recently_logged_in(api_client, user, monkeypatch):
-    def fake_raise_if_reauthentication_required(request):
-        raise ReauthenticationRequired()
-
-    monkeypatch.setattr(
-        "vueda.core.decorators.raise_if_reauthentication_required",
-        fake_raise_if_reauthentication_required,
-    )
-
-    api_client.force_authenticate(user=user)
-    response = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
-
-    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
-    assert response.data["detail"] == "Reauthentication required"
 
 
 def test_available_methods_excludes_sms_without_twilio(settings):
@@ -208,7 +198,7 @@ def test_setup_sms_returns_validation_error_when_twilio_unavailable(settings, ap
     settings.TWILIO_CALLER_ID = ""
 
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "secret")
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     api_client.force_authenticate(user=user)
 
@@ -224,7 +214,7 @@ def test_setup_sms_returns_validation_error_when_twilio_unavailable(settings, ap
 
 @pytest.mark.django_db
 def test_destroy_deactivates_authenticator_when_last_device_removed(api_client, user, monkeypatch):
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     device = TOTPDevice.objects.create(authenticator=authenticator, method="totp", user=user)
     called = {}
@@ -244,7 +234,7 @@ def test_destroy_deactivates_authenticator_when_last_device_removed(api_client, 
 
 @pytest.mark.django_db
 def test_destroy_keeps_authenticator_when_other_devices_exist(api_client, user, monkeypatch):
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
     authenticator = Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
     device = TOTPDevice.objects.create(authenticator=authenticator, method="totp", user=user)
     TOTPDevice.objects.create(authenticator=authenticator, method="email", user=user, email="user@domain.invalid")
@@ -263,26 +253,9 @@ def test_destroy_keeps_authenticator_when_other_devices_exist(api_client, user, 
     assert called["hit"] is False
 
 
-@pytest.mark.django_db
-def test_destroy_device_return_unauthenticated_when_not_recently_logged_in(api_client, user, monkeypatch):
-    def fake_raise_if_reauthentication_required(request):
-        raise ReauthenticationRequired()
-
-    monkeypatch.setattr(
-        "vueda.core.decorators.raise_if_reauthentication_required",
-        fake_raise_if_reauthentication_required,
-    )
-
-    api_client.force_authenticate(user=user)
-    response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": 1}), format="json")
-
-    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
-    assert response.data["detail"] == "Reauthentication required"
-
-
 @pytest.mark.django_db(databases=("default", "db_logging"))
 def test_setup_rejects_invalid_email_destination(api_client, user, monkeypatch):
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     api_client.force_authenticate(user=user)
     response = api_client.post(
@@ -301,7 +274,7 @@ def test_setup_rejects_invalid_phone_destination(settings, api_client, user, mon
     settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
     settings.TWILIO_CALLER_ID = "TESTCALLER"
 
-    monkeypatch.setattr("vueda.core.decorators.raise_if_reauthentication_required", lambda r: None)
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
 
     api_client.force_authenticate(user=user)
     response = api_client.post(
@@ -312,6 +285,156 @@ def test_setup_rejects_invalid_phone_destination(settings, api_client, user, mon
 
     assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
     assert response.data["destination"][0] == "Enter a valid phone number."
+
+
+# The acceptance tests below exercise the reauthentication policy through the real endpoints: the session
+# holds allauth's authentication records, and nothing about the check is patched.
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_set_up_a_device(api_client, mfa_device):
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.post(
+        reverse("vueda_user.totpdevice-setup"), {"method": "email", "destination": "user@domain.invalid"}, format="json"
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    assert response.data == {"detail": "Reauthentication required"}
+    assert TOTPDeviceViewSet.TOTP_SESSION_KEY not in api_client.session
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_activate_a_device(api_client, mfa_device, monkeypatch):
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.validate_totp_code", lambda secret, code: True)
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "password")
+    session = api_client.session
+    session[TOTPDeviceViewSet.TOTP_SESSION_KEY] = {"method": "email", "email": "user@domain.invalid"}
+    session[SECRET_SESSION_KEY] = "secret"
+    session.save()
+
+    response = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    assert TOTPDevice.objects.filter(user=mfa_device.user).count() == 1
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_delete_a_device(api_client, mfa_device):
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": mfa_device.pk}), format="json")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    assert TOTPDevice.objects.filter(pk=mfa_device.pk).exists()
+    assert Authenticator.objects.filter(user=mfa_device.user).exists()
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_mfa_user_can_set_up_a_device_straight_after_a_two_factor_login(api_client, mfa_device, monkeypatch):
+    sent = []
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "JBSWY3DPEHPK3PXP")
+    monkeypatch.setattr(
+        "vueda.user.viewsets.vueda_get_adapter", lambda: SimpleNamespace(send_mail=lambda *args: sent.append(args))
+    )
+    api_client.force_login(mfa_device.user)
+    # A login that included the two-factor step records the password, then the second factor.
+    record_authentication_methods(api_client, "password", "mfa")
+
+    response = api_client.post(
+        reverse("vueda_user.totpdevice-setup"), {"method": "email", "destination": "user@domain.invalid"}, format="json"
+    )
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert api_client.session[TOTPDeviceViewSet.TOTP_SESSION_KEY]["method"] == "email"
+    assert sent[0][0] == "user@domain.invalid"
+
+
+@pytest.mark.django_db
+def test_mfa_user_can_delete_a_device_after_a_two_factor_reauthentication(api_client, mfa_device):
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.delete(reverse("vueda_user.totpdevice-detail", kwargs={"pk": mfa_device.pk}), format="json")
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert not TOTPDevice.objects.filter(pk=mfa_device.pk).exists()
+    assert not Authenticator.objects.filter(user=mfa_device.user).exists()
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_password_only_user_sets_up_and_activates_a_first_device_after_a_password_check(api_client, user, monkeypatch):
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "JBSWY3DPEHPK3PXP")
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.validate_totp_code", lambda secret, code: True)
+    monkeypatch.setattr("vueda.user.viewsets.vueda_get_adapter", lambda: SimpleNamespace(send_mail=lambda *args: None))
+    api_client.force_login(user)
+    record_authentication_methods(api_client, "password")
+
+    setup = api_client.post(
+        reverse("vueda_user.totpdevice-setup"), {"method": "email", "destination": "user@domain.invalid"}, format="json"
+    )
+    activate = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": "123456"}, format="json")
+
+    assert setup.status_code == HTTPStatus.OK, response_body(setup)
+    assert activate.status_code == HTTPStatus.CREATED, response_body(activate)
+    assert TOTPDevice.objects.filter(user=user, method="email").exists()
+    # The account now owes a second factor, and the activation code counts as one.
+    who_is = api_client.get(reverse("who-is"), format="json")
+    assert who_is.data["auth_pending_flow"] is None
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_view_recovery_codes(api_client, recovery_codes):
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.get(reverse("recovery_codes"))
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    body = response.json()
+    assert "unused_codes" not in body.get("data", {})
+    assert "mfa_reauthenticate" in [flow["id"] for flow in body["data"]["flows"]]
+
+
+@pytest.mark.django_db
+def test_mfa_user_with_only_a_password_check_cannot_regenerate_recovery_codes(api_client, recovery_codes):
+    unused_codes = recovery_codes.get_unused_codes()
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "password")
+
+    response = api_client.post(reverse("recovery_codes"), {}, format="json")
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED, response_body(response)
+    recovery_codes.instance.refresh_from_db()
+    assert recovery_codes.get_unused_codes() == unused_codes
+
+
+@pytest.mark.django_db
+def test_mfa_user_can_view_recovery_codes_after_a_two_factor_reauthentication(api_client, recovery_codes):
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.get(reverse("recovery_codes"))
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response.json()["data"]["unused_codes"] == recovery_codes.get_unused_codes()
+
+
+@pytest.mark.django_db
+def test_mfa_user_can_regenerate_recovery_codes_after_a_two_factor_reauthentication(api_client, recovery_codes):
+    unused_codes = recovery_codes.get_unused_codes()
+    api_client.force_login(recovery_codes.instance.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.post(reverse("recovery_codes"), {}, format="json")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    regenerated = RecoveryCodes.activate(recovery_codes.instance.user).get_unused_codes()
+    assert regenerated != unused_codes
+    assert response.json()["data"]["unused_codes"] == regenerated
 
 
 class DummyAllAuthBase:

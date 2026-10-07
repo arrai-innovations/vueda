@@ -107,7 +107,7 @@ class TestWhoIsSerializerDirectly(BaseTestUserMixin, BaseTestGroupMixin):
             "groups",
             "is_superuser",
             "totp_devices",
-            "recently_logged_in",
+            "auth_pending_flow",
             "formatted_name",
             "available_actions",
             "object_revision",
@@ -128,10 +128,14 @@ class TestWhoIsSerializerDirectly(BaseTestUserMixin, BaseTestGroupMixin):
             "email",
             "name",
             "totp_devices",
-            "recently_logged_in",
+            "auth_pending_flow",
             "formatted_name",
             "object_revision",
         )
+
+
+def test_who_is_has_no_pending_flow_without_a_request():
+    assert WhoIsSerializer(context={}).get_auth_pending_flow(None) is None
 
 
 @pytest.mark.django_db
