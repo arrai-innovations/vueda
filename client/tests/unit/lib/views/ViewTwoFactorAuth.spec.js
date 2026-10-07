@@ -102,6 +102,7 @@ const toastMock = {
     message: vi.fn(),
 };
 const routerPush = vi.fn();
+const routeMock = reactive({ query: {} });
 
 const WidgetOTPInputStub = defineComponent({
     name: "WidgetOTPInputStub",
@@ -136,6 +137,7 @@ vi.mock("@vueda/stores/storeUser.js", async () => {
 
 vi.mock("vue-router", () => ({
     useRouter: () => ({ push: routerPush }),
+    useRoute: () => routeMock,
 }));
 
 let ViewTwoFactorAuth;
@@ -146,6 +148,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
     beforeEach(async () => {
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
+        routeMock.query = {};
         useIsActiveMock.mockReset();
         storeUserMock.mockReset();
         updateFormValue.mockClear();
@@ -274,6 +277,73 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             userStore.authPendingFlow = "mfa_reauthenticate";
             await flushPromises();
             expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
+        });
+    });
+
+    describe("Expired sign-in redirect", () => {
+        scopedIt("waits for who-is before redirecting an anonymous user with no pending flow", async () => {
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+
+            userStore.initialized = true;
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledWith("Your sign-in has expired", {
+                description: "There is no two-factor sign-in in progress. Sign in again to continue.",
+                duration: 10000,
+            });
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("redirects when a who-is refetch clears the pending flow", async () => {
+            userStore.initialized = true;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+
+            userStore.initialized = false;
+            userStore.authPendingFlow = null;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+
+            userStore.initialized = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("keeps the redirect query on the way back to sign-in", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.initialized = true;
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
+        });
+
+        scopedIt("does not redirect a signed-in user whose second factor was just confirmed", async () => {
+            userStore.initialized = true;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+
+            userStore.loggedIn = true;
+            userStore.authPendingFlow = null;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not redirect while inactive", async () => {
+            userStore.initialized = true;
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
         });
     });
 

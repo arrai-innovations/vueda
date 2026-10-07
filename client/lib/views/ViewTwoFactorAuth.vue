@@ -14,7 +14,7 @@ import WidgetOTPInput from "@vueda/widgets/WidgetOTPInput.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
 import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 /**
  * Two-factor authentication challenge view. Lets the user select an available verification method (TOTP, SMS,
@@ -26,6 +26,10 @@ import { useRouter } from "vue-router";
  * AuthorizingForm and replaces it. `ViewReauthenticate` passes `runAction` that way to confirm a signed-in
  * user's second factor through `storeUser.twoFactorReauthenticate`. The server lists methods and sends codes
  * for the user in the pending login stage or, failing that, the signed-in user, so one fetch serves both.
+ *
+ * Once the who-is request has answered, an anonymous user with no second-factor flow pending has no sign-in to
+ * finish here, for example because the pending sign-in expired. The view sends that user to the `sign-in` route,
+ * keeping the `redirect` query, and shows a warning toast that explains why.
  */
 defineOptions({});
 
@@ -37,6 +41,7 @@ const formProps = reactive({
     },
 });
 const router = useRouter();
+const route = useRoute();
 const userStore = storeUser();
 const cooldownSeconds = ref(60);
 const timer = ref(null);
@@ -121,6 +126,22 @@ watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => 
                 });
             }
         }
+    }
+});
+// `initialized` is `true` only after a who-is response, so the view waits for the store to learn the pending
+// flow before deciding there is none. A signed-in user without a pending flow has just finished the second
+// factor, and the sign-in or reauthentication form sends them on.
+const hasNoSignInToFinish = computed(
+    () => userStore.initialized === true && !userStore.loggedIn && !owesSecondFactor.value,
+);
+watch([isActive, hasNoSignInToFinish], async ([newActive, newHasNoSignInToFinish]) => {
+    if (newActive && newHasNoSignInToFinish) {
+        toast.warning("Your sign-in has expired", {
+            description: "There is no two-factor sign-in in progress. Sign in again to continue.",
+            duration: 10000,
+        });
+        const redirect = route.query?.redirect;
+        await router.push(redirect ? { name: "sign-in", query: { redirect } } : { name: "sign-in" });
     }
 });
 const theme = useTheme("ViewTwoFactorAuth", props);
