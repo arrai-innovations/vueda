@@ -9,7 +9,6 @@ import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
 import { formatSortField } from "@vueda/utils/sortedFields.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
-import isEmpty from "lodash-es/isEmpty.js";
 import merge from "lodash-es/merge.js";
 import omit from "lodash-es/omit.js";
 import { defineStore } from "pinia";
@@ -50,7 +49,7 @@ import { defineStore } from "pinia";
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
  * @property {string[]} submitFields - field paths sent in the create/update request body by default
- * @property {string[]} expand - field names to expand by default
+ * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
  * @property {string[]} filterables - filters to display in list view
@@ -144,7 +143,6 @@ const getDefaultFromModelInfo = (modelInfo) => {
     // The server flags fields that do not help tell one row from another (audit timestamps, a
     // workflow state's machine code, per-record transitions) with `listDefault: false`.
     const listFields = fields.filter((f) => modelInfo.fields[f]?.listDefault !== false);
-    const expandFields = modelInfo.expand.map((e) => e.name);
     const actionDetailsByName = Object.fromEntries(modelInfo.actions.map((a) => [a.name, a]));
     const expandDetailsByName = Object.fromEntries(modelInfo.expand.map((e) => [e.name, e]));
     const actionNames = modelInfo.actions.map((a) => a.name);
@@ -175,7 +173,9 @@ const getDefaultFromModelInfo = (modelInfo) => {
             detailLinkField: null,
             fetchFields: fields,
             submitFields: writableFields,
-            expand: expandFields,
+            // Expanding a relation adds a nested object to every response and renders the field as an
+            // inline fieldset in forms, so a view expands only what the model config names.
+            expand: [],
             routeActions: modelInfo.actions.map((a) => a.name),
             actions: modelInfo.actions.map((a) => a.name),
             filterables: Object.keys(modelInfo.filtering || {}),
@@ -346,13 +346,76 @@ const validateSubmitFields = (builtConfig, args) => {
 };
 
 /**
+ * Client-side namespaces a dotted display path may start with; `unifiedGet` reads them from the row's
+ * related and calculated objects rather than from the row.
+ */
+const clientPathNamespaces = new Set(["related", "calculated"]);
+
+/**
+ * Reject an `expand` entry or dotted field list entry that the model's metadata cannot satisfy.
+ *
+ * Each `expand` entry must start with an expand that model info declares; the server answers an
+ * undeclared one with a 400. A dotted field list entry is checked by its first segment:
+ *
+ * - A declared expand must also be in `expand`. Without it, the response carries the relation as a
+ *   primary key, the entry has no field details, and the cell or field renders blank.
+ * - A model field passes, since the entry reads into that field's nested value, such as `address.city`.
+ * - `related` and `calculated` pass, since the client resolves them itself.
+ * - Anything else names nothing the model provides.
+ *
+ * A model info response without expand metadata builds a minimal config, which this does not check.
+ *
+ * @param {ModelConfig} builtConfig - The built configuration, read for `expand` and its field lists.
+ * @param {ModelConfig} defaultGenericConfig - The config derived from model info, read for the declared
+ *  expands (`expandDetails`) and fields (`fieldDetails`).
+ * @param {{app: string, model: string}} args - Identifies the model being configured, for the error message.
+ * @throws {Error} If `expand` or a field list names something the model's metadata does not provide.
+ */
+const validateExpandConfig = (builtConfig, defaultGenericConfig, args) => {
+    if (!defaultGenericConfig.expandDetails) {
+        return;
+    }
+    const declaredExpands = new Set(Object.keys(defaultGenericConfig.expandDetails));
+    const declaredFields = new Set(Object.keys(defaultGenericConfig.fieldDetails || {}));
+    const requested = new Set(builtConfig.expand || []);
+    const problems = [];
+    for (const expandName of builtConfig.expand || []) {
+        if (!declaredExpands.has(expandName.split(".", 1)[0])) {
+            problems.push(`expand names ${expandName}, which model info does not declare`);
+        }
+    }
+    for (const listKey of ["displayFields", "fetchFields", "submitFields"]) {
+        for (const fieldName of builtConfig[listKey] || []) {
+            const dotIndex = fieldName.indexOf(".");
+            if (dotIndex === -1) {
+                continue;
+            }
+            const prefix = fieldName.slice(0, dotIndex);
+            if (declaredExpands.has(prefix)) {
+                if (!requested.has(prefix)) {
+                    problems.push(`${listKey} names ${fieldName}, but expand does not name ${prefix}`);
+                }
+            } else if (!declaredFields.has(prefix) && !clientPathNamespaces.has(prefix)) {
+                problems.push(
+                    `${listKey} names ${fieldName}, but ${prefix} is not a declared expand, a field, ` +
+                        "or a related or calculated path",
+                );
+            }
+        }
+    }
+    if (problems.length) {
+        throw new Error(`Model config for ${args.app}.${args.model} is invalid: ${problems.join("; ")}.`);
+    }
+};
+
+/**
  * Merge and flatten expansion details into fieldDetails using dotted keys.
  *
  * This function processes expandable field configurations by combining the expandDetails
  * from various configuration sources and then mapping them into the fieldDetails object.
  * The process ensures that:
  *
- * 1. For each expansion name listed in builtConfig.expand:
+ * 1. For each expansion the model info declares, and each name listed in builtConfig.expand:
  *    - It deep merges the expansion configuration from:
  *         • defaultGenericConfig.expandDetails[expandName]
  *         • customGenericConfig.expandDetails[expandName]
@@ -360,7 +423,7 @@ const validateSubmitFields = (builtConfig, args) => {
  *         • customSpecificConfig.expandDetails[expandName]
  *      Custom settings override defaults on a key-by-key basis.
  *
- * 2. The merged expansion configuration is then used to:
+ * 2. For each name listed in builtConfig.expand, the merged expansion configuration is then used to:
  *    a. Replace the expansion's own entry in fieldDetails (i.e. fieldDetails[expandName])
  *       with a clone of the merged configuration, omitting the "f" (sub-fields) property.
  *
@@ -377,7 +440,7 @@ const validateSubmitFields = (builtConfig, args) => {
  *    the flattened expansion fields) and the merged expandDetails.
  *
  * This approach allows the default expandable field configurations (as provided by
- * drf-flex-fields) to be customized via expandDetails, while also permitting direct
+ * drf-flex-fields2) to be customized via expandDetails, while also permitting direct
  * overrides in fieldDetails for the flattened keys.
  *
  * @param {ModelConfig} builtConfig - The built configuration object, which is mutated in place.
@@ -393,15 +456,18 @@ const flattenExpansionDetails = (
     defaultSpecificConfig,
     customSpecificConfig,
 ) => {
-    const expanded = builtConfig.expand || [];
-    if (isEmpty(expanded)) {
+    const expanded = new Set(builtConfig.expand || []);
+    // Every declared expand gets merged details, so a component that passes its own `expand` prop
+    // finds them; only a configured expand flattens its sub-fields into `fieldDetails`.
+    const expandNames = new Set([...Object.keys(defaultGenericConfig.expandDetails || {}), ...expanded]);
+    if (!expandNames.size) {
         return;
     }
 
     const fieldDetails = builtConfig.fieldDetails || {};
     const expandDetails = builtConfig.expandDetails || {};
 
-    for (const expandName of expanded) {
+    for (const expandName of expandNames) {
         const defaultGenericExpand = defaultGenericConfig.expandDetails?.[expandName] || {};
         const defaultGenericFieldDetail = defaultGenericConfig.fieldDetails?.[expandName] || {};
         const customGenericExpand = customGenericConfig?.expandDetails?.[expandName] || {};
@@ -438,6 +504,9 @@ const flattenExpansionDetails = (
             }
         }
         expandDetails[expandName] = newExpandDetails;
+        if (!expanded.has(expandName)) {
+            continue;
+        }
         fieldDetails[expandName] = cloneDeep(omit(newExpandDetails, ["f"]));
 
         for (const [fieldName, expandFDetails] of Object.entries(newExpandDetails.f || {})) {
@@ -525,8 +594,10 @@ export const storeModelConfig = defineStore("modelConfig", {
          */
         builtConfigs: {},
         /**
-         * The in-flight `getConfig` builds, keyed like `builtConfigs`. A build removes its entry when
-         * it finishes, and each promise has a `cancel` method.
+         * The in-flight `getConfig` builds. The key is the app, model, and view dot name. When no view
+         * was given, the key is the app and model dot name. A build that succeeds or is cancelled
+         * removes its entry. A build that fails keeps its rejected promise here until `setConfig` for
+         * the model or `clearAuthScoped` removes it. Each promise has a `cancel` method.
          *
          * @type {{[builtKey: string]: import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelConfig>}}
          */
@@ -692,6 +763,7 @@ export const storeModelConfig = defineStore("modelConfig", {
                     { fetchFollowsDisplay: fetchFollowsDisplayViews.includes(view) },
                 );
                 validateSubmitFields(builtConfig, args);
+                validateExpandConfig(builtConfig, defaultGenericConfig, args);
 
                 mergeDeepProperties(
                     builtConfig,

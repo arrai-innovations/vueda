@@ -103,7 +103,7 @@ Each generated migration carries its own copy of these functions. A group migrat
 The migration is a standard Django migration file. Django generates an empty shell with placeholder values that are used to locate specific lines in the file. `makegroupmigrations` then rewrites the file to add:
 
 - A replaced import block. Django's generated import is replaced rather than left in place, so the full set of imports the generated code needs is written in a controlled order.
-- A `changed_data` variable containing the list of recorded changes.
+- A `changed_data` variable containing the list of recorded changes. See [How `changed_data` Is Formatted](#how-changed-data-is-formatted).
 - A `GroupChangeTypes` enum with the five change types.
 - A `migrate_step` function that applies a single change by inspecting the change type and performing the appropriate create, associate, rename, or unassociate operation.
 - A `forwards_migrate_groups` function that iterates through `changed_data` in order, calling `migrate_step` for each entry.
@@ -119,6 +119,27 @@ For example, the `forwards_migrate_groups` function for a migration that adds a 
 4. Associate `read_invoice` with `Managers`.
 
 When migrating backwards, `backwards_migrate_groups` removes `read_invoice` from `Managers`. The `Managers` group stays.
+
+### How `changed_data` Is Formatted
+
+`makegroupmigrations` formats `changed_data` with the Python formatter your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. These are usually installed as development dependencies. `makeworkflowmigrations` and `updateworkflowmigrations` format their `changed_data` the same way. See [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide.
+
+The command uses the first of these that applies:
+
+1. **black, when your project configures it** with a `[tool.black]` section, even an empty one, in the `pyproject.toml` at your project root. A project can have ruff installed only to lint, so black configuration takes priority. A black configuration in your home directory, such as `~/.config/black`, does not count, so one developer's file cannot choose the formatter for the whole project.
+2. **ruff, when it is installed.**
+3. **black with its default settings, when it is installed** but not configured.
+4. **Python's `pprint`** with a narrow width, when neither is installed. That output uses single quotes and does not follow your settings.
+
+If the formatter that applies fails, for example because your `pyproject.toml` cannot be read or a setting has the wrong type, the command does not switch to another formatter that would ignore your settings. It prints the formatter's error, writes `changed_data` with `pprint`, and asks you to fix the problem and then format that migration manually.
+
+With black or ruff:
+
+- **Your project's settings apply.** black reads `[tool.black]` from the `pyproject.toml` at your project root, and ruff reads the configuration that covers the migration file, such as your `pyproject.toml` or `ruff.toml`. The list follows your line length and quote style. ruff applies its settings even when they exclude migrations from ruff.
+- **Every change and every key gets its own line.** Each dictionary and list ends in a trailing comma, which keeps the formatter from joining the items onto one line. The command keeps the magic trailing comma on for this, even when your configuration skips it.
+- **Keys are sorted**, as earlier versions of the command wrote them.
+
+Only `changed_data` is formatted this way. The rest of the migration, including the embedded functions, is written in the command's own layout.
 
 ### Command Options
 

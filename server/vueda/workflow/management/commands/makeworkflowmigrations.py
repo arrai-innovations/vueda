@@ -12,6 +12,7 @@ __all__ = (
     "apply_and_save_changes",
     "backwards_migrate_workflow",
     "compare_records",
+    "delete_object_states_of_removed_workflows",
     "forwards_migrate_workflow",
     "get_attr_names_for_workflow_models",
     "get_history_diff",
@@ -30,6 +31,8 @@ __all__ = (
     "handle_workflow_permission",
     "make_sure_permissions_exist",
     "manage_state_objects",
+    "release_state_objects",
+    "settle_released_object_states",
     "tracked_field_names",
     "workflow_identity",
     "workflow_migration_action",
@@ -44,7 +47,6 @@ import os
 import re
 import sys
 from pathlib import Path
-from pprint import pformat
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -64,6 +66,7 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import call_management_command
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import locate_empty_migration_slots
@@ -219,18 +222,29 @@ def forwards_migrate_workflow_through_imports(apps, schema_editor):  # pragma: n
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
-    """Undo a generated workflow migration's ``changed_items`` in reverse order, after deleting all object states.
+    """Undo a generated workflow migration's ``changed_items`` in reverse order.
 
-    Adds become deletes, deletes become adds, and changed fields get their old values back. Generated
-    workflow migrations call this from their reverse step; the migrations import it when made with
-    ``--import-instead`` and copy it otherwise.
+    Adds become deletes, deletes become adds, and changed fields get their old values back. Object
+    states change only for the workflows ``changed_items`` names: a removed workflow's object states
+    are deleted, an object in a removed state is restored from its history or reset to the initial
+    state, and a re-created workflow gives its objects the initial state. Every other object state
+    keeps its row and its state. Generated workflow migrations call this from their reverse step; the
+    migrations import it when made with ``--import-instead`` and copy it otherwise.
     """
     with workflow_migration_action(apps, change_reason):
         _backwards_migrate_workflow(apps, changed_items, change_reason)
 
 
 def _backwards_migrate_workflow(apps, changed_items, change_reason):
-    handle_state_objects(apps, reversing=True)
+    released = delete_object_states_of_removed_workflows(apps, changed_items)
+    # The loop below deletes each workflow's identifying data as it re-creates the workflow, so keep a
+    # copy to find the workflows afterwards.
+    recreated_workflow_ids = [
+        copy.deepcopy(changed_item["changes"]["id"])
+        for changed_item in changed_items
+        if changed_item["model_name"] == "workflow"
+        and changed_item["history_type"] == WorkflowChangeTypes.DELETED.value
+    ]
 
     # Make sure we go through the changed_items in reverse order, so we undo things correctly.
     for changed_item in reversed(changed_items):
@@ -249,6 +263,9 @@ def _backwards_migrate_workflow(apps, changed_items, change_reason):
                 handle_workflow_permission(apps, changed_item, change_reason, reversing=True)
 
             case "state":
+                if changed_item["history_type"] == WorkflowChangeTypes.DELETED.value:
+                    # The state's object states protect it, so they move out before it goes.
+                    release_state_objects(apps, changed_item, released)
                 handle_state(apps, changed_item, change_reason, reversing=True)
 
             case "statepermission":
@@ -265,6 +282,8 @@ def _backwards_migrate_workflow(apps, changed_items, change_reason):
 
             case "transitionsource":
                 handle_transition_source(apps, changed_item, change_reason, reversing=True)
+
+    settle_released_object_states(apps, released, recreated_workflow_ids)
 
 
 # Migration-only entry point; its existence makes the underlying function testable.
@@ -829,6 +848,160 @@ def handle_state_objects(apps, *, reversing=False):
         manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
 
 
+def _released_record(released, workflow):
+    return released.setdefault(
+        workflow.pk,
+        {
+            "code": workflow.code,
+            "restored": set(),
+            "reset": set(),
+            "orphaned": set(),
+            "orphans_reset": 0,
+            "deleted": 0,
+            "created": 0,
+        },
+    )
+
+
+def delete_object_states_of_removed_workflows(apps, changed_items):
+    """Delete the object states of each workflow the reversal of ``changed_items`` removes.
+
+    A workflow the migration added has no state left to give its objects once the reversal removes
+    it, and its object states protect it from deletion. Returns the record of released object states
+    that ``release_state_objects`` and ``settle_released_object_states`` add to. Generated workflow
+    migrations copy this function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    released = {}
+    for index, changed_item in enumerate(changed_items):
+        if changed_item["model_name"] != "workflow" or changed_item["history_type"] != WorkflowChangeTypes.ADDED.value:
+            continue
+        # The add records the workflow's identifying fields as they were then. A later change in the
+        # same migration may have renamed it, so follow each rename to the fields the row has now.
+        workflow_id_data = changed_item["changes"]["id"]
+        for later_item in changed_items[index + 1 :]:
+            if (
+                later_item["model_name"] == "workflow"
+                and later_item["history_type"] == WorkflowChangeTypes.CHANGED.value
+                and get_id_values_from_dict(later_item["changes"]["id"]) == workflow_id_data
+            ):
+                workflow_id_data = get_id_values_from_dict(later_item["changes"]["id"], reversing=True)
+        workflow = model_workflow.objects.filter(**workflow_id_data).first()
+        if workflow is None:
+            continue
+        object_states = model_object_state.objects.filter(workflow=workflow)
+        _released_record(released, workflow)["deleted"] += object_states.count()
+        object_states.delete()
+    return released
+
+
+def release_state_objects(apps, changed_item, released):
+    """Move every object out of the state that ``changed_item`` is about to delete.
+
+    Each object returns to the most recent state in its history that its workflow still has. An
+    object with no such state moves to the workflow's initial state, or loses its object state when
+    the workflow has none. Rows are updated in place, so each keeps its id and its history.
+    ``released`` records each move for ``settle_released_object_states``. Generated workflow
+    migrations copy this function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
+    model_state = apps.get_model("vueda_workflow", "State")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    state_id_data = changed_item["changes"]["id"]
+    workflow = model_workflow.objects.get(**state_id_data["workflow_id"])
+    state = model_state.objects.get(**{**state_id_data, "workflow_id": workflow.pk})
+
+    object_states = list(model_object_state.objects.filter(workflow=workflow, state=state))
+    if not object_states:
+        return
+
+    record = _released_record(released, workflow)
+    surviving_state_ids = list(
+        model_state.objects.filter(workflow=workflow).exclude(pk=state.pk).values_list("pk", flat=True)
+    )
+    initial_state = model_initial_state.objects.filter(workflow=workflow).exclude(state=state).first()
+    for object_state in object_states:
+        # Match on the workflow and object rather than the row, so events from rows an earlier
+        # reversal deleted still count.
+        restored_state_id = (
+            model_object_state_event.objects.filter(
+                workflow_id=workflow.pk,
+                object_id=object_state.object_id,
+                state_id__in=surviving_state_ids,
+            )
+            .order_by("-pgh_id")
+            .values_list("state_id", flat=True)
+            .first()
+        )
+        record["restored"].discard(object_state.pk)
+        record["reset"].discard(object_state.pk)
+        if restored_state_id is not None:
+            model_object_state.objects.filter(pk=object_state.pk).update(state_id=restored_state_id)
+            record["restored"].add(object_state.pk)
+        elif initial_state is not None:
+            model_object_state.objects.filter(pk=object_state.pk).update(state_id=initial_state.state_id)
+            record["reset"].add(object_state.pk)
+        else:
+            model_object_state.objects.filter(pk=object_state.pk).delete()
+            record["orphaned"].add(object_state.object_id)
+
+
+def settle_released_object_states(apps, released, recreated_workflow_ids):
+    """Finish the object state changes of a reversal, then report them.
+
+    An object reset to the initial state moves to the initial state the workflow has once the whole
+    reversal has run, which a later step may have changed. An object left without a state, and every
+    object of a re-created workflow, gets that initial state. Generated workflow migrations copy this
+    function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    for workflow_pk, record in released.items():
+        workflow = model_workflow.objects.filter(pk=workflow_pk).first()
+        initial_state = workflow and model_initial_state.objects.filter(workflow=workflow).first()
+        if initial_state is None:
+            continue
+        model_object_state.objects.filter(pk__in=record["reset"]).exclude(state_id=initial_state.state_id).update(
+            state_id=initial_state.state_id
+        )
+        for object_id in record["orphaned"]:
+            model_object_state.objects.create(workflow=workflow, object_id=object_id, state_id=initial_state.state_id)
+        record["orphans_reset"] += len(record["orphaned"])
+        record["orphaned"] = set()
+
+    for workflow_id_data in recreated_workflow_ids:
+        workflow = model_workflow.objects.filter(**workflow_id_data).first()
+        if workflow is None:
+            continue
+        before = model_object_state.objects.filter(workflow=workflow).count()
+        model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
+        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event)
+        _released_record(released, workflow)["created"] += (
+            model_object_state.objects.filter(workflow=workflow).count() - before
+        )
+
+    for record in released.values():
+        counts = (
+            (len(record["restored"]), "restored from history"),
+            (len(record["reset"]) + record["orphans_reset"], "reset to the initial state"),
+            (len(record["orphaned"]), "left without a state, because the workflow has no initial state"),
+            (record["deleted"], "deleted with the workflow"),
+            (record["created"], "given the initial state"),
+        )
+        for count, outcome in counts:
+            if count:
+                # A migration's code has no command stdout to write to; migrate shows what it prints.
+                print(f"  Workflow {record['code']}: {count} object state(s) {outcome}.")  # noqa: T201
+
+
 def _content_type_of(workflow_event):
     """Return the content type an event's workflow names, or ``None`` when there is no such event."""
     if workflow_event is None:
@@ -1119,6 +1292,12 @@ def get_migration_sources(import_instead=False, as_mapping=False):
                 ("handle_transition_source",): inspect.getsource(handle_transition_source),
                 ("handle_state_objects",): inspect.getsource(handle_state_objects),
                 ("manage_state_objects",): inspect.getsource(manage_state_objects),
+                ("_released_record",): inspect.getsource(_released_record),
+                ("delete_object_states_of_removed_workflows",): inspect.getsource(
+                    delete_object_states_of_removed_workflows
+                ),
+                ("release_state_objects",): inspect.getsource(release_state_objects),
+                ("settle_released_object_states",): inspect.getsource(settle_released_object_states),
                 ("apply_and_save_changes",): inspect.getsource(apply_and_save_changes),
                 ("get_id_values_from_item",): inspect.getsource(get_id_values_from_item),
                 ("get_id_values_from_dict",): inspect.getsource(get_id_values_from_dict),
@@ -2086,11 +2265,10 @@ class Command(BaseCommand):
             lines[slots["dependencies_index"] + 1 : slots["dependencies_index"] + 1] = dependency_data
 
             # Changed data and forwards/reverse functions.
-            # Pretty Print is not formatted as nice as black.  At least a small width is better than nothing.
             copied_code = [
                 f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
                 f'{NEWLINE}migration_app_label = "{app_label}"',
-                f"{NEWLINE}changed_data = {pformat(changed_data, width=20)}{NEWLINE}",
+                f"{NEWLINE}{format_changed_data(changed_data, migration_file, stderr=self.stderr)}",
                 *get_migration_sources(self.import_instead),
             ]
             lines[slots["class_index"] - 1 : slots["class_index"]] = copied_code

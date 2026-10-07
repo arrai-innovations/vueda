@@ -3,6 +3,7 @@ import datetime
 import importlib.util
 import io
 import os
+import re
 import time
 from collections import Counter
 from pathlib import Path
@@ -374,6 +375,47 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
             assert "    make_sure_permissions_exist(migration_app_label)\n" in migration_content
 
             self.continue_added_workflow_test(migration_dir, results)
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_changed_data_follows_the_migrations_project_settings(self, settings):
+        """The formatter reads the settings that apply to the migration's own path.
+
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
+        """
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
+            (Path(migration_dir).parent / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+
+            succeeded, results = self.call_command("migrate", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            succeeded, results = self.call_command("makeworkflowmigrations", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            migration_filepath = (
+                Path(migration_dir) / f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            )
+            migration_content = migration_filepath.read_text(encoding="utf-8")
+
+            assignment = next(
+                node
+                for node in ast.parse(migration_content).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(migration_content, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'code'" in changed_data_source
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db

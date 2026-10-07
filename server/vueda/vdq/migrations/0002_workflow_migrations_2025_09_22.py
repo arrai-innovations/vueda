@@ -1257,7 +1257,7 @@ def forwards_migrate_workflow(apps, changed_items, change_reason):
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
-    handle_state_objects(apps, reversing=True)
+    delete_object_states_of_removed_workflows(apps, changed_items)
 
     # Make sure we go through the changed_items in reverse order, so we undo things correctly.
     for changed_item in reversed(changed_items):
@@ -1292,6 +1292,27 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
 
             case "transitionsource":
                 handle_transition_source(apps, changed_item, change_reason, reversing=True)
+
+
+def delete_object_states_of_removed_workflows(apps, changed_items):
+    # Reversing removes each workflow this migration added. Its object states protect it from
+    # deletion and have no state left to point at, so they go first. Object states of every other
+    # workflow stay as they are.
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    for changed_item in changed_items:
+        if changed_item["model_name"] != "workflow" or changed_item["history_type"] != WorkflowChangeTypes.ADDED.value:
+            continue
+        workflow = model_workflow.objects.filter(**changed_item["changes"]["id"]).first()
+        if workflow is None:
+            continue
+        object_states = model_object_state.objects.filter(workflow=workflow)
+        count = object_states.count()
+        object_states.delete()
+        if count:
+            # A migration's code has no command stdout to write to; migrate shows what it prints.
+            print(f"  Workflow {workflow.code}: {count} object state(s) deleted with the workflow.")  # noqa: T201
 
 
 def make_sure_permissions_exist(app_label):

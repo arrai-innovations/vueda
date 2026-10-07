@@ -1,6 +1,9 @@
+import ast
 import datetime
 import io
 import os
+import re
+from pprint import pformat
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -16,6 +19,7 @@ from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import info_registry_clear_with_appended_apps
 from vueda.user.management.commands.makegroupmigrations import migrate_step
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.models import GroupChange
 
@@ -132,6 +136,49 @@ class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTe
             assert "    backwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
 
             self.continue_added_group_test(migration_dir, results)
+
+    @info_registry_clear_with_appended_apps()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_changed_data_follows_the_migrations_project_settings(self, settings):
+        """The formatter reads the settings that apply to the migration's own path.
+
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
+        """
+        settings.MIGRATION_MODULES = {
+            "group_added": "tests.group_added",
+        }
+        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
+        append_installed_apps(settings, "tests.group_added")
+
+        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
+            with open(os.path.join(os.path.dirname(migration_dir), "pyproject.toml"), "w", encoding="utf-8") as f:
+                f.write('[tool.ruff.format]\nquote-style = "single"\n')
+
+            succeeded, results = self.call_command("migrate", "group_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            succeeded, results = self.call_command("makegroupmigrations")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            migration_filepath = os.path.join(
+                migration_dir, f"0003_group_permission_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            )
+            with open(migration_filepath, encoding="utf-8") as f:
+                migration_content = f.read()
+
+            assignment = next(
+                node
+                for node in ast.parse(migration_content).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(migration_content, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'group_name'" in changed_data_source
 
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.django_db
@@ -754,6 +801,184 @@ class Migration(migrations.Migration):
         assert '("test", "0001_make_sure_permissions_exist"),' in results
         assert '("test", "0002_forwards_migrate_groups"),' in results
         assert '("test", "0003_backwards_migrate_groups"),' in results
+
+    # Each format_changed_data test writes its pyproject.toml into its own tmp_path. black caches a parsed
+    # pyproject.toml and a found project root by path for the life of the process, so a test that rewrote a
+    # path another test had already read would get that test's settings.
+    #
+    # black and ruff test their own layout, so these tests only check that a formatter ran and which one. A
+    # formatter keeps the trailing comma after the last change, which pformat never writes. With a formatter
+    # shown to have run, the quote style shows which formatter and settings applied.
+    def test_format_changed_data_evaluates_to_the_same_values(self, tmp_path):
+        # black is installed but not configured, so ruff formats.
+        (tmp_path / "pyproject.toml").write_text("[tool.ruff]\nline-length = 120\n")
+        changed_data = [
+            {
+                "changes": {"code": ("old", "new"), "id": {"code": "new"}, "media_url": ("one",), "tags": []},
+                "history_date": datetime.datetime(2026, 1, 2, 3, 4, 5, tzinfo=datetime.UTC),
+                "model_name": "workflow",
+            }
+        ]
+        errors = io.StringIO()
+
+        source = format_changed_data(changed_data, tmp_path / "migrations" / "0002_workflow.py", stderr=errors)
+
+        assert re.search(r",\s*\]\s*$", source)
+        # A pair has no trailing comma to split it, so it stays on one line.
+        assert '("old", "new")' in source
+        namespace = {"datetime": datetime}
+        exec(source, namespace)
+        assert namespace["changed_data"] == changed_data
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_follows_the_project_configuration_even_when_it_excludes_migrations(self, tmp_path):
+        # Skipping the magic trailing comma would join the list onto one line and drop the last comma, so a
+        # trailing comma shows it stayed off.
+        (tmp_path / "pyproject.toml").write_text(
+            '[tool.ruff]\nforce-exclude = true\nextend-exclude = ["migrations"]\n\n'
+            '[tool.ruff.format]\nquote-style = "single"\nskip-magic-trailing-comma = true\n'
+        )
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_uses_ruff_when_black_is_not_installed(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("vueda.user.management.commands.utils.black", None)
+        (tmp_path / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_uses_ruff_when_black_only_infers_settings(self, tmp_path):
+        # black infers a target version from requires-python, which is not [tool.black] configuration.
+        (tmp_path / "pyproject.toml").write_text(
+            '[project]\nname = "project"\nrequires-python = ">=3.11,<3.15"\n\n[tool.ruff.format]\nquote-style = "single"\n'
+        )
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_prefers_black_when_the_project_configures_it(self, tmp_path):
+        # The ruff settings ask for double quotes, so single quotes show black formatted. Skipping the magic
+        # trailing comma would drop the last comma, so a trailing comma shows it stayed off.
+        (tmp_path / "pyproject.toml").write_text(
+            "[tool.black]\nline-length = 120\nskip-string-normalization = true\nskip-magic-trailing-comma = true\n\n"
+            '[tool.ruff.format]\nquote-style = "double"\n'
+        )
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_uses_black_defaults_when_ruff_is_not_installed(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("vueda.user.management.commands.utils.find_ruff", lambda: None)
+        # Without ruff, its single quotes do not apply, and black's default normalizes them to double.
+        (tmp_path / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert '"model_name"' in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_uses_black_defaults_for_an_empty_black_section(self, tmp_path):
+        # An empty [tool.black] still chooses black. Its defaults normalize to double quotes, where ruff
+        # would follow the project's single quotes.
+        (tmp_path / "pyproject.toml").write_text('[tool.black]\n\n[tool.ruff.format]\nquote-style = "single"\n')
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], tmp_path / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert '"model_name"' in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_ignores_a_user_level_black_configuration(self, tmp_path, monkeypatch):
+        # The project has no pyproject.toml and configures ruff in ruff.toml. black's command line would fall
+        # back to the developer's own black configuration, and its double quotes would show black formatted.
+        project = tmp_path / "project"
+        (project / ".git").mkdir(parents=True)
+        (project / "ruff.toml").write_text('[format]\nquote-style = "single"\n')
+        user_configuration = tmp_path / "user_black"
+        user_configuration.write_text("[tool.black]\nline-length = 120\n")
+        monkeypatch.setattr("black.files.find_user_pyproject_toml", lambda: user_configuration)
+        errors = io.StringIO()
+
+        source = format_changed_data(
+            [{"model_name": "workflow"}], project / "migrations" / "0002_workflow.py", stderr=errors
+        )
+
+        assert re.search(r",\s*\]\s*$", source)
+        assert "'model_name'" in source
+        assert errors.getvalue() == ""
+
+    def test_format_changed_data_uses_pformat_quietly_when_neither_is_installed(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("vueda.user.management.commands.utils.black", None)
+        monkeypatch.setattr("vueda.user.management.commands.utils.find_ruff", lambda: None)
+        changed_data = [{"changes": {"code": "new"}, "model_name": "workflow"}]
+        errors = io.StringIO()
+
+        source = format_changed_data(changed_data, tmp_path / "migrations" / "0002_workflow.py", stderr=errors)
+
+        assert source == f"changed_data = {pformat(changed_data, width=20)}\n"
+        assert errors.getvalue() == ""
+
+    @pytest.mark.parametrize(
+        ("pyproject", "black_installed", "formatter", "explanation"),
+        [
+            # The configuration cannot be read at all.
+            ("[tool.black\nline-length = 120\n", True, "black", "Could not read the pyproject.toml that applies to"),
+            # black is configured but fails, so ruff, which would succeed, is not used in its place.
+            ('[tool.black]\nline-length = "long"\n', True, "black", ""),
+            ('[tool.ruff]\nline-length = "long"\n', False, "ruff", "Failed to parse"),
+        ],
+    )
+    def test_format_changed_data_reports_a_failing_formatter_and_uses_pformat(
+        self, tmp_path, monkeypatch, pyproject, black_installed, formatter, explanation
+    ):
+        if not black_installed:
+            monkeypatch.setattr("vueda.user.management.commands.utils.black", None)
+        (tmp_path / "pyproject.toml").write_text(pyproject)
+        migration_path = tmp_path / "migrations" / "0002_workflow.py"
+        changed_data = [{"changes": {"code": "new"}, "model_name": "workflow"}]
+        errors = io.StringIO()
+
+        source = format_changed_data(changed_data, migration_path, stderr=errors)
+
+        assert source == f"changed_data = {pformat(changed_data, width=20)}\n"
+        assert errors.getvalue().startswith(f"  {formatter} could not format changed_data for {migration_path}:\n")
+        assert explanation in errors.getvalue()
+        assert errors.getvalue().endswith(
+            f"  Wrote changed_data with pprint instead. Fix the problem above, then format {migration_path} manually."
+        )
 
 
 @pytest.mark.django_db

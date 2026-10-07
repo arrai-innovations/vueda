@@ -309,7 +309,7 @@ VUEDA provides a {@api py:class:vueda.core.viewsets.VuedaViewSet} base class whi
 - integrates with VUEDA's permission system
 - extends DRF's `ModelViewSet` to cause more intentional errors when passing extra query parameters or fields (rather than silently ignoring them)
 - provides row-level filtering hooks
-- integrates and extends [drf-flex-fields2](https://github.com/openbook-education/drf-flex-fields2), adding `permit_{action}_expands` beyond the default which only supports `permit_list_expands`
+- integrates and extends [drf-flex-fields2](https://github.com/openbook-education/drf-flex-fields2), adding `permit_{action}_expands` for every action. The library supports only `permit_list_expands`, which defaults to an empty list, so a `list` request expands nothing until the viewset names its expands
 
 `server/your_project/inventory/viewsets.py`:
 

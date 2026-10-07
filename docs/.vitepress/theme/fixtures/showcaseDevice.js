@@ -8,7 +8,7 @@
  * choices from `useModelConfig(...).config.fieldDetails.method.choices`, so it
  * cannot mount without model metadata in the store. Seeding
  * `storeModelInfo.infos[<key>]` lets `storeModelConfig.getConfig` resolve fully
- * offline, the same trick `showcaseCustomer.js` uses for the CRUDL form demos:
+ * offline, the same trick `showcaseCustomer.js` uses for the CRUD form demos:
  * `fetchModelInfo` short-circuits on the cached entry and the config is built
  * from it.
  *
