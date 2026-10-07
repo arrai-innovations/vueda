@@ -29,7 +29,7 @@ Four things ride on the answer, and each one needs every worker to reach the sam
 
 - **Sessions.** `get_defaults` sets `SESSION_ENGINE` to `django.contrib.sessions.backends.cache`, so this is where a signed-in user's session lives.
 - **The forgot-password cooldown.** `VuedaForgotPasswordView` writes a marker for 60 seconds and refuses a second request for the same address while it is present.
-- **allauth's rate limits.** allauth counts sign-in, sign-up, and password reset attempts here, including `login_failed`, which allows `10/m/ip` by default. Each worker keeps its own count on a per-process cache, so a caller meets the configured limit times the worker count.
+- **allauth's rate limits.** allauth counts sign-in and two-factor code attempts here, including `login_failed`, which allows `10/m/ip` by default. Each worker keeps its own count on a per-process cache, so a caller meets the configured limit times the worker count.
 - **DRF throttle counters**, once your project sets `DEFAULT_THROTTLE_CLASSES`. VUEDA ships `DEFAULT_THROTTLE_RATES` but no classes, so nothing throttles until you add them.
 
 ## Point `CACHE_URL` at Redis
