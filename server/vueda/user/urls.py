@@ -5,7 +5,7 @@ __all__ = (
     "user_patterns",
 )
 
-from allauth.headless.urls import urlpatterns as allauth_urlpatterns
+from allauth.headless.mfa.views import ManageRecoveryCodesView
 from dj_rest_auth.views import LogoutView
 from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
@@ -22,7 +22,13 @@ from vueda.user.views import totp_code
 
 user_patterns = [
     path("who-is/", WhoIsView.as_view(), name="who-is"),
-    path("_allauth/", include(allauth_urlpatterns)),
+    # Only the allauth headless view the client calls. Every other allauth headless route stays unmounted, so
+    # accounts can only change through VUEDA's own views.
+    path(
+        "_allauth/browser/v1/account/authenticators/recovery-codes",
+        ManageRecoveryCodesView.as_api_view(client="browser"),
+        name="recovery_codes",
+    ),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("login/", AllAuthLoginView.as_api_view(client="browser"), name="login2"),
     path("2fa/authenticate/", AllAuthTwoFactorAuthView.as_api_view(client="browser"), name="authenticate"),
