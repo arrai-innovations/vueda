@@ -1,7 +1,6 @@
 import sqlite3
 from pathlib import Path
 
-import django
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.db.backends.postgresql.psycopg_any import IsolationLevel
@@ -42,18 +41,13 @@ def test_use_mailers_configures_mailers():
     assert "EMAIL_TIMEOUT" not in defaults
 
 
-def test_use_mailers_respects_email_backend_override_or_rejects_by_django_version():
+def test_use_mailers_respects_email_backend_override():
     env = _env(
         EMAIL_BACKEND="anymail.backends.mailgun.EmailBackend",
         ANYMAIL_MAILGUN_API_KEY="key",
         ANYMAIL_MAILGUN_SENDER_DOMAIN="domain.invalid",
         ANYMAIL_MAILGUN_WEBHOOK_SIGNING_KEY="signing-key",
     )
-
-    if django.VERSION < (6, 1):
-        with pytest.raises(ImproperlyConfigured, match="MAILERS"):
-            get_defaults(env, use_mailers=True)
-        return
 
     defaults = get_defaults(env, use_mailers=True)
 

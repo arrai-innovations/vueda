@@ -556,7 +556,7 @@ class VuedaExpandableFieldsSerializerMixin:
             # Copied to deal with serializer strings.
             # https://github.com/openbook-education/drf-flex-fields2/blob/433ea0ce084504766b19486de279f27b9df8d0dc/
             #   src/rest_flex_fields2/serializers.py#L155-L156
-            if type(field_serializer) == str:  # noqa E721
+            if isinstance(field_serializer, str):
                 field_serializer = self._get_serializer_class_from_lazy_string(field_serializer)
 
             # For ways that bypass system checks, validate that this is a class.
