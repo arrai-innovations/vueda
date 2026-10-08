@@ -6,7 +6,7 @@ const changePasswordMock = vi.fn();
 
 const AuthFormStub = defineComponent({
     name: "AuthFormStub",
-    props: ["runAction", "formProps"],
+    props: ["runAction", "formProps", "requireRecentAuth"],
     emits: ["form-object"],
     setup(props, { slots, emit }) {
         emit("form-object", {});
@@ -103,6 +103,14 @@ describe("lib/views/ViewChangePassword.vue", () => {
             });
 
             expect(wrapper.findComponent(AuthFormStub).exists()).toBe(true);
+        });
+    });
+
+    describe("Recent authentication", () => {
+        // The server checks the current password and does not require a recent session for change-password.
+        scopedIt("does not require recent authentication", () => {
+            const wrapper = mount(ViewChangePassword);
+            expect(wrapper.findComponent(AuthFormStub).props("requireRecentAuth")).toBe(false);
         });
     });
 

@@ -8,8 +8,11 @@ import { onMounted, toRef } from "vue";
 
 /**
  * Renders a page-level authentication form with a title, subtitle, and action slot.
- * Handles reauthentication redirects and MFA pending-flow detection automatically,
- * delegating the actual form submission to an inner ActionForm.
+ * Delegates the form submission to an inner ActionForm.
+ *
+ * By default the form's action needs a recent session, so a pending reauthentication flow sends the user to the
+ * reauthenticate route. That flow belongs to the whole session, not to this form. Set `requireRecentAuth` to `false`
+ * for a form whose action the server accepts without a recent session.
  *
  * @vueda-slot-forward ActionForm
  */
@@ -40,6 +43,16 @@ const props = defineProps({
     formProps: {
         type: Object,
         default: () => ({}),
+    },
+    /**
+     * Whether the server requires a recent session for the form's action. When `true`, a pending reauthentication
+     * flow sends the user to the reauthenticate route, including when the form opens. Set it to `false` for a form
+     * whose action the server accepts without a recent session, such as change-password. The user then stays on the
+     * form while the flow is pending.
+     */
+    requireRecentAuth: {
+        type: Boolean,
+        default: true,
     },
     /** Whether the current user is permitted to access this form. */
     permitted: {
