@@ -1,7 +1,9 @@
 # Models to use with info.
 
 from django.db import models
+from django.db.models.functions import Length
 
+from vueda.core.models import FormattedNameManager
 from vueda.core.models import VuedaModel
 
 
@@ -236,6 +238,247 @@ class ModelOrderingQueryset(VuedaModel):
         ordering = ("-the_name_field",)
         verbose_name = "Model ordering queryset"
         verbose_name_plural = "Model ordering queryset"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class NameOrderingManager(FormattedNameManager):
+    """Orders every queryset it builds by `the_name_field`, an ordering `Meta.ordering` could declare."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field")
+
+
+class NameQuerySet(models.QuerySet):
+    """A custom QuerySet whose `by_name()` method orders the rows, the way a project names a sort."""
+
+    def by_name(self):
+        return self.order_by("-the_name_field")
+
+
+class OtherNameManagerOrdering(VuedaModel):
+    """Declares its only manager as `ordered` rather than `objects`, and that manager orders by a
+    plain field.
+
+    Django makes the model's own first manager the default, so `vueda_info.E015` has to find it by
+    asking for the default manager, not by reading `objects`."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    ordered = NameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Other name manager ordering"
+        verbose_name_plural = "Other name manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class DefaultManagerNameOrdering(VuedaModel):
+    """Declares a plain `objects` first and an ordering manager second, then names the second one in
+    `Meta.default_manager_name`, which makes it the default despite the declaration order."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = FormattedNameManager()
+    ordered = NameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        default_manager_name = "ordered"
+        verbose_name = "Default manager name ordering"
+        verbose_name_plural = "Default manager name ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class SecondaryManagerOrdering(VuedaModel):
+    """Keeps an unordered default manager built from a custom QuerySet, and adds a second manager that
+    orders.
+
+    The second manager orders only the code that names it, so `vueda_info.E015` leaves it alone. The
+    QuerySet's `by_name()` method orders only where it is called."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = FormattedNameManager.from_queryset(NameQuerySet)()
+    ordered = NameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Secondary manager ordering"
+        verbose_name_plural = "Secondary manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class SourceCountOrderingManager(FormattedNameManager):
+    """Orders by an aggregate it annotates, with a plain-field tie-breaker.
+
+    `Meta.ordering` can name neither the annotation nor the aggregate behind it, so the manager is the
+    only place this ordering can live."""
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .annotate(source_count=models.Count("the_name_sources"))
+            .order_by("-source_count", "the_name_field")
+        )
+
+
+class AggregateManagerOrdering(VuedaModel):
+    """Orders through a default manager that sorts by an aggregate annotation it adds."""
+
+    the_name_field = models.CharField(max_length=255)
+    the_name_sources = models.ManyToManyField(ValidLookupExpression, blank=True)
+
+    formatted_name = None
+
+    objects = SourceCountOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Aggregate manager ordering"
+        verbose_name_plural = "Aggregate manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class AggregateManagerMetaOrdering(VuedaModel):
+    """Orders through a default manager that sorts by an aggregate annotation it adds, and also
+    declares a `Meta.ordering` that disagrees.
+
+    The manager replaces `Meta.ordering` on every query it builds, so a list that starts from it
+    arrives in the aggregate's order while `model_ordering.default` reports `Meta.ordering`.
+    `Meta.ordering` still applies through `Model._base_manager` and any unordered second manager, so
+    the model isn't wrong; a viewset that declares no `ordering` is."""
+
+    the_name_field = models.CharField(max_length=255)
+    the_name_sources = models.ManyToManyField(ValidLookupExpression, blank=True)
+
+    formatted_name = None
+
+    objects = SourceCountOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        ordering = ("the_name_field",)
+        verbose_name = "Aggregate manager meta ordering"
+        verbose_name_plural = "Aggregate manager meta ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class NameLengthOrderingManager(FormattedNameManager):
+    """Orders by a simple annotation it adds. The check doesn't judge how complex an annotation is."""
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("the_name_field")).order_by("name_length")
+
+
+class SimpleAnnotationManagerOrdering(VuedaModel):
+    """Orders through a default manager that sorts by a single-column annotation it adds."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = NameLengthOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Simple annotation manager ordering"
+        verbose_name_plural = "Simple annotation manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class MisspelledFOrderingManager(FormattedNameManager):
+    """Misspells the field inside an `F()`. Django resolves the name only when a query runs."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(models.F("the_name_feild").asc())
+
+
+class MisspelledFManagerOrdering(VuedaModel):
+    """Orders through a default manager whose `F()` names no field."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = MisspelledFOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Misspelled F manager ordering"
+        verbose_name_plural = "Misspelled F manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class MisspelledNameOrderingManager(FormattedNameManager):
+    """Misspells a plain string field name. Django rejects it inside `order_by()` itself, so the
+    manager raises as soon as it builds a queryset — which happens only when code first uses it."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_feild")
+
+
+class MisspelledNameManagerOrdering(VuedaModel):
+    """Orders through a default manager whose plain string name names no field."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = MisspelledNameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Misspelled name manager ordering"
+        verbose_name_plural = "Misspelled name manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class MisspelledTransformOrderingManager(FormattedNameManager):
+    """Misspells a transform after a real field. Django resolves the transform only when a query runs."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field__lowr")
+
+
+class MisspelledTransformManagerOrdering(VuedaModel):
+    """Orders through a default manager whose transform names nothing."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = MisspelledTransformOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Misspelled transform manager ordering"
+        verbose_name_plural = "Misspelled transform manager ordering"
 
     def __str__(self):
         return self.the_name_field

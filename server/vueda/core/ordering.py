@@ -145,8 +145,12 @@ def queryset_explicit_ordering(queryset):
     request ends up with. A filter backend replaces the ordering it finds — DRF's ``OrderingFilter``
     does exactly that whenever a view declares ``ordering`` or a client sends ``?o=`` — and a
     ``get_queryset`` can order differently per request. The ``vueda_info.E010`` system check compares
-    what this reads off a viewset's class-level ``queryset`` against what that viewset declares as its
-    default ordering; neither it nor this claims to know a request's final order.
+    what this reads off a viewset's list queryset against what that viewset declares as its default
+    ordering, and ``vueda_info.E015`` reads it off a model's default manager. Neither they nor this
+    claims to know a request's final order.
+
+    The terms are the same however the ordering was applied: by ``order_by()`` directly, by a custom
+    QuerySet method that calls it, or by a manager's ``get_queryset()``.
 
     An ordering set by ``extra(order_by=...)`` reports nothing. That is raw SQL rather than ordering
     terms, so it has no field paths to read, and reporting the terms it overrides would describe an

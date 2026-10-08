@@ -60,6 +60,78 @@ class ModelOrderingQuerysetSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class OtherNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.OtherNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DefaultManagerNameOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.DefaultManagerNameOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SecondaryManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SecondaryManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class AggregateManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.AggregateManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class AggregateManagerMetaOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.AggregateManagerMetaOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SimpleAnnotationManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SimpleAnnotationManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledFManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledFManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledTransformManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledTransformManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.FormattedNameExpressionNotString
