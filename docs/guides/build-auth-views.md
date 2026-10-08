@@ -216,7 +216,7 @@ import ButtonIcon from "@/components/ButtonIcon.vue";
 
 ## Build a Change-Password View
 
-Change-password is another hand-authored form variant. It uses `AuthForm` (a simpler wrapper than `AuthorizingForm` that does not watch login state or redirect):
+Change-password is another hand-authored form variant. It uses `AuthForm`, a simpler wrapper than `AuthorizingForm` that does not redirect after a successful sign-in. The server checks the current password and does not require a recent session for change-password, so the form sets `require-recent-auth` to `false`:
 
 ```vue
 <script setup>
@@ -245,7 +245,7 @@ const handleSubmit = ({ formValues }) => {
 </script>
 
 <template>
-    <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps">
+    <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps" :require-recent-auth="false">
         <template #action-form-inner>
             <FormField label="Current Password" name="old_password" required>
                 <WidgetTextInput :required="true" type="password" />
@@ -261,7 +261,18 @@ const handleSubmit = ({ formValues }) => {
 </template>
 ```
 
-`AuthForm` and `AuthorizingForm` share the same layout and slot structure. The difference is that `AuthForm` does not watch login state and does not redirect. Use `AuthForm` for authenticated operations that stay on the current page after success.
+`AuthForm` and `AuthorizingForm` share the same layout and slot structure. `AuthorizingForm` watches `loggedIn` and redirects the user once they sign in. `AuthForm` keeps a signed-in user on the form, and sends them away only when their session needs attention, as described below. Use `AuthForm` for operations by a signed-in user.
+
+By default, `AuthForm` treats its action as one that needs a recent session. When `authPendingFlow` names a reauthentication flow, it sends the user to the route named `reauthenticate`. That includes a flow that is already pending when the form opens. `authPendingFlow` belongs to the whole session: every who-is response sets it, including one triggered by another view or a route guard.
+
+The store actions that need a recent session, such as `setupTOTPDevice` and `getRecoveryCodes`, refetch the current user before they reject with an `UnauthorizedError`. `AuthForm` then handles the failed submission from the refetched state:
+
+- A signed-out user goes to the route named `sign-in`.
+- A user with a pending reauthentication flow goes to the route named `reauthenticate`. The flow change and the failed submission both lead there, and the user sees one toast and one navigation.
+- When the router cannot complete the `reauthenticate` navigation, the error goes to the form's usual error handling.
+- Every other error goes to the form's usual error handling.
+
+Set `require-recent-auth` to `false` for a form whose action the server accepts without a recent session, such as change-password. The user then stays on the form while a reauthentication flow is pending. `changePassword` does not refetch the current user, so an `UnauthorizedError` on change-password goes to the form's usual error handling.
 
 ## Hand-Authored Form Patterns
 
