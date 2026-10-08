@@ -19,7 +19,7 @@ class ProductManager(FormattedNameManager):
 
     Inherits `FormattedNameManager` rather than `models.Manager` because a VUEDA model that declares
     its own `objects` shadows the default manager and takes the `formatted_name` annotation with it —
-    the mistake `vueda_info.E009` reports, and the reason the inheritance is documented on
+    the mistake `vueda_core.E019` reports, and the reason the inheritance is documented on
     `FormattedNameManager` itself.
 
     `reverse()` reads one column and needs no join or subquery, so the annotation costs nothing on
