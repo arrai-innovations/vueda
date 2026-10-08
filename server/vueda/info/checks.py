@@ -16,7 +16,6 @@ from rest_flex_fields2.config import WILDCARD_VALUES
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION
 from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
-from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.formatted_name import path_multiplies_rows
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.ordering import NULLS_PLACEMENTS
@@ -111,64 +110,6 @@ def _validate_lookup_expression_path(model, lookup_expression):
             ),
             obj=model,
             id="vueda_info.E008",
-        )
-    ]
-
-
-def _validate_default_manager(model):
-    """
-    Report a model that needs the ``formatted_name`` annotation but whose default manager won't add it.
-
-    ``FormattedNameManager`` is what puts ``formatted_name`` on every queryset of a model that reaches
-    the value through ``formatted_name_lookup_expression``, and Django uses the first manager in
-    ``Meta.managers`` order as the default — so a model declaring its own ``objects`` shadows the one
-    ``FormattedNameBaseModel`` provides and silently loses the annotation. Nothing fails at import
-    time; instead ``formatted_name`` stops resolving on every queryset that manager builds, which is
-    every queryset except the ones ``VuedaViewSet.get_queryset`` annotates for itself.
-
-    That matters most for a model whose ``Meta.ordering`` names ``formatted_name``, which would raise
-    ``FieldError`` on every query rather than only where the name is used.
-    ``FormattedNameBaseModel._check_ordering`` asks about the default manager itself before
-    withholding that term from Django's ``models.E015``, so such a model is reported whether or not
-    it is registered — this check adds a hint aimed at the manager rather than at the ordering, and
-    covers the models whose ``Meta.ordering`` names something else while filtering and ordering by
-    ``formatted_name`` outside a request break just the same.
-
-    A manager declared on an abstract base counts as much as one declared on the model, and is the
-    easier case to miss, since the model naming the lookup expression may be several classes away
-    from the one naming the manager.
-    """
-    from vueda.core.models import FormattedNameManager
-
-    # The same rule the annotation itself is built from, so a model this reports is exactly a model
-    # that would have been annotated.
-    if formatted_name_annotation_path(model) is None:
-        return []
-
-    default_manager = model._meta.default_manager
-    if isinstance(default_manager, FormattedNameManager):
-        return []
-
-    if default_manager is None:
-        declared = "declares no default manager"
-    else:
-        declared = (
-            f"uses {type(default_manager).__name__} as its default manager, which does not inherit FormattedNameManager"
-        )
-
-    return [
-        Error(
-            f"{model.__name__} reaches formatted_name through formatted_name_lookup_expression but {declared}.",
-            hint=(
-                "FormattedNameManager is what annotates the lookup expression as `formatted_name` on "
-                "the model's own querysets. Subclass it instead of `models.Manager` (or pass it to "
-                "`Manager.from_queryset()` as the base), or point `Meta.default_manager_name` at a "
-                "manager that does. Without it `formatted_name` resolves only on querysets "
-                "`VuedaViewSet.get_queryset` builds, so ordering or filtering by it anywhere else — "
-                "including a `Meta.ordering` naming it — raises FieldError."
-            ),
-            obj=model,
-            id="vueda_info.E009",
         )
     ]
 
@@ -270,7 +211,6 @@ def _validate_model_formatted_name(model):
     # own. A falsey value never reaches here — the chain above reads it as "not configured".
     if has_lookup and isinstance(has_lookup, str):
         errors.extend(_validate_lookup_expression_path(model, has_lookup))
-        errors.extend(_validate_default_manager(model))
 
     errors.extend(_validate_select_related_pairing(model))
 
@@ -461,7 +401,7 @@ def _validate_ordering_declarations(model, viewset):
 
 
 def check_formatted_name_configuration(app_configs, **kwargs):
-    """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve (``vueda_info.E001`` to ``E005``, ``E008``, ``E009``, ``E011``)."""
+    """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve (``vueda_info.E001`` to ``E005``, ``E008``, ``E011``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []

@@ -7,7 +7,6 @@ from tests.erring.models.models import MultiValuedLookupExpression  # noqa: F401
 from tests.erring.models.models import NoExpandableFieldsData  # noqa: F401
 from tests.erring.models.models import NoNameField  # noqa: F401
 from tests.erring.models.models import NonVuedaFormattedName  # noqa: F401
-from tests.erring.models.models import PlainManagerLookupExpression  # noqa: F401
 from tests.erring.models.models import PropertyFormattedName  # noqa: F401
 from tests.erring.models.models import RelatedObjectsAreMissingData  # noqa: F401
 from tests.erring.models.models import SingleValuedLookupExpression  # noqa: F401
